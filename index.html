@@ -668,6 +668,29 @@ table input[type="date"] {
     </style>
 </head>
 <body>
+
+	// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBdqVEm3PWPuFTVbrxaP4JAZNXl2bmNUg4",
+  authDomain: "esh-dashboard.firebaseapp.com",
+  projectId: "esh-dashboard",
+  storageBucket: "esh-dashboard.firebasestorage.app",
+  messagingSenderId: "121684914529",
+  appId: "1:121684914529:web:d5292a3c30f1bba2959520",
+  measurementId: "G-TXYB9T0T3W"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+	
     <div id="login-overlay">
         <div class="login-card">
             <div style="background: var(--safety-green-grad); width: 60px; height: 60px; border-radius: 50%;
@@ -1878,4 +1901,5 @@ function showModernDialog(title, message, isDanger = false) {
         console.log('✅ ESH Dashboard Ready with Dark Mode\n📧 Demo: demo@scic.com\n🔑 Password: demo1234');
     </script>
 </body>
+
 </html>
