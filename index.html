@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESH COMPLIANCE DASHBOARD - SCIC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        :root {
+            --safety-green-grad: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+            --header-grad: linear-gradient(90deg, #1b5e20 0%, #388e3c 100%);
+            --safety-yellow: #fbc02d;
+            --bg-body: #f4f7f6;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --bg-card: #ffffff;
+            --border-color: #eee;
+            --table-header: #2e7d32;
+            --input-bg: #fdfdfd;
+        }
+
+        /* Dark Mode Variables */
+        body.dark-mode {
+            --text-primary: #e4e4e4;
+            --text-secondary: #b0b0b0;
+            --bg-body: #1a1a1a;
+            --bg-card: #2d2d2d;
+            --border-color: #444;
+            --table-header: #1b5e20;
+            --input-bg: #3a3a3a;
+        }
+
+        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { 
+            margin: 0; 
+            background: var(--bg-body); 
+            display: flex; 
+            height: 100vh; 
+            overflow: hidden;
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        #login-overlay {
+            position: fixed; inset: 0; background: linear-gradient(135deg, #0a2e10 0%, #1b5e20 100%);
+            display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px;
+        }
+
+        .login-card {
+            background: var(--bg-card); padding: 35px; border-radius: 15px; width: 100%; max-width: 480px;
+            text-align: center; border-bottom: 8px solid var(--safety-yellow); box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            color: var(--text-primary);
+        }
+
+        .login-card input {
+            width: 100%; padding: 15px; margin: 10px 0; border: 1px solid var(--border-color); border-radius: 8px;
+            font-size: 1rem; background: var(--input-bg); color: var(--text-primary);
+        }
+
+        .login-card input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .disclaimer-box {
+            background: #fff9c4; border: 1px solid #fbc02d; border-radius: 8px; padding: 15px;
+            margin-top: 25px; font-size: 0.72rem; color: #333; line-height: 1.4;
+        }
+
+        body.dark-mode .disclaimer-box {
+            background: #4a4a2d; border: 1px solid #fbc02d; color: #e4e4e4;
+        }
+
+        aside {
+            width: 260px; background: var(--safety-green-grad); color: white;
+            display: flex; flex-direction: column; flex-shrink: 0; z-index: 100; box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+
+        .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        .nav-item {
+            padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px;
+            transition: 0.3s; font-size: 0.75rem;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.1); }
+        .nav-item.active { background: rgba(255,255,255,0.2); border-left: 5px solid var(--safety-yellow); font-weight: 600; }
+        
+        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-body); }
+        
+        header {
+            background: var(--bg-card); padding: 12px 15px; border-bottom: 1px solid var(--border-color); position: sticky;
+            top: 0; z-index: 90; display: flex; gap: 15px; align-items: center; justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .header-title { font-size: 1.1rem; color: #1b5e20; font-weight: 600; }
+        .header-controls { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        .header-controls input, .header-controls select {
+            padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.8rem;
+            background: var(--input-bg); color: var(--text-primary);
+        }
+
+        /* Dark Mode Toggle Button */
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .theme-toggle:hover {
+            background: var(--border-color);
+            transform: scale(1.05);
+        }
+
+        .btn {
+            padding: 8px 15px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600;
+            font-size: 0.75rem; white-space: nowrap;
+        }
+        .btn-primary { background: var(--safety-green-grad); color: white; }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-secondary { background: var(--border-color); color: var(--text-primary); }
+        .btn-secondary:hover { background: #ccc; }
+        .btn-danger { background: #d32f2f; color: white; }
+        .btn-danger:hover { background: #b71c1c; }
+
+        .region-banner {
+            background: var(--header-grad); color: white; padding: 15px 20px;
+            margin: 20px 20px 0; border-radius: 6px; font-weight: 700; display: flex;
+            justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;
+        }
+        .badge { background: var(--safety-yellow); color: #1b5e20; padding: 4px 12px;
+            border-radius: 20px; font-size: 0.7rem; font-weight: 800; }
+        .sort-select {
+            background: rgba(255,255,255,0.2); color: white; padding: 6px 10px;
+            border: 1px solid rgba(255,255,255,0.3); border-radius: 4px;
+        }
+        .sort-select option { background: #1b5e20; color: white; }
+
+        .project-row {
+            background: var(--bg-card); border: 1px solid var(--border-color); padding: 12px 15px; border-radius: 8px;
+            margin: 0 20px 8px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;
+        }
+        .project-checkbox { width: 20px; height: 20px; cursor: pointer; }
+        .circular-progress {
+            width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; background: conic-gradient(#1b5e20 var(--percentage), #e0e0e0 var(--percentage));
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); flex-shrink: 0;
+        }
+        .circular-progress-inner {
+            width: 44px; height: 44px; border-radius: 50%; background: var(--bg-card); display: flex;
+            align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem; color: #1b5e20;
+        }
+        .project-info { display: flex; flex-direction: column; gap: 3px; flex-grow: 1; min-width: 150px; }
+        .project-name { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+        .project-meta { font-size: 0.65rem; color: var(--text-secondary); }
+        .project-dates { display: flex; flex-direction: column; gap: 2px; min-width: 200px; font-size: 0.65rem; }
+        .date-label { font-weight: 600; color: #1b5e20; }
+        .status-badge {
+            padding: 6px 12px; border-radius: 4px; color: white; font-weight: 600; font-size: 0.65rem;
+            cursor: pointer; text-transform: uppercase; transition: 0.2s;
+        }
+        .status-ongoing { background: #1976D2; }
+        .status-stoppage { background: #d32f2f; }
+        .status-finished { background: #616161; }
+
+        .modal {
+            display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%;
+            height: 100%; background: rgba(0,0,0,0.4); align-items: center; justify-content: center;
+        }
+        .modal.show { display: flex; }
+        .modal-content {
+            background: var(--bg-card); padding: 30px; border-radius: 12px; width: 90%; max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2); color: var(--text-primary);
+        }
+        .modal-header { font-size: 1.2rem; font-weight: 700; color: #1b5e20; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center; }
+        .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 5px; color: var(--text-primary); }
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem;
+            background: var(--input-bg); color: var(--text-primary);
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none; border-color: #1b5e20; box-shadow: 0 0 5px rgba(27,94,32,0.2);
+        }
+        .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .error-message { color: #d32f2f; font-size: 0.8rem; margin-top: 10px; }
+        .success-message { color: #1b5e20; font-size: 0.8rem; margin-top: 10px; font-weight: 600; }
+        .hidden { display: none !important; }
+        
+/* Backup & Recovery Styles */
+.backup-section {
+    background: var(--bg-card);
+    border-left: 5px solid #1b5e20;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.backup-section h4 {
+    margin-top: 0;
+    color: #1b5e20;
+    font-size: 1rem;
+}
+
+.backup-info {
+    background: #f5f5f5;
+    padding: 12px;
+    border-radius: 6px;
+    margin: 12px 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+body.dark-mode .backup-info {
+    background: #3a3a3a;
+}
+
+.backup-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.backup-status {
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    margin-top: 10px;
+    font-weight: 600;
+}
+
+.backup-status.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border-left: 4px solid #4caf50;
+}
+
+.backup-status.error {
+    background: #ffebee;
+    color: #c62828;
+    border-left: 4px solid #f44336;
+}
+
+.backup-status.info {
+    background: #e3f2fd;
+    color: #1565c0;
+    border-left: 4px solid #2196f3;
+}
+
+body.dark-mode .backup-status.success {
+    background: #1b5e20;
+    color: #81c784;
+}
+
+body.dark-mode .backup-status.error {
+    background: #5a1414;
+    color: #ef5350;
+}
+
+body.dark-mode .backup-status.info {
+    background: #1a3a52;
+    color: #64b5f6;
+}
+
+.backup-list {
+    margin-top: 15px;
+}
+
+.backup-item {
+    background: #f9f9f9;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    border-left: 3px solid #fbc02d;
+}
+
+body.dark-mode .backup-item {
+    background: #3a3a3a;
+}
+
+.backup-item-info {
+    flex-grow: 1;
+}
+
+.backup-item-date {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.backup-item-size {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.backup-item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.backup-item-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.backup-item-btn-restore {
+    background: #1b5e20;
+    color: white;
+}
+
+.backup-item-btn-restore:hover {
+    background: #0a2e10;
+}
+
+.backup-item-btn-delete {
+    background: #d32f2f;
+    color: white;
+}
+
+.backup-item-btn-delete:hover {
+    background: #b71c1c;
+}
+
+.backup-progress {
+    width: 100%;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    margin: 10px 0;
+    overflow: hidden;
+}
+
+.backup-progress-bar {
+    height: 100%;
+    background: var(--safety-green-grad);
+    border-radius: 3px;
+    animation: progress 2s ease-in-out infinite;
+}
+
+@keyframes progress {
+    0% { width: 0%; }
+    50% { width: 100%; }
+    100% { width: 0%; }
+}
+
+
+/* Modern Dialog Styles */
+.modern-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.modern-dialog {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    color: var(--text-primary);
+}
+
+.modern-dialog-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+    color: #1b5e20;
+}
+
+.modern-dialog-message {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin: 0 0 25px 0;
+    line-height: 1.5;
+}
+
+.modern-dialog-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.modern-dialog-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.modern-dialog-btn-cancel {
+    background: var(--border-color);
+    color: var(--text-primary);
+}
+
+.modern-dialog-btn-cancel:hover {
+    background: #ccc;
+}
+
+.modern-dialog-btn-confirm {
+    background: var(--safety-green-grad);
+    color: white;
+}
+
+.modern-dialog-btn-confirm:hover {
+    opacity: 0.9;
+}
+
+.modern-dialog-btn-danger {
+    background: #d32f2f;
+    color: white;
+}
+
+.modern-dialog-btn-danger:hover {
+    background: #b71c1c;
+}
+
+	.status-dropdown {
+    position: absolute;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    min-width: 150px;
+}
+
+.status-dropdown button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    transition: 0.2s;
+}
+
+.status-dropdown button:hover {
+    background: var(--border-color);
+}
+
+        /* IMPROVED TABLE STYLES */
+        .table-container {
+            margin: 10px 20px; overflow-x: auto; padding: 10px; background: var(--bg-card);
+            border: 1px solid var(--border-color); border-radius: 8px;
+        }
+        
+        table { 
+            width: auto;
+            min-width: 100%;
+            border-collapse: collapse; 
+            font-size: 0.7rem;
+            table-layout: auto;
+            color: var(--text-primary);
+        }
+        
+        th { 
+    background: var(--table-header); 
+    color: white; 
+    padding: 10px 8px; 
+    border: 1px solid #1b5e20;
+    white-space: nowrap;
+    min-width: auto;
+    width: auto;
+}
+        
+        td { 
+    border: 1px solid var(--border-color); 
+    padding: 8px 6px; 
+    text-align: center;
+    min-width: auto;
+    width: auto;
+    background: var(--bg-card);
+    white-space: nowrap;
+}
+        
+        td:first-child {
+            text-align: left;
+            min-width: 200px;
+            font-weight: 600;
+            background: var(--border-color);
+        }
+        
+        /* Previous Year Column - Light Blue */
+        td.prev-year {
+    background: #e3f2fd;
+    font-weight: 600;
+    color: #1565c0;
+    min-width: auto;
+    width: auto;
+}
+
+        body.dark-mode td.prev-year {
+            background: #1a3a52;
+            color: #64b5f6;
+        }
+        
+        th.prev-year {
+            background: #1565c0;
+        }
+        
+        /* Monthly Columns - Default */
+       /* Monthly Columns - Default */
+td.monthly-data {
+    background: var(--bg-card);
+    min-width: auto;
+    width: auto;
+}
+        
+        /* YTD Column - Yellow */
+        /* YTD Column - Yellow */
+td.ytd-cell {
+    background: #fff59d;
+    font-weight: 700;
+    color: #f57f17;
+    min-width: auto;
+    width: auto;
+    padding: 8px 12px;
+}
+        }
+
+        body.dark-mode td.ytd-cell {
+            background: #4a4a1f;
+            color: #ffd54f;
+        }
+        
+        th.ytd-header {
+            background: #f9a825;
+            color: white;
+            min-width: 90px;
+        }
+
+        body.dark-mode th.ytd-header {
+            background: #e65100;
+            color: white;
+        }
+        
+        /* Average Column - Light Yellow */
+       /* Average Column - Light Yellow */
+td.average-cell {
+    background: #fffde7;
+    font-weight: 700;
+    color: #f57f17;
+    min-width: auto;
+    width: auto;
+    padding: 8px 12px;
+}
+
+        body.dark-mode td.average-cell {
+            background: #4a4a1f;
+            color: #ffd54f;
+        }
+        
+        th.average-header {
+            background: #fbc02d;
+            color: #333;
+            min-width: 90px;
+        }
+
+        body.dark-mode th.average-header {
+            background: #e65100;
+            color: white;
+        }
+        
+        table input {
+            width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            padding: 6px 4px;
+            font-size: 0.7rem;
+            text-align: center;
+            font-weight: 500;
+            box-sizing: border-box;
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+        
+        table input:disabled { 
+            background: transparent; 
+            border: none; 
+            color: var(--text-primary); 
+            font-weight: 600;
+        }
+        
+        table input[type="number"] {
+    min-width: auto;
+    width: auto;
+    padding: 6px 4px;
+}
+
+table input[type="date"] {
+    min-width: auto;
+    width: auto;
+    padding: 6px 4px;
+}
+        
+        #grand-stats {
+            margin: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;
+        }
+        .stat-card {
+            background: var(--bg-card); padding: 15px; border-radius: 8px; border-left: 5px solid #1b5e20;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); color: var(--text-primary);
+        }
+        .stat-value { font-size: 1.5rem; font-weight: 900; color: #1b5e20; margin-top: 5px; }
+        .stat-label { font-size: 0.65rem; color: var(--text-secondary); font-weight: 700; }
+        .charts-container {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;
+            padding: 20px; margin-top: 0;
+        }
+        .chart-box {
+            background: var(--bg-card); padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            color: var(--text-primary);
+        }
+        .chart-box h3 {
+            color: #1b5e20; margin-top: 0; font-size: 0.95rem; border-bottom: 2px solid var(--safety-yellow);
+            padding-bottom: 10px;
+        }
+        .chart-box canvas { max-height: 300px; }
+        .loading-spinner {
+            display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .logout-btn {
+            width: 100%; background: rgba(255,255,255,0.1); color: white;
+            border: 1px solid rgba(255,255,255,0.2); padding: 10px; cursor: pointer;
+            font-size: 0.75rem; border-radius: 4px;
+        }
+        .user-badge { background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 4px;
+            font-size: 0.7rem; margin-top: 10px; border: 1px solid rgba(255,255,255,0.3); }
+
+        #dashboard-content {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div id="login-overlay">
+        <div class="login-card">
+            <div style="background: var(--safety-green-grad); width: 60px; height: 60px; border-radius: 50%;
+                display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: white; font-size: 1.5rem;">
+                <i class="fas fa-shield-halved"></i>
+            </div>
+            <h2 style="color:#1b5e20; margin:0 0 5px 0; font-size: 1.1rem; letter-spacing: 1px;">ESH COMPLIANCE DASHBOARD</h2>
+            <p style="margin:0 0 20px 0; font-size: 0.75rem; font-weight: 600; color: #666;">STA. CLARA INTERNATIONAL CORPORATION</p>
+            <form onsubmit="handleLogin(event)" autocomplete="off">
+                <input type="email" id="login-user" placeholder="Email Address" required autocomplete="off">
+                <input type="password" id="login-pass" placeholder="Password" required autocomplete="off">
+                <button type="submit" class="btn btn-primary" id="login-btn" style="width:100%; margin-top:15px; padding: 12px; font-size: 0.9rem;">
+                    <i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM
+                </button>
+            </form>
+            <div id="login-error" class="error-message"></div>
+            <div class="disclaimer-box">
+                <strong><i class="fas fa-circle-exclamation"></i> DEMO ACCOUNT:</strong><br>
+                Email: <code style="background:#f0f0f0; padding:2px 4px;">demo@scic.com</code><br>
+                Password: <code style="background:#f0f0f0; padding:2px 4px;">demo1234</code>
+            </div>
+        </div>
+    </div>
+
+    <div id="addProjectModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Add New Project</span>
+                <button class="modal-close" onclick="closeAddProjectModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>Project Name *</label>
+                <input type="text" id="projectNameInput" placeholder="Enter project name" required>
+            </div>
+            <div class="form-group">
+                <label>Date Started *</label>
+                <input type="date" id="projectDateStarted" required>
+            </div>
+            <div class="form-group">
+                <label>Date Finished</label>
+                <input type="date" id="projectDateFinished">
+            </div>
+            <div class="form-group">
+                <label>Region *</label>
+                <select id="projectRegion" required>
+                    <option value="">Select Region</option>
+                    <option value="NCR">NCR</option>
+                    <option value="SOUTH LUZON">South Luzon</option>
+                    <option value="NORTH LUZON">North Luzon</option>
+                    <option value="VISAYAS & MINDANAO">Visayas & Mindanao</option>
+                </select>
+            </div>
+
+
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeAddProjectModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmAddProject()">Add Project</button>
+            </div>
+            <div id="projectModalError" class="error-message"></div>
+        </div>
+    </div>
+
+    <aside id="main-sidebar" class="hidden">
+        <div class="sidebar-header">
+            <div style="font-size: 1.4rem; font-weight: 900; line-height: 1.1; margin-top: 5px;">ESH <span style="color:var(--safety-yellow)">COMPLIANCE</span><br>DASHBOARD</div>
+            <div id="live-date" style="font-size: 0.6rem; color: #a5d6a7; margin-top: 10px;"></div>
+            <div id="live-clock" style="color: var(--safety-yellow); font-size: 0.8rem; font-weight: 700;"></div>
+            <div id="user-badge" class="user-badge"></div>
+        </div>
+        <nav style="flex-grow: 1; padding-top: 10px;">
+            <div class="nav-item active" data-tab="overall" onclick="changeTab('overall')"><i class="fas fa-chart-pie"></i> Overall Dashboard</div>
+            <div class="nav-item" data-tab="exposures" onclick="changeTab('exposures')"><i class="fas fa-clock"></i> Total Exposures</div>
+            <div class="nav-item" data-tab="rates" onclick="changeTab('rates')"><i class="fas fa-chart-line"></i> Statistics Rate</div>
+            <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-kit-medical"></i> Medical & Incidents</div>
+            <div class="nav-item" data-tab="environment" onclick="changeTab('environment')"><i class="fas fa-leaf"></i> Environment</div>
+            <div class="nav-item" data-tab="activities" onclick="changeTab('activities')"><i class="fas fa-list-check"></i> ESH Activities</div>
+            <div class="nav-item" data-tab="cshp" onclick="changeTab('cshp')"><i class="fas fa-calendar-check"></i> CSHP</div>
+            <div class="nav-item" data-tab="dole" onclick="changeTab('dole')"><i class="fas fa-file-export"></i> DOLE Reportorial</div>
+            <div class="nav-item" data-tab="settings" onclick="changeTab('settings')"><i class="fas fa-cog"></i> Settings</div>
+        </nav>
+        <div style="padding: 15px;">
+            <button onclick="handleLogout()" class="logout-btn">
+                <i class="fas fa-power-off"></i> LOGOUT SESSION
+            </button>
+        </div>
+    </aside>
+
+    <main id="main-content" class="hidden">
+        <header>
+            <h2 class="header-title">OVERALL DASHBOARD</h2>
+            <div class="header-controls">
+                <input type="text" id="search-input" placeholder="Search projects..." onkeyup="handleSearch()" style="display: none;">
+                <select id="region-filter" onchange="handleFilter()" style="display: none;">
+                    <option value="">All Regions</option>
+                    <option value="NCR">NCR</option>
+                    <option value="SOUTH LUZON">South Luzon</option>
+                    <option value="NORTH LUZON">North Luzon</option>
+                    <option value="VISAYAS & MINDANAO">Visayas & Mindanao</option>
+                </select>
+                <select id="status-filter" onchange="handleFilter()" style="display: none;">
+                    <option value="">All Status</option>
+                    <option value="on-going">On-Going</option>
+                    <option value="work-stoppage">Work Stoppage</option>
+                    <option value="finished">Finished</option>
+                </select>
+                <div style="display:flex; gap: 8px;" id="edit-controls" style="display: none;">
+                    <button onclick="exportToCSV()" class="btn btn-primary" title="Export to CSV" style="display: none;" id="btn-csv">
+                        <i class="fas fa-download"></i> CSV
+                    </button>
+                    <button onclick="exportToPDF()" class="btn btn-primary" title="Export to PDF" style="display: none;" id="btn-pdf">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                </div>
+                <button class="theme-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                </button>
+                <button id="edit-btn" class="btn btn-primary" onclick="toggleEdit()"><i class="fas fa-edit"></i> EDIT</button>
+                <button id="save-btn" class="btn btn-primary hidden" onclick="saveData()"><i class="fas fa-save"></i> SAVE</button>
+            </div>
+        </header>
+        <div id="dashboard-content"></div>
+        <div id="settings-view" class="hidden" style="max-width: 600px; margin: 40px auto; background: var(--bg-card); padding: 30px; border-radius: 12px; color: var(--text-primary);">
+    <h3 style="color: #1b5e20; border-bottom: 2px solid var(--safety-yellow); padding-bottom: 5px;">Account Settings</h3>
+    <div class="form-group">
+        <label>Current Email:</label>
+        <input type="email" id="current-email" disabled>
+    </div>
+    <div class="form-group">
+        <label>New Password</label>
+        <input type="password" id="new-password" placeholder="Enter new password">
+    </div>
+    <div class="form-group">
+        <label>Confirm Password</label>
+        <input type="password" id="confirm-password" placeholder="Confirm password">
+    </div>
+    <button class="btn btn-primary" style="width:100%; padding: 10px;" onclick="updatePassword()">UPDATE PASSWORD</button>
+    <div id="settings-message"></div>
+
+    <div id="backup-recovery-section" style="margin-top: 30px;"></div>
+</div>
+            <h3 style="color: #1b5e20; border-bottom: 2px solid var(--safety-yellow); padding-bottom: 5px;">Account Settings</h3>
+            <div class="form-group">
+                <label>Current Email:</label>
+                <input type="email" id="current-email" disabled>
+            </div>
+            <div class="form-group">
+                <label>New Password</label>
+                <input type="password" id="new-password" placeholder="Enter new password">
+            </div>
+            <div class="form-group">
+                <label>Confirm Password</label>
+                <input type="password" id="confirm-password" placeholder="Confirm password">
+            </div>
+            <button class="btn btn-primary" style="width:100%; padding: 10px;" onclick="updatePassword()">UPDATE PASSWORD</button>
+            <div id="settings-message"></div>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+
+// ===== BACKUP & RECOVERY SYSTEM =====
+let backupManager = {
+    backups: [],
+    autoSaveInterval: null,
+    maxBackups: 10,
+    autoSaveFrequency: 300000, // 5 minutes in milliseconds
+
+    init() {
+        this.loadBackupsFromStorage();
+        this.startAutoSave();
+        console.log('✅ Backup Manager Initialized');
+    },
+
+    loadBackupsFromStorage() {
+        const saved = localStorage.getItem('esh_backups');
+        this.backups = saved ? JSON.parse(saved) : [];
+    },
+
+    saveBackupsToStorage() {
+        localStorage.setItem('esh_backups', JSON.stringify(this.backups));
+    },
+
+    createBackup(manual = false) {
+        if (!state.currentUser) return false;
+
+        const backup = {
+            id: Date.now(),
+            timestamp: new Date().toISOString(),
+            email: state.currentUser.email,
+            projects: JSON.parse(JSON.stringify(state.projects)),
+            manual: manual,
+            size: JSON.stringify(state.projects).length
+        };
+
+        this.backups.unshift(backup);
+
+        // Keep only latest backups
+        if (this.backups.length > this.maxBackups) {
+            this.backups = this.backups.slice(0, this.maxBackups);
+        }
+
+        this.saveBackupsToStorage();
+        return backup;
+    },
+
+    startAutoSave() {
+        this.autoSaveInterval = setInterval(() => {
+            if (state.isLoggedIn) {
+                this.createBackup(false);
+                console.log('✅ Auto-backup created');
+            }
+        }, this.autoSaveFrequency);
+    },
+
+    stopAutoSave() {
+        if (this.autoSaveInterval) {
+            clearInterval(this.autoSaveInterval);
+        }
+    },
+
+    getBackupsForUser(email) {
+        return this.backups.filter(b => b.email === email);
+    },
+
+    restoreBackup(backupId) {
+        const backup = this.backups.find(b => b.id === backupId);
+        if (!backup) {
+            console.error('Backup not found');
+            return false;
+        }
+
+        state.projects = JSON.parse(JSON.stringify(backup.projects));
+        state.filteredProjects = [...state.projects];
+        saveUserData(state.currentUser.email);
+        render();
+        return true;
+    },
+
+    deleteBackup(backupId) {
+        this.backups = this.backups.filter(b => b.id !== backupId);
+        this.saveBackupsToStorage();
+        return true;
+    },
+
+    exportBackup(backupId) {
+        const backup = this.backups.find(b => b.id === backupId);
+        if (!backup) return false;
+
+        const dataStr = JSON.stringify(backup, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `esh_backup_${backup.timestamp.split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        return true;
+    },
+
+    importBackup(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const backup = JSON.parse(e.target.result);
+                    if (backup.projects && Array.isArray(backup.projects)) {
+                        state.projects = backup.projects;
+                        state.filteredProjects = [...state.projects];
+                        saveUserData(state.currentUser.email);
+                        this.createBackup(true);
+                        render();
+                        resolve(true);
+                    } else {
+                        resolve(false);
+                    }
+                } catch (error) {
+                    console.error('Error importing backup:', error);
+                    resolve(false);
+                }
+            };
+            reader.readAsText(file);
+        });
+    },
+
+    formatDate(isoString) {
+        const date = new Date(isoString);
+        return date.toLocaleString('en-PH', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    },
+
+    formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+};
+
+function showBackupRecoveryUI() {
+    const userBackups = backupManager.getBackupsForUser(state.currentUser.email);
+    const lastBackup = userBackups[0];
+    const lastBackupTime = lastBackup ? backupManager.formatDate(lastBackup.timestamp) : 'Never';
+
+    let html = `
+        <div class="backup-section">
+            <h4><i class="fas fa-shield-alt"></i> Backup & Recovery</h4>
+            
+            <div class="backup-info">
+                <strong>Last Auto-Backup:</strong> ${lastBackupTime}<br>
+                <strong>Total Backups:</strong> ${userBackups.length} / ${backupManager.maxBackups}<br>
+                <strong>Auto-save Frequency:</strong> Every 5 minutes
+            </div>
+
+            <div class="backup-buttons">
+                <button class="btn btn-primary" onclick="createManualBackup()">
+                    <i class="fas fa-download"></i> Create Manual Backup
+                </button>
+                <button class="btn btn-primary" onclick="exportCurrentBackup()">
+                    <i class="fas fa-file-export"></i> Export Backup
+                </button>
+                <button class="btn btn-primary" onclick="document.getElementById('import-backup-input').click()">
+                    <i class="fas fa-file-import"></i> Import Backup
+                </button>
+            </div>
+
+            <input type="file" id="import-backup-input" accept=".json" style="display:none;" onchange="importBackupFile(this)">
+
+            <div id="backup-status-message"></div>
+
+            <div class="backup-list">
+                <h5 style="color: #1b5e20; margin-top: 20px; margin-bottom: 10px;">
+                    <i class="fas fa-history"></i> Backup History
+                </h5>
+                ${userBackups.length > 0 ? userBackups.map(backup => `
+                    <div class="backup-item">
+                        <div class="backup-item-info">
+                            <div class="backup-item-date">
+                                ${backup.manual ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>'} 
+                                ${backupManager.formatDate(backup.timestamp)}
+                            </div>
+                            <div class="backup-item-size">
+                                ${backupManager.formatSize(backup.size)} • 
+                                ${backup.projects.length} projects
+                            </div>
+                        </div>
+                        <div class="backup-item-actions">
+                            <button class="backup-item-btn backup-item-btn-restore" onclick="restoreBackupConfirm(${backup.id})">
+                                <i class="fas fa-undo"></i> Restore
+                            </button>
+                            <button class="backup-item-btn backup-item-btn-delete" onclick="deleteBackupConfirm(${backup.id})">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                `).join('') : '<p style="color: var(--text-secondary); font-size: 0.85rem;">No backups available</p>'}
+            </div>
+        </div>
+    `;
+
+    return html;
+}
+
+function createManualBackup() {
+    const backup = backupManager.createBackup(true);
+    if (backup) {
+        showBackupStatus('✅ Backup created successfully!', 'success');
+        setTimeout(() => {
+            changeTab('settings');
+        }, 500);
+    }
+}
+
+function exportCurrentBackup() {
+    const userBackups = backupManager.getBackupsForUser(state.currentUser.email);
+    if (userBackups.length === 0) {
+        showBackupStatus('⚠️ No backups to export', 'error');
+        return;
+    }
+    backupManager.exportBackup(userBackups[0].id);
+    showBackupStatus('✅ Backup exported successfully!', 'success');
+}
+
+function importBackupFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    backupManager.importBackup(file).then(success => {
+        if (success) {
+            showBackupStatus('✅ Backup imported and restored successfully!', 'success');
+            setTimeout(() => {
+                changeTab('settings');
+            }, 500);
+        } else {
+            showBackupStatus('❌ Invalid backup file format', 'error');
+        }
+    });
+
+    input.value = '';
+}
+
+function restoreBackupConfirm(backupId) {
+    const backup = backupManager.backups.find(b => b.id === backupId);
+    if (!backup) return;
+
+    showModernDialog(
+        'Restore Backup',
+        `Restore data from ${backupManager.formatDate(backup.timestamp)}? Your current data will be replaced.`,
+        false
+    ).then(confirmed => {
+        if (confirmed) {
+            if (backupManager.restoreBackup(backupId)) {
+                showBackupStatus('✅ Backup restored successfully!', 'success');
+                setTimeout(() => {
+                    changeTab('overall');
+                }, 500);
+            } else {
+                showBackupStatus('❌ Failed to restore backup', 'error');
+            }
+        }
+    });
+}
+
+function deleteBackupConfirm(backupId) {
+    const backup = backupManager.backups.find(b => b.id === backupId);
+    if (!backup) return;
+
+    showModernDialog(
+        'Delete Backup',
+        `Delete backup from ${backupManager.formatDate(backup.timestamp)}? This cannot be undone.`,
+        true
+    ).then(confirmed => {
+        if (confirmed) {
+            if (backupManager.deleteBackup(backupId)) {
+                showBackupStatus('✅ Backup deleted successfully!', 'success');
+                setTimeout(() => {
+                    changeTab('settings');
+                }, 500);
+            } else {
+                showBackupStatus('❌ Failed to delete backup', 'error');
+            }
+        }
+    });
+}
+
+function showBackupStatus(message, type) {
+    const statusDiv = document.getElementById('backup-status-message');
+    if (!statusDiv) return;
+
+    statusDiv.innerHTML = `<div class="backup-status ${type}">${message}</div>`;
+    setTimeout(() => {
+        statusDiv.innerHTML = '';
+    }, 4000);
+}
+
+        const VALID_CREDENTIALS = { 'demo@scic.com': 'demo1234' };
+        const REGIONS = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
+        const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+        const SCHEMA = {
+            'exposures': ["Total Manpower", "Total Exposed Manhour", "Total Exposed Man-hour to date", "No. of Days w/o LTA"],
+            'rates': ["FREQUENCY RATE", "SEVERITY RATE", "Loss Time Incident Rate"],
+            'medical': ["High-Potential incident", "Dangerous Occurrences"],
+            'environment': ["Internal Issues", "External Issues"],
+            'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "Drills Conducted", "Training Conducted"],
+            'dole': ["AEDR", "AMR", "RSO", "MOM", "KPM&I"],
+            'cshp': ["CSHP Approval Date"]
+        };
+
+        const FULL_PROJECT_LIST = {
+            "NCR": ["ANGAT", "CENTRAL OFFICE", "HDD MERALCO", "MERALCO HDD SOUTH", "MRT 7", "56ML RESERVOIR"],
+            "SOUTH LUZON": ["ACCESS ROAD 335MW", "EAST BAY", "KALAYAAN CBOP", "KALAYAAN EBOP", "ROLLING MILL (LEMERY)", "TR4", "500kV PAETE SUBSTATION"],
+            "NORTH LUZON": ["BALOG-BALOG", "BAMBAN-HANN", "CASTILLEJOS", "COCA COLA", "KAPANGAN", "MORONG - BCDA", "SAN SIMON", "TUMAUINI", "UPS CLARK"],
+            "VISAYAS & MINDANAO": ["CABULIG 2", "CALAPE BOHOL", "CLARIN", "HIBALE BOHOL", "LEYTE PHASE 2", "MALADUGAO", "MALITBOG", "MANGIMA", "MAT-I", "SIGUIL HEPP"]
+        };
+
+        let state = {
+            isLoggedIn: false,
+            isEditing: false,
+            currentTab: 'overall',
+            currentUser: null,
+            projects: [],
+            filteredProjects: [],
+            selectedProjects: [],
+            charts: {},
+            currentSort: 'name',
+            darkMode: false
+        };
+
+        // ===== DARK MODE FUNCTIONS =====
+        function initDarkMode() {
+            const savedTheme = localStorage.getItem('esh_theme_preference');
+            if (savedTheme === 'dark') {
+                enableDarkMode();
+            } else {
+                disableDarkMode();
+            }
+        }
+
+        function toggleDarkMode() {
+            if (document.body.classList.contains('dark-mode')) {
+                disableDarkMode();
+            } else {
+                enableDarkMode();
+            }
+        }
+
+        function enableDarkMode() {
+            document.body.classList.add('dark-mode');
+            state.darkMode = true;
+            localStorage.setItem('esh_theme_preference', 'dark');
+            updateThemeIcon();
+            console.log('✅ Dark mode enabled');
+        }
+
+        function disableDarkMode() {
+            document.body.classList.remove('dark-mode');
+            state.darkMode = false;
+            localStorage.setItem('esh_theme_preference', 'light');
+            updateThemeIcon();
+            console.log('✅ Light mode enabled');
+        }
+
+        function updateThemeIcon() {
+            const icon = document.getElementById('theme-icon');
+            if (document.body.classList.contains('dark-mode')) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+        }
+
+        // ===== LOGIN & AUTH =====
+        function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('login-user').value.trim().toLowerCase();
+            const password = document.getElementById('login-pass').value;
+            const errorDiv = document.getElementById('login-error');
+            const loginBtn = document.getElementById('login-btn');
+
+            errorDiv.innerText = '';
+
+            if (!email || !password) {
+                errorDiv.innerText = '⚠️ Please enter both email and password';
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span class="loading-spinner"></span> Signing in...';
+
+            setTimeout(() => {
+                if (VALID_CREDENTIALS[email] && VALID_CREDENTIALS[email] === password) {
+                    state.currentUser = { email };
+                    state.isLoggedIn = true;
+                    sessionStorage.setItem('esh_logged_in', 'true');
+                    sessionStorage.setItem('esh_user_email', email);
+                    loadUserData(email);
+                    showUI();
+                    initDarkMode();
+                    console.log('✅ Login successful!');
+                } else {
+                    errorDiv.innerText = '❌ Invalid email or password';
+                }
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM';
+            }, 800);
+        }
+
+      function handleLogout() {
+    showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(confirmed => {
+        if (confirmed) {
+            backupManager.stopAutoSave();
+            state.isLoggedIn = false;
+            state.currentUser = null;
+            sessionStorage.clear();
+            location.reload();
+        }
+    });
+}
+
+        function loadUserData(email) {
+            const storageKey = `esh_dashboard_${email}`;
+            const savedData = localStorage.getItem(storageKey);
+
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                state.projects = data.projects || [];
+                state.currentSort = data.currentSort || 'name';
+            } else {
+                initializeUserProjects(email);
+            }
+            state.filteredProjects = [...state.projects];
+        }
+
+        function initializeUserProjects(email) {
+            state.projects = [];
+            Object.keys(FULL_PROJECT_LIST).forEach(reg => {
+                FULL_PROJECT_LIST[reg].forEach(name => {
+                    state.projects.push({
+                        name,
+                        region: reg,
+                        status: 'on-going',
+                        dateStarted: '',
+                        dateFinished: '',
+                        vals: {},
+                        selected: false
+                    });
+                });
+            });
+            sortProjects('name');
+            saveUserData(email);
+        }
+
+        function saveUserData(email) {
+            if (!email) return;
+            const storageKey = `esh_dashboard_${email}`;
+            const data = {
+                projects: state.projects.map(p => {
+                    const copy = { ...p };
+                    delete copy.selected;
+                    return copy;
+                }),
+                currentSort: state.currentSort,
+                lastSaved: new Date().toISOString()
+            };
+            localStorage.setItem(storageKey, JSON.stringify(data));
+        }
+
+        function sortProjects(sortBy) {
+            state.currentSort = sortBy;
+            state.projects.sort((a, b) => {
+                if (sortBy === 'name') return a.name.localeCompare(b.name);
+                if (sortBy === 'dateStarted') {
+                    const da = new Date(a.dateStarted || '9999-12-31');
+                    const db = new Date(b.dateStarted || '9999-12-31');
+                    return da - db;
+                }
+                if (sortBy === 'dateFinished') {
+                    const da = new Date(a.dateFinished || '9999-12-31');
+                    const db = new Date(b.dateFinished || '9999-12-31');
+                    return da - db;
+                }
+                return 0;
+            });
+            state.filteredProjects = [...state.projects];
+            saveUserData(state.currentUser?.email);
+            render();
+        }
+
+        function openAddProjectModal(region) {
+            document.getElementById('projectNameInput').value = '';
+            document.getElementById('projectDateStarted').value = '';
+            document.getElementById('projectDateFinished').value = '';
+            document.getElementById('projectRegion').value = region || '';
+            document.getElementById('projectModalError').innerText = '';
+            document.getElementById('addProjectModal').classList.add('show');
+        }
+
+        function closeAddProjectModal() {
+            document.getElementById('addProjectModal').classList.remove('show');
+        }
+
+        function confirmAddProject() {
+            const name = document.getElementById('projectNameInput').value.trim();
+            const dateStarted = document.getElementById('projectDateStarted').value;
+            const dateFinished = document.getElementById('projectDateFinished').value;
+            const region = document.getElementById('projectRegion').value;
+            const errorDiv = document.getElementById('projectModalError');
+
+            errorDiv.innerText = '';
+
+            if (!name) { errorDiv.innerText = '⚠️ Project name is required'; return; }
+            if (!dateStarted) { errorDiv.innerText = '⚠️ Date started is required'; return; }
+            if (!region) { errorDiv.innerText = '⚠️ Region is required'; return; }
+            if (dateFinished && new Date(dateFinished) < new Date(dateStarted)) {
+                errorDiv.innerText = '⚠️ Date finished cannot be before date started'; return;
+            }
+            if (state.projects.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                errorDiv.innerText = '⚠️ Project name already exists'; return;
+            }
+
+            state.projects.push({
+                name, region, status: 'on-going',
+                dateStarted, dateFinished, vals: {}, selected: false
+            });
+
+            sortProjects(state.currentSort);
+            saveUserData(state.currentUser.email);
+            closeAddProjectModal();
+            render();
+        }
+
+        function handleSearch() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const region = document.getElementById('region-filter').value;
+            const status = document.getElementById('status-filter').value;
+
+            state.filteredProjects = state.projects.filter(p =>
+                p.name.toLowerCase().includes(search) &&
+                (!region || p.region === region) &&
+                (!status || p.status === status)
+            );
+            render();
+        }
+
+        function handleFilter() { handleSearch(); }
+
+        function toggleEdit() {
+            state.isEditing = true;
+            document.getElementById('search-input').style.display = 'block';
+            document.getElementById('region-filter').style.display = 'block';
+            document.getElementById('status-filter').style.display = 'block';
+            document.getElementById('btn-csv').style.display = 'block';
+            document.getElementById('btn-pdf').style.display = 'block';
+            document.getElementById('edit-btn').classList.add('hidden');
+            document.getElementById('save-btn').classList.remove('hidden');
+            render();
+        }
+
+        function saveData() {
+            state.isEditing = false;
+            document.getElementById('search-input').style.display = 'none';
+            document.getElementById('region-filter').style.display = 'none';
+            document.getElementById('status-filter').style.display = 'none';
+            document.getElementById('btn-csv').style.display = 'none';
+            document.getElementById('btn-pdf').style.display = 'none';
+            saveUserData(state.currentUser.email);
+            document.getElementById('edit-btn').classList.remove('hidden');
+            document.getElementById('save-btn').classList.add('hidden');
+            render();
+        }
+
+        function changeTab(t) {
+            state.currentTab = t;
+            document.querySelectorAll('.nav-item').forEach(n =>
+                n.classList.toggle('active', n.dataset.tab === t)
+            );
+            const titles = {
+                'overall': 'OVERALL DASHBOARD', 'exposures': 'TOTAL EXPOSURES',
+                'rates': 'STATISTICS RATE', 'medical': 'MEDICAL & INCIDENTS',
+                'environment': 'ENVIRONMENT', 'activities': 'ESH ACTIVITIES',
+                'cshp': 'CSHP (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL',
+                'settings': 'SETTINGS'
+            };
+            document.querySelector('.header-title').innerText = titles[t] || t.toUpperCase();
+            document.getElementById('settings-view').classList.toggle('hidden', t !== 'settings');
+            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings');
+            if (t === 'settings') {
+    document.getElementById('current-email').value = state.currentUser?.email || '';
+    const backupSection = document.getElementById('backup-recovery-section');
+    if (backupSection) {
+        backupSection.innerHTML = showBackupRecoveryUI();
+    }
+}
+render();
+            render();
+        }
+
+        function updateVal(pName, key, mIdx, val) {
+            const p = state.projects.find(x => x.name === pName);
+            if (p) {
+                if (!p.vals[key]) p.vals[key] = new Array(13).fill("");
+                p.vals[key][mIdx] = val;
+            }
+        }
+
+        function deleteProject(projectName) {
+    showModernDialog('Delete Project', `Are you sure you want to delete "${projectName}"? This action cannot be undone.`, true).then(confirmed => {
+        if (confirmed) {
+            state.projects = state.projects.filter(p => p.name !== projectName);
+            state.filteredProjects = state.filteredProjects.filter(p => p.name !== projectName);
+            saveUserData(state.currentUser.email);
+            render();
+        }
+    });
+}
+
+     function changeProjectStatus(projectName, event) {
+    event.stopPropagation();
+    const project = state.projects.find(p => p.name === projectName);
+    if (!project) return;
+    
+    // Close any existing dropdown
+    closeAllStatusDropdowns();
+    
+    // Create dropdown menu
+    const dropdown = document.createElement('div');
+    dropdown.className = 'status-dropdown';
+    
+    const statuses = [
+        { value: 'on-going', label: 'On-Going' },
+        { value: 'work-stoppage', label: 'Work Stoppage' },
+        { value: 'finished', label: 'Finished' }
+    ];
+    
+    statuses.forEach(status => {
+        const btn = document.createElement('button');
+        btn.textContent = status.label;
+        btn.style.fontWeight = project.status === status.value ? '700' : '400';
+        btn.onclick = () => {
+            project.status = status.value;
+            saveUserData(state.currentUser.email);
+            closeAllStatusDropdowns();
+            render();
+        };
+        dropdown.appendChild(btn);
+    });
+    
+    const badge = event.target;
+    const rect = badge.getBoundingClientRect();
+    
+    dropdown.style.position = 'fixed';
+    dropdown.style.top = (rect.bottom + 5) + 'px';
+    dropdown.style.left = rect.left + 'px';
+    
+    document.body.appendChild(dropdown);
+}
+
+function closeAllStatusDropdowns() {
+    document.querySelectorAll('.status-dropdown').forEach(d => d.remove());
+}
+
+        function getPerc(proj) {
+            let total = 0, filled = 0;
+            ["exposures", "rates", "medical", "environment", "activities", "dole", "cshp"].forEach(cat => {
+                SCHEMA[cat].forEach(row => {
+                    const key = `${cat}_${row}`;
+                    if (cat === 'cshp') {
+                        total += 1;
+                        if (proj.vals[key] && proj.vals[key][1]) filled++;
+                    } else {
+                        total += 12;
+                        if (proj.vals[key]) {
+                            for (let i = 1; i <= 12; i++) {
+                                if (proj.vals[key][i] && proj.vals[key][i] !== "0" && proj.vals[key][i] !== "") filled++;
+                            }
+                        }
+                    }
+                });
+            });
+            return total > 0 ? Math.round((filled / total) * 100) : 0;
+        }
+
+        function calculateYTD(vals, rowIndex) {
+            if (!vals) return 0;
+            let sum = 0;
+            for (let i = 1; i <= 12; i++) {
+                const val = parseFloat(vals[i]) || 0;
+                if (val > 0) sum += val;
+            }
+            return sum;
+        }
+
+        function calculateAverage(vals, rowIndex) {
+            if (!vals) return 0;
+            let sum = 0;
+            let count = 0;
+            for (let i = 1; i <= 12; i++) {
+                const val = parseFloat(vals[i]) || 0;
+                if (val > 0) {
+                    sum += val;
+                    count++;
+                }
+            }
+            return count > 0 ? Math.round(sum / count) : 0;
+        }
+
+        function renderCharts() {
+            const regionData = {};
+            REGIONS.forEach(r => regionData[r] = [0, 0]);
+            state.projects.forEach(p => {
+                const perc = getPerc(p);
+                regionData[p.region][0] += perc;
+                regionData[p.region][1] += 1;
+            });
+
+            const regionAvgs = REGIONS.map(r => regionData[r][1] > 0 ? Math.round(regionData[r][0] / regionData[r][1]) : 0);
+            const statusCounts = { 'on-going': 0, 'work-stoppage': 0, 'finished': 0 };
+            state.projects.forEach(p => statusCounts[p.status]++);
+
+            Object.values(state.charts).forEach(chart => { if (chart) chart.destroy(); });
+            state.charts = {};
+
+            setTimeout(() => {
+                const regionCtx = document.getElementById('regionChart');
+                if (regionCtx) {
+                    state.charts.region = new Chart(regionCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: REGIONS,
+                            datasets: [{
+                                label: 'Compliance %',
+                                data: regionAvgs,
+                                backgroundColor: '#1b5e20',
+                                borderColor: '#0a2e10',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { display: false } },
+                            scales: { y: { beginAtZero: true, max: 100 } }
+                        }
+                    });
+                }
+
+                const statusCtx = document.getElementById('statusChart');
+                if (statusCtx) {
+                    state.charts.status = new Chart(statusCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['On-Going', 'Work Stoppage', 'Finished'],
+                            datasets: [{
+                                data: [statusCounts['on-going'], statusCounts['work-stoppage'], statusCounts['finished']],
+                                backgroundColor: ['#1976D2', '#d32f2f', '#616161']
+                            }]
+                        },
+                        options: { responsive: true }
+                    });
+                }
+            }, 100);
+        }
+
+        function exportToCSV() {
+            let csv = 'Project Name,Region,Status,Date Started,Date Finished,Compliance %\n';
+            state.filteredProjects.forEach(p => {
+                csv += `"${p.name}","${p.region}","${p.status}","${p.dateStarted || 'N/A'}","${p.dateFinished || 'N/A'}","${getPerc(p)}%"\n`;
+            });
+            const a = document.createElement('a');
+            a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+            a.download = `esh_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function exportToPDF() {
+            const element = document.getElementById('dashboard-content');
+            html2pdf().set({
+                margin: 10, filename: `esh_${new Date().toISOString().split('T')[0]}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            }).from(element).save();
+        }
+
+        function showUI() {
+            document.getElementById('login-overlay').classList.add('hidden');
+            document.getElementById('main-sidebar').classList.remove('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+            document.getElementById('user-badge').innerHTML = `<i class="fas fa-user-circle"></i> ${state.currentUser.email}`;
+            changeTab('overall');
+        }
+
+        function render() {
+            if (state.currentTab === 'settings') return;
+
+            const container = document.getElementById('dashboard-content');
+            let html = '';
+
+            let grandTotal = 0;
+            state.projects.forEach(p => grandTotal += getPerc(p));
+            const overallAvg = state.projects.length > 0 ? Math.round(grandTotal / state.projects.length) : 0;
+
+            if (state.currentTab === 'overall') {
+                html += `<div id="grand-stats">
+                    <div class="stat-card">
+                        <div class="stat-label">TOTAL PROJECTS</div>
+                        <div class="stat-value">${state.projects.length}</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: var(--safety-yellow);">
+                        <div class="stat-label">OVERALL COMPLIANCE</div>
+                        <div class="stat-value">${overallAvg}%</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: #1976D2;">
+                        <div class="stat-label">ON-GOING</div>
+                        <div class="stat-value" style="color: #1976D2;">${state.projects.filter(p => p.status === 'on-going').length}</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: #d32f2f;">
+                        <div class="stat-label">WORK STOPPAGE</div>
+                        <div class="stat-value" style="color: #d32f2f;">${state.projects.filter(p => p.status === 'work-stoppage').length}</div>
+                    </div>
+                </div>
+                <div class="charts-container">
+                    <div class="chart-box"><h3><i class="fas fa-chart-bar"></i> Compliance by Region</h3><canvas id="regionChart"></canvas></div>
+                    <div class="chart-box"><h3><i class="fas fa-chart-pie"></i> Project Status</h3><canvas id="statusChart"></canvas></div>
+                </div>`;
+                renderCharts();
+            }
+
+            const displayProjects = state.filteredProjects.length > 0 ? state.filteredProjects : state.projects;
+
+            REGIONS.forEach(reg => {
+                const projs = displayProjects.filter(p => p.region === reg);
+                if (projs.length === 0) return;
+
+                const regSum = projs.reduce((sum, p) => sum + getPerc(p), 0);
+                const regionAvg = Math.round(regSum / projs.length);
+
+                html += `<div class="region-banner">
+                    <div><i class="fas fa-location-dot"></i> ${reg} <span class="badge">${projs.length} PROJ</span> <span class="badge" style="background:#1b5e20; color:var(--safety-yellow);">AVG: ${regionAvg}%</span></div>
+                    ${state.isEditing ? `<button onclick="openAddProjectModal('${reg}')" class="btn btn-primary">+ ADD PROJECT</button>` : ''}
+                    ${state.currentTab === 'overall' ? `<select class="sort-select" onchange="sortProjects(this.value)">
+                        <option value="name" ${state.currentSort === 'name' ? 'selected' : ''}>Sort: Name</option>
+                        <option value="dateStarted" ${state.currentSort === 'dateStarted' ? 'selected' : ''}>Sort: Date Started</option>
+                        <option value="dateFinished" ${state.currentSort === 'dateFinished' ? 'selected' : ''}>Sort: Date Finished</option>
+                    </select>` : ''}
+                </div>`;
+
+                projs.forEach(p => {
+                    const perc = getPerc(p);
+                    const statusClass = p.status === 'on-going' ? 'status-ongoing' : p.status === 'work-stoppage' ? 'status-stoppage' : 'status-finished';
+                    const statusLabel = p.status === 'on-going' ? 'On-Going' : p.status === 'work-stoppage' ? 'Work Stoppage' : 'Finished';
+
+                    html += `<div class="project-row">
+                        ${state.isEditing ? `<input type="checkbox" class="project-checkbox" ${p.selected ? 'checked' : ''} onchange="toggleProjectSelect('${p.name}')">` : ''}
+                        <div class="circular-progress" style="--percentage: ${perc * 3.6}deg;">
+                            <div class="circular-progress-inner">${perc}%</div>
+                        </div>
+                        <div class="project-info">
+                            <div class="project-name">${p.name}</div>
+                            <div class="project-meta">Safety Compliance</div>
+                        </div>
+                        <div class="project-dates">
+                            <div><span class="date-label">Started:</span> ${p.dateStarted ? new Date(p.dateStarted).toLocaleDateString() : 'Not set'}</div>
+                            <div><span class="date-label">Finished:</span> ${p.dateFinished ? new Date(p.dateFinished).toLocaleDateString() : 'Ongoing'}</div>
+                        </div>
+                        <span class="status-badge ${statusClass}" onclick="changeProjectStatus('${p.name}', event)">${statusLabel}</span>
+                        ${state.isEditing ? `<button class="btn btn-danger" onclick="deleteProject('${p.name}')"><i class="fas fa-trash"></i></button>` : ''}
+                    </div>`;
+
+                    if (state.currentTab !== 'overall') {
+                        const isDateType = ['dole', 'cshp'].includes(state.currentTab);
+                        const isCshp = state.currentTab === 'cshp';
+                        const hasYTD = ['exposures', 'rates', 'medical', 'environment', 'activities'].includes(state.currentTab);
+
+                        html += `<div class="table-container"><table>`;
+                        html += `<tr><th style="width:250px; text-align:left;">TYPE</th>`;
+
+                        if (isCshp) {
+                            html += `<th>DATE APPROVED</th>`;
+                        } else {
+                            html += `<th class="prev-year">PREVIOUS</th>`;
+                            MONTHS.forEach(m => html += `<th>${m}</th>`);
+                            if (hasYTD) {
+                                html += `<th class="ytd-header">RUNNING YTD</th>`;
+                            }
+                        }
+                        html += `</tr>`;
+
+                        SCHEMA[state.currentTab].forEach((row, rowIdx) => {
+                            const key = `${state.currentTab}_${row}`;
+                            html += `<tr><td style="text-align:left; font-weight:600; background:var(--border-color);">${row}</td>`;
+
+                            if (isCshp) {
+                                const v = p.vals[key] ? p.vals[key][1] : "";
+                                html += `<td><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)"></td>`;
+                            } else {
+                                // Previous Year Column - Light Blue
+                                const prevVal = p.vals[key] ? p.vals[key][0] : "";
+                                html += `<td class="prev-year"><input type="${isDateType ? 'date' : 'number'}" value="${prevVal}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',0,this.value)"></td>`;
+                                
+                                // Monthly Columns
+                                for (let i = 1; i <= 12; i++) {
+                                    const v = p.vals[key] ? p.vals[key][i] : "";
+                                    html += `<td class="monthly-data"><input type="${isDateType ? 'date' : 'number'}" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
+                                }
+                                
+                                // Add Running YTD column
+                                if (hasYTD) {
+                                    let ytdValue = 0;
+                                    if (row === "Total Manpower") {
+                                        // Calculate AVERAGE for Total Manpower
+                                        ytdValue = calculateAverage(p.vals[key], rowIdx);
+                                        html += `<td class="average-cell">${ytdValue}</td>`;
+                                    } else {
+                                        // Calculate SUM for all other rows
+                                        ytdValue = calculateYTD(p.vals[key], rowIdx);
+                                        html += `<td class="ytd-cell">${ytdValue}</td>`;
+                                    }
+                                }
+                            }
+                            html += `</tr>`;
+                        });
+                        html += `</table></div>`;
+                    }
+                });
+            });
+
+            container.innerHTML = html;
+        }
+// Close dropdowns when clicking elsewhere
+document.addEventListener('click', closeAllStatusDropdowns);
+        function toggleProjectSelect(projectName) {
+            const project = state.filteredProjects.find(p => p.name === projectName);
+            if (project) project.selected = !project.selected;
+        }
+
+        function updatePassword() {
+            const newPass = document.getElementById('new-password').value;
+            const confirmPass = document.getElementById('confirm-password').value;
+            const msgDiv = document.getElementById('settings-message');
+
+            msgDiv.innerHTML = '';
+            if (!newPass || !confirmPass) {
+                msgDiv.innerHTML = '<div class="error-message">⚠️ Please fill both fields</div>';
+                return;
+            }
+            if (newPass !== confirmPass) {
+                msgDiv.innerHTML = '<div class="error-message">❌ Passwords do not match</div>';
+                return;
+            }
+            if (newPass.length < 6) {
+                msgDiv.innerHTML = '<div class="error-message">❌ Password must be 6+ characters</div>';
+                return;
+            }
+            msgDiv.innerHTML = '<div class="success-message">✅ Password updated!</div>';
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-password').value = '';
+        }
+
+        setInterval(() => {
+            const now = new Date();
+            const dateEl = document.getElementById('live-date');
+            const clockEl = document.getElementById('live-clock');
+            if (dateEl) dateEl.innerText = now.toLocaleDateString('en-PH', {weekday:'long', year:'numeric', month:'long', day:'numeric'}).toUpperCase();
+            if (clockEl) clockEl.innerText = now.toLocaleTimeString('en-PH');
+        }, 1000);
+
+       window.addEventListener('load', () => {
+    initDarkMode();
+    backupManager.init();
+    const isLoggedIn = sessionStorage.getItem('esh_logged_in');
+    const userEmail = sessionStorage.getItem('esh_user_email');
+    if (isLoggedIn === 'true' && userEmail) {
+        state.currentUser = { email: userEmail };
+        state.isLoggedIn = true;
+        loadUserData(userEmail);
+        showUI();
+    }
+});
+function showModernDialog(title, message, isDanger = false) {
+    return new Promise((resolve) => {
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'modern-dialog-overlay';
+
+        // Create dialog
+        const dialog = document.createElement('div');
+        dialog.className = 'modern-dialog';
+
+        // Title
+        const titleEl = document.createElement('h2');
+        titleEl.className = 'modern-dialog-title';
+        titleEl.textContent = title;
+
+        // Message
+        const messageEl = document.createElement('p');
+        messageEl.className = 'modern-dialog-message';
+        messageEl.textContent = message;
+
+        // Buttons
+        const buttonsDiv = document.createElement('div');
+        buttonsDiv.className = 'modern-dialog-buttons';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'modern-dialog-btn modern-dialog-btn-cancel';
+        cancelBtn.textContent = 'CANCEL';
+        cancelBtn.onclick = () => {
+            overlay.remove();
+            resolve(false);
+        };
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.className = isDanger ? 'modern-dialog-btn modern-dialog-btn-danger' : 'modern-dialog-btn modern-dialog-btn-confirm';
+        confirmBtn.textContent = isDanger ? 'DELETE' : 'CONFIRM';
+        confirmBtn.onclick = () => {
+            overlay.remove();
+            resolve(true);
+        };
+
+        buttonsDiv.appendChild(cancelBtn);
+        buttonsDiv.appendChild(confirmBtn);
+
+        dialog.appendChild(titleEl);
+        dialog.appendChild(messageEl);
+        dialog.appendChild(buttonsDiv);
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+
+        // Close on overlay click
+        overlay.onclick = (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+                resolve(false);
+            }
+        };
+
+        confirmBtn.focus();
+    });
+}
+        console.log('✅ ESH Dashboard Ready with Dark Mode\n📧 Demo: demo@scic.com\n🔑 Password: demo1234');
+    </script>
+</body>
+</html>
