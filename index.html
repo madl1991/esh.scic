@@ -748,8 +748,10 @@ table input[type="date"] {
 	    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fa-solid fa-exclamation"></i> OSH Issued NOV</div>
             <div class="nav-item" data-tab="environment" onclick="changeTab('environment')"><i class="fas fa-leaf"></i> Environment</div>
             <div class="nav-item" data-tab="activities" onclick="changeTab('activities')"><i class="fas fa-list-check"></i> ESH Activities & Programs</div>
+            <div class="nav-item" data-tab="kpm" onclick="changeTab('kpm')"><i class="fas fa-file-export"></i> Monthly Report</div>
             <div class="nav-item" data-tab="cshp" onclick="changeTab('cshp')"><i class="fas fa-calendar-check"></i> CSHP</div>
             <div class="nav-item" data-tab="dole" onclick="changeTab('dole')"><i class="fas fa-file-export"></i> DOLE Reportorial</div>
+	    <div class="nav-item" data-tab="emb" onclick="changeTab('emb')"><i class="fas fa-file-export"></i> EMB Reportorial</div>
             <div class="nav-item" data-tab="settings" onclick="changeTab('settings')"><i class="fas fa-cog"></i> Settings</div>
         </nav>
         <div style="padding: 15px;">
@@ -1127,8 +1129,8 @@ function showBackupStatus(message, type) {
             'medical': ["Medical Treatment","First Aid","LTA","Fatality","Near-Miss","High-Potential incident", "Dangerous Occurrences"],
 	    'nov': ["Internal Issues", "External Issues"],
             'environment': ["Internal Issues", "External Issues"],
-            'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "Drills Conducted", "Training Conducted", "KPM&I"],
-            'dole': ["AEDR", "AMR", "RSO", "MOM"],
+            'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "Drills Conducted", "Training Conducted"],'kpm': ["KPM&I"],
+            'dole': ["AEDR", "AMR", "RSO", "MOM"],'emb': ["SMR (Quarterly)", "CMR(Semi-Annual)"],
             'cshp': ["CSHP Approval Date"]
         };
 
@@ -1406,8 +1408,8 @@ function showBackupStatus(message, type) {
                 'overall': 'OVERALL DASHBOARD', 'exposures': 'TOTAL EXPOSURES',
                 'rates': 'STATISTICS RATE', 'medical': 'ACCIDENT/ INCIDENT RECORD',
 		'nov': 'OSH NOTICE OF VIOLATION ISSUED',
-                'environment': 'ENVIRONMENTAL NOTICE OF VIOLATION ISSUED', 'activities': 'ESH ACTIVITIES',
-                'cshp': 'CSHP (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL',
+                'environment': 'ENVIRONMENTAL NOTICE OF VIOLATION ISSUED', 'activities': 'ESH ACTIVITIES','kpm': 'MONTHLY REPORT',
+                'cshp': 'CSHP (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL','emb': 'EMB REPORTORIAL',
                 'settings': 'SETTINGS'
             };
             document.querySelector('.header-title').innerText = titles[t] || t.toUpperCase();
@@ -1490,7 +1492,7 @@ function closeAllStatusDropdowns() {
 
         function getPerc(proj) {
             let total = 0, filled = 0;
-            ["exposures", "rates", "medical", "nov","environment", "activities", "dole", "cshp"].forEach(cat => {
+            ["exposures", "rates", "medical", "nov","environment", "activities", "kpm","dole","emb", "cshp"].forEach(cat => {
                 SCHEMA[cat].forEach(row => {
                     const key = `${cat}_${row}`;
                     if (cat === 'cshp') {
@@ -1697,7 +1699,7 @@ function closeAllStatusDropdowns() {
                     </div>`;
 
                     if (state.currentTab !== 'overall') {
-                        const isDateType = ['dole', 'cshp'].includes(state.currentTab);
+                        const isDateType = ['kpm','dole','emb', 'cshp'].includes(state.currentTab);
                         const isCshp = state.currentTab === 'cshp';
                         const hasYTD = ['exposures', 'rates', 'medical', 'nov','environment', 'activities'].includes(state.currentTab);
 
