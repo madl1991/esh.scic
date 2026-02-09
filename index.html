@@ -666,6 +666,22 @@ table input[type="date"] {
         #dashboard-content {
             color: var(--text-primary);
         }
+
+/* I-adjust ang width ng specific DOLE columns */
+.col-narrow {
+    width: 1%;
+    white-space: nowrap;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+}
+
+/* Kulay para sa disabled cells */
+.cell-disabled {
+    background-color: var(--border-color) !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
     </style>
 </head>
 <body>
@@ -1126,12 +1142,12 @@ function showBackupStatus(message, type) {
         const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
         const SCHEMA = {
             'exposures': ["Total Manpower", "Total Exposed Manhour", "Total Exposed Man-hour to date", "No. of Days w/o LTA"],
-            'rates': ["FREQUENCY RATE", "SEVERITY RATE", "LTIR"],
+            'rates': ["FREQUENCY RATE", "SEVERITY RATE","LTIR","TRIR"],
             'medical': ["Medical Treatment","First Aid","LTA","Fatality","Near-Miss","High-Potential incident", "Dangerous Occurrences"],
 	    'nov': ["Internal Issues", "External Issues"],
             'environment': ["Internal Issues", "External Issues"],
             'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "Drills Conducted", "Training Conducted"],'kpm': ["KPM&I"],
-            'dole': ["AEDR", "AMR", "RSO", "MOM"],'emb': ["SMR (Quarterly)", "CMR(Semi-Annual)"],
+            'dole': ["RSO", "MOM"],'dole_annual': ["AEDR", "AMR"],'emb': ["SMR (Quarterly)", "CMR(Semi-Annual)"],
             'cshp': ["CSHP Approval Date"],'reg': ["DOLE Certificate of Registration Date"]
         };
 
@@ -1410,7 +1426,7 @@ function showBackupStatus(message, type) {
                 'rates': 'STATISTICS RATE', 'medical': 'ACCIDENT/ INCIDENT RECORD',
 		'nov': 'OSH NOTICE OF VIOLATION ISSUED',
                 'environment': 'ENVIRONMENTAL NOTICE OF VIOLATION ISSUED', 'activities': 'ESH ACTIVITIES AND PROGRAMS','kpm': 'MONTHLY REPORT','reg': 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)',
-                'cshp': 'CONSTRUCTION SAFETY & HEALTH PROGRAM (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL','emb': 'EMB REPORTORIAL',
+                'cshp': 'CONSTRUCTION SAFETY & HEALTH PROGRAM (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL','emb': ["SMR (Quarterly)", "CMR (Semi-Annual)"],
                 'settings': 'SETTINGS'
             };
             document.querySelector('.header-title').innerText = titles[t] || t.toUpperCase();
@@ -1494,21 +1510,38 @@ function closeAllStatusDropdowns() {
         function getPerc(proj) {
             let total = 0, filled = 0;
             ["exposures", "rates", "medical", "nov","environment", "activities", "kpm","dole","emb", "cshp","reg"].forEach(cat => {
-                SCHEMA[cat].forEach(row => {
-                    const key = `${cat}_${row}`;
-                    if (cat === 'cshp','reg') {
-                        total += 1;
-                        if (proj.vals[key] && proj.vals[key][1]) filled++;
-                    } else {
-                        total += 12;
-                        if (proj.vals[key]) {
-                            for (let i = 1; i <= 12; i++) {
-                                if (proj.vals[key][i] && proj.vals[key][i] !== "0" && proj.vals[key][i] !== "") filled++;
-                            }
-                        }
+    SCHEMA[cat].forEach(row => {
+        const key = `${cat}_${row}`;
+        if (cat === 'cshp' || cat === 'reg') {
+            total += 1;
+            if (proj.vals[key] && proj.vals[key][1]) filled++;
+        } else if (cat === 'emb') {
+            // EMB has special submission cycles
+            if (row === "SMR (Quarterly)") {
+                total += 4; // Q1, Q2, Q3, Q4
+                if (proj.vals[key]) {
+                    for (let i = 1; i <= 4; i++) {
+                        if (proj.vals[key][i] && proj.vals[key][i] !== "") filled++;
                     }
-                });
-            });
+                }
+            } else if (row === "CMR (Semi-Annual)") {
+                total += 2; // 1st Half, 2nd Half
+                if (proj.vals[key]) {
+                    for (let i = 1; i <= 2; i++) {
+                        if (proj.vals[key][i] && proj.vals[key][i] !== "") filled++;
+                    }
+                }
+            }
+        } else {
+            total += 12;
+            if (proj.vals[key]) {
+                for (let i = 1; i <= 12; i++) {
+                    if (proj.vals[key][i] && proj.vals[key][i] !== "0" && proj.vals[key][i] !== "") filled++;
+                }
+            }
+        }
+    });
+});
             return total > 0 ? Math.round((filled / total) * 100) : 0;
         }
 
@@ -1707,15 +1740,33 @@ function closeAllStatusDropdowns() {
                         html += `<div class="table-container"><table>`;
                         html += `<tr><th style="width:250px; text-align:left;">TYPE</th>`;
 
-                        if (isCshp) {
-                            html += `<th>DATE APPROVED</th>`;
-                        } else {
-                            html += `<th class="prev-year">PREVIOUS</th>`;
-                            MONTHS.forEach(m => html += `<th>${m}</th>`);
-                            if (hasYTD) {
-                                html += `<th class="ytd-header">RUNNING YTD</th>`;
-                            }
-                        }
+                    if (isCshp) {
+    const headerText = (state.currentTab === 'cshp') ? "DATE APPROVED" : "DATE REGISTERED";
+    html += `<th>${headerText}</th>`;
+} else if (state.currentTab === 'emb') {
+    // EMB Reportorial has special columns
+    html += `<th class="prev-year">PREVIOUS</th>`;
+} else {
+
+   if (state.currentTab !== 'kpm' && state.currentTab !== 'dole') {
+    html += `<th class="prev-year">PREVIOUS</th>`;
+}
+
+if (state.currentTab === 'emb') {
+    // EMB Reportorial - Special headers
+    html += `<th>Q1 (JAN-MAR)</th>`;
+    html += `<th>Q2 (APR-JUN)</th>`;
+    html += `<th>Q3 (JUL-SEP)</th>`;
+    html += `<th>Q4 (OCT-DEC)</th>`;
+} else {
+    MONTHS.forEach(m => html += `<th>${m}</th>`);
+}
+
+    if (hasYTD) {
+        html += `<th class="ytd-header">RUNNING YTD</th>`;
+    }
+}
+
                         html += `</tr>`;
 
                         SCHEMA[state.currentTab].forEach((row, rowIdx) => {
@@ -1728,14 +1779,55 @@ function closeAllStatusDropdowns() {
                             } else {
                                 // Previous Year Column - Light Blue
                                 const prevVal = p.vals[key] ? p.vals[key][0] : "";
-                                html += `<td class="prev-year"><input type="${isDateType ? 'date' : 'number'}" value="${prevVal}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',0,this.value)"></td>`;
-                                
-                                // Monthly Columns
-                                for (let i = 1; i <= 12; i++) {
-                                    const v = p.vals[key] ? p.vals[key][i] : "";
-                                    html += `<td class="monthly-data"><input type="${isDateType ? 'date' : 'number'}" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
-                                }
-                                
+
+// Previous Year Column
+if (state.currentTab !== 'kpm' && state.currentTab !== 'emb' && state.currentTab !== 'dole') {
+    html += `<td class="prev-year">
+        <input type="${isDateType ? 'date' : 'number'}"
+            value="${prevVal}"
+            ${state.isEditing ? '' : 'disabled'}
+            oninput="updateVal('${p.name}','${key}',0,this.value)">
+    </td>`;
+} else if (state.currentTab === 'emb') {
+    // Previous Year for EMB
+    html += `<td class="prev-year">
+        <input type="date"
+            value="${prevVal}"
+            ${state.isEditing ? '' : 'disabled'}
+            oninput="updateVal('${p.name}','${key}',0,this.value)">
+    </td>`;
+}
+
+// Columns based on submission cycle
+if (state.currentTab === 'emb') {
+    // EMB Reportorial - Quarterly or Semi-Annual
+    if (row === "SMR (Quarterly)") {
+        // Q1, Q2, Q3, Q4
+        const quarters = ["Q1 (JAN-MAR)", "Q2 (APR-JUN)", "Q3 (JUL-SEP)", "Q4 (OCT-DEC)"];
+        // Add header if first row
+        if (rowIdx === 0) {
+            // We'll handle headers separately
+        }
+        for (let i = 1; i <= 4; i++) {
+            const v = p.vals[key] ? p.vals[key][i] : "";
+            html += `<td class="monthly-data"><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
+        }
+    } else if (row === "CMR (Semi-Annual)") {
+        // 1st Half, 2nd Half
+        for (let i = 1; i <= 2; i++) {
+            const v = p.vals[key] ? p.vals[key][i] : "";
+            html += `<td class="monthly-data"><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
+        }
+        // Add empty cells to align with quarterly row
+        html += `<td class="cell-disabled"></td><td class="cell-disabled"></td>`;
+    }
+} else {
+    // Monthly Columns for other tabs
+    for (let i = 1; i <= 12; i++) {
+        const v = p.vals[key] ? p.vals[key][i] : "";
+        html += `<td class="monthly-data"><input type="${isDateType ? 'date' : 'number'}" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
+    }
+}                                
                                 // Add Running YTD column
                                 if (hasYTD) {
                                     let ytdValue = 0;
@@ -1754,6 +1846,27 @@ function closeAllStatusDropdowns() {
                         });
                         html += `</table></div>`;
                     }
+
+// ANNUAL REPORTS SECTION (for DOLE only)
+                        if (state.currentTab === 'dole' && SCHEMA.dole_annual) {
+                            html += `<div style="margin-top: 30px;">`;
+                            html += `<div style="background: var(--header-grad); color: white; padding: 10px 15px; border-radius: 6px; font-weight: 700; margin-bottom: 10px;">
+                                        📅 ANNUAL REPORTS (Submitted Every January)
+                                     </div>`;
+                            html += `<div class="table-container"><table>`;
+                            html += `<tr><th style="width:250px; text-align:left;">TYPE</th><th>DATE SUBMITTED</th></tr>`;
+                            
+                            SCHEMA.dole_annual.forEach((row, rowIdx) => {
+                                const key = `dole_annual_${row}`;
+                                const v = p.vals[key] ? p.vals[key][1] : "";
+                                html += `<tr>
+                                    <td style="text-align:left; font-weight:600; background:var(--border-color);">${row}</td>
+                                    <td><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)"></td>
+                                </tr>`;
+                            });
+                            
+                            html += `</table></div></div>`;
+                        }
                 });
             });
 
