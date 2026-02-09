@@ -743,9 +743,10 @@ table input[type="date"] {
             <div class="nav-item active" data-tab="overall" onclick="changeTab('overall')"><i class="fas fa-chart-pie"></i> Overall Dashboard</div>
             <div class="nav-item" data-tab="exposures" onclick="changeTab('exposures')"><i class="fas fa-clock"></i> Total Exposures</div>
             <div class="nav-item" data-tab="rates" onclick="changeTab('rates')"><i class="fas fa-chart-line"></i> Statistics Rate</div>
-            <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-kit-medical"></i> Medical & Incidents</div>
+            <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-kit-medical"></i> Accident/ Incident Record</div>
+	    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fa-solid fa-exclamation"></i> OSH Issued NOV</div>
             <div class="nav-item" data-tab="environment" onclick="changeTab('environment')"><i class="fas fa-leaf"></i> Environment</div>
-            <div class="nav-item" data-tab="activities" onclick="changeTab('activities')"><i class="fas fa-list-check"></i> ESH Activities</div>
+            <div class="nav-item" data-tab="activities" onclick="changeTab('activities')"><i class="fas fa-list-check"></i> ESH Activities & Programs</div>
             <div class="nav-item" data-tab="cshp" onclick="changeTab('cshp')"><i class="fas fa-calendar-check"></i> CSHP</div>
             <div class="nav-item" data-tab="dole" onclick="changeTab('dole')"><i class="fas fa-file-export"></i> DOLE Reportorial</div>
             <div class="nav-item" data-tab="settings" onclick="changeTab('settings')"><i class="fas fa-cog"></i> Settings</div>
@@ -810,22 +811,7 @@ table input[type="date"] {
 
     <div id="backup-recovery-section" style="margin-top: 30px;"></div>
 </div>
-            <h3 style="color: #1b5e20; border-bottom: 2px solid var(--safety-yellow); padding-bottom: 5px;">Account Settings</h3>
-            <div class="form-group">
-                <label>Current Email:</label>
-                <input type="email" id="current-email" disabled>
-            </div>
-            <div class="form-group">
-                <label>New Password</label>
-                <input type="password" id="new-password" placeholder="Enter new password">
-            </div>
-            <div class="form-group">
-                <label>Confirm Password</label>
-                <input type="password" id="confirm-password" placeholder="Confirm password">
-            </div>
-            <button class="btn btn-primary" style="width:100%; padding: 10px;" onclick="updatePassword()">UPDATE PASSWORD</button>
-            <div id="settings-message"></div>
-        </div>
+            
     </main>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -1136,11 +1122,12 @@ function showBackupStatus(message, type) {
         const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
         const SCHEMA = {
             'exposures': ["Total Manpower", "Total Exposed Manhour", "Total Exposed Man-hour to date", "No. of Days w/o LTA"],
-            'rates': ["FREQUENCY RATE", "SEVERITY RATE", "Loss Time Incident Rate"],
-            'medical': ["High-Potential incident", "Dangerous Occurrences"],
+            'rates': ["FREQUENCY RATE", "SEVERITY RATE", "LTIR"],
+            'medical': ["Medical Treatment","First Aid","LTA","Fatality","Near-Miss","High-Potential incident", "Dangerous Occurrences"],
+	    'nov': ["Internal Issues", "External Issues"],
             'environment': ["Internal Issues", "External Issues"],
-            'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "Drills Conducted", "Training Conducted"],
-            'dole': ["AEDR", "AMR", "RSO", "MOM", "KPM&I"],
+            'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "Drills Conducted", "Training Conducted", "KPM&I"],
+            'dole': ["AEDR", "AMR", "RSO", "MOM"],
             'cshp': ["CSHP Approval Date"]
         };
 
@@ -1416,8 +1403,9 @@ function showBackupStatus(message, type) {
             );
             const titles = {
                 'overall': 'OVERALL DASHBOARD', 'exposures': 'TOTAL EXPOSURES',
-                'rates': 'STATISTICS RATE', 'medical': 'MEDICAL & INCIDENTS',
-                'environment': 'ENVIRONMENT', 'activities': 'ESH ACTIVITIES',
+                'rates': 'STATISTICS RATE', 'medical': 'ACCIDENT/ INCIDENT RECORD',
+		'nov': 'OSH NOTICE OF VIOLATION ISSUED',
+                'environment': 'ENVIRONMENTAL NOTICE OF VIOLATION ISSUED', 'activities': 'ESH ACTIVITIES',
                 'cshp': 'CSHP (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL',
                 'settings': 'SETTINGS'
             };
@@ -1501,7 +1489,7 @@ function closeAllStatusDropdowns() {
 
         function getPerc(proj) {
             let total = 0, filled = 0;
-            ["exposures", "rates", "medical", "environment", "activities", "dole", "cshp"].forEach(cat => {
+            ["exposures", "rates", "medical", "nov","environment", "activities", "dole", "cshp"].forEach(cat => {
                 SCHEMA[cat].forEach(row => {
                     const key = `${cat}_${row}`;
                     if (cat === 'cshp') {
@@ -1710,7 +1698,7 @@ function closeAllStatusDropdowns() {
                     if (state.currentTab !== 'overall') {
                         const isDateType = ['dole', 'cshp'].includes(state.currentTab);
                         const isCshp = state.currentTab === 'cshp';
-                        const hasYTD = ['exposures', 'rates', 'medical', 'environment', 'activities'].includes(state.currentTab);
+                        const hasYTD = ['exposures', 'rates', 'medical', 'nov','environment', 'activities'].includes(state.currentTab);
 
                         html += `<div class="table-container"><table>`;
                         html += `<tr><th style="width:250px; text-align:left;">TYPE</th>`;
@@ -1882,4 +1870,5 @@ function showModernDialog(title, message, isDanger = false) {
 </body>
 
 </html>
+
 
