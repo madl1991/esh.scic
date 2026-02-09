@@ -761,9 +761,9 @@ table input[type="date"] {
             <div class="nav-item" data-tab="exposures" onclick="changeTab('exposures')"><i class="fas fa-clock"></i> Total Exposures</div>
             <div class="nav-item" data-tab="rates" onclick="changeTab('rates')"><i class="fas fa-chart-line"></i> Statistics Rate</div>
             <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-kit-medical"></i> Accident/ Incident Record</div>
+            <div class="nav-item" data-tab="activities" onclick="changeTab('activities')"><i class="fas fa-list-check"></i> ESH Activities & Programs</div>
 	    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fa-solid fa-helmet-safety"></i> OSH Issued NOV</div>
             <div class="nav-item" data-tab="environment" onclick="changeTab('environment')"><i class="fas fa-leaf"></i> Envi Issued NOV</div>
-            <div class="nav-item" data-tab="activities" onclick="changeTab('activities')"><i class="fas fa-list-check"></i> ESH Activities & Programs</div>
             <div class="nav-item" data-tab="kpm" onclick="changeTab('kpm')"><i class="fas fa-file-export"></i> Monthly Report</div>
 	    <div class="nav-item" data-tab="audit" onclick="changeTab('audit')"><i class="fa-solid fa-square-poll-horizontal"></i> Internal ESH Audit Result</div>
             <div class="nav-item" data-tab="cshp" onclick="changeTab('cshp')"><i class="fas fa-calendar-check"></i> CSHP</div>
@@ -1143,11 +1143,11 @@ function showBackupStatus(message, type) {
         const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
        const SCHEMA = {
     'exposures': ["Total Manpower", "Total Exposed Manhour", "Total Exposed Man-hour to date", "No. of Days w/o LTA"],
-    'rates': ["FREQUENCY RATE", "SEVERITY RATE","LTIR","TRIR"],
-    'medical': ["Medical Treatment","First Aid","LTA","Fatality","Near-Miss","High-Potential incident", "Dangerous Occurrences"],
+    'rates': ["LTIR","TRIR","SEVERITY RATE"],
+    'medical': ["Medical Treatment","First Aid","LTA","Fatality","High-Potential incident", "Dangerous Occurrences"],
     'nov': ["Internal Issues", "External Issues"],
     'environment': ["Internal Issues", "External Issues"],
-    'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "Drills Conducted", "Training Conducted"],
+    'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "No. of Identified Near-Miss","Drills Conducted", "Training Conducted"],
     'kpm': ["KPM&I"],
     'audit': ["Score Implementation", "Documentation and Compliance"],
     'dole': ["RSO", "MOM"],
@@ -1792,10 +1792,10 @@ if (state.currentTab === 'audit') {
             <td style="background:#f0f0f0; font-weight:bold;">${qAvg.toFixed(2)}</td>`;
     });
 
-    html += `<td class="ytd-cell">${(totalYearAvg / 4).toFixed(2)}</td></tbody></table></div>`;
+   html += `<td class="ytd-cell">${(totalYearAvg / 4).toFixed(2)}</td></tbody></table></div>`;
 }
 
-                  if (state.currentTab !== 'overall') {
+                  if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
     const isDateType = ['kpm','dole','emb','cshp','reg'].includes(state.currentTab);
     const isCshp = state.currentTab === 'cshp'|| state.currentTab === 'reg';
     const hasYTD = ['exposures', 'rates', 'medical', 'nov','environment', 'activities'].includes(state.currentTab);
@@ -1921,31 +1921,14 @@ if (state.currentTab === 'audit') {
     }
 }
 
-// ANNUAL REPORTS SECTION (for DOLE only)
-                        if (state.currentTab === 'dole' && SCHEMA.dole_annual) {
-                            html += `<div style="margin-top: 30px;">`;
-                            html += `<div style="background: var(--header-grad); color: white; padding: 10px 15px; border-radius: 6px; font-weight: 700; margin-bottom: 10px;">
-                                        📅 ANNUAL REPORTS (Submitted Every January)
-                                     </div>`;
-                            html += `<div class="table-container"><table>`;
-                            html += `<tr><th style="width:250px; text-align:left;">TYPE</th><th>DATE SUBMITTED</th></tr>`;
-                            
-                            SCHEMA.dole_annual.forEach((row, rowIdx) => {
-                                const key = `dole_annual_${row}`;
-                                const v = p.vals[key] ? p.vals[key][1] : "";
-                                html += `<tr>
-                                    <td style="text-align:left; font-weight:600; background:var(--border-color);">${row}</td>
-                                    <td><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)"></td>
-                                </tr>`;
-                            });
-                            
-                            html += `</table></div></div>`;
-                        }
-                });
+        });
             });
 
             container.innerHTML = html;
         }
+
+
+        
 // Close dropdowns when clicking elsewhere
 document.addEventListener('click', closeAllStatusDropdowns);
         function toggleProjectSelect(projectName) {
