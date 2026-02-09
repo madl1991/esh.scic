@@ -745,11 +745,12 @@ table input[type="date"] {
             <div class="nav-item" data-tab="exposures" onclick="changeTab('exposures')"><i class="fas fa-clock"></i> Total Exposures</div>
             <div class="nav-item" data-tab="rates" onclick="changeTab('rates')"><i class="fas fa-chart-line"></i> Statistics Rate</div>
             <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-kit-medical"></i> Accident/ Incident Record</div>
-	    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fa-solid fa-exclamation"></i> OSH Issued NOV</div>
-            <div class="nav-item" data-tab="environment" onclick="changeTab('environment')"><i class="fas fa-leaf"></i> Environment</div>
+	    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fa-solid fa-helmet-safety"></i> OSH Issued NOV</div>
+            <div class="nav-item" data-tab="environment" onclick="changeTab('environment')"><i class="fas fa-leaf"></i> Envi Issued NOV</div>
             <div class="nav-item" data-tab="activities" onclick="changeTab('activities')"><i class="fas fa-list-check"></i> ESH Activities & Programs</div>
             <div class="nav-item" data-tab="kpm" onclick="changeTab('kpm')"><i class="fas fa-file-export"></i> Monthly Report</div>
             <div class="nav-item" data-tab="cshp" onclick="changeTab('cshp')"><i class="fas fa-calendar-check"></i> CSHP</div>
+	    <div class="nav-item" data-tab="reg" onclick="changeTab('reg')"><i class="fas fa-calendar-check"></i> Certificate of Registration</div>
             <div class="nav-item" data-tab="dole" onclick="changeTab('dole')"><i class="fas fa-file-export"></i> DOLE Reportorial</div>
 	    <div class="nav-item" data-tab="emb" onclick="changeTab('emb')"><i class="fas fa-file-export"></i> EMB Reportorial</div>
             <div class="nav-item" data-tab="settings" onclick="changeTab('settings')"><i class="fas fa-cog"></i> Settings</div>
@@ -1131,7 +1132,7 @@ function showBackupStatus(message, type) {
             'environment': ["Internal Issues", "External Issues"],
             'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "Drills Conducted", "Training Conducted"],'kpm': ["KPM&I"],
             'dole': ["AEDR", "AMR", "RSO", "MOM"],'emb': ["SMR (Quarterly)", "CMR(Semi-Annual)"],
-            'cshp': ["CSHP Approval Date"]
+            'cshp': ["CSHP Approval Date"],'reg': ["DOLE Certificate of Registration Date"]
         };
 
         const FULL_PROJECT_LIST = {
@@ -1408,8 +1409,8 @@ function showBackupStatus(message, type) {
                 'overall': 'OVERALL DASHBOARD', 'exposures': 'TOTAL EXPOSURES',
                 'rates': 'STATISTICS RATE', 'medical': 'ACCIDENT/ INCIDENT RECORD',
 		'nov': 'OSH NOTICE OF VIOLATION ISSUED',
-                'environment': 'ENVIRONMENTAL NOTICE OF VIOLATION ISSUED', 'activities': 'ESH ACTIVITIES','kpm': 'MONTHLY REPORT',
-                'cshp': 'CSHP (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL','emb': 'EMB REPORTORIAL',
+                'environment': 'ENVIRONMENTAL NOTICE OF VIOLATION ISSUED', 'activities': 'ESH ACTIVITIES AND PROGRAMS','kpm': 'MONTHLY REPORT','reg': 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)',
+                'cshp': 'CONSTRUCTION SAFETY & HEALTH PROGRAM (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL','emb': 'EMB REPORTORIAL',
                 'settings': 'SETTINGS'
             };
             document.querySelector('.header-title').innerText = titles[t] || t.toUpperCase();
@@ -1492,10 +1493,10 @@ function closeAllStatusDropdowns() {
 
         function getPerc(proj) {
             let total = 0, filled = 0;
-            ["exposures", "rates", "medical", "nov","environment", "activities", "kpm","dole","emb", "cshp"].forEach(cat => {
+            ["exposures", "rates", "medical", "nov","environment", "activities", "kpm","dole","emb", "cshp","reg"].forEach(cat => {
                 SCHEMA[cat].forEach(row => {
                     const key = `${cat}_${row}`;
-                    if (cat === 'cshp') {
+                    if (cat === 'cshp','reg') {
                         total += 1;
                         if (proj.vals[key] && proj.vals[key][1]) filled++;
                     } else {
@@ -1699,8 +1700,8 @@ function closeAllStatusDropdowns() {
                     </div>`;
 
                     if (state.currentTab !== 'overall') {
-                        const isDateType = ['kpm','dole','emb', 'cshp'].includes(state.currentTab);
-                        const isCshp = state.currentTab === 'cshp';
+                        const isDateType = ['kpm','dole','emb', 'cshp','reg'].includes(state.currentTab);
+                        const isCshp = state.currentTab === 'cshp'|| state.currentTab === 'reg';
                         const hasYTD = ['exposures', 'rates', 'medical', 'nov','environment', 'activities'].includes(state.currentTab);
 
                         html += `<div class="table-container"><table>`;
