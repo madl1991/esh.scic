@@ -8,7 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    
+
+
     <!-- Firebase SDK v10 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -43,8 +44,6 @@
             doc,
             setDoc,
             getDoc,
-            onSnapshot,
-            updateDoc
         };
 
         console.log("✅ Firebase initialized!");
@@ -162,6 +161,69 @@
             background: var(--border-color);
             transform: scale(1.05);
         }
+
+        /* Floating Main Save Button */
+        .main-firebase-save-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(27, 94, 32, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 9999;
+            transition: all 0.3s ease;
+        }
+
+        .main-firebase-save-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(27, 94, 32, 0.5);
+        }
+
+        .main-firebase-save-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .main-firebase-save-btn.saving {
+            background: #666;
+            cursor: wait;
+        }
+
+        .main-firebase-save-btn .save-icon {
+            font-size: 1.1rem;
+        }
+
+        .main-firebase-save-btn .pulse-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        @media (max-width: 768px) {
+            .main-firebase-save-btn {
+                bottom: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                font-size: 0.8rem;
+            }
+        }
+
 
         .btn {
             padding: 8px 15px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600;
@@ -1645,10 +1707,15 @@ function showBackupStatus(message, type) {
             document.getElementById('status-filter').style.display = 'none';
             document.getElementById('btn-csv').style.display = 'none';
             document.getElementById('btn-pdf').style.display = 'none';
-            saveUserData(state.currentUser.email);
+            
+            // Save to localStorage only (per-tab save)
+            saveUserDataLocal(state.currentUser.email);
+            
             document.getElementById('edit-btn').classList.remove('hidden');
             document.getElementById('save-btn').classList.add('hidden');
             render();
+            
+            console.log('💾 Data saved to localStorage (Click main SAVE button to sync to Firebase)');
         }
 
         function changeTab(t) {
@@ -2450,48 +2517,83 @@ function loadIncidentRateData() {
 }
 
 
-// ==================== COMPLETE FIREBASE INTEGRATION ====================
 
-// Global Firebase State
+// ==================== LOCAL STORAGE FUNCTIONS ====================
+
+// Save to localStorage only (called by per-tab save buttons)
+function saveUserDataLocal(email) {
+    if (!email) return;
+    
+    const userData = {
+        projects: state.projects,
+        personnelData: state.personnelData,
+        incidentRateData: state.incidentRateData,
+        darkMode: state.darkMode,
+        lastModified: new Date().toISOString()
+    };
+    
+    localStorage.setItem('esh_' + email, JSON.stringify(userData));
+    console.log('💾 Saved to localStorage (local only)');
+}
+
+// Main Firebase Save Button Handler
+async function saveToFirebaseMain() {
+    const btn = document.getElementById('main-firebase-save-btn');
+    const btnText = document.getElementById('main-save-text');
+    
+    if (!btn || !btnText) return;
+    
+    // Visual feedback
+    btn.classList.add('saving');
+    btn.disabled = true;
+    btnText.textContent = 'SAVING...';
+    
+    // Save to Firebase
+    const success = await saveToFirebase();
+    
+    if (success) {
+        btnText.textContent = '✓ SAVED!';
+        setTimeout(() => {
+            btnText.textContent = 'SAVE TO FIREBASE';
+            btn.classList.remove('saving');
+            btn.disabled = false;
+        }, 2000);
+    } else {
+        btnText.textContent = '✗ FAILED';
+        setTimeout(() => {
+            btnText.textContent = 'SAVE TO FIREBASE';
+            btn.classList.remove('saving');
+            btn.disabled = false;
+        }, 2000);
+    }
+}
+
+// ==================== OPTIMIZED FIREBASE INTEGRATION ====================
+
 let firebaseReady = false;
 let firebaseUnsubscribe = null;
 
-// Wait for Firebase to initialize
+function getCurrentUserId() {
+    return window.firebaseAuth?.currentUser?.uid || 'local-user';
+}
+
 function waitForFirebase() {
     return new Promise((resolve) => {
         const checkInterval = setInterval(() => {
-            if (window.firebaseAuth && window.firebaseDb && window.firebase) {
+            if (window.firebase && window.firebaseDb && window.firebaseAuth) {
                 clearInterval(checkInterval);
                 firebaseReady = true;
                 resolve();
             }
         }, 100);
-        
-        // Timeout after 10 seconds
-        setTimeout(() => {
-            clearInterval(checkInterval);
-            if (!firebaseReady) {
-                console.error('❌ Firebase failed to initialize');
-                resolve();
-            }
-        }, 10000);
     });
 }
 
-// Get current user ID for Firestore
-function getCurrentUserId() {
-    const user = window.firebaseAuth?.currentUser;
-    if (user) {
-        return user.uid;
-    }
-    return 'local-user'; // Fallback for non-authenticated mode
-}
-
-// Save ALL data to Firebase
+// OPTIMIZED: Save to Firebase - MANUAL ONLY
 async function saveToFirebase() {
     if (!firebaseReady || !window.firebaseDb) {
-        console.log('⏳ Firebase not ready, saving to localStorage only');
-        return;
+        console.log('⏳ Firebase not ready');
+        return false;
     }
 
     try {
@@ -2509,14 +2611,18 @@ async function saveToFirebase() {
         };
 
         await window.firebase.setDoc(docRef, dataToSave, { merge: true });
+        state.lastSyncTimestamp = dataToSave.timestamp;
         console.log('✅ Data saved to Firebase:', new Date().toLocaleTimeString());
+        return true;
         
     } catch (error) {
         console.error('❌ Error saving to Firebase:', error);
+        alert('Failed to save: ' + error.message);
+        return false;
     }
 }
 
-// Load ALL data from Firebase
+// OPTIMIZED: Load from Firebase - ONCE on login only  
 async function loadFromFirebase() {
     if (!firebaseReady || !window.firebaseDb) {
         console.log('⏳ Firebase not ready, loading from localStorage only');
@@ -2536,6 +2642,7 @@ async function loadFromFirebase() {
             state.personnelData = data.personnelData || [];
             state.incidentRateData = data.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
             state.darkMode = data.darkMode || false;
+            state.lastSyncTimestamp = data.timestamp || 0;
             
             // Apply dark mode
             if (state.darkMode) {
@@ -2562,63 +2669,8 @@ async function loadFromFirebase() {
     }
 }
 
-// Setup Real-time Listener
-function setupFirebaseListener() {
-    if (!firebaseReady || !window.firebaseDb) {
-        return;
-    }
-
-    try {
-        const userId = getCurrentUserId();
-        const docRef = window.firebase.doc(window.firebaseDb, 'users', userId);
-
-        // Unsubscribe from previous listener if exists
-        if (firebaseUnsubscribe) {
-            firebaseUnsubscribe();
-        }
-
-        // Setup new listener
-        firebaseUnsubscribe = window.firebase.onSnapshot(docRef, (doc) => {
-            if (doc.exists()) {
-                const data = doc.data();
-                
-                // Only update if timestamp is newer
-                const savedTimestamp = data.timestamp || 0;
-                const currentTimestamp = Date.now();
-                
-                if (savedTimestamp > (state.lastSyncTimestamp || 0)) {
-                    state.projects = data.projects || [];
-                    state.personnelData = data.personnelData || [];
-                    state.incidentRateData = data.incidentRateData || {};
-                    state.darkMode = data.darkMode || false;
-                    state.lastSyncTimestamp = savedTimestamp;
-                    
-                    // Apply dark mode
-                    if (state.darkMode && !document.body.classList.contains('dark-mode')) {
-                        document.body.classList.add('dark-mode');
-                    } else if (!state.darkMode && document.body.classList.contains('dark-mode')) {
-                        document.body.classList.remove('dark-mode');
-                    }
-                    
-                    // Update UI
-                    updateDashboard();
-                    renderProjects();
-                    renderPTable();
-                    loadIncidentRateData();
-                    
-                    console.log('🔄 Real-time update from Firebase');
-                }
-            }
-        }, (error) => {
-            console.error('❌ Real-time listener error:', error);
-        });
-        
-        console.log('👂 Real-time listener active');
-        
-    } catch (error) {
-        console.error('❌ Error setting up Firebase listener:', error);
-    }
-}
+// REMOVED: Real-time listener completely - saves lots of Firebase reads!
+// No setupFirebaseListener() function = no continuous reads
 
 // Firebase Authentication Handlers
 async function firebaseLogin(email, password) {
@@ -2667,7 +2719,7 @@ async function firebaseLogout() {
     try {
         await window.firebase.signOut(window.firebaseAuth);
         
-        // Unsubscribe from listener
+        // Unsubscribe from listener (if any exists)
         if (firebaseUnsubscribe) {
             firebaseUnsubscribe();
             firebaseUnsubscribe = null;
@@ -2715,7 +2767,7 @@ async function firebaseResetPassword(email) {
     }
 }
 
-// Auth State Observer
+// Auth State Observer - OPTIMIZED: No real-time listener!
 function setupAuthObserver() {
     if (!window.firebase) {
         return;
@@ -2732,11 +2784,8 @@ function setupAuthObserver() {
                 userEmailEl.textContent = user.email;
             }
             
-            // Load user data
+            // Load user data ONCE - no real-time listener!
             await loadFromFirebase();
-            
-            // Setup real-time listener
-            setupFirebaseListener();
             
         } else {
             console.log('👤 No user authenticated (using local mode)');
@@ -2745,35 +2794,43 @@ function setupAuthObserver() {
     });
 }
 
-// Override original saveUserData to use Firebase
+// CRITICAL CHANGE: Separated localStorage and Firebase saves
 const originalSaveUserData = window.saveUserData || function() {};
 
+// This is the OLD saveUserData that now only saves to localStorage
 window.saveUserData = function(email) {
-    // Call original function
+    // Call original function for localStorage
     originalSaveUserData(email);
     
-    // Save to Firebase
-    saveToFirebase();
+    // DO NOT auto-save to Firebase here!
+    // User must click the main SAVE button to sync to Firebase
+    console.log('💾 Local save complete. Click main SAVE button to sync to Firebase.');
 };
 
 // Initialize Firebase Integration
 waitForFirebase().then(async () => {
-    console.log('🔥 Firebase Ready!');
+    console.log('🔥 Firebase Ready! (OPTIMIZED MODE)');
     
     // Setup auth observer
     setupAuthObserver();
     
-    // If no auth, load data anyway
+    // If no auth, try to load data anyway
     if (!window.firebaseAuth?.currentUser) {
         await loadFromFirebase();
-        setupFirebaseListener();
     }
 });
 
-
-console.log('🔥 Firebase integration loaded');
+console.log('🔥 Firebase integration loaded - OPTIMIZED: Save button only!');
 
 // ==================== END FIREBASE INTEGRATION ====================
     </script>
+
+    <!-- Main Firebase Save Button (Floating) -->
+    <button class="main-firebase-save-btn" id="main-firebase-save-btn" onclick="saveToFirebaseMain()" title="Save all data to Firebase Cloud">
+        <i class="fas fa-cloud-upload-alt save-icon"></i>
+        <span id="main-save-text">SAVE UPDATE</span>
+        <span class="pulse-dot"></span>
+    </button>
+
 </body>
 </html>
