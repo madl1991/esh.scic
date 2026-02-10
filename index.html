@@ -8,35 +8,47 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    
+    <!-- Firebase SDK v10 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
 
-<!-- Firebase SDK -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+        const firebaseConfig = {
+            apiKey: "AIzaSyBdqVEm3PWPuFTVbrxaP4JAZNXl2bmNUg4",
+            authDomain: "esh-dashboard.firebaseapp.com",
+            projectId: "esh-dashboard",
+            storageBucket: "esh-dashboard.firebasestorage.app",
+            messagingSenderId: "121684914529",
+            appId: "1:121684914529:web:d5292a3c30f1bba2959520",
+            measurementId: "G-TXYB9T0T3W"
+        };
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyBdqVEm3PWPuFTVbrxaP4JAZNXl2bmNUg4",
-        authDomain: "esh-dashboard.firebaseapp.com",
-        projectId: "esh-dashboard",
-        storageBucket: "esh-dashboard.firebasestorage.app",
-        messagingSenderId: "121684914529",
-        appId: "1:121684914529:web:d5292a3c30f1bba2959520",
-        measurementId: "G-TXYB9T0T3W"
-    };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const analytics = getAnalytics(app);
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const analytics = getAnalytics(app);
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.firebase = {
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            updatePassword,
+            sendPasswordResetEmail,
+            doc,
+            setDoc,
+            getDoc,
+            onSnapshot,
+            updateDoc
+        };
 
-    window.firebaseDb = db;
-    window.firebaseDoc = doc;
-    window.firebaseSetDoc = setDoc;
-    window.firebaseGetDoc = getDoc;
-    window.firebaseOnSnapshot = onSnapshot;
-
-    console.log("Firebase initialized successfully!");
-</script>
+        console.log("✅ Firebase initialized!");
+    </script>
     <style>
         :root {
             --safety-green-grad: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
@@ -2437,123 +2449,344 @@ function loadIncidentRateData() {
     calculateIncidentRates();
 }
 
-// ==================== FIREBASE INTEGRATION ====================
 
-// Wait for Firebase to load
+// ==================== COMPLETE FIREBASE INTEGRATION ====================
+
+// Global Firebase State
+let firebaseReady = false;
+let firebaseUnsubscribe = null;
+
+// Wait for Firebase to initialize
 function waitForFirebase() {
     return new Promise((resolve) => {
         const checkInterval = setInterval(() => {
-            if (window.firebaseDb && window.firebaseDoc && window.firebaseSetDoc && window.firebaseGetDoc && window.firebaseOnSnapshot) {
+            if (window.firebaseAuth && window.firebaseDb && window.firebase) {
                 clearInterval(checkInterval);
+                firebaseReady = true;
                 resolve();
             }
         }, 100);
+        
+        // Timeout after 10 seconds
+        setTimeout(() => {
+            clearInterval(checkInterval);
+            if (!firebaseReady) {
+                console.error('❌ Firebase failed to initialize');
+                resolve();
+            }
+        }, 10000);
     });
 }
 
-// Save data to Firebase
+// Get current user ID for Firestore
+function getCurrentUserId() {
+    const user = window.firebaseAuth?.currentUser;
+    if (user) {
+        return user.uid;
+    }
+    return 'local-user'; // Fallback for non-authenticated mode
+}
+
+// Save ALL data to Firebase
 async function saveToFirebase() {
-    if (!window.firebaseDb) return;
-    
+    if (!firebaseReady || !window.firebaseDb) {
+        console.log('⏳ Firebase not ready, saving to localStorage only');
+        return;
+    }
+
     try {
-        const userEmail = state.currentUser?.email || 'default-user';
-        const userId = userEmail.replace(/[^a-zA-Z0-9]/g, '_');
-        const docRef = window.firebaseDoc(window.firebaseDb, 'esh-dashboard', userId);
+        const userId = getCurrentUserId();
+        const docRef = window.firebase.doc(window.firebaseDb, 'users', userId);
         
-        await window.firebaseSetDoc(docRef, {
-            email: userEmail,
+        const dataToSave = {
+            email: state.currentUser?.email || 'local-user',
             projects: state.projects || [],
             personnelData: state.personnelData || [],
-            incidentRateData: state.incidentRateData || {},
-            lastUpdated: new Date().toISOString()
-        });
+            incidentRateData: state.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 },
+            darkMode: state.darkMode || false,
+            lastUpdated: new Date().toISOString(),
+            timestamp: Date.now()
+        };
+
+        await window.firebase.setDoc(docRef, dataToSave, { merge: true });
+        console.log('✅ Data saved to Firebase:', new Date().toLocaleTimeString());
         
-        console.log('Data saved to Firebase');
     } catch (error) {
-        console.error('Error saving to Firebase:', error);
+        console.error('❌ Error saving to Firebase:', error);
     }
 }
 
-// Load data from Firebase
+// Load ALL data from Firebase
 async function loadFromFirebase() {
-    if (!window.firebaseDb) return;
-    
+    if (!firebaseReady || !window.firebaseDb) {
+        console.log('⏳ Firebase not ready, loading from localStorage only');
+        return;
+    }
+
     try {
-        const userEmail = state.currentUser?.email || 'default-user';
-        const userId = userEmail.replace(/[^a-zA-Z0-9]/g, '_');
-        const docRef = window.firebaseDoc(window.firebaseDb, 'esh-dashboard', userId);
-        
-        const docSnap = await window.firebaseGetDoc(docRef);
-        
+        const userId = getCurrentUserId();
+        const docRef = window.firebase.doc(window.firebaseDb, 'users', userId);
+        const docSnap = await window.firebase.getDoc(docRef);
+
         if (docSnap.exists()) {
             const data = docSnap.data();
+            
+            // Load all data
             state.projects = data.projects || [];
             state.personnelData = data.personnelData || [];
-            state.incidentRateData = data.incidentRateData || {};
+            state.incidentRateData = data.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
+            state.darkMode = data.darkMode || false;
             
-            console.log('Data loaded from Firebase');
+            // Apply dark mode
+            if (state.darkMode) {
+                document.body.classList.add('dark-mode');
+            }
             
-            // Refresh UI
+            console.log('✅ Data loaded from Firebase');
+            console.log('📊 Projects:', state.projects.length);
+            console.log('👥 Personnel:', state.personnelData.length);
+            
+            // Update UI
             updateDashboard();
             renderProjects();
             renderPTable();
             loadIncidentRateData();
+            
         } else {
-            console.log('No data in Firebase, using defaults');
-            // Save initial state to Firebase
+            console.log('📝 No Firebase data found, creating new document');
             await saveToFirebase();
         }
+        
     } catch (error) {
-        console.error('Error loading from Firebase:', error);
+        console.error('❌ Error loading from Firebase:', error);
     }
 }
 
-// Setup real-time listener
+// Setup Real-time Listener
 function setupFirebaseListener() {
-    if (!window.firebaseDb) return;
-    
+    if (!firebaseReady || !window.firebaseDb) {
+        return;
+    }
+
     try {
-        const userEmail = state.currentUser?.email || 'default-user';
-        const userId = userEmail.replace(/[^a-zA-Z0-9]/g, '_');
-        const docRef = window.firebaseDoc(window.firebaseDb, 'esh-dashboard', userId);
-        
-        window.firebaseOnSnapshot(docRef, (doc) => {
+        const userId = getCurrentUserId();
+        const docRef = window.firebase.doc(window.firebaseDb, 'users', userId);
+
+        // Unsubscribe from previous listener if exists
+        if (firebaseUnsubscribe) {
+            firebaseUnsubscribe();
+        }
+
+        // Setup new listener
+        firebaseUnsubscribe = window.firebase.onSnapshot(docRef, (doc) => {
             if (doc.exists()) {
                 const data = doc.data();
-                state.projects = data.projects || [];
-                state.personnelData = data.personnelData || [];
-                state.incidentRateData = data.incidentRateData || {};
                 
-                // Refresh UI
-                updateDashboard();
-                renderProjects();
-                renderPTable();
-                loadIncidentRateData();
+                // Only update if timestamp is newer
+                const savedTimestamp = data.timestamp || 0;
+                const currentTimestamp = Date.now();
                 
-                console.log('Real-time update from Firebase');
+                if (savedTimestamp > (state.lastSyncTimestamp || 0)) {
+                    state.projects = data.projects || [];
+                    state.personnelData = data.personnelData || [];
+                    state.incidentRateData = data.incidentRateData || {};
+                    state.darkMode = data.darkMode || false;
+                    state.lastSyncTimestamp = savedTimestamp;
+                    
+                    // Apply dark mode
+                    if (state.darkMode && !document.body.classList.contains('dark-mode')) {
+                        document.body.classList.add('dark-mode');
+                    } else if (!state.darkMode && document.body.classList.contains('dark-mode')) {
+                        document.body.classList.remove('dark-mode');
+                    }
+                    
+                    // Update UI
+                    updateDashboard();
+                    renderProjects();
+                    renderPTable();
+                    loadIncidentRateData();
+                    
+                    console.log('🔄 Real-time update from Firebase');
+                }
             }
+        }, (error) => {
+            console.error('❌ Real-time listener error:', error);
         });
+        
+        console.log('👂 Real-time listener active');
+        
     } catch (error) {
-        console.error('Error setting up Firebase listener:', error);
+        console.error('❌ Error setting up Firebase listener:', error);
     }
 }
 
-// Override saveUserData to use Firebase
-const originalSaveUserData = saveUserData;
-saveUserData = function(email) {
+// Firebase Authentication Handlers
+async function firebaseLogin(email, password) {
+    if (!window.firebase) {
+        alert('Firebase not initialized');
+        return false;
+    }
+
+    try {
+        const userCredential = await window.firebase.signInWithEmailAndPassword(window.firebaseAuth, email, password);
+        console.log('✅ Login successful:', userCredential.user.email);
+        return true;
+    } catch (error) {
+        console.error('❌ Login error:', error);
+        alert('Login failed: ' + error.message);
+        return false;
+    }
+}
+
+async function firebaseSignup(email, password) {
+    if (!window.firebase) {
+        alert('Firebase not initialized');
+        return false;
+    }
+
+    try {
+        const userCredential = await window.firebase.createUserWithEmailAndPassword(window.firebaseAuth, email, password);
+        console.log('✅ Signup successful:', userCredential.user.email);
+        
+        // Initialize user data
+        await saveToFirebase();
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Signup error:', error);
+        alert('Signup failed: ' + error.message);
+        return false;
+    }
+}
+
+async function firebaseLogout() {
+    if (!window.firebase) {
+        return;
+    }
+
+    try {
+        await window.firebase.signOut(window.firebaseAuth);
+        
+        // Unsubscribe from listener
+        if (firebaseUnsubscribe) {
+            firebaseUnsubscribe();
+            firebaseUnsubscribe = null;
+        }
+        
+        console.log('✅ Logout successful');
+    } catch (error) {
+        console.error('❌ Logout error:', error);
+    }
+}
+
+async function firebaseChangePassword(newPassword) {
+    if (!window.firebase || !window.firebaseAuth.currentUser) {
+        alert('Not authenticated');
+        return false;
+    }
+
+    try {
+        await window.firebase.updatePassword(window.firebaseAuth.currentUser, newPassword);
+        console.log('✅ Password changed successfully');
+        alert('Password changed successfully!');
+        return true;
+    } catch (error) {
+        console.error('❌ Password change error:', error);
+        alert('Password change failed: ' + error.message);
+        return false;
+    }
+}
+
+async function firebaseResetPassword(email) {
+    if (!window.firebase) {
+        alert('Firebase not initialized');
+        return false;
+    }
+
+    try {
+        await window.firebase.sendPasswordResetEmail(window.firebaseAuth, email);
+        console.log('✅ Password reset email sent');
+        alert('Password reset email sent! Check your inbox.');
+        return true;
+    } catch (error) {
+        console.error('❌ Password reset error:', error);
+        alert('Password reset failed: ' + error.message);
+        return false;
+    }
+}
+
+// Auth State Observer
+function setupAuthObserver() {
+    if (!window.firebase) {
+        return;
+    }
+
+    window.firebase.onAuthStateChanged(window.firebaseAuth, async (user) => {
+        if (user) {
+            console.log('👤 User authenticated:', user.email);
+            state.currentUser = { email: user.email, uid: user.uid };
+            
+            // Update UI
+            const userEmailEl = document.getElementById('user-email');
+            if (userEmailEl) {
+                userEmailEl.textContent = user.email;
+            }
+            
+            // Load user data
+            await loadFromFirebase();
+            
+            // Setup real-time listener
+            setupFirebaseListener();
+            
+        } else {
+            console.log('👤 No user authenticated (using local mode)');
+            state.currentUser = null;
+        }
+    });
+}
+
+// Override original saveUserData to use Firebase
+const originalSaveUserData = window.saveUserData || function() {};
+
+window.saveUserData = function(email) {
+    // Call original function
     originalSaveUserData(email);
+    
+    // Save to Firebase
     saveToFirebase();
 };
 
-// Initialize Firebase when page loads
+// Initialize Firebase Integration
 waitForFirebase().then(async () => {
-    console.log('Firebase ready!');
-    await loadFromFirebase();
-    setupFirebaseListener();
+    console.log('🔥 Firebase Ready!');
+    
+    // Setup auth observer
+    setupAuthObserver();
+    
+    // If no auth, load data anyway
+    if (!window.firebaseAuth?.currentUser) {
+        await loadFromFirebase();
+        setupFirebaseListener();
+    }
 });
 
-// ==================== END FIREBASE INTEGRATION ====================
+// Auto-save on page unload
+window.addEventListener('beforeunload', () => {
+    if (firebaseReady) {
+        saveToFirebase();
+    }
+});
 
+// Auto-save every 30 seconds
+setInterval(() => {
+    if (firebaseReady) {
+        saveToFirebase();
+    }
+}, 30000);
+
+console.log('🔥 Firebase integration loaded');
+
+// ==================== END FIREBASE INTEGRATION ====================
     </script>
 </body>
 </html>
