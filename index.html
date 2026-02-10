@@ -8,6 +8,35 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+<!-- Firebase SDK -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBdqVEm3PWPuFTVbrxaP4JAZNXl2bmNUg4",
+        authDomain: "esh-dashboard.firebaseapp.com",
+        projectId: "esh-dashboard",
+        storageBucket: "esh-dashboard.firebasestorage.app",
+        messagingSenderId: "121684914529",
+        appId: "1:121684914529:web:d5292a3c30f1bba2959520",
+        measurementId: "G-TXYB9T0T3W"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const analytics = getAnalytics(app);
+
+    window.firebaseDb = db;
+    window.firebaseDoc = doc;
+    window.firebaseSetDoc = setDoc;
+    window.firebaseGetDoc = getDoc;
+    window.firebaseOnSnapshot = onSnapshot;
+
+    console.log("Firebase initialized successfully!");
+</script>
     <style>
         :root {
             --safety-green-grad: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
@@ -2407,6 +2436,123 @@ function loadIncidentRateData() {
 
     calculateIncidentRates();
 }
+
+// ==================== FIREBASE INTEGRATION ====================
+
+// Wait for Firebase to load
+function waitForFirebase() {
+    return new Promise((resolve) => {
+        const checkInterval = setInterval(() => {
+            if (window.firebaseDb && window.firebaseDoc && window.firebaseSetDoc && window.firebaseGetDoc && window.firebaseOnSnapshot) {
+                clearInterval(checkInterval);
+                resolve();
+            }
+        }, 100);
+    });
+}
+
+// Save data to Firebase
+async function saveToFirebase() {
+    if (!window.firebaseDb) return;
+    
+    try {
+        const userEmail = state.currentUser?.email || 'default-user';
+        const userId = userEmail.replace(/[^a-zA-Z0-9]/g, '_');
+        const docRef = window.firebaseDoc(window.firebaseDb, 'esh-dashboard', userId);
+        
+        await window.firebaseSetDoc(docRef, {
+            email: userEmail,
+            projects: state.projects || [],
+            personnelData: state.personnelData || [],
+            incidentRateData: state.incidentRateData || {},
+            lastUpdated: new Date().toISOString()
+        });
+        
+        console.log('Data saved to Firebase');
+    } catch (error) {
+        console.error('Error saving to Firebase:', error);
+    }
+}
+
+// Load data from Firebase
+async function loadFromFirebase() {
+    if (!window.firebaseDb) return;
+    
+    try {
+        const userEmail = state.currentUser?.email || 'default-user';
+        const userId = userEmail.replace(/[^a-zA-Z0-9]/g, '_');
+        const docRef = window.firebaseDoc(window.firebaseDb, 'esh-dashboard', userId);
+        
+        const docSnap = await window.firebaseGetDoc(docRef);
+        
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            state.projects = data.projects || [];
+            state.personnelData = data.personnelData || [];
+            state.incidentRateData = data.incidentRateData || {};
+            
+            console.log('Data loaded from Firebase');
+            
+            // Refresh UI
+            updateDashboard();
+            renderProjects();
+            renderPTable();
+            loadIncidentRateData();
+        } else {
+            console.log('No data in Firebase, using defaults');
+            // Save initial state to Firebase
+            await saveToFirebase();
+        }
+    } catch (error) {
+        console.error('Error loading from Firebase:', error);
+    }
+}
+
+// Setup real-time listener
+function setupFirebaseListener() {
+    if (!window.firebaseDb) return;
+    
+    try {
+        const userEmail = state.currentUser?.email || 'default-user';
+        const userId = userEmail.replace(/[^a-zA-Z0-9]/g, '_');
+        const docRef = window.firebaseDoc(window.firebaseDb, 'esh-dashboard', userId);
+        
+        window.firebaseOnSnapshot(docRef, (doc) => {
+            if (doc.exists()) {
+                const data = doc.data();
+                state.projects = data.projects || [];
+                state.personnelData = data.personnelData || [];
+                state.incidentRateData = data.incidentRateData || {};
+                
+                // Refresh UI
+                updateDashboard();
+                renderProjects();
+                renderPTable();
+                loadIncidentRateData();
+                
+                console.log('Real-time update from Firebase');
+            }
+        });
+    } catch (error) {
+        console.error('Error setting up Firebase listener:', error);
+    }
+}
+
+// Override saveUserData to use Firebase
+const originalSaveUserData = saveUserData;
+saveUserData = function(email) {
+    originalSaveUserData(email);
+    saveToFirebase();
+};
+
+// Initialize Firebase when page loads
+waitForFirebase().then(async () => {
+    console.log('Firebase ready!');
+    await loadFromFirebase();
+    setupFirebaseListener();
+});
+
+// ==================== END FIREBASE INTEGRATION ====================
 
     </script>
 </body>
