@@ -686,8 +686,6 @@ table input[type="date"] {
 </head>
 <body>
 
-
-
 	
     <div id="login-overlay">
         <div class="login-card">
@@ -707,7 +705,7 @@ table input[type="date"] {
             <div id="login-error" class="error-message"></div>
             <div class="disclaimer-box">
                 <strong><i class="fas fa-circle-exclamation"></i> DEMO ACCOUNT:</strong><br>
-                Email: <code style="background:#f0f0f0; padding:2px 4px;">demo@scic.com</code><br>
+                Email: <code style="background:#f0f0f0; padding:2px 4px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d1b5b4bcbe91a2b2b8b2ffb2bebc">[email&#160;protected]</a></code><br>
                 Password: <code style="background:#f0f0f0; padding:2px 4px;">demo1234</code>
             </div>
         </div>
@@ -760,7 +758,7 @@ table input[type="date"] {
         </div>
         <nav style="flex-grow: 1; padding-top: 10px;">
             <div class="nav-item active" data-tab="overall" onclick="changeTab('overall')"><i class="fas fa-chart-pie"></i> Overall Dashboard</div>
-            <div class="nav-item" data-tab="incident-rate" onclick="changeTab('incident-rate')"><i class="fas fa-calculator"></i> Incident Tabulation Rate</div>
+ <div class="nav-item" data-tab="incident-rate" onclick="changeTab('incident-rate')"><i class="fas fa-calculator"></i> Incident Tabulation Rate</div>
             <div class="nav-item" data-tab="exposures" onclick="changeTab('exposures')"><i class="fas fa-clock"></i> Total Exposures</div>
             <div class="nav-item" data-tab="rates" onclick="changeTab('rates')"><i class="fas fa-chart-line"></i> Statistics Rate</div>
             <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-kit-medical"></i> Accident/ Incident Record</div>
@@ -1402,111 +1400,53 @@ function showBackupStatus(message, type) {
             }
         }
 
-       // ===== FIREBASE CONFIGURATION & MODULES =====
-</script> <script type="module">
-    // Import Firebase SDKs mula sa CDN
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        // ===== LOGIN & AUTH =====
+        function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('login-user').value.trim().toLowerCase();
+            const password = document.getElementById('login-pass').value;
+            const errorDiv = document.getElementById('login-error');
+            const loginBtn = document.getElementById('login-btn');
 
-    // Iyong Firebase Config
-    const firebaseConfig = {
-        apiKey: "AIzaSyBdqVEm3PWPuFTVbrxaP4JAZNXl2bmNUg4",
-        authDomain: "esh-dashboard.firebaseapp.com",
-        projectId: "esh-dashboard",
-        storageBucket: "esh-dashboard.firebasestorage.app",
-        messagingSenderId: "121684914529",
-        appId: "1:121684914529:web:d5292a3c30f1bba2959520",
-        measurementId: "G-TXYB9T0T3W"
-    };
+            errorDiv.innerText = '';
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    // ===== LOGIN FUNCTION (FIREBASE VERSION) =====
-    window.handleLogin = async (event) => {
-        if (event) event.preventDefault();
-        
-        const email = document.getElementById('login-user').value.trim().toLowerCase();
-        const password = document.getElementById('login-pass').value;
-        const errorDiv = document.getElementById('login-error');
-        const loginBtn = document.getElementById('login-btn');
-
-        if (!email || !password) {
-            errorDiv.innerText = '⚠️ Please enter both email and password';
-            return;
-        }
-
-        errorDiv.innerText = '';
-        loginBtn.disabled = true;
-        loginBtn.innerHTML = '<span class="loading-spinner"></span> Authenticating...';
-
-        try {
-            // Firebase Authentication Call
-            await signInWithEmailAndPassword(auth, email, password);
-            console.log('✅ Firebase Login successful!');
-            
-            // Ang showUI() at iba pa ay tatawagin na ng onAuthStateChanged sa ibaba
-        } catch (error) {
-            console.error("Login Error:", error);
-            errorDiv.innerText = '❌ ' + (error.code === 'auth/invalid-credential' ? 'Invalid email or password' : 'Login failed. Try again.');
-            loginBtn.disabled = false;
-            loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM';
-        }
-    };
-
-    // ===== LOGOUT FUNCTION (FIREBASE VERSION) =====
-    window.handleLogout = () => {
-        if (typeof showModernDialog === 'function') {
-            showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(confirmed => {
-                if (confirmed) {
-                    executeSignOut();
-                }
-            });
-        } else {
-            if (confirm('Are you sure you want to logout?')) {
-                executeSignOut();
+            if (!email || !password) {
+                errorDiv.innerText = '⚠️ Please enter both email and password';
+                return;
             }
+
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span class="loading-spinner"></span> Signing in...';
+
+            setTimeout(() => {
+                if (VALID_CREDENTIALS[email] && VALID_CREDENTIALS[email] === password) {
+                    state.currentUser = { email };
+                    state.isLoggedIn = true;
+                    sessionStorage.setItem('esh_logged_in', 'true');
+                    sessionStorage.setItem('esh_user_email', email);
+                    loadUserData(email);
+                    showUI();
+                    initDarkMode();
+                    console.log('✅ Login successful!');
+                } else {
+                    errorDiv.innerText = '❌ Invalid email or password';
+                }
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM';
+            }, 800);
         }
-    };
 
-    async function executeSignOut() {
-        try {
-            await signOut(auth);
-            if (window.backupManager) window.backupManager.stopAutoSave();
-            sessionStorage.clear();
-            location.reload();
-        } catch (error) {
-            console.error("Logout Error:", error);
-        }
-    }
-
-    // ===== AUTH STATE OBSERVER (AUTOMATIC LOGIN) =====
-    onAuthStateChanged(auth, (user) => {
-        const loginOverlay = document.getElementById('login-overlay');
-        
-        if (user) {
-            // Naka-login ang user
-            state.currentUser = { email: user.email };
-            state.isLoggedIn = true;
-            sessionStorage.setItem('esh_logged_in', 'true');
-            sessionStorage.setItem('esh_user_email', user.email);
-
-            // Tawagin ang iyong original functions para i-load ang UI
-            if (typeof loadUserData === 'function') loadUserData(user.email);
-            if (typeof showUI === 'function') showUI();
-            if (typeof initDarkMode === 'function') initDarkMode();
-            
-            if (loginOverlay) loginOverlay.style.display = 'none';
-        } else {
-            // Walang user, ipakita ang login screen
+      function handleLogout() {
+    showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(confirmed => {
+        if (confirmed) {
+            backupManager.stopAutoSave();
             state.isLoggedIn = false;
             state.currentUser = null;
-            if (loginOverlay) loginOverlay.style.display = 'flex';
+            sessionStorage.clear();
+            location.reload();
         }
     });
+}
 
         function loadUserData(email) {
             const storageKey = `esh_dashboard_${email}`;
