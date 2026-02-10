@@ -743,11 +743,16 @@ table input[type="date"] {
                     <i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM
                 </button>
             </form>
+            <div style="margin-top: 12px; text-align: center;">
+                <a href="#" onclick="loginForgotPassword(event)" style="font-size:0.75rem; color:#1b5e20; text-decoration: underline;">
+                    <i class="fas fa-envelope"></i> Forgot Password?
+                </a>
+            </div>
             <div id="login-error" class="error-message"></div>
-            <div class="disclaimer-box">
-                <strong><i class="fas fa-circle-exclamation"></i> DEMO ACCOUNT:</strong><br>
-                Email: <code style="background:#f0f0f0; padding:2px 4px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d1b5b4bcbe91a2b2b8b2ffb2bebc">[email&#160;protected]</a></code><br>
-                Password: <code style="background:#f0f0f0; padding:2px 4px;">demo1234</code>
+            <div class="disclaimer-box" style="text-align:left;">
+                <strong><i class="fas fa-lock"></i> AUTHORIZED ACCESS ONLY</strong><br>
+                This system is for ESH personnel of STA. CLARA INTERNATIONAL CORPORATION.<br>
+                Unauthorized access is strictly prohibited. Contact your administrator for access.
             </div>
         </div>
     </div>
@@ -1037,15 +1042,20 @@ table input[type="date"] {
         <input type="email" id="current-email" disabled>
     </div>
     <div class="form-group">
-        <label>New Password</label>
-        <input type="password" id="new-password" placeholder="Enter new password">
+        <label>New Password <span style="color:#888; font-size:0.75rem;">(min 8 chars, 1 uppercase, 1 number)</span></label>
+        <input type="password" id="new-password" placeholder="Enter new password" autocomplete="new-password">
     </div>
     <div class="form-group">
-        <label>Confirm Password</label>
-        <input type="password" id="confirm-password" placeholder="Confirm password">
+        <label>Confirm New Password</label>
+        <input type="password" id="confirm-password" placeholder="Confirm new password" autocomplete="new-password">
     </div>
-    <button class="btn btn-primary" style="width:100%; padding: 10px;" onclick="updatePassword()">UPDATE PASSWORD</button>
-    <div id="settings-message"></div>
+    <button class="btn btn-primary" style="width:100%; padding: 10px; margin-bottom: 8px;" onclick="updatePassword()">
+        <i class="fas fa-key"></i> UPDATE PASSWORD
+    </button>
+    <button class="btn btn-secondary" style="width:100%; padding: 10px;" onclick="handleForgotPassword()">
+        <i class="fas fa-envelope"></i> SEND PASSWORD RESET EMAIL
+    </button>
+    <div id="settings-message" style="margin-top: 10px;"></div>
 
     <div id="backup-recovery-section" style="margin-top: 30px;"></div>
 </div>
@@ -1355,7 +1365,7 @@ function showBackupStatus(message, type) {
     }, 4000);
 }
 
-        const VALID_CREDENTIALS = { 'demo@scic.com': 'demo1234' };
+   
         const REGIONS = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
         const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
        const SCHEMA = {
@@ -1441,8 +1451,11 @@ function showBackupStatus(message, type) {
             }
         }
 
-        // ===== LOGIN & AUTH =====
-        function handleLogin(event) {
+        // ===== LOGIN & AUTH (Firebase Connected) =====
+        let _loginAttempts = 0;
+        let _loginLockUntil = 0;
+
+        window.handleLogin = async (event) => {
             event.preventDefault();
             const email = document.getElementById('login-user').value.trim().toLowerCase();
             const password = document.getElementById('login-pass').value;
@@ -1451,43 +1464,145 @@ function showBackupStatus(message, type) {
 
             errorDiv.innerText = '';
 
+            // Rate limiting: block after 5 failed attempts for 30 seconds
+            const now = Date.now();
+            if (_loginLockUntil > now) {
+                const remaining = Math.ceil((_loginLockUntil - now) / 1000);
+                errorDiv.innerText = `⏳ Too many attempts. Please wait ${remaining}s.`;
+                return;
+            }
+
             if (!email || !password) {
-                errorDiv.innerText = '⚠️ Please enter both email and password';
+                errorDiv.innerText = '⚠️ Please enter both email and password.';
+                return;
+            }
+
+            if (password.length < 6) {
+                errorDiv.innerText = '⚠️ Password must be at least 6 characters.';
                 return;
             }
 
             loginBtn.disabled = true;
-            loginBtn.innerHTML = '<span class="loading-spinner"></span> Signing in...';
+            loginBtn.innerHTML = '<span class="loading-spinner"></span> Authenticating...';
 
-            setTimeout(() => {
-                if (VALID_CREDENTIALS[email] && VALID_CREDENTIALS[email] === password) {
-                    state.currentUser = { email };
-                    state.isLoggedIn = true;
-                    sessionStorage.setItem('esh_logged_in', 'true');
-                    sessionStorage.setItem('esh_user_email', email);
-                    loadUserData(email);
-                    showUI();
-                    initDarkMode();
-                    console.log('✅ Login successful!');
-                } else {
-                    errorDiv.innerText = '❌ Invalid email or password';
+            try {
+                // Wait for Firebase to be ready
+                await waitForFirebase();
+
+                if (!window.firebase || !window.firebaseAuth) {
+                    throw new Error('Authentication service unavailable. Please refresh and try again.');
                 }
+
+                const userCredential = await window.firebase.signInWithEmailAndPassword(window.firebaseAuth, email, password);
+                const user = userCredential.user;
+
+                // Reset login attempt counter on success
+                _loginAttempts = 0;
+
+                // Update system state
+                state.currentUser = { email: user.email, uid: user.uid };
+                state.isLoggedIn = true;
+                sessionStorage.setItem('esh_logged_in', 'true');
+                sessionStorage.setItem('esh_user_email', user.email);
+                sessionStorage.setItem('esh_user_uid', user.uid);
+
+                // Load data from Firebase then show dashboard
+                await loadFromFirebase();
+                setupFirebaseListener();
+                showUI();
+                initDarkMode();
+
+                console.log('✅ Firebase Login successful:', user.email);
+
+            } catch (error) {
+                _loginAttempts++;
+                console.error('Login Error:', error.code);
+
+                if (_loginAttempts >= 5) {
+                    _loginLockUntil = Date.now() + 30000;
+                    _loginAttempts = 0;
+                    errorDiv.innerText = '🔒 Too many failed attempts. Locked for 30 seconds.';
+                } else if (
+                    error.code === 'auth/invalid-credential' ||
+                    error.code === 'auth/user-not-found' ||
+                    error.code === 'auth/wrong-password' ||
+                    error.code === 'auth/invalid-email'
+                ) {
+                    errorDiv.innerText = '❌ Invalid email or password. Please try again.';
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorDiv.innerText = '🔒 Account temporarily locked due to too many failed attempts. Please reset your password or try later.';
+                } else if (error.code === 'auth/network-request-failed') {
+                    errorDiv.innerText = '🌐 Network error. Please check your internet connection.';
+                } else {
+                    errorDiv.innerText = '❌ ' + (error.message || 'Login failed. Please try again.');
+                }
+            } finally {
                 loginBtn.disabled = false;
                 loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM';
-            }, 800);
+            }
+        };
+
+
+        // Forgot password from login screen
+        async function loginForgotPassword(event) {
+            event.preventDefault();
+            const emailInput = document.getElementById('login-user');
+            const email = emailInput ? emailInput.value.trim().toLowerCase() : '';
+            const errorDiv = document.getElementById('login-error');
+
+            if (!email) {
+                errorDiv.innerText = '⚠️ Please enter your email address first, then click Forgot Password.';
+                errorDiv.style.color = '#e65100';
+                return;
+            }
+
+            await waitForFirebase();
+            if (!window.firebase || !window.firebaseAuth) {
+                errorDiv.innerText = '❌ Authentication service unavailable.';
+                return;
+            }
+
+            try {
+                await window.firebase.sendPasswordResetEmail(window.firebaseAuth, email);
+                errorDiv.style.color = '#1b5e20';
+                errorDiv.innerText = '✅ Password reset email sent to ' + email + '. Check your inbox.';
+            } catch (error) {
+                errorDiv.style.color = '#d32f2f';
+                if (error.code === 'auth/user-not-found') {
+                    errorDiv.innerText = '❌ No account found for this email.';
+                } else {
+                    errorDiv.innerText = '❌ Failed to send reset email. ' + (error.message || '');
+                }
+            }
         }
 
-      function handleLogout() {
-    showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(confirmed => {
-        if (confirmed) {
-            backupManager.stopAutoSave();
-            state.isLoggedIn = false;
-            state.currentUser = null;
-            sessionStorage.clear();
-            location.reload();
+        function handleLogout() {
+            showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(async confirmed => {
+                if (confirmed) {
+                    backupManager.stopAutoSave();
+
+                    // Unsubscribe Firebase listener
+                    if (firebaseUnsubscribe) {
+                        firebaseUnsubscribe();
+                        firebaseUnsubscribe = null;
+                    }
+
+                    // Firebase sign out
+                    if (window.firebase && window.firebaseAuth) {
+                        try {
+                            await window.firebase.signOut(window.firebaseAuth);
+                        } catch (e) {
+                            console.error('Signout error:', e);
+                        }
+                    }
+
+                    state.isLoggedIn = false;
+                    state.currentUser = null;
+                    sessionStorage.clear();
+                    location.reload();
+                }
+            });
         }
-    });
-}
 
         function loadUserData(email) {
             const storageKey = `esh_dashboard_${email}`;
@@ -2234,28 +2349,74 @@ document.addEventListener('click', closeAllStatusDropdowns);
             if (project) project.selected = !project.selected;
         }
 
-        function updatePassword() {
+        async function updatePassword() {
+            const currentPass = document.getElementById('current-password') ? document.getElementById('current-password').value : '';
             const newPass = document.getElementById('new-password').value;
             const confirmPass = document.getElementById('confirm-password').value;
             const msgDiv = document.getElementById('settings-message');
 
             msgDiv.innerHTML = '';
+
             if (!newPass || !confirmPass) {
-                msgDiv.innerHTML = '<div class="error-message">⚠️ Please fill both fields</div>';
+                msgDiv.innerHTML = '<div class="error-message">⚠️ Please fill all password fields.</div>';
                 return;
             }
             if (newPass !== confirmPass) {
-                msgDiv.innerHTML = '<div class="error-message">❌ Passwords do not match</div>';
+                msgDiv.innerHTML = '<div class="error-message">❌ Passwords do not match.</div>';
                 return;
             }
-            if (newPass.length < 6) {
-                msgDiv.innerHTML = '<div class="error-message">❌ Password must be 6+ characters</div>';
+            if (newPass.length < 8) {
+                msgDiv.innerHTML = '<div class="error-message">❌ Password must be at least 8 characters.</div>';
                 return;
             }
-            msgDiv.innerHTML = '<div class="success-message">✅ Password updated!</div>';
-            document.getElementById('new-password').value = '';
-            document.getElementById('confirm-password').value = '';
+            // Basic strength check
+            const hasUpper = /[A-Z]/.test(newPass);
+            const hasNumber = /[0-9]/.test(newPass);
+            if (!hasUpper || !hasNumber) {
+                msgDiv.innerHTML = '<div class="error-message">❌ Password must contain at least one uppercase letter and one number.</div>';
+                return;
+            }
+
+            if (!window.firebase || !window.firebaseAuth || !window.firebaseAuth.currentUser) {
+                msgDiv.innerHTML = '<div class="error-message">❌ Not authenticated. Please log in again.</div>';
+                return;
+            }
+
+            try {
+                await window.firebase.updatePassword(window.firebaseAuth.currentUser, newPass);
+                msgDiv.innerHTML = '<div class="success-message">✅ Password updated successfully!</div>';
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+                console.log('✅ Password changed successfully');
+            } catch (error) {
+                console.error('Password change error:', error);
+                if (error.code === 'auth/requires-recent-login') {
+                    msgDiv.innerHTML = '<div class="error-message">⚠️ For security, please log out and log back in before changing your password.</div>';
+                } else {
+                    msgDiv.innerHTML = '<div class="error-message">❌ ' + (error.message || 'Password update failed.') + '</div>';
+                }
+            }
         }
+        async function handleForgotPassword() {
+            const msgDiv = document.getElementById('settings-message');
+            const email = state.currentUser?.email;
+            if (!email) {
+                msgDiv.innerHTML = '<div class="error-message">❌ No user email found. Please log in again.</div>';
+                return;
+            }
+            if (!window.firebase || !window.firebaseAuth) {
+                msgDiv.innerHTML = '<div class="error-message">❌ Authentication service unavailable.</div>';
+                return;
+            }
+            try {
+                await window.firebase.sendPasswordResetEmail(window.firebaseAuth, email);
+                msgDiv.innerHTML = `<div class="success-message">✅ Password reset email sent to ${email}. Check your inbox.</div>`;
+            } catch (error) {
+                console.error('Password reset error:', error);
+                msgDiv.innerHTML = '<div class="error-message">❌ Failed to send reset email. ' + (error.message || '') + '</div>';
+            }
+        }
+
 
         setInterval(() => {
             const now = new Date();
@@ -2265,18 +2426,54 @@ document.addEventListener('click', closeAllStatusDropdowns);
             if (clockEl) clockEl.innerText = now.toLocaleTimeString('en-PH');
         }, 1000);
 
-       window.addEventListener('load', () => {
-    initDarkMode();
-    backupManager.init();
-    const isLoggedIn = sessionStorage.getItem('esh_logged_in');
-    const userEmail = sessionStorage.getItem('esh_user_email');
-    if (isLoggedIn === 'true' && userEmail) {
-        state.currentUser = { email: userEmail };
-        state.isLoggedIn = true;
-        loadUserData(userEmail);
-        showUI();
-    }
-});
+        window.addEventListener('load', () => {
+            initDarkMode();
+            backupManager.init();
+
+            // Bootstrap: wait for Firebase then let onAuthStateChanged drive login/logout
+            waitForFirebase().then(() => {
+                if (!window.firebase || !window.firebaseAuth) {
+                    console.error('❌ Firebase unavailable on load');
+                    return;
+                }
+
+                window.firebase.onAuthStateChanged(window.firebaseAuth, async (user) => {
+                    if (user) {
+                        console.log('👤 Authenticated user on load:', user.email);
+
+                        state.currentUser = { email: user.email, uid: user.uid };
+                        state.isLoggedIn = true;
+                        sessionStorage.setItem('esh_logged_in', 'true');
+                        sessionStorage.setItem('esh_user_email', user.email);
+                        sessionStorage.setItem('esh_user_uid', user.uid);
+
+                        // Update user-email display in sidebar
+                        const userEmailEl = document.getElementById('user-email');
+                        if (userEmailEl) userEmailEl.textContent = user.email;
+
+                        await loadFromFirebase();
+                        setupFirebaseListener();
+                        showUI();
+                        initDarkMode();
+                    } else {
+                        // No authenticated user — show login
+                        console.log('👤 No authenticated user, showing login');
+                        state.isLoggedIn = false;
+                        state.currentUser = null;
+                        sessionStorage.clear();
+
+                        const overlay = document.getElementById('login-overlay');
+                        if (overlay) overlay.classList.remove('hidden');
+
+                        const sidebar = document.getElementById('main-sidebar');
+                        if (sidebar) sidebar.classList.add('hidden');
+
+                        const mainContent = document.getElementById('main-content');
+                        if (mainContent) mainContent.classList.add('hidden');
+                    }
+                });
+            });
+        });
 function showModernDialog(title, message, isDanger = false) {
     return new Promise((resolve) => {
         // Create overlay
@@ -2547,8 +2744,7 @@ async function loadFromFirebase() {
             console.log('👥 Personnel:', state.personnelData.length);
             
             // Update UI
-            updateDashboard();
-            renderProjects();
+            render();
             renderPTable();
             loadIncidentRateData();
             
@@ -2601,8 +2797,7 @@ function setupFirebaseListener() {
                     }
                     
                     // Update UI
-                    updateDashboard();
-                    renderProjects();
+                    render();
                     renderPTable();
                     loadIncidentRateData();
                     
@@ -2620,167 +2815,29 @@ function setupFirebaseListener() {
     }
 }
 
-// Firebase Authentication Handlers
-async function firebaseLogin(email, password) {
-    if (!window.firebase) {
-        alert('Firebase not initialized');
-        return false;
-    }
+// ==================== FIREBASE SAVE HOOKS ====================
 
-    try {
-        const userCredential = await window.firebase.signInWithEmailAndPassword(window.firebaseAuth, email, password);
-        console.log('✅ Login successful:', userCredential.user.email);
-        return true;
-    } catch (error) {
-        console.error('❌ Login error:', error);
-        alert('Login failed: ' + error.message);
-        return false;
-    }
-}
-
-async function firebaseSignup(email, password) {
-    if (!window.firebase) {
-        alert('Firebase not initialized');
-        return false;
-    }
-
-    try {
-        const userCredential = await window.firebase.createUserWithEmailAndPassword(window.firebaseAuth, email, password);
-        console.log('✅ Signup successful:', userCredential.user.email);
-        
-        // Initialize user data
-        await saveToFirebase();
-        
-        return true;
-    } catch (error) {
-        console.error('❌ Signup error:', error);
-        alert('Signup failed: ' + error.message);
-        return false;
-    }
-}
-
-async function firebaseLogout() {
-    if (!window.firebase) {
-        return;
-    }
-
-    try {
-        await window.firebase.signOut(window.firebaseAuth);
-        
-        // Unsubscribe from listener
-        if (firebaseUnsubscribe) {
-            firebaseUnsubscribe();
-            firebaseUnsubscribe = null;
-        }
-        
-        console.log('✅ Logout successful');
-    } catch (error) {
-        console.error('❌ Logout error:', error);
-    }
-}
-
-async function firebaseChangePassword(newPassword) {
-    if (!window.firebase || !window.firebaseAuth.currentUser) {
-        alert('Not authenticated');
-        return false;
-    }
-
-    try {
-        await window.firebase.updatePassword(window.firebaseAuth.currentUser, newPassword);
-        console.log('✅ Password changed successfully');
-        alert('Password changed successfully!');
-        return true;
-    } catch (error) {
-        console.error('❌ Password change error:', error);
-        alert('Password change failed: ' + error.message);
-        return false;
-    }
-}
-
-async function firebaseResetPassword(email) {
-    if (!window.firebase) {
-        alert('Firebase not initialized');
-        return false;
-    }
-
-    try {
-        await window.firebase.sendPasswordResetEmail(window.firebaseAuth, email);
-        console.log('✅ Password reset email sent');
-        alert('Password reset email sent! Check your inbox.');
-        return true;
-    } catch (error) {
-        console.error('❌ Password reset error:', error);
-        alert('Password reset failed: ' + error.message);
-        return false;
-    }
-}
-
-// Auth State Observer
-function setupAuthObserver() {
-    if (!window.firebase) {
-        return;
-    }
-
-    window.firebase.onAuthStateChanged(window.firebaseAuth, async (user) => {
-        if (user) {
-            console.log('👤 User authenticated:', user.email);
-            state.currentUser = { email: user.email, uid: user.uid };
-            
-            // Update UI
-            const userEmailEl = document.getElementById('user-email');
-            if (userEmailEl) {
-                userEmailEl.textContent = user.email;
-            }
-            
-            // Load user data
-            await loadFromFirebase();
-            
-            // Setup real-time listener
-            setupFirebaseListener();
-            
-        } else {
-            console.log('👤 No user authenticated (using local mode)');
-            state.currentUser = null;
-        }
-    });
-}
-
-// Override original saveUserData to use Firebase
-const originalSaveUserData = window.saveUserData || function() {};
-
+// Wrap saveUserData to also sync to Firebase
+const _originalSaveUserData = window.saveUserData || function() {};
 window.saveUserData = function(email) {
-    // Call original function
-    originalSaveUserData(email);
-    
-    // Save to Firebase
-    saveToFirebase();
+    _originalSaveUserData(email);
+    // Non-blocking Firebase sync
+    if (firebaseReady && state.isLoggedIn) {
+        saveToFirebase().catch(e => console.error('Auto Firebase save error:', e));
+    }
 };
 
-// Initialize Firebase Integration
-waitForFirebase().then(async () => {
-    console.log('🔥 Firebase Ready!');
-    
-    // Setup auth observer
-    setupAuthObserver();
-    
-    // If no auth, load data anyway
-    if (!window.firebaseAuth?.currentUser) {
-        await loadFromFirebase();
-        setupFirebaseListener();
-    }
-});
-
-// Auto-save on page unload
+// Auto-save to Firebase on page unload
 window.addEventListener('beforeunload', () => {
-    if (firebaseReady) {
+    if (firebaseReady && state.isLoggedIn) {
         saveToFirebase();
     }
 });
 
-// Auto-save every 30 seconds
+// Auto-save to Firebase every 30 seconds
 setInterval(() => {
-    if (firebaseReady) {
-        saveToFirebase();
+    if (firebaseReady && state.isLoggedIn) {
+        saveToFirebase().catch(e => console.error('Interval Firebase save error:', e));
     }
 }, 30000);
 
