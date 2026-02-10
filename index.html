@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESH COMPLIANCE DASHBOARD - SCIC</title>
-    <link rel="icon" type="image/svg+xml" href="shield.svg">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%231b5e20' d='M256 0c4.6 0 9.2 1 13.4 2.9L457.7 82.8c22 9.3 38.4 31 38.3 57.2c-.5 99.2-41.3 280.7-213.6 363.2c-16.7 8-36.1 8-52.8 0C57.3 420.7 16.5 239.2 16 140c-.1-26.2 16.3-47.9 38.3-57.2L242.7 2.9C246.8 1 251.4 0 256 0z'/%3E%3C/svg%3E">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
@@ -686,6 +686,8 @@ table input[type="date"] {
 </head>
 <body>
 
+
+
 	
     <div id="login-overlay">
         <div class="login-card">
@@ -758,6 +760,7 @@ table input[type="date"] {
         </div>
         <nav style="flex-grow: 1; padding-top: 10px;">
             <div class="nav-item active" data-tab="overall" onclick="changeTab('overall')"><i class="fas fa-chart-pie"></i> Overall Dashboard</div>
+            <div class="nav-item" data-tab="incident-rate" onclick="changeTab('incident-rate')"><i class="fas fa-calculator"></i> Incident Tabulation Rate</div>
             <div class="nav-item" data-tab="exposures" onclick="changeTab('exposures')"><i class="fas fa-clock"></i> Total Exposures</div>
             <div class="nav-item" data-tab="rates" onclick="changeTab('rates')"><i class="fas fa-chart-line"></i> Statistics Rate</div>
             <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-kit-medical"></i> Accident/ Incident Record</div>
@@ -770,6 +773,7 @@ table input[type="date"] {
 	    <div class="nav-item" data-tab="reg" onclick="changeTab('reg')"><i class="fas fa-calendar-check"></i> Certificate of Registration</div>
             <div class="nav-item" data-tab="dole" onclick="changeTab('dole')"><i class="fas fa-file-export"></i> DOLE Reportorial</div>
 	    <div class="nav-item" data-tab="emb" onclick="changeTab('emb')"><i class="fas fa-file-export"></i> EMB Reportorial</div>
+            <div class="nav-item" data-tab="personnel" onclick="changeTab('personnel')"><i class="fas fa-users-gear"></i> ESH Personnel Monitoring</div>
             <div class="nav-item" data-tab="settings" onclick="changeTab('settings')"><i class="fas fa-cog"></i> Settings</div>
         </nav>
         <div style="padding: 15px;">
@@ -812,7 +816,181 @@ table input[type="date"] {
                 <button id="save-btn" class="btn btn-primary hidden" onclick="saveData()"><i class="fas fa-save"></i> SAVE</button>
             </div>
         </header>
-        <div id="dashboard-content"></div>
+       
+
+ <div id="dashboard-content"></div>
+
+
+
+<div id="personnel-view" class="hidden" style="padding: 20px;">
+    <div class="backup-section" style="border-left: 5px solid #1b5e20;">
+        <h3 style="color: #1b5e20; margin-bottom: 15px;">ESH Personnel Monitoring</h3>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <input type="text" id="p-search" placeholder="Search Name or ID..." onkeyup="filterP()" style="flex: 1; padding: 10px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary);">
+            <button class="btn btn-primary" onclick="addPRow()"><i class="fas fa-plus"></i> Add Personnel</button>
+        </div>
+        <div class="table-container" style="overflow-x: auto;">
+            <table id="p-table">
+                <thead>
+                    <tr>
+                        <th>Full Name</th>
+                        <th>Position</th>
+                        <th>ID Number</th>
+                        <th>Date Hired</th>
+                        <th>Current Project</th>
+                        <th>Previous Projects</th>
+                        <th>Age</th>
+                        <th>Gender</th>
+                        <th>Email</th>
+                        <th>Contact No.</th>
+                        <th>Home Address</th>
+                        <th>Length of Service</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="p-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- INCIDENT TABULATION RATE VIEW -->
+<div id="incident-rate-view" class="hidden" style="padding: 20px;">
+    <div style="background: var(--bg-card); padding: 25px; border-radius: 12px; max-width: 1200px; margin: 0 auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+            <h2 style="margin: 0; color: #1b5e20; font-size: 1.3rem;">
+                <i class="fas fa-calculator"></i> INCIDENT TABULATION RATE
+            </h2>
+            <button class="btn btn-primary" onclick="saveUserData(state.currentUser.email)">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+        </div>
+
+        <!-- Input Section -->
+        <div style="background: #f0f7f0; padding: 20px; border-radius: 8px; margin-bottom: 25px; border: 2px solid #1b5e20;">
+            <h3 style="color: #1b5e20; margin-top: 0; font-size: 1rem; margin-bottom: 15px;">
+                <i class="fas fa-edit"></i> Input Data
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+                <div class="form-group">
+                    <label style="font-weight: 600; color: var(--text-primary); display: block; margin-bottom: 5px;">
+                        No. of Recordable Cases:
+                    </label>
+                    <input type="number" id="recordable-cases" 
+                           oninput="calculateIncidentRates()" 
+                           placeholder="Enter number"
+                           style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.95rem;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; color: var(--text-primary); display: block; margin-bottom: 5px;">
+                        No. of Lost Days:
+                    </label>
+                    <input type="number" id="lost-days" 
+                           oninput="calculateIncidentRates()" 
+                           placeholder="Enter number"
+                           style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.95rem;">
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; color: var(--text-primary); display: block; margin-bottom: 5px;">
+                        Total Employee Hours Exposure:
+                    </label>
+                    <input type="number" id="total-hours" 
+                           oninput="calculateIncidentRates()" 
+                           placeholder="Enter number"
+                           style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.95rem;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Table -->
+        <div style="overflow-x: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <thead>
+                    <tr>
+                        <th style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); color: white; padding: 15px; text-align: left; font-size: 1rem; border: none; width: 40%;">
+                            INJURY/ILLNESS
+                        </th>
+                        <th style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); color: white; padding: 15px; text-align: center; font-size: 1rem; border: none; width: 30%;">
+                            OSHA<br><span style="font-size: 0.8rem; font-weight: 400;">200,000</span>
+                        </th>
+                        <th style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); color: white; padding: 15px; text-align: center; font-size: 1rem; border: none; width: 30%;">
+                            OSHS<br><span style="font-size: 0.8rem; font-weight: 400;">1,000,000</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- LTIR Row -->
+                    <tr style="border-bottom: 2px solid #e0e0e0;">
+                        <td style="background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%); color: white; padding: 20px 15px; border: none;">
+                            <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 5px;">LTIR (Loss Time Incident Rate)</div>
+                            <div style="font-size: 0.7rem; opacity: 0.95; line-height: 1.3;">
+                                <strong>Formula:</strong><br>
+                                No of Recordable Cases × 1M/2K<br>
+                                Total Employee Hours Exposure
+                            </div>
+                        </td>
+                        <td style="background: var(--bg-card); padding: 15px; text-align: center; border: 1px solid var(--border-color);">
+                            <div id="ltir-osha" style="font-size: 2rem; font-weight: 800; color: #1b5e20;">0</div>
+                        </td>
+                        <td style="background: var(--bg-card); padding: 15px; text-align: center; border: 1px solid var(--border-color);">
+                            <div id="ltir-oshs" style="font-size: 2rem; font-weight: 800; color: #1b5e20;">0</div>
+                        </td>
+                    </tr>
+
+                    <!-- TRIR Row -->
+                    <tr style="border-bottom: 2px solid #e0e0e0;">
+                        <td style="background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%); color: white; padding: 20px 15px; border: none;">
+                            <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 5px;">TRIR (Total Recordable Incident Rate)</div>
+                            <div style="font-size: 0.7rem; opacity: 0.95; line-height: 1.3;">
+                                <strong>Formula:</strong><br>
+                                No of Recordable Cases × 1M/2K<br>
+                                Total Employee Hours Exposure
+                            </div>
+                        </td>
+                        <td style="background: var(--bg-card); padding: 15px; text-align: center; border: 1px solid var(--border-color);">
+                            <div id="trir-osha" style="font-size: 2rem; font-weight: 800; color: #1b5e20;">0</div>
+                        </td>
+                        <td style="background: var(--bg-card); padding: 15px; text-align: center; border: 1px solid var(--border-color);">
+                            <div id="trir-oshs" style="font-size: 2rem; font-weight: 800; color: #1b5e20;">0</div>
+                        </td>
+                    </tr>
+
+                    <!-- Severity Rate Row -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%); color: white; padding: 20px 15px; border: none;">
+                            <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 5px;">Severity Rate</div>
+                            <div style="font-size: 0.7rem; opacity: 0.95; line-height: 1.3;">
+                                <strong>Formula:</strong><br>
+                                No of Total Days Lost × 1M/2K<br>
+                                Total Employee Hours Exposure
+                            </div>
+                        </td>
+                        <td style="background: var(--bg-card); padding: 15px; text-align: center; border: 1px solid var(--border-color);">
+                            <div id="severity-osha" style="font-size: 2rem; font-weight: 800; color: #1b5e20;">0</div>
+                        </td>
+                        <td style="background: var(--bg-card); padding: 15px; text-align: center; border: 1px solid var(--border-color);">
+                            <div id="severity-oshs" style="font-size: 2rem; font-weight: 800; color: #1b5e20;">0</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Info Box -->
+        <div style="margin-top: 20px; padding: 15px; background: #fff9c4; border: 2px solid #fbc02d; border-radius: 8px;">
+            <strong style="color: #f57f17;"><i class="fas fa-info-circle"></i> NOTES:</strong>
+            <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #333; font-size: 0.85rem; line-height: 1.6;">
+                <li><strong>OSHA Standard:</strong> Uses 200,000 hours (100 employees × 40 hours/week × 50 weeks)</li>
+                <li><strong>OSHS Standard:</strong> Uses 1,000,000 hours (Philippine standard)</li>
+                <li><strong>Auto-calculation:</strong> Results update automatically as you type</li>
+                <li><strong>Data Persistence:</strong> All data is saved automatically to your account</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
         <div id="settings-view" class="hidden" style="max-width: 600px; margin: 40px auto; background: var(--bg-card); padding: 30px; border-radius: 12px; color: var(--text-primary);">
     <h3 style="color: #1b5e20; border-bottom: 2px solid var(--safety-yellow); padding-bottom: 5px;">Account Settings</h3>
     <div class="form-group">
@@ -835,7 +1013,7 @@ table input[type="date"] {
             
     </main>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
 
 // ===== BACKUP & RECOVERY SYSTEM =====
@@ -1170,6 +1348,8 @@ function showBackupStatus(message, type) {
             currentTab: 'overall',
             currentUser: null,
             projects: [],
+            personnelData: [],
+            incidentRateData: { recordableCases: 0, lostDays: 0, totalHours: 0 },
             filteredProjects: [],
             selectedProjects: [],
             charts: {},
@@ -1222,53 +1402,115 @@ function showBackupStatus(message, type) {
             }
         }
 
-        // ===== LOGIN & AUTH =====
-        function handleLogin(event) {
-            event.preventDefault();
-            const email = document.getElementById('login-user').value.trim().toLowerCase();
-            const password = document.getElementById('login-pass').value;
-            const errorDiv = document.getElementById('login-error');
-            const loginBtn = document.getElementById('login-btn');
+       // ===== FIREBASE CONFIGURATION & MODULES =====
+</script> <script type="module">
+    // Import Firebase SDKs mula sa CDN
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-            errorDiv.innerText = '';
+    // Iyong Firebase Config
+    const firebaseConfig = {
+        apiKey: "AIzaSyBdqVEm3PWPuFTVbrxaP4JAZNXl2bmNUg4",
+        authDomain: "esh-dashboard.firebaseapp.com",
+        projectId: "esh-dashboard",
+        storageBucket: "esh-dashboard.firebasestorage.app",
+        messagingSenderId: "121684914529",
+        appId: "1:121684914529:web:d5292a3c30f1bba2959520",
+        measurementId: "G-TXYB9T0T3W"
+    };
 
-            if (!email || !password) {
-                errorDiv.innerText = '⚠️ Please enter both email and password';
-                return;
-            }
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-            loginBtn.disabled = true;
-            loginBtn.innerHTML = '<span class="loading-spinner"></span> Signing in...';
+    // ===== LOGIN FUNCTION (FIREBASE VERSION) =====
+    window.handleLogin = async (event) => {
+        if (event) event.preventDefault();
+        
+        const email = document.getElementById('login-user').value.trim().toLowerCase();
+        const password = document.getElementById('login-pass').value;
+        const errorDiv = document.getElementById('login-error');
+        const loginBtn = document.getElementById('login-btn');
 
-            setTimeout(() => {
-                if (VALID_CREDENTIALS[email] && VALID_CREDENTIALS[email] === password) {
-                    state.currentUser = { email };
-                    state.isLoggedIn = true;
-                    sessionStorage.setItem('esh_logged_in', 'true');
-                    sessionStorage.setItem('esh_user_email', email);
-                    loadUserData(email);
-                    showUI();
-                    initDarkMode();
-                    console.log('✅ Login successful!');
-                } else {
-                    errorDiv.innerText = '❌ Invalid email or password';
-                }
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM';
-            }, 800);
+        if (!email || !password) {
+            errorDiv.innerText = '⚠️ Please enter both email and password';
+            return;
         }
 
-      function handleLogout() {
-    showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(confirmed => {
-        if (confirmed) {
-            backupManager.stopAutoSave();
-            state.isLoggedIn = false;
-            state.currentUser = null;
+        errorDiv.innerText = '';
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = '<span class="loading-spinner"></span> Authenticating...';
+
+        try {
+            // Firebase Authentication Call
+            await signInWithEmailAndPassword(auth, email, password);
+            console.log('✅ Firebase Login successful!');
+            
+            // Ang showUI() at iba pa ay tatawagin na ng onAuthStateChanged sa ibaba
+        } catch (error) {
+            console.error("Login Error:", error);
+            errorDiv.innerText = '❌ ' + (error.code === 'auth/invalid-credential' ? 'Invalid email or password' : 'Login failed. Try again.');
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM';
+        }
+    };
+
+    // ===== LOGOUT FUNCTION (FIREBASE VERSION) =====
+    window.handleLogout = () => {
+        if (typeof showModernDialog === 'function') {
+            showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(confirmed => {
+                if (confirmed) {
+                    executeSignOut();
+                }
+            });
+        } else {
+            if (confirm('Are you sure you want to logout?')) {
+                executeSignOut();
+            }
+        }
+    };
+
+    async function executeSignOut() {
+        try {
+            await signOut(auth);
+            if (window.backupManager) window.backupManager.stopAutoSave();
             sessionStorage.clear();
             location.reload();
+        } catch (error) {
+            console.error("Logout Error:", error);
+        }
+    }
+
+    // ===== AUTH STATE OBSERVER (AUTOMATIC LOGIN) =====
+    onAuthStateChanged(auth, (user) => {
+        const loginOverlay = document.getElementById('login-overlay');
+        
+        if (user) {
+            // Naka-login ang user
+            state.currentUser = { email: user.email };
+            state.isLoggedIn = true;
+            sessionStorage.setItem('esh_logged_in', 'true');
+            sessionStorage.setItem('esh_user_email', user.email);
+
+            // Tawagin ang iyong original functions para i-load ang UI
+            if (typeof loadUserData === 'function') loadUserData(user.email);
+            if (typeof showUI === 'function') showUI();
+            if (typeof initDarkMode === 'function') initDarkMode();
+            
+            if (loginOverlay) loginOverlay.style.display = 'none';
+        } else {
+            // Walang user, ipakita ang login screen
+            state.isLoggedIn = false;
+            state.currentUser = null;
+            if (loginOverlay) loginOverlay.style.display = 'flex';
         }
     });
-}
+
+</script>
+</body>
+</html>
 
         function loadUserData(email) {
             const storageKey = `esh_dashboard_${email}`;
@@ -1277,6 +1519,8 @@ function showBackupStatus(message, type) {
             if (savedData) {
                 const data = JSON.parse(savedData);
                 state.projects = data.projects || [];
+                state.personnelData = data.personnelData || [];
+                state.incidentRateData = data.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
                 state.currentSort = data.currentSort || 'name';
             } else {
                 initializeUserProjects(email);
@@ -1312,6 +1556,8 @@ function showBackupStatus(message, type) {
                     delete copy.selected;
                     return copy;
                 }),
+                personnelData: state.personnelData || [],
+                incidentRateData: state.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 },
                 currentSort: state.currentSort,
                 lastSaved: new Date().toISOString()
             };
@@ -1439,19 +1685,25 @@ function showBackupStatus(message, type) {
 		'nov': 'OSH NOTICE OF VIOLATION ISSUED',
                 'environment': 'ENVIRONMENTAL NOTICE OF VIOLATION ISSUED', 'activities': 'ESH ACTIVITIES AND PROGRAMS','kpm': 'MONTHLY REPORT','reg': 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)','audit': 'INTERNAL ESH AUDIT REPORT',
                 'cshp': 'CONSTRUCTION SAFETY & HEALTH PROGRAM (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL','emb': ["SMR (Quarterly)", "CMR (Semi-Annual)"],
-                'settings': 'SETTINGS'
+                'personnel': 'ESH PERSONNEL MONITORING', 'incident-rate': 'INCIDENT TABULATION RATE', 'settings': 'SETTINGS'
             };
             document.querySelector('.header-title').innerText = titles[t] || t.toUpperCase();
             document.getElementById('settings-view').classList.toggle('hidden', t !== 'settings');
-            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings');
+            document.getElementById('personnel-view').classList.toggle('hidden', t !== 'personnel');
+            document.getElementById('incident-rate-view').classList.toggle('hidden', t !== 'incident-rate');
+            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel' || t === 'incident-rate');
+            
             if (t === 'settings') {
-    document.getElementById('current-email').value = state.currentUser?.email || '';
-    const backupSection = document.getElementById('backup-recovery-section');
-    if (backupSection) {
-        backupSection.innerHTML = showBackupRecoveryUI();
-    }
-}
-render();
+                document.getElementById('current-email').value = state.currentUser?.email || '';
+                const backupSection = document.getElementById('backup-recovery-section');
+                if (backupSection) {
+                    backupSection.innerHTML = showBackupRecoveryUI();
+                }
+            }
+            
+            if (t === 'personnel') renderPTable();
+            if (t === 'incident-rate') loadIncidentRateData();
+            
             render();
         }
 
@@ -1614,6 +1866,8 @@ function closeAllStatusDropdowns() {
             setTimeout(() => {
                 const regionCtx = document.getElementById('regionChart');
                 if (regionCtx) {
+                    const existingChart = Chart.getChart(regionCtx);
+                    if (existingChart) existingChart.destroy();
                     state.charts.region = new Chart(regionCtx, {
                         type: 'bar',
                         data: {
@@ -1682,7 +1936,7 @@ function closeAllStatusDropdowns() {
         }
 
         function render() {
-            if (state.currentTab === 'settings') return;
+            if (state.currentTab === 'settings' || state.currentTab === 'personnel' || state.currentTab === 'incident-rate') return;
 
             const container = document.getElementById('dashboard-content');
             let html = '';
@@ -1759,29 +2013,88 @@ function closeAllStatusDropdowns() {
                     </div>`;
 
 if (state.currentTab === 'audit') {
-    html += `<div class="table-container"><table>
-        <thead>
-            <tr>
-                <th colspan="3">Q1</th>
-                <th colspan="3">Q2</th>
-                <th colspan="3">Q3</th>
-                <th colspan="3">Q4</th>
-                <th rowspan="4">GRAND<p>TOTAL</p><p>AVG</p></th>
-            </tr>
-            <tr>
-                <th colspan="3">Score</th>
-                <th colspan="3">Score</th>
-                <th colspan="3">Score</th>
-                <th colspan="3">Score</th>
-            </tr>
-            <tr>
-                <th>Implementation</th><th>Documentation & <p>Compliance</p></th><th><p>Total</p> Average</th>
-                <th>Implementation</th><th>Documentation & <p>Compliance</p></th><th><p>Total</p> Average</th>
-                <th>Implementation</th><th>Documentation & <p>Compliance</p></th><th><p>Total</p> Average</th>
-                <th>Implementation</th><th>Documentation & <p>Compliance</p></th><th><p>Total</p> Average</th>
-            </tr>
-        </thead>
-        <tbody>`;
+    html += `<div class="table-container">
+        <style>
+            .audit-table {
+                border-collapse: collapse;
+                width: 100%;
+                max-width: 1000px;
+                margin: 10px 0;
+                font-family: Arial, sans-serif;
+                border: 0.5px solid #d1d1d1;
+            }
+            /* Green Header style base sa image */
+            .audit-table thead th {
+                background-color: #2e7d32; /* Dark green background */
+                color: #ffffff;            /* White text */
+                font-weight: bold;
+                text-transform: uppercase;
+                font-size: 11px;
+                padding: 10px 4px;
+                border: 0.5px solid #1b5e20;
+            }
+            .audit-table td { 
+                border: 0.5px solid #d1d1d1;
+                text-align: center; 
+                vertical-align: middle; 
+                padding: 4px;
+                font-size: 12px;
+            }
+            /* Row highlight para sa alternating colors */
+            .audit-table tbody tr {
+                background-color: #ffffff;
+            }
+            /* Specific cell adjustments */
+            .cell-white { background-color: #ffffff; }
+            .cell-avg-gray { background: #808080 !important; color: white !important; font-weight: bold; }
+            .cell-grand-total { background-color: #ffff00 !important; color: #000000 !important; font-weight: bold; }
+            
+            .audit-table input { 
+                text-align: center; 
+                width: 45px;
+                border: 0.5px solid #ccc;
+                border-radius: 2px;
+                font-size: 11px;
+                padding: 2px;
+            }
+            .audit-table p { margin: 0; padding: 0; font-size: 10px; }
+        </style>
+        
+        <table class="audit-table">
+            <thead>
+                <tr>
+                    <th colspan="3">Q1 (JAN-MAR)</th>
+                    <th colspan="3">Q2 (APR-JUN)</th>
+                    <th colspan="3">Q3 (JUL-SEP)</th>
+                    <th colspan="3">Q4 (OCT-DEC)</th>
+                    <th rowspan="3" class="cell-grand-total" style="border: 0.5px solid #d1d1d1;">GRAND<br>TOTAL AVG</th>
+                </tr>
+                <tr>
+                    <th colspan="3">Score</th>
+                    <th colspan="3">Score</th>
+                    <th colspan="3">Score</th>
+                    <th colspan="3">Score</th>
+                </tr>
+                <tr>
+                    <th style="background: white; color: black; font-size: 10px;">Impl.</th>
+                    <th style="background: white; color: black; font-size: 10px;">Docu & Comp.</th>
+                    <th style="background: #808080; color: white; font-size: 10px;">Avg</th>
+                    
+                    <th style="background: white; color: black; font-size: 10px;">Impl.</th>
+                    <th style="background: white; color: black; font-size: 10px;">Docu & Comp.</th>
+                    <th style="background: #808080; color: white; font-size: 10px;">Avg</th>
+                    
+                    <th style="background: white; color: black; font-size: 10px;">Impl.</th>
+                    <th style="background: white; color: black; font-size: 10px;">Docu & Comp.</th>
+                    <th style="background: #808080; color: white; font-size: 10px;">Avg</th>
+                    
+                    <th style="background: white; color: black; font-size: 10px;">Impl.</th>
+                    <th style="background: white; color: black; font-size: 10px;">Docu & Comp.</th>
+                    <th style="background: #808080; color: white; font-size: 10px;">Avg</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>`;
 
     const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
     let totalYearAvg = 0;
@@ -1792,14 +2105,17 @@ if (state.currentTab === 'audit') {
         totalYearAvg += qAvg;
 
         html += `
-            <td><input type="number" style="width:4ch;" value="${audit.scoreImpl}" ${state.isEditing ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)"></td>
-            <td><input type="number" style="width:4ch;" value="${audit.docuComp}" ${state.isEditing ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)"></td>
-            <td style="background:#f0f0f0; font-weight:bold; width:5ch;">${qAvg.toFixed(2)}</td>`;
+            <td class="cell-white"><input type="number" value="${audit.scoreImpl}" ${state.isEditing ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)"></td>
+            <td class="cell-white"><input type="number" value="${audit.docuComp}" ${state.isEditing ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)"></td>
+            <td class="cell-avg-gray">${qAvg.toFixed(2)}</td>`;
     });
 
-    html += `<td class="ytd-cell" style="width:5ch;">${(totalYearAvg / 4).toFixed(2)}</td></tbody></table></div>`;
+    html += `<td class="cell-grand-total">${(totalYearAvg / 4).toFixed(2)}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>`;
 }
-
                   if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
     const isDateType = ['kpm','dole','emb','cshp','reg'].includes(state.currentTab);
     const isCshp = state.currentTab === 'cshp'|| state.currentTab === 'reg';
@@ -2044,11 +2360,118 @@ function showModernDialog(title, message, isDanger = false) {
         confirmBtn.focus();
     });
 }
-        console.log('✅ ESH Dashboard Ready with Dark Mode\n📧 Demo: demo@scic.com\n🔑 Password: demo1234');
+
+// --- ESH PERSONNEL MONITORING SYSTEM ---
+
+function addPRow() {
+    if (!state.personnelData) state.personnelData = [];
+    state.personnelData.push({ name: '', pos: '', id: '', hired: '', current: '', prev: '', age: '', gen: '', mail: '', num: '', addr: '', len: '' });
+    renderPTable();
+    saveUserData(state.currentUser.email);
+}
+
+function renderPTable() {
+    const tbody = document.getElementById('p-body');
+    if (!tbody) return;
+    const projOptions = (state.projects || []).map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+    tbody.innerHTML = (state.personnelData || []).map((p, i) => `
+        <tr>
+            <td><input type="text" value="${p.name}" onchange="state.personnelData[${i}].name=this.value"></td>
+            <td>
+                <select onchange="state.personnelData[${i}].pos=this.value">
+                    <option>${p.pos || 'Select'}</option>
+                    <option>Project Physician</option><option>ESH Head</option><option>Safety Officer I</option>
+                    <option>Safety Officer II</option><option>Safety Officer III</option><option>Safety Officer IV</option>
+                    <option>PCO</option><option>Project Nurse</option><option>First Aider</option><option>Others</option>
+                </select>
+            </td>
+            <td><input type="text" value="${p.id}" onchange="state.personnelData[${i}].id=this.value"></td>
+            <td><input type="date" value="${p.hired}" onchange="state.personnelData[${i}].hired=this.value"></td>
+            <td>
+                <select onchange="state.personnelData[${i}].current=this.value">
+                    <option>${p.current || 'Select Project'}</option>
+                    ${projOptions}
+                </select>
+            </td>
+            <td><input type="text" value="${p.prev}" onchange="state.personnelData[${i}].prev=this.value"></td>
+            <td><input type="number" value="${p.age}" onchange="state.personnelData[${i}].age=this.value"></td>
+            <td><select onchange="state.personnelData[${i}].gen=this.value"><option>${p.gen || 'Select'}</option><option>Male</option><option>Female</option></select></td>
+            <td><input type="email" value="${p.mail}" onchange="state.personnelData[${i}].mail=this.value"></td>
+            <td><input type="text" value="${p.num}" onchange="state.personnelData[${i}].num=this.value"></td>
+            <td><input type="text" value="${p.addr}" onchange="state.personnelData[${i}].addr=this.value"></td>
+            <td><input type="text" value="${p.len}" onchange="state.personnelData[${i}].len=this.value"></td>
+            <td><button class="btn btn-danger" onclick="state.personnelData.splice(${i},1);renderPTable()"><i class="fas fa-trash"></i></button></td>
+        </tr>
+    `).join('');
+}
+
+function filterP() {
+    const term = document.getElementById('p-search').value.toLowerCase();
+    const rows = document.querySelectorAll('#p-body tr');
+    rows.forEach(row => row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none');
+}
+
+// --- INCIDENT TABULATION RATE SYSTEM ---
+
+function calculateIncidentRates() {
+    const recordableCases = parseFloat(document.getElementById('recordable-cases').value) || 0;
+    const lostDays = parseFloat(document.getElementById('lost-days').value) || 0;
+    const totalHours = parseFloat(document.getElementById('total-hours').value) || 0;
+
+    // Save to state
+    state.incidentRateData = {
+        recordableCases: recordableCases,
+        lostDays: lostDays,
+        totalHours: totalHours
+    };
+
+    // Auto-save
+    saveUserData(state.currentUser.email);
+
+    // Prevent division by zero
+    if (totalHours === 0) {
+        document.getElementById('ltir-osha').textContent = '0';
+        document.getElementById('ltir-oshs').textContent = '0';
+        document.getElementById('trir-osha').textContent = '0';
+        document.getElementById('trir-oshs').textContent = '0';
+        document.getElementById('severity-osha').textContent = '0';
+        document.getElementById('severity-oshs').textContent = '0';
+        return;
+    }
+
+    // LTIR Calculations (OSHA: 200,000 / OSHS: 1,000,000)
+    const ltirOsha = (recordableCases * 200000) / totalHours;
+    const ltirOshs = (recordableCases * 1000000) / totalHours;
+
+    // TRIR Calculations (same formula as LTIR)
+    const trirOsha = (recordableCases * 200000) / totalHours;
+    const trirOshs = (recordableCases * 1000000) / totalHours;
+
+    // Severity Rate Calculations
+    const severityOsha = (lostDays * 200000) / totalHours;
+    const severityOshs = (lostDays * 1000000) / totalHours;
+
+    // Display results (rounded to 2 decimal places)
+    document.getElementById('ltir-osha').textContent = ltirOsha.toFixed(2);
+    document.getElementById('ltir-oshs').textContent = ltirOshs.toFixed(2);
+    document.getElementById('trir-osha').textContent = trirOsha.toFixed(2);
+    document.getElementById('trir-oshs').textContent = trirOshs.toFixed(2);
+    document.getElementById('severity-osha').textContent = severityOsha.toFixed(2);
+    document.getElementById('severity-oshs').textContent = severityOshs.toFixed(2);
+}
+
+function loadIncidentRateData() {
+    if (!state.incidentRateData) {
+        state.incidentRateData = { recordableCases: 0, lostDays: 0, totalHours: 0 };
+    }
+
+    document.getElementById('recordable-cases').value = state.incidentRateData.recordableCases || 0;
+    document.getElementById('lost-days').value = state.incidentRateData.lostDays || 0;
+    document.getElementById('total-hours').value = state.incidentRateData.totalHours || 0;
+
+    calculateIncidentRates();
+}
+
     </script>
 </body>
-
 </html>
-
-
-
