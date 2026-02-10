@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESH COMPLIANCE DASHBOARD - SCIC</title>
-    <!-- Security meta tags -->
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta name="referrer" content="strict-origin-when-cross-origin">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%231b5e20' d='M256 0c4.6 0 9.2 1 13.4 2.9L457.7 82.8c22 9.3 38.4 31 38.3 57.2c-.5 99.2-41.3 280.7-213.6 363.2c-16.7 8-36.1 8-52.8 0C57.3 420.7 16.5 239.2 16 140c-.1-26.2 16.3-47.9 38.3-57.2L242.7 2.9C246.8 1 251.4 0 256 0z'/%3E%3C/svg%3E">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -740,22 +737,17 @@ table input[type="date"] {
             <h2 style="color:#1b5e20; margin:0 0 5px 0; font-size: 1.1rem; letter-spacing: 1px;">ESH COMPLIANCE DASHBOARD</h2>
             <p style="margin:0 0 20px 0; font-size: 0.75rem; font-weight: 600; color: #666;">STA. CLARA INTERNATIONAL CORPORATION</p>
             <form onsubmit="handleLogin(event)" autocomplete="off">
-                <input type="email" id="login-user" placeholder="Email Address" required autocomplete="email">
-                <input type="password" id="login-pass" placeholder="Password" required autocomplete="current-password">
+                <input type="email" id="login-user" placeholder="Email Address" required autocomplete="off">
+                <input type="password" id="login-pass" placeholder="Password" required autocomplete="off">
                 <button type="submit" class="btn btn-primary" id="login-btn" style="width:100%; margin-top:15px; padding: 12px; font-size: 0.9rem;">
                     <i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM
                 </button>
             </form>
             <div id="login-error" class="error-message"></div>
-            <div style="margin-top: 12px; text-align: center;">
-                <a href="#" id="forgot-password-link" onclick="handleForgotPassword(event)" style="color: #1b5e20; font-size: 0.78rem; text-decoration: underline;">
-                    <i class="fas fa-key"></i> Forgot Password?
-                </a>
-            </div>
             <div class="disclaimer-box">
-                <strong><i class="fas fa-lock"></i> AUTHORIZED ACCESS ONLY</strong><br>
-                This system is restricted to ESH SCIC personnel only.<br>
-                Contact your administrator if you need access.
+                <strong><i class="fas fa-circle-exclamation"></i> DEMO ACCOUNT:</strong><br>
+                Email: <code style="background:#f0f0f0; padding:2px 4px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d1b5b4bcbe91a2b2b8b2ffb2bebc">[email&#160;protected]</a></code><br>
+                Password: <code style="background:#f0f0f0; padding:2px 4px;">demo1234</code>
             </div>
         </div>
     </div>
@@ -1054,18 +1046,13 @@ table input[type="date"] {
     </div>
     <button class="btn btn-primary" style="width:100%; padding: 10px;" onclick="updatePassword()">UPDATE PASSWORD</button>
     <div id="settings-message"></div>
-    <div style="margin-top: 15px; text-align: center;">
-        <button class="btn btn-secondary" style="font-size: 0.8rem;" onclick="sendResetFromSettings()">
-            <i class="fas fa-envelope"></i> Send Password Reset Email
-        </button>
-    </div>
 
     <div id="backup-recovery-section" style="margin-top: 30px;"></div>
 </div>
             
     </main>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
 
 // ===== BACKUP & RECOVERY SYSTEM =====
@@ -1368,7 +1355,7 @@ function showBackupStatus(message, type) {
     }, 4000);
 }
 
-   
+        const VALID_CREDENTIALS = { 'demo@scic.com': 'demo1234' };
         const REGIONS = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
         const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
        const SCHEMA = {
@@ -1455,98 +1442,45 @@ function showBackupStatus(message, type) {
         }
 
         // ===== LOGIN & AUTH =====
-  // Firebase-connected login handler
-window.handleLogin = async (event) => {
-    event.preventDefault();
-    const email = document.getElementById('login-user').value.trim().toLowerCase();
-    const password = document.getElementById('login-pass').value;
-    const errorDiv = document.getElementById('login-error');
-    const loginBtn = document.getElementById('login-btn');
+        function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('login-user').value.trim().toLowerCase();
+            const password = document.getElementById('login-pass').value;
+            const errorDiv = document.getElementById('login-error');
+            const loginBtn = document.getElementById('login-btn');
 
-    errorDiv.innerText = '';
+            errorDiv.innerText = '';
 
-    if (!email || !password) {
-        errorDiv.innerText = '⚠️ Please enter both email and password';
-        return;
-    }
+            if (!email || !password) {
+                errorDiv.innerText = '⚠️ Please enter both email and password';
+                return;
+            }
 
-    // Basic input validation
-    if (password.length < 6) {
-        errorDiv.innerText = '⚠️ Password must be at least 6 characters';
-        return;
-    }
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span class="loading-spinner"></span> Signing in...';
 
-    loginBtn.disabled = true;
-    loginBtn.innerHTML = '<span class="loading-spinner"></span> Authenticating...';
-
-    try {
-        // Wait for Firebase to be ready
-        await waitForFirebase();
-
-        if (!window.firebase || !window.firebaseAuth) {
-            errorDiv.innerText = '❌ Authentication service unavailable. Please refresh.';
-            return;
+            setTimeout(() => {
+                if (VALID_CREDENTIALS[email] && VALID_CREDENTIALS[email] === password) {
+                    state.currentUser = { email };
+                    state.isLoggedIn = true;
+                    sessionStorage.setItem('esh_logged_in', 'true');
+                    sessionStorage.setItem('esh_user_email', email);
+                    loadUserData(email);
+                    showUI();
+                    initDarkMode();
+                    console.log('✅ Login successful!');
+                } else {
+                    errorDiv.innerText = '❌ Invalid email or password';
+                }
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM';
+            }, 800);
         }
 
-        const userCredential = await window.firebase.signInWithEmailAndPassword(window.firebaseAuth, email, password);
-        const user = userCredential.user;
-
-        // onAuthStateChanged will handle the rest (showUI, loadFromFirebase, etc.)
-        console.log('✅ Firebase Login successful:', user.email);
-
-    } catch (error) {
-        console.error('Login Error:', error.code);
-        if (
-            error.code === 'auth/invalid-credential' ||
-            error.code === 'auth/user-not-found' ||
-            error.code === 'auth/wrong-password' ||
-            error.code === 'auth/invalid-email'
-        ) {
-            errorDiv.innerText = '❌ Invalid email or password.';
-        } else if (error.code === 'auth/too-many-requests') {
-            errorDiv.innerText = '⚠️ Too many failed attempts. Please try again later.';
-        } else if (error.code === 'auth/network-request-failed') {
-            errorDiv.innerText = '❌ Network error. Please check your connection.';
-        } else {
-            errorDiv.innerText = '❌ Login failed. Please try again.';
-        }
-        loginBtn.disabled = false;
-        loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM';
-    }
-};
-
-// Forgot Password Handler
-async function handleForgotPassword(event) {
-    event.preventDefault();
-    const emailInput = document.getElementById('login-user');
-    const email = emailInput ? emailInput.value.trim().toLowerCase() : '';
-
-    if (!email) {
-        const errorDiv = document.getElementById('login-error');
-        if (errorDiv) errorDiv.innerText = '⚠️ Please enter your email address first.';
-        return;
-    }
-
-    await waitForFirebase();
-    const success = await firebaseResetPassword(email);
-    if (success) {
-        const errorDiv = document.getElementById('login-error');
-        if (errorDiv) {
-            errorDiv.style.color = '#1b5e20';
-            errorDiv.innerText = '✅ Password reset email sent! Check your inbox.';
-        }
-    }
-}
-
-function handleLogout() {
-    showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(async confirmed => {
+      function handleLogout() {
+    showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(confirmed => {
         if (confirmed) {
             backupManager.stopAutoSave();
-            // Save data before logout
-            await saveToFirebase();
-            // Firebase sign out
-            await firebaseLogout();
-            // Clear local session state
             state.isLoggedIn = false;
             state.currentUser = null;
             sessionStorage.clear();
@@ -1555,12 +1489,20 @@ function handleLogout() {
     });
 }
 
-function loadUserData(email) {
-            // Data loading is handled via loadFromFirebase() in setupAuthObserver
-            // This function is kept for compatibility but delegates to Firebase
-            if (firebaseReady) {
-                loadFromFirebase();
+        function loadUserData(email) {
+            const storageKey = `esh_dashboard_${email}`;
+            const savedData = localStorage.getItem(storageKey);
+
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                state.projects = data.projects || [];
+                state.personnelData = data.personnelData || [];
+                state.incidentRateData = data.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
+                state.currentSort = data.currentSort || 'name';
+            } else {
+                initializeUserProjects(email);
             }
+            state.filteredProjects = [...state.projects];
         }
 
         function initializeUserProjects(email) {
@@ -1582,13 +1524,21 @@ function loadUserData(email) {
             saveUserData(email);
         }
 
-function saveUserData(email) {
+        function saveUserData(email) {
             if (!email) return;
-            // Data is persisted to Firebase (saveToFirebase), not localStorage
-            // Trigger Firebase save - this is the authoritative store
-            if (firebaseReady) {
-                saveToFirebase();
-            }
+            const storageKey = `esh_dashboard_${email}`;
+            const data = {
+                projects: state.projects.map(p => {
+                    const copy = { ...p };
+                    delete copy.selected;
+                    return copy;
+                }),
+                personnelData: state.personnelData || [],
+                incidentRateData: state.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 },
+                currentSort: state.currentSort,
+                lastSaved: new Date().toISOString()
+            };
+            localStorage.setItem(storageKey, JSON.stringify(data));
         }
 
         function sortProjects(sortBy) {
@@ -2284,7 +2234,7 @@ document.addEventListener('click', closeAllStatusDropdowns);
             if (project) project.selected = !project.selected;
         }
 
-async function updatePassword() {
+        function updatePassword() {
             const newPass = document.getElementById('new-password').value;
             const confirmPass = document.getElementById('confirm-password').value;
             const msgDiv = document.getElementById('settings-message');
@@ -2299,23 +2249,12 @@ async function updatePassword() {
                 return;
             }
             if (newPass.length < 6) {
-                msgDiv.innerHTML = '<div class="error-message">❌ Password must be at least 6 characters</div>';
+                msgDiv.innerHTML = '<div class="error-message">❌ Password must be 6+ characters</div>';
                 return;
             }
-            // Check for strong password
-            const hasUpper = /[A-Z]/.test(newPass);
-            const hasNumber = /[0-9]/.test(newPass);
-            if (!hasUpper || !hasNumber) {
-                msgDiv.innerHTML = '<div class="error-message">⚠️ Password must contain at least one uppercase letter and one number</div>';
-                return;
-            }
-            // Call Firebase to actually change the password
-            const success = await firebaseChangePassword(newPass);
-            if (success) {
-                msgDiv.innerHTML = '<div class="success-message">✅ Password updated in Firebase!</div>';
-                document.getElementById('new-password').value = '';
-                document.getElementById('confirm-password').value = '';
-            }
+            msgDiv.innerHTML = '<div class="success-message">✅ Password updated!</div>';
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-password').value = '';
         }
 
         setInterval(() => {
@@ -2326,35 +2265,18 @@ async function updatePassword() {
             if (clockEl) clockEl.innerText = now.toLocaleTimeString('en-PH');
         }, 1000);
 
-window.addEventListener('load', () => {
+       window.addEventListener('load', () => {
     initDarkMode();
     backupManager.init();
-    // Auth state is fully managed by Firebase onAuthStateChanged (set up in setupAuthObserver)
-    // No local session bypass - always require Firebase authentication
-});
-// Send password reset from settings
-async function sendResetFromSettings() {
-    const email = state.currentUser?.email;
-    if (!email) return;
-    const msgDiv = document.getElementById('settings-message');
-    if (msgDiv) msgDiv.innerHTML = '';
-    const success = await firebaseResetPassword(email);
-    if (success && msgDiv) {
-        msgDiv.innerHTML = '<div class="success-message">✅ Reset email sent to ' + email + '</div>';
+    const isLoggedIn = sessionStorage.getItem('esh_logged_in');
+    const userEmail = sessionStorage.getItem('esh_user_email');
+    if (isLoggedIn === 'true' && userEmail) {
+        state.currentUser = { email: userEmail };
+        state.isLoggedIn = true;
+        loadUserData(userEmail);
+        showUI();
     }
-}
-
-// Security helper: sanitize user-provided strings before inserting into HTML
-function sanitizeHTML(str) {
-    if (typeof str !== 'string') return '';
-    return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#x27;');
-}
-
+});
 function showModernDialog(title, message, isDanger = false) {
     return new Promise((resolve) => {
         // Create overlay
@@ -2614,31 +2536,24 @@ async function loadFromFirebase() {
             state.personnelData = data.personnelData || [];
             state.incidentRateData = data.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
             state.darkMode = data.darkMode || false;
-            state.filteredProjects = [...state.projects];
             
             // Apply dark mode
             if (state.darkMode) {
                 document.body.classList.add('dark-mode');
-                updateThemeIcon();
             }
             
             console.log('✅ Data loaded from Firebase');
             console.log('📊 Projects:', state.projects.length);
             console.log('👥 Personnel:', state.personnelData.length);
             
-            // Update UI if already shown
-            if (state.isLoggedIn) {
-                render();
-                renderPTable();
-                if (document.getElementById('incident-rate-view') && !document.getElementById('incident-rate-view').classList.contains('hidden')) {
-                    loadIncidentRateData();
-                }
-            }
+            // Update UI
+            updateDashboard();
+            renderProjects();
+            renderPTable();
+            loadIncidentRateData();
             
         } else {
-            console.log('📝 No Firebase data found, initializing new user data');
-            // Initialize projects for new user
-            initializeUserProjects(state.currentUser?.email || 'new-user');
+            console.log('📝 No Firebase data found, creating new document');
             await saveToFirebase();
         }
         
@@ -2676,23 +2591,20 @@ function setupFirebaseListener() {
                     state.personnelData = data.personnelData || [];
                     state.incidentRateData = data.incidentRateData || {};
                     state.darkMode = data.darkMode || false;
-                    state.filteredProjects = [...state.projects];
                     state.lastSyncTimestamp = savedTimestamp;
                     
                     // Apply dark mode
                     if (state.darkMode && !document.body.classList.contains('dark-mode')) {
                         document.body.classList.add('dark-mode');
-                        updateThemeIcon();
                     } else if (!state.darkMode && document.body.classList.contains('dark-mode')) {
                         document.body.classList.remove('dark-mode');
-                        updateThemeIcon();
                     }
                     
                     // Update UI
-                    if (state.isLoggedIn) {
-                        render();
-                        renderPTable();
-                    }
+                    updateDashboard();
+                    renderProjects();
+                    renderPTable();
+                    loadIncidentRateData();
                     
                     console.log('🔄 Real-time update from Firebase');
                 }
@@ -2803,7 +2715,7 @@ async function firebaseResetPassword(email) {
     }
 }
 
-// Auth State Observer - Single source of truth for login/logout
+// Auth State Observer
 function setupAuthObserver() {
     if (!window.firebase) {
         return;
@@ -2813,55 +2725,49 @@ function setupAuthObserver() {
         if (user) {
             console.log('👤 User authenticated:', user.email);
             state.currentUser = { email: user.email, uid: user.uid };
-            state.isLoggedIn = true;
-
-            // Load user data from Firebase
+            
+            // Update UI
+            const userEmailEl = document.getElementById('user-email');
+            if (userEmailEl) {
+                userEmailEl.textContent = user.email;
+            }
+            
+            // Load user data
             await loadFromFirebase();
-
-            // Setup real-time sync listener
+            
+            // Setup real-time listener
             setupFirebaseListener();
-
-            // Show the dashboard UI
-            showUI();
-            initDarkMode();
-
+            
         } else {
-            console.log('👤 No user authenticated - showing login screen');
+            console.log('👤 No user authenticated (using local mode)');
             state.currentUser = null;
-            state.isLoggedIn = false;
-
-            // Make sure login overlay is shown
-            const overlay = document.getElementById('login-overlay');
-            if (overlay) {
-                overlay.classList.remove('hidden');
-                overlay.style.display = 'flex';
-            }
-
-            // Reset login button if it got stuck
-            const loginBtn = document.getElementById('login-btn');
-            if (loginBtn) {
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM';
-            }
-
-            // Unsubscribe from Firestore listener on logout
-            if (firebaseUnsubscribe) {
-                firebaseUnsubscribe();
-                firebaseUnsubscribe = null;
-            }
         }
     });
 }
 
-// saveUserData is already defined and calls saveToFirebase() internally.
-// No override needed - Firebase save is handled directly in the function.
+// Override original saveUserData to use Firebase
+const originalSaveUserData = window.saveUserData || function() {};
+
+window.saveUserData = function(email) {
+    // Call original function
+    originalSaveUserData(email);
+    
+    // Save to Firebase
+    saveToFirebase();
+};
 
 // Initialize Firebase Integration
-waitForFirebase().then(() => {
+waitForFirebase().then(async () => {
     console.log('🔥 Firebase Ready!');
-    // Setup auth observer - this is the ONLY gate for login/logout
-    // It handles: showing UI on login, hiding UI on logout
+    
+    // Setup auth observer
     setupAuthObserver();
+    
+    // If no auth, load data anyway
+    if (!window.firebaseAuth?.currentUser) {
+        await loadFromFirebase();
+        setupFirebaseListener();
+    }
 });
 
 // Auto-save on page unload
