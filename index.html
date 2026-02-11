@@ -113,6 +113,26 @@
             background: #4a4a2d; border: 1px solid #fbc02d; color: #e4e4e4;
         }
 
+        /* Firebase init loading overlay */
+        #firebase-loading-overlay {
+            position: fixed; inset: 0; background: linear-gradient(135deg, #0a2e10 0%, #1b5e20 100%);
+            display: flex; align-items: center; justify-content: center; z-index: 20000; flex-direction: column; gap: 20px;
+        }
+        #firebase-loading-overlay .spinner {
+            width: 48px; height: 48px; border: 5px solid rgba(255,255,255,0.3);
+            border-top-color: #fbc02d; border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        #firebase-loading-overlay p {
+            color: #a5d6a7; font-size: 0.85rem; font-weight: 600; letter-spacing: 1px; margin: 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-spinner {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,0.4); border-top-color: white;
+            border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px;
+        }
+
         aside {
             width: 260px; background: var(--safety-green-grad); color: white;
             display: flex; flex-direction: column; flex-shrink: 0; z-index: 100; box-shadow: 4px 0 10px rgba(0,0,0,0.1);
@@ -896,8 +916,14 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 </head>
 <body>
 
+    <!-- Firebase initialization loading screen -->
+    <div id="firebase-loading-overlay">
+        <div class="spinner"></div>
+        <p>INITIALIZING SYSTEM...</p>
+    </div>
+
 	
-    <div id="login-overlay">
+    <div id="login-overlay" style="display:none;">
         <div class="login-card">
             <div style="background: var(--safety-green-grad); width: 60px; height: 60px; border-radius: 50%;
                 display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: white; font-size: 1.5rem;">
@@ -914,9 +940,9 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             </form>
             <div id="login-error" class="error-message"></div>
             <div class="disclaimer-box">
-                <strong><i class="fas fa-circle-exclamation"></i> DEMO ACCOUNT:</strong><br>
-                Email: <code style="background:#f0f0f0; padding:2px 4px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d1b5b4bcbe91a2b2b8b2ffb2bebc">[email&#160;protected]</a></code><br>
-                Password: <code style="background:#f0f0f0; padding:2px 4px;">demo1234</code>
+                <strong><i class="fas fa-circle-info"></i> NOTICE:</strong><br>
+                This system uses secure Firebase Authentication.<br>
+                Contact your system administrator for account access.
             </div>
         </div>
     </div>
@@ -1106,24 +1132,341 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
 
 
-        <div id="settings-view" class="hidden" style="max-width: 600px; margin: 40px auto; background: var(--bg-card); padding: 30px; border-radius: 12px; color: var(--text-primary);">
-    <h3 style="color: #1b5e20; border-bottom: 2px solid var(--safety-yellow); padding-bottom: 5px;">Account Settings</h3>
-    <div class="form-group">
-        <label>Current Email:</label>
-        <input type="email" id="current-email" disabled>
-    </div>
-    <div class="form-group">
-        <label>New Password</label>
-        <input type="password" id="new-password" placeholder="Enter new password">
-    </div>
-    <div class="form-group">
-        <label>Confirm Password</label>
-        <input type="password" id="confirm-password" placeholder="Confirm password">
-    </div>
-    <button class="btn btn-primary" style="width:100%; padding: 10px;" onclick="updatePassword()">UPDATE PASSWORD</button>
-    <div id="settings-message"></div>
+        <div id="settings-view" class="hidden">
+  <style>
+    .settings-page { max-width: 780px; margin: 0 auto; padding: 28px 24px 80px; }
+    .settings-hero {
+      background: linear-gradient(135deg, #0a2e10 0%, #1b5e20 60%, #2e7d32 100%);
+      border-radius: 16px; padding: 28px 30px; margin-bottom: 24px;
+      display: flex; align-items: center; gap: 20px; position: relative; overflow: hidden;
+    }
+    .settings-hero::before {
+      content: ''; position: absolute; top: -30px; right: -30px;
+      width: 180px; height: 180px; border-radius: 50%;
+      background: rgba(251,192,45,0.08); pointer-events: none;
+    }
+    .settings-hero::after {
+      content: ''; position: absolute; bottom: -50px; right: 60px;
+      width: 120px; height: 120px; border-radius: 50%;
+      background: rgba(255,255,255,0.04); pointer-events: none;
+    }
+    .settings-avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: rgba(255,255,255,0.12); border: 3px solid rgba(251,192,45,0.6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem; color: #fbc02d; flex-shrink: 0;
+      box-shadow: 0 0 0 6px rgba(251,192,45,0.1);
+    }
+    .settings-hero-info { flex: 1; }
+    .settings-hero-name { font-size: 1.25rem; font-weight: 800; color: white; letter-spacing: 0.3px; }
+    .settings-hero-email { font-size: 0.78rem; color: #a5d6a7; margin-top: 3px; }
+    .settings-hero-badge {
+      background: rgba(251,192,45,0.2); border: 1px solid rgba(251,192,45,0.4);
+      color: #fbc02d; font-size: 0.65rem; font-weight: 700; padding: 3px 10px;
+      border-radius: 20px; letter-spacing: 0.5px; margin-top: 8px; display: inline-block;
+    }
+    .settings-sync-status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.7rem; color: #a5d6a7; margin-top: 6px;
+    }
+    .settings-sync-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: #4caf50;
+      animation: pulse 2s infinite;
+    }
 
-    <div id="backup-recovery-section" style="margin-top: 30px;"></div>
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 620px) { .settings-grid { grid-template-columns: 1fr; } }
+
+    .settings-card {
+      background: var(--bg-card); border-radius: 14px; overflow: hidden;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06); transition: box-shadow 0.2s;
+    }
+    .settings-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .settings-card-full { grid-column: 1 / -1; }
+    .settings-card-header {
+      background: linear-gradient(90deg, #1b5e20 0%, #2e7d32 100%);
+      padding: 13px 18px; display: flex; align-items: center; gap: 10px;
+    }
+    .settings-card-header i { color: #fbc02d; font-size: 0.95rem; }
+    .settings-card-title { color: white; font-weight: 700; font-size: 0.82rem; letter-spacing: 0.5px; }
+    .settings-card-body { padding: 18px; }
+
+    .settings-input-group { margin-bottom: 14px; position: relative; }
+    .settings-input-group:last-child { margin-bottom: 0; }
+    .settings-label {
+      display: block; font-size: 0.72rem; font-weight: 700;
+      color: var(--text-secondary); letter-spacing: 0.5px;
+      text-transform: uppercase; margin-bottom: 6px;
+    }
+    .settings-input {
+      width: 100%; padding: 11px 14px; border: 1.5px solid var(--border-color);
+      border-radius: 8px; font-size: 0.85rem; background: var(--input-bg);
+      color: var(--text-primary); transition: border-color 0.2s, box-shadow 0.2s;
+      box-sizing: border-box;
+    }
+    .settings-input:focus {
+      outline: none; border-color: #2e7d32;
+      box-shadow: 0 0 0 3px rgba(46,125,50,0.15);
+    }
+    .settings-input:disabled {
+      opacity: 0.65; cursor: not-allowed; background: var(--border-color);
+    }
+    .settings-input-icon { position: relative; }
+    .settings-input-icon .settings-input { padding-right: 42px; }
+    .settings-input-icon .icon-btn {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: var(--text-secondary);
+      font-size: 0.9rem; padding: 4px; transition: color 0.2s;
+    }
+    .settings-input-icon .icon-btn:hover { color: #1b5e20; }
+
+    .settings-btn {
+      width: 100%; padding: 11px; border: none; border-radius: 8px;
+      font-size: 0.82rem; font-weight: 700; cursor: pointer;
+      letter-spacing: 0.5px; display: flex; align-items: center;
+      justify-content: center; gap: 8px; transition: all 0.2s; margin-top: 4px;
+    }
+    .settings-btn-primary {
+      background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+      color: white; box-shadow: 0 3px 10px rgba(27,94,32,0.3);
+    }
+    .settings-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 5px 15px rgba(27,94,32,0.4); }
+    .settings-btn-primary:disabled { opacity: 0.6; cursor: wait; transform: none; }
+    .settings-btn-danger { background: #ffebee; color: #c62828; border: 1.5px solid #ffcdd2; }
+    .settings-btn-danger:hover { background: #c62828; color: white; border-color: #c62828; }
+    .settings-btn-outline {
+      background: transparent; color: #1b5e20;
+      border: 1.5px solid #2e7d32;
+    }
+    .settings-btn-outline:hover { background: #e8f5e9; }
+    .settings-btn + .settings-btn { margin-top: 8px; }
+
+    .settings-msg {
+      margin-top: 10px; padding: 10px 14px; border-radius: 7px;
+      font-size: 0.78rem; font-weight: 600; display: none;
+    }
+    .settings-msg.success { background: #e8f5e9; color: #2e7d32; border-left: 4px solid #4caf50; display: block; }
+    .settings-msg.error { background: #ffebee; color: #c62828; border-left: 4px solid #f44336; display: block; }
+    .settings-msg.info { background: #e3f2fd; color: #1565c0; border-left: 4px solid #2196f3; display: block; }
+    .settings-msg.loading { background: #f3e5f5; color: #6a1b9a; border-left: 4px solid #9c27b0; display: flex; align-items: center; gap: 8px; }
+
+    .settings-divider { height: 1px; background: var(--border-color); margin: 14px 0; }
+
+    .danger-zone-card .settings-card-header { background: linear-gradient(90deg, #b71c1c 0%, #d32f2f 100%); }
+
+    .theme-options { display: flex; gap: 10px; margin-bottom: 14px; }
+    .theme-option {
+      flex: 1; padding: 12px 8px; border-radius: 10px; cursor: pointer;
+      border: 2px solid var(--border-color); text-align: center;
+      transition: all 0.2s; font-size: 0.75rem; font-weight: 600;
+    }
+    .theme-option:hover { border-color: #2e7d32; }
+    .theme-option.active { border-color: #2e7d32; background: #e8f5e9; color: #1b5e20; }
+    body.dark-mode .theme-option.active { background: rgba(46,125,50,0.2); }
+    .theme-option .theme-icon { font-size: 1.5rem; margin-bottom: 5px; }
+
+    .info-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 0.78rem;
+    }
+    .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .info-row-label { color: var(--text-secondary); font-weight: 600; }
+    .info-row-value { color: var(--text-primary); font-weight: 500; }
+    .firebase-status-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px; font-size: 0.68rem; font-weight: 700;
+    }
+    .firebase-status-badge.connected { background: #e8f5e9; color: #2e7d32; }
+    .firebase-status-badge.disconnected { background: #ffebee; color: #c62828; }
+
+    .username-display {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; background: var(--input-bg); border: 1.5px solid var(--border-color);
+      border-radius: 8px; margin-bottom: 4px;
+    }
+    .username-display-text { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+    .username-edit-btn {
+      background: none; border: none; cursor: pointer;
+      color: #1976D2; font-size: 0.75rem; font-weight: 600;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .username-edit-btn:hover { color: #1565c0; }
+  </style>
+
+  <div class="settings-page">
+
+    <!-- Hero Header -->
+    <div class="settings-hero">
+      <div class="settings-avatar"><i class="fas fa-user-shield"></i></div>
+      <div class="settings-hero-info">
+        <div class="settings-hero-name" id="settings-display-name">ESH User</div>
+        <div class="settings-hero-email" id="settings-hero-email">Loading...</div>
+        <div class="settings-hero-badge"><i class="fas fa-shield-halved"></i> &nbsp;ESH COMPLIANCE OFFICER</div>
+        <div class="settings-sync-status">
+          <span class="settings-sync-dot"></span>
+          <span id="settings-firebase-sync-label">Connected to Firebase</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-grid">
+
+      <!-- Profile / Display Name -->
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <i class="fas fa-id-badge"></i>
+          <span class="settings-card-title">DISPLAY NAME</span>
+        </div>
+        <div class="settings-card-body">
+          <div class="settings-input-group">
+            <label class="settings-label">Current Display Name</label>
+            <div class="username-display">
+              <span class="username-display-text" id="current-display-name-text">—</span>
+              <button class="username-edit-btn" onclick="toggleUsernameEdit()">
+                <i class="fas fa-pencil"></i> Edit
+              </button>
+            </div>
+          </div>
+          <div id="username-edit-fields" style="display:none;">
+            <div class="settings-input-group">
+              <label class="settings-label">New Display Name</label>
+              <input type="text" id="new-display-name" class="settings-input" placeholder="Enter display name" maxlength="40">
+            </div>
+            <button class="settings-btn settings-btn-primary" id="save-name-btn" onclick="saveDisplayName()">
+              <i class="fas fa-save"></i> SAVE NAME
+            </button>
+          </div>
+          <div id="name-msg" class="settings-msg"></div>
+        </div>
+      </div>
+
+      <!-- Account Info -->
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <i class="fas fa-circle-info"></i>
+          <span class="settings-card-title">ACCOUNT INFO</span>
+        </div>
+        <div class="settings-card-body">
+          <div class="info-row">
+            <span class="info-row-label">Email</span>
+            <span class="info-row-value" id="current-email" style="font-size:0.75rem; word-break:break-all;">—</span>
+          </div>
+          <div class="info-row">
+            <span class="info-row-label">Firebase UID</span>
+            <span class="info-row-value" id="settings-uid" style="font-size:0.65rem; font-family:monospace; color:var(--text-secondary);">—</span>
+          </div>
+          <div class="info-row">
+            <span class="info-row-label">Firebase Status</span>
+            <span id="settings-firebase-status" class="firebase-status-badge connected">
+              <i class="fas fa-wifi"></i> Connected
+            </span>
+          </div>
+          <div class="info-row">
+            <span class="info-row-label">Last Sync</span>
+            <span class="info-row-value" id="settings-last-sync">—</span>
+          </div>
+          <div class="info-row">
+            <span class="info-row-label">Total Projects</span>
+            <span class="info-row-value" id="settings-total-projects">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Change Password -->
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <i class="fas fa-lock"></i>
+          <span class="settings-card-title">CHANGE PASSWORD</span>
+        </div>
+        <div class="settings-card-body">
+          <div class="settings-input-group">
+            <label class="settings-label">New Password</label>
+            <div class="settings-input-icon">
+              <input type="password" id="new-password" class="settings-input" placeholder="Min. 6 characters">
+              <button class="icon-btn" onclick="togglePwd('new-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+            </div>
+          </div>
+          <div class="settings-input-group">
+            <label class="settings-label">Confirm Password</label>
+            <div class="settings-input-icon">
+              <input type="password" id="confirm-password" class="settings-input" placeholder="Re-enter password">
+              <button class="icon-btn" onclick="togglePwd('confirm-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+            </div>
+          </div>
+          <div id="pwd-strength" style="margin-bottom:10px; font-size:0.7rem; height:14px;"></div>
+          <button class="settings-btn settings-btn-primary" id="update-pwd-btn" onclick="updatePassword()">
+            <i class="fas fa-key"></i> UPDATE PASSWORD
+          </button>
+          <button class="settings-btn settings-btn-outline" style="margin-top:8px;" onclick="sendPasswordReset()">
+            <i class="fas fa-envelope"></i> SEND RESET EMAIL
+          </button>
+          <div id="settings-message" class="settings-msg"></div>
+        </div>
+      </div>
+
+      <!-- Appearance -->
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <i class="fas fa-palette"></i>
+          <span class="settings-card-title">APPEARANCE</span>
+        </div>
+        <div class="settings-card-body">
+          <div class="settings-input-group">
+            <label class="settings-label">Theme</label>
+            <div class="theme-options">
+              <div class="theme-option" id="theme-light-btn" onclick="applyTheme('light')">
+                <div class="theme-icon">☀️</div>
+                Light Mode
+              </div>
+              <div class="theme-option" id="theme-dark-btn" onclick="applyTheme('dark')">
+                <div class="theme-icon">🌙</div>
+                Dark Mode
+              </div>
+            </div>
+          </div>
+          <div class="settings-divider"></div>
+          <div class="settings-input-group" style="margin-bottom:0;">
+            <label class="settings-label">Firebase Cloud Sync</label>
+            <button class="settings-btn settings-btn-primary" onclick="saveToFirebaseMain()">
+              <i class="fas fa-cloud-upload-alt"></i> FORCE SYNC TO CLOUD
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Backup & Recovery - Full Width -->
+      <div class="settings-card settings-card-full">
+        <div class="settings-card-header">
+          <i class="fas fa-database"></i>
+          <span class="settings-card-title">BACKUP &amp; RECOVERY</span>
+        </div>
+        <div class="settings-card-body">
+          <div id="backup-recovery-section"></div>
+        </div>
+      </div>
+
+      <!-- Danger Zone - Full Width -->
+      <div class="settings-card settings-card-full danger-zone-card">
+        <div class="settings-card-header">
+          <i class="fas fa-triangle-exclamation"></i>
+          <span class="settings-card-title">DANGER ZONE</span>
+        </div>
+        <div class="settings-card-body">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div>
+              <div style="font-size:0.85rem; font-weight:700; color:var(--text-primary); margin-bottom:3px;">Sign Out of All Sessions</div>
+              <div style="font-size:0.75rem; color:var(--text-secondary);">Logs you out and clears local session data.</div>
+            </div>
+            <button class="settings-btn settings-btn-danger" style="width:auto; padding:10px 22px;" onclick="handleLogout()">
+              <i class="fas fa-right-from-bracket"></i> LOGOUT SESSION
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </div>
             
     </main>
@@ -1431,7 +1774,6 @@ function showBackupStatus(message, type) {
     }, 4000);
 }
 
-        const VALID_CREDENTIALS = { 'demo@scic.com': 'demo1234' };
         const REGIONS = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
         const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
        const SCHEMA = {
@@ -1517,9 +1859,9 @@ function showBackupStatus(message, type) {
         }
 
         // ===== LOGIN & AUTH =====
-        function handleLogin(event) {
+        async function handleLogin(event) {
             event.preventDefault();
-            const email = document.getElementById('login-user').value.trim().toLowerCase();
+            const email = document.getElementById('login-user').value.trim();
             const password = document.getElementById('login-pass').value;
             const errorDiv = document.getElementById('login-error');
             const loginBtn = document.getElementById('login-btn');
@@ -1531,34 +1873,43 @@ function showBackupStatus(message, type) {
                 return;
             }
 
+            // Wait for Firebase to be ready
+            if (!window.firebase || !window.firebaseAuth) {
+                errorDiv.innerText = '⏳ System initializing, please try again...';
+                return;
+            }
+
             loginBtn.disabled = true;
             loginBtn.innerHTML = '<span class="loading-spinner"></span> Signing in...';
 
-            setTimeout(() => {
-                if (VALID_CREDENTIALS[email] && VALID_CREDENTIALS[email] === password) {
-                    state.currentUser = { email };
-                    state.isLoggedIn = true;
-                    sessionStorage.setItem('esh_logged_in', 'true');
-                    sessionStorage.setItem('esh_user_email', email);
-                    loadUserData(email);
-                    showUI();
-                    initDarkMode();
-                    console.log('✅ Login successful!');
-                } else {
-                    errorDiv.innerText = '❌ Invalid email or password';
-                }
+            try {
+                const userCredential = await window.firebase.signInWithEmailAndPassword(window.firebaseAuth, email, password);
+                const user = userCredential.user;
+                state.currentUser = { email: user.email, uid: user.uid };
+                state.isLoggedIn = true;
+                console.log('✅ Firebase login successful:', user.email);
+                // showUI() will be called by onAuthStateChanged observer
+            } catch (error) {
+                console.error('❌ Firebase login error:', error);
+                let msg = '❌ Invalid email or password';
+                if (error.code === 'auth/user-not-found') msg = '❌ No account found with this email';
+                else if (error.code === 'auth/wrong-password') msg = '❌ Incorrect password';
+                else if (error.code === 'auth/invalid-email') msg = '❌ Invalid email address';
+                else if (error.code === 'auth/too-many-requests') msg = '❌ Too many attempts. Try again later.';
+                else if (error.code === 'auth/network-request-failed') msg = '❌ Network error. Check your connection.';
+                errorDiv.innerText = msg;
                 loginBtn.disabled = false;
                 loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM';
-            }, 800);
+            }
         }
 
       function handleLogout() {
-    showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(confirmed => {
+    showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(async confirmed => {
         if (confirmed) {
             backupManager.stopAutoSave();
             state.isLoggedIn = false;
             state.currentUser = null;
-            sessionStorage.clear();
+            await firebaseLogout();
             location.reload();
         }
     });
@@ -1611,7 +1962,8 @@ function showBackupStatus(message, type) {
                 personnelData: state.personnelData || [],
                 incidentRateData: state.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 },
                 currentSort: state.currentSort,
-                lastSaved: new Date().toISOString()
+                lastSaved: new Date().toISOString(),
+                timestamp: Date.now()
             };
             localStorage.setItem(storageKey, JSON.stringify(data));
         }
@@ -1721,14 +2073,14 @@ function showBackupStatus(message, type) {
             document.getElementById('btn-csv').style.display = 'none';
             document.getElementById('btn-pdf').style.display = 'none';
             
-            // Save to localStorage only (per-tab save)
-            saveUserDataLocal(state.currentUser.email);
+            // Save to localStorage + auto-sync to Firebase
+            saveUserData(state.currentUser.email);
             
             document.getElementById('edit-btn').classList.remove('hidden');
             document.getElementById('save-btn').classList.add('hidden');
             render();
             
-            console.log('💾 Data saved to localStorage (Click main SAVE button to sync to Firebase)');
+            console.log('💾 Data saved and syncing to Firebase...');
         }
 
         function changeTab(t) {
@@ -1751,11 +2103,7 @@ function showBackupStatus(message, type) {
             document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel');
             
             if (t === 'settings') {
-                document.getElementById('current-email').value = state.currentUser?.email || '';
-                const backupSection = document.getElementById('backup-recovery-section');
-                if (backupSection) {
-                    backupSection.innerHTML = showBackupRecoveryUI();
-                }
+                populateSettingsTab();
             }
             
             if (t === 'personnel') renderPTable();
@@ -1782,6 +2130,13 @@ function updateAuditData(pName, qtr, field, val) {
             if (p) {
                 if (!p.vals[key]) p.vals[key] = new Array(13).fill("");
                 p.vals[key][mIdx] = val;
+            }
+            // Live-update the Incident Tabulation panel when relevant data changes
+            if (state.currentTab === 'rates') {
+                const panel = document.getElementById('incident-tabulation-panel');
+                if (panel) {
+                    panel.outerHTML = buildIncidentTabulationHTML();
+                }
             }
         }
 
@@ -1984,7 +2339,8 @@ function closeAllStatusDropdowns() {
         }
 
         function showUI() {
-            document.getElementById('login-overlay').classList.add('hidden');
+            const loginOverlay = document.getElementById('login-overlay');
+            if (loginOverlay) loginOverlay.style.display = 'none';
             document.getElementById('main-sidebar').classList.remove('hidden');
             document.getElementById('main-content').classList.remove('hidden');
             document.getElementById('user-badge').innerHTML = `<i class="fas fa-user-circle"></i> ${state.currentUser.email}`;
@@ -2718,27 +3074,213 @@ document.addEventListener('click', closeAllStatusDropdowns);
             if (project) project.selected = !project.selected;
         }
 
-        function updatePassword() {
+        // ===== SETTINGS FUNCTIONS =====
+
+        // Toggle password field visibility
+        function togglePwd(fieldId, btn) {
+            const input = document.getElementById(fieldId);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        // Password strength indicator
+        document.addEventListener('input', function(e) {
+            if (e.target.id === 'new-password') {
+                const val = e.target.value;
+                const el = document.getElementById('pwd-strength');
+                if (!el || !val) { if(el) el.innerHTML=''; return; }
+                let score = 0;
+                if (val.length >= 6) score++;
+                if (val.length >= 10) score++;
+                if (/[A-Z]/.test(val)) score++;
+                if (/[0-9]/.test(val)) score++;
+                if (/[^A-Za-z0-9]/.test(val)) score++;
+                const labels = ['', '🔴 Weak', '🟠 Fair', '🟡 Good', '🟢 Strong', '✅ Very Strong'];
+                const colors = ['', '#f44336', '#ff9800', '#ffc107', '#4caf50', '#1b5e20'];
+                el.innerHTML = `<span style="color:${colors[score]};font-weight:700;">${labels[score] || ''}</span>`;
+            }
+        });
+
+        // Toggle username edit form
+        function toggleUsernameEdit() {
+            const fields = document.getElementById('username-edit-fields');
+            const isVisible = fields.style.display !== 'none';
+            fields.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) {
+                const current = document.getElementById('current-display-name-text').textContent;
+                document.getElementById('new-display-name').value = (current === '—' || current === 'ESH User') ? '' : current;
+                document.getElementById('new-display-name').focus();
+            }
+        }
+
+        // Save display name to Firebase
+        async function saveDisplayName() {
+            const nameVal = document.getElementById('new-display-name').value.trim();
+            const msgEl = document.getElementById('name-msg');
+            const btn = document.getElementById('save-name-btn');
+
+            showSettingsMsg('name-msg', '', '');
+            if (!nameVal) { showSettingsMsg('name-msg', '⚠️ Please enter a display name', 'error'); return; }
+            if (nameVal.length < 2) { showSettingsMsg('name-msg', '⚠️ Name must be at least 2 characters', 'error'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> SAVING...';
+            showSettingsMsg('name-msg', 'Updating display name...', 'loading');
+
+            try {
+                // Save to Firebase Firestore user profile
+                if (firebaseReady && window.firebaseDb && state.currentUser) {
+                    const userId = getCurrentUserId();
+                    const docRef = window.firebase.doc(window.firebaseDb, 'users', userId);
+                    await window.firebase.setDoc(docRef, { displayName: nameVal }, { merge: true });
+                }
+                // Update state and UI
+                state.currentUser.displayName = nameVal;
+                localStorage.setItem('esh_displayname_' + state.currentUser.email, nameVal);
+
+                document.getElementById('current-display-name-text').textContent = nameVal;
+                document.getElementById('settings-display-name').textContent = nameVal;
+                // Update sidebar user badge too
+                const badge = document.getElementById('user-badge');
+                if (badge) badge.innerHTML = `<i class="fas fa-user-circle"></i> ${nameVal}`;
+
+                document.getElementById('username-edit-fields').style.display = 'none';
+                showSettingsMsg('name-msg', '✅ Display name updated successfully!', 'success');
+            } catch (err) {
+                console.error('❌ Name update error:', err);
+                showSettingsMsg('name-msg', '❌ Failed to update: ' + err.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> SAVE NAME';
+        }
+
+        // Update Password via Firebase
+        async function updatePassword() {
             const newPass = document.getElementById('new-password').value;
             const confirmPass = document.getElementById('confirm-password').value;
-            const msgDiv = document.getElementById('settings-message');
+            const btn = document.getElementById('update-pwd-btn');
 
-            msgDiv.innerHTML = '';
-            if (!newPass || !confirmPass) {
-                msgDiv.innerHTML = '<div class="error-message">⚠️ Please fill both fields</div>';
-                return;
+            showSettingsMsg('settings-message', '', '');
+
+            if (!newPass || !confirmPass) { showSettingsMsg('settings-message', '⚠️ Please fill both fields', 'error'); return; }
+            if (newPass !== confirmPass) { showSettingsMsg('settings-message', '❌ Passwords do not match', 'error'); return; }
+            if (newPass.length < 6) { showSettingsMsg('settings-message', '❌ Password must be at least 6 characters', 'error'); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> UPDATING...';
+            showSettingsMsg('settings-message', 'Updating password in Firebase...', 'loading');
+
+            const success = await firebaseChangePassword(newPass);
+            if (success) {
+                showSettingsMsg('settings-message', '✅ Password updated successfully in Firebase!', 'success');
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+                document.getElementById('pwd-strength').innerHTML = '';
+            } else {
+                // firebaseChangePassword already shows alert on error
+                showSettingsMsg('settings-message', '❌ Password update failed. If you just logged in, please re-login and try again.', 'error');
             }
-            if (newPass !== confirmPass) {
-                msgDiv.innerHTML = '<div class="error-message">❌ Passwords do not match</div>';
-                return;
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-key"></i> UPDATE PASSWORD';
+        }
+
+        // Send password reset email
+        async function sendPasswordReset() {
+            const email = state.currentUser?.email;
+            if (!email) return;
+            showSettingsMsg('settings-message', 'Sending reset email...', 'loading');
+            const success = await firebaseResetPassword(email);
+            if (success) {
+                showSettingsMsg('settings-message', '✅ Password reset email sent to ' + email, 'success');
             }
-            if (newPass.length < 6) {
-                msgDiv.innerHTML = '<div class="error-message">❌ Password must be 6+ characters</div>';
-                return;
+        }
+
+        // Apply theme from settings page
+        function applyTheme(mode) {
+            if (mode === 'dark') {
+                enableDarkMode();
+            } else {
+                disableDarkMode();
             }
-            msgDiv.innerHTML = '<div class="success-message">✅ Password updated!</div>';
-            document.getElementById('new-password').value = '';
-            document.getElementById('confirm-password').value = '';
+            updateSettingsThemeButtons();
+        }
+
+        function updateSettingsThemeButtons() {
+            const isDark = document.body.classList.contains('dark-mode');
+            const lightBtn = document.getElementById('theme-light-btn');
+            const darkBtn = document.getElementById('theme-dark-btn');
+            if (lightBtn) lightBtn.classList.toggle('active', !isDark);
+            if (darkBtn) darkBtn.classList.toggle('active', isDark);
+        }
+
+        // Show message helper
+        function showSettingsMsg(elId, text, type) {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            el.className = 'settings-msg' + (type ? ' ' + type : '');
+            el.innerHTML = type === 'loading'
+                ? `<i class="fas fa-spinner fa-spin"></i> ${text}`
+                : text;
+            if (text && type !== 'loading') {
+                setTimeout(() => { el.className = 'settings-msg'; el.innerHTML = ''; }, 4500);
+            }
+        }
+
+        // Populate settings tab with latest data
+        function populateSettingsTab() {
+            const user = state.currentUser;
+            if (!user) return;
+
+            // Display name: check state, localStorage, then fallback
+            const savedName = user.displayName || localStorage.getItem('esh_displayname_' + user.email) || '';
+            const displayName = savedName || user.email.split('@')[0];
+            document.getElementById('settings-display-name').textContent = displayName;
+            document.getElementById('current-display-name-text').textContent = savedName || '—';
+            document.getElementById('settings-hero-email').textContent = user.email;
+            document.getElementById('current-email').textContent = user.email;
+
+            // Firebase UID
+            const uidEl = document.getElementById('settings-uid');
+            if (uidEl) uidEl.textContent = user.uid ? user.uid.substring(0, 20) + '...' : '—';
+
+            // Firebase status
+            const fbStatus = document.getElementById('settings-firebase-status');
+            if (fbStatus) {
+                if (firebaseReady && window.firebaseDb) {
+                    fbStatus.className = 'firebase-status-badge connected';
+                    fbStatus.innerHTML = '<i class="fas fa-wifi"></i> Connected';
+                } else {
+                    fbStatus.className = 'firebase-status-badge disconnected';
+                    fbStatus.innerHTML = '<i class="fas fa-wifi-slash"></i> Disconnected';
+                }
+            }
+
+            // Last sync
+            const syncEl = document.getElementById('settings-last-sync');
+            if (syncEl && state.lastSyncTimestamp) {
+                syncEl.textContent = new Date(state.lastSyncTimestamp).toLocaleString('en-PH');
+            } else if (syncEl) {
+                syncEl.textContent = 'Not yet synced';
+            }
+
+            // Total projects
+            const projEl = document.getElementById('settings-total-projects');
+            if (projEl) projEl.textContent = state.projects.length + ' projects';
+
+            // Theme buttons
+            updateSettingsThemeButtons();
+
+            // Backup section
+            const backupSection = document.getElementById('backup-recovery-section');
+            if (backupSection) backupSection.innerHTML = showBackupRecoveryUI();
         }
 
         setInterval(() => {
@@ -2752,14 +3294,8 @@ document.addEventListener('click', closeAllStatusDropdowns);
        window.addEventListener('load', () => {
     initDarkMode();
     backupManager.init();
-    const isLoggedIn = sessionStorage.getItem('esh_logged_in');
-    const userEmail = sessionStorage.getItem('esh_user_email');
-    if (isLoggedIn === 'true' && userEmail) {
-        state.currentUser = { email: userEmail };
-        state.isLoggedIn = true;
-        loadUserData(userEmail);
-        showUI();
-    }
+    // Firebase auth state is handled by setupAuthObserver() in the Firebase integration section below.
+    // No session storage check needed — Firebase persists login automatically.
 });
 function showModernDialog(title, message, isDanger = false) {
     return new Promise((resolve) => {
@@ -3022,44 +3558,78 @@ function filterPTable() {
  * Computes aggregate tabulation stats from all projects' rates + exposures data.
  */
 function computeAggregateTabulation() {
-    let totalLtirYTD = 0, totalTrirYTD = 0, totalSeverityYTD = 0, totalHours = 0;
+    // Aggregate across ALL projects and ALL 12 months
+    let totalManHours   = 0;   // from exposures_Total Exposed Manhour
+    let ltaCases        = 0;   // from medical_LTA  (Lost Time Accidents)
+    let medTreatment    = 0;   // from medical_Medical Treatment
+    let firstAid        = 0;   // from medical_First Aid
+    let fatality        = 0;   // from medical_Fatality
+    let highPotential   = 0;   // from medical_High-Potential incident
+    let lostDaysTotal   = 0;   // from exposures_No. of Days w/o LTA (inverse: total days - days without LTA)
+    // Also try to get lost days from a dedicated field if present
+    // We'll approximate: No. of Days w/o LTA is NOT the same as lost days.
+    // For lost days we use the SEVERITY RATE × TotalHours / 1,000,000 approach as fallback.
+    let totalSeveritySum = 0;  // sum of Severity Rate values per month (fallback for lost days)
 
     state.projects.forEach(p => {
         for (let i = 1; i <= 12; i++) {
-            totalLtirYTD     += parseFloat(p.vals['rates_LTIR']?.[i])           || 0;
-            totalTrirYTD     += parseFloat(p.vals['rates_TRIR']?.[i])           || 0;
-            totalSeverityYTD += parseFloat(p.vals['rates_SEVERITY RATE']?.[i])  || 0;
-            totalHours       += parseFloat(p.vals['exposures_Total Exposed Manhour']?.[i]) || 0;
+            totalManHours   += parseFloat(p.vals['exposures_Total Exposed Manhour']?.[i]) || 0;
+            ltaCases        += parseFloat(p.vals['medical_LTA']?.[i])                     || 0;
+            medTreatment    += parseFloat(p.vals['medical_Medical Treatment']?.[i])       || 0;
+            firstAid        += parseFloat(p.vals['medical_First Aid']?.[i])               || 0;
+            fatality        += parseFloat(p.vals['medical_Fatality']?.[i])                || 0;
+            highPotential   += parseFloat(p.vals['medical_High-Potential incident']?.[i]) || 0;
+            totalSeveritySum+= parseFloat(p.vals['rates_SEVERITY RATE']?.[i])             || 0;
         }
     });
 
-    // Back-calculate source metrics using OSHA base (200,000):
-    //   TRIR  = RecordableCases × 200,000 / TotalHours  →  RC = TRIR × TotalHours / 200,000
-    //   SR    = LostDays        × 200,000 / TotalHours  →  LD = SR   × TotalHours / 200,000
-    let recordableCases = 0, lostDays = 0;
-    if (totalHours > 0) {
-        recordableCases = (totalTrirYTD * totalHours) / 200000;
-        lostDays        = (totalSeverityYTD * totalHours) / 200000;
+    // Recordable Cases = LTA + Medical Treatment + Fatality + High-Potential
+    // (First Aid is typically NOT recordable under OSHS, but included if needed)
+    const recordableCases = ltaCases + medTreatment + fatality + highPotential;
+
+    // Lost Days: back-calculate from Severity Rate if no direct field
+    // SR (OSHS) = LostDays × 1,000,000 / ManHours  →  LostDays = SR × ManHours / 1,000,000
+    // We use the average SR per month that has data, multiplied by total hours
+    let lostDays = 0;
+    if (totalManHours > 0 && totalSeveritySum > 0) {
+        // Count months that have severity data
+        let srMonthCount = 0;
+        state.projects.forEach(p => {
+            for (let i = 1; i <= 12; i++) {
+                if (parseFloat(p.vals['rates_SEVERITY RATE']?.[i]) > 0) srMonthCount++;
+            }
+        });
+        const avgSR = srMonthCount > 0 ? totalSeveritySum / srMonthCount : totalSeveritySum;
+        lostDays = Math.round((avgSR * totalManHours) / 1000000);
     }
 
-    // Aggregate OSHA / OSHS rates
+    // OSHS Formula (Philippines standard) — base: 1,000,000 man-hours
+    // LTIR = LTA Cases × 1,000,000 / Total Man-hours
+    // TRIR = Recordable Cases × 1,000,000 / Total Man-hours
+    // SR   = Lost Days × 1,000,000 / Total Man-hours
+    // OSHA Formula — base: 200,000 man-hours
+    // LTIR = LTA Cases × 200,000 / Total Man-hours
+    // TRIR = Recordable Cases × 200,000 / Total Man-hours
+    // SR   = Lost Days × 200,000 / Total Man-hours
+
     let ltirOsha = 0, ltirOshs = 0, trirOsha = 0, trirOshs = 0, srOsha = 0, srOshs = 0;
-    if (totalHours > 0) {
-        ltirOsha = (recordableCases * 200000)  / totalHours;
-        ltirOshs = (recordableCases * 1000000) / totalHours;
-        trirOsha = (recordableCases * 200000)  / totalHours;
-        trirOshs = (recordableCases * 1000000) / totalHours;
-        srOsha   = (lostDays        * 200000)  / totalHours;
-        srOshs   = (lostDays        * 1000000) / totalHours;
+    if (totalManHours > 0) {
+        ltirOsha = (ltaCases        * 200000)   / totalManHours;
+        ltirOshs = (ltaCases        * 1000000)  / totalManHours;
+        trirOsha = (recordableCases * 200000)   / totalManHours;
+        trirOshs = (recordableCases * 1000000)  / totalManHours;
+        srOsha   = (lostDays        * 200000)   / totalManHours;
+        srOshs   = (lostDays        * 1000000)  / totalManHours;
     }
 
     return {
-        recordableCases: Math.round(recordableCases * 100) / 100,
-        lostDays:        Math.round(lostDays        * 100) / 100,
-        totalHours:      Math.round(totalHours),
-        ltirOsha:  ltirOsha.toFixed(2), ltirOshs:  ltirOshs.toFixed(2),
-        trirOsha:  trirOsha.toFixed(2), trirOshs:  trirOshs.toFixed(2),
-        srOsha:    srOsha.toFixed(2),   srOshs:    srOshs.toFixed(2)
+        recordableCases: recordableCases,
+        lostDays:        lostDays,
+        totalHours:      Math.round(totalManHours),
+        ltaCases:        ltaCases,
+        ltirOsha:  ltirOsha.toFixed(4), ltirOshs:  ltirOshs.toFixed(4),
+        trirOsha:  trirOsha.toFixed(4), trirOshs:  trirOshs.toFixed(4),
+        srOsha:    srOsha.toFixed(4),   srOshs:    srOshs.toFixed(4)
     };
 }
 
@@ -3070,7 +3640,7 @@ function computeAggregateTabulation() {
 function buildIncidentTabulationHTML() {
     const d = computeAggregateTabulation();
     return `
-    <div style="padding: 20px 20px 0 20px;">
+    <div id="incident-tabulation-panel" style="padding: 20px 20px 0 20px;">
       <div style="background: var(--bg-card); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color); margin-bottom: 6px;">
 
         <!-- Panel header -->
@@ -3080,25 +3650,31 @@ function buildIncidentTabulationHTML() {
           <span style="background: var(--safety-yellow); color: #1b5e20; padding: 3px 10px; border-radius: 20px; font-size: 0.68rem; font-weight: 800; margin-left: 4px;">AUTO-COMPUTED FROM ALL PROJECTS</span>
         </div>
 
-        <!-- 3 summary cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0; border-bottom: 1px solid var(--border-color);">
+        <!-- 4 summary cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0; border-bottom: 1px solid var(--border-color);">
 
           <div style="padding: 18px 20px; text-align: center; border-right: 1px solid var(--border-color);">
-            <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px;">No. of Recordable Cases</div>
-            <div style="font-size: 2.2rem; font-weight: 900; color: #1b5e20; line-height: 1;">${d.recordableCases}</div>
-            <div style="font-size: 0.62rem; color: var(--text-secondary); margin-top: 4px;">YTD across all projects</div>
+            <div style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px;">No. of LTA Cases</div>
+            <div style="font-size: 2.2rem; font-weight: 900; color: #1b5e20; line-height: 1;">${d.ltaCases}</div>
+            <div style="font-size: 0.6rem; color: var(--text-secondary); margin-top: 4px;">Lost Time Accidents YTD</div>
           </div>
 
           <div style="padding: 18px 20px; text-align: center; border-right: 1px solid var(--border-color);">
-            <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px;">No. of Lost Days</div>
+            <div style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px;">No. of Recordable Cases</div>
+            <div style="font-size: 2.2rem; font-weight: 900; color: #e65100; line-height: 1;">${d.recordableCases}</div>
+            <div style="font-size: 0.6rem; color: var(--text-secondary); margin-top: 4px;">LTA + Medical + Fatality + High-Pot.</div>
+          </div>
+
+          <div style="padding: 18px 20px; text-align: center; border-right: 1px solid var(--border-color);">
+            <div style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px;">No. of Lost Days</div>
             <div style="font-size: 2.2rem; font-weight: 900; color: #1565c0; line-height: 1;">${d.lostDays}</div>
-            <div style="font-size: 0.62rem; color: var(--text-secondary); margin-top: 4px;">From Severity Rate data</div>
+            <div style="font-size: 0.6rem; color: var(--text-secondary); margin-top: 4px;">From Severity Rate data</div>
           </div>
 
           <div style="padding: 18px 20px; text-align: center;">
-            <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px;">Total Employee Hours Exposure</div>
+            <div style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px;">Total Man-hours Exposure</div>
             <div style="font-size: 2.2rem; font-weight: 900; color: #b71c1c; line-height: 1;">${d.totalHours.toLocaleString()}</div>
-            <div style="font-size: 0.62rem; color: var(--text-secondary); margin-top: 4px;">Total Exposed Manhour YTD</div>
+            <div style="font-size: 0.6rem; color: var(--text-secondary); margin-top: 4px;">Total Exposed Manhour YTD</div>
           </div>
 
         </div>
@@ -3117,37 +3693,43 @@ function buildIncidentTabulationHTML() {
               <tr style="border-bottom: 1px solid var(--border-color);">
                 <td style="background:linear-gradient(135deg,#2e7d32 0%,#43a047 100%);color:white;padding:14px 15px;border:none;">
                   <div style="font-weight:700;font-size:0.88rem;">LTIR — Lost Time Incident Rate</div>
-                  <div style="font-size:0.66rem;opacity:0.9;margin-top:3px;">Recordable Cases × 200K or 1M ÷ Total Hours</div>
+                  <div style="font-size:0.66rem;opacity:0.9;margin-top:3px;">LTA Cases × 200K or 1M ÷ Total Man-hours</div>
                 </td>
                 <td style="background:var(--bg-card);padding:12px;text-align:center;border:1px solid var(--border-color);">
                   <div style="font-size:1.8rem;font-weight:800;color:#1b5e20;">${d.ltirOsha}</div>
+                  <div style="font-size:0.62rem;color:var(--text-secondary);">OSHA (200K base)</div>
                 </td>
                 <td style="background:var(--bg-card);padding:12px;text-align:center;border:1px solid var(--border-color);">
                   <div style="font-size:1.8rem;font-weight:800;color:#1b5e20;">${d.ltirOshs}</div>
+                  <div style="font-size:0.62rem;color:var(--text-secondary);">OSHS (1M base)</div>
                 </td>
               </tr>
               <tr style="border-bottom: 1px solid var(--border-color);">
                 <td style="background:linear-gradient(135deg,#2e7d32 0%,#43a047 100%);color:white;padding:14px 15px;border:none;">
                   <div style="font-weight:700;font-size:0.88rem;">TRIR — Total Recordable Incident Rate</div>
-                  <div style="font-size:0.66rem;opacity:0.9;margin-top:3px;">Recordable Cases × 200K or 1M ÷ Total Hours</div>
+                  <div style="font-size:0.66rem;opacity:0.9;margin-top:3px;">Recordable Cases × 200K or 1M ÷ Total Man-hours</div>
                 </td>
                 <td style="background:var(--bg-card);padding:12px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.8rem;font-weight:800;color:#1b5e20;">${d.trirOsha}</div>
+                  <div style="font-size:1.8rem;font-weight:800;color:#1565c0;">${d.trirOsha}</div>
+                  <div style="font-size:0.62rem;color:var(--text-secondary);">OSHA (200K base)</div>
                 </td>
                 <td style="background:var(--bg-card);padding:12px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.8rem;font-weight:800;color:#1b5e20;">${d.trirOshs}</div>
+                  <div style="font-size:1.8rem;font-weight:800;color:#1565c0;">${d.trirOshs}</div>
+                  <div style="font-size:0.62rem;color:var(--text-secondary);">OSHS (1M base)</div>
                 </td>
               </tr>
               <tr>
                 <td style="background:linear-gradient(135deg,#2e7d32 0%,#43a047 100%);color:white;padding:14px 15px;border:none;">
                   <div style="font-weight:700;font-size:0.88rem;">SR — Severity Rate</div>
-                  <div style="font-size:0.66rem;opacity:0.9;margin-top:3px;">Total Days Lost × 200K or 1M ÷ Total Hours</div>
+                  <div style="font-size:0.66rem;opacity:0.9;margin-top:3px;">Total Days Lost × 200K or 1M ÷ Total Man-hours</div>
                 </td>
                 <td style="background:var(--bg-card);padding:12px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.8rem;font-weight:800;color:#1b5e20;">${d.srOsha}</div>
+                  <div style="font-size:1.8rem;font-weight:800;color:#b71c1c;">${d.srOsha}</div>
+                  <div style="font-size:0.62rem;color:var(--text-secondary);">OSHA (200K base)</div>
                 </td>
                 <td style="background:var(--bg-card);padding:12px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.8rem;font-weight:800;color:#1b5e20;">${d.srOshs}</div>
+                  <div style="font-size:1.8rem;font-weight:800;color:#b71c1c;">${d.srOshs}</div>
+                  <div style="font-size:0.62rem;color:var(--text-secondary);">OSHS (1M base)</div>
                 </td>
               </tr>
             </tbody>
@@ -3162,18 +3744,21 @@ function buildIncidentTabulationHTML() {
 
 // ==================== LOCAL STORAGE FUNCTIONS ====================
 
-// Save to localStorage only (called by per-tab save buttons)
+// Save to localStorage only (called internally, no Firebase trigger)
 function saveUserDataLocal(email) {
     if (!email) return;
     
     const userData = {
-        projects: state.projects,
+        projects: state.projects.map(p => { const c = {...p}; delete c.selected; return c; }),
         personnelData: state.personnelData,
         incidentRateData: state.incidentRateData,
         darkMode: state.darkMode,
+        lastSaved: new Date().toISOString(),
+        timestamp: Date.now(),
         lastModified: new Date().toISOString()
     };
     
+    localStorage.setItem('esh_dashboard_' + email, JSON.stringify(userData));
     localStorage.setItem('esh_' + email, JSON.stringify(userData));
     console.log('💾 Saved to localStorage (local only)');
 }
@@ -3244,6 +3829,7 @@ async function saveToFirebase() {
         
         const dataToSave = {
             email: state.currentUser?.email || 'local-user',
+            displayName: state.currentUser?.displayName || localStorage.getItem('esh_displayname_' + state.currentUser?.email) || '',
             projects: state.projects || [],
             personnelData: state.personnelData || [],
             incidentRateData: state.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 },
@@ -3268,45 +3854,104 @@ async function saveToFirebase() {
 async function loadFromFirebase() {
     if (!firebaseReady || !window.firebaseDb) {
         console.log('⏳ Firebase not ready, loading from localStorage only');
+        loadFromLocalStorage();
         return;
     }
 
     try {
         const userId = getCurrentUserId();
+        const userEmail = state.currentUser?.email;
         const docRef = window.firebase.doc(window.firebaseDb, 'users', userId);
         const docSnap = await window.firebase.getDoc(docRef);
 
+        // Check localStorage for newer unsaved data
+        const localKey = `esh_dashboard_${userEmail}`;
+        const localRaw = localStorage.getItem(localKey);
+        const localData = localRaw ? JSON.parse(localRaw) : null;
+        const localTimestamp = localData?.lastSaved ? new Date(localData.lastSaved).getTime() : 0;
+
         if (docSnap.exists()) {
-            const data = docSnap.data();
+            const fbData = docSnap.data();
+            const fbTimestamp = fbData.timestamp || 0;
+
+            // Use whichever is newer: localStorage or Firebase
+            if (localTimestamp > fbTimestamp) {
+                console.log('💾 localStorage is newer than Firebase — loading from localStorage');
+                state.projects = localData.projects || [];
+                state.personnelData = localData.personnelData || [];
+                state.incidentRateData = localData.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
+                state.darkMode = fbData.darkMode || false;
+                state.lastSyncTimestamp = fbTimestamp;
+                // Push local data up to Firebase so it's in sync
+                await saveToFirebase();
+            } else {
+                console.log('☁️ Firebase is newer — loading from Firebase');
+                state.projects = fbData.projects || [];
+                state.personnelData = fbData.personnelData || [];
+                state.incidentRateData = fbData.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
+                state.darkMode = fbData.darkMode || false;
+                state.lastSyncTimestamp = fbTimestamp;
+                // Sync Firebase data down to localStorage (use local-only save to avoid loop)
+                saveUserDataLocal(userEmail);
+            }
             
-            // Load all data
-            state.projects = data.projects || [];
-            state.personnelData = data.personnelData || [];
-            state.incidentRateData = data.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
-            state.darkMode = data.darkMode || false;
-            state.lastSyncTimestamp = data.timestamp || 0;
-            
+            // Load display name from Firebase
+            if (fbData.displayName) {
+                state.currentUser.displayName = fbData.displayName;
+                localStorage.setItem('esh_displayname_' + userEmail, fbData.displayName);
+                // Update sidebar badge
+                const badge = document.getElementById('user-badge');
+                if (badge) badge.innerHTML = `<i class="fas fa-user-circle"></i> ${fbData.displayName}`;
+            }
+
             // Apply dark mode
             if (state.darkMode) {
                 document.body.classList.add('dark-mode');
             }
             
-            console.log('✅ Data loaded from Firebase');
-            console.log('📊 Projects:', state.projects.length);
-            console.log('👥 Personnel:', state.personnelData.length);
-            
-            // Update UI
-            updateDashboard();
-            renderProjects();
-            renderPTable();
-            
+            state.filteredProjects = [...state.projects];
+            console.log('✅ Data loaded. Projects:', state.projects.length, '| Personnel:', state.personnelData.length);
+
         } else {
-            console.log('📝 No Firebase data found, creating new document');
+            // No Firebase doc yet — use localStorage if available, else start fresh
+            if (localData) {
+                console.log('📝 No Firebase doc — restoring from localStorage');
+                state.projects = localData.projects || [];
+                state.personnelData = localData.personnelData || [];
+                state.incidentRateData = localData.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
+                state.filteredProjects = [...state.projects];
+            } else {
+                console.log('📝 No data anywhere — creating new document');
+            }
             await saveToFirebase();
         }
         
+        // Update UI
+        render();
+        renderPTable();
+        
     } catch (error) {
         console.error('❌ Error loading from Firebase:', error);
+        // Fallback to localStorage on error
+        loadFromLocalStorage();
+    }
+}
+
+// Fallback: load from localStorage only
+function loadFromLocalStorage() {
+    const userEmail = state.currentUser?.email;
+    if (!userEmail) return;
+    const localKey = `esh_dashboard_${userEmail}`;
+    const localRaw = localStorage.getItem(localKey);
+    if (localRaw) {
+        const data = JSON.parse(localRaw);
+        state.projects = data.projects || [];
+        state.personnelData = data.personnelData || [];
+        state.incidentRateData = data.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
+        state.filteredProjects = [...state.projects];
+        console.log('💾 Loaded from localStorage fallback');
+        render();
+        renderPTable();
     }
 }
 
@@ -3381,11 +4026,9 @@ async function firebaseChangePassword(newPassword) {
     try {
         await window.firebase.updatePassword(window.firebaseAuth.currentUser, newPassword);
         console.log('✅ Password changed successfully');
-        alert('Password changed successfully!');
         return true;
     } catch (error) {
         console.error('❌ Password change error:', error);
-        alert('Password change failed: ' + error.message);
         return false;
     }
 }
@@ -3399,11 +4042,9 @@ async function firebaseResetPassword(email) {
     try {
         await window.firebase.sendPasswordResetEmail(window.firebaseAuth, email);
         console.log('✅ Password reset email sent');
-        alert('Password reset email sent! Check your inbox.');
         return true;
     } catch (error) {
         console.error('❌ Password reset error:', error);
-        alert('Password reset failed: ' + error.message);
         return false;
     }
 }
@@ -3415,50 +4056,85 @@ function setupAuthObserver() {
     }
 
     window.firebase.onAuthStateChanged(window.firebaseAuth, async (user) => {
+        // Always hide the loading overlay once Firebase responds
+        const loadingOverlay = document.getElementById('firebase-loading-overlay');
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+
         if (user) {
             console.log('👤 User authenticated:', user.email);
             state.currentUser = { email: user.email, uid: user.uid };
-            
-            // Update UI
+            state.isLoggedIn = true;
+
+            // Hide login, show main UI
+            const loginOverlay = document.getElementById('login-overlay');
+            if (loginOverlay) loginOverlay.style.display = 'none';
+
+            // Update user badge
+            const userBadge = document.getElementById('user-badge');
+            if (userBadge) {
+                userBadge.innerHTML = `<i class="fas fa-user-circle"></i> ${user.email}`;
+            }
+
+            // Update user-email field (settings page)
             const userEmailEl = document.getElementById('user-email');
             if (userEmailEl) {
                 userEmailEl.textContent = user.email;
             }
-            
+
+            // Show dashboard UI
+            showUI();
+            initDarkMode();
+
             // Load user data ONCE - no real-time listener!
             await loadFromFirebase();
-            
+
         } else {
-            console.log('👤 No user authenticated (using local mode)');
+            console.log('👤 No user authenticated — showing login screen');
             state.currentUser = null;
+            state.isLoggedIn = false;
+
+            // Show login overlay
+            const loginOverlay = document.getElementById('login-overlay');
+            if (loginOverlay) loginOverlay.style.display = 'flex';
+
+            // Hide main UI
+            const sidebar = document.getElementById('main-sidebar');
+            const content = document.getElementById('main-content');
+            if (sidebar) sidebar.classList.add('hidden');
+            if (content) content.classList.add('hidden');
+
+            // Reset login button state if it got stuck
+            const loginBtn = document.getElementById('login-btn');
+            if (loginBtn) {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM';
+            }
         }
     });
 }
 
-// CRITICAL CHANGE: Separated localStorage and Firebase saves
+// CRITICAL FIX: saveUserData now saves to BOTH localStorage AND Firebase
+// so data is never lost on refresh
 const originalSaveUserData = window.saveUserData || function() {};
 
-// This is the OLD saveUserData that now only saves to localStorage
 window.saveUserData = function(email) {
-    // Call original function for localStorage
+    // Always save to localStorage first (instant, no network)
     originalSaveUserData(email);
     
-    // DO NOT auto-save to Firebase here!
-    // User must click the main SAVE button to sync to Firebase
-    console.log('💾 Local save complete. Click main SAVE button to sync to Firebase.');
+    // Also auto-save to Firebase if ready (prevents data loss on refresh)
+    if (firebaseReady && window.firebaseDb && state.currentUser) {
+        saveToFirebase().then(success => {
+            if (success) console.log('☁️ Auto-synced to Firebase');
+        }).catch(err => console.warn('⚠️ Firebase auto-sync failed:', err.message));
+    }
 };
 
 // Initialize Firebase Integration
 waitForFirebase().then(async () => {
     console.log('🔥 Firebase Ready! (OPTIMIZED MODE)');
     
-    // Setup auth observer
+    // Setup auth observer — handles login state, UI show/hide, and data loading
     setupAuthObserver();
-    
-    // If no auth, try to load data anyway
-    if (!window.firebaseAuth?.currentUser) {
-        await loadFromFirebase();
-    }
 });
 
 console.log('🔥 Firebase integration loaded - OPTIMIZED: Save button only!');
