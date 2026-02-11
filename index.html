@@ -128,19 +128,123 @@
             75% { transform: translate(-20px, 20px) scale(1.02); }
         }
 
-        /* Geometric patterns */
-        .login-pattern {
+        /* Safety & Health Background Icons */
+        .safety-bg-icons {
             position: absolute;
             width: 100%;
             height: 100%;
-            opacity: 0.03;
+            opacity: 0.06;
+            overflow: hidden;
+        }
+
+        .safety-icon-float {
+            position: absolute;
+            font-size: 80px;
+            color: #ffffff;
+            animation: floatIcon 15s ease-in-out infinite;
+        }
+
+        .safety-icon-float:nth-child(1) {
+            top: 10%;
+            left: 8%;
+            animation-delay: 0s;
+            animation-duration: 18s;
+        }
+
+        .safety-icon-float:nth-child(2) {
+            top: 15%;
+            right: 12%;
+            animation-delay: 2s;
+            animation-duration: 22s;
+        }
+
+        .safety-icon-float:nth-child(3) {
+            bottom: 20%;
+            left: 15%;
+            animation-delay: 4s;
+            animation-duration: 20s;
+        }
+
+        .safety-icon-float:nth-child(4) {
+            bottom: 15%;
+            right: 10%;
+            animation-delay: 1s;
+            animation-duration: 19s;
+        }
+
+        .safety-icon-float:nth-child(5) {
+            top: 50%;
+            left: 5%;
+            animation-delay: 3s;
+            animation-duration: 21s;
+        }
+
+        .safety-icon-float:nth-child(6) {
+            top: 45%;
+            right: 8%;
+            animation-delay: 5s;
+            animation-duration: 17s;
+        }
+
+        @keyframes floatIcon {
+            0%, 100% {
+                transform: translateY(0px) rotate(0deg);
+                opacity: 0.06;
+            }
+            25% {
+                transform: translateY(-30px) rotate(5deg);
+                opacity: 0.08;
+            }
+            50% {
+                transform: translateY(-20px) rotate(-5deg);
+                opacity: 0.04;
+            }
+            75% {
+                transform: translateY(-35px) rotate(3deg);
+                opacity: 0.07;
+            }
+        }
+
+        /* Construction/Safety Pattern Overlay */
+        .safety-pattern {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.04;
             background-image: 
-                linear-gradient(30deg, #ffffff 12%, transparent 12.5%, transparent 87%, #ffffff 87.5%, #ffffff),
-                linear-gradient(150deg, #ffffff 12%, transparent 12.5%, transparent 87%, #ffffff 87.5%, #ffffff),
-                linear-gradient(30deg, #ffffff 12%, transparent 12.5%, transparent 87%, #ffffff 87.5%, #ffffff),
-                linear-gradient(150deg, #ffffff 12%, transparent 12.5%, transparent 87%, #ffffff 87.5%, #ffffff);
-            background-size: 80px 140px;
-            background-position: 0 0, 0 0, 40px 70px, 40px 70px;
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(251, 192, 45, 0.3) 10px,
+                    rgba(251, 192, 45, 0.3) 12px
+                ),
+                repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(251, 192, 45, 0.3) 10px,
+                    rgba(251, 192, 45, 0.3) 12px
+                );
+            background-size: 100px 100px;
+            background-position: 0 0, 50px 50px;
+        }
+
+        /* Warning Stripes Accent (bottom) */
+        .warning-stripe {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: repeating-linear-gradient(
+                45deg,
+                #fbc02d,
+                #fbc02d 20px,
+                #1b5e20 20px,
+                #1b5e20 40px
+            );
+            opacity: 0.7;
         }
 
         .login-card {
@@ -1207,7 +1311,18 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
 	
     <div id="login-overlay" style="display:none;">
-        <div class="login-pattern"></div>
+        <!-- Safety Background Elements -->
+        <div class="safety-bg-icons">
+            <i class="fas fa-hard-hat safety-icon-float"></i>
+            <i class="fas fa-user-shield safety-icon-float"></i>
+            <i class="fas fa-briefcase-medical safety-icon-float"></i>
+            <i class="fas fa-fire-extinguisher safety-icon-float"></i>
+            <i class="fas fa-vest safety-icon-float"></i>
+            <i class="fas fa-triangle-exclamation safety-icon-float"></i>
+        </div>
+        <div class="safety-pattern"></div>
+        <div class="warning-stripe"></div>
+        
         <div class="login-card">
             <div class="login-header">
                 <div class="login-shield">
