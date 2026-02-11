@@ -127,7 +127,7 @@
         .nav-item:hover { background: rgba(255,255,255,0.1); }
         .nav-item.active { background: rgba(255,255,255,0.2); border-left: 5px solid var(--safety-yellow); font-weight: 600; }
         
-        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-body); }
+        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; background: var(--bg-body); max-width: 100vw; }
         
         header {
             background: var(--bg-card); padding: 12px 15px; border-bottom: 1px solid var(--border-color); position: sticky;
@@ -224,6 +224,24 @@
             }
         }
 
+        /* MODIFIED: Compact table for Internal ESH Audit Report - narrower columns for 3-digit inputs */
+        #projects-table th:nth-child(4),
+        #projects-table th:nth-child(5),
+        #projects-table th:nth-child(6),
+        #projects-table th:nth-child(7) {
+            width: 70px;
+            max-width: 70px;
+        }
+
+        #projects-table td:nth-child(4) input,
+        #projects-table td:nth-child(5) input,
+        #projects-table td:nth-child(6) input,
+        #projects-table td:nth-child(7) input {
+            width: 60px;
+            max-width: 60px;
+            padding: 6px;
+            text-align: center;
+        }
 
         .btn {
             padding: 8px 15px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600;
@@ -583,65 +601,111 @@ body.dark-mode .backup-item {
         }
         
         table { 
-            width: auto;
-            min-width: 100%;
+            width: 100%;
             border-collapse: collapse; 
             font-size: 0.7rem;
-            table-layout: auto;
+            table-layout: fixed;
             color: var(--text-primary);
         }
         
         th { 
     background: var(--table-header); 
     color: white; 
-    padding: 10px 8px; 
+    padding: 10px 6px; 
     border: 1px solid #1b5e20;
     white-space: nowrap;
-    min-width: auto;
-    width: auto;
+    font-size: 0.68rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
         
         td { 
     border: 1px solid var(--border-color); 
-    padding: 8px 6px; 
+    padding: 6px 4px; 
     text-align: center;
-    min-width: auto;
-    width: auto;
     background: var(--bg-card);
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
         
         td:first-child {
             text-align: left;
-            min-width: 200px;
+            min-width: 180px;
+            max-width: 200px;
             font-weight: 600;
             background: var(--border-color);
+            padding-left: 8px;
         }
         
-        /* Previous Year Column - Light Blue */
+        /* Previous Year Column - Light Green */
         td.prev-year {
-    background: #e3f2fd;
+    background: #c8e6c9;
     font-weight: 600;
-    color: #1565c0;
-    min-width: auto;
-    width: auto;
+    color: #2e7d32;
+    min-width: 60px;
+    max-width: 70px;
+    width: 60px;
 }
 
         body.dark-mode td.prev-year {
-            background: #1a3a52;
-            color: #64b5f6;
+            background: #1b5e20;
+            color: #a5d6a7;
         }
         
         th.prev-year {
-            background: #1565c0;
+            background: #2e7d32;
+            min-width: 60px;
+            max-width: 70px;
+            width: 60px;
+        }
+
+        /* MODIFIED: Compact table cells for audit, activities, and medical tabs */
+        [data-tab="audit"].active ~ #main-content td.monthly-data,
+        [data-tab="activities"].active ~ #main-content td.monthly-data,
+        [data-tab="medical"].active ~ #main-content td.monthly-data {
+            min-width: 60px;
+            max-width: 75px;
+            width: 65px;
+            padding: 6px 2px;
+        }
+
+        [data-tab="audit"].active ~ #main-content th,
+        [data-tab="activities"].active ~ #main-content th,
+        [data-tab="medical"].active ~ #main-content th {
+            min-width: 60px;
+            max-width: 75px;
+            width: 65px;
+            padding: 8px 4px;
+            font-size: 0.65rem;
+        }
+
+        /* Keep first column wider for labels */
+        [data-tab="audit"].active ~ #main-content td:first-child,
+        [data-tab="activities"].active ~ #main-content td:first-child,
+        [data-tab="medical"].active ~ #main-content td:first-child {
+            min-width: 180px;
+            max-width: 200px;
+        }
+
+        /* Compact inputs for these specific tabs */
+        [data-tab="audit"].active ~ #main-content table input,
+        [data-tab="activities"].active ~ #main-content table input,
+        [data-tab="medical"].active ~ #main-content table input {
+            width: 100%;
+            max-width: 60px;
+            padding: 4px 2px;
+            font-size: 0.68rem;
         }
         
         /* Monthly Columns - Default */
        /* Monthly Columns - Default */
 td.monthly-data {
     background: var(--bg-card);
-    min-width: auto;
-    width: auto;
+    min-width: 55px;
+    max-width: 70px;
+    width: 60px;
+    padding: 6px 3px;
 }
         
         /* YTD Column - Yellow */
@@ -650,9 +714,10 @@ td.ytd-cell {
     background: #fff59d;
     font-weight: 700;
     color: #f57f17;
-    min-width: auto;
-    width: auto;
-    padding: 8px 12px;
+    min-width: 70px;
+    max-width: 85px;
+    width: 75px;
+    padding: 8px 4px;
 }
         }
 
@@ -664,7 +729,9 @@ td.ytd-cell {
         th.ytd-header {
             background: #f9a825;
             color: white;
-            min-width: 90px;
+            min-width: 70px;
+            max-width: 85px;
+            width: 75px;
         }
 
         body.dark-mode th.ytd-header {
@@ -701,15 +768,23 @@ td.average-cell {
         
         table input {
             width: 100%;
+            max-width: 65px;
             border: 1px solid var(--border-color);
             border-radius: 3px;
-            padding: 6px 4px;
-            font-size: 0.7rem;
+            padding: 4px 3px;
+            font-size: 0.68rem;
             text-align: center;
             font-weight: 500;
             box-sizing: border-box;
             background: var(--input-bg);
             color: var(--text-primary);
+        }
+
+        /* MODIFIED: Compact inputs for medical/accident table (3-digit numbers) */
+        [data-tab="medical"].active ~ #main-content table input[type="number"],
+        .table-container table td.monthly-data input[type="number"] {
+            max-width: 55px;
+            padding: 3px 2px;
         }
         
         table input:disabled { 
@@ -785,6 +860,113 @@ table input[type="date"] {
     opacity: 0.6;
 }
 
+/* NOV tab: slim columns since values are 3-digit max */
+.nov-narrow-th {
+    min-width: 0 !important;
+    width: 42px !important;
+    padding: 8px 3px !important;
+    font-size: 0.62rem !important;
+}
+.nov-narrow-td {
+    min-width: 0 !important;
+    width: 42px !important;
+    padding: 5px 2px !important;
+}
+.nov-narrow-td input[type="number"] {
+    width: 36px !important;
+    min-width: 0 !important;
+    padding: 4px 2px !important;
+    font-size: 0.68rem !important;
+}
+
+/* Personnel table: locked by default, per-row Edit/Save */
+#p-body td input,
+#p-body td select {
+    pointer-events: none;
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-primary);
+    cursor: default;
+    font-size: 0.72rem;
+}
+#p-body tr.p-editing td input,
+#p-body tr.p-editing td select {
+    pointer-events: auto;
+    background: var(--input-bg) !important;
+    border: 1px solid #2e7d32 !important;
+    border-radius: 4px !important;
+    cursor: text;
+    padding: 4px 6px !important;
+}
+#p-body tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.15s;
+}
+#p-body tr:nth-child(even) { background: rgba(0,0,0,0.018); }
+body.dark-mode #p-body tr:nth-child(even) { background: rgba(255,255,255,0.03); }
+#p-body tr:hover { background: #e8f5e9 !important; }
+body.dark-mode #p-body tr:hover { background: rgba(27,94,32,0.18) !important; }
+#p-body tr.p-editing { background: #f1f8e9 !important; box-shadow: inset 3px 0 0 #2e7d32; }
+body.dark-mode #p-body tr.p-editing { background: rgba(27,94,32,0.25) !important; }
+#p-body td { padding: 8px 10px; vertical-align: middle; border: none; color: var(--text-primary); }
+#p-body td:first-child { font-weight: 600; }
+.p-row-num {
+    display: inline-flex; align-items:center; justify-content:center;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #e8f5e9; color: #2e7d32;
+    font-size: 0.65rem; font-weight: 700; margin-right: 6px;
+    flex-shrink: 0; vertical-align: middle;
+}
+body.dark-mode .p-row-num { background: #1b5e20; color: #a5d6a7; }
+.p-pos-badge {
+    display: inline-block; padding: 2px 7px;
+    border-radius: 10px; font-size: 0.65rem; font-weight: 600;
+    background: #e3f2fd; color: #1565c0; white-space: nowrap;
+}
+body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
+.p-gender-m { background: #e3f2fd !important; color: #1565c0 !important; }
+.p-gender-f { background: #fce4ec !important; color: #c2185b !important; }
+.p-edit-btn {
+    padding: 5px 10px;
+    background: #1976D2;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.68rem;
+    cursor: pointer;
+    font-weight: 600;
+    display: inline-flex; align-items:center; gap:4px;
+    transition: 0.2s;
+}
+.p-edit-btn:hover { background: #1565c0; }
+.p-save-btn {
+    display: none;
+    padding: 5px 10px;
+    background: #2e7d32;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.68rem;
+    cursor: pointer;
+    font-weight: 600;
+    margin-left: 3px;
+    align-items:center; gap:4px;
+    transition: 0.2s;
+}
+.p-save-btn:hover { background: #1b5e20; }
+.p-del-btn {
+    padding: 5px 8px;
+    background: #ffebee;
+    color: #d32f2f;
+    border: 1px solid #ffcdd2;
+    border-radius: 5px;
+    font-size: 0.68rem;
+    cursor: pointer;
+    margin-left: 3px;
+    transition: 0.2s;
+}
+.p-del-btn:hover { background: #d32f2f; color: white; border-color: #d32f2f; }
+
     </style>
 </head>
 <body>
@@ -798,18 +980,50 @@ table input[type="date"] {
             </div>
             <h2 style="color:#1b5e20; margin:0 0 5px 0; font-size: 1.1rem; letter-spacing: 1px;">ESH COMPLIANCE DASHBOARD</h2>
             <p style="margin:0 0 20px 0; font-size: 0.75rem; font-weight: 600; color: #666;">STA. CLARA INTERNATIONAL CORPORATION</p>
-            <form onsubmit="handleLogin(event)" autocomplete="off">
+            
+            <!-- Login Form -->
+            <form id="login-form" onsubmit="handleLogin(event)" autocomplete="off">
                 <input type="email" id="login-user" placeholder="Email Address" required autocomplete="off">
                 <input type="password" id="login-pass" placeholder="Password" required autocomplete="off">
                 <button type="submit" class="btn btn-primary" id="login-btn" style="width:100%; margin-top:15px; padding: 12px; font-size: 0.9rem;">
-                    <i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM
+                    <i class="fas fa-right-to-bracket"></i> LOGIN
                 </button>
+                <p style="font-size: 0.75rem; margin-top: 15px; color: #666; text-align: center;">
+                    Don't have an account? <a href="#" onclick="showSignupForm(); return false;" style="color: #1b5e20; font-weight: 600;">Sign Up</a>
+                </p>
+                <p style="font-size: 0.75rem; margin-top: 10px; text-align: center;">
+                    <a href="#" onclick="showForgotPassword(); return false;" style="color: #1b5e20;">Forgot Password?</a>
+                </p>
             </form>
+
+            <!-- Signup Form (hidden by default) -->
+            <form id="signup-form" onsubmit="handleSignup(event)" autocomplete="off" style="display: none;">
+                <input type="email" id="signup-email" placeholder="Email Address" required autocomplete="off">
+                <input type="password" id="signup-pass" placeholder="Password (min 6 characters)" required autocomplete="off">
+                <input type="password" id="signup-confirm" placeholder="Confirm Password" required autocomplete="off">
+                <button type="submit" class="btn btn-primary" id="signup-btn" style="width:100%; margin-top:15px; padding: 12px; font-size: 0.9rem;">
+                    <i class="fas fa-user-plus"></i> CREATE ACCOUNT
+                </button>
+                <p style="font-size: 0.75rem; margin-top: 15px; color: #666; text-align: center;">
+                    Already have an account? <a href="#" onclick="showLoginForm(); return false;" style="color: #1b5e20; font-weight: 600;">Login</a>
+                </p>
+            </form>
+
+            <!-- Forgot Password Form (hidden by default) -->
+            <form id="forgot-password-form" onsubmit="handleForgotPassword(event)" autocomplete="off" style="display: none;">
+                <input type="email" id="forgot-email" placeholder="Enter your email" required autocomplete="off">
+                <button type="submit" class="btn btn-primary" id="forgot-btn" style="width:100%; margin-top:15px; padding: 12px; font-size: 0.9rem;">
+                    <i class="fas fa-envelope"></i> SEND RESET LINK
+                </button>
+                <p style="font-size: 0.75rem; margin-top: 15px; color: #666; text-align: center;">
+                    <a href="#" onclick="showLoginForm(); return false;" style="color: #1b5e20; font-weight: 600;">Back to Login</a>
+                </p>
+            </form>
+
             <div id="login-error" class="error-message"></div>
             <div class="disclaimer-box">
-                <strong><i class="fas fa-circle-exclamation"></i> DEMO ACCOUNT:</strong><br>
-                Email: <code style="background:#f0f0f0; padding:2px 4px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d1b5b4bcbe91a2b2b8b2ffb2bebc">[email&#160;protected]</a></code><br>
-                Password: <code style="background:#f0f0f0; padding:2px 4px;">demo1234</code>
+                <strong><i class="fas fa-circle-exclamation"></i> IMPORTANT:</strong><br>
+                This system uses <strong>Firebase Authentication</strong>. Create an account to get started. All your data will be securely stored in the cloud.
             </div>
         </div>
     </div>
@@ -861,13 +1075,12 @@ table input[type="date"] {
         </div>
         <nav style="flex-grow: 1; padding-top: 10px;">
             <div class="nav-item active" data-tab="overall" onclick="changeTab('overall')"><i class="fas fa-chart-pie"></i> Overall Dashboard</div>
- <div class="nav-item" data-tab="incident-rate" onclick="changeTab('incident-rate')"><i class="fas fa-calculator"></i> Incident Tabulation Rate</div>
             <div class="nav-item" data-tab="exposures" onclick="changeTab('exposures')"><i class="fas fa-clock"></i> Total Exposures</div>
             <div class="nav-item" data-tab="rates" onclick="changeTab('rates')"><i class="fas fa-chart-line"></i> Statistics Rate</div>
             <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-kit-medical"></i> Accident/ Incident Record</div>
             <div class="nav-item" data-tab="activities" onclick="changeTab('activities')"><i class="fas fa-list-check"></i> ESH Activities & Programs</div>
-	    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fa-solid fa-helmet-safety"></i> OSH Issued NOV</div>
-            <div class="nav-item" data-tab="environment" onclick="changeTab('environment')"><i class="fas fa-leaf"></i> Envi Issued NOV</div>
+	    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fa-solid fa-helmet-safety"></i> Regulatory Issued NOV</div>
+            <div class="nav-item" data-tab="nov-monitoring" onclick="changeTab('nov-monitoring')"><i class="fas fa-chart-bar"></i> ESH NOV Monitoring</div>
             <div class="nav-item" data-tab="kpm" onclick="changeTab('kpm')"><i class="fas fa-file-export"></i> Monthly Report</div>
 	    <div class="nav-item" data-tab="audit" onclick="changeTab('audit')"><i class="fa-solid fa-square-poll-horizontal"></i> Internal ESH Audit Result</div>
             <div class="nav-item" data-tab="cshp" onclick="changeTab('cshp')"><i class="fas fa-calendar-check"></i> CSHP</div>
@@ -924,190 +1137,211 @@ table input[type="date"] {
 
 
 <div id="personnel-view" class="hidden" style="padding: 20px;">
-    <div class="backup-section" style="border-left: 5px solid #1b5e20;">
-        <h3 style="color: #1b5e20; margin-bottom: 15px;">ESH Personnel Monitoring</h3>
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <input type="text" id="p-search" placeholder="Search Name or ID..." onkeyup="filterP()" style="flex: 1; padding: 10px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary);">
-            <button class="btn btn-primary" onclick="addPRow()"><i class="fas fa-plus"></i> Add Personnel</button>
-        </div>
-        <div class="table-container" style="overflow-x: auto;">
-            <table id="p-table">
-                <thead>
-                    <tr>
-                        <th>Full Name</th>
-                        <th>Position</th>
-                        <th>ID Number</th>
-                        <th>Date Hired</th>
-                        <th>Current Project</th>
-                        <th>Previous Projects</th>
-                        <th>Age</th>
-                        <th>Gender</th>
-                        <th>Email</th>
-                        <th>Contact No.</th>
-                        <th>Home Address</th>
-                        <th>Length of Service</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="p-body"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
+    <div style="background: var(--bg-card); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid var(--border-color);">
 
-
-
-<!-- INCIDENT TABULATION RATE VIEW -->
-<div id="incident-rate-view" class="hidden" style="padding: 20px;">
-    <div style="background: var(--bg-card); padding: 25px; border-radius: 12px; max-width: 1200px; margin: 0 auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-            <h2 style="margin: 0; color: #1b5e20; font-size: 1.3rem;">
-                <i class="fas fa-calculator"></i> INCIDENT TABULATION RATE
-            </h2>
-            <button class="btn btn-primary" onclick="saveUserData(state.currentUser.email)">
-                <i class="fas fa-save"></i> Save Changes
-            </button>
-        </div>
-
-        <!-- Input Section -->
-        <div style="background: #f0f7f0; padding: 20px; border-radius: 8px; margin-bottom: 25px; border: 2px solid #1b5e20;">
-            <h3 style="color: #1b5e20; margin-top: 0; font-size: 1rem; margin-bottom: 15px;">
-                <i class="fas fa-edit"></i> Input Data
-            </h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
-                <div class="form-group">
-                    <label style="font-weight: 600; color: var(--text-primary); display: block; margin-bottom: 5px;">
-                        No. of Recordable Cases:
-                    </label>
-                    <input type="number" id="recordable-cases" 
-                           oninput="calculateIncidentRates()" 
-                           placeholder="Enter number"
-                           style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.95rem;">
+        <!-- Header Banner -->
+        <div style="background: linear-gradient(90deg,#1b5e20 0%,#2e7d32 100%); padding: 18px 24px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <i class="fas fa-users-gear" style="font-size:1.3rem; color:var(--safety-yellow);"></i>
+                <div>
+                    <div style="font-size:1rem; font-weight:800; color:white; letter-spacing:0.5px;">ESH PERSONNEL MONITORING</div>
+                    <div style="font-size:0.65rem; color:#a5d6a7; margin-top:2px;">Environment, Safety &amp; Health Team Registry</div>
                 </div>
-                <div class="form-group">
-                    <label style="font-weight: 600; color: var(--text-primary); display: block; margin-bottom: 5px;">
-                        No. of Lost Days:
-                    </label>
-                    <input type="number" id="lost-days" 
-                           oninput="calculateIncidentRates()" 
-                           placeholder="Enter number"
-                           style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.95rem;">
-                </div>
-                <div class="form-group">
-                    <label style="font-weight: 600; color: var(--text-primary); display: block; margin-bottom: 5px;">
-                        Total Employee Hours Exposure:
-                    </label>
-                    <input type="number" id="total-hours" 
-                           oninput="calculateIncidentRates()" 
-                           placeholder="Enter number"
-                           style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); font-size: 0.95rem;">
+            </div>
+            <div id="p-summary-badges" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+        </div>
+
+        <!-- Controls Bar -->
+        <div style="padding: 14px 20px; background: var(--bg-card); border-bottom: 1px solid var(--border-color); display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <div style="display:flex; gap:8px; flex:1; min-width:280px;">
+                <select id="p-filter-column" style="padding:8px 10px; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:0.75rem; min-width:150px;">
+                    <option value="all">🔍 Filter: All Columns</option>
+                    <option value="name">Full Name</option>
+                    <option value="pos">Position</option>
+                    <option value="id">ID Number</option>
+                    <option value="current">Current Project</option>
+                    <option value="gen">Gender</option>
+                </select>
+                <input type="text" id="p-filter-value" placeholder="Search personnel..." onkeyup="filterPTable()" style="flex:1; padding:8px 12px; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:0.75rem;">
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <button class="btn btn-primary" onclick="addPRow()" style="padding:8px 16px; display:flex; align-items:center; gap:6px; font-size:0.78rem; border-radius:6px;">
+                    <i class="fas fa-user-plus"></i> Add Personnel
+                </button>
+                <button class="btn btn-primary" onclick="pGlobalSave()" style="padding:8px 16px; display:flex; align-items:center; gap:6px; font-size:0.78rem; border-radius:6px; background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);">
+                    <i class="fas fa-save"></i> Save All
+                </button>
+                <div id="p-global-action" style="display:none; gap:6px;">
+                    <button class="p-edit-btn" id="p-global-edit-btn" onclick="pGlobalEdit()" style="padding:8px 14px; border-radius:6px; display:flex; align-items:center; gap:5px; font-size:0.78rem;">
+                        <i class="fas fa-edit"></i> Edit All
+                    </button>
+                    <button class="p-save-btn" id="p-global-save-btn" onclick="pGlobalSave()" style="padding:8px 14px; border-radius:6px; display:flex; align-items:center; gap:5px; font-size:0.78rem; display:none;">
+                        <i class="fas fa-save"></i> Save All
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- Results Table -->
-        <div style="overflow-x: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+        <!-- Table -->
+        <div style="overflow-x:auto; padding: 0;">
+            <table id="p-table" style="width:100%; border-collapse:collapse; font-size:0.72rem;">
                 <thead>
-                    <tr>
-                        <th style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); color: white; padding: 15px; text-align: left; font-size: 1rem; border: none; width: 40%;">
-                            INJURY/ILLNESS
-                        </th>
-                        <th style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); color: white; padding: 15px; text-align: center; font-size: 1rem; border: none; width: 30%;">
-                            OSHA<br><span style="font-size: 0.8rem; font-weight: 400;">200,000</span>
-                        </th>
-                        <th style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); color: white; padding: 15px; text-align: center; font-size: 1rem; border: none; width: 30%;">
-                            OSHS<br><span style="font-size: 0.8rem; font-weight: 400;">1,000,000</span>
-                        </th>
+                    <tr style="background: linear-gradient(90deg,#1b5e20 0%,#388e3c 100%);">
+                        <th style="padding:10px 12px; color:white; text-align:left; white-space:nowrap; font-weight:700; letter-spacing:0.3px; border:none; min-width:160px;">#&nbsp;&nbsp;Full Name</th>
+                        <th style="padding:10px 8px; color:white; text-align:left; white-space:nowrap; font-weight:700; border:none; width:145px;">Position</th>
+                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:95px;">ID Number</th>
+                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:110px;">Date Hired</th>
+                        <th style="padding:10px 8px; color:white; text-align:left; white-space:nowrap; font-weight:700; border:none; min-width:160px;">Current Project</th>
+                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:48px;">Age</th>
+                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:80px;">Gender</th>
+                        <th style="padding:10px 8px; color:white; text-align:left; white-space:nowrap; font-weight:700; border:none; min-width:180px;">Email</th>
+                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:115px;">Contact No.</th>
+                        <th style="padding:10px 8px; color:white; text-align:left; white-space:nowrap; font-weight:700; border:none; min-width:200px;">Home Address</th>
+                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:70px;">Yrs. of Svc</th>
+                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:100px;">Action</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- LTIR Row -->
-                    <tr style="border-bottom: 2px solid #e0e0e0;">
-                        <td style="background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%); color: white; padding: 20px 15px; border: none;">
-                            <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 5px;">LTIR (Loss Time Incident Rate)</div>
-                            <div style="font-size: 0.7rem; opacity: 0.95; line-height: 1.3;">
-                                <strong>Formula:</strong><br>
-                                No of Recordable Cases × 1M/2K<br>
-                                Total Employee Hours Exposure
-                            </div>
-                        </td>
-                        <td style="background: var(--bg-card); padding: 15px; text-align: center; border: 1px solid var(--border-color);">
-                            <div id="ltir-osha" style="font-size: 2rem; font-weight: 800; color: #1b5e20;">0</div>
-                        </td>
-                        <td style="background: var(--bg-card); padding: 15px; text-align: center; border: 1px solid var(--border-color);">
-                            <div id="ltir-oshs" style="font-size: 2rem; font-weight: 800; color: #1b5e20;">0</div>
-                        </td>
-                    </tr>
-
-                    <!-- TRIR Row -->
-                    <tr style="border-bottom: 2px solid #e0e0e0;">
-                        <td style="background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%); color: white; padding: 20px 15px; border: none;">
-                            <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 5px;">TRIR (Total Recordable Incident Rate)</div>
-                            <div style="font-size: 0.7rem; opacity: 0.95; line-height: 1.3;">
-                                <strong>Formula:</strong><br>
-                                No of Recordable Cases × 1M/2K<br>
-                                Total Employee Hours Exposure
-                            </div>
-                        </td>
-                        <td style="background: var(--bg-card); padding: 15px; text-align: center; border: 1px solid var(--border-color);">
-                            <div id="trir-osha" style="font-size: 2rem; font-weight: 800; color: #1b5e20;">0</div>
-                        </td>
-                        <td style="background: var(--bg-card); padding: 15px; text-align: center; border: 1px solid var(--border-color);">
-                            <div id="trir-oshs" style="font-size: 2rem; font-weight: 800; color: #1b5e20;">0</div>
-                        </td>
-                    </tr>
-
-                    <!-- Severity Rate Row -->
-                    <tr>
-                        <td style="background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%); color: white; padding: 20px 15px; border: none;">
-                            <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 5px;">Severity Rate</div>
-                            <div style="font-size: 0.7rem; opacity: 0.95; line-height: 1.3;">
-                                <strong>Formula:</strong><br>
-                                No of Total Days Lost × 1M/2K<br>
-                                Total Employee Hours Exposure
-                            </div>
-                        </td>
-                        <td style="background: var(--bg-card); padding: 15px; text-align: center; border: 1px solid var(--border-color);">
-                            <div id="severity-osha" style="font-size: 2rem; font-weight: 800; color: #1b5e20;">0</div>
-                        </td>
-                        <td style="background: var(--bg-card); padding: 15px; text-align: center; border: 1px solid var(--border-color);">
-                            <div id="severity-oshs" style="font-size: 2rem; font-weight: 800; color: #1b5e20;">0</div>
-                        </td>
-                    </tr>
-                </tbody>
+                <tbody id="p-body"></tbody>
             </table>
+            <div id="p-empty" style="display:none; padding:40px; text-align:center; color:var(--text-secondary);">
+                <i class="fas fa-users" style="font-size:2.5rem; opacity:0.3; margin-bottom:10px;"></i>
+                <div style="font-size:0.85rem;">No personnel records yet. Click <strong>Add Personnel</strong> to get started.</div>
+            </div>
         </div>
 
-        <!-- Info Box -->
-        <div style="margin-top: 20px; padding: 15px; background: #fff9c4; border: 2px solid #fbc02d; border-radius: 8px;">
-            <strong style="color: #f57f17;"><i class="fas fa-info-circle"></i> NOTES:</strong>
-            <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #333; font-size: 0.85rem; line-height: 1.6;">
-                <li><strong>OSHA Standard:</strong> Uses 200,000 hours (100 employees × 40 hours/week × 50 weeks)</li>
-                <li><strong>OSHS Standard:</strong> Uses 1,000,000 hours (Philippine standard)</li>
-                <li><strong>Auto-calculation:</strong> Results update automatically as you type</li>
-                <li><strong>Data Persistence:</strong> All data is saved automatically to your account</li>
-            </ul>
-        </div>
+        <!-- Footer stats -->
+        <div id="p-footer" style="padding:10px 20px; background:var(--border-color); border-top:1px solid var(--border-color); font-size:0.7rem; color:var(--text-secondary); display:flex; gap:20px; flex-wrap:wrap;"></div>
     </div>
 </div>
 
-        <div id="settings-view" class="hidden" style="max-width: 600px; margin: 40px auto; background: var(--bg-card); padding: 30px; border-radius: 12px; color: var(--text-primary);">
-    <h3 style="color: #1b5e20; border-bottom: 2px solid var(--safety-yellow); padding-bottom: 5px;">Account Settings</h3>
-    <div class="form-group">
-        <label>Current Email:</label>
-        <input type="email" id="current-email" disabled>
+
+
+        <div id="settings-view" class="hidden" style="max-width: 800px; margin: 40px auto; padding: 20px;">
+    
+    <!-- Account Settings Section -->
+    <div style="background: var(--bg-card); padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1b5e20;">
+        <h3 style="color: #1b5e20; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-user-circle" style="font-size: 1.3rem;"></i>
+            Account Settings
+        </h3>
+        
+        <div class="form-group">
+            <label style="font-weight: 600; color: var(--text-primary);">Current Email:</label>
+            <input type="email" id="current-email" disabled style="background: var(--border-color); cursor: not-allowed;">
+        </div>
+        
+        <div class="form-group">
+            <label style="font-weight: 600; color: var(--text-primary);">New Password</label>
+            <input type="password" id="new-password" placeholder="Enter new password (min 6 characters)">
+        </div>
+        
+        <div class="form-group">
+            <label style="font-weight: 600; color: var(--text-primary);">Confirm Password</label>
+            <input type="password" id="confirm-password" placeholder="Confirm new password">
+        </div>
+        
+        <button class="btn btn-primary" style="width:100%; padding: 12px; font-size: 0.85rem;" onclick="updatePassword()">
+            <i class="fas fa-key"></i> UPDATE PASSWORD
+        </button>
+        <div id="settings-message"></div>
     </div>
-    <div class="form-group">
-        <label>New Password</label>
-        <input type="password" id="new-password" placeholder="Enter new password">
+
+    <!-- Appearance Settings -->
+    <div style="background: var(--bg-card); padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1b5e20;">
+        <h3 style="color: #1b5e20; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-palette" style="font-size: 1.3rem;"></i>
+            Appearance
+        </h3>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--border-color);">
+            <div>
+                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">Dark Mode</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Switch between light and dark themes</div>
+            </div>
+            <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
+                <input type="checkbox" id="dark-mode-settings-toggle" onchange="toggleDarkMode()" style="opacity: 0; width: 0; height: 0;">
+                <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: 0.3s; border-radius: 24px;">
+                    <span style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%;"></span>
+                </span>
+            </label>
+        </div>
     </div>
-    <div class="form-group">
-        <label>Confirm Password</label>
-        <input type="password" id="confirm-password" placeholder="Confirm password">
+
+    <!-- Data Management -->
+    <div style="background: var(--bg-card); padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1b5e20;">
+        <h3 style="color: #1b5e20; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-database" style="font-size: 1.3rem;"></i>
+            Data Management
+        </h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 20px;">
+            <button class="btn btn-primary" onclick="exportAllData()" style="padding: 10px 15px; font-size: 0.8rem;">
+                <i class="fas fa-download"></i> Export Data
+            </button>
+            <button class="btn btn-primary" onclick="document.getElementById('import-file-input').click()" style="padding: 10px 15px; font-size: 0.8rem;">
+                <i class="fas fa-upload"></i> Import Data
+            </button>
+            <input type="file" id="import-file-input" accept=".json" style="display: none;" onchange="importAllData(event)">
+        </div>
+        
+        <div style="background: rgba(211, 47, 47, 0.1); padding: 15px; border-radius: 8px; border-left: 3px solid #d32f2f;">
+            <div style="font-weight: 600; color: #d32f2f; margin-bottom: 8px;">
+                <i class="fas fa-exclamation-triangle"></i> Danger Zone
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 10px;">
+                This will permanently delete all your local data. This action cannot be undone.
+            </div>
+            <button class="btn btn-danger" onclick="clearAllLocalData()" style="padding: 8px 15px; font-size: 0.8rem;">
+                <i class="fas fa-trash-alt"></i> Clear All Data
+            </button>
+        </div>
     </div>
-    <button class="btn btn-primary" style="width:100%; padding: 10px;" onclick="updatePassword()">UPDATE PASSWORD</button>
-    <div id="settings-message"></div>
+
+    <!-- Storage Statistics -->
+    <div style="background: var(--bg-card); padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1b5e20;">
+        <h3 style="color: #1b5e20; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-chart-bar" style="font-size: 1.3rem;"></i>
+            Storage Statistics
+        </h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+            <div style="background: rgba(27, 94, 32, 0.05); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Total Projects</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #1b5e20;" id="stats-total-projects">0</div>
+            </div>
+            <div style="background: rgba(27, 94, 32, 0.05); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Total Personnel</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #1b5e20;" id="stats-total-personnel">0</div>
+            </div>
+            <div style="background: rgba(27, 94, 32, 0.05); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Last Sync</div>
+                <div style="font-size: 0.8rem; font-weight: 700; color: #1b5e20;" id="stats-last-sync">Never</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Section -->
+    <div style="background: var(--bg-card); padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1b5e20;">
+        <h3 style="color: #1b5e20; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-info-circle" style="font-size: 1.3rem;"></i>
+            About
+        </h3>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color);">
+            <div style="font-weight: 600; color: var(--text-primary);">Application Version</div>
+            <span style="background: #e3f2fd; color: #1976d2; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">v2.0 Latest</span>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color);">
+            <div style="font-weight: 600; color: var(--text-primary);">Last Updated</div>
+            <div style="color: var(--text-secondary); font-size: 0.85rem;">February 2026</div>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+            <div style="font-weight: 600; color: var(--text-primary);">Developer</div>
+            <div style="color: var(--text-secondary); font-size: 0.85rem;">SCIC ESH Team</div>
+        </div>
+    </div>
 
     <div id="backup-recovery-section" style="margin-top: 30px;"></div>
 </div>
@@ -1417,15 +1651,15 @@ function showBackupStatus(message, type) {
     }, 4000);
 }
 
-        const VALID_CREDENTIALS = { 'demo@scic.com': 'demo1234' };
+        // Firebase Authentication is now used instead of local credentials
+        // Users must sign up to create an account
         const REGIONS = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
         const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
        const SCHEMA = {
     'exposures': ["Total Manpower", "Total Exposed Manhour", "Total Exposed Man-hour to date", "No. of Days w/o LTA"],
     'rates': ["LTIR","TRIR","SEVERITY RATE"],
     'medical': ["Medical Treatment","First Aid","LTA","Fatality","High-Potential incident", "Dangerous Occurrences"],
-    'nov': ["Internal Issues", "External Issues"],
-    'environment': ["Internal Issues", "External Issues"],
+    'nov': ["OSH Internal Issues", "OSH External Issues", "Environmental Internal Issues", "Environmental External Issues"],
     'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "No. of Identified Near-Miss","Drills Conducted", "Training Conducted"],
     'kpm': ["KPM&I"],
     'audit': ["Score Implementation", "Documentation and Compliance"],
@@ -1481,6 +1715,9 @@ function showBackupStatus(message, type) {
             state.darkMode = true;
             localStorage.setItem('esh_theme_preference', 'dark');
             updateThemeIcon();
+            // Sync settings toggle
+            const settingsToggle = document.getElementById('dark-mode-settings-toggle');
+            if (settingsToggle) settingsToggle.checked = true;
             console.log('✅ Dark mode enabled');
         }
 
@@ -1489,6 +1726,9 @@ function showBackupStatus(message, type) {
             state.darkMode = false;
             localStorage.setItem('esh_theme_preference', 'light');
             updateThemeIcon();
+            // Sync settings toggle
+            const settingsToggle = document.getElementById('dark-mode-settings-toggle');
+            if (settingsToggle) settingsToggle.checked = false;
             console.log('✅ Light mode enabled');
         }
 
@@ -1504,9 +1744,32 @@ function showBackupStatus(message, type) {
         }
 
         // ===== LOGIN & AUTH =====
-        function handleLogin(event) {
+        // ===== FIREBASE AUTH HELPER FUNCTIONS =====
+        function showLoginForm() {
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('signup-form').style.display = 'none';
+            document.getElementById('forgot-password-form').style.display = 'none';
+            document.getElementById('login-error').innerText = '';
+        }
+
+        function showSignupForm() {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('signup-form').style.display = 'block';
+            document.getElementById('forgot-password-form').style.display = 'none';
+            document.getElementById('login-error').innerText = '';
+        }
+
+        function showForgotPassword() {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('signup-form').style.display = 'none';
+            document.getElementById('forgot-password-form').style.display = 'block';
+            document.getElementById('login-error').innerText = '';
+        }
+
+        // ===== LOGIN & AUTH =====
+        async function handleLogin(event) {
             event.preventDefault();
-            const email = document.getElementById('login-user').value.trim().toLowerCase();
+            const email = document.getElementById('login-user').value.trim();
             const password = document.getElementById('login-pass').value;
             const errorDiv = document.getElementById('login-error');
             const loginBtn = document.getElementById('login-btn');
@@ -1521,28 +1784,135 @@ function showBackupStatus(message, type) {
             loginBtn.disabled = true;
             loginBtn.innerHTML = '<span class="loading-spinner"></span> Signing in...';
 
-            setTimeout(() => {
-                if (VALID_CREDENTIALS[email] && VALID_CREDENTIALS[email] === password) {
-                    state.currentUser = { email };
+            try {
+                // Use Firebase Authentication
+                if (window.firebase && window.firebaseAuth) {
+                    const userCredential = await window.firebase.signInWithEmailAndPassword(window.firebaseAuth, email, password);
+                    console.log('✅ Firebase login successful:', userCredential.user.email);
+                    
+                    state.currentUser = { email: userCredential.user.email, uid: userCredential.user.uid };
                     state.isLoggedIn = true;
                     sessionStorage.setItem('esh_logged_in', 'true');
                     sessionStorage.setItem('esh_user_email', email);
-                    loadUserData(email);
+                    
+                    // Load user data from Firebase
+                    await loadUserData(email);
                     showUI();
                     initDarkMode();
-                    console.log('✅ Login successful!');
                 } else {
-                    errorDiv.innerText = '❌ Invalid email or password';
+                    throw new Error('Firebase not initialized');
                 }
+            } catch (error) {
+                console.error('❌ Login error:', error);
+                errorDiv.innerText = '❌ ' + (error.message || 'Invalid email or password');
                 loginBtn.disabled = false;
-                loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM';
-            }, 800);
+                loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> LOGIN';
+            }
+        }
+
+        async function handleSignup(event) {
+            event.preventDefault();
+            const email = document.getElementById('signup-email').value.trim();
+            const password = document.getElementById('signup-pass').value;
+            const confirmPassword = document.getElementById('signup-confirm').value;
+            const errorDiv = document.getElementById('login-error');
+            const signupBtn = document.getElementById('signup-btn');
+
+            errorDiv.innerText = '';
+
+            if (!email || !password || !confirmPassword) {
+                errorDiv.innerText = '⚠️ Please fill in all fields';
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                errorDiv.innerText = '❌ Passwords do not match';
+                return;
+            }
+
+            if (password.length < 6) {
+                errorDiv.innerText = '❌ Password must be at least 6 characters';
+                return;
+            }
+
+            signupBtn.disabled = true;
+            signupBtn.innerHTML = '<span class="loading-spinner"></span> Creating account...';
+
+            try {
+                // Use Firebase Authentication
+                if (window.firebase && window.firebaseAuth) {
+                    const userCredential = await window.firebase.createUserWithEmailAndPassword(window.firebaseAuth, email, password);
+                    console.log('✅ Firebase signup successful:', userCredential.user.email);
+                    
+                    state.currentUser = { email: userCredential.user.email, uid: userCredential.user.uid };
+                    state.isLoggedIn = true;
+                    sessionStorage.setItem('esh_logged_in', 'true');
+                    sessionStorage.setItem('esh_user_email', email);
+                    
+                    // Initialize user data
+                    await saveUserData(email);
+                    showUI();
+                    initDarkMode();
+                } else {
+                    throw new Error('Firebase not initialized');
+                }
+            } catch (error) {
+                console.error('❌ Signup error:', error);
+                errorDiv.innerText = '❌ ' + (error.message || 'Signup failed');
+                signupBtn.disabled = false;
+                signupBtn.innerHTML = '<i class="fas fa-user-plus"></i> CREATE ACCOUNT';
+            }
+        }
+
+        async function handleForgotPassword(event) {
+            event.preventDefault();
+            const email = document.getElementById('forgot-email').value.trim();
+            const errorDiv = document.getElementById('login-error');
+            const forgotBtn = document.getElementById('forgot-btn');
+
+            errorDiv.innerText = '';
+
+            if (!email) {
+                errorDiv.innerText = '⚠️ Please enter your email';
+                return;
+            }
+
+            forgotBtn.disabled = true;
+            forgotBtn.innerHTML = '<span class="loading-spinner"></span> Sending...';
+
+            try {
+                // Use Firebase Password Reset
+                if (window.firebase && window.firebaseAuth) {
+                    await window.firebase.sendPasswordResetEmail(window.firebaseAuth, email);
+                    alert('✅ Password reset email sent! Check your inbox.');
+                    showLoginForm();
+                } else {
+                    throw new Error('Firebase not initialized');
+                }
+            } catch (error) {
+                console.error('❌ Password reset error:', error);
+                errorDiv.innerText = '❌ ' + (error.message || 'Failed to send reset email');
+            } finally {
+                forgotBtn.disabled = false;
+                forgotBtn.innerHTML = '<i class="fas fa-envelope"></i> SEND RESET LINK';
+            }
         }
 
       function handleLogout() {
-    showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(confirmed => {
+    showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(async confirmed => {
         if (confirmed) {
             backupManager.stopAutoSave();
+            
+            // Firebase logout
+            if (window.firebase && window.firebaseAuth) {
+                try {
+                    await window.firebase.signOut(window.firebaseAuth);
+                    console.log('✅ Firebase logout successful');
+                } catch (error) {
+                    console.error('❌ Firebase logout error:', error);
+                }
+            }
+            
             state.isLoggedIn = false;
             state.currentUser = null;
             sessionStorage.clear();
@@ -1726,16 +2096,16 @@ function showBackupStatus(message, type) {
             const titles = {
                 'overall': 'OVERALL DASHBOARD', 'exposures': 'TOTAL EXPOSURES',
                 'rates': 'STATISTICS RATE', 'medical': 'ACCIDENT/ INCIDENT RECORD',
-		'nov': 'OSH NOTICE OF VIOLATION ISSUED',
-                'environment': 'ENVIRONMENTAL NOTICE OF VIOLATION ISSUED', 'activities': 'ESH ACTIVITIES AND PROGRAMS','kpm': 'MONTHLY REPORT','reg': 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)','audit': 'INTERNAL ESH AUDIT REPORT',
+		'nov': 'REGULATORY ISSUED NOV',
+                'nov-monitoring': 'ESH NOV MONITORING',
+                'activities': 'ESH ACTIVITIES AND PROGRAMS','kpm': 'MONTHLY REPORT','reg': 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)','audit': 'INTERNAL ESH AUDIT REPORT',
                 'cshp': 'CONSTRUCTION SAFETY & HEALTH PROGRAM (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL','emb': ["SMR (Quarterly)", "CMR (Semi-Annual)"],
-                'personnel': 'ESH PERSONNEL MONITORING', 'incident-rate': 'INCIDENT TABULATION RATE', 'settings': 'SETTINGS'
+                'personnel': 'ESH PERSONNEL MONITORING', 'settings': 'SETTINGS'
             };
             document.querySelector('.header-title').innerText = titles[t] || t.toUpperCase();
             document.getElementById('settings-view').classList.toggle('hidden', t !== 'settings');
             document.getElementById('personnel-view').classList.toggle('hidden', t !== 'personnel');
-            document.getElementById('incident-rate-view').classList.toggle('hidden', t !== 'incident-rate');
-            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel' || t === 'incident-rate');
+            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel');
             
             if (t === 'settings') {
                 document.getElementById('current-email').value = state.currentUser?.email || '';
@@ -1746,7 +2116,6 @@ function showBackupStatus(message, type) {
             }
             
             if (t === 'personnel') renderPTable();
-            if (t === 'incident-rate') loadIncidentRateData();
             
             render();
         }
@@ -1831,7 +2200,7 @@ function closeAllStatusDropdowns() {
 
         function getPerc(proj) {
             let total = 0, filled = 0;
-            ["exposures", "rates", "medical", "nov","environment", "activities", "kpm","dole","emb", "cshp","reg"].forEach(cat => {
+            ["exposures", "rates", "medical", "nov", "activities", "kpm","dole","emb", "cshp","reg"].forEach(cat => {
     SCHEMA[cat].forEach(row => {
         const key = `${cat}_${row}`;
         if (cat === 'cshp' || cat === 'reg') {
@@ -1980,10 +2349,15 @@ function closeAllStatusDropdowns() {
         }
 
         function render() {
-            if (state.currentTab === 'settings' || state.currentTab === 'personnel' || state.currentTab === 'incident-rate') return;
+            if (state.currentTab === 'settings' || state.currentTab === 'personnel') return;
 
             const container = document.getElementById('dashboard-content');
             let html = '';
+
+            // ── INCIDENT TABULATION RATE summary always shows at the TOP of Statistics Rate ──
+            if (state.currentTab === 'rates') {
+                html += buildIncidentTabulationHTML();
+            }
 
             let grandTotal = 0;
             state.projects.forEach(p => grandTotal += getPerc(p));
@@ -2093,13 +2467,15 @@ if (state.currentTab === 'audit') {
             .cell-avg-gray { background: #808080 !important; color: white !important; font-weight: bold; }
             .cell-grand-total { background-color: #ffff00 !important; color: #000000 !important; font-weight: bold; }
             
+            /* MODIFIED: Compact input fields for 3-digit numbers */
             .audit-table input { 
                 text-align: center; 
-                width: 45px;
+                width: 55px;
+                max-width: 55px;
                 border: 0.5px solid #ccc;
                 border-radius: 2px;
                 font-size: 11px;
-                padding: 2px;
+                padding: 3px;
             }
             .audit-table p { margin: 0; padding: 0; font-size: 10px; }
         </style>
@@ -2160,10 +2536,15 @@ if (state.currentTab === 'audit') {
         </table>
     </div>`;
 }
-                  if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
+                  if (state.currentTab === 'nov-monitoring') {
+    // Special rendering for ESH NOV Monitoring - all projects grouped per region
+    // Skip individual project rendering - will be done at region level
+}
+else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
     const isDateType = ['kpm','dole','emb','cshp','reg'].includes(state.currentTab);
     const isCshp = state.currentTab === 'cshp'|| state.currentTab === 'reg';
-    const hasYTD = ['exposures', 'rates', 'medical', 'nov','environment', 'activities'].includes(state.currentTab);
+    const hasYTD = ['exposures', 'rates', 'medical', 'nov', 'activities'].includes(state.currentTab);
+    const isNov = state.currentTab === 'nov';
 
     html += `<div class="table-container"><table>`;
     html += `<tr><th style="width:250px; text-align:left;">TYPE</th>`;
@@ -2174,7 +2555,7 @@ if (state.currentTab === 'audit') {
     } else {
         // Previous column header
         if (state.currentTab !== 'kpm' && state.currentTab !== 'dole' && state.currentTab !== 'emb') {
-            html += `<th class="prev-year">PREVIOUS</th>`;
+            html += `<th class="prev-year${isNov ? ' nov-narrow-th' : ''}">PREVIOUS</th>`;
         }
 
         // Main columns
@@ -2186,7 +2567,7 @@ if (state.currentTab === 'audit') {
             html += `<th>1ST HALF (JAN-JUN)</th>`;
             html += `<th>2ND HALF (JUL-DEC)</th>`;
         } else {
-            MONTHS.forEach(m => html += `<th>${m}</th>`);
+            MONTHS.forEach(m => html += `<th${isNov ? ' class="nov-narrow-th"' : ''}>${m}</th>`);
         }
 
         if (hasYTD) {
@@ -2208,7 +2589,7 @@ if (state.currentTab === 'audit') {
             const prevVal = p.vals[key] ? p.vals[key][0] : "";
             
             if (state.currentTab !== 'kpm' && state.currentTab !== 'dole' && state.currentTab !== 'emb') {
-                html += `<td class="prev-year">
+                html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}">
                     <input type="${isDateType ? 'date' : 'number'}"
                         value="${prevVal}"
                         ${state.isEditing ? '' : 'disabled'}
@@ -2244,7 +2625,7 @@ if (state.currentTab === 'audit') {
                 // Monthly Columns for other tabs
                 for (let i = 1; i <= 12; i++) {
                     const v = p.vals[key] ? p.vals[key][i] : "";
-                    html += `<td class="monthly-data"><input type="${isDateType ? 'date' : 'number'}" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
+                    html += `<td class="${isNov ? 'nov-narrow-td' : 'monthly-data'}"><input type="${isDateType ? 'date' : 'number'}" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
                 }
             }
             
@@ -2289,6 +2670,401 @@ if (state.currentTab === 'audit') {
         });
             });
 
+            // ── PER-REGION GROUPED TABLES: kpm, cshp, reg, audit ──
+            if (['kpm','cshp','reg','audit'].includes(state.currentTab)) {
+                html = ''; // Rebuild cleanly — no per-project rows needed
+
+                const isCshpReg = (state.currentTab === 'cshp' || state.currentTab === 'reg');
+                const isAudit   = (state.currentTab === 'audit');
+
+                REGIONS.forEach(reg => {
+                    const projs = displayProjects.filter(p => p.region === reg);
+                    if (projs.length === 0) return;
+
+                    const regSum  = projs.reduce((sum, p) => sum + getPerc(p), 0);
+                    const regAvg  = Math.round(regSum / projs.length);
+
+                    html += `<div class="region-banner">
+                        <div><i class="fas fa-location-dot"></i> ${reg}
+                            <span class="badge">${projs.length} PROJ</span>
+                            <span class="badge" style="background:#1b5e20;color:var(--safety-yellow);">AVG: ${regAvg}%</span>
+                        </div>
+                        ${state.isEditing ? `<button onclick="openAddProjectModal('${reg}')" class="btn btn-primary">+ ADD PROJECT</button>` : ''}
+                    </div>`;
+
+                    // ── CSHP / REG ──
+                    if (isCshpReg) {
+                        const headerText = (state.currentTab === 'cshp') ? 'DATE APPROVED' : 'DATE REGISTERED';
+                        const schemaRow  = SCHEMA[state.currentTab][0];
+                        const key        = `${state.currentTab}_${schemaRow}`;
+
+                        html += `<div class="table-container"><table>
+                            <tr>
+                                <th style="width:250px;text-align:left;">PROJECT NAME</th>
+                                <th>${headerText}</th>
+                            </tr>`;
+
+                        projs.forEach(p => {
+                            const v = p.vals[key] ? p.vals[key][1] : "";
+                            html += `<tr>
+                                <td style="text-align:left;font-weight:600;background:var(--border-color);">${p.name}</td>
+                                <td><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'}
+                                    oninput="updateVal('${p.name}','${key}',1,this.value)"></td>
+                            </tr>`;
+                        });
+
+                        html += `</table></div>`;
+
+                    // ── AUDIT ──
+                    } else if (isAudit) {
+                        html += `<div class="table-container">
+                            <table class="audit-table">
+                                <thead>
+                                    <tr>
+                                        <th rowspan="3" style="text-align:left;min-width:180px;">PROJECT NAME</th>
+                                        <th colspan="3">Q1 (JAN-MAR)</th>
+                                        <th colspan="3">Q2 (APR-JUN)</th>
+                                        <th colspan="3">Q3 (JUL-SEP)</th>
+                                        <th colspan="3">Q4 (OCT-DEC)</th>
+                                        <th rowspan="3" class="cell-grand-total" style="border:0.5px solid #d1d1d1;">GRAND<br>TOTAL AVG</th>
+                                    </tr>
+                                    <tr>
+                                        <th colspan="3">Score</th><th colspan="3">Score</th>
+                                        <th colspan="3">Score</th><th colspan="3">Score</th>
+                                    </tr>
+                                    <tr>
+                                        <th style="background:white;color:black;font-size:10px;">Impl.</th>
+                                        <th style="background:white;color:black;font-size:10px;">Docu &amp; Comp.</th>
+                                        <th style="background:#808080;color:white;font-size:10px;">Avg</th>
+                                        <th style="background:white;color:black;font-size:10px;">Impl.</th>
+                                        <th style="background:white;color:black;font-size:10px;">Docu &amp; Comp.</th>
+                                        <th style="background:#808080;color:white;font-size:10px;">Avg</th>
+                                        <th style="background:white;color:black;font-size:10px;">Impl.</th>
+                                        <th style="background:white;color:black;font-size:10px;">Docu &amp; Comp.</th>
+                                        <th style="background:#808080;color:white;font-size:10px;">Avg</th>
+                                        <th style="background:white;color:black;font-size:10px;">Impl.</th>
+                                        <th style="background:white;color:black;font-size:10px;">Docu &amp; Comp.</th>
+                                        <th style="background:#808080;color:white;font-size:10px;">Avg</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+
+                        projs.forEach(p => {
+                            let totalYearAvg = 0;
+                            html += `<tr><td style="text-align:left;font-weight:600;background:var(--border-color);padding:6px 8px;">${p.name}</td>`;
+                            ['Q1','Q2','Q3','Q4'].forEach(q => {
+                                const audit = p.auditData?.[q] || { scoreImpl: 0, docuComp: 0 };
+                                const qAvg  = (audit.scoreImpl + audit.docuComp) / 2;
+                                totalYearAvg += qAvg;
+                                html += `
+                                    <td class="cell-white"><input type="number" value="${audit.scoreImpl}" ${state.isEditing ? '' : 'disabled'}
+                                        oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)"></td>
+                                    <td class="cell-white"><input type="number" value="${audit.docuComp}" ${state.isEditing ? '' : 'disabled'}
+                                        oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)"></td>
+                                    <td class="cell-avg-gray">${qAvg.toFixed(2)}</td>`;
+                            });
+                            html += `<td class="cell-grand-total">${(totalYearAvg/4).toFixed(2)}</td></tr>`;
+                        });
+
+                        html += `</tbody></table></div>`;
+
+                    // ── KPM (Monthly Report) ──
+                    } else {
+                        html += `<div class="table-container"><table>
+                            <tr><th style="width:220px;text-align:left;">PROJECT NAME</th>`;
+                        MONTHS.forEach(m => html += `<th>${m}</th>`);
+                        html += `</tr>`;
+
+                        projs.forEach(p => {
+                            SCHEMA['kpm'].forEach(row => {
+                                const key = `kpm_${row}`;
+                                html += `<tr>
+                                    <td style="text-align:left;font-weight:600;background:var(--border-color);">${p.name}</td>`;
+                                for (let i = 1; i <= 12; i++) {
+                                    const v = p.vals[key] ? p.vals[key][i] : "";
+                                    html += `<td class="monthly-data"><input type="date" value="${v}"
+                                        ${state.isEditing ? '' : 'disabled'}
+                                        oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
+                                }
+                                html += `</tr>`;
+                            });
+                        });
+
+                        html += `</table></div>`;
+                    }
+                });
+            }
+
+            // ESH NOV MONITORING - Render grouped tables per region
+            if (state.currentTab === 'nov-monitoring') {
+                html = ''; // Clear previous HTML
+                
+                // Add CSS styles for NOV Monitoring
+                html += `<style>
+                    .nov-monitoring-table {
+                        border-collapse: collapse;
+                        width: 100%;
+                        margin: 10px 0;
+                        font-family: Arial, sans-serif;
+                        border: 0.5px solid #d1d1d1;
+                    }
+                    .nov-monitoring-table th {
+                        background-color: #2e7d32;
+                        color: #ffffff;
+                        font-weight: bold;
+                        text-transform: uppercase;
+                        font-size: 10px;
+                        padding: 8px 4px;
+                        border: 0.5px solid #1b5e20;
+                        text-align: center;
+                    }
+                    .nov-monitoring-table td {
+                        border: 0.5px solid #d1d1d1;
+                        text-align: center;
+                        vertical-align: middle;
+                        padding: 4px;
+                        font-size: 11px;
+                    }
+                    .nov-monitoring-table td.project-name {
+                        text-align: left;
+                        font-weight: 600;
+                        background: var(--border-color);
+                        min-width: 150px;
+                    }
+                    .nov-monitoring-table input {
+                        text-align: center;
+                        width: 40px;
+                        border: 0.5px solid #ccc;
+                        border-radius: 2px;
+                        font-size: 11px;
+                        padding: 2px;
+                    }
+                    .nov-monitoring-table td.month-col {
+                        width: 45px;
+                        max-width: 45px;
+                    }
+                    .nov-monitoring-table td.summary-col {
+                        width: 50px;
+                        max-width: 50px;
+                    }
+                    .nov-monitoring-table td.total-col {
+                        background: #fff9c4;
+                        font-weight: 700;
+                    }
+                    .nov-monitoring-table tr.regional-total {
+                        background: #e8f5e9;
+                        font-weight: 700;
+                    }
+                    .nov-monitoring-table tr.overall-total {
+                        background: #c8e6c9;
+                        font-weight: 700;
+                    }
+                </style>`;
+                
+                // Initialize overall totals
+                let overallTotals = {
+                    prev: 0,
+                    months: new Array(12).fill(0),
+                    open: 0,
+                    pending: 0,
+                    closed: 0,
+                    total: 0
+                };
+                
+                // First pass: Calculate overall totals
+                REGIONS.forEach(reg => {
+                    const projs = displayProjects.filter(p => p.region === reg);
+                    if (projs.length === 0) return;
+                    
+                    projs.forEach(p => {
+                        const key = 'nov-monitoring_data';
+                        if (!p.vals[key]) p.vals[key] = new Array(17).fill("");
+                        
+                        overallTotals.prev += parseFloat(p.vals[key][0]) || 0;
+                        
+                        for (let i = 1; i <= 12; i++) {
+                            const val = parseFloat(p.vals[key][i]) || 0;
+                            overallTotals.months[i-1] += val;
+                            overallTotals.total += val;
+                        }
+                        
+                        overallTotals.open += parseFloat(p.vals[key][13]) || 0;
+                        overallTotals.pending += parseFloat(p.vals[key][14]) || 0;
+                        overallTotals.closed += parseFloat(p.vals[key][15]) || 0;
+                    });
+                });
+                
+                // Calculate overall percentage
+                const overallPercentage = overallTotals.total > 0 
+                    ? ((overallTotals.closed / overallTotals.total) * 100).toFixed(2) 
+                    : '0.00';
+                
+                // Render Overall Total Table at the TOP
+                html += `<div class="region-banner" style="background: linear-gradient(90deg, #1b5e20 0%, #2e7d32 100%);">
+                    <div><i class="fas fa-chart-bar"></i> OVERALL SUMMARY - ALL REGIONS</div>
+                </div>
+                <div class="table-container">
+                    <table class="nov-monitoring-table">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 150px;">SUMMARY</th>
+                                <th class="prev-year">PREVIOUS</th>
+                                <th>JAN</th><th>FEB</th><th>MAR</th><th>APR</th>
+                                <th>MAY</th><th>JUN</th><th>JUL</th><th>AUG</th>
+                                <th>SEP</th><th>OCT</th><th>NOV</th><th>DEC</th>
+                                <th style="background: #66bb6a;">OPEN</th>
+                                <th style="background: #ffa726;">PENDING</th>
+                                <th style="background: #42a5f5;">CLOSED</th>
+                                <th style="background: #fbc02d;">TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="overall-total">
+                                <td style="text-align: left; font-weight: 700; background: #1b5e20; color: white;">OVERALL TOTAL</td>
+                                <td style="background: #81c784;">${overallTotals.prev}</td>`;
+                
+                for (let i = 0; i < 12; i++) {
+                    html += `<td style="background: #a5d6a7;">${overallTotals.months[i]}</td>`;
+                }
+                
+                html += `<td style="background: #66bb6a;">${overallTotals.open}</td>
+                    <td style="background: #ff9800;">${overallTotals.pending}</td>
+                    <td style="background: #2196f3;">${overallTotals.closed}</td>
+                    <td style="background: #f9a825; font-size: 14px;">${overallTotals.total}</td>
+                </tr>
+                <tr class="overall-total">
+                    <td colspan="17" style="text-align: center; background: #c8e6c9; font-size: 16px; padding: 12px;">
+                        <strong>OVERALL COMPLETION RATE: ${overallPercentage}%</strong>
+                    </td>
+                </tr>
+                        </tbody>
+                    </table>
+                </div>`;
+                
+                // Now render table for each region
+                REGIONS.forEach(reg => {
+                    const projs = displayProjects.filter(p => p.region === reg);
+                    if (projs.length === 0) return;
+                    
+                    html += `<div class="region-banner" style="margin-top: 30px;">
+                        <div><i class="fas fa-location-dot"></i> ${reg} <span class="badge">${projs.length} PROJECTS</span></div>
+                    </div>`;
+                    
+                    html += `<div class="table-container">
+                        <table class="nov-monitoring-table">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2" style="min-width: 150px;">PROJECT NAME</th>
+                                    <th rowspan="2" class="prev-year">PREVIOUS</th>
+                                    <th colspan="12">2025 MONTHLY DATA</th>
+                                    <th colspan="4">SUMMARY</th>
+                                </tr>
+                                <tr>
+                                    <th>JAN</th><th>FEB</th><th>MAR</th><th>APR</th>
+                                    <th>MAY</th><th>JUN</th><th>JUL</th><th>AUG</th>
+                                    <th>SEP</th><th>OCT</th><th>NOV</th><th>DEC</th>
+                                    <th style="background: #66bb6a;">OPEN</th>
+                                    <th style="background: #ffa726;">PENDING</th>
+                                    <th style="background: #42a5f5;">CLOSED</th>
+                                    <th style="background: #fbc02d;">TOTAL</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    
+                    // Initialize regional totals
+                    let regionalTotals = {
+                        prev: 0,
+                        months: new Array(12).fill(0),
+                        open: 0,
+                        pending: 0,
+                        closed: 0,
+                        total: 0
+                    };
+                    
+                    // Render each project in this region
+                    projs.forEach(p => {
+                        const key = 'nov-monitoring_data';
+                        if (!p.vals[key]) p.vals[key] = new Array(17).fill("");
+                        
+                        html += `<tr>
+                            <td class="project-name">${p.name}</td>
+                            <td class="prev-year">
+                                <input type="number" value="${p.vals[key][0] || ''}" ${state.isEditing ? '' : 'disabled'} 
+                                    oninput="updateVal('${p.name}','${key}',0,this.value)">
+                            </td>`;
+                        
+                        // Add to regional prev totals
+                        regionalTotals.prev += parseFloat(p.vals[key][0]) || 0;
+                        
+                        // Monthly columns (1-12)
+                        let rowTotal = 0;
+                        for (let i = 1; i <= 12; i++) {
+                            const val = parseFloat(p.vals[key][i]) || 0;
+                            html += `<td class="month-col">
+                                <input type="number" value="${p.vals[key][i] || ''}" ${state.isEditing ? '' : 'disabled'}
+                                    oninput="updateVal('${p.name}','${key}',${i},this.value)">
+                            </td>`;
+                            regionalTotals.months[i-1] += val;
+                            rowTotal += val;
+                        }
+                        
+                        // Summary columns
+                        const openVal = parseFloat(p.vals[key][13]) || 0;
+                        const pendingVal = parseFloat(p.vals[key][14]) || 0;
+                        const closedVal = parseFloat(p.vals[key][15]) || 0;
+                        
+                        html += `<td class="summary-col" style="background: #c8e6c9;">
+                            <input type="number" value="${p.vals[key][13] || ''}" ${state.isEditing ? '' : 'disabled'}
+                                oninput="updateVal('${p.name}','${key}',13,this.value)">
+                        </td>
+                        <td class="summary-col" style="background: #ffe0b2;">
+                            <input type="number" value="${p.vals[key][14] || ''}" ${state.isEditing ? '' : 'disabled'}
+                                oninput="updateVal('${p.name}','${key}',14,this.value)">
+                        </td>
+                        <td class="summary-col" style="background: #bbdefb;">
+                            <input type="number" value="${p.vals[key][15] || ''}" ${state.isEditing ? '' : 'disabled'}
+                                oninput="updateVal('${p.name}','${key}',15,this.value)">
+                        </td>
+                        <td class="total-col">${rowTotal}</td>
+                        </tr>`;
+                        
+                        regionalTotals.open += openVal;
+                        regionalTotals.pending += pendingVal;
+                        regionalTotals.closed += closedVal;
+                        regionalTotals.total += rowTotal;
+                    });
+                    
+                    // Calculate regional percentage
+                    const regionalPercentage = regionalTotals.total > 0 
+                        ? ((regionalTotals.closed / regionalTotals.total) * 100).toFixed(2) 
+                        : '0.00';
+                    
+                    // Regional Total Row
+                    html += `<tr class="regional-total">
+                        <td class="project-name" style="background: #2e7d32; color: white;">REGIONAL TOTAL</td>
+                        <td style="background: #a5d6a7;">${regionalTotals.prev}</td>`;
+                    
+                    for (let i = 0; i < 12; i++) {
+                        html += `<td style="background: #c8e6c9;">${regionalTotals.months[i]}</td>`;
+                    }
+                    
+                    html += `<td style="background: #81c784;">${regionalTotals.open}</td>
+                        <td style="background: #ffb74d;">${regionalTotals.pending}</td>
+                        <td style="background: #64b5f6;">${regionalTotals.closed}</td>
+                        <td style="background: #fbc02d;">${regionalTotals.total}</td>
+                    </tr>`;
+                    
+                    // Regional Percentage Row
+                    html += `<tr class="regional-total">
+                        <td colspan="17" style="text-align: right; padding-right: 10px; background: #e8f5e9;">
+                            <strong>${reg} COMPLETION RATE:</strong> ${regionalPercentage}%
+                        </td>
+                    </tr>`;
+                    
+                    html += `</tbody></table></div>`;
+                });
+            }
+
             container.innerHTML = html;
         }
 
@@ -2319,9 +3095,108 @@ document.addEventListener('click', closeAllStatusDropdowns);
                 msgDiv.innerHTML = '<div class="error-message">❌ Password must be 6+ characters</div>';
                 return;
             }
-            msgDiv.innerHTML = '<div class="success-message">✅ Password updated!</div>';
-            document.getElementById('new-password').value = '';
-            document.getElementById('confirm-password').value = '';
+            
+            // If Firebase is available, update password there too
+            if (window.firebaseAuth && window.firebaseAuth.currentUser) {
+                firebaseChangePassword(newPass).then(() => {
+                    msgDiv.innerHTML = '<div class="success-message">✅ Password updated successfully!</div>';
+                    document.getElementById('new-password').value = '';
+                    document.getElementById('confirm-password').value = '';
+                });
+            } else {
+                msgDiv.innerHTML = '<div class="success-message">✅ Password updated!</div>';
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+            }
+        }
+
+        function exportAllData() {
+            const exportData = {
+                projects: state.projects || [],
+                personnel: state.pData || [],
+                timestamp: new Date().toISOString(),
+                version: '2.0'
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `esh-data-backup-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            alert('✅ Data exported successfully!');
+        }
+
+        function importAllData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    
+                    if (confirm('⚠️ This will replace all current data. Continue?')) {
+                        if (imported.projects) state.projects = imported.projects;
+                        if (imported.personnel) state.pData = imported.personnel;
+                        
+                        saveUserData(state.currentUser?.email || 'guest');
+                        loadProjects();
+                        renderPTable();
+                        updateSettingsStats();
+                        
+                        alert('✅ Data imported successfully!');
+                    }
+                } catch (error) {
+                    alert('❌ Invalid file format. Please select a valid backup file.');
+                }
+            };
+            reader.readAsText(file);
+            
+            // Reset file input
+            event.target.value = '';
+        }
+
+        function clearAllLocalData() {
+            if (confirm('⚠️ WARNING: This will permanently delete ALL your local data.\n\nThis includes:\n- All projects\n- All personnel records\n- All settings\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?')) {
+                if (confirm('Final confirmation: Delete all data?')) {
+                    state.projects = [];
+                    state.pData = [];
+                    state.selectedRegion = 'ALL';
+                    
+                    saveUserData(state.currentUser?.email || 'guest');
+                    loadProjects();
+                    renderPTable();
+                    updateSettingsStats();
+                    
+                    alert('✅ All data has been cleared.');
+                }
+            }
+        }
+
+        function updateSettingsStats() {
+            const projectCount = state.projects?.length || 0;
+            const personnelCount = state.pData?.length || 0;
+            
+            const statsProjects = document.getElementById('stats-total-projects');
+            const statsPersonnel = document.getElementById('stats-total-personnel');
+            const statsSync = document.getElementById('stats-last-sync');
+            
+            if (statsProjects) statsProjects.textContent = projectCount;
+            if (statsPersonnel) statsPersonnel.textContent = personnelCount;
+            
+            if (statsSync) {
+                const lastSave = localStorage.getItem('esh_last_save');
+                if (lastSave) {
+                    const date = new Date(parseInt(lastSave));
+                    statsSync.textContent = date.toLocaleString();
+                } else {
+                    statsSync.textContent = 'Never';
+                }
+            }
         }
 
         setInterval(() => {
@@ -2335,13 +3210,46 @@ document.addEventListener('click', closeAllStatusDropdowns);
        window.addEventListener('load', () => {
     initDarkMode();
     backupManager.init();
-    const isLoggedIn = sessionStorage.getItem('esh_logged_in');
-    const userEmail = sessionStorage.getItem('esh_user_email');
-    if (isLoggedIn === 'true' && userEmail) {
-        state.currentUser = { email: userEmail };
-        state.isLoggedIn = true;
-        loadUserData(userEmail);
-        showUI();
+    updateSettingsStats(); // Update stats on load
+    
+    // Setup Firebase Auth State Observer
+    if (window.firebase && window.firebaseAuth) {
+        window.firebase.onAuthStateChanged(window.firebaseAuth, async (user) => {
+            if (user) {
+                console.log('👤 User authenticated:', user.email);
+                state.currentUser = { email: user.email, uid: user.uid };
+                state.isLoggedIn = true;
+                sessionStorage.setItem('esh_logged_in', 'true');
+                sessionStorage.setItem('esh_user_email', user.email);
+                
+                await loadUserData(user.email);
+                showUI();
+                updateSettingsStats();
+            } else {
+                console.log('👤 No user authenticated');
+                const isLoggedIn = sessionStorage.getItem('esh_logged_in');
+                const userEmail = sessionStorage.getItem('esh_user_email');
+                if (isLoggedIn === 'true' && userEmail) {
+                    // Session exists but Firebase not ready yet
+                    state.currentUser = { email: userEmail };
+                    state.isLoggedIn = true;
+                    loadUserData(userEmail);
+                    showUI();
+                    updateSettingsStats();
+                }
+            }
+        });
+    } else {
+        // Fallback if Firebase not initialized
+        const isLoggedIn = sessionStorage.getItem('esh_logged_in');
+        const userEmail = sessionStorage.getItem('esh_user_email');
+        if (isLoggedIn === 'true' && userEmail) {
+            state.currentUser = { email: userEmail };
+            state.isLoggedIn = true;
+            loadUserData(userEmail);
+            showUI();
+            updateSettingsStats();
+        }
     }
 });
 function showModernDialog(title, message, isDanger = false) {
@@ -2409,8 +3317,11 @@ function showModernDialog(title, message, isDanger = false) {
 
 function addPRow() {
     if (!state.personnelData) state.personnelData = [];
-    state.personnelData.push({ name: '', pos: '', id: '', hired: '', current: '', prev: '', age: '', gen: '', mail: '', num: '', addr: '', len: '' });
+    state.personnelData.push({ name: '', pos: '', id: '', hired: '', current: '', age: '', gen: '', mail: '', num: '', addr: '', len: '' });
     renderPTable();
+    // Auto-open edit mode on the newly added row
+    const newIdx = state.personnelData.length - 1;
+    setTimeout(() => pRowEdit(newIdx), 50);
     saveUserData(state.currentUser.email);
 }
 
@@ -2418,102 +3329,324 @@ function renderPTable() {
     const tbody = document.getElementById('p-body');
     if (!tbody) return;
     const projOptions = (state.projects || []).map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-    tbody.innerHTML = (state.personnelData || []).map((p, i) => `
-        <tr>
-            <td><input type="text" value="${p.name}" onchange="state.personnelData[${i}].name=this.value"></td>
-            <td>
-                <select onchange="state.personnelData[${i}].pos=this.value">
-                    <option>${p.pos || 'Select'}</option>
+    const data = state.personnelData || [];
+
+    tbody.innerHTML = data.map((p, i) => {
+        const genderClass = p.gen === 'Male' ? 'p-gender-m' : p.gen === 'Female' ? 'p-gender-f' : '';
+        const posDisplay  = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>` : '';
+        const genDisplay  = p.gen && p.gen !== 'Select' ? `<span class="p-pos-badge ${genderClass}">${p.gen}</span>` : '';
+
+        return `
+        <tr id="p-row-${i}">
+            <td style="min-width:160px;">
+                <span class="p-row-num">${i+1}</span>
+                <input type="text" value="${p.name || ''}" onchange="state.personnelData[${i}].name=this.value" style="min-width:120px;" disabled>
+            </td>
+            <td style="width:145px;">
+                ${posDisplay}
+                <select onchange="state.personnelData[${i}].pos=this.value;renderPTable();" style="width:130px;display:none;" disabled>
+                    <option value="${p.pos||''}">${p.pos||'Select'}</option>
                     <option>Project Physician</option><option>ESH Head</option><option>Safety Officer I</option>
                     <option>Safety Officer II</option><option>Safety Officer III</option><option>Safety Officer IV</option>
                     <option>PCO</option><option>Project Nurse</option><option>First Aider</option><option>Others</option>
                 </select>
             </td>
-            <td><input type="text" value="${p.id}" onchange="state.personnelData[${i}].id=this.value"></td>
-            <td><input type="date" value="${p.hired}" onchange="state.personnelData[${i}].hired=this.value"></td>
-            <td>
-                <select onchange="state.personnelData[${i}].current=this.value">
-                    <option>${p.current || 'Select Project'}</option>
+            <td style="width:95px; text-align:center;">
+                <input type="text" value="${p.id||''}" onchange="state.personnelData[${i}].id=this.value" style="width:80px;text-align:center;" disabled>
+            </td>
+            <td style="width:110px; text-align:center;">
+                <input type="date" value="${p.hired||''}" onchange="state.personnelData[${i}].hired=this.value" style="width:100px;" disabled>
+            </td>
+            <td style="min-width:160px;">
+                <select onchange="state.personnelData[${i}].current=this.value" style="min-width:150px;" disabled>
+                    <option value="${p.current||''}">${p.current||'Select Project'}</option>
                     ${projOptions}
                 </select>
             </td>
-            <td><input type="text" value="${p.prev}" onchange="state.personnelData[${i}].prev=this.value"></td>
-            <td><input type="number" value="${p.age}" onchange="state.personnelData[${i}].age=this.value"></td>
-            <td><select onchange="state.personnelData[${i}].gen=this.value"><option>${p.gen || 'Select'}</option><option>Male</option><option>Female</option></select></td>
-            <td><input type="email" value="${p.mail}" onchange="state.personnelData[${i}].mail=this.value"></td>
-            <td><input type="text" value="${p.num}" onchange="state.personnelData[${i}].num=this.value"></td>
-            <td><input type="text" value="${p.addr}" onchange="state.personnelData[${i}].addr=this.value"></td>
-            <td><input type="text" value="${p.len}" onchange="state.personnelData[${i}].len=this.value"></td>
-            <td><button class="btn btn-danger" onclick="state.personnelData.splice(${i},1);renderPTable()"><i class="fas fa-trash"></i></button></td>
-        </tr>
-    `).join('');
+            <td style="width:48px; text-align:center;">
+                <input type="number" value="${p.age||''}" onchange="state.personnelData[${i}].age=this.value" style="width:38px;text-align:center;" min="0" max="99" disabled>
+            </td>
+            <td style="width:80px; text-align:center;">
+                ${genDisplay}
+                <select onchange="state.personnelData[${i}].gen=this.value;renderPTable();" style="width:70px;display:none;" disabled>
+                    <option value="${p.gen||''}">${p.gen||'Select'}</option>
+                    <option>Male</option><option>Female</option>
+                </select>
+            </td>
+            <td style="min-width:180px;">
+                <input type="email" value="${p.mail||''}" onchange="state.personnelData[${i}].mail=this.value" style="min-width:165px;" disabled>
+            </td>
+            <td style="width:115px; text-align:center;">
+                <input type="text" value="${p.num||''}" onchange="state.personnelData[${i}].num=this.value" style="width:105px;" disabled>
+            </td>
+            <td style="min-width:200px;">
+                <input type="text" value="${p.addr||''}" onchange="state.personnelData[${i}].addr=this.value" style="min-width:185px;" disabled>
+            </td>
+            <td style="width:70px; text-align:center;">
+                <input type="number" value="${p.len||''}" onchange="state.personnelData[${i}].len=this.value" style="width:50px;text-align:center;" min="0" max="99" disabled>
+            </td>
+            <td style="width:100px; text-align:center; white-space:nowrap;">
+                <button class="p-edit-btn" id="p-edit-btn-${i}" onclick="pRowEdit(${i})"><i class="fas fa-edit"></i></button>
+                <button class="p-save-btn" id="p-save-btn-${i}" onclick="pRowSave(${i})"><i class="fas fa-save"></i></button>
+                <button class="p-del-btn" onclick="pRowDelete(${i})" title="Delete"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+
+    // Show/hide empty state
+    const emptyEl = document.getElementById('p-empty');
+    if (emptyEl) emptyEl.style.display = data.length === 0 ? 'block' : 'none';
+
+    // Update summary badges
+    updatePersonnelSummary();
 }
 
-function filterP() {
-    const term = document.getElementById('p-search').value.toLowerCase();
-    const rows = document.querySelectorAll('#p-body tr');
-    rows.forEach(row => row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none');
+function updatePersonnelSummary() {
+    const data = state.personnelData || [];
+    const badgesEl = document.getElementById('p-summary-badges');
+    const footerEl = document.getElementById('p-footer');
+    if (!badgesEl) return;
+
+    const total  = data.length;
+    const male   = data.filter(p => p.gen === 'Male').length;
+    const female = data.filter(p => p.gen === 'Female').length;
+
+    badgesEl.innerHTML = `
+        <span style="background:rgba(255,255,255,0.2);color:white;padding:4px 12px;border-radius:20px;font-size:0.68rem;font-weight:700;">
+            <i class="fas fa-users"></i> ${total} Total
+        </span>
+        <span style="background:rgba(33,150,243,0.3);color:#bbdefb;padding:4px 12px;border-radius:20px;font-size:0.68rem;font-weight:700;">
+            ♂ ${male} Male
+        </span>
+        <span style="background:rgba(233,30,99,0.3);color:#f8bbd0;padding:4px 12px;border-radius:20px;font-size:0.68rem;font-weight:700;">
+            ♀ ${female} Female
+        </span>`;
+
+    if (footerEl) {
+        const positions = {};
+        data.forEach(p => { if (p.pos && p.pos !== 'Select') positions[p.pos] = (positions[p.pos]||0)+1; });
+        const posStr = Object.entries(positions).map(([k,v]) => `${k}: ${v}`).join(' &nbsp;|&nbsp; ');
+        footerEl.innerHTML = posStr
+            ? `<i class="fas fa-id-badge" style="color:#2e7d32;"></i> &nbsp; ${posStr}`
+            : '';
+    }
 }
 
-// --- INCIDENT TABULATION RATE SYSTEM ---
+function pRowEdit(i) {
+    const row = document.getElementById('p-row-' + i);
+    if (!row) return;
+    row.querySelectorAll('input').forEach(el => el.disabled = false);
+    row.querySelectorAll('select').forEach(el => { el.disabled = false; el.style.display = ''; });
+    row.querySelectorAll('.p-pos-badge').forEach(el => el.style.display = 'none');
+    row.classList.add('p-editing');
+    const editBtn = document.getElementById('p-edit-btn-' + i);
+    const saveBtn = document.getElementById('p-save-btn-' + i);
+    if (editBtn) editBtn.style.display = 'none';
+    if (saveBtn) { saveBtn.style.display = 'inline-flex'; }
+}
 
-function calculateIncidentRates() {
-    const recordableCases = parseFloat(document.getElementById('recordable-cases').value) || 0;
-    const lostDays = parseFloat(document.getElementById('lost-days').value) || 0;
-    const totalHours = parseFloat(document.getElementById('total-hours').value) || 0;
-
-    // Save to state
-    state.incidentRateData = {
-        recordableCases: recordableCases,
-        lostDays: lostDays,
-        totalHours: totalHours
-    };
-
-    // Auto-save
+function pRowSave(i) {
+    const row = document.getElementById('p-row-' + i);
+    if (!row) return;
+    row.querySelectorAll('input').forEach(el => el.disabled = true);
+    row.querySelectorAll('select').forEach(el => { el.disabled = true; el.style.display = 'none'; });
+    row.querySelectorAll('.p-pos-badge').forEach(el => el.style.display = '');
+    row.classList.remove('p-editing');
+    const editBtn = document.getElementById('p-edit-btn-' + i);
+    const saveBtn = document.getElementById('p-save-btn-' + i);
+    if (editBtn) editBtn.style.display = 'inline-flex';
+    if (saveBtn) saveBtn.style.display = 'none';
     saveUserData(state.currentUser.email);
+    renderPTable(); // refresh badges
+}
 
-    // Prevent division by zero
-    if (totalHours === 0) {
-        document.getElementById('ltir-osha').textContent = '0';
-        document.getElementById('ltir-oshs').textContent = '0';
-        document.getElementById('trir-osha').textContent = '0';
-        document.getElementById('trir-oshs').textContent = '0';
-        document.getElementById('severity-osha').textContent = '0';
-        document.getElementById('severity-oshs').textContent = '0';
+function pRowDelete(i) {
+    state.personnelData.splice(i, 1);
+    renderPTable();
+    saveUserData(state.currentUser.email);
+}
+
+function filterPTable() {
+    const column = document.getElementById('p-filter-column').value;
+    const filterValue = document.getElementById('p-filter-value').value.toLowerCase();
+    const tbody = document.getElementById('p-body');
+    
+    if (!tbody || !state.personnelData) return;
+    
+    // If no filter value, show all rows
+    if (!filterValue) {
+        tbody.querySelectorAll('tr').forEach(row => row.style.display = '');
         return;
     }
-
-    // LTIR Calculations (OSHA: 200,000 / OSHS: 1,000,000)
-    const ltirOsha = (recordableCases * 200000) / totalHours;
-    const ltirOshs = (recordableCases * 1000000) / totalHours;
-
-    // TRIR Calculations (same formula as LTIR)
-    const trirOsha = (recordableCases * 200000) / totalHours;
-    const trirOshs = (recordableCases * 1000000) / totalHours;
-
-    // Severity Rate Calculations
-    const severityOsha = (lostDays * 200000) / totalHours;
-    const severityOshs = (lostDays * 1000000) / totalHours;
-
-    // Display results (rounded to 2 decimal places)
-    document.getElementById('ltir-osha').textContent = ltirOsha.toFixed(2);
-    document.getElementById('ltir-oshs').textContent = ltirOshs.toFixed(2);
-    document.getElementById('trir-osha').textContent = trirOsha.toFixed(2);
-    document.getElementById('trir-oshs').textContent = trirOshs.toFixed(2);
-    document.getElementById('severity-osha').textContent = severityOsha.toFixed(2);
-    document.getElementById('severity-oshs').textContent = severityOshs.toFixed(2);
+    
+    // Filter based on selected column
+    const rows = tbody.querySelectorAll('tr');
+    state.personnelData.forEach((person, i) => {
+        let shouldShow = false;
+        
+        if (column === 'all') {
+            // Search all columns
+            shouldShow = 
+                (person.name || '').toLowerCase().includes(filterValue) ||
+                (person.pos || '').toLowerCase().includes(filterValue) ||
+                (person.id || '').toLowerCase().includes(filterValue) ||
+                (person.current || '').toLowerCase().includes(filterValue) ||
+                (person.gen || '').toLowerCase().includes(filterValue) ||
+                (person.mail || '').toLowerCase().includes(filterValue) ||
+                (person.num || '').toLowerCase().includes(filterValue) ||
+                (person.addr || '').toLowerCase().includes(filterValue);
+        } else {
+            // Search specific column
+            const fieldValue = (person[column] || '').toLowerCase();
+            shouldShow = fieldValue.includes(filterValue);
+        }
+        
+        if (rows[i]) {
+            rows[i].style.display = shouldShow ? '' : 'none';
+        }
+    });
 }
 
-function loadIncidentRateData() {
-    if (!state.incidentRateData) {
-        state.incidentRateData = { recordableCases: 0, lostDays: 0, totalHours: 0 };
+// --- INCIDENT TABULATION RATE SYSTEM (merged into Statistics Rate tab) ---
+
+/**
+ * Computes aggregate tabulation stats from all projects' rates + exposures data.
+ */
+function computeAggregateTabulation() {
+    let totalLtirYTD = 0, totalTrirYTD = 0, totalSeverityYTD = 0, totalHours = 0;
+
+    state.projects.forEach(p => {
+        for (let i = 1; i <= 12; i++) {
+            totalLtirYTD     += parseFloat(p.vals['rates_LTIR']?.[i])           || 0;
+            totalTrirYTD     += parseFloat(p.vals['rates_TRIR']?.[i])           || 0;
+            totalSeverityYTD += parseFloat(p.vals['rates_SEVERITY RATE']?.[i])  || 0;
+            totalHours       += parseFloat(p.vals['exposures_Total Exposed Manhour']?.[i]) || 0;
+        }
+    });
+
+    // Back-calculate source metrics using OSHA base (200,000):
+    //   TRIR  = RecordableCases × 200,000 / TotalHours  →  RC = TRIR × TotalHours / 200,000
+    //   SR    = LostDays        × 200,000 / TotalHours  →  LD = SR   × TotalHours / 200,000
+    let recordableCases = 0, lostDays = 0;
+    if (totalHours > 0) {
+        recordableCases = (totalTrirYTD * totalHours) / 200000;
+        lostDays        = (totalSeverityYTD * totalHours) / 200000;
     }
 
-    document.getElementById('recordable-cases').value = state.incidentRateData.recordableCases || 0;
-    document.getElementById('lost-days').value = state.incidentRateData.lostDays || 0;
-    document.getElementById('total-hours').value = state.incidentRateData.totalHours || 0;
+    // Aggregate OSHA / OSHS rates
+    let ltirOsha = 0, ltirOshs = 0, trirOsha = 0, trirOshs = 0, srOsha = 0, srOshs = 0;
+    if (totalHours > 0) {
+        ltirOsha = (recordableCases * 200000)  / totalHours;
+        ltirOshs = (recordableCases * 1000000) / totalHours;
+        trirOsha = (recordableCases * 200000)  / totalHours;
+        trirOshs = (recordableCases * 1000000) / totalHours;
+        srOsha   = (lostDays        * 200000)  / totalHours;
+        srOshs   = (lostDays        * 1000000) / totalHours;
+    }
 
-    calculateIncidentRates();
+    return {
+        recordableCases: Math.round(recordableCases * 100) / 100,
+        lostDays:        Math.round(lostDays        * 100) / 100,
+        totalHours:      Math.round(totalHours),
+        ltirOsha:  ltirOsha.toFixed(2), ltirOshs:  ltirOshs.toFixed(2),
+        trirOsha:  trirOsha.toFixed(2), trirOshs:  trirOshs.toFixed(2),
+        srOsha:    srOsha.toFixed(2),   srOshs:    srOshs.toFixed(2)
+    };
+}
+
+/**
+ * Returns the HTML string for the Incident Tabulation Rate panel.
+ * Injected at the TOP of the Statistics Rate tab on every render.
+ */
+function buildIncidentTabulationHTML() {
+    const d = computeAggregateTabulation();
+    return `
+    <div style="padding: 20px 20px 0 20px;">
+      <div style="background: var(--bg-card); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color); margin-bottom: 6px;">
+
+        <!-- Panel header -->
+        <div style="background: linear-gradient(90deg, #1b5e20 0%, #2e7d32 100%); color: white; padding: 14px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <i class="fas fa-calculator" style="font-size: 1.1rem;"></i>
+          <span style="font-weight: 700; font-size: 1rem; letter-spacing: 0.5px;">INCIDENT TABULATION RATE</span>
+          <span style="background: var(--safety-yellow); color: #1b5e20; padding: 3px 10px; border-radius: 20px; font-size: 0.68rem; font-weight: 800; margin-left: 4px;">AUTO-COMPUTED FROM ALL PROJECTS</span>
+        </div>
+
+        <!-- 3 summary cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0; border-bottom: 1px solid var(--border-color);">
+
+          <div style="padding: 18px 20px; text-align: center; border-right: 1px solid var(--border-color);">
+            <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px;">No. of Recordable Cases</div>
+            <div style="font-size: 2.2rem; font-weight: 900; color: #1b5e20; line-height: 1;">${d.recordableCases}</div>
+            <div style="font-size: 0.62rem; color: var(--text-secondary); margin-top: 4px;">YTD across all projects</div>
+          </div>
+
+          <div style="padding: 18px 20px; text-align: center; border-right: 1px solid var(--border-color);">
+            <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px;">No. of Lost Days</div>
+            <div style="font-size: 2.2rem; font-weight: 900; color: #1565c0; line-height: 1;">${d.lostDays}</div>
+            <div style="font-size: 0.62rem; color: var(--text-secondary); margin-top: 4px;">From Severity Rate data</div>
+          </div>
+
+          <div style="padding: 18px 20px; text-align: center;">
+            <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px;">Total Employee Hours Exposure</div>
+            <div style="font-size: 2.2rem; font-weight: 900; color: #b71c1c; line-height: 1;">${d.totalHours.toLocaleString()}</div>
+            <div style="font-size: 0.62rem; color: var(--text-secondary); margin-top: 4px;">Total Exposed Manhour YTD</div>
+          </div>
+
+        </div>
+
+        <!-- Rates results table -->
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+            <thead>
+              <tr>
+                <th style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); color: white; padding: 12px 15px; text-align: left; border: none; width: 40%;">INJURY / ILLNESS</th>
+                <th style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); color: white; padding: 12px 15px; text-align: center; border: none; width: 30%;">OSHA<br><span style="font-size:0.72rem;font-weight:400;">200,000 hrs base</span></th>
+                <th style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); color: white; padding: 12px 15px; text-align: center; border: none; width: 30%;">OSHS<br><span style="font-size:0.72rem;font-weight:400;">1,000,000 hrs base</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="background:linear-gradient(135deg,#2e7d32 0%,#43a047 100%);color:white;padding:14px 15px;border:none;">
+                  <div style="font-weight:700;font-size:0.88rem;">LTIR — Lost Time Incident Rate</div>
+                  <div style="font-size:0.66rem;opacity:0.9;margin-top:3px;">Recordable Cases × 200K or 1M ÷ Total Hours</div>
+                </td>
+                <td style="background:var(--bg-card);padding:12px;text-align:center;border:1px solid var(--border-color);">
+                  <div style="font-size:1.8rem;font-weight:800;color:#1b5e20;">${d.ltirOsha}</div>
+                </td>
+                <td style="background:var(--bg-card);padding:12px;text-align:center;border:1px solid var(--border-color);">
+                  <div style="font-size:1.8rem;font-weight:800;color:#1b5e20;">${d.ltirOshs}</div>
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="background:linear-gradient(135deg,#2e7d32 0%,#43a047 100%);color:white;padding:14px 15px;border:none;">
+                  <div style="font-weight:700;font-size:0.88rem;">TRIR — Total Recordable Incident Rate</div>
+                  <div style="font-size:0.66rem;opacity:0.9;margin-top:3px;">Recordable Cases × 200K or 1M ÷ Total Hours</div>
+                </td>
+                <td style="background:var(--bg-card);padding:12px;text-align:center;border:1px solid var(--border-color);">
+                  <div style="font-size:1.8rem;font-weight:800;color:#1b5e20;">${d.trirOsha}</div>
+                </td>
+                <td style="background:var(--bg-card);padding:12px;text-align:center;border:1px solid var(--border-color);">
+                  <div style="font-size:1.8rem;font-weight:800;color:#1b5e20;">${d.trirOshs}</div>
+                </td>
+              </tr>
+              <tr>
+                <td style="background:linear-gradient(135deg,#2e7d32 0%,#43a047 100%);color:white;padding:14px 15px;border:none;">
+                  <div style="font-weight:700;font-size:0.88rem;">SR — Severity Rate</div>
+                  <div style="font-size:0.66rem;opacity:0.9;margin-top:3px;">Total Days Lost × 200K or 1M ÷ Total Hours</div>
+                </td>
+                <td style="background:var(--bg-card);padding:12px;text-align:center;border:1px solid var(--border-color);">
+                  <div style="font-size:1.8rem;font-weight:800;color:#1b5e20;">${d.srOsha}</div>
+                </td>
+                <td style="background:var(--bg-card);padding:12px;text-align:center;border:1px solid var(--border-color);">
+                  <div style="font-size:1.8rem;font-weight:800;color:#1b5e20;">${d.srOshs}</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>`;
 }
 
 
@@ -2657,7 +3790,6 @@ async function loadFromFirebase() {
             updateDashboard();
             renderProjects();
             renderPTable();
-            loadIncidentRateData();
             
         } else {
             console.log('📝 No Firebase data found, creating new document');
