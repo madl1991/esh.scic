@@ -1791,12 +1791,8 @@ function showBackupStatus(message, type) {
     'reg': ["DOLE Certificate of Registration Date"]
 };
 
-        const FULL_PROJECT_LIST = {
-            "NCR": ["ANGAT", "CENTRAL OFFICE", "HDD MERALCO", "MERALCO HDD SOUTH", "MRT 7", "56ML RESERVOIR"],
-            "SOUTH LUZON": ["ACCESS ROAD 335MW", "EAST BAY", "KALAYAAN CBOP", "KALAYAAN EBOP", "ROLLING MILL (LEMERY)", "TR4", "500kV PAETE SUBSTATION"],
-            "NORTH LUZON": ["BALOG-BALOG", "BAMBAN-HANN", "CASTILLEJOS", "COCA COLA", "KAPANGAN", "MORONG - BCDA", "SAN SIMON", "TUMAUINI", "UPS CLARK"],
-            "VISAYAS & MINDANAO": ["CABULIG 2", "CALAPE BOHOL", "CLARIN", "HIBALE BOHOL", "LEYTE PHASE 2", "MALADUGAO", "MALITBOG", "MANGIMA", "MAT-I", "SIGUIL HEPP"]
-        };
+        // Regions are maintained - users add their own projects via "Add Project" button
+        // No hard-coded projects to ensure fresh start for each user
 
         let state = {
             isLoggedIn: false,
@@ -1932,22 +1928,11 @@ function showBackupStatus(message, type) {
         }
 
         function initializeUserProjects(email) {
+            // Start with empty projects - users will add their own
             state.projects = [];
-            Object.keys(FULL_PROJECT_LIST).forEach(reg => {
-                FULL_PROJECT_LIST[reg].forEach(name => {
-                    state.projects.push({
-                        name,
-                        region: reg,
-                        status: 'on-going',
-                        dateStarted: '',
-                        dateFinished: '',
-                        vals: {},
-                        selected: false
-                    });
-                });
-            });
-            sortProjects('name');
+            state.filteredProjects = [];
             saveUserData(email);
+            console.log('✅ Initialized with empty projects - ready for user to add projects');
         }
 
         function saveUserData(email) {
@@ -2390,22 +2375,43 @@ function closeAllStatusDropdowns() {
 
             const displayProjects = state.filteredProjects.length > 0 ? state.filteredProjects : state.projects;
 
+            // Show welcome message if no projects exist yet
+            if (state.projects.length === 0 && state.currentTab === 'overall') {
+                html += `<div style="background: var(--bg-card); border-radius: 12px; padding: 40px; text-align: center; margin: 20px 0; border: 2px dashed var(--border-color);">
+                    <i class="fas fa-rocket" style="font-size: 3rem; color: #2e7d32; opacity: 0.6; margin-bottom: 15px;"></i>
+                    <h3 style="color: var(--text-primary); margin: 10px 0; font-size: 1.2rem;">Welcome to ESH Compliance Dashboard!</h3>
+                    <p style="color: var(--text-secondary); margin: 10px 0 20px; font-size: 0.9rem;">Get started by adding your first project. Click the <strong>EDIT</strong> button above, then use <strong>+ ADD PROJECT</strong> in any region below.</p>
+                    <button onclick="toggleEdit()" class="btn btn-primary" style="padding: 12px 30px; font-size: 0.9rem;">
+                        <i class="fas fa-plus-circle"></i> START ADDING PROJECTS
+                    </button>
+                </div>`;
+            }
+
             REGIONS.forEach(reg => {
                 const projs = displayProjects.filter(p => p.region === reg);
-                if (projs.length === 0) return;
-
+                
+                // Calculate region average only if there are projects
                 const regSum = projs.reduce((sum, p) => sum + getPerc(p), 0);
-                const regionAvg = Math.round(regSum / projs.length);
+                const regionAvg = projs.length > 0 ? Math.round(regSum / projs.length) : 0;
 
+                // Always show region banner, even if empty (so user can add projects)
                 html += `<div class="region-banner">
-                    <div><i class="fas fa-location-dot"></i> ${reg} <span class="badge">${projs.length} PROJ</span> <span class="badge" style="background:#1b5e20; color:var(--safety-yellow);">AVG: ${regionAvg}%</span></div>
+                    <div><i class="fas fa-location-dot"></i> ${reg} <span class="badge">${projs.length} PROJ</span> ${projs.length > 0 ? `<span class="badge" style="background:#1b5e20; color:var(--safety-yellow);">AVG: ${regionAvg}%</span>` : ''}</div>
                     ${state.isEditing ? `<button onclick="openAddProjectModal('${reg}')" class="btn btn-primary">+ ADD PROJECT</button>` : ''}
-                    ${state.currentTab === 'overall' ? `<select class="sort-select" onchange="sortProjects(this.value)">
+                    ${state.currentTab === 'overall' && projs.length > 0 ? `<select class="sort-select" onchange="sortProjects(this.value)">
                         <option value="name" ${state.currentSort === 'name' ? 'selected' : ''}>Sort: Name</option>
                         <option value="dateStarted" ${state.currentSort === 'dateStarted' ? 'selected' : ''}>Sort: Date Started</option>
                         <option value="dateFinished" ${state.currentSort === 'dateFinished' ? 'selected' : ''}>Sort: Date Finished</option>
                     </select>` : ''}
                 </div>`;
+                
+                // Show empty state message if no projects in this region
+                if (projs.length === 0 && state.isEditing) {
+                    html += `<div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 0.85rem; font-style: italic;">
+                        <i class="fas fa-folder-open" style="font-size: 2rem; opacity: 0.3; margin-bottom: 10px; display: block;"></i>
+                        No projects in this region yet. Click "+ ADD PROJECT" to get started.
+                    </div>`;
+                }
 
                 projs.forEach(p => {
                     const perc = getPerc(p);
