@@ -127,7 +127,7 @@
         .nav-item:hover { background: rgba(255,255,255,0.1); }
         .nav-item.active { background: rgba(255,255,255,0.2); border-left: 5px solid var(--safety-yellow); font-weight: 600; }
         
-        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; background: var(--bg-body); max-width: 100vw; }
+        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-body); }
         
         header {
             background: var(--bg-card); padding: 12px 15px; border-bottom: 1px solid var(--border-color); position: sticky;
@@ -224,24 +224,6 @@
             }
         }
 
-        /* MODIFIED: Compact table for Internal ESH Audit Report - narrower columns for 3-digit inputs */
-        #projects-table th:nth-child(4),
-        #projects-table th:nth-child(5),
-        #projects-table th:nth-child(6),
-        #projects-table th:nth-child(7) {
-            width: 70px;
-            max-width: 70px;
-        }
-
-        #projects-table td:nth-child(4) input,
-        #projects-table td:nth-child(5) input,
-        #projects-table td:nth-child(6) input,
-        #projects-table td:nth-child(7) input {
-            width: 60px;
-            max-width: 60px;
-            padding: 6px;
-            text-align: center;
-        }
 
         .btn {
             padding: 8px 15px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600;
@@ -601,41 +583,39 @@ body.dark-mode .backup-item {
         }
         
         table { 
-            width: 100%;
+            width: auto;
+            min-width: 100%;
             border-collapse: collapse; 
             font-size: 0.7rem;
-            table-layout: fixed;
+            table-layout: auto;
             color: var(--text-primary);
         }
         
         th { 
     background: var(--table-header); 
     color: white; 
-    padding: 10px 6px; 
+    padding: 10px 8px; 
     border: 1px solid #1b5e20;
     white-space: nowrap;
-    font-size: 0.68rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    min-width: auto;
+    width: auto;
 }
         
         td { 
     border: 1px solid var(--border-color); 
-    padding: 6px 4px; 
+    padding: 8px 6px; 
     text-align: center;
+    min-width: auto;
+    width: auto;
     background: var(--bg-card);
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
         
         td:first-child {
             text-align: left;
-            min-width: 180px;
-            max-width: 200px;
+            min-width: 200px;
             font-weight: 600;
             background: var(--border-color);
-            padding-left: 8px;
         }
         
         /* Previous Year Column - Light Green */
@@ -643,9 +623,8 @@ body.dark-mode .backup-item {
     background: #c8e6c9;
     font-weight: 600;
     color: #2e7d32;
-    min-width: 60px;
-    max-width: 70px;
-    width: 60px;
+    min-width: auto;
+    width: auto;
 }
 
         body.dark-mode td.prev-year {
@@ -655,57 +634,14 @@ body.dark-mode .backup-item {
         
         th.prev-year {
             background: #2e7d32;
-            min-width: 60px;
-            max-width: 70px;
-            width: 60px;
-        }
-
-        /* MODIFIED: Compact table cells for audit, activities, and medical tabs */
-        [data-tab="audit"].active ~ #main-content td.monthly-data,
-        [data-tab="activities"].active ~ #main-content td.monthly-data,
-        [data-tab="medical"].active ~ #main-content td.monthly-data {
-            min-width: 60px;
-            max-width: 75px;
-            width: 65px;
-            padding: 6px 2px;
-        }
-
-        [data-tab="audit"].active ~ #main-content th,
-        [data-tab="activities"].active ~ #main-content th,
-        [data-tab="medical"].active ~ #main-content th {
-            min-width: 60px;
-            max-width: 75px;
-            width: 65px;
-            padding: 8px 4px;
-            font-size: 0.65rem;
-        }
-
-        /* Keep first column wider for labels */
-        [data-tab="audit"].active ~ #main-content td:first-child,
-        [data-tab="activities"].active ~ #main-content td:first-child,
-        [data-tab="medical"].active ~ #main-content td:first-child {
-            min-width: 180px;
-            max-width: 200px;
-        }
-
-        /* Compact inputs for these specific tabs */
-        [data-tab="audit"].active ~ #main-content table input,
-        [data-tab="activities"].active ~ #main-content table input,
-        [data-tab="medical"].active ~ #main-content table input {
-            width: 100%;
-            max-width: 60px;
-            padding: 4px 2px;
-            font-size: 0.68rem;
         }
         
         /* Monthly Columns - Default */
        /* Monthly Columns - Default */
 td.monthly-data {
     background: var(--bg-card);
-    min-width: 55px;
-    max-width: 70px;
-    width: 60px;
-    padding: 6px 3px;
+    min-width: auto;
+    width: auto;
 }
         
         /* YTD Column - Yellow */
@@ -714,10 +650,9 @@ td.ytd-cell {
     background: #fff59d;
     font-weight: 700;
     color: #f57f17;
-    min-width: 70px;
-    max-width: 85px;
-    width: 75px;
-    padding: 8px 4px;
+    min-width: auto;
+    width: auto;
+    padding: 8px 12px;
 }
         }
 
@@ -729,9 +664,7 @@ td.ytd-cell {
         th.ytd-header {
             background: #f9a825;
             color: white;
-            min-width: 70px;
-            max-width: 85px;
-            width: 75px;
+            min-width: 90px;
         }
 
         body.dark-mode th.ytd-header {
@@ -768,23 +701,15 @@ td.average-cell {
         
         table input {
             width: 100%;
-            max-width: 65px;
             border: 1px solid var(--border-color);
             border-radius: 3px;
-            padding: 4px 3px;
-            font-size: 0.68rem;
+            padding: 6px 4px;
+            font-size: 0.7rem;
             text-align: center;
             font-weight: 500;
             box-sizing: border-box;
             background: var(--input-bg);
             color: var(--text-primary);
-        }
-
-        /* MODIFIED: Compact inputs for medical/accident table (3-digit numbers) */
-        [data-tab="medical"].active ~ #main-content table input[type="number"],
-        .table-container table td.monthly-data input[type="number"] {
-            max-width: 55px;
-            padding: 3px 2px;
         }
         
         table input:disabled { 
@@ -980,50 +905,18 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             </div>
             <h2 style="color:#1b5e20; margin:0 0 5px 0; font-size: 1.1rem; letter-spacing: 1px;">ESH COMPLIANCE DASHBOARD</h2>
             <p style="margin:0 0 20px 0; font-size: 0.75rem; font-weight: 600; color: #666;">STA. CLARA INTERNATIONAL CORPORATION</p>
-            
-            <!-- Login Form -->
-            <form id="login-form" onsubmit="handleLogin(event)" autocomplete="off">
+            <form onsubmit="handleLogin(event)" autocomplete="off">
                 <input type="email" id="login-user" placeholder="Email Address" required autocomplete="off">
                 <input type="password" id="login-pass" placeholder="Password" required autocomplete="off">
                 <button type="submit" class="btn btn-primary" id="login-btn" style="width:100%; margin-top:15px; padding: 12px; font-size: 0.9rem;">
-                    <i class="fas fa-right-to-bracket"></i> LOGIN
+                    <i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM
                 </button>
-                <p style="font-size: 0.75rem; margin-top: 15px; color: #666; text-align: center;">
-                    Don't have an account? <a href="#" onclick="showSignupForm(); return false;" style="color: #1b5e20; font-weight: 600;">Sign Up</a>
-                </p>
-                <p style="font-size: 0.75rem; margin-top: 10px; text-align: center;">
-                    <a href="#" onclick="showForgotPassword(); return false;" style="color: #1b5e20;">Forgot Password?</a>
-                </p>
             </form>
-
-            <!-- Signup Form (hidden by default) -->
-            <form id="signup-form" onsubmit="handleSignup(event)" autocomplete="off" style="display: none;">
-                <input type="email" id="signup-email" placeholder="Email Address" required autocomplete="off">
-                <input type="password" id="signup-pass" placeholder="Password (min 6 characters)" required autocomplete="off">
-                <input type="password" id="signup-confirm" placeholder="Confirm Password" required autocomplete="off">
-                <button type="submit" class="btn btn-primary" id="signup-btn" style="width:100%; margin-top:15px; padding: 12px; font-size: 0.9rem;">
-                    <i class="fas fa-user-plus"></i> CREATE ACCOUNT
-                </button>
-                <p style="font-size: 0.75rem; margin-top: 15px; color: #666; text-align: center;">
-                    Already have an account? <a href="#" onclick="showLoginForm(); return false;" style="color: #1b5e20; font-weight: 600;">Login</a>
-                </p>
-            </form>
-
-            <!-- Forgot Password Form (hidden by default) -->
-            <form id="forgot-password-form" onsubmit="handleForgotPassword(event)" autocomplete="off" style="display: none;">
-                <input type="email" id="forgot-email" placeholder="Enter your email" required autocomplete="off">
-                <button type="submit" class="btn btn-primary" id="forgot-btn" style="width:100%; margin-top:15px; padding: 12px; font-size: 0.9rem;">
-                    <i class="fas fa-envelope"></i> SEND RESET LINK
-                </button>
-                <p style="font-size: 0.75rem; margin-top: 15px; color: #666; text-align: center;">
-                    <a href="#" onclick="showLoginForm(); return false;" style="color: #1b5e20; font-weight: 600;">Back to Login</a>
-                </p>
-            </form>
-
             <div id="login-error" class="error-message"></div>
             <div class="disclaimer-box">
-                <strong><i class="fas fa-circle-exclamation"></i> IMPORTANT:</strong><br>
-                This system uses <strong>Firebase Authentication</strong>. Create an account to get started. All your data will be securely stored in the cloud.
+                <strong><i class="fas fa-circle-exclamation"></i> DEMO ACCOUNT:</strong><br>
+                Email: <code style="background:#f0f0f0; padding:2px 4px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d1b5b4bcbe91a2b2b8b2ffb2bebc">[email&#160;protected]</a></code><br>
+                Password: <code style="background:#f0f0f0; padding:2px 4px;">demo1234</code>
             </div>
         </div>
     </div>
@@ -1168,9 +1061,6 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <button class="btn btn-primary" onclick="addPRow()" style="padding:8px 16px; display:flex; align-items:center; gap:6px; font-size:0.78rem; border-radius:6px;">
                     <i class="fas fa-user-plus"></i> Add Personnel
                 </button>
-                <button class="btn btn-primary" onclick="pGlobalSave()" style="padding:8px 16px; display:flex; align-items:center; gap:6px; font-size:0.78rem; border-radius:6px; background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);">
-                    <i class="fas fa-save"></i> Save All
-                </button>
                 <div id="p-global-action" style="display:none; gap:6px;">
                     <button class="p-edit-btn" id="p-global-edit-btn" onclick="pGlobalEdit()" style="padding:8px 14px; border-radius:6px; display:flex; align-items:center; gap:5px; font-size:0.78rem;">
                         <i class="fas fa-edit"></i> Edit All
@@ -1216,132 +1106,22 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
 
 
-        <div id="settings-view" class="hidden" style="max-width: 800px; margin: 40px auto; padding: 20px;">
-    
-    <!-- Account Settings Section -->
-    <div style="background: var(--bg-card); padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1b5e20;">
-        <h3 style="color: #1b5e20; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-            <i class="fas fa-user-circle" style="font-size: 1.3rem;"></i>
-            Account Settings
-        </h3>
-        
-        <div class="form-group">
-            <label style="font-weight: 600; color: var(--text-primary);">Current Email:</label>
-            <input type="email" id="current-email" disabled style="background: var(--border-color); cursor: not-allowed;">
-        </div>
-        
-        <div class="form-group">
-            <label style="font-weight: 600; color: var(--text-primary);">New Password</label>
-            <input type="password" id="new-password" placeholder="Enter new password (min 6 characters)">
-        </div>
-        
-        <div class="form-group">
-            <label style="font-weight: 600; color: var(--text-primary);">Confirm Password</label>
-            <input type="password" id="confirm-password" placeholder="Confirm new password">
-        </div>
-        
-        <button class="btn btn-primary" style="width:100%; padding: 12px; font-size: 0.85rem;" onclick="updatePassword()">
-            <i class="fas fa-key"></i> UPDATE PASSWORD
-        </button>
-        <div id="settings-message"></div>
+        <div id="settings-view" class="hidden" style="max-width: 600px; margin: 40px auto; background: var(--bg-card); padding: 30px; border-radius: 12px; color: var(--text-primary);">
+    <h3 style="color: #1b5e20; border-bottom: 2px solid var(--safety-yellow); padding-bottom: 5px;">Account Settings</h3>
+    <div class="form-group">
+        <label>Current Email:</label>
+        <input type="email" id="current-email" disabled>
     </div>
-
-    <!-- Appearance Settings -->
-    <div style="background: var(--bg-card); padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1b5e20;">
-        <h3 style="color: #1b5e20; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-            <i class="fas fa-palette" style="font-size: 1.3rem;"></i>
-            Appearance
-        </h3>
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--border-color);">
-            <div>
-                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">Dark Mode</div>
-                <div style="font-size: 0.75rem; color: var(--text-secondary);">Switch between light and dark themes</div>
-            </div>
-            <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
-                <input type="checkbox" id="dark-mode-settings-toggle" onchange="toggleDarkMode()" style="opacity: 0; width: 0; height: 0;">
-                <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: 0.3s; border-radius: 24px;">
-                    <span style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%;"></span>
-                </span>
-            </label>
-        </div>
+    <div class="form-group">
+        <label>New Password</label>
+        <input type="password" id="new-password" placeholder="Enter new password">
     </div>
-
-    <!-- Data Management -->
-    <div style="background: var(--bg-card); padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1b5e20;">
-        <h3 style="color: #1b5e20; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-            <i class="fas fa-database" style="font-size: 1.3rem;"></i>
-            Data Management
-        </h3>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 20px;">
-            <button class="btn btn-primary" onclick="exportAllData()" style="padding: 10px 15px; font-size: 0.8rem;">
-                <i class="fas fa-download"></i> Export Data
-            </button>
-            <button class="btn btn-primary" onclick="document.getElementById('import-file-input').click()" style="padding: 10px 15px; font-size: 0.8rem;">
-                <i class="fas fa-upload"></i> Import Data
-            </button>
-            <input type="file" id="import-file-input" accept=".json" style="display: none;" onchange="importAllData(event)">
-        </div>
-        
-        <div style="background: rgba(211, 47, 47, 0.1); padding: 15px; border-radius: 8px; border-left: 3px solid #d32f2f;">
-            <div style="font-weight: 600; color: #d32f2f; margin-bottom: 8px;">
-                <i class="fas fa-exclamation-triangle"></i> Danger Zone
-            </div>
-            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 10px;">
-                This will permanently delete all your local data. This action cannot be undone.
-            </div>
-            <button class="btn btn-danger" onclick="clearAllLocalData()" style="padding: 8px 15px; font-size: 0.8rem;">
-                <i class="fas fa-trash-alt"></i> Clear All Data
-            </button>
-        </div>
+    <div class="form-group">
+        <label>Confirm Password</label>
+        <input type="password" id="confirm-password" placeholder="Confirm password">
     </div>
-
-    <!-- Storage Statistics -->
-    <div style="background: var(--bg-card); padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1b5e20;">
-        <h3 style="color: #1b5e20; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-            <i class="fas fa-chart-bar" style="font-size: 1.3rem;"></i>
-            Storage Statistics
-        </h3>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
-            <div style="background: rgba(27, 94, 32, 0.05); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
-                <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Total Projects</div>
-                <div style="font-size: 1.5rem; font-weight: 700; color: #1b5e20;" id="stats-total-projects">0</div>
-            </div>
-            <div style="background: rgba(27, 94, 32, 0.05); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
-                <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Total Personnel</div>
-                <div style="font-size: 1.5rem; font-weight: 700; color: #1b5e20;" id="stats-total-personnel">0</div>
-            </div>
-            <div style="background: rgba(27, 94, 32, 0.05); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
-                <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Last Sync</div>
-                <div style="font-size: 0.8rem; font-weight: 700; color: #1b5e20;" id="stats-last-sync">Never</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- About Section -->
-    <div style="background: var(--bg-card); padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1b5e20;">
-        <h3 style="color: #1b5e20; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-            <i class="fas fa-info-circle" style="font-size: 1.3rem;"></i>
-            About
-        </h3>
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color);">
-            <div style="font-weight: 600; color: var(--text-primary);">Application Version</div>
-            <span style="background: #e3f2fd; color: #1976d2; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">v2.0 Latest</span>
-        </div>
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color);">
-            <div style="font-weight: 600; color: var(--text-primary);">Last Updated</div>
-            <div style="color: var(--text-secondary); font-size: 0.85rem;">February 2026</div>
-        </div>
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
-            <div style="font-weight: 600; color: var(--text-primary);">Developer</div>
-            <div style="color: var(--text-secondary); font-size: 0.85rem;">SCIC ESH Team</div>
-        </div>
-    </div>
+    <button class="btn btn-primary" style="width:100%; padding: 10px;" onclick="updatePassword()">UPDATE PASSWORD</button>
+    <div id="settings-message"></div>
 
     <div id="backup-recovery-section" style="margin-top: 30px;"></div>
 </div>
@@ -1651,8 +1431,7 @@ function showBackupStatus(message, type) {
     }, 4000);
 }
 
-        // Firebase Authentication is now used instead of local credentials
-        // Users must sign up to create an account
+        const VALID_CREDENTIALS = { 'demo@scic.com': 'demo1234' };
         const REGIONS = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
         const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
        const SCHEMA = {
@@ -1715,9 +1494,6 @@ function showBackupStatus(message, type) {
             state.darkMode = true;
             localStorage.setItem('esh_theme_preference', 'dark');
             updateThemeIcon();
-            // Sync settings toggle
-            const settingsToggle = document.getElementById('dark-mode-settings-toggle');
-            if (settingsToggle) settingsToggle.checked = true;
             console.log('✅ Dark mode enabled');
         }
 
@@ -1726,9 +1502,6 @@ function showBackupStatus(message, type) {
             state.darkMode = false;
             localStorage.setItem('esh_theme_preference', 'light');
             updateThemeIcon();
-            // Sync settings toggle
-            const settingsToggle = document.getElementById('dark-mode-settings-toggle');
-            if (settingsToggle) settingsToggle.checked = false;
             console.log('✅ Light mode enabled');
         }
 
@@ -1744,32 +1517,9 @@ function showBackupStatus(message, type) {
         }
 
         // ===== LOGIN & AUTH =====
-        // ===== FIREBASE AUTH HELPER FUNCTIONS =====
-        function showLoginForm() {
-            document.getElementById('login-form').style.display = 'block';
-            document.getElementById('signup-form').style.display = 'none';
-            document.getElementById('forgot-password-form').style.display = 'none';
-            document.getElementById('login-error').innerText = '';
-        }
-
-        function showSignupForm() {
-            document.getElementById('login-form').style.display = 'none';
-            document.getElementById('signup-form').style.display = 'block';
-            document.getElementById('forgot-password-form').style.display = 'none';
-            document.getElementById('login-error').innerText = '';
-        }
-
-        function showForgotPassword() {
-            document.getElementById('login-form').style.display = 'none';
-            document.getElementById('signup-form').style.display = 'none';
-            document.getElementById('forgot-password-form').style.display = 'block';
-            document.getElementById('login-error').innerText = '';
-        }
-
-        // ===== LOGIN & AUTH =====
-        async function handleLogin(event) {
+        function handleLogin(event) {
             event.preventDefault();
-            const email = document.getElementById('login-user').value.trim();
+            const email = document.getElementById('login-user').value.trim().toLowerCase();
             const password = document.getElementById('login-pass').value;
             const errorDiv = document.getElementById('login-error');
             const loginBtn = document.getElementById('login-btn');
@@ -1784,135 +1534,28 @@ function showBackupStatus(message, type) {
             loginBtn.disabled = true;
             loginBtn.innerHTML = '<span class="loading-spinner"></span> Signing in...';
 
-            try {
-                // Use Firebase Authentication
-                if (window.firebase && window.firebaseAuth) {
-                    const userCredential = await window.firebase.signInWithEmailAndPassword(window.firebaseAuth, email, password);
-                    console.log('✅ Firebase login successful:', userCredential.user.email);
-                    
-                    state.currentUser = { email: userCredential.user.email, uid: userCredential.user.uid };
+            setTimeout(() => {
+                if (VALID_CREDENTIALS[email] && VALID_CREDENTIALS[email] === password) {
+                    state.currentUser = { email };
                     state.isLoggedIn = true;
                     sessionStorage.setItem('esh_logged_in', 'true');
                     sessionStorage.setItem('esh_user_email', email);
-                    
-                    // Load user data from Firebase
-                    await loadUserData(email);
+                    loadUserData(email);
                     showUI();
                     initDarkMode();
+                    console.log('✅ Login successful!');
                 } else {
-                    throw new Error('Firebase not initialized');
+                    errorDiv.innerText = '❌ Invalid email or password';
                 }
-            } catch (error) {
-                console.error('❌ Login error:', error);
-                errorDiv.innerText = '❌ ' + (error.message || 'Invalid email or password');
                 loginBtn.disabled = false;
-                loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> LOGIN';
-            }
-        }
-
-        async function handleSignup(event) {
-            event.preventDefault();
-            const email = document.getElementById('signup-email').value.trim();
-            const password = document.getElementById('signup-pass').value;
-            const confirmPassword = document.getElementById('signup-confirm').value;
-            const errorDiv = document.getElementById('login-error');
-            const signupBtn = document.getElementById('signup-btn');
-
-            errorDiv.innerText = '';
-
-            if (!email || !password || !confirmPassword) {
-                errorDiv.innerText = '⚠️ Please fill in all fields';
-                return;
-            }
-
-            if (password !== confirmPassword) {
-                errorDiv.innerText = '❌ Passwords do not match';
-                return;
-            }
-
-            if (password.length < 6) {
-                errorDiv.innerText = '❌ Password must be at least 6 characters';
-                return;
-            }
-
-            signupBtn.disabled = true;
-            signupBtn.innerHTML = '<span class="loading-spinner"></span> Creating account...';
-
-            try {
-                // Use Firebase Authentication
-                if (window.firebase && window.firebaseAuth) {
-                    const userCredential = await window.firebase.createUserWithEmailAndPassword(window.firebaseAuth, email, password);
-                    console.log('✅ Firebase signup successful:', userCredential.user.email);
-                    
-                    state.currentUser = { email: userCredential.user.email, uid: userCredential.user.uid };
-                    state.isLoggedIn = true;
-                    sessionStorage.setItem('esh_logged_in', 'true');
-                    sessionStorage.setItem('esh_user_email', email);
-                    
-                    // Initialize user data
-                    await saveUserData(email);
-                    showUI();
-                    initDarkMode();
-                } else {
-                    throw new Error('Firebase not initialized');
-                }
-            } catch (error) {
-                console.error('❌ Signup error:', error);
-                errorDiv.innerText = '❌ ' + (error.message || 'Signup failed');
-                signupBtn.disabled = false;
-                signupBtn.innerHTML = '<i class="fas fa-user-plus"></i> CREATE ACCOUNT';
-            }
-        }
-
-        async function handleForgotPassword(event) {
-            event.preventDefault();
-            const email = document.getElementById('forgot-email').value.trim();
-            const errorDiv = document.getElementById('login-error');
-            const forgotBtn = document.getElementById('forgot-btn');
-
-            errorDiv.innerText = '';
-
-            if (!email) {
-                errorDiv.innerText = '⚠️ Please enter your email';
-                return;
-            }
-
-            forgotBtn.disabled = true;
-            forgotBtn.innerHTML = '<span class="loading-spinner"></span> Sending...';
-
-            try {
-                // Use Firebase Password Reset
-                if (window.firebase && window.firebaseAuth) {
-                    await window.firebase.sendPasswordResetEmail(window.firebaseAuth, email);
-                    alert('✅ Password reset email sent! Check your inbox.');
-                    showLoginForm();
-                } else {
-                    throw new Error('Firebase not initialized');
-                }
-            } catch (error) {
-                console.error('❌ Password reset error:', error);
-                errorDiv.innerText = '❌ ' + (error.message || 'Failed to send reset email');
-            } finally {
-                forgotBtn.disabled = false;
-                forgotBtn.innerHTML = '<i class="fas fa-envelope"></i> SEND RESET LINK';
-            }
+                loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM';
+            }, 800);
         }
 
       function handleLogout() {
-    showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(async confirmed => {
+    showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(confirmed => {
         if (confirmed) {
             backupManager.stopAutoSave();
-            
-            // Firebase logout
-            if (window.firebase && window.firebaseAuth) {
-                try {
-                    await window.firebase.signOut(window.firebaseAuth);
-                    console.log('✅ Firebase logout successful');
-                } catch (error) {
-                    console.error('❌ Firebase logout error:', error);
-                }
-            }
-            
             state.isLoggedIn = false;
             state.currentUser = null;
             sessionStorage.clear();
@@ -2467,15 +2110,13 @@ if (state.currentTab === 'audit') {
             .cell-avg-gray { background: #808080 !important; color: white !important; font-weight: bold; }
             .cell-grand-total { background-color: #ffff00 !important; color: #000000 !important; font-weight: bold; }
             
-            /* MODIFIED: Compact input fields for 3-digit numbers */
             .audit-table input { 
                 text-align: center; 
-                width: 55px;
-                max-width: 55px;
+                width: 45px;
                 border: 0.5px solid #ccc;
                 border-radius: 2px;
                 font-size: 11px;
-                padding: 3px;
+                padding: 2px;
             }
             .audit-table p { margin: 0; padding: 0; font-size: 10px; }
         </style>
@@ -3095,108 +2736,9 @@ document.addEventListener('click', closeAllStatusDropdowns);
                 msgDiv.innerHTML = '<div class="error-message">❌ Password must be 6+ characters</div>';
                 return;
             }
-            
-            // If Firebase is available, update password there too
-            if (window.firebaseAuth && window.firebaseAuth.currentUser) {
-                firebaseChangePassword(newPass).then(() => {
-                    msgDiv.innerHTML = '<div class="success-message">✅ Password updated successfully!</div>';
-                    document.getElementById('new-password').value = '';
-                    document.getElementById('confirm-password').value = '';
-                });
-            } else {
-                msgDiv.innerHTML = '<div class="success-message">✅ Password updated!</div>';
-                document.getElementById('new-password').value = '';
-                document.getElementById('confirm-password').value = '';
-            }
-        }
-
-        function exportAllData() {
-            const exportData = {
-                projects: state.projects || [],
-                personnel: state.pData || [],
-                timestamp: new Date().toISOString(),
-                version: '2.0'
-            };
-            
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `esh-data-backup-${new Date().toISOString().split('T')[0]}.json`;
-            link.click();
-            URL.revokeObjectURL(url);
-            
-            alert('✅ Data exported successfully!');
-        }
-
-        function importAllData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    
-                    if (confirm('⚠️ This will replace all current data. Continue?')) {
-                        if (imported.projects) state.projects = imported.projects;
-                        if (imported.personnel) state.pData = imported.personnel;
-                        
-                        saveUserData(state.currentUser?.email || 'guest');
-                        loadProjects();
-                        renderPTable();
-                        updateSettingsStats();
-                        
-                        alert('✅ Data imported successfully!');
-                    }
-                } catch (error) {
-                    alert('❌ Invalid file format. Please select a valid backup file.');
-                }
-            };
-            reader.readAsText(file);
-            
-            // Reset file input
-            event.target.value = '';
-        }
-
-        function clearAllLocalData() {
-            if (confirm('⚠️ WARNING: This will permanently delete ALL your local data.\n\nThis includes:\n- All projects\n- All personnel records\n- All settings\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?')) {
-                if (confirm('Final confirmation: Delete all data?')) {
-                    state.projects = [];
-                    state.pData = [];
-                    state.selectedRegion = 'ALL';
-                    
-                    saveUserData(state.currentUser?.email || 'guest');
-                    loadProjects();
-                    renderPTable();
-                    updateSettingsStats();
-                    
-                    alert('✅ All data has been cleared.');
-                }
-            }
-        }
-
-        function updateSettingsStats() {
-            const projectCount = state.projects?.length || 0;
-            const personnelCount = state.pData?.length || 0;
-            
-            const statsProjects = document.getElementById('stats-total-projects');
-            const statsPersonnel = document.getElementById('stats-total-personnel');
-            const statsSync = document.getElementById('stats-last-sync');
-            
-            if (statsProjects) statsProjects.textContent = projectCount;
-            if (statsPersonnel) statsPersonnel.textContent = personnelCount;
-            
-            if (statsSync) {
-                const lastSave = localStorage.getItem('esh_last_save');
-                if (lastSave) {
-                    const date = new Date(parseInt(lastSave));
-                    statsSync.textContent = date.toLocaleString();
-                } else {
-                    statsSync.textContent = 'Never';
-                }
-            }
+            msgDiv.innerHTML = '<div class="success-message">✅ Password updated!</div>';
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-password').value = '';
         }
 
         setInterval(() => {
@@ -3210,46 +2752,13 @@ document.addEventListener('click', closeAllStatusDropdowns);
        window.addEventListener('load', () => {
     initDarkMode();
     backupManager.init();
-    updateSettingsStats(); // Update stats on load
-    
-    // Setup Firebase Auth State Observer
-    if (window.firebase && window.firebaseAuth) {
-        window.firebase.onAuthStateChanged(window.firebaseAuth, async (user) => {
-            if (user) {
-                console.log('👤 User authenticated:', user.email);
-                state.currentUser = { email: user.email, uid: user.uid };
-                state.isLoggedIn = true;
-                sessionStorage.setItem('esh_logged_in', 'true');
-                sessionStorage.setItem('esh_user_email', user.email);
-                
-                await loadUserData(user.email);
-                showUI();
-                updateSettingsStats();
-            } else {
-                console.log('👤 No user authenticated');
-                const isLoggedIn = sessionStorage.getItem('esh_logged_in');
-                const userEmail = sessionStorage.getItem('esh_user_email');
-                if (isLoggedIn === 'true' && userEmail) {
-                    // Session exists but Firebase not ready yet
-                    state.currentUser = { email: userEmail };
-                    state.isLoggedIn = true;
-                    loadUserData(userEmail);
-                    showUI();
-                    updateSettingsStats();
-                }
-            }
-        });
-    } else {
-        // Fallback if Firebase not initialized
-        const isLoggedIn = sessionStorage.getItem('esh_logged_in');
-        const userEmail = sessionStorage.getItem('esh_user_email');
-        if (isLoggedIn === 'true' && userEmail) {
-            state.currentUser = { email: userEmail };
-            state.isLoggedIn = true;
-            loadUserData(userEmail);
-            showUI();
-            updateSettingsStats();
-        }
+    const isLoggedIn = sessionStorage.getItem('esh_logged_in');
+    const userEmail = sessionStorage.getItem('esh_user_email');
+    if (isLoggedIn === 'true' && userEmail) {
+        state.currentUser = { email: userEmail };
+        state.isLoggedIn = true;
+        loadUserData(userEmail);
+        showUI();
     }
 });
 function showModernDialog(title, message, isDanger = false) {
