@@ -16,7 +16,11 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
+        // ⚠️ SECURITY WARNING: API Keys Exposed
+        // Dapat gamitin ang Firebase Security Rules at gawing private ang sensitive credentials.
+        // I-configure ang Firestore/Database rules sa Firebase Console para sa proper access control.
         const firebaseConfig = {
             apiKey: "AIzaSyBdqVEm3PWPuFTVbrxaP4JAZNXl2bmNUg4",
             authDomain: "esh-dashboard.firebaseapp.com",
@@ -31,9 +35,11 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         const analytics = getAnalytics(app);
+        const storage = getStorage(app);
 
         window.firebaseAuth = auth;
         window.firebaseDb = db;
+        window.firebaseStorage = storage;
         window.firebase = {
             signInWithEmailAndPassword,
             createUserWithEmailAndPassword,
@@ -44,6 +50,10 @@
             doc,
             setDoc,
             getDoc,
+            ref,
+            uploadBytes,
+            getDownloadURL,
+            deleteObject
         };
 
         console.log("✅ Firebase initialized!");
@@ -642,6 +652,87 @@
         .btn-secondary:hover { background: #ccc; }
         .btn-danger { background: #d32f2f; color: white; }
         .btn-danger:hover { background: #b71c1c; }
+
+        /* PDF Upload Styles */
+        .pdf-upload-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px;
+        }
+        .pdf-upload-btn {
+            padding: 6px 12px;
+            background: #1976D2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.2s;
+        }
+        .pdf-upload-btn:hover {
+            background: #1565C0;
+        }
+        .pdf-upload-btn i {
+            font-size: 0.8rem;
+        }
+        .pdf-view-btn {
+            padding: 6px 12px;
+            background: #2e7d32;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .pdf-view-btn:hover {
+            background: #1b5e20;
+        }
+        .pdf-replace-btn {
+            padding: 6px 10px;
+            background: #f57c00;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            transition: background 0.2s;
+        }
+        .pdf-replace-btn:hover {
+            background: #e65100;
+        }
+        .pdf-delete-btn {
+            padding: 6px 10px;
+            background: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            transition: background 0.2s;
+        }
+        .pdf-delete-btn:hover {
+            background: #b71c1c;
+        }
+        .pdf-filename {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
 
         .region-banner {
             background: var(--header-grad); color: white; padding: 15px 20px;
@@ -2491,7 +2582,7 @@ function showBackupStatus(message, type) {
                 'rates': 'STATISTICS RATE', 'medical': 'ACCIDENT/ INCIDENT RECORD',
 		'nov': 'REGULATORY ISSUED NOV',
                 'nov-monitoring': 'ESH NOV MONITORING',
-                'activities': 'ESH ACTIVITIES AND PROGRAMS','kpm': 'KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT','reg': 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)','audit': 'INTERNAL ESH AUDIT REPORT',
+                'activities': 'ESH ACTIVITIES AND PROGRAMS','kpm': 'KEY PERFORMANCE REPORT','reg': 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)','audit': 'INTERNAL ESH AUDIT REPORT',
                 'cshp': 'CONSTRUCTION SAFETY & HEALTH PROGRAM (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL','emb': ["SMR (Quarterly)", "CMR (Semi-Annual)"],
                 'personnel': 'ESH PERSONNEL MONITORING', 'settings': 'SETTINGS'
             };
@@ -2537,6 +2628,163 @@ function updateAuditData(pName, qtr, field, val) {
                 }
             }
         }
+
+        // ==================== PDF UPLOAD FUNCTIONS ====================
+        async function uploadPDF(inputElement, projectName, pdfKey, isReplacement = false) {
+            const file = inputElement.files[0];
+            if (!file) return;
+
+            // Validate file type
+            if (file.type !== 'application/pdf') {
+                alert('Please upload only PDF files.');
+                inputElement.value = '';
+                return;
+            }
+
+            // Validate file size (max 10MB)
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (file.size > maxSize) {
+                alert('File size must be less than 10MB.');
+                inputElement.value = '';
+                return;
+            }
+
+            // Confirmation for replacement
+            if (isReplacement) {
+                const confirmed = await showModernDialog(
+                    'Replace PDF',
+                    'Are you sure you want to replace the existing PDF file with this new one?',
+                    true
+                );
+                if (!confirmed) {
+                    inputElement.value = '';
+                    return;
+                }
+            }
+
+            try {
+                // Show loading indicator
+                const container = inputElement.parentElement;
+                const originalHTML = container.innerHTML;
+                container.innerHTML = '<span style="color: #1976D2;"><i class="fas fa-spinner fa-spin"></i> Uploading PDF...</span>';
+
+                // Get current project
+                const project = state.projects.find(p => p.name === projectName);
+                if (!project) {
+                    throw new Error('Project not found');
+                }
+
+                // Delete old file from Firebase Storage if replacing
+                if (isReplacement && project.vals[pdfKey] && project.vals[pdfKey][1]) {
+                    const oldPdfData = project.vals[pdfKey][1];
+                    if (window.firebaseStorage && window.firebase && oldPdfData.storagePath) {
+                        try {
+                            const oldStorageRef = window.firebase.ref(window.firebaseStorage, oldPdfData.storagePath);
+                            await window.firebase.deleteObject(oldStorageRef);
+                            console.log('✅ Old PDF deleted from storage');
+                        } catch (deleteError) {
+                            console.warn('⚠️ Could not delete old file from storage:', deleteError);
+                            // Continue anyway
+                        }
+                    }
+                }
+
+                // Upload to Firebase Storage
+                if (!window.firebaseStorage || !window.firebase) {
+                    throw new Error('Firebase Storage not initialized');
+                }
+
+                const userId = state.currentUser.uid;
+                const timestamp = Date.now();
+                const fileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_'); // Sanitize filename
+                const storagePath = `users/${userId}/pdfs/${projectName}_${pdfKey}_${timestamp}_${fileName}`;
+                
+                const storageRef = window.firebase.ref(window.firebaseStorage, storagePath);
+                
+                // Upload the actual PDF file to Firebase Storage
+                await window.firebase.uploadBytes(storageRef, file);
+                const downloadURL = await window.firebase.getDownloadURL(storageRef);
+
+                console.log('✅ PDF uploaded to Firebase Storage:', storagePath);
+                console.log('📎 Download URL:', downloadURL);
+
+                // Store PDF metadata in project vals
+                if (!project.vals[pdfKey]) project.vals[pdfKey] = new Array(13).fill("");
+                project.vals[pdfKey][1] = {
+                    name: file.name,
+                    url: downloadURL,
+                    storagePath: storagePath,
+                    uploadedAt: new Date().toISOString(),
+                    size: file.size
+                };
+                
+                // Save to localStorage and Firebase Firestore
+                saveUserData(state.currentUser.email);
+                await saveToFirebase();
+                
+                // Re-render to show the uploaded PDF
+                render();
+
+                console.log('✅ PDF metadata saved to Firestore');
+                alert(isReplacement ? 'PDF file replaced successfully!' : 'PDF uploaded successfully!');
+            } catch (error) {
+                console.error('❌ PDF upload error:', error);
+                alert('Failed to upload PDF: ' + error.message);
+                
+                // Re-render to restore UI
+                render();
+            }
+
+            // Clear file input
+            inputElement.value = '';
+        }
+
+        async function deletePDF(projectName, pdfKey) {
+            const project = state.projects.find(p => p.name === projectName);
+            if (!project || !project.vals[pdfKey] || !project.vals[pdfKey][1]) return;
+
+            const confirmed = await showModernDialog(
+                'Delete PDF',
+                'Are you sure you want to delete this PDF file? This action cannot be undone.',
+                true
+            );
+
+            if (!confirmed) return;
+
+            try {
+                const pdfData = project.vals[pdfKey][1];
+                
+                // Delete from Firebase Storage
+                if (window.firebaseStorage && window.firebase && pdfData.storagePath) {
+                    try {
+                        const storageRef = window.firebase.ref(window.firebaseStorage, pdfData.storagePath);
+                        await window.firebase.deleteObject(storageRef);
+                        console.log('✅ PDF deleted from Firebase Storage:', pdfData.name);
+                    } catch (storageError) {
+                        console.warn('⚠️ Could not delete from storage:', storageError);
+                        // Continue anyway to remove from database
+                    }
+                }
+
+                // Remove from project vals
+                project.vals[pdfKey][1] = null;
+                
+                // Save changes to localStorage and Firebase Firestore
+                saveUserData(state.currentUser.email);
+                await saveToFirebase();
+                
+                // Re-render
+                render();
+
+                console.log('✅ PDF metadata removed from Firestore');
+                alert('PDF deleted successfully!');
+            } catch (error) {
+                console.error('❌ PDF deletion error:', error);
+                alert('Failed to delete PDF: ' + error.message);
+            }
+        }
+        // ==================== END PDF UPLOAD FUNCTIONS ====================
+
 
         function deleteProject(projectName) {
     showModernDialog('Delete Project', `Are you sure you want to delete "${projectName}"? This action cannot be undone.`, true).then(confirmed => {
@@ -3345,15 +3593,52 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                         html += `<div class="table-container"><table>
                             <tr>
                                 <th style="width:250px;text-align:left;">PROJECT NAME</th>
-                                <th>${headerText}</th>
+                                <th style="width:150px;">${headerText}</th>
+                                <th style="width:350px;">PDF DOCUMENT</th>
                             </tr>`;
 
                         projs.forEach(p => {
                             const v = p.vals[key] ? p.vals[key][1] : "";
+                            const pdfKey = `${key}_pdf`;
+                            const pdfData = p.vals[pdfKey] ? p.vals[pdfKey][1] : null;
+                            
+                            let pdfCell = '';
+                            if (pdfData) {
+                                // PDF exists - show view, replace, and delete buttons
+                                pdfCell = `
+                                    <div class="pdf-upload-container">
+                                        <a href="${pdfData.url}" target="_blank" class="pdf-view-btn" title="View PDF">
+                                            <i class="fas fa-file-pdf"></i> View
+                                        </a>
+                                        <span class="pdf-filename" title="${pdfData.name}">${pdfData.name}</span>
+                                        ${state.isEditing ? `
+                                            <input type="file" id="pdf_${p.name}_${state.currentTab}" accept=".pdf" 
+                                                style="display:none;" onchange="uploadPDF(this, '${p.name}','${pdfKey}', true)">
+                                            <button class="pdf-replace-btn" onclick="document.getElementById('pdf_${p.name}_${state.currentTab}').click()" title="Replace PDF">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </button>
+                                            <button class="pdf-delete-btn" onclick="deletePDF('${p.name}','${pdfKey}')" title="Delete PDF">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        ` : ''}
+                                    </div>`;
+                            } else {
+                                // No PDF - show upload button
+                                pdfCell = state.isEditing ? `
+                                    <div class="pdf-upload-container">
+                                        <input type="file" id="pdf_${p.name}_${state.currentTab}" accept=".pdf" 
+                                            style="display:none;" onchange="uploadPDF(this, '${p.name}','${pdfKey}', false)">
+                                        <button class="pdf-upload-btn" onclick="document.getElementById('pdf_${p.name}_${state.currentTab}').click()">
+                                            <i class="fas fa-upload"></i> Upload PDF
+                                        </button>
+                                    </div>` : '<span style="color: #999; font-style: italic;">No document</span>';
+                            }
+                            
                             html += `<tr>
                                 <td style="text-align:left;font-weight:600;background:var(--border-color);">${p.name}</td>
                                 <td><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'}
                                     oninput="updateVal('${p.name}','${key}',1,this.value)"></td>
+                                <td>${pdfCell}</td>
                             </tr>`;
                         });
 
@@ -4646,6 +4931,22 @@ async function firebaseSignup(email, password) {
         return false;
     }
 
+    // ⚠️ SECURITY WARNING: Password Validation
+    // Wala pang minimum requirements para sa password strength
+    // Dapat mag-implement ng:
+    // - Minimum 8+ characters
+    // - May numbers at special characters
+    // - May uppercase at lowercase letters
+    // Halimbawa:
+    // if (password.length < 8) {
+    //     alert('Password must be at least 8 characters long');
+    //     return false;
+    // }
+    // if (!/(?=.*[0-9])(?=.*[!@#$%^&*])/.test(password)) {
+    //     alert('Password must contain at least one number and one special character');
+    //     return false;
+    // }
+
     try {
         const userCredential = await window.firebase.createUserWithEmailAndPassword(window.firebaseAuth, email, password);
         console.log('✅ Signup successful:', userCredential.user.email);
@@ -4815,4 +5116,3 @@ console.log('🔥 Firebase integration loaded - OPTIMIZED: Save button only!');
 
 </body>
 </html>
-
