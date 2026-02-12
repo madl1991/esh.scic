@@ -17,6 +17,7 @@
         import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
         import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+        import { getDatabase, ref as dbRef, set, push, update, onValue, onDisconnect, serverTimestamp, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         // ⚠️ SECURITY WARNING: API Keys Exposed
         // Dapat gamitin ang Firebase Security Rules at gawing private ang sensitive credentials.
@@ -24,6 +25,7 @@
         const firebaseConfig = {
             apiKey: "AIzaSyBdqVEm3PWPuFTVbrxaP4JAZNXl2bmNUg4",
             authDomain: "esh-dashboard.firebaseapp.com",
+            databaseURL: "https://esh-dashboard-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "esh-dashboard",
             storageBucket: "esh-dashboard.firebasestorage.app",
             messagingSenderId: "121684914529",
@@ -36,10 +38,12 @@
         const db = getFirestore(app);
         const analytics = getAnalytics(app);
         const storage = getStorage(app);
+        const realtimeDb = getDatabase(app);
 
         window.firebaseAuth = auth;
         window.firebaseDb = db;
         window.firebaseStorage = storage;
+        window.firebaseRealtimeDb = realtimeDb;
         window.firebase = {
             signInWithEmailAndPassword,
             createUserWithEmailAndPassword,
@@ -53,7 +57,15 @@
             ref,
             uploadBytes,
             getDownloadURL,
-            deleteObject
+            deleteObject,
+            dbRef,
+            set,
+            push,
+            update,
+            remove,
+            onValue,
+            onDisconnect,
+            serverTimestamp
         };
 
         console.log("✅ Firebase initialized!");
@@ -81,6 +93,13 @@
             --border-color: #444;
             --table-header: #1b5e20;
             --input-bg: #3a3a3a;
+        }
+
+        /* Dark mode active users badge */
+        body.dark-mode #active-users-badge {
+            background: rgba(27, 94, 32, 0.3);
+            border-color: #2e7d32;
+            color: #81c784;
         }
 
         * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
@@ -212,6 +231,18 @@
             75% {
                 transform: translateY(-35px) rotate(3deg);
                 opacity: 0.07;
+            }
+        }
+
+        /* Active Users Pulse Animation */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.3);
             }
         }
 
@@ -1642,6 +1673,14 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <button class="theme-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
                     <i class="fas fa-moon" id="theme-icon"></i>
                 </button>
+                <div id="active-users-badge" style="display: flex; align-items: center; gap: 6px; background: rgba(27, 94, 32, 0.15); border: 2px solid #1b5e20; padding: 8px 14px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; color: #1b5e20; cursor: help;" title="Real-time active users count. Open browser console (F12) for debug info.">
+                    <i class="fas fa-circle" style="color: #4caf50; font-size: 0.5rem; animation: pulse 2s ease-in-out infinite;"></i>
+                    <span id="active-users-count">0</span>
+                    <span style="font-weight: 500;">active</span>
+                    <button onclick="window.testPresence()" style="margin-left: 8px; background: #1b5e20; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; cursor: pointer;" title="Test presence tracking">
+                        <i class="fas fa-bug"></i>
+                    </button>
+                </div>
                 <button id="edit-btn" class="btn btn-primary" onclick="toggleEdit()"><i class="fas fa-edit"></i> EDIT</button>
                 <button id="save-btn" class="btn btn-primary hidden" onclick="saveData()">
                     <i class="fas fa-cloud-upload-alt save-icon"></i>
@@ -1678,7 +1717,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <option value="name">Full Name</option>
                     <option value="pos">Position</option>
                     <option value="id">ID Number</option>
-                    <option value="current">Current Project</option>
+                    <option value="current">Current Assignment</option>
                     <option value="gen">Gender</option>
                 </select>
                 <input type="text" id="p-filter-value" placeholder="Search personnel..." onkeyup="filterPTable()" style="flex:1; padding:8px 12px; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:0.75rem;">
@@ -1704,10 +1743,10 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <thead>
                     <tr style="background: linear-gradient(90deg,#1b5e20 0%,#388e3c 100%);">
                         <th style="padding:10px 12px; color:white; text-align:left; white-space:nowrap; font-weight:700; letter-spacing:0.3px; border:none; min-width:160px;">#&nbsp;&nbsp;Full Name</th>
-                        <th style="padding:10px 8px; color:white; text-align:left; white-space:nowrap; font-weight:700; border:none; width:145px;">Position</th>
+                        <th style="padding:10px 8px; color:white; text-align:left; white-space:nowrap; font-weight:700; border:none; width:180px;">Position</th>
                         <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:95px;">ID Number</th>
                         <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:110px;">Date Hired</th>
-                        <th style="padding:10px 8px; color:white; text-align:left; white-space:nowrap; font-weight:700; border:none; min-width:160px;">Current Project</th>
+                        <th style="padding:10px 8px; color:white; text-align:left; white-space:nowrap; font-weight:700; border:none; min-width:180px;">Current Assignment</th>
                         <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:48px;">Age</th>
                         <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:80px;">Gender</th>
                         <th style="padding:10px 8px; color:white; text-align:left; white-space:nowrap; font-weight:700; border:none; min-width:180px;">Email</th>
@@ -4522,6 +4561,28 @@ function showModernDialog(title, message, isDanger = false) {
 
 // --- ESH PERSONNEL MONITORING SYSTEM ---
 
+/**
+ * Calculate years of service from hire date to current date
+ */
+function calculateYearsOfService(hireDate) {
+    if (!hireDate) return '';
+    
+    const hired = new Date(hireDate);
+    const today = new Date();
+    
+    // Calculate the difference in years
+    let years = today.getFullYear() - hired.getFullYear();
+    const monthDiff = today.getMonth() - hired.getMonth();
+    
+    // Adjust if birthday hasn't occurred this year yet
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < hired.getDate())) {
+        years--;
+    }
+    
+    // Return 0 if negative (future date)
+    return years < 0 ? 0 : years;
+}
+
 function addPRow() {
     if (!state.personnelData) state.personnelData = [];
     state.personnelData.push({ name: '', pos: '', id: '', hired: '', current: '', age: '', gen: '', mail: '', num: '', addr: '', len: '' });
@@ -4535,38 +4596,76 @@ function addPRow() {
 function renderPTable() {
     const tbody = document.getElementById('p-body');
     if (!tbody) return;
-    const projOptions = (state.projects || []).map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+    
+    // Build project options with Corporate Office/Head Office at the top
+    let projOptions = '<optgroup label="Corporate/Head Office">';
+    projOptions += '<option value="Corporate Office - Head Office">Corporate Office</option>';
+    projOptions += '</optgroup>';
+    
+    if (state.projects && state.projects.length > 0) {
+        projOptions += '<optgroup label="Project Sites">';
+        projOptions += (state.projects || []).map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+        projOptions += '</optgroup>';
+    }
+    
     const data = state.personnelData || [];
 
     tbody.innerHTML = data.map((p, i) => {
         const genderClass = p.gen === 'Male' ? 'p-gender-m' : p.gen === 'Female' ? 'p-gender-f' : '';
         const posDisplay  = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>` : '';
         const genDisplay  = p.gen && p.gen !== 'Select' ? `<span class="p-pos-badge ${genderClass}">${p.gen}</span>` : '';
+        
+        // Auto-calculate years of service from hire date
+        const yearsOfService = calculateYearsOfService(p.hired);
+        // Update the stored value if it's different
+        if (p.hired && yearsOfService !== '' && p.len !== yearsOfService.toString()) {
+            state.personnelData[i].len = yearsOfService.toString();
+        }
 
         return `
         <tr id="p-row-${i}">
-            <td style="min-width:160px;">
+            <td style="min-width:250px;">
                 <span class="p-row-num">${i+1}</span>
-                <input type="text" value="${p.name || ''}" onchange="state.personnelData[${i}].name=this.value" style="min-width:120px;" disabled>
+                <input type="text" value="${p.name || ''}" onchange="state.personnelData[${i}].name=this.value" style="min-width:220px;" disabled>
             </td>
-            <td style="width:145px;">
+            <td style="width:180px;">
                 ${posDisplay}
-                <select onchange="state.personnelData[${i}].pos=this.value;renderPTable();" style="width:130px;display:none;" disabled>
+                <select onchange="state.personnelData[${i}].pos=this.value;renderPTable();" style="width:170px;display:none;" disabled>
                     <option value="${p.pos||''}">${p.pos||'Select'}</option>
-                    <option>Project Physician</option><option>ESH Head</option><option>Safety Officer I</option>
-                    <option>Safety Officer II</option><option>Safety Officer III</option><option>Safety Officer IV</option>
-                    <option>PCO</option><option>Project Nurse</option><option>First Aider</option><option>Others</option>
+                    <optgroup label="Project-Based Positions">
+                        <option>ESH Superintendent</option>
+                        <option>ESH Head</option>
+                        <option>Safety Officer I</option>
+                        <option>Safety Officer II</option>
+                        <option>Safety Officer III</option>
+                        <option>Safety Officer IV</option>
+                        <option>PCO</option>
+			<option>Project Physician</option>
+                        <option>Project Nurse</option>
+                        <option>First Aider</option>
+                    </optgroup>
+                    <optgroup label="Corporate Positions">
+                        <option>QESH Manager</option>
+                        <option>QESH Deputy Manager</option>
+                        <option>ESH Manager for Regulation & Compliance</option>
+                        <option>ESH Manager for Project Implementation</option>
+                        <option>Environmental and Sustainability Head</option>
+                        <option>QESH Corp. DC</option>                            
+                    </optgroup>
+                    <optgroup label="Other">
+                        <option>Others</option>
+                    </optgroup>
                 </select>
             </td>
             <td style="width:95px; text-align:center;">
                 <input type="text" value="${p.id||''}" onchange="state.personnelData[${i}].id=this.value" style="width:80px;text-align:center;" disabled>
             </td>
             <td style="width:110px; text-align:center;">
-                <input type="date" value="${p.hired||''}" onchange="state.personnelData[${i}].hired=this.value" style="width:100px;" disabled>
+                <input type="date" value="${p.hired||''}" onchange="state.personnelData[${i}].hired=this.value;renderPTable();" style="width:100px;" disabled>
             </td>
-            <td style="min-width:160px;">
-                <select onchange="state.personnelData[${i}].current=this.value" style="min-width:150px;" disabled>
-                    <option value="${p.current||''}">${p.current||'Select Project'}</option>
+            <td style="min-width:180px;">
+                <select onchange="state.personnelData[${i}].current=this.value" style="min-width:170px;" disabled>
+                    <option value="${p.current||''}">${p.current||'Select Assignment'}</option>
                     ${projOptions}
                 </select>
             </td>
@@ -4590,7 +4689,7 @@ function renderPTable() {
                 <input type="text" value="${p.addr||''}" onchange="state.personnelData[${i}].addr=this.value" style="min-width:185px;" disabled>
             </td>
             <td style="width:70px; text-align:center;">
-                <input type="number" value="${p.len||''}" onchange="state.personnelData[${i}].len=this.value" style="width:50px;text-align:center;" min="0" max="99" disabled>
+                <input type="number" value="${yearsOfService !== '' ? yearsOfService : (p.len||'')}" style="width:50px;text-align:center;background:#f0f0f0;color:#666;font-weight:600;" min="0" max="99" disabled readonly title="Auto-calculated from Date Hired">
             </td>
             <td style="width:100px; text-align:center; white-space:nowrap;">
                 <button class="p-edit-btn" id="p-edit-btn-${i}" onclick="pRowEdit(${i})"><i class="fas fa-edit"></i></button>
@@ -4655,6 +4754,15 @@ function pRowEdit(i) {
 function pRowSave(i) {
     const row = document.getElementById('p-row-' + i);
     if (!row) return;
+    
+    // Recalculate years of service before saving
+    if (state.personnelData[i] && state.personnelData[i].hired) {
+        const yearsOfService = calculateYearsOfService(state.personnelData[i].hired);
+        if (yearsOfService !== '') {
+            state.personnelData[i].len = yearsOfService.toString();
+        }
+    }
+    
     row.querySelectorAll('input').forEach(el => el.disabled = true);
     row.querySelectorAll('select').forEach(el => { el.disabled = true; el.style.display = 'none'; });
     row.querySelectorAll('.p-pos-badge').forEach(el => el.style.display = '');
@@ -4664,7 +4772,7 @@ function pRowSave(i) {
     if (editBtn) editBtn.style.display = 'inline-flex';
     if (saveBtn) saveBtn.style.display = 'none';
     saveUserData(state.currentUser.email);
-    renderPTable(); // refresh badges
+    renderPTable(); // refresh badges and recalculate years
 }
 
 function pRowDelete(i) {
@@ -5150,6 +5258,11 @@ async function firebaseLogout() {
     }
 
     try {
+        // Cleanup presence before signing out
+        if (state.currentUser && state.currentUser.uid) {
+            cleanupPresence(state.currentUser.uid);
+        }
+        
         await window.firebase.signOut(window.firebaseAuth);
         
         // Unsubscribe from listener (if any exists)
@@ -5196,6 +5309,143 @@ async function firebaseResetPassword(email) {
     }
 }
 
+// ==================== REAL-TIME PRESENCE TRACKING ====================
+let presenceListener = null; // Track the listener so we can unsubscribe
+
+async function setupPresenceTracking(userId, userEmail) {
+    console.log('🔧 Setting up presence tracking for:', userEmail, 'UID:', userId);
+    
+    if (!window.firebaseRealtimeDb || !window.firebase) {
+        console.error('❌ Realtime Database not initialized!');
+        const counterEl = document.getElementById('active-users-count');
+        if (counterEl) counterEl.textContent = '1';
+        return;
+    }
+
+    try {
+        console.log('🔗 Creating database references...');
+        
+        // Strategy 1: Try writing to presence/{userId}
+        const userPresenceRef = window.firebase.dbRef(window.firebaseRealtimeDb, `presence/${userId}`);
+        const userData = {
+            email: userEmail,
+            online: true,
+            timestamp: Date.now()
+        };
+        
+        console.log('💾 ATTEMPT 1: Writing to presence/' + userId);
+        console.log('   Data:', userData);
+        
+        try {
+            await window.firebase.set(userPresenceRef, userData);
+            console.log('✅ Write successful!');
+        } catch (writeError) {
+            console.error('❌ Write failed:', writeError);
+            console.error('   Code:', writeError.code);
+            console.error('   Message:', writeError.message);
+            
+            // Strategy 2: Try with update instead
+            console.log('💾 ATTEMPT 2: Trying update() instead of set()');
+            try {
+                await window.firebase.update(userPresenceRef, userData);
+                console.log('✅ Update successful!');
+            } catch (updateError) {
+                console.error('❌ Update also failed:', updateError);
+                
+                // Strategy 3: Try writing to a test path
+                console.log('💾 ATTEMPT 3: Trying test path');
+                const testRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'test/connection');
+                try {
+                    await window.firebase.set(testRef, { test: true, timestamp: Date.now() });
+                    console.log('✅ Test write successful! Problem is with presence path.');
+                } catch (testError) {
+                    console.error('❌ Even test write failed:', testError);
+                    console.error('🚨 DATABASE WRITE IS COMPLETELY BLOCKED');
+                    console.error('💡 Check Firebase Console → Realtime Database → Rules');
+                }
+            }
+        }
+        
+        // Setup disconnect handler
+        console.log('🔌 Setting up disconnect handler...');
+        try {
+            await window.firebase.onDisconnect(userPresenceRef).remove();
+            console.log('✅ Disconnect handler set');
+        } catch (disconnectError) {
+            console.error('❌ Failed to set disconnect handler:', disconnectError);
+        }
+        
+        // Setup real-time listener
+        console.log('👂 Setting up real-time listener...');
+        const presenceRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'presence');
+        
+        if (presenceListener) {
+            console.log('🧹 Cleaning up old listener');
+            presenceListener();
+        }
+        
+        presenceListener = window.firebase.onValue(
+            presenceRef, 
+            (snapshot) => {
+                const activeUsers = snapshot.val();
+                console.log('📊 Presence snapshot received:', activeUsers);
+                
+                const count = activeUsers ? Object.keys(activeUsers).length : 0;
+                console.log('👥 Active users count:', count);
+                
+                if (activeUsers) {
+                    Object.entries(activeUsers).forEach(([uid, data]) => {
+                        console.log(`  👤 ${data.email} (${uid})`);
+                    });
+                }
+                
+                const counterEl = document.getElementById('active-users-count');
+                if (counterEl) {
+                    counterEl.textContent = count;
+                    console.log('✅ UI updated: ' + count + ' active');
+                }
+            },
+            (error) => {
+                console.error('❌ Listener error:', error);
+                const counterEl = document.getElementById('active-users-count');
+                if (counterEl) counterEl.textContent = '1';
+            }
+        );
+        
+        console.log('✅ Presence tracking setup complete');
+        
+    } catch (error) {
+        console.error('❌ EXCEPTION in setupPresenceTracking:', error);
+        console.error('Stack:', error.stack);
+        const counterEl = document.getElementById('active-users-count');
+        if (counterEl) counterEl.textContent = '1';
+    }
+}
+
+async function cleanupPresence(userId) {
+    console.log('🧹 Cleaning up presence for:', userId);
+    
+    if (!window.firebaseRealtimeDb || !window.firebase || !userId) {
+        console.warn('⚠️ Cannot cleanup - missing database or userId');
+        return;
+    }
+    
+    try {
+        const userPresenceRef = window.firebase.dbRef(window.firebaseRealtimeDb, `presence/${userId}`);
+        await window.firebase.remove(userPresenceRef);
+        console.log('✅ Presence cleaned up');
+            
+        if (presenceListener) {
+            console.log('🧹 Unsubscribing from listener');
+            presenceListener();
+            presenceListener = null;
+        }
+    } catch (error) {
+        console.error('❌ Cleanup error:', error);
+    }
+}
+// ==================== END PRESENCE TRACKING ====================
+
 // Auth State Observer - OPTIMIZED: No real-time listener!
 function setupAuthObserver() {
     if (!window.firebase) {
@@ -5234,6 +5484,15 @@ function setupAuthObserver() {
 
             // Load user data ONCE - no real-time listener!
             await loadFromFirebase();
+
+            // Immediately show at least 1 active user (current user)
+            const counterEl = document.getElementById('active-users-count');
+            if (counterEl) {
+                counterEl.textContent = '1';
+            }
+
+            // Setup real-time presence tracking (will update count properly)
+            setupPresenceTracking(user.uid, user.email);
 
         } else {
             console.log('👤 No user authenticated — showing login screen');
@@ -5284,7 +5543,137 @@ waitForFirebase().then(async () => {
     setupAuthObserver();
 });
 
+// Cleanup presence when page is closed or refreshed
+window.addEventListener('beforeunload', () => {
+    if (state.currentUser && state.currentUser.uid) {
+        cleanupPresence(state.currentUser.uid);
+    }
+});
+
 console.log('🔥 Firebase integration loaded - OPTIMIZED: Save button only!');
+
+// ==================== PRESENCE DEBUGGING ====================
+window.testPresence = function() {
+    console.log('');
+    console.log('🔍 ========== PRESENCE TRACKING DEBUG INFO ==========');
+    console.log('');
+    
+    // Check Firebase initialization
+    console.log('1️⃣ FIREBASE STATUS:');
+    console.log('   firebaseRealtimeDb:', window.firebaseRealtimeDb ? '✅ Initialized' : '❌ Not initialized');
+    console.log('   firebaseAuth:', window.firebaseAuth ? '✅ Initialized' : '❌ Not initialized');
+    console.log('   firebase object:', window.firebase ? '✅ Available' : '❌ Not available');
+    console.log('');
+    
+    // Check current user
+    console.log('2️⃣ CURRENT USER:');
+    if (state.currentUser) {
+        console.log('   ✅ Logged in');
+        console.log('   Email:', state.currentUser.email);
+        console.log('   UID:', state.currentUser.uid);
+    } else {
+        console.log('   ❌ Not logged in');
+    }
+    console.log('');
+    
+    // Check UI element
+    console.log('3️⃣ UI ELEMENT:');
+    const counterEl = document.getElementById('active-users-count');
+    if (counterEl) {
+        console.log('   ✅ Counter element found');
+        console.log('   Current value:', counterEl.textContent);
+    } else {
+        console.log('   ❌ Counter element NOT found');
+    }
+    console.log('');
+    
+    // Try to read presence data directly
+    if (window.firebaseRealtimeDb && window.firebase && state.currentUser) {
+        console.log('4️⃣ READING PRESENCE DATA FROM FIREBASE:');
+        const presenceRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'presence');
+        
+        // One-time read
+        window.firebase.onValue(presenceRef, (snapshot) => {
+            const data = snapshot.val();
+            console.log('   Raw data:', data);
+            
+            if (data) {
+                const count = Object.keys(data).length;
+                console.log('   ✅ Found', count, 'active user(s):');
+                Object.entries(data).forEach(([uid, userData]) => {
+                    console.log('     -', userData.email, '(UID:', uid + ')');
+                });
+            } else {
+                console.log('   ⚠️ No presence data found in Firebase');
+                console.log('   💡 This might mean:');
+                console.log('      - Database rules are blocking writes');
+                console.log('      - Connection hasn\'t been established yet');
+                console.log('      - Database URL is incorrect');
+            }
+        }, { onlyOnce: true });
+        
+        // Try a manual test write
+        console.log('');
+        console.log('5️⃣ TESTING MANUAL WRITE:');
+        const testRef = window.firebase.dbRef(window.firebaseRealtimeDb, `presence/${state.currentUser.uid}`);
+        const testData = {
+            email: state.currentUser.email,
+            online: true,
+            timestamp: Date.now(),
+            test: 'manual write test'
+        };
+        
+        console.log('   Attempting to write:', testData);
+        window.firebase.set(testRef, testData)
+            .then(() => {
+                console.log('   ✅ MANUAL WRITE SUCCESS!');
+                console.log('   💡 Check Firebase Console → Data tab now');
+                
+                // Read it back
+                setTimeout(() => {
+                    window.firebase.onValue(testRef, (snapshot) => {
+                        console.log('   📖 Read back data:', snapshot.val());
+                    }, { onlyOnce: true });
+                }, 500);
+            })
+            .catch((error) => {
+                console.error('   ❌ MANUAL WRITE FAILED:', error);
+                console.error('   Error code:', error.code);
+                console.error('   Error message:', error.message);
+            });
+    } else {
+        console.log('4️⃣ CANNOT READ PRESENCE DATA:');
+        if (!window.firebaseRealtimeDb) console.log('   ❌ Realtime Database not initialized');
+        if (!window.firebase) console.log('   ❌ Firebase SDK not loaded');
+        if (!state.currentUser) console.log('   ❌ No user logged in');
+    }
+    console.log('');
+    
+    // Database configuration
+    console.log('6️⃣ DATABASE CONFIGURATION:');
+    console.log('   URL: https://esh-dashboard-default-rtdb.asia-southeast1.firebasedatabase.app');
+    console.log('   Path: /presence/{userId}');
+    console.log('');
+    
+    // Instructions
+    console.log('7️⃣ TROUBLESHOOTING STEPS:');
+    console.log('   1. Check Firebase Console → Realtime Database → Data tab');
+    console.log('   2. Check Firebase Console → Realtime Database → Rules tab');
+    console.log('   3. Ensure rules allow read/write to "presence" path');
+    console.log('   4. Try logging in from another device/browser');
+    console.log('');
+    console.log('🔍 ========== END DEBUG INFO ==========');
+    console.log('');
+};
+
+// Auto-run test on page load if there's an issue
+setTimeout(() => {
+    const counterEl = document.getElementById('active-users-count');
+    if (counterEl && counterEl.textContent === '0' && state.currentUser) {
+        console.warn('⚠️ Presence counter is 0 but user is logged in. Running diagnostic...');
+        window.testPresence();
+    }
+}, 5000);
 
 // ==================== END FIREBASE INTEGRATION ====================
     </script>
