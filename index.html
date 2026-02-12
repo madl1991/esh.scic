@@ -2788,6 +2788,103 @@ function closeAllStatusDropdowns() {
 
             const displayProjects = state.filteredProjects.length > 0 ? state.filteredProjects : state.projects;
 
+            // ────────────────────────────────────────────────────────────────────────
+            // OVERALL SUMMARY - ALL REGIONS (para sa specific tabs)
+            // ────────────────────────────────────────────────────────────────────────
+            if (['exposures', 'medical', 'activities', 'nov'].includes(state.currentTab) && displayProjects.length > 0) {
+                const hasYTD = ['exposures', 'medical', 'activities', 'nov'].includes(state.currentTab);
+                const isNov = state.currentTab === 'nov';
+                
+                html += `
+                <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); color: white; padding: 20px; margin: 20px 20px 0; border-radius: 12px; box-shadow: 0 4px 15px rgba(27,94,32,0.3);">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                        <i class="fas fa-globe" style="font-size: 1.8rem; color: #fbc02d;"></i>
+                        <div>
+                            <h2 style="margin: 0; font-size: 1.3rem; font-weight: 800; letter-spacing: 0.5px;">OVERALL SUMMARY - ALL REGIONS</h2>
+                            <p style="margin: 5px 0 0; font-size: 0.85rem; opacity: 0.9;">Consolidated data from all projects across all regions</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-container" style="margin: 0 20px 20px;">
+                    <table>
+                        <tr>
+                            <th style="width:250px; text-align:left; background: #2e7d32; position: sticky; left: 0; z-index: 10;">TYPE</th>
+                            <th class="prev-year${isNov ? ' nov-narrow-th' : ''}" style="background: #388e3c;">PREVIOUS</th>`;
+                
+                // Monthly column headers
+                MONTHS.forEach(m => {
+                    html += `<th${isNov ? ' class="nov-narrow-th"' : ''} style="background: #388e3c;">${m}</th>`;
+                });
+                
+                if (hasYTD) {
+                    html += `<th class="ytd-header" style="background: #f9a825;">RUNNING YTD</th>`;
+                }
+                
+                html += `</tr>`;
+                
+                // Calculate totals for each row
+                SCHEMA[state.currentTab].forEach((row, rowIdx) => {
+                    const key = `${state.currentTab}_${row}`;
+                    html += `<tr><td style="text-align:left; font-weight:700; background:#e8f5e9; color:#1b5e20; position: sticky; left: 0; z-index: 5;">${row}</td>`;
+                    
+                    // Previous Year Total
+                    let prevTotal = 0;
+                    displayProjects.forEach(p => {
+                        const val = p.vals[key] ? p.vals[key][0] : "";
+                        if (val !== "" && !isNaN(val)) prevTotal += parseFloat(val);
+                    });
+                    html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}" style="font-weight: 700; font-size: 0.95rem;">${prevTotal > 0 ? prevTotal : ''}</td>`;
+                    
+                    // Monthly Totals
+                    for (let i = 1; i <= 12; i++) {
+                        let monthTotal = 0;
+                        displayProjects.forEach(p => {
+                            const val = p.vals[key] ? p.vals[key][i] : "";
+                            if (val !== "" && !isNaN(val)) monthTotal += parseFloat(val);
+                        });
+                        html += `<td class="${isNov ? 'nov-narrow-td' : 'monthly-data'}" style="font-weight: 600; background: #f1f8e9;">${monthTotal > 0 ? monthTotal : ''}</td>`;
+                    }
+                    
+                    // Running YTD Total
+                    if (hasYTD) {
+                        let ytdTotal = 0;
+                        if (row === "Total Manpower") {
+                            // For Total Manpower, calculate average across all projects
+                            let totalAvg = 0;
+                            let projectCount = 0;
+                            displayProjects.forEach(p => {
+                                const avg = calculateAverage(p.vals[key], rowIdx);
+                                if (avg > 0) {
+                                    totalAvg += avg;
+                                    projectCount++;
+                                }
+                            });
+                            ytdTotal = projectCount > 0 ? Math.round(totalAvg / projectCount) : 0;
+                            html += `<td class="average-cell" style="font-weight: 800; font-size: 1rem;">${ytdTotal > 0 ? ytdTotal : ''}</td>`;
+                        } else {
+                            // For other rows, sum YTD
+                            displayProjects.forEach(p => {
+                                const ytd = calculateYTD(p.vals[key], rowIdx);
+                                if (ytd > 0) ytdTotal += ytd;
+                            });
+                            html += `<td class="ytd-cell" style="font-weight: 800; font-size: 1rem;">${ytdTotal > 0 ? ytdTotal : ''}</td>`;
+                        }
+                    }
+                    
+                    html += `</tr>`;
+                });
+                
+                html += `</table></div>
+                
+                <div style="margin: 0 20px 30px; padding: 15px; background: #fff3e0; border-left: 5px solid #ff9800; border-radius: 6px;">
+                    <p style="margin: 0; font-size: 0.85rem; color: #e65100; font-weight: 600;">
+                        <i class="fas fa-info-circle"></i> This summary aggregates data from <strong>${displayProjects.length} project(s)</strong> across all regions. 
+                        Individual project details are shown below by region.
+                    </p>
+                </div>`;
+            }
+
             // Show welcome message if no projects exist yet
             if (state.projects.length === 0 && state.currentTab === 'overall') {
                 html += `<div style="background: var(--bg-card); border-radius: 12px; padding: 40px; text-align: center; margin: 20px 0; border: 2px dashed var(--border-color);">
@@ -2852,81 +2949,212 @@ if (state.currentTab === 'audit') {
     html += `<div class="table-container">
         <style>
             .audit-table {
-                border-collapse: collapse;
+                border-collapse: separate;
+                border-spacing: 0;
                 width: 100%;
-                max-width: 1000px;
-                margin: 10px 0;
-                font-family: Arial, sans-serif;
-                border: 0.5px solid #d1d1d1;
+                max-width: 1100px;
+                margin: 20px auto;
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 8px 24px rgba(27, 94, 32, 0.15), 0 2px 6px rgba(0, 0, 0, 0.08);
+                background: white;
             }
-            /* Green Header style base sa image */
+            
+            /* Enhanced Green Header with gradient */
             .audit-table thead th {
-                background-color: #2e7d32; /* Dark green background */
-                color: #ffffff;            /* White text */
-                font-weight: bold;
+                background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #388e3c 100%);
+                color: #ffffff;
+                font-weight: 700;
                 text-transform: uppercase;
+                letter-spacing: 0.8px;
                 font-size: 11px;
-                padding: 10px 4px;
-                border: 0.5px solid #1b5e20;
+                padding: 16px 8px;
+                border: none;
+                position: relative;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
             }
+            
+            /* Top row headers - Quarter labels */
+            .audit-table thead tr:first-child th {
+                font-size: 13px;
+                padding: 18px 8px;
+                font-weight: 800;
+                letter-spacing: 1.2px;
+                background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+            }
+            
+            /* Second row - Score labels */
+            .audit-table thead tr:nth-child(2) th {
+                font-size: 12px;
+                padding: 14px 8px;
+                background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
+            }
+            
+            /* Column headers with white background */
+            .audit-table thead tr:last-child th {
+                background: #f8f9fa;
+                color: #1b5e20;
+                font-size: 10px;
+                padding: 12px 6px;
+                border-top: 2px solid #2e7d32;
+                font-weight: 600;
+                letter-spacing: 0.5px;
+            }
+            
+            /* Average column styling */
+            .audit-table thead tr:last-child th[style*="background: #808080"],
+            .audit-table thead tr:last-child th[style*="background:#808080"] {
+                background: linear-gradient(135deg, #616161 0%, #757575 100%) !important;
+                color: white !important;
+                font-weight: 700;
+            }
+            
+            /* Body cells */
             .audit-table td { 
-                border: 0.5px solid #d1d1d1;
+                border: 1px solid #e0e0e0;
                 text-align: center; 
                 vertical-align: middle; 
-                padding: 4px;
-                font-size: 12px;
+                padding: 12px 8px;
+                font-size: 13px;
+                transition: all 0.2s ease;
+                background: white;
             }
-            /* Row highlight para sa alternating colors */
+            
+            /* Row hover effect */
             .audit-table tbody tr {
                 background-color: #ffffff;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             }
-            /* Specific cell adjustments */
-            .cell-white { background-color: #ffffff; }
-            .cell-avg-gray { background: #808080 !important; color: white !important; font-weight: bold; }
-            .cell-grand-total { background-color: #ffff00 !important; color: #000000 !important; font-weight: bold; }
             
+            .audit-table tbody tr:hover {
+                background-color: #f1f8f4;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(27, 94, 32, 0.1);
+            }
+            
+            /* Specific cell styles */
+            .cell-white { 
+                background-color: #ffffff;
+            }
+            
+            .cell-avg-gray { 
+                background: linear-gradient(135deg, #616161 0%, #757575 100%) !important;
+                color: white !important; 
+                font-weight: 700;
+                font-size: 14px;
+                letter-spacing: 0.3px;
+                box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            
+            .cell-grand-total { 
+                background: linear-gradient(135deg, #ffd54f 0%, #ffeb3b 100%) !important;
+                color: #1b5e20 !important; 
+                font-weight: 800;
+                font-size: 16px;
+                letter-spacing: 0.5px;
+                box-shadow: inset 0 2px 6px rgba(251, 192, 45, 0.4);
+                border: 2px solid #fbc02d !important;
+            }
+            
+            /* Enhanced input styling */
             .audit-table input { 
                 text-align: center; 
-                width: 45px;
-                border: 0.5px solid #ccc;
-                border-radius: 2px;
-                font-size: 11px;
-                padding: 2px;
+                width: 52px;
+                border: 2px solid #e0e0e0;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: 600;
+                padding: 6px 4px;
+                transition: all 0.2s ease;
+                background: white;
+                color: #1b5e20;
+                font-family: 'Inter', sans-serif;
             }
-            .audit-table p { margin: 0; padding: 0; font-size: 10px; }
+            
+            .audit-table input:hover {
+                border-color: #66bb6a;
+                background: #f1f8f4;
+            }
+            
+            .audit-table input:focus {
+                outline: none;
+                border-color: #2e7d32;
+                background: #ffffff;
+                box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+            }
+            
+            .audit-table input:disabled {
+                background: #f5f5f5;
+                color: #757575;
+                cursor: not-allowed;
+                border-color: #e0e0e0;
+            }
+            
+            .audit-table p { 
+                margin: 0; 
+                padding: 0; 
+                font-size: 11px;
+                line-height: 1.4;
+            }
+            
+            /* Responsive design */
+            @media (max-width: 768px) {
+                .audit-table {
+                    font-size: 10px;
+                    max-width: 100%;
+                    border-radius: 8px;
+                }
+                
+                .audit-table thead th {
+                    padding: 10px 4px;
+                    font-size: 9px;
+                }
+                
+                .audit-table td {
+                    padding: 8px 4px;
+                    font-size: 11px;
+                }
+                
+                .audit-table input {
+                    width: 40px;
+                    font-size: 11px;
+                    padding: 4px 2px;
+                }
+            }
         </style>
         
         <table class="audit-table">
             <thead>
                 <tr>
-                    <th colspan="3">Q1 (JAN-MAR)</th>
-                    <th colspan="3">Q2 (APR-JUN)</th>
-                    <th colspan="3">Q3 (JUL-SEP)</th>
-                    <th colspan="3">Q4 (OCT-DEC)</th>
-                    <th rowspan="3" class="cell-grand-total" style="border: 0.5px solid #d1d1d1;">GRAND<br>TOTAL AVG</th>
+                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q1 (JAN-MAR)</th>
+                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q2 (APR-JUN)</th>
+                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q3 (JUL-SEP)</th>
+                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q4 (OCT-DEC)</th>
+                    <th rowspan="3" class="cell-grand-total" style="border-left: 3px solid #fbc02d; vertical-align: middle; line-height: 1.3;">GRAND<br>TOTAL<br>AVERAGE</th>
                 </tr>
                 <tr>
-                    <th colspan="3">Score</th>
-                    <th colspan="3">Score</th>
-                    <th colspan="3">Score</th>
-                    <th colspan="3">Score</th>
+                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
+                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
+                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
+                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
                 </tr>
                 <tr>
-                    <th style="background: white; color: black; font-size: 10px;">Impl.</th>
-                    <th style="background: white; color: black; font-size: 10px;">Docu & Comp.</th>
-                    <th style="background: #808080; color: white; font-size: 10px;">Avg</th>
+                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Implementation</th>
+                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Documentation & Compliance</th>
+                    <th style="background: #808080; color: white; font-size: 10px; font-weight: 700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
                     
-                    <th style="background: white; color: black; font-size: 10px;">Impl.</th>
-                    <th style="background: white; color: black; font-size: 10px;">Docu & Comp.</th>
-                    <th style="background: #808080; color: white; font-size: 10px;">Avg</th>
+                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Implementation</th>
+                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Documentation & Compliance</th>
+                    <th style="background: #808080; color: white; font-size: 10px; font-weight: 700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
                     
-                    <th style="background: white; color: black; font-size: 10px;">Impl.</th>
-                    <th style="background: white; color: black; font-size: 10px;">Docu & Comp.</th>
-                    <th style="background: #808080; color: white; font-size: 10px;">Avg</th>
+                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Implementation</th>
+                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Documentation & Compliance</th>
+                    <th style="background: #808080; color: white; font-size: 10px; font-weight: 700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
                     
-                    <th style="background: white; color: black; font-size: 10px;">Impl.</th>
-                    <th style="background: white; color: black; font-size: 10px;">Docu & Comp.</th>
-                    <th style="background: #808080; color: white; font-size: 10px;">Avg</th>
+                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Implementation</th>
+                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Documentation & Compliance</th>
+                    <th style="background: #808080; color: white; font-size: 10px; font-weight: 700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
                 </tr>
             </thead>
             <tbody>
@@ -2941,9 +3169,9 @@ if (state.currentTab === 'audit') {
         totalYearAvg += qAvg;
 
         html += `
-            <td class="cell-white"><input type="number" value="${audit.scoreImpl}" ${state.isEditing ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)"></td>
-            <td class="cell-white"><input type="number" value="${audit.docuComp}" ${state.isEditing ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)"></td>
-            <td class="cell-avg-gray">${qAvg.toFixed(2)}</td>`;
+            <td class="cell-white"><input type="number" value="${audit.scoreImpl}" ${state.isEditing ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)" placeholder="0"></td>
+            <td class="cell-white"><input type="number" value="${audit.docuComp}" ${state.isEditing ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)" placeholder="0"></td>
+            <td class="cell-avg-gray" style="border-right: 2px solid #e0e0e0;">${qAvg.toFixed(2)}</td>`;
     });
 
     html += `<td class="cell-grand-total">${(totalYearAvg / 4).toFixed(2)}</td>
@@ -3137,47 +3365,49 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                             <table class="audit-table">
                                 <thead>
                                     <tr>
-                                        <th rowspan="3" style="text-align:left;min-width:180px;">PROJECT NAME</th>
-                                        <th colspan="3">Q1 (JAN-MAR)</th>
-                                        <th colspan="3">Q2 (APR-JUN)</th>
-                                        <th colspan="3">Q3 (JUL-SEP)</th>
-                                        <th colspan="3">Q4 (OCT-DEC)</th>
-                                        <th rowspan="3" class="cell-grand-total" style="border:0.5px solid #d1d1d1;">GRAND<br>TOTAL AVG</th>
+                                        <th rowspan="3" style="text-align:left; min-width:200px; padding-left: 12px; border-right: 2px solid rgba(255,255,255,0.3);">PROJECT NAME</th>
+                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q1 (JAN-MAR)</th>
+                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q2 (APR-JUN)</th>
+                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q3 (JUL-SEP)</th>
+                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q4 (OCT-DEC)</th>
+                                        <th rowspan="3" class="cell-grand-total" style="border-left: 3px solid #fbc02d; vertical-align: middle; line-height: 1.3;">GRAND<br>TOTAL<br>AVERAGE</th>
                                     </tr>
                                     <tr>
-                                        <th colspan="3">Score</th><th colspan="3">Score</th>
-                                        <th colspan="3">Score</th><th colspan="3">Score</th>
+                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
+                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
+                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
+                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
                                     </tr>
                                     <tr>
-                                        <th style="background:white;color:black;font-size:10px;">Impl.</th>
-                                        <th style="background:white;color:black;font-size:10px;">Docu &amp; Comp.</th>
-                                        <th style="background:#808080;color:white;font-size:10px;">Avg</th>
-                                        <th style="background:white;color:black;font-size:10px;">Impl.</th>
-                                        <th style="background:white;color:black;font-size:10px;">Docu &amp; Comp.</th>
-                                        <th style="background:#808080;color:white;font-size:10px;">Avg</th>
-                                        <th style="background:white;color:black;font-size:10px;">Impl.</th>
-                                        <th style="background:white;color:black;font-size:10px;">Docu &amp; Comp.</th>
-                                        <th style="background:#808080;color:white;font-size:10px;">Avg</th>
-                                        <th style="background:white;color:black;font-size:10px;">Impl.</th>
-                                        <th style="background:white;color:black;font-size:10px;">Docu &amp; Comp.</th>
-                                        <th style="background:#808080;color:white;font-size:10px;">Avg</th>
+                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
+                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
+                                        <th style="background:#808080; color:white; font-size:10px; font-weight:700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
+                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
+                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
+                                        <th style="background:#808080; color:white; font-size:10px; font-weight:700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
+                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
+                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
+                                        <th style="background:#808080; color:white; font-size:10px; font-weight:700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
+                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
+                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
+                                        <th style="background:#808080; color:white; font-size:10px; font-weight:700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
                                     </tr>
                                 </thead>
                                 <tbody>`;
 
                         projs.forEach(p => {
                             let totalYearAvg = 0;
-                            html += `<tr><td style="text-align:left;font-weight:600;background:var(--border-color);padding:6px 8px;">${p.name}</td>`;
+                            html += `<tr><td style="text-align:left; font-weight:700; background:#f8f9fa; padding:10px 12px; color:#1b5e20; border-right: 2px solid #e0e0e0;">${p.name}</td>`;
                             ['Q1','Q2','Q3','Q4'].forEach(q => {
                                 const audit = p.auditData?.[q] || { scoreImpl: 0, docuComp: 0 };
                                 const qAvg  = (audit.scoreImpl + audit.docuComp) / 2;
                                 totalYearAvg += qAvg;
                                 html += `
                                     <td class="cell-white"><input type="number" value="${audit.scoreImpl}" ${state.isEditing ? '' : 'disabled'}
-                                        oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)"></td>
+                                        oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)" placeholder="0"></td>
                                     <td class="cell-white"><input type="number" value="${audit.docuComp}" ${state.isEditing ? '' : 'disabled'}
-                                        oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)"></td>
-                                    <td class="cell-avg-gray">${qAvg.toFixed(2)}</td>`;
+                                        oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)" placeholder="0"></td>
+                                    <td class="cell-avg-gray" style="border-right: 2px solid #e0e0e0;">${qAvg.toFixed(2)}</td>`;
                             });
                             html += `<td class="cell-grand-total">${(totalYearAvg/4).toFixed(2)}</td></tr>`;
                         });
@@ -3315,46 +3545,61 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                     ? ((overallTotals.closed / overallTotals.total) * 100).toFixed(2) 
                     : '0.00';
                 
-                // Render Overall Total Table at the TOP
-                html += `<div class="region-banner" style="background: linear-gradient(90deg, #1b5e20 0%, #2e7d32 100%);">
-                    <div><i class="fas fa-chart-bar"></i> OVERALL SUMMARY - ALL REGIONS</div>
+                // Render Overall Total Table at the TOP - NEW DESIGN
+                html += `
+                <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); color: white; padding: 20px; margin: 20px 20px 0; border-radius: 12px; box-shadow: 0 4px 15px rgba(27,94,32,0.3);">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                        <i class="fas fa-globe" style="font-size: 1.8rem; color: #fbc02d;"></i>
+                        <div>
+                            <h2 style="margin: 0; font-size: 1.3rem; font-weight: 800; letter-spacing: 0.5px;">OVERALL SUMMARY - ALL REGIONS</h2>
+                            <p style="margin: 5px 0 0; font-size: 0.85rem; opacity: 0.9;">ESH NOV Monitoring consolidated data from all projects</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="table-container">
+                
+                <div class="table-container" style="margin: 0 20px 20px;">
                     <table class="nov-monitoring-table">
                         <thead>
                             <tr>
-                                <th style="min-width: 150px;">SUMMARY</th>
-                                <th class="prev-year">PREVIOUS</th>
-                                <th>JAN</th><th>FEB</th><th>MAR</th><th>APR</th>
-                                <th>MAY</th><th>JUN</th><th>JUL</th><th>AUG</th>
-                                <th>SEP</th><th>OCT</th><th>NOV</th><th>DEC</th>
+                                <th style="min-width: 150px; background: #2e7d32;">TYPE</th>
+                                <th class="prev-year" style="background: #388e3c;">PREVIOUS</th>
+                                <th style="background: #388e3c;">JAN</th><th style="background: #388e3c;">FEB</th><th style="background: #388e3c;">MAR</th><th style="background: #388e3c;">APR</th>
+                                <th style="background: #388e3c;">MAY</th><th style="background: #388e3c;">JUN</th><th style="background: #388e3c;">JUL</th><th style="background: #388e3c;">AUG</th>
+                                <th style="background: #388e3c;">SEP</th><th style="background: #388e3c;">OCT</th><th style="background: #388e3c;">NOV</th><th style="background: #388e3c;">DEC</th>
                                 <th style="background: #66bb6a;">OPEN</th>
                                 <th style="background: #ffa726;">PENDING</th>
                                 <th style="background: #42a5f5;">CLOSED</th>
-                                <th style="background: #fbc02d;">TOTAL</th>
+                                <th style="background: #f9a825;">TOTAL</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr class="overall-total">
-                                <td style="text-align: left; font-weight: 700; background: #1b5e20; color: white;">OVERALL TOTAL</td>
-                                <td style="background: #81c784;">${overallTotals.prev}</td>`;
+                                <td style="text-align: left; font-weight: 700; background: #e8f5e9; color: #1b5e20;">OVERALL TOTAL</td>
+                                <td style="background: #c8e6c9; font-weight: 700;">${overallTotals.prev}</td>`;
                 
                 for (let i = 0; i < 12; i++) {
-                    html += `<td style="background: #a5d6a7;">${overallTotals.months[i]}</td>`;
+                    html += `<td style="background: #f1f8e9; font-weight: 600;">${overallTotals.months[i]}</td>`;
                 }
                 
-                html += `<td style="background: #66bb6a;">${overallTotals.open}</td>
-                    <td style="background: #ff9800;">${overallTotals.pending}</td>
-                    <td style="background: #2196f3;">${overallTotals.closed}</td>
-                    <td style="background: #f9a825; font-size: 14px;">${overallTotals.total}</td>
+                html += `<td style="background: #a5d6a7; font-weight: 700;">${overallTotals.open}</td>
+                    <td style="background: #ffcc80; font-weight: 700;">${overallTotals.pending}</td>
+                    <td style="background: #90caf9; font-weight: 700;">${overallTotals.closed}</td>
+                    <td style="background: #fff59d; font-weight: 800; font-size: 1rem;">${overallTotals.total}</td>
                 </tr>
-                <tr class="overall-total">
-                    <td colspan="17" style="text-align: center; background: #c8e6c9; font-size: 16px; padding: 12px;">
-                        <strong>OVERALL COMPLETION RATE: ${overallPercentage}%</strong>
+                <tr style="background: #c8e6c9;">
+                    <td colspan="17" style="text-align: center; font-size: 1.1rem; padding: 15px; font-weight: 700; color: #1b5e20;">
+                        <i class="fas fa-chart-line"></i> OVERALL COMPLETION RATE: <span style="font-size: 1.3rem; color: #2e7d32;">${overallPercentage}%</span>
                     </td>
                 </tr>
                         </tbody>
                     </table>
+                </div>
+                
+                <div style="margin: 0 20px 30px; padding: 15px; background: #fff3e0; border-left: 5px solid #ff9800; border-radius: 6px;">
+                    <p style="margin: 0; font-size: 0.85rem; color: #e65100; font-weight: 600;">
+                        <i class="fas fa-info-circle"></i> This summary aggregates ESH NOV data from <strong>${displayProjects.length} project(s)</strong> across all regions. 
+                        Individual project details are shown below by region.
+                    </p>
                 </div>`;
                 
                 // Now render table for each region
@@ -4570,4 +4815,3 @@ console.log('🔥 Firebase integration loaded - OPTIMIZED: Save button only!');
 
 </body>
 </html>
-
