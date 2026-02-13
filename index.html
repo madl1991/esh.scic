@@ -1950,25 +1950,23 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         <header>
             <h2 class="header-title">OVERALL DASHBOARD</h2>
             <div class="header-controls">
-                <input type="text" id="search-input" placeholder="Search projects..." onkeyup="handleSearch()" style="display: none;">
-                <select id="region-filter" onchange="handleFilter()" style="display: none;">
+                <!-- Search and filters - only show on OVERALL DASHBOARD -->
+                <input type="text" id="search-input" placeholder="Search projects..." onkeyup="handleSearch()">
+                <select id="region-filter" onchange="handleFilter()">
                     <option value="">All Regions</option>
                     <option value="NCR">NCR</option>
                     <option value="SOUTH LUZON">South Luzon</option>
                     <option value="NORTH LUZON">North Luzon</option>
                     <option value="VISAYAS & MINDANAO">Visayas & Mindanao</option>
                 </select>
-                <select id="status-filter" onchange="handleFilter()" style="display: none;">
+                <select id="status-filter" onchange="handleFilter()">
                     <option value="">All Status</option>
                     <option value="on-going">On-Going</option>
                     <option value="work-stoppage">Work Stoppage</option>
                     <option value="finished">Finished</option>
                 </select>
-                <div style="display:flex; gap: 8px;" id="edit-controls" style="display: none;">
-                    <button onclick="exportToPDF()" class="btn btn-primary" title="Export to PDF" style="display: none;" id="btn-pdf">
-                        <i class="fas fa-file-pdf"></i> PDF
-                    </button>
-                </div>
+                
+                <!-- Always visible controls -->
                 <button class="theme-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
                     <i class="fas fa-moon" id="theme-icon"></i>
                 </button>
@@ -1980,7 +1978,9 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                         <i class="fas fa-bug"></i> DEBUG
                     </button>
                 </div>
-                <button id="edit-btn" class="btn btn-primary" onclick="toggleEdit()"><i class="fas fa-edit"></i> EDIT</button>
+                <button id="edit-btn" class="btn btn-primary" onclick="toggleEdit()">
+                    <i class="fas fa-edit"></i> EDIT
+                </button>
                 <button id="save-btn" class="btn btn-primary hidden" onclick="saveData()">
                     <i class="fas fa-cloud-upload-alt save-icon"></i>
                     <span id="save-btn-text">SAVE</span>
@@ -3050,10 +3050,12 @@ function showBackupStatus(message, type) {
 
         function toggleEdit() {
             state.isEditing = true;
-            document.getElementById('search-input').style.display = 'block';
-            document.getElementById('region-filter').style.display = 'block';
-            document.getElementById('status-filter').style.display = 'block';
-            document.getElementById('btn-pdf').style.display = 'block';
+            // Keep filters visible only on overall tab
+            if (state.currentTab === 'overall') {
+                document.getElementById('search-input').style.display = 'block';
+                document.getElementById('region-filter').style.display = 'block';
+                document.getElementById('status-filter').style.display = 'block';
+            }
             document.getElementById('edit-btn').classList.add('hidden');
             document.getElementById('save-btn').classList.remove('hidden');
             render();
@@ -3065,10 +3067,11 @@ function showBackupStatus(message, type) {
             
             // Disable editing mode UI
             state.isEditing = false;
-            document.getElementById('search-input').style.display = 'none';
-            document.getElementById('region-filter').style.display = 'none';
-            document.getElementById('status-filter').style.display = 'none';
-            document.getElementById('btn-pdf').style.display = 'none';
+            
+            // Hide filters - they'll be shown again by changeTab if on overall tab
+            document.getElementById('search-input').style.display = state.currentTab === 'overall' ? 'block' : 'none';
+            document.getElementById('region-filter').style.display = state.currentTab === 'overall' ? 'block' : 'none';
+            document.getElementById('status-filter').style.display = state.currentTab === 'overall' ? 'block' : 'none';
             
             // Show saving state
             saveBtn.classList.add('saving');
@@ -3126,6 +3129,12 @@ function showBackupStatus(message, type) {
             document.getElementById('settings-view').classList.toggle('hidden', t !== 'settings');
             document.getElementById('personnel-view').classList.toggle('hidden', t !== 'personnel');
             document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel');
+            
+            // Show/hide filters - only visible on OVERALL DASHBOARD
+            const isOverall = t === 'overall';
+            document.getElementById('search-input').style.display = isOverall ? '' : 'none';
+            document.getElementById('region-filter').style.display = isOverall ? '' : 'none';
+            document.getElementById('status-filter').style.display = isOverall ? '' : 'none';
             
             if (t === 'settings') {
                 populateSettingsTab();
@@ -3531,11 +3540,13 @@ function closeAllStatusDropdowns() {
             }, 100);
         }
 
+        // PDF EXPORT FUNCTION - DISABLED (removed from UI)
+        // Uncomment if needed in the future
+        /*
         function exportToPDF() {
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('l', 'mm', 'a4'); // landscape orientation
+            const doc = new jsPDF('l', 'mm', 'a4');
             
-            // Get current tab title
             const tabTitles = {
                 'overall': 'OVERALL SUMMARY',
                 'exposures': 'SAFETY EXPOSURES',
@@ -3549,7 +3560,6 @@ function closeAllStatusDropdowns() {
             
             const title = tabTitles[state.currentTab] || 'ESH COMPLIANCE DASHBOARD';
             
-            // Add header
             doc.setFontSize(16);
             doc.setTextColor(27, 94, 32);
             doc.text(title, 14, 15);
@@ -3558,12 +3568,10 @@ function closeAllStatusDropdowns() {
             doc.setTextColor(100, 100, 100);
             doc.text('Generated: ' + new Date().toLocaleString(), 14, 22);
             
-            // Get the table element based on current view
             let table;
             if (state.currentTab === 'personnel') {
                 table = document.getElementById('p-table');
             } else {
-                // For other tabs, find the main table in dashboard-content
                 const container = document.getElementById('dashboard-content');
                 table = container ? container.querySelector('table') : null;
             }
@@ -3573,23 +3581,19 @@ function closeAllStatusDropdowns() {
                 return;
             }
             
-            // Extract table data
             const headers = [];
             const rows = [];
             
-            // Get headers
             const headerCells = table.querySelectorAll('thead th');
             headerCells.forEach(th => {
                 headers.push(th.textContent.trim());
             });
             
-            // Get rows
             const bodyRows = table.querySelectorAll('tbody tr');
             bodyRows.forEach(tr => {
                 const row = [];
                 const cells = tr.querySelectorAll('td');
                 cells.forEach(td => {
-                    // Get text content, handle inputs/selects
                     const input = td.querySelector('input[type="text"], input[type="date"], input[type="number"], select');
                     if (input) {
                         row.push(input.value || '');
@@ -3602,7 +3606,6 @@ function closeAllStatusDropdowns() {
                 }
             });
             
-            // Generate table with autoTable
             doc.autoTable({
                 head: [headers],
                 body: rows,
@@ -3625,7 +3628,6 @@ function closeAllStatusDropdowns() {
                 },
                 margin: { top: 28, left: 14, right: 14 },
                 didDrawPage: function(data) {
-                    // Footer
                     doc.setFontSize(8);
                     doc.setTextColor(150);
                     doc.text('ESH Compliance Dashboard - SCIC', data.settings.margin.left, doc.internal.pageSize.height - 10);
@@ -3633,10 +3635,11 @@ function closeAllStatusDropdowns() {
                 }
             });
             
-            // Save the PDF
             const filename = `ESH_${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
             doc.save(filename);
         }
+        */
+
 
         function showUI() {
             const loginOverlay = document.getElementById('login-overlay');
