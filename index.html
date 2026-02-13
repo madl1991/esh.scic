@@ -1972,12 +1972,12 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <button class="theme-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
                     <i class="fas fa-moon" id="theme-icon"></i>
                 </button>
-                <div id="active-users-badge" style="display: flex; align-items: center; gap: 6px; background: rgba(27, 94, 32, 0.15); border: 2px solid #1b5e20; padding: 8px 14px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; color: #1b5e20; cursor: help;" title="Real-time active users count. Open browser console (F12) for debug info.">
-                    <i class="fas fa-circle" style="color: #4caf50; font-size: 0.5rem; animation: pulse 2s ease-in-out infinite;"></i>
-                    <span id="active-users-count">0</span>
-                    <span style="font-weight: 500;">active</span>
-                    <button onclick="window.testPresence()" style="margin-left: 8px; background: #1b5e20; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; cursor: pointer;" title="Test presence tracking">
-                        <i class="fas fa-bug"></i>
+                <div id="active-users-badge" style="display: flex; align-items: center; gap: 6px; background: rgba(27, 94, 32, 0.15); border: 2px solid #1b5e20; padding: 8px 14px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; color: #1b5e20; cursor: help;" title="Real-time active users count. Click DEBUG button or press F12 for console info.">
+                    <i class="fas fa-circle" id="presence-status-icon" style="color: #4caf50; font-size: 0.5rem; animation: pulse 2s ease-in-out infinite;"></i>
+                    <span id="active-users-count">...</span>
+                    <span style="font-weight: 500;" id="active-users-label">loading</span>
+                    <button onclick="window.testPresence()" style="margin-left: 8px; background: #1b5e20; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; cursor: pointer; font-weight: 600;" title="Run presence diagnostics">
+                        <i class="fas fa-bug"></i> DEBUG
                     </button>
                 </div>
                 <button id="edit-btn" class="btn btn-primary" onclick="toggleEdit()"><i class="fas fa-edit"></i> EDIT</button>
@@ -4211,13 +4211,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
     // Adjust TYPE column width based on tab - narrower for short text tabs
     let typeColumnWidth = '250px';
     if (state.currentTab === 'permits' || state.currentTab === 'dole') {
-        typeColumnWidth = '120px';
+        typeColumnWidth = '280px'; // Wider for long permit names
     } else if (state.currentTab === 'emb') {
         typeColumnWidth = '220px';
     }
 
     html += `<div class="table-container"><table>`;
-    html += `<tr><th style="width:${typeColumnWidth}; text-align:left; background: #2e7d32; position: sticky; left: 0; z-index: 10;">TYPE</th>`;
+    html += `<tr><th style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; text-align:left; background: #2e7d32; position: sticky; left: 0; z-index: 10; white-space: normal; padding: 10px 12px; line-height: 1.3; vertical-align: middle;">TYPE</th>`;
 
     if (isCshp) {
         const headerText = (state.currentTab === 'cshp') ? "DATE APPROVED" : "DATE REGISTERED";
@@ -4235,9 +4235,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
             html += `<th style="background: #388e3c;">Q3 (JUL-SEP)</th>`;
             html += `<th style="background: #388e3c;">Q4 (OCT-DEC)</th>`;
         } else if (state.currentTab === 'permits') {
-            html += `<th style="background: #388e3c;">PERMIT NO. / ACCREDITATION NO.</th>`;
-            html += `<th style="background: #388e3c;">DATE ISSUED</th>`;
-            html += `<th style="background: #388e3c;">EXPIRY DATE</th>`;
+            html += `<th style="background: #388e3c; min-width: 200px; white-space: normal; padding: 10px 12px;">PERMIT NO. / ACCREDITATION NO.</th>`;
+            html += `<th style="background: #388e3c; min-width: 140px; white-space: nowrap;">DATE ISSUED</th>`;
+            html += `<th style="background: #388e3c; min-width: 140px; white-space: nowrap;">EXPIRY DATE</th>`;
         } else {
             const isDole = state.currentTab === 'dole';
             MONTHS.forEach(m => html += `<th${isNov ? ' class="nov-narrow-th"' : (isDole ? ' class="dole-narrow-th"' : '')} style="background: #388e3c;">${m}</th>`);
@@ -4252,7 +4252,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
 
     SCHEMA[state.currentTab].forEach((row, rowIdx) => {
         const key = `${state.currentTab}_${row}`;
-        html += `<tr><td style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; text-align:left; font-weight:700; background:#e8f5e9; color:#1b5e20; position: sticky; left: 0; z-index: 5;">${row}</td>`;
+        html += `<tr><td style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; text-align:left; font-weight:700; background:#e8f5e9; color:#1b5e20; position: sticky; left: 0; z-index: 5; white-space: normal; padding: 10px 12px; line-height: 1.3; vertical-align: middle;">${row}</td>`;
 
         if (isCshp) {
             const v = p.vals[key] ? p.vals[key][1] : "";
@@ -4276,9 +4276,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                 const permitNo = p.vals[key] ? p.vals[key][1] : "";
                 const dateIssued = p.vals[key] ? p.vals[key][2] : "";
                 const expiryDate = p.vals[key] ? p.vals[key][3] : "";
-                html += `<td class="monthly-data"><input type="text" placeholder="Permit/Accreditation #" value="${permitNo}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)"></td>`;
-                html += `<td class="monthly-data"><input type="date" value="${dateIssued}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',2,this.value)"></td>`;
-                html += `<td class="monthly-data"><input type="date" value="${expiryDate}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',3,this.value)"></td>`;
+                html += `<td style="min-width: 200px; padding: 8px 12px;"><input type="text" placeholder="Permit/Accreditation #" value="${permitNo}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 100%;"></td>`;
+                html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${dateIssued}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',2,this.value)" style="width: 100%;"></td>`;
+                html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${expiryDate}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',3,this.value)" style="width: 100%;"></td>`;
             } else if (state.currentTab === 'emb') {
                 // EMB Reportorial - Simple approach
                 if (row === "SMR (Quarterly) - Submission Date") {
@@ -5867,10 +5867,26 @@ let presenceListener = null; // Track the listener so we can unsubscribe
 async function setupPresenceTracking(userId, userEmail) {
     console.log('🔧 Setting up presence tracking for:', userEmail, 'UID:', userId);
     
+    // Update UI to show loading state
+    const counterEl = document.getElementById('active-users-count');
+    const labelEl = document.getElementById('active-users-label');
+    const iconEl = document.getElementById('presence-status-icon');
+    
+    if (counterEl) counterEl.textContent = '...';
+    if (labelEl) labelEl.textContent = 'connecting';
+    if (iconEl) {
+        iconEl.style.color = '#ffa726';
+        iconEl.className = 'fas fa-circle-notch fa-spin';
+    }
+    
     if (!window.firebaseRealtimeDb || !window.firebase) {
         console.error('❌ Realtime Database not initialized!');
-        const counterEl = document.getElementById('active-users-count');
         if (counterEl) counterEl.textContent = '1';
+        if (labelEl) labelEl.textContent = 'offline';
+        if (iconEl) {
+            iconEl.style.color = '#d32f2f';
+            iconEl.className = 'fas fa-times-circle';
+        }
         return;
     }
 
@@ -5891,16 +5907,59 @@ async function setupPresenceTracking(userId, userEmail) {
         try {
             await window.firebase.set(userPresenceRef, userData);
             console.log('✅ Write successful!');
+            
+            // Update UI to show success
+            if (iconEl) {
+                iconEl.style.color = '#4caf50';
+                iconEl.className = 'fas fa-circle';
+            }
+            
         } catch (writeError) {
             console.error('❌ Write failed:', writeError);
             console.error('   Code:', writeError.code);
             console.error('   Message:', writeError.message);
+            
+            // Show error in UI
+            if (counterEl) counterEl.textContent = 'ERR';
+            if (labelEl) labelEl.textContent = 'blocked';
+            if (iconEl) {
+                iconEl.style.color = '#d32f2f';
+                iconEl.className = 'fas fa-exclamation-triangle';
+            }
+            
+            // Show user-friendly alert
+            console.error('');
+            console.error('🚨 ========== FIREBASE DATABASE WRITE BLOCKED ==========');
+            console.error('');
+            console.error('The presence tracking feature cannot write to Firebase.');
+            console.error('');
+            console.error('SOLUTION:');
+            console.error('1. Go to Firebase Console: https://console.firebase.google.com');
+            console.error('2. Select your project: esh-dashboard');
+            console.error('3. Go to: Realtime Database → Rules');
+            console.error('4. Change rules to:');
+            console.error('');
+            console.error('   {');
+            console.error('     "rules": {');
+            console.error('       ".read": "auth != null",');
+            console.error('       ".write": "auth != null"');
+            console.error('     }');
+            console.error('   }');
+            console.error('');
+            console.error('5. Click "Publish"');
+            console.error('');
+            console.error('🚨 ====================================================');
+            console.error('');
             
             // Strategy 2: Try with update instead
             console.log('💾 ATTEMPT 2: Trying update() instead of set()');
             try {
                 await window.firebase.update(userPresenceRef, userData);
                 console.log('✅ Update successful!');
+                if (iconEl) {
+                    iconEl.style.color = '#4caf50';
+                    iconEl.className = 'fas fa-circle';
+                }
             } catch (updateError) {
                 console.error('❌ Update also failed:', updateError);
                 
@@ -5951,16 +6010,28 @@ async function setupPresenceTracking(userId, userEmail) {
                     });
                 }
                 
-                const counterEl = document.getElementById('active-users-count');
+                // Update UI
                 if (counterEl) {
-                    counterEl.textContent = count;
+                    counterEl.textContent = count.toString();
                     console.log('✅ UI updated: ' + count + ' active');
+                }
+                if (labelEl) {
+                    labelEl.textContent = count === 1 ? 'user' : 'users';
+                }
+                if (iconEl && count > 0) {
+                    iconEl.style.color = '#4caf50';
+                    iconEl.className = 'fas fa-circle';
+                    iconEl.style.animation = 'pulse 2s ease-in-out infinite';
                 }
             },
             (error) => {
                 console.error('❌ Listener error:', error);
-                const counterEl = document.getElementById('active-users-count');
                 if (counterEl) counterEl.textContent = '1';
+                if (labelEl) labelEl.textContent = 'error';
+                if (iconEl) {
+                    iconEl.style.color = '#d32f2f';
+                    iconEl.className = 'fas fa-exclamation-circle';
+                }
             }
         );
         
@@ -5969,8 +6040,12 @@ async function setupPresenceTracking(userId, userEmail) {
     } catch (error) {
         console.error('❌ EXCEPTION in setupPresenceTracking:', error);
         console.error('Stack:', error.stack);
-        const counterEl = document.getElementById('active-users-count');
         if (counterEl) counterEl.textContent = '1';
+        if (labelEl) labelEl.textContent = 'error';
+        if (iconEl) {
+            iconEl.style.color = '#d32f2f';
+            iconEl.className = 'fas fa-times-circle';
+        }
     }
 }
 
@@ -6037,10 +6112,14 @@ function setupAuthObserver() {
             // Load user data ONCE - no real-time listener!
             await loadFromFirebase();
 
-            // Immediately show at least 1 active user (current user)
+            // Immediately show at least 1 active user (current user) while setting up
             const counterEl = document.getElementById('active-users-count');
+            const labelEl = document.getElementById('active-users-label');
             if (counterEl) {
-                counterEl.textContent = '1';
+                counterEl.textContent = '...';
+            }
+            if (labelEl) {
+                labelEl.textContent = 'loading';
             }
 
             // Setup real-time presence tracking (will update count properly)
@@ -6131,9 +6210,11 @@ window.testPresence = function() {
     // Check UI element
     console.log('3️⃣ UI ELEMENT:');
     const counterEl = document.getElementById('active-users-count');
+    const labelEl = document.getElementById('active-users-label');
     if (counterEl) {
         console.log('   ✅ Counter element found');
         console.log('   Current value:', counterEl.textContent);
+        console.log('   Label:', labelEl ? labelEl.textContent : 'N/A');
     } else {
         console.log('   ❌ Counter element NOT found');
     }
@@ -6157,10 +6238,9 @@ window.testPresence = function() {
                 });
             } else {
                 console.log('   ⚠️ No presence data found in Firebase');
-                console.log('   💡 This might mean:');
-                console.log('      - Database rules are blocking writes');
-                console.log('      - Connection hasn\'t been established yet');
-                console.log('      - Database URL is incorrect');
+                console.log('');
+                console.log('   💡 MOST LIKELY CAUSE: Database rules are blocking writes');
+                console.log('');
             }
         }, { onlyOnce: true });
         
@@ -6172,14 +6252,15 @@ window.testPresence = function() {
             email: state.currentUser.email,
             online: true,
             timestamp: Date.now(),
-            test: 'manual write test'
+            test: 'manual write test from testPresence()'
         };
         
         console.log('   Attempting to write:', testData);
         window.firebase.set(testRef, testData)
             .then(() => {
                 console.log('   ✅ MANUAL WRITE SUCCESS!');
-                console.log('   💡 Check Firebase Console → Data tab now');
+                console.log('   💡 Database is working! Counter should update soon.');
+                console.log('');
                 
                 // Read it back
                 setTimeout(() => {
@@ -6192,6 +6273,9 @@ window.testPresence = function() {
                 console.error('   ❌ MANUAL WRITE FAILED:', error);
                 console.error('   Error code:', error.code);
                 console.error('   Error message:', error.message);
+                console.error('');
+                console.error('   🚨 THIS IS THE PROBLEM! ^^^');
+                console.error('');
             });
     } else {
         console.log('4️⃣ CANNOT READ PRESENCE DATA:');
@@ -6208,11 +6292,26 @@ window.testPresence = function() {
     console.log('');
     
     // Instructions
-    console.log('7️⃣ TROUBLESHOOTING STEPS:');
-    console.log('   1. Check Firebase Console → Realtime Database → Data tab');
-    console.log('   2. Check Firebase Console → Realtime Database → Rules tab');
-    console.log('   3. Ensure rules allow read/write to "presence" path');
-    console.log('   4. Try logging in from another device/browser');
+    console.log('7️⃣ SOLUTION - FIX FIREBASE RULES:');
+    console.log('');
+    console.log('   Step 1: Go to https://console.firebase.google.com');
+    console.log('   Step 2: Select project "esh-dashboard"');
+    console.log('   Step 3: Click "Realtime Database" in left menu');
+    console.log('   Step 4: Click "Rules" tab');
+    console.log('   Step 5: Replace with this:');
+    console.log('');
+    console.log('   {');
+    console.log('     "rules": {');
+    console.log('       ".read": "auth != null",');
+    console.log('       ".write": "auth != null"');
+    console.log('     }');
+    console.log('   }');
+    console.log('');
+    console.log('   Step 6: Click "Publish"');
+    console.log('   Step 7: Refresh this page');
+    console.log('');
+    console.log('   NOTE: These rules allow any authenticated user to read/write.');
+    console.log('   This is safe because only logged-in users can access the database.');
     console.log('');
     console.log('🔍 ========== END DEBUG INFO ==========');
     console.log('');
@@ -6221,11 +6320,21 @@ window.testPresence = function() {
 // Auto-run test on page load if there's an issue
 setTimeout(() => {
     const counterEl = document.getElementById('active-users-count');
-    if (counterEl && counterEl.textContent === '0' && state.currentUser) {
-        console.warn('⚠️ Presence counter is 0 but user is logged in. Running diagnostic...');
+    const currentValue = counterEl ? counterEl.textContent : null;
+    
+    if (state.currentUser && (currentValue === '0' || currentValue === '...' || currentValue === 'ERR')) {
+        console.warn('⚠️ Presence counter issue detected. Value:', currentValue);
+        console.warn('Running automatic diagnostic...');
+        console.warn('');
         window.testPresence();
     }
-}, 5000);
+}, 3000); // Check after 3 seconds instead of 5
+
+// Also add a manual trigger that users can run
+console.log('');
+console.log('💡 TIP: If active users count shows 0 or error, type window.testPresence() in console');
+console.log('💡 Or click the DEBUG button in the active users badge');
+console.log('');
 
 // ==================== END FIREBASE INTEGRATION ====================
     </script>
