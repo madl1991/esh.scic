@@ -1633,6 +1633,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             <div class="nav-item" data-tab="cshp" onclick="changeTab('cshp')"><i class="fas fa-calendar-check"></i> CSHP</div>
 	    <div class="nav-item" data-tab="reg" onclick="changeTab('reg')"><i class="fas fa-calendar-check"></i> Certificate of Registration</div>
             <div class="nav-item" data-tab="dole" onclick="changeTab('dole')"><i class="fas fa-file-export"></i> DOLE Reportorial</div>
+	    <div class="nav-item" data-tab="permits" onclick="changeTab('permits')"><i class="fas fa-certificate"></i> Environmental Permits</div>
 	    <div class="nav-item" data-tab="emb" onclick="changeTab('emb')"><i class="fas fa-file-export"></i> EMB Reportorial</div>
             <div class="nav-item" data-tab="personnel" onclick="changeTab('personnel')"><i class="fas fa-users-gear"></i> ESH Personnel Monitoring</div>
             <div class="nav-item" data-tab="settings" onclick="changeTab('settings')"><i class="fas fa-cog"></i> Settings</div>
@@ -2425,7 +2426,8 @@ function showBackupStatus(message, type) {
     'audit': ["Score Implementation", "Documentation and Compliance"],
     'dole': ["RSO", "MOM"],
     'dole_annual': ["AEDR", "AMR"],
-    'emb': ["SMR (Quarterly)", "CMR (Semi-Annual)"],
+    'permits': ["ECC", "CNC", "Certificate of Accreditation (DENR-EMB)", "Certificate of Accreditation (LLDA)", "Company Registration System", "LLDA Clearance", "Permit to Operate", "Discharge Permit", "Hazardous Waste Generator's ID", "Permit to Transport (Haz Waste)", "Permit to Transport (Logs)", "Tree Cutting Permit (STCP or S/PLTP)", "Permit to Cut Coconut Tree", "NWRB Water Permit"],
+    'emb': ["SMR (Quarterly) - Submission Date", "SMR (Quarterly) - Reference No.", "CMR (Semi-Annual) - Submission Date", "CMR (Semi-Annual) - Reference No."],
     'cshp': ["CSHP Approval Date"],
     'reg': ["DOLE Certificate of Registration Date"]
 };
@@ -2816,8 +2818,8 @@ function showBackupStatus(message, type) {
                 'rates': 'STATISTICS RATE', 'medical': 'ACCIDENT/ INCIDENT RECORD',
 		'nov': 'REGULATORY ISSUED NOV',
                 'nov-monitoring': 'ESH NOV MONITORING',
-                'activities': 'ESH ACTIVITIES AND PROGRAMS','kpm': 'KEY PERFORMANCE REPORT','reg': 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)','audit': 'INTERNAL ESH AUDIT REPORT',
-                'cshp': 'CONSTRUCTION SAFETY & HEALTH PROGRAM (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL','emb': ["SMR (Quarterly)", "CMR (Semi-Annual)"],
+                'activities': 'ESH ACTIVITIES AND PROGRAMS','kpm': 'KEY PERFORMANCE MEASURES REPORT','reg': 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)','audit': 'INTERNAL ESH AUDIT REPORT',
+                'cshp': 'CONSTRUCTION SAFETY & HEALTH PROGRAM (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL','permits': 'ENVIRONMENTAL PERMITS/LICENSES/CLEARANCE','emb': ["EMB REPORTORIAL"],
                 'personnel': 'ESH PERSONNEL MONITORING', 'settings': 'SETTINGS'
             };
             document.querySelector('.header-title').innerText = titles[t] || t.toUpperCase();
@@ -3091,22 +3093,44 @@ function closeAllStatusDropdowns() {
 
         function getPerc(proj) {
             let total = 0, filled = 0;
-            ["exposures", "rates", "medical", "nov", "activities", "kpm","dole","emb", "cshp","reg"].forEach(cat => {
+            ["exposures", "rates", "medical", "nov", "activities", "kpm","dole","permits","emb", "cshp","reg"].forEach(cat => {
     SCHEMA[cat].forEach(row => {
         const key = `${cat}_${row}`;
         if (cat === 'cshp' || cat === 'reg') {
             total += 1;
             if (proj.vals[key] && proj.vals[key][1]) filled++;
+        } else if (cat === 'permits') {
+            // Permits have 3 fields: Permit No., Date Issued, Expiry Date
+            total += 3;
+            if (proj.vals[key]) {
+                for (let i = 1; i <= 3; i++) {
+                    if (proj.vals[key][i] && proj.vals[key][i] !== "") filled++;
+                }
+            }
         } else if (cat === 'emb') {
             // EMB has special submission cycles
-            if (row === "SMR (Quarterly)") {
+            if (row === "SMR (Quarterly) - Submission Date") {
                 total += 4; // Q1, Q2, Q3, Q4
                 if (proj.vals[key]) {
                     for (let i = 1; i <= 4; i++) {
                         if (proj.vals[key][i] && proj.vals[key][i] !== "") filled++;
                     }
                 }
-            } else if (row === "CMR (Semi-Annual)") {
+            } else if (row === "SMR (Quarterly) - Reference No.") {
+                total += 4; // Q1, Q2, Q3, Q4
+                if (proj.vals[key]) {
+                    for (let i = 1; i <= 4; i++) {
+                        if (proj.vals[key][i] && proj.vals[key][i] !== "") filled++;
+                    }
+                }
+            } else if (row === "CMR (Semi-Annual) - Submission Date") {
+                total += 2; // 1st Half, 2nd Half
+                if (proj.vals[key]) {
+                    for (let i = 1; i <= 2; i++) {
+                        if (proj.vals[key][i] && proj.vals[key][i] !== "") filled++;
+                    }
+                }
+            } else if (row === "CMR (Semi-Annual) - Reference No.") {
                 total += 2; // 1st Half, 2nd Half
                 if (proj.vals[key]) {
                     for (let i = 1; i <= 2; i++) {
@@ -3685,7 +3709,7 @@ if (state.currentTab === 'audit') {
     // Skip individual project rendering - will be done at region level
 }
 else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
-    const isDateType = ['kpm','dole','emb','cshp','reg'].includes(state.currentTab);
+    const isDateType = ['kpm','dole','permits','emb','cshp','reg'].includes(state.currentTab);
     const isCshp = state.currentTab === 'cshp'|| state.currentTab === 'reg';
     const hasYTD = ['exposures', 'rates', 'medical', 'nov', 'activities'].includes(state.currentTab);
     const isNov = state.currentTab === 'nov';
@@ -3710,6 +3734,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
             html += `<th>Q4 (OCT-DEC)</th>`;
             html += `<th>1ST HALF (JAN-JUN)</th>`;
             html += `<th>2ND HALF (JUL-DEC)</th>`;
+        } else if (state.currentTab === 'permits') {
+            html += `<th>PERMIT NO. / ACCREDITATION NO.</th>`;
+            html += `<th>DATE ISSUED</th>`;
+            html += `<th>EXPIRY DATE</th>`;
         } else {
             MONTHS.forEach(m => html += `<th${isNov ? ' class="nov-narrow-th"' : ''}>${m}</th>`);
         }
@@ -3732,7 +3760,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
             // Previous Year Column
             const prevVal = p.vals[key] ? p.vals[key][0] : "";
             
-            if (state.currentTab !== 'kpm' && state.currentTab !== 'dole' && state.currentTab !== 'emb') {
+            if (state.currentTab !== 'kpm' && state.currentTab !== 'dole' && state.currentTab !== 'emb' && state.currentTab !== 'permits') {
                 html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}">
                     <input type="${isDateType ? 'date' : 'number'}"
                         value="${prevVal}"
@@ -3742,9 +3770,17 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
             }
             
             // Main data columns
-            if (state.currentTab === 'emb') {
+            if (state.currentTab === 'permits') {
+                // Environmental Permits - 3 columns per permit type
+                const permitNo = p.vals[key] ? p.vals[key][1] : "";
+                const dateIssued = p.vals[key] ? p.vals[key][2] : "";
+                const expiryDate = p.vals[key] ? p.vals[key][3] : "";
+                html += `<td class="monthly-data"><input type="text" placeholder="Permit/Accreditation #" value="${permitNo}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)"></td>`;
+                html += `<td class="monthly-data"><input type="date" value="${dateIssued}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',2,this.value)"></td>`;
+                html += `<td class="monthly-data"><input type="date" value="${expiryDate}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',3,this.value)"></td>`;
+            } else if (state.currentTab === 'emb') {
                 // EMB Reportorial - Quarterly or Semi-Annual
-                if (row === "SMR (Quarterly)") {
+                if (row === "SMR (Quarterly) - Submission Date") {
                     // Q1, Q2, Q3, Q4
                     for (let i = 1; i <= 4; i++) {
                         const v = p.vals[key] ? p.vals[key][i] : "";
@@ -3753,7 +3789,16 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                     // Add empty cells for semi-annual columns
                     html += `<td class="cell-disabled"></td>`;
                     html += `<td class="cell-disabled"></td>`;
-                } else if (row === "CMR (Semi-Annual)") {
+                } else if (row === "SMR (Quarterly) - Reference No.") {
+                    // Q1, Q2, Q3, Q4
+                    for (let i = 1; i <= 4; i++) {
+                        const v = p.vals[key] ? p.vals[key][i] : "";
+                        html += `<td class="monthly-data"><input type="text" placeholder="Ref #" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
+                    }
+                    // Add empty cells for semi-annual columns
+                    html += `<td class="cell-disabled"></td>`;
+                    html += `<td class="cell-disabled"></td>`;
+                } else if (row === "CMR (Semi-Annual) - Submission Date") {
                     // Add empty cells for quarterly columns
                     html += `<td class="cell-disabled"></td>`;
                     html += `<td class="cell-disabled"></td>`;
@@ -3763,6 +3808,17 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                     for (let i = 1; i <= 2; i++) {
                         const v = p.vals[key] ? p.vals[key][i] : "";
                         html += `<td class="monthly-data"><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
+                    }
+                } else if (row === "CMR (Semi-Annual) - Reference No.") {
+                    // Add empty cells for quarterly columns
+                    html += `<td class="cell-disabled"></td>`;
+                    html += `<td class="cell-disabled"></td>`;
+                    html += `<td class="cell-disabled"></td>`;
+                    html += `<td class="cell-disabled"></td>`;
+                    // 1st Half (JAN-JUN), 2nd Half (JUL-DEC)
+                    for (let i = 1; i <= 2; i++) {
+                        const v = p.vals[key] ? p.vals[key][i] : "";
+                        html += `<td class="monthly-data"><input type="text" placeholder="Ref #" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
                     }
                 }
             } else {
@@ -5682,5 +5738,4 @@ setTimeout(() => {
 
 </body>
 </html>
-
 
