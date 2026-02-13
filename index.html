@@ -1115,27 +1115,56 @@ body.dark-mode .backup-item {
             color: #a5d6a7;
         }
         
-        th.prev-year {
-            background: #2e7d32;
+        td.prev-year {
+            min-width: 65px;
+            max-width: 70px;
+            width: 70px;
+            padding: 6px 4px;
+            font-size: 0.7rem;
+            text-align: center;
         }
         
-        /* Monthly Columns - Default */
-       /* Monthly Columns - Default */
-td.monthly-data {
+        th.prev-year {
+            background: #2e7d32;
+            min-width: 65px;
+            max-width: 70px;
+            width: 70px;
+            padding: 6px 4px;
+            font-size: 0.7rem;
+        }
+        
+        /* Monthly Columns - Default - NARROWER */
+       /* Monthly Columns - Default - WIDER FOR 7 DIGITS */
+td.monthly-data, th.monthly-header {
     background: var(--bg-card);
-    min-width: auto;
+    min-width: 100px;
+    max-width: none;
     width: auto;
+    padding: 8px 12px;
+    font-size: 0.7rem;
+    text-align: center;
+}
+
+/* Style all month header columns - WIDER */
+th:not(.prev-year):not(.ytd-header):not([colspan]) {
+    min-width: 90px;
+    max-width: none;
+    width: auto;
+    padding: 8px 12px;
+    font-size: 0.7rem;
 }
         
-        /* YTD Column - Yellow */
+        /* YTD Column - Yellow - WIDER FOR "Running YTD" HEADER */
         /* YTD Column - Yellow */
 td.ytd-cell {
     background: #fff59d;
     font-weight: 700;
     color: #f57f17;
-    min-width: auto;
+    min-width: 120px;
+    max-width: none;
     width: auto;
     padding: 8px 12px;
+    font-size: 0.7rem;
 }
         }
 
@@ -1147,7 +1176,11 @@ td.ytd-cell {
         th.ytd-header {
             background: #f9a825;
             color: white;
-            min-width: 90px;
+            min-width: 120px;
+            max-width: none;
+            width: auto;
+            padding: 8px 12px;
+            font-size: 0.7rem;
         }
 
         body.dark-mode th.ytd-header {
@@ -1209,9 +1242,28 @@ td.average-cell {
 }
 
 table input[type="date"] {
-    min-width: auto;
+    min-width: 110px;
     width: auto;
-    padding: 6px 4px;
+    padding: 6px 8px;
+    cursor: pointer;
+}
+
+/* Always show calendar icon for date inputs */
+table input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+table input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+/* Style for empty date inputs - show cleaner appearance */
+table input[type="date"]:not(:focus):invalid,
+table input[type="date"]:not(:focus):not([value]),
+table input[type="date"]:not(:focus)[value=""] {
+    color: #999;
+    font-style: italic;
 }
         
         #grand-stats {
@@ -1351,6 +1403,227 @@ table input[type="date"] {
             padding-bottom: 200px; /* Extra space at bottom for dropdowns and scrolling */
         }
 
+/* ========== TOAST NOTIFICATIONS ========== */
+#toast-container {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    background: white;
+    padding: 16px 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 320px;
+    max-width: 400px;
+    animation: slideIn 0.3s ease-out;
+    border-left: 4px solid;
+}
+
+.toast-success {
+    border-left-color: #4caf50;
+    background: #f1f8f4;
+}
+
+.toast-error {
+    border-left-color: #f44336;
+    background: #fef5f5;
+}
+
+.toast-warning {
+    border-left-color: #ff9800;
+    background: #fff8f0;
+}
+
+.toast-info {
+    border-left-color: #2196f3;
+    background: #f0f7ff;
+}
+
+.toast-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.toast-success .toast-icon { color: #4caf50; }
+.toast-error .toast-icon { color: #f44336; }
+.toast-warning .toast-icon { color: #ff9800; }
+.toast-info .toast-icon { color: #2196f3; }
+
+.toast-message {
+    flex: 1;
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    font-size: 20px;
+    line-height: 1;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast-close:hover {
+    background: rgba(0,0,0,0.1);
+    color: #333;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+.toast.hiding {
+    animation: slideOut 0.3s ease-out forwards;
+}
+
+body.dark-mode .toast {
+    background: #2d2d2d;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+body.dark-mode .toast-success { background: #1a3a1f; }
+body.dark-mode .toast-error { background: #3a1a1a; }
+body.dark-mode .toast-warning { background: #3a2a1a; }
+body.dark-mode .toast-info { background: #1a2a3a; }
+
+body.dark-mode .toast-message {
+    color: #e4e4e4;
+}
+
+body.dark-mode .toast-close {
+    color: #b0b0b0;
+}
+
+body.dark-mode .toast-close:hover {
+    background: rgba(255,255,255,0.1);
+    color: #e4e4e4;
+}
+
+/* ========== END TOAST ========== */
+
+/* ========== SMOOTH TRANSITIONS ========== */
+.project-row {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.project-row:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(27, 94, 32, 0.2) !important;
+}
+
+.btn {
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+input[type="date"]:focus,
+input[type="text"]:focus,
+input[type="number"]:focus {
+    transform: scale(1.01);
+    transition: all 0.2s ease;
+}
+
+/* ========== END TRANSITIONS ========== */
+
+/* ========== TOOLTIPS ========== */
+.tooltip-trigger {
+    position: relative;
+    cursor: help;
+    color: #2e7d32;
+    margin-left: 4px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.tooltip-content {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.tooltip-content::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #333;
+}
+
+.tooltip-trigger:hover .tooltip-content {
+    opacity: 1;
+}
+
+body.dark-mode .tooltip-content {
+    background: #1a1a1a;
+    border: 1px solid #444;
+}
+
+body.dark-mode .tooltip-content::after {
+    border-top-color: #1a1a1a;
+}
+/* ========== END TOOLTIPS ========== */
+
+
+
 /* I-adjust ang width ng specific DOLE columns */
 .col-narrow {
     width: 1%;
@@ -1385,6 +1658,28 @@ table input[type="date"] {
     font-size: 0.68rem !important;
 }
 
+/* DOLE Reportorial: narrower columns for RSO, MOM (monthly) and AEDR, AMR (annual) */
+.dole-narrow-th {
+    min-width: 0 !important;
+    width: 100px !important;
+    max-width: 100px !important;
+    padding: 8px 4px !important;
+    font-size: 0.7rem !important;
+}
+.dole-narrow-td {
+    min-width: 0 !important;
+    width: 100px !important;
+    max-width: 100px !important;
+    padding: 5px 2px !important;
+}
+.dole-narrow-td input[type="date"] {
+    width: 95px !important;
+    max-width: 95px !important;
+    min-width: 0 !important;
+    padding: 4px 2px !important;
+    font-size: 0.7rem !important;
+}
+
 /* Personnel table: locked by default, per-row Edit/Save */
 #p-body td input,
 #p-body td select {
@@ -1412,8 +1707,14 @@ table input[type="date"] {
 body.dark-mode #p-body tr:nth-child(even) { background: rgba(255,255,255,0.03); }
 #p-body tr:hover { background: #e8f5e9 !important; }
 body.dark-mode #p-body tr:hover { background: rgba(27,94,32,0.18) !important; }
+#p-body tr:hover td:first-child { background: #e8f5e9 !important; }
+body.dark-mode #p-body tr:hover td:first-child { background: rgba(27,94,32,0.18) !important; }
 #p-body tr.p-editing { background: #f1f8e9 !important; box-shadow: inset 3px 0 0 #2e7d32; }
 body.dark-mode #p-body tr.p-editing { background: rgba(27,94,32,0.25) !important; }
+#p-body tr.p-editing td:first-child { background: #f1f8e9 !important; }
+body.dark-mode #p-body tr.p-editing td:first-child { background: rgba(27,94,32,0.25) !important; }
+#p-body tr:nth-child(even) td:first-child { background: rgba(0,0,0,0.018); }
+body.dark-mode #p-body tr:nth-child(even) td:first-child { background: rgba(255,255,255,0.03); }
 #p-body td { padding: 8px 10px; vertical-align: middle; border: none; color: var(--text-primary); }
 #p-body td:first-child { font-weight: 600; }
 .p-row-num {
@@ -1664,9 +1965,6 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <option value="finished">Finished</option>
                 </select>
                 <div style="display:flex; gap: 8px;" id="edit-controls" style="display: none;">
-                    <button onclick="exportToCSV()" class="btn btn-primary" title="Export to CSV" style="display: none;" id="btn-csv">
-                        <i class="fas fa-download"></i> CSV
-                    </button>
                     <button onclick="exportToPDF()" class="btn btn-primary" title="Export to PDF" style="display: none;" id="btn-pdf">
                         <i class="fas fa-file-pdf"></i> PDF
                     </button>
@@ -1743,7 +2041,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             <table id="p-table" style="width:100%; border-collapse:collapse; font-size:0.72rem;">
                 <thead>
                     <tr style="background: linear-gradient(90deg,#1b5e20 0%,#388e3c 100%);">
-                        <th style="padding:10px 12px; color:white; text-align:left; white-space:nowrap; font-weight:700; letter-spacing:0.3px; border:none; min-width:160px;">#&nbsp;&nbsp;Full Name</th>
+                        <th style="padding:10px 12px; color:white; text-align:left; white-space:nowrap; font-weight:700; letter-spacing:0.3px; border:none; min-width:160px; position: sticky; left: 0; z-index: 10; background: #1b5e20;">#&nbsp;&nbsp;Full Name</th>
                         <th style="padding:10px 8px; color:white; text-align:left; white-space:nowrap; font-weight:700; border:none; width:180px;">Position</th>
                         <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:95px;">ID Number</th>
                         <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:110px;">Date Hired</th>
@@ -2112,6 +2410,8 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
     </main>
 
     <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script>
 
 // ===== BACKUP & RECOVERY SYSTEM =====
@@ -2424,7 +2724,7 @@ function showBackupStatus(message, type) {
     'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "No. of Identified Near-Miss","Drills Conducted", "Training Conducted"],
     'kpm': ["KPM&I"],
     'audit': ["Score Implementation", "Documentation and Compliance"],
-    'dole': ["RSO", "MOM"],
+    'dole': ["RSO", "MOM", "AEDR", "AMR"],
     'dole_annual': ["AEDR", "AMR"],
     'permits': ["ECC", "CNC", "Certificate of Accreditation (DENR-EMB)", "Certificate of Accreditation (LLDA)", "Company Registration System", "LLDA Clearance", "Permit to Operate", "Discharge Permit", "Hazardous Waste Generator's ID", "Permit to Transport (Haz Waste)", "Permit to Transport (Logs)", "Tree Cutting Permit (STCP or S/PLTP)", "Permit to Cut Coconut Tree", "NWRB Water Permit"],
     'emb': ["SMR (Quarterly) - Submission Date", "SMR (Quarterly) - Reference No.", "CMR (Semi-Annual) - Submission Date", "CMR (Semi-Annual) - Reference No."],
@@ -2753,7 +3053,6 @@ function showBackupStatus(message, type) {
             document.getElementById('search-input').style.display = 'block';
             document.getElementById('region-filter').style.display = 'block';
             document.getElementById('status-filter').style.display = 'block';
-            document.getElementById('btn-csv').style.display = 'block';
             document.getElementById('btn-pdf').style.display = 'block';
             document.getElementById('edit-btn').classList.add('hidden');
             document.getElementById('save-btn').classList.remove('hidden');
@@ -2769,7 +3068,6 @@ function showBackupStatus(message, type) {
             document.getElementById('search-input').style.display = 'none';
             document.getElementById('region-filter').style.display = 'none';
             document.getElementById('status-filter').style.display = 'none';
-            document.getElementById('btn-csv').style.display = 'none';
             document.getElementById('btn-pdf').style.display = 'none';
             
             // Show saving state
@@ -2785,6 +3083,7 @@ function showBackupStatus(message, type) {
             
             if (success) {
                 saveBtnText.textContent = '✓ SAVED!';
+                showToast('✓ Data saved successfully!', 'success');
                 setTimeout(() => {
                     saveBtnText.textContent = 'SAVE';
                     saveBtn.classList.remove('saving');
@@ -2795,6 +3094,7 @@ function showBackupStatus(message, type) {
                 }, 1500);
             } else {
                 saveBtnText.textContent = '✗ FAILED';
+                showToast('Failed to save data. Please try again.', 'error');
                 setTimeout(() => {
                     saveBtnText.textContent = 'SAVE';
                     saveBtn.classList.remove('saving');
@@ -2872,7 +3172,7 @@ function updateAuditData(pName, qtr, field, val) {
 
             // Validate file type
             if (file.type !== 'application/pdf') {
-                alert('Please upload only PDF files.');
+                showToast('Please upload only PDF files.', 'error');
                 inputElement.value = '';
                 return;
             }
@@ -2880,7 +3180,7 @@ function updateAuditData(pName, qtr, field, val) {
             // Validate file size (max 10MB)
             const maxSize = 10 * 1024 * 1024; // 10MB
             if (file.size > maxSize) {
-                alert('File size must be less than 10MB.');
+                showToast('File size must be less than 10MB.', 'error');
                 inputElement.value = '';
                 return;
             }
@@ -2962,10 +3262,10 @@ function updateAuditData(pName, qtr, field, val) {
                 render();
 
                 console.log('✅ PDF metadata saved to Firestore');
-                alert(isReplacement ? 'PDF file replaced successfully!' : 'PDF uploaded successfully!');
+                showToast(isReplacement ? 'PDF file replaced successfully!' : 'PDF uploaded successfully!', 'success');
             } catch (error) {
                 console.error('❌ PDF upload error:', error);
-                alert('Failed to upload PDF: ' + error.message);
+                showToast('Failed to upload PDF: ' + error.message, 'error');
                 
                 // Re-render to restore UI
                 render();
@@ -3013,10 +3313,10 @@ function updateAuditData(pName, qtr, field, val) {
                 render();
 
                 console.log('✅ PDF metadata removed from Firestore');
-                alert('PDF deleted successfully!');
+                showToast('PDF deleted successfully!', 'success');
             } catch (error) {
                 console.error('❌ PDF deletion error:', error);
-                alert('Failed to delete PDF: ' + error.message);
+                showToast('Failed to delete PDF: ' + error.message, 'error');
             }
         }
         // ==================== END PDF UPLOAD FUNCTIONS ====================
@@ -3124,25 +3424,23 @@ function closeAllStatusDropdowns() {
                     }
                 }
             } else if (row === "CMR (Semi-Annual) - Submission Date") {
-                total += 2; // 1st Half, 2nd Half
-                if (proj.vals[key]) {
-                    for (let i = 1; i <= 2; i++) {
-                        if (proj.vals[key][i] && proj.vals[key][i] !== "") filled++;
-                    }
-                }
+                total += 1; // Single merged field
+                if (proj.vals[key] && proj.vals[key][1]) filled++;
             } else if (row === "CMR (Semi-Annual) - Reference No.") {
-                total += 2; // 1st Half, 2nd Half
-                if (proj.vals[key]) {
-                    for (let i = 1; i <= 2; i++) {
-                        if (proj.vals[key][i] && proj.vals[key][i] !== "") filled++;
-                    }
-                }
+                total += 1; // Single merged field
+                if (proj.vals[key] && proj.vals[key][1]) filled++;
             }
         } else {
-            total += 12;
-            if (proj.vals[key]) {
-                for (let i = 1; i <= 12; i++) {
-                    if (proj.vals[key][i] && proj.vals[key][i] !== "0" && proj.vals[key][i] !== "") filled++;
+            // Handle DOLE AEDR/AMR specially - they use only 1 field
+            if (cat === 'dole' && (row === 'AEDR' || row === 'AMR')) {
+                total += 1;
+                if (proj.vals[key] && proj.vals[key][1]) filled++;
+            } else {
+                total += 12;
+                if (proj.vals[key]) {
+                    for (let i = 1; i <= 12; i++) {
+                        if (proj.vals[key][i] && proj.vals[key][i] !== "0" && proj.vals[key][i] !== "") filled++;
+                    }
                 }
             }
         }
@@ -3233,26 +3531,111 @@ function closeAllStatusDropdowns() {
             }, 100);
         }
 
-        function exportToCSV() {
-            let csv = 'Project Name,Region,Status,Date Started,Date Finished,Compliance %\n';
-            state.filteredProjects.forEach(p => {
-                csv += `"${p.name}","${p.region}","${p.status}","${p.dateStarted || 'N/A'}","${p.dateFinished || 'N/A'}","${getPerc(p)}%"\n`;
-            });
-            const a = document.createElement('a');
-            a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-            a.download = `esh_${new Date().toISOString().split('T')[0]}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
         function exportToPDF() {
-            const element = document.getElementById('dashboard-content');
-            html2pdf().set({
-                margin: 10, filename: `esh_${new Date().toISOString().split('T')[0]}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 },
-                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
-            }).from(element).save();
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4'); // landscape orientation
+            
+            // Get current tab title
+            const tabTitles = {
+                'overall': 'OVERALL SUMMARY',
+                'exposures': 'SAFETY EXPOSURES',
+                'medical': 'ACCIDENT/INCIDENT RECORD',
+                'activities': 'SAFETY ACTIVITIES',
+                'audit': 'SAFETY AUDIT',
+                'nov': 'NOV',
+                'rates': 'STATISTICS RATE',
+                'personnel': 'ESH PERSONNEL MONITORING'
+            };
+            
+            const title = tabTitles[state.currentTab] || 'ESH COMPLIANCE DASHBOARD';
+            
+            // Add header
+            doc.setFontSize(16);
+            doc.setTextColor(27, 94, 32);
+            doc.text(title, 14, 15);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text('Generated: ' + new Date().toLocaleString(), 14, 22);
+            
+            // Get the table element based on current view
+            let table;
+            if (state.currentTab === 'personnel') {
+                table = document.getElementById('p-table');
+            } else {
+                // For other tabs, find the main table in dashboard-content
+                const container = document.getElementById('dashboard-content');
+                table = container ? container.querySelector('table') : null;
+            }
+            
+            if (!table) {
+                showToast('No table data to export', 'warning');
+                return;
+            }
+            
+            // Extract table data
+            const headers = [];
+            const rows = [];
+            
+            // Get headers
+            const headerCells = table.querySelectorAll('thead th');
+            headerCells.forEach(th => {
+                headers.push(th.textContent.trim());
+            });
+            
+            // Get rows
+            const bodyRows = table.querySelectorAll('tbody tr');
+            bodyRows.forEach(tr => {
+                const row = [];
+                const cells = tr.querySelectorAll('td');
+                cells.forEach(td => {
+                    // Get text content, handle inputs/selects
+                    const input = td.querySelector('input[type="text"], input[type="date"], input[type="number"], select');
+                    if (input) {
+                        row.push(input.value || '');
+                    } else {
+                        row.push(td.textContent.trim());
+                    }
+                });
+                if (row.length > 0) {
+                    rows.push(row);
+                }
+            });
+            
+            // Generate table with autoTable
+            doc.autoTable({
+                head: [headers],
+                body: rows,
+                startY: 28,
+                theme: 'grid',
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2,
+                    lineColor: [200, 200, 200],
+                    lineWidth: 0.1
+                },
+                headStyles: {
+                    fillColor: [46, 125, 50],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    halign: 'center'
+                },
+                columnStyles: {
+                    0: { cellWidth: 'auto', fontStyle: 'bold' }
+                },
+                margin: { top: 28, left: 14, right: 14 },
+                didDrawPage: function(data) {
+                    // Footer
+                    doc.setFontSize(8);
+                    doc.setTextColor(150);
+                    doc.text('ESH Compliance Dashboard - SCIC', data.settings.margin.left, doc.internal.pageSize.height - 10);
+                    doc.text('Page ' + doc.internal.getNumberOfPages(), doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 10);
+                }
+            });
+            
+            // Save the PDF
+            const filename = `ESH_${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(filename);
         }
 
         function showUI() {
@@ -3263,6 +3646,117 @@ function closeAllStatusDropdowns() {
             document.getElementById('user-badge').innerHTML = `<i class="fas fa-user-circle"></i> ${state.currentUser.email}`;
             changeTab('overall');
         }
+
+        // Helper function to check if a month should be marked as overdue
+        function isOverdueMonth(monthIndex) {
+            // monthIndex: 1 = January, 2 = February, ..., 12 = December
+            const now = new Date();
+            const currentMonth = now.getMonth() + 1; // 1-12
+            const currentYear = now.getFullYear();
+            
+            // Only mark as overdue if the month is before the current month in the current year
+            return monthIndex < currentMonth;
+        }
+
+        // Helper function to check if a quarter is overdue
+        function isOverdueQuarter(quarterIndex) {
+            // quarterIndex: 1 = Q1 (Jan-Mar), 2 = Q2 (Apr-Jun), 3 = Q3 (Jul-Sep), 4 = Q4 (Oct-Dec)
+            const now = new Date();
+            const currentMonth = now.getMonth() + 1; // 1-12
+            
+            // Determine which quarter we're currently in
+            const currentQuarter = Math.ceil(currentMonth / 3);
+            
+            // Quarter is overdue if it's before the current quarter
+            return quarterIndex < currentQuarter;
+        }
+
+        // Helper function to check if a half-year is overdue
+        function isOverdueHalf(halfIndex) {
+            // halfIndex: 1 = 1st Half (Jan-Jun), 2 = 2nd Half (Jul-Dec)
+            const now = new Date();
+            const currentMonth = now.getMonth() + 1; // 1-12
+            
+            // 1st half is overdue if we're in month 7 or later (July onwards)
+            if (halfIndex === 1) return currentMonth > 6;
+            
+            // 2nd half is never overdue in current year (only when year changes)
+            return false;
+        }
+
+        // ===== TOAST NOTIFICATION SYSTEM =====
+        function showToast(message, type = 'success', duration = 3500) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            
+            const icons = {
+                success: '✓',
+                error: '✕',
+                warning: '⚠',
+                info: 'ℹ'
+            };
+            
+            toast.innerHTML = `
+                <span class="toast-icon">${icons[type]}</span>
+                <span class="toast-message">${message}</span>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Auto remove after duration
+            setTimeout(() => {
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // ===== KEYBOARD SHORTCUTS =====
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + S = Save
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                if (state.isEditing) {
+                    saveData();
+                    showToast('Saving data...', 'info', 1500);
+                }
+            }
+            
+            // Ctrl/Cmd + E = Toggle Edit
+            if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+                e.preventDefault();
+                if (!state.isEditing) {
+                    toggleEdit();
+                    showToast('Edit mode enabled', 'info', 1500);
+                }
+            }
+            
+            // Escape = Cancel edit or close modals
+            if (e.key === 'Escape') {
+                if (state.isEditing) {
+                    // Close any open modals first
+                    const modals = document.querySelectorAll('.modal');
+                    let modalClosed = false;
+                    modals.forEach(m => {
+                        if (m.style.display === 'flex') {
+                            m.style.display = 'none';
+                            modalClosed = true;
+                        }
+                    });
+                    
+                    if (!modalClosed) {
+                        // No modal open, so cancel edit mode
+                        const confirmCancel = confirm('Cancel editing? Unsaved changes will be lost.');
+                        if (confirmCancel) {
+                            location.reload();
+                        }
+                    }
+                }
+            }
+        });
 
         function render() {
             if (state.currentTab === 'settings' || state.currentTab === 'personnel') return;
@@ -3714,36 +4208,43 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
     const hasYTD = ['exposures', 'rates', 'medical', 'nov', 'activities'].includes(state.currentTab);
     const isNov = state.currentTab === 'nov';
 
+    // Adjust TYPE column width based on tab - narrower for short text tabs
+    let typeColumnWidth = '250px';
+    if (state.currentTab === 'permits' || state.currentTab === 'dole') {
+        typeColumnWidth = '120px';
+    } else if (state.currentTab === 'emb') {
+        typeColumnWidth = '220px';
+    }
+
     html += `<div class="table-container"><table>`;
-    html += `<tr><th style="width:250px; text-align:left;">TYPE</th>`;
+    html += `<tr><th style="width:${typeColumnWidth}; text-align:left; background: #2e7d32; position: sticky; left: 0; z-index: 10;">TYPE</th>`;
 
     if (isCshp) {
         const headerText = (state.currentTab === 'cshp') ? "DATE APPROVED" : "DATE REGISTERED";
-        html += `<th>${headerText}</th>`;
+        html += `<th style="background: #388e3c;">${headerText}</th>`;
     } else {
         // Previous column header
-        if (state.currentTab !== 'kpm' && state.currentTab !== 'dole' && state.currentTab !== 'emb') {
-            html += `<th class="prev-year${isNov ? ' nov-narrow-th' : ''}">PREVIOUS</th>`;
+        if (state.currentTab !== 'kpm' && state.currentTab !== 'dole' && state.currentTab !== 'emb' && state.currentTab !== 'permits') {
+            html += `<th class="prev-year${isNov ? ' nov-narrow-th' : ''}" style="background: #388e3c;">PREVIOUS</th>`;
         }
 
         // Main columns
         if (state.currentTab === 'emb') {
-            html += `<th>Q1 (JAN-MAR)</th>`;
-            html += `<th>Q2 (APR-JUN)</th>`;
-            html += `<th>Q3 (JUL-SEP)</th>`;
-            html += `<th>Q4 (OCT-DEC)</th>`;
-            html += `<th>1ST HALF (JAN-JUN)</th>`;
-            html += `<th>2ND HALF (JUL-DEC)</th>`;
+            html += `<th style="background: #388e3c;">Q1 (JAN-MAR)</th>`;
+            html += `<th style="background: #388e3c;">Q2 (APR-JUN)</th>`;
+            html += `<th style="background: #388e3c;">Q3 (JUL-SEP)</th>`;
+            html += `<th style="background: #388e3c;">Q4 (OCT-DEC)</th>`;
         } else if (state.currentTab === 'permits') {
-            html += `<th>PERMIT NO. / ACCREDITATION NO.</th>`;
-            html += `<th>DATE ISSUED</th>`;
-            html += `<th>EXPIRY DATE</th>`;
+            html += `<th style="background: #388e3c;">PERMIT NO. / ACCREDITATION NO.</th>`;
+            html += `<th style="background: #388e3c;">DATE ISSUED</th>`;
+            html += `<th style="background: #388e3c;">EXPIRY DATE</th>`;
         } else {
-            MONTHS.forEach(m => html += `<th${isNov ? ' class="nov-narrow-th"' : ''}>${m}</th>`);
+            const isDole = state.currentTab === 'dole';
+            MONTHS.forEach(m => html += `<th${isNov ? ' class="nov-narrow-th"' : (isDole ? ' class="dole-narrow-th"' : '')} style="background: #388e3c;">${m}</th>`);
         }
 
         if (hasYTD) {
-            html += `<th class="ytd-header">RUNNING YTD</th>`;
+            html += `<th class="ytd-header" style="background: #f9a825;">RUNNING YTD</th>`;
         }
     }
 
@@ -3751,7 +4252,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
 
     SCHEMA[state.currentTab].forEach((row, rowIdx) => {
         const key = `${state.currentTab}_${row}`;
-        html += `<tr><td style="text-align:left; font-weight:600; background:var(--border-color);">${row}</td>`;
+        html += `<tr><td style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; text-align:left; font-weight:700; background:#e8f5e9; color:#1b5e20; position: sticky; left: 0; z-index: 5;">${row}</td>`;
 
         if (isCshp) {
             const v = p.vals[key] ? p.vals[key][1] : "";
@@ -3779,53 +4280,42 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                 html += `<td class="monthly-data"><input type="date" value="${dateIssued}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',2,this.value)"></td>`;
                 html += `<td class="monthly-data"><input type="date" value="${expiryDate}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',3,this.value)"></td>`;
             } else if (state.currentTab === 'emb') {
-                // EMB Reportorial - Quarterly or Semi-Annual
+                // EMB Reportorial - Simple approach
                 if (row === "SMR (Quarterly) - Submission Date") {
-                    // Q1, Q2, Q3, Q4
+                    // SMR: Q1, Q2, Q3, Q4
                     for (let i = 1; i <= 4; i++) {
                         const v = p.vals[key] ? p.vals[key][i] : "";
                         html += `<td class="monthly-data"><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
                     }
-                    // Add empty cells for semi-annual columns
-                    html += `<td class="cell-disabled"></td>`;
-                    html += `<td class="cell-disabled"></td>`;
                 } else if (row === "SMR (Quarterly) - Reference No.") {
-                    // Q1, Q2, Q3, Q4
+                    // SMR: Q1, Q2, Q3, Q4
                     for (let i = 1; i <= 4; i++) {
                         const v = p.vals[key] ? p.vals[key][i] : "";
                         html += `<td class="monthly-data"><input type="text" placeholder="Ref #" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
                     }
-                    // Add empty cells for semi-annual columns
-                    html += `<td class="cell-disabled"></td>`;
-                    html += `<td class="cell-disabled"></td>`;
                 } else if (row === "CMR (Semi-Annual) - Submission Date") {
-                    // Add empty cells for quarterly columns
-                    html += `<td class="cell-disabled"></td>`;
-                    html += `<td class="cell-disabled"></td>`;
-                    html += `<td class="cell-disabled"></td>`;
-                    html += `<td class="cell-disabled"></td>`;
-                    // 1st Half (JAN-JUN), 2nd Half (JUL-DEC)
-                    for (let i = 1; i <= 2; i++) {
-                        const v = p.vals[key] ? p.vals[key][i] : "";
-                        html += `<td class="monthly-data"><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
-                    }
+                    // CMR: Merged cell across Q1-Q4
+                    const v = p.vals[key] ? p.vals[key][1] : "";
+                    html += `<td colspan="4" style="text-align: center;"><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;"></td>`;
                 } else if (row === "CMR (Semi-Annual) - Reference No.") {
-                    // Add empty cells for quarterly columns
-                    html += `<td class="cell-disabled"></td>`;
-                    html += `<td class="cell-disabled"></td>`;
-                    html += `<td class="cell-disabled"></td>`;
-                    html += `<td class="cell-disabled"></td>`;
-                    // 1st Half (JAN-JUN), 2nd Half (JUL-DEC)
-                    for (let i = 1; i <= 2; i++) {
-                        const v = p.vals[key] ? p.vals[key][i] : "";
-                        html += `<td class="monthly-data"><input type="text" placeholder="Ref #" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
-                    }
+                    // CMR: Merged cell across Q1-Q4
+                    const v = p.vals[key] ? p.vals[key][1] : "";
+                    html += `<td colspan="4" style="text-align: center;"><input type="text" placeholder="Ref #" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;"></td>`;
                 }
             } else {
                 // Monthly Columns for other tabs
-                for (let i = 1; i <= 12; i++) {
-                    const v = p.vals[key] ? p.vals[key][i] : "";
-                    html += `<td class="${isNov ? 'nov-narrow-td' : 'monthly-data'}"><input type="${isDateType ? 'date' : 'number'}" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
+                const isDole = state.currentTab === 'dole';
+                
+                // Check if this is AEDR or AMR (annual reports) - use colspan=12
+                if (isDole && (row === 'AEDR' || row === 'AMR')) {
+                    const v = p.vals[key] ? p.vals[key][1] : "";
+                    html += `<td colspan="12" style="text-align: center;"><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;"></td>`;
+                } else {
+                    // Normal monthly columns - REMOVED RED "NO REPORT", just normal input
+                    for (let i = 1; i <= 12; i++) {
+                        const v = p.vals[key] ? p.vals[key][i] : "";
+                        html += `<td class="${isNov ? 'nov-narrow-td' : (isDole ? 'dole-narrow-td' : 'monthly-data')}"><input type="${isDateType ? 'date' : 'number'}" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
+                    }
                 }
             }
             
@@ -3845,21 +4335,21 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
     });
     html += `</table></div>`;
     
-    // ANNUAL REPORTS SECTION (for DOLE only)
-    if (state.currentTab === 'dole' && SCHEMA.dole_annual) {
+    // ANNUAL REPORTS SECTION - Now integrated in main table above
+    if (false && state.currentTab === 'dole' && SCHEMA.dole_annual) {
         html += `<div style="margin-top: 30px;">`;
         html += `<div style="background: var(--header-grad); color: white; padding: 10px 15px; border-radius: 6px; font-weight: 700; margin-bottom: 10px;">
                     📅 ANNUAL REPORTS (Submitted Every January)
                  </div>`;
         html += `<div class="table-container"><table>`;
-        html += `<tr><th style="width:250px; text-align:left;">TYPE</th><th>DATE SUBMITTED</th></tr>`;
+        html += `<tr><th style="width:120px; text-align:left; position: sticky; left: 0; z-index: 10; background: #2e7d32;">TYPE</th><th class="dole-narrow-th">DATE SUBMITTED</th></tr>`;
         
         SCHEMA.dole_annual.forEach((row, rowIdx) => {
             const key = `dole_annual_${row}`;
             const v = p.vals[key] ? p.vals[key][1] : "";
             html += `<tr>
-                <td style="text-align:left; font-weight:600; background:var(--border-color);">${row}</td>
-                <td><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)"></td>
+                <td style="text-align:left; font-weight:600; background:var(--border-color); position: sticky; left: 0; z-index: 5;">${row}</td>
+                <td class="dole-narrow-td"><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)"></td>
             </tr>`;
         });
         
@@ -3900,7 +4390,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
 
                         html += `<div class="table-container"><table>
                             <tr>
-                                <th style="width:250px;text-align:left;">PROJECT NAME</th>
+                                <th style="width:250px;text-align:left; position: sticky; left: 0; z-index: 10; background: #2e7d32;">PROJECT NAME</th>
                                 <th style="width:150px;">${headerText}</th>
                                 <th style="width:350px;">PDF DOCUMENT</th>
                             </tr>`;
@@ -3943,7 +4433,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                             }
                             
                             html += `<tr>
-                                <td style="text-align:left;font-weight:600;background:var(--border-color);">${p.name}</td>
+                                <td style="text-align:left;font-weight:600;background:var(--border-color); position: sticky; left: 0; z-index: 5;">${p.name}</td>
                                 <td><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'}
                                     oninput="updateVal('${p.name}','${key}',1,this.value)"></td>
                                 <td>${pdfCell}</td>
@@ -3958,7 +4448,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                             <table class="audit-table">
                                 <thead>
                                     <tr>
-                                        <th rowspan="3" style="text-align:left; min-width:200px; padding-left: 12px; border-right: 2px solid rgba(255,255,255,0.3);">PROJECT NAME</th>
+                                        <th rowspan="3" style="text-align:left; min-width:200px; padding-left: 12px; border-right: 2px solid rgba(255,255,255,0.3); position: sticky; left: 0; z-index: 10; background: #2e7d32;">PROJECT NAME</th>
                                         <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q1 (JAN-MAR)</th>
                                         <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q2 (APR-JUN)</th>
                                         <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q3 (JUL-SEP)</th>
@@ -3990,7 +4480,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
 
                         projs.forEach(p => {
                             let totalYearAvg = 0;
-                            html += `<tr><td style="text-align:left; font-weight:700; background:#f8f9fa; padding:10px 12px; color:#1b5e20; border-right: 2px solid #e0e0e0;">${p.name}</td>`;
+                            html += `<tr><td style="text-align:left; font-weight:700; background:#f8f9fa; padding:10px 12px; color:#1b5e20; border-right: 2px solid #e0e0e0; position: sticky; left: 0; z-index: 5;">${p.name}</td>`;
                             ['Q1','Q2','Q3','Q4'].forEach(q => {
                                 const audit = p.auditData?.[q] || { scoreImpl: 0, docuComp: 0 };
                                 const qAvg  = (audit.scoreImpl + audit.docuComp) / 2;
@@ -4010,17 +4500,18 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                     // ── KPM (Monthly Report) ──
                     } else {
                         html += `<div class="table-container"><table>
-                            <tr><th style="width:220px;text-align:left;">PROJECT NAME</th>`;
-                        MONTHS.forEach(m => html += `<th>${m}</th>`);
+                            <tr><th style="width:220px;text-align:left; position: sticky; left: 0; z-index: 10; background: #2e7d32;">PROJECT NAME</th>`;
+                        MONTHS.forEach(m => html += `<th style="width:100px;min-width:100px;max-width:100px;">${m}</th>`);
                         html += `</tr>`;
 
                         projs.forEach(p => {
                             SCHEMA['kpm'].forEach(row => {
                                 const key = `kpm_${row}`;
                                 html += `<tr>
-                                    <td style="text-align:left;font-weight:600;background:var(--border-color);">${p.name}</td>`;
+                                    <td style="text-align:left;font-weight:600;background:var(--border-color); position: sticky; left: 0; z-index: 5;">${p.name}</td>`;
                                 for (let i = 1; i <= 12; i++) {
                                     const v = p.vals[key] ? p.vals[key][i] : "";
+                                    // Removed red NO REPORT - just normal input
                                     html += `<td class="monthly-data"><input type="date" value="${v}"
                                         ${state.isEditing ? '' : 'disabled'}
                                         oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
@@ -4069,6 +4560,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                         font-weight: 600;
                         background: var(--border-color);
                         min-width: 150px;
+                        position: sticky;
+                        left: 0;
+                        z-index: 5;
                     }
                     .nov-monitoring-table input {
                         text-align: center;
@@ -4154,7 +4648,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                     <table class="nov-monitoring-table">
                         <thead>
                             <tr>
-                                <th style="min-width: 150px; background: #2e7d32;">TYPE</th>
+                                <th style="min-width: 150px; background: #2e7d32; position: sticky; left: 0; z-index: 10;">TYPE</th>
                                 <th class="prev-year" style="background: #388e3c;">PREVIOUS</th>
                                 <th style="background: #388e3c;">JAN</th><th style="background: #388e3c;">FEB</th><th style="background: #388e3c;">MAR</th><th style="background: #388e3c;">APR</th>
                                 <th style="background: #388e3c;">MAY</th><th style="background: #388e3c;">JUN</th><th style="background: #388e3c;">JUL</th><th style="background: #388e3c;">AUG</th>
@@ -4167,7 +4661,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                         </thead>
                         <tbody>
                             <tr class="overall-total">
-                                <td style="text-align: left; font-weight: 700; background: #e8f5e9; color: #1b5e20;">OVERALL TOTAL</td>
+                                <td style="text-align: left; font-weight: 700; background: #e8f5e9; color: #1b5e20; position: sticky; left: 0; z-index: 5;">OVERALL TOTAL</td>
                                 <td style="background: #c8e6c9; font-weight: 700;">${overallTotals.prev}</td>`;
                 
                 for (let i = 0; i < 12; i++) {
@@ -4208,9 +4702,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                         <table class="nov-monitoring-table">
                             <thead>
                                 <tr>
-                                    <th rowspan="2" style="min-width: 150px;">PROJECT NAME</th>
+                                    <th rowspan="2" style="min-width: 150px; position: sticky; left: 0; z-index: 10; background: #2e7d32;">PROJECT NAME</th>
                                     <th rowspan="2" class="prev-year">PREVIOUS</th>
-                                    <th colspan="12">2025 MONTHLY DATA</th>
+                                    <th colspan="12">2026 MONTHLY DATA</th>
                                     <th colspan="4">SUMMARY</th>
                                 </tr>
                                 <tr>
@@ -4680,13 +5174,13 @@ function renderPTable() {
 
         return `
         <tr id="p-row-${i}">
-            <td style="min-width:250px;">
+            <td style="min-width:250px; text-align:left; position: sticky; left: 0; z-index: 5; background: var(--bg-card);">
                 <span class="p-row-num">${i+1}</span>
-                <input type="text" value="${p.name || ''}" onchange="state.personnelData[${i}].name=this.value" style="min-width:220px;" disabled>
+                <input type="text" value="${p.name || ''}" onchange="state.personnelData[${i}].name=this.value" style="min-width:220px; text-align:left;" disabled>
             </td>
-            <td style="width:180px;">
+            <td style="width:180px; text-align:left;">
                 ${posDisplay}
-                <select onchange="state.personnelData[${i}].pos=this.value;renderPTable();" style="width:170px;display:none;" disabled>
+                <select onchange="state.personnelData[${i}].pos=this.value;renderPTable();" style="width:170px;display:none; text-align:left;" disabled>
                     <option value="${p.pos||''}">${p.pos||'Select'}</option>
                     <optgroup label="Project-Based Positions">
                         <option>ESH Superintendent</option>
@@ -4701,7 +5195,7 @@ function renderPTable() {
                         <option>First Aider</option>
                     </optgroup>
                     <optgroup label="Corporate Positions">
-                        <option>QESH Manager</option>
+                        <option>QESH Group Manager</option>
                         <option>QESH Deputy Manager</option>
                         <option>ESH Manager for Regulation & Compliance</option>
                         <option>ESH Manager for Project Implementation</option>
@@ -5142,7 +5636,7 @@ async function saveToFirebase() {
         
     } catch (error) {
         console.error('❌ Error saving to Firebase:', error);
-        alert('Failed to save: ' + error.message);
+        showToast('Failed to save: ' + error.message, 'error');
         return false;
     }
 }
@@ -5258,7 +5752,7 @@ function loadFromLocalStorage() {
 // Firebase Authentication Handlers
 async function firebaseLogin(email, password) {
     if (!window.firebase) {
-        alert('Firebase not initialized');
+        showToast('Firebase not initialized. Please refresh the page.', 'error');
         return false;
     }
 
@@ -5268,14 +5762,14 @@ async function firebaseLogin(email, password) {
         return true;
     } catch (error) {
         console.error('❌ Login error:', error);
-        alert('Login failed: ' + error.message);
+        showToast('Login failed: ' + error.message, 'error');
         return false;
     }
 }
 
 async function firebaseSignup(email, password) {
     if (!window.firebase) {
-        alert('Firebase not initialized');
+        showToast('Firebase not initialized. Please refresh the page.', 'error');
         return false;
     }
 
@@ -5287,11 +5781,11 @@ async function firebaseSignup(email, password) {
     // - May uppercase at lowercase letters
     // Halimbawa:
     // if (password.length < 8) {
-    //     alert('Password must be at least 8 characters long');
+    //     showToast('Password must be at least 8 characters long', 'warning');
     //     return false;
     // }
     // if (!/(?=.*[0-9])(?=.*[!@#$%^&*])/.test(password)) {
-    //     alert('Password must contain at least one number and one special character');
+    //     showToast('Password must contain at least one number and one special character', 'warning');
     //     return false;
     // }
 
@@ -5305,7 +5799,7 @@ async function firebaseSignup(email, password) {
         return true;
     } catch (error) {
         console.error('❌ Signup error:', error);
-        alert('Signup failed: ' + error.message);
+        showToast('Signup failed: ' + error.message, 'error');
         return false;
     }
 }
@@ -5735,6 +6229,9 @@ setTimeout(() => {
 
 // ==================== END FIREBASE INTEGRATION ====================
     </script>
+
+<!-- Toast Notification Container -->
+<div id="toast-container"></div>
 
 </body>
 </html>
