@@ -2493,13 +2493,10 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <button class="theme-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
                     <i class="fas fa-moon" id="theme-icon"></i>
                 </button>
-                <div id="active-users-badge" style="display: flex; align-items: center; gap: 6px; background: rgba(27, 94, 32, 0.15); border: 2px solid #1b5e20; padding: 8px 14px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; color: #1b5e20; cursor: help;" title="Real-time active users count. Click DEBUG button or press F12 for console info.">
+                <div id="active-users-badge" style="display: flex; align-items: center; gap: 6px; background: rgba(27, 94, 32, 0.15); border: 2px solid #1b5e20; padding: 8px 14px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; color: #1b5e20;" title="Real-time active users">
                     <i class="fas fa-circle" id="presence-status-icon" style="color: #4caf50; font-size: 0.5rem; animation: pulse 2s ease-in-out infinite;"></i>
                     <span id="active-users-count">...</span>
                     <span style="font-weight: 500;" id="active-users-label">loading</span>
-                    <button onclick="window.testPresence()" style="margin-left: 8px; background: #1b5e20; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; cursor: pointer; font-weight: 600;" title="Run presence diagnostics">
-                        <i class="fas fa-bug"></i> DEBUG
-                    </button>
                 </div>
                 <button id="edit-btn" class="btn btn-primary" onclick="toggleEdit()">
                     <i class="fas fa-edit"></i> EDIT
@@ -6727,54 +6724,26 @@ function toggleMobileMenu() {
             sidebar.classList.remove('mobile-open');
             overlay.classList.remove('active');
             menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
-            document.body.style.overflow = ''; // Re-enable body scroll
         } else {
             // Open menu
             sidebar.classList.add('mobile-open');
             overlay.classList.add('active');
             menuToggle.innerHTML = '<i class="fas fa-times"></i>';
-            document.body.style.overflow = 'hidden'; // Prevent body scroll when menu is open
         }
     }
 }
 
-// Initialize mobile menu functionality
+// Close mobile menu when clicking on nav items
 document.addEventListener('DOMContentLoaded', function() {
-    // Add click event to burger menu button
-    const menuToggle = document.getElementById('mobile-menu-toggle');
-    if (menuToggle) {
-        menuToggle.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            toggleMobileMenu();
-        });
-        console.log('✅ Mobile menu toggle button initialized');
-    }
-    
-    // Add click event to overlay
-    const overlay = document.getElementById('mobile-overlay');
-    if (overlay) {
-        overlay.addEventListener('click', function(e) {
-            e.preventDefault();
-            toggleMobileMenu();
-        });
-        console.log('✅ Mobile overlay click handler initialized');
-    }
-    
-    // Close mobile menu when clicking on nav items
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
         item.addEventListener('click', function() {
             // Only close on mobile/tablet
             if (window.innerWidth <= 768) {
-                const sidebar = document.querySelector('aside');
-                if (sidebar && sidebar.classList.contains('mobile-open')) {
-                    toggleMobileMenu();
-                }
+                toggleMobileMenu();
             }
         });
     });
-    console.log('✅ Nav items click handlers initialized');
 
     // Close menu on window resize if going from mobile to desktop
     let resizeTimer;
@@ -6789,7 +6758,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (sidebar) sidebar.classList.remove('mobile-open');
                 if (overlay) overlay.classList.remove('active');
                 if (menuToggle) menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
-                document.body.style.overflow = '';
             }
         }, 250);
     });
@@ -6798,158 +6766,6 @@ document.addEventListener('DOMContentLoaded', function() {
 console.log('📱 Mobile responsive features loaded!');
 
 // ==================== PRESENCE DEBUGGING ====================
-window.testPresence = function() {
-    console.log('');
-    console.log('🔍 ========== PRESENCE TRACKING DEBUG INFO ==========');
-    console.log('');
-    
-    // Check Firebase initialization
-    console.log('1️⃣ FIREBASE STATUS:');
-    console.log('   firebaseRealtimeDb:', window.firebaseRealtimeDb ? '✅ Initialized' : '❌ Not initialized');
-    console.log('   firebaseAuth:', window.firebaseAuth ? '✅ Initialized' : '❌ Not initialized');
-    console.log('   firebase object:', window.firebase ? '✅ Available' : '❌ Not available');
-    console.log('');
-    
-    // Check current user
-    console.log('2️⃣ CURRENT USER:');
-    if (state.currentUser) {
-        console.log('   ✅ Logged in');
-        console.log('   Email:', state.currentUser.email);
-        console.log('   UID:', state.currentUser.uid);
-    } else {
-        console.log('   ❌ Not logged in');
-    }
-    console.log('');
-    
-    // Check UI element
-    console.log('3️⃣ UI ELEMENT:');
-    const counterEl = document.getElementById('active-users-count');
-    const labelEl = document.getElementById('active-users-label');
-    if (counterEl) {
-        console.log('   ✅ Counter element found');
-        console.log('   Current value:', counterEl.textContent);
-        console.log('   Label:', labelEl ? labelEl.textContent : 'N/A');
-    } else {
-        console.log('   ❌ Counter element NOT found');
-    }
-    console.log('');
-    
-    // Try to read presence data directly
-    if (window.firebaseRealtimeDb && window.firebase && state.currentUser) {
-        console.log('4️⃣ READING PRESENCE DATA FROM FIREBASE:');
-        const presenceRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'presence');
-        
-        // One-time read
-        window.firebase.onValue(presenceRef, (snapshot) => {
-            const data = snapshot.val();
-            console.log('   Raw data:', data);
-            
-            if (data) {
-                const count = Object.keys(data).length;
-                console.log('   ✅ Found', count, 'active user(s):');
-                Object.entries(data).forEach(([uid, userData]) => {
-                    console.log('     -', userData.email, '(UID:', uid + ')');
-                });
-            } else {
-                console.log('   ⚠️ No presence data found in Firebase');
-                console.log('');
-                console.log('   💡 MOST LIKELY CAUSE: Database rules are blocking writes');
-                console.log('');
-            }
-        }, { onlyOnce: true });
-        
-        // Try a manual test write
-        console.log('');
-        console.log('5️⃣ TESTING MANUAL WRITE:');
-        const testRef = window.firebase.dbRef(window.firebaseRealtimeDb, `presence/${state.currentUser.uid}`);
-        const testData = {
-            email: state.currentUser.email,
-            online: true,
-            timestamp: Date.now(),
-            test: 'manual write test from testPresence()'
-        };
-        
-        console.log('   Attempting to write:', testData);
-        window.firebase.set(testRef, testData)
-            .then(() => {
-                console.log('   ✅ MANUAL WRITE SUCCESS!');
-                console.log('   💡 Database is working! Counter should update soon.');
-                console.log('');
-                
-                // Read it back
-                setTimeout(() => {
-                    window.firebase.onValue(testRef, (snapshot) => {
-                        console.log('   📖 Read back data:', snapshot.val());
-                    }, { onlyOnce: true });
-                }, 500);
-            })
-            .catch((error) => {
-                console.error('   ❌ MANUAL WRITE FAILED:', error);
-                console.error('   Error code:', error.code);
-                console.error('   Error message:', error.message);
-                console.error('');
-                console.error('   🚨 THIS IS THE PROBLEM! ^^^');
-                console.error('');
-            });
-    } else {
-        console.log('4️⃣ CANNOT READ PRESENCE DATA:');
-        if (!window.firebaseRealtimeDb) console.log('   ❌ Realtime Database not initialized');
-        if (!window.firebase) console.log('   ❌ Firebase SDK not loaded');
-        if (!state.currentUser) console.log('   ❌ No user logged in');
-    }
-    console.log('');
-    
-    // Database configuration
-    console.log('6️⃣ DATABASE CONFIGURATION:');
-    console.log('   URL: https://esh-dashboard-default-rtdb.asia-southeast1.firebasedatabase.app');
-    console.log('   Path: /presence/{userId}');
-    console.log('');
-    
-    // Instructions
-    console.log('7️⃣ SOLUTION - FIX FIREBASE RULES:');
-    console.log('');
-    console.log('   Step 1: Go to https://console.firebase.google.com');
-    console.log('   Step 2: Select project "esh-dashboard"');
-    console.log('   Step 3: Click "Realtime Database" in left menu');
-    console.log('   Step 4: Click "Rules" tab');
-    console.log('   Step 5: Replace with this:');
-    console.log('');
-    console.log('   {');
-    console.log('     "rules": {');
-    console.log('       ".read": "auth != null",');
-    console.log('       ".write": "auth != null"');
-    console.log('     }');
-    console.log('   }');
-    console.log('');
-    console.log('   Step 6: Click "Publish"');
-    console.log('   Step 7: Refresh this page');
-    console.log('');
-    console.log('   NOTE: These rules allow any authenticated user to read/write.');
-    console.log('   This is safe because only logged-in users can access the database.');
-    console.log('');
-    console.log('🔍 ========== END DEBUG INFO ==========');
-    console.log('');
-};
-
-// Auto-run test on page load if there's an issue
-setTimeout(() => {
-    const counterEl = document.getElementById('active-users-count');
-    const currentValue = counterEl ? counterEl.textContent : null;
-    
-    if (state.currentUser && (currentValue === '0' || currentValue === '...' || currentValue === 'ERR')) {
-        console.warn('⚠️ Presence counter issue detected. Value:', currentValue);
-        console.warn('Running automatic diagnostic...');
-        console.warn('');
-        window.testPresence();
-    }
-}, 3000); // Check after 3 seconds instead of 5
-
-// Also add a manual trigger that users can run
-console.log('');
-console.log('💡 TIP: If active users count shows 0 or error, type window.testPresence() in console');
-console.log('💡 Or click the DEBUG button in the active users badge');
-console.log('');
-
 // ==================== END FIREBASE INTEGRATION ====================
     </script>
 
