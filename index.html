@@ -103,6 +103,14 @@
         }
 
         * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        
+        /* Smooth scrolling for all devices */
+        html {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            scroll-behavior: smooth;
+        }
+        
         body { 
             margin: 0; 
             background: var(--bg-body); 
@@ -111,6 +119,22 @@
             overflow: hidden;
             color: var(--text-primary);
             transition: background-color 0.3s, color 0.3s;
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+        }
+
+        /* Better touch scrolling on iOS */
+        aside,
+        main {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Prevent text selection on buttons for better mobile UX */
+        button,
+        .btn,
+        .nav-item {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         #login-overlay {
@@ -539,6 +563,431 @@
 
         body.dark-mode .disclaimer-box strong {
             color: #fbc02d;
+        }
+
+        /* ============================================
+           RESPONSIVE DESIGN - MOBILE FIRST
+           ============================================ */
+
+        /* Mobile Menu Toggle Button */
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background: var(--safety-green-grad);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 45px;
+            height: 45px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(27, 94, 32, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .mobile-menu-toggle:active {
+            transform: scale(0.95);
+        }
+
+        /* Tablet Styles (768px and below) */
+        @media screen and (max-width: 768px) {
+            /* Show mobile menu toggle */
+            .mobile-menu-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            /* Sidebar transforms to mobile menu */
+            aside {
+                position: fixed;
+                left: -280px;
+                top: 0;
+                height: 100vh;
+                width: 280px;
+                z-index: 1000;
+                transition: left 0.3s ease;
+                box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+            }
+
+            aside.mobile-open {
+                left: 0;
+            }
+
+            /* Overlay when menu is open */
+            .mobile-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 999;
+            }
+
+            .mobile-overlay.active {
+                display: block;
+            }
+
+            /* Main content adjusts */
+            main {
+                margin-left: 0;
+            }
+
+            /* Header stacks vertically */
+            header {
+                padding: 70px 15px 12px;
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .header-title {
+                font-size: 1rem;
+            }
+
+            .header-controls {
+                width: 100%;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .header-controls input,
+            .header-controls select,
+            .header-controls button {
+                width: 100%;
+            }
+
+            /* Region banner stacks */
+            .region-banner {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                padding: 12px 15px;
+                margin: 15px 10px 0;
+            }
+
+            /* Project rows stack vertically */
+            .project-row {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 15px;
+                margin: 0 10px 8px;
+                gap: 12px;
+            }
+
+            .project-info {
+                width: 100%;
+            }
+
+            .project-dates {
+                width: 100%;
+            }
+
+            .circular-progress {
+                align-self: center;
+                margin: 10px 0;
+            }
+
+            /* Modal adjusts */
+            .modal-content {
+                width: 95%;
+                max-width: none;
+                padding: 20px;
+                margin: 10px;
+            }
+
+            .modal-header {
+                font-size: 1rem;
+            }
+
+            /* Login card responsive */
+            .login-card {
+                padding: 30px 25px;
+                max-width: 95%;
+                margin: 10px;
+            }
+
+            .login-shield {
+                width: 70px;
+                height: 70px;
+            }
+
+            .login-shield i {
+                font-size: 2rem;
+            }
+
+            .login-title {
+                font-size: 1.2rem;
+            }
+
+            /* Form inputs touch-friendly */
+            .form-group input,
+            .form-group select {
+                font-size: 16px; /* Prevents zoom on iOS */
+                padding: 12px;
+            }
+
+            .login-card input {
+                font-size: 16px;
+                padding: 14px 18px 14px 48px;
+            }
+
+            /* Buttons more touch-friendly */
+            .btn {
+                padding: 12px 18px;
+                font-size: 0.85rem;
+                min-height: 44px; /* iOS touch target */
+            }
+
+            .login-btn {
+                padding: 18px;
+                font-size: 1rem;
+            }
+
+            /* Navigation items bigger for touch */
+            .nav-item {
+                padding: 16px 20px;
+                font-size: 0.85rem;
+            }
+
+            /* PDF controls stack */
+            .pdf-upload-container {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .pdf-upload-btn,
+            .pdf-view-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            /* Status badges */
+            .status-badge {
+                padding: 8px 14px;
+                font-size: 0.75rem;
+            }
+
+            /* Backup section */
+            .backup-buttons {
+                flex-direction: column;
+            }
+
+            .backup-buttons .btn {
+                width: 100%;
+            }
+
+            .backup-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .backup-item-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            /* Toast notifications */
+            #toast-container {
+                bottom: 80px;
+                left: 10px;
+                right: 10px;
+            }
+
+            /* Safety icons smaller on mobile */
+            .safety-icon-float {
+                font-size: 50px;
+            }
+        }
+
+        /* Small Mobile Styles (480px and below) */
+        @media screen and (max-width: 480px) {
+            .login-card {
+                padding: 25px 20px;
+            }
+
+            .login-title {
+                font-size: 1rem;
+                letter-spacing: 1px;
+            }
+
+            .login-subtitle {
+                font-size: 0.75rem;
+            }
+
+            .login-badge {
+                font-size: 0.6rem;
+                padding: 3px 10px;
+            }
+
+            .disclaimer-box {
+                font-size: 0.7rem;
+                padding: 12px;
+            }
+
+            .header-title {
+                font-size: 0.9rem;
+            }
+
+            .project-name {
+                font-size: 0.85rem;
+            }
+
+            .project-meta,
+            .project-dates {
+                font-size: 0.6rem;
+            }
+
+            .circular-progress {
+                width: 45px;
+                height: 45px;
+            }
+
+            .circular-progress-inner {
+                width: 39px;
+                height: 39px;
+                font-size: 0.7rem;
+            }
+
+            .region-banner {
+                font-size: 0.85rem;
+            }
+
+            .badge {
+                font-size: 0.65rem;
+                padding: 3px 10px;
+            }
+
+            /* Background animations less intensive on small screens */
+            #login-overlay::before,
+            #login-overlay::after {
+                width: 400px;
+                height: 400px;
+            }
+
+            .safety-icon-float {
+                font-size: 40px;
+            }
+
+            .safety-pattern {
+                opacity: 0.02;
+            }
+        }
+
+        /* Large Desktop (1920px and above) */
+        @media screen and (min-width: 1920px) {
+            aside {
+                width: 300px;
+            }
+
+            .login-card {
+                max-width: 550px;
+                padding: 60px 50px;
+            }
+
+            .header-title {
+                font-size: 1.3rem;
+            }
+
+            .project-row {
+                padding: 15px 20px;
+            }
+
+            .region-banner {
+                padding: 20px 25px;
+            }
+        }
+
+        /* Landscape Mode Adjustments */
+        @media screen and (max-height: 600px) and (orientation: landscape) {
+            .login-card {
+                padding: 20px;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            .login-shield {
+                width: 60px;
+                height: 60px;
+            }
+
+            .login-shield i {
+                font-size: 1.8rem;
+            }
+
+            .login-title {
+                font-size: 1rem;
+                margin-bottom: 5px;
+            }
+
+            .login-subtitle {
+                font-size: 0.75rem;
+            }
+
+            .disclaimer-box {
+                margin-top: 15px;
+                padding: 10px;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            aside,
+            .mobile-menu-toggle,
+            .theme-toggle,
+            header .header-controls,
+            .btn {
+                display: none !important;
+            }
+
+            main {
+                margin-left: 0;
+            }
+
+            body {
+                background: white;
+                color: black;
+            }
+
+            .project-row {
+                page-break-inside: avoid;
+                border: 1px solid #ccc;
+            }
+        }
+
+        /* Reduce Motion for Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* High Contrast Mode Support */
+        @media (prefers-contrast: high) {
+            body {
+                background: white;
+                color: black;
+            }
+
+            .btn-primary {
+                background: #006400;
+                border: 2px solid black;
+            }
+
+            .project-row {
+                border: 2px solid black;
+            }
         }
 
         /* Firebase init loading overlay */
@@ -1777,6 +2226,14 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
     </style>
 </head>
 <body>
+
+    <!-- Mobile Menu Toggle Button -->
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Toggle Menu">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-overlay" id="mobile-overlay" onclick="toggleMobileMenu()"></div>
 
     <!-- Firebase initialization loading screen -->
     <div id="firebase-loading-overlay">
@@ -6185,6 +6642,61 @@ window.addEventListener('beforeunload', () => {
 });
 
 console.log('🔥 Firebase integration loaded - OPTIMIZED: Save button only!');
+
+// ==================== MOBILE MENU FUNCTIONALITY ====================
+function toggleMobileMenu() {
+    const sidebar = document.querySelector('aside');
+    const overlay = document.getElementById('mobile-overlay');
+    const menuToggle = document.getElementById('mobile-menu-toggle');
+    
+    if (sidebar && overlay && menuToggle) {
+        const isOpen = sidebar.classList.contains('mobile-open');
+        
+        if (isOpen) {
+            // Close menu
+            sidebar.classList.remove('mobile-open');
+            overlay.classList.remove('active');
+            menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+        } else {
+            // Open menu
+            sidebar.classList.add('mobile-open');
+            overlay.classList.add('active');
+            menuToggle.innerHTML = '<i class="fas fa-times"></i>';
+        }
+    }
+}
+
+// Close mobile menu when clicking on nav items
+document.addEventListener('DOMContentLoaded', function() {
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', function() {
+            // Only close on mobile/tablet
+            if (window.innerWidth <= 768) {
+                toggleMobileMenu();
+            }
+        });
+    });
+
+    // Close menu on window resize if going from mobile to desktop
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            if (window.innerWidth > 768) {
+                const sidebar = document.querySelector('aside');
+                const overlay = document.getElementById('mobile-overlay');
+                const menuToggle = document.getElementById('mobile-menu-toggle');
+                
+                if (sidebar) sidebar.classList.remove('mobile-open');
+                if (overlay) overlay.classList.remove('active');
+                if (menuToggle) menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+            }
+        }, 250);
+    });
+});
+
+console.log('📱 Mobile responsive features loaded!');
 
 // ==================== PRESENCE DEBUGGING ====================
 window.testPresence = function() {
