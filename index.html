@@ -2431,7 +2431,7 @@ body.dark-mode .backup-item {
     background: var(--border-color);
 }
 
-        /* IMPROVED TABLE STYLES */
+        /* IMPROVED TABLE STYLES - OPTION 4: STRIPED WITH ACCENT */
         .table-container {
             margin: 10px 20px; overflow-x: auto; padding: 10px; background: var(--bg-card);
             border: 1px solid var(--border-color); border-radius: 8px;
@@ -2444,58 +2444,33 @@ body.dark-mode .backup-item {
             font-size: 0.7rem;
             table-layout: auto;
             color: var(--text-primary);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            border-radius: 8px;
-            overflow: hidden;
         }
         
-        /* Modern Gradient Headers */
+        /* Option 4: Dark green header with yellow accent */
         th { 
-            background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 25%, #2e7d32 50%, #43a047 75%, #66bb6a 100%);
+            background: #1b5e20; 
             color: white; 
-            padding: 12px 10px; 
+            padding: 10px 8px; 
             border: none;
             border-bottom: 3px solid var(--safety-yellow);
             white-space: nowrap;
             min-width: auto;
             width: auto;
-            font-weight: 700;
-            font-size: 0.72rem;
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            position: relative;
+            font-weight: 600;
         }
         
-        /* Shimmer effect on headers */
-        th::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            animation: shimmer 3s infinite;
-        }
-        
-        @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-        
-        /* Enhanced Striped Rows */
+        /* Striped rows - white and very light green */
         tbody tr {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s ease;
             border-left: 3px solid transparent;
         }
         
         tbody tr:nth-child(odd) {
-            background: #ffffff;
+            background: white;
         }
         
         tbody tr:nth-child(even) {
-            background: linear-gradient(90deg, #f1f8e9 0%, #f5faf0 100%);
+            background: #f1f8e9;
         }
         
         /* Dark mode striped rows */
@@ -2504,26 +2479,23 @@ body.dark-mode .backup-item {
         }
         
         body.dark-mode tbody tr:nth-child(even) {
-            background: linear-gradient(90deg, #1f2e1f 0%, #243324 100%);
+            background: #1f2e1f;
         }
         
-        /* Enhanced Hover Effect with Shadow */
+        /* Hover effect with left border accent */
         tbody tr:hover {
-            border-left: 4px solid #4caf50;
-            background: linear-gradient(90deg, #e8f5e9 0%, #f1f8e9 100%) !important;
-            transform: translateX(2px);
-            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+            border-left: 3px solid #4caf50;
+            background: #e8f5e9 !important;
         }
         
         body.dark-mode tbody tr:hover {
-            background: linear-gradient(90deg, #1b3d1b 0%, #2a4d2a 100%) !important;
-            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+            background: #1b3d1b !important;
         }
         
         td { 
             border: none;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-            padding: 10px 8px; 
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 8px 6px; 
             text-align: center;
             min-width: auto;
             width: auto;
@@ -2531,14 +2503,13 @@ body.dark-mode .backup-item {
         }
         
         body.dark-mode td {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
         
         td:first-child {
             text-align: left;
             min-width: 200px;
             font-weight: 600;
-            padding-left: 12px;
         }
         
         /* Previous Year Column */
