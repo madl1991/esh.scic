@@ -102,6 +102,202 @@
             color: #81c784;
         }
 
+        /* ==================== SAFETY REMINDER CHARACTER ==================== */
+        #safety-reminder-container {
+            position: fixed;
+            bottom: -300px;
+            right: 30px;
+            z-index: 9999;
+            transition: bottom 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        #safety-reminder-container.show {
+            bottom: 30px;
+        }
+
+        .safety-character {
+            display: flex;
+            align-items: flex-end;
+            gap: 20px;
+        }
+
+        /* 3D Emoji Character */
+        .character-emoji {
+            font-size: 100px;
+            animation: walk 0.6s ease-in-out infinite;
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.2));
+            user-select: none;
+        }
+
+        @keyframes walk {
+            0%, 100% { transform: translateY(0px) rotate(-2deg); }
+            50% { transform: translateY(-8px) rotate(2deg); }
+        }
+
+        /* Speech Bubble */
+        .reminder-bubble {
+            background: white;
+            padding: 20px 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            min-width: 300px;
+            max-width: 360px;
+            position: relative;
+            border: 3px solid #2e7d32;
+        }
+
+        body.dark-mode .reminder-bubble {
+            background: #2d2d2d;
+            color: #e4e4e4;
+            border-color: #4caf50;
+        }
+
+        .reminder-bubble::before {
+            content: '';
+            position: absolute;
+            bottom: 30px;
+            right: -15px;
+            width: 0;
+            height: 0;
+            border-left: 20px solid #2e7d32;
+            border-top: 12px solid transparent;
+            border-bottom: 12px solid transparent;
+        }
+
+        body.dark-mode .reminder-bubble::before {
+            border-left-color: #4caf50;
+        }
+
+        .reminder-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: 30px;
+            right: -11px;
+            width: 0;
+            height: 0;
+            border-left: 16px solid white;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+        }
+
+        body.dark-mode .reminder-bubble::after {
+            border-left-color: #2d2d2d;
+        }
+
+        .reminder-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .reminder-icon {
+            font-size: 28px;
+        }
+
+        .reminder-title {
+            font-weight: 700;
+            font-size: 18px;
+            color: #2e7d32;
+        }
+
+        body.dark-mode .reminder-title {
+            color: #81c784;
+        }
+
+        .reminder-text {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        body.dark-mode .reminder-text {
+            color: #e4e4e4;
+        }
+
+        .reminder-dismiss {
+            background: #2e7d32;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+        .reminder-dismiss:hover {
+            background: #1b5e20;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 125, 50, 0.3);
+        }
+
+        body.dark-mode .reminder-dismiss {
+            background: #4caf50;
+        }
+
+        body.dark-mode .reminder-dismiss:hover {
+            background: #388e3c;
+        }
+
+        /* Timer display */
+        .work-timer {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(46, 125, 50, 0.1);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #2e7d32;
+            border: 1px solid rgba(46, 125, 50, 0.3);
+            z-index: 1000;
+        }
+
+        body.dark-mode .work-timer {
+            background: rgba(76, 175, 80, 0.15);
+            color: #81c784;
+            border-color: rgba(76, 175, 80, 0.3);
+        }
+
+        .work-timer-label {
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .work-timer-value {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            #safety-reminder-container {
+                right: 10px;
+            }
+
+            .reminder-bubble {
+                min-width: 260px;
+                max-width: 300px;
+                padding: 15px 20px;
+            }
+
+            .character-emoji {
+                font-size: 70px;
+            }
+
+            .work-timer {
+                top: 70px;
+                right: 10px;
+                font-size: 11px;
+            }
+        }
+        /* ==================== END SAFETY REMINDER CHARACTER ==================== */
+
         * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
         
         /* Smooth scrolling for all devices */
@@ -1066,6 +1262,137 @@
         .theme-toggle:hover {
             background: var(--border-color);
             transform: scale(1.05);
+        }
+
+        /* Year Selector Styles */
+        .year-selector-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .year-selector-btn {
+            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+            border: 2px solid #4caf50;
+            color: white;
+            cursor: pointer;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(27, 94, 32, 0.3);
+        }
+
+        .year-selector-btn:hover {
+            background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(27, 94, 32, 0.4);
+        }
+
+        .year-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--bg-card);
+            border: 2px solid #2e7d32;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            min-width: 200px;
+            z-index: 1000;
+            overflow: hidden;
+            animation: dropdownSlideIn 0.2s ease-out;
+        }
+
+        @keyframes dropdownSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .year-dropdown-header {
+            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+            color: white;
+            padding: 10px 15px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            border-bottom: 2px solid #fbc02d;
+        }
+
+        .year-options {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .year-option {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 3px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .year-option:hover {
+            background: #e8f5e9;
+        }
+
+        body.dark-mode .year-option:hover {
+            background: #1b3d1b;
+        }
+
+        .year-option.active {
+            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+            color: white;
+            font-weight: 800;
+        }
+
+        .year-option.active:hover {
+            background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);
+        }
+
+        .year-add-btn {
+            width: 100%;
+            padding: 10px;
+            background: #fbc02d;
+            border: none;
+            border-top: 2px solid #f9a825;
+            color: #1b5e20;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .year-add-btn:hover {
+            background: #f9a825;
+        }
+
+        body.dark-mode .year-selector-btn {
+            background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 100%);
+            border-color: #2e7d32;
+        }
+
+        body.dark-mode .year-dropdown {
+            background: #2d2d2d;
+            border-color: #1b5e20;
         }
 
         /* Save button with Firebase sync indicator */
@@ -2743,6 +3070,25 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <button class="theme-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
                     <i class="fas fa-moon" id="theme-icon"></i>
                 </button>
+                
+                <!-- YEAR SELECTOR -->
+                <div class="year-selector-container" style="position: relative;">
+                    <button class="year-selector-btn" onclick="toggleYearDropdown()" id="year-selector-btn" title="Select Year">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span id="selected-year-display">2026</span>
+                        <i class="fas fa-chevron-down" style="font-size: 0.7rem; margin-left: 4px;"></i>
+                    </button>
+                    <div class="year-dropdown hidden" id="year-dropdown">
+                        <div class="year-dropdown-header">Select Year</div>
+                        <div class="year-options" id="year-options">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                        <button class="year-add-btn" onclick="showAddYearDialog()" title="Add Custom Year">
+                            <i class="fas fa-plus"></i> Add Year
+                        </button>
+                    </div>
+                </div>
+                
                 <div id="active-users-badge" style="display: flex; align-items: center; gap: 6px; background: rgba(27, 94, 32, 0.15); border: 2px solid #1b5e20; padding: 8px 14px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; color: #1b5e20;" title="Real-time active users">
                     <i class="fas fa-circle" id="presence-status-icon" style="color: #4caf50; font-size: 0.5rem; animation: pulse 2s ease-in-out infinite;"></i>
                     <span id="active-users-count">...</span>
@@ -3144,6 +3490,48 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         </div>
       </div>
 
+      <!-- Year Data Management - Full Width -->
+      <div class="settings-card settings-card-full">
+        <div class="settings-card-header">
+          <i class="fas fa-calendar-check"></i>
+          <span class="settings-card-title">YEAR DATA MANAGEMENT</span>
+        </div>
+        <div class="settings-card-body">
+          <div style="background: #e8f5e9; border-left: 4px solid #2e7d32; padding: 14px; border-radius: 6px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <i class="fas fa-info-circle" style="color: #2e7d32;"></i>
+              <strong style="color: #1b5e20; font-size: 0.85rem;">Current Year: <span id="settings-current-year">2026</span></strong>
+            </div>
+            <p style="margin: 0; font-size: 0.75rem; color: #2e7d32;">
+              Each year's data is stored separately. You can copy data from previous years to save time.
+            </p>
+          </div>
+          
+          <div class="settings-input-group">
+            <label class="settings-label">Copy Data From Previous Year</label>
+            <div style="display: flex; gap: 10px;">
+              <select id="source-year-select" class="settings-input" style="flex: 1;">
+                <option value="">Select source year...</option>
+              </select>
+              <button class="settings-btn settings-btn-primary" style="width: auto; padding: 11px 20px; margin: 0;" onclick="copyDataFromYear()">
+                <i class="fas fa-copy"></i> Copy Data
+              </button>
+            </div>
+            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 6px;">
+              <i class="fas fa-lightbulb" style="color: #fbc02d;"></i>
+              This will copy projects, personnel, and incident data from the selected year to <strong id="target-year-display">2026</strong>.
+            </div>
+          </div>
+          
+          <div class="settings-input-group" style="margin-top: 20px;">
+            <label class="settings-label">Export Current Year Data</label>
+            <button class="settings-btn settings-btn-outline" onclick="exportYearToExcel()">
+              <i class="fas fa-file-csv"></i> Export <span id="export-year-display">2026</span> to CSV
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Backup & Recovery - Full Width -->
       <div class="settings-card settings-card-full">
         <div class="settings-card-header">
@@ -3511,6 +3899,7 @@ function showBackupStatus(message, type) {
             isEditing: false,
             currentTab: 'overall',
             currentUser: null,
+            selectedYear: 2026, // Default year - YEAR SELECTOR FEATURE
             projects: [],
             personnelData: [],
             incidentRateData: { recordableCases: 0, lostDays: 0, totalHours: 0 },
@@ -3518,7 +3907,8 @@ function showBackupStatus(message, type) {
             selectedProjects: [],
             charts: {},
             currentSort: 'name',
-            darkMode: false
+            darkMode: false,
+            isDataMigrated: false // Track if data has been migrated to year-based structure
         };
 
         // ===== DARK MODE FUNCTIONS =====
@@ -3564,6 +3954,323 @@ function showBackupStatus(message, type) {
                 icon.classList.remove('fa-sun');
                 icon.classList.add('fa-moon');
             }
+        }
+
+        // ===== YEAR SELECTOR FUNCTIONS =====
+        const YEAR_RANGE = { min: 2020, max: 2035 }; // Default year range
+        let availableYears = [];
+
+        function initializeYears() {
+            // Generate default years from 2020 to 2035
+            availableYears = [];
+            for (let year = YEAR_RANGE.min; year <= YEAR_RANGE.max; year++) {
+                availableYears.push(year);
+            }
+            
+            // Load saved year preference
+            const savedYear = localStorage.getItem('esh_selected_year');
+            if (savedYear && availableYears.includes(parseInt(savedYear))) {
+                state.selectedYear = parseInt(savedYear);
+            }
+            
+            renderYearOptions();
+            updateYearDisplay();
+        }
+
+        function renderYearOptions() {
+            const container = document.getElementById('year-options');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            // Sort years in descending order (newest first)
+            const sortedYears = [...availableYears].sort((a, b) => b - a);
+            
+            sortedYears.forEach(year => {
+                const option = document.createElement('div');
+                option.className = 'year-option';
+                if (year === state.selectedYear) {
+                    option.classList.add('active');
+                }
+                
+                option.innerHTML = `
+                    <span>${year}</span>
+                    ${year === state.selectedYear ? '<i class="fas fa-check"></i>' : ''}
+                `;
+                
+                option.onclick = () => requestYearSwitch(year);
+                container.appendChild(option);
+            });
+        }
+
+        function toggleYearDropdown() {
+            const dropdown = document.getElementById('year-dropdown');
+            dropdown.classList.toggle('hidden');
+            
+            // Close dropdown when clicking outside
+            if (!dropdown.classList.contains('hidden')) {
+                setTimeout(() => {
+                    document.addEventListener('click', closeYearDropdownOnClickOutside);
+                }, 0);
+            }
+        }
+
+        function closeYearDropdownOnClickOutside(e) {
+            const dropdown = document.getElementById('year-dropdown');
+            const btn = document.getElementById('year-selector-btn');
+            
+            if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+                dropdown.classList.add('hidden');
+                document.removeEventListener('click', closeYearDropdownOnClickOutside);
+            }
+        }
+
+        async function requestYearSwitch(newYear) {
+            if (newYear === state.selectedYear) {
+                toggleYearDropdown();
+                return;
+            }
+            
+            // Show warning dialog
+            const confirmed = await showModernDialog(
+                '⚠️ Switch Year',
+                `Switch from <strong>${state.selectedYear}</strong> to <strong>${newYear}</strong>?<br><br>
+                <div style="background: #fff3cd; padding: 10px; border-radius: 6px; border-left: 4px solid #ffc107; margin: 10px 0;">
+                    <i class="fas fa-info-circle" style="color: #856404;"></i>
+                    Your current ${state.selectedYear} data will remain saved.<br>
+                    Any unsaved changes will be lost.
+                </div>`,
+                false  // Changed to false - this is NOT a dangerous action!
+            );
+            
+            if (confirmed) {
+                await switchYear(newYear);
+            }
+            
+            toggleYearDropdown();
+        }
+
+        async function switchYear(newYear) {
+            console.log(`🔄 Switching from ${state.selectedYear} to ${newYear}`);
+            
+            // Save current year data first if logged in
+            if (state.isLoggedIn && state.currentUser) {
+                showToast(`💾 Saving ${state.selectedYear} data...`, 'info');
+                await saveToFirebase();
+            }
+            
+            // Update selected year
+            state.selectedYear = newYear;
+            localStorage.setItem('esh_selected_year', newYear);
+            
+            // Clear current data
+            state.projects = [];
+            state.personnelData = [];
+            state.incidentRateData = { recordableCases: 0, lostDays: 0, totalHours: 0 };
+            state.filteredProjects = [];
+            state.selectedProjects = [];
+            
+            // Load new year data
+            if (state.isLoggedIn && state.currentUser) {
+                showToast(`📂 Loading ${newYear} data...`, 'info');
+                await loadFromFirebase();
+            }
+            
+            // Update UI
+            updateYearDisplay();
+            renderYearOptions();
+            render();
+            
+            showToast(`✅ Switched to year ${newYear}`, 'success');
+            console.log(`✅ Year switched to ${newYear}`);
+        }
+
+        function updateYearDisplay() {
+            const display = document.getElementById('selected-year-display');
+            if (display) {
+                display.textContent = state.selectedYear;
+            }
+            
+            // Update settings page year displays
+            const settingsCurrentYear = document.getElementById('settings-current-year');
+            const targetYearDisplay = document.getElementById('target-year-display');
+            const exportYearDisplay = document.getElementById('export-year-display');
+            
+            if (settingsCurrentYear) settingsCurrentYear.textContent = state.selectedYear;
+            if (targetYearDisplay) targetYearDisplay.textContent = state.selectedYear;
+            if (exportYearDisplay) exportYearDisplay.textContent = state.selectedYear;
+            
+            // Populate source year dropdown (exclude current year)
+            const sourceYearSelect = document.getElementById('source-year-select');
+            if (sourceYearSelect) {
+                sourceYearSelect.innerHTML = '<option value="">Select source year...</option>';
+                const otherYears = availableYears.filter(y => y !== state.selectedYear).sort((a, b) => b - a);
+                otherYears.forEach(year => {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    sourceYearSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Copy data from another year to current year
+        async function copyDataFromYear() {
+            if (!firebaseReady || !window.firebaseDb) {
+                showToast('⚠️ Firebase not ready. Please try again.', 'warning');
+                return;
+            }
+            
+            const sourceYearSelect = document.getElementById('source-year-select');
+            const sourceYear = parseInt(sourceYearSelect.value);
+            
+            if (!sourceYear) {
+                showToast('⚠️ Please select a source year', 'warning');
+                return;
+            }
+            
+            const currentYear = state.selectedYear;
+            
+            // Confirm action
+            const confirmed = await showModernDialog(
+                '📋 Copy Data',
+                `Copy all data from <strong>${sourceYear}</strong> to <strong>${currentYear}</strong>?<br><br>
+                <div style="background: #fff3cd; padding: 10px; border-radius: 6px; border-left: 4px solid #ffc107; margin: 10px 0;">
+                    <i class="fas fa-exclamation-triangle" style="color: #856404;"></i>
+                    This will <strong>replace all existing ${currentYear} data</strong> with ${sourceYear} data.<br>
+                    Projects, personnel, and incident data will be copied.
+                </div>`,
+                true
+            );
+            
+            if (!confirmed) return;
+            
+            try {
+                showToast(`📋 Copying data from ${sourceYear}...`, 'info');
+                
+                // Load source year data from Firebase
+                const userId = getCurrentUserId();
+                const sourceYearRef = window.firebase.doc(window.firebaseDb, 'users', userId, 'years', sourceYear.toString());
+                const sourceYearSnap = await window.firebase.getDoc(sourceYearRef);
+                
+                if (!sourceYearSnap.exists()) {
+                    showToast(`❌ No data found for year ${sourceYear}`, 'error');
+                    return;
+                }
+                
+                const sourceData = sourceYearSnap.data();
+                
+                // Copy data to current state
+                state.projects = JSON.parse(JSON.stringify(sourceData.projects || []));
+                state.personnelData = JSON.parse(JSON.stringify(sourceData.personnelData || []));
+                state.incidentRateData = JSON.parse(JSON.stringify(sourceData.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 }));
+                state.filteredProjects = [...state.projects];
+                
+                // Save to current year
+                await saveToFirebase();
+                
+                // Update UI
+                render();
+                renderPTable();
+                
+                showToast(`✅ Successfully copied data from ${sourceYear} to ${currentYear}!`, 'success');
+                
+                // Reset dropdown
+                sourceYearSelect.value = '';
+                
+            } catch (error) {
+                console.error('❌ Error copying data:', error);
+                showToast('❌ Failed to copy data: ' + error.message, 'error');
+            }
+        }
+
+        // Export current year data to Excel (CSV format)
+        async function exportYearToExcel() {
+            const year = state.selectedYear;
+            
+            showToast(`📊 Generating export for ${year}...`, 'info');
+            
+            try {
+                // Create CSV content
+                let csvContent = `ESH COMPLIANCE DASHBOARD - YEAR ${year}\n`;
+                csvContent += `Export Date: ${new Date().toLocaleString()}\n`;
+                csvContent += `Total Projects: ${state.projects.length}\n`;
+                csvContent += `Total Personnel: ${state.personnelData.length}\n\n`;
+                
+                // Projects data
+                csvContent += `PROJECTS\n`;
+                csvContent += `Project Name,Region,Date Started,Date Finished,Status\n`;
+                
+                state.projects.forEach(project => {
+                    const name = `"${(project.name || '').replace(/"/g, '""')}"`;
+                    const region = project.region || '';
+                    const started = project.dateStarted || '';
+                    const finished = project.dateFinished || '';
+                    const status = project.status || '';
+                    csvContent += `${name},${region},${started},${finished},${status}\n`;
+                });
+                
+                csvContent += `\n`;
+                
+                // Personnel data
+                csvContent += `PERSONNEL\n`;
+                csvContent += `Name,Position,Gender,Region\n`;
+                
+                state.personnelData.forEach(person => {
+                    const name = `"${(person.name || '').replace(/"/g, '""')}"`;
+                    const position = `"${(person.position || '').replace(/"/g, '""')}"`;
+                    const gender = person.gender || '';
+                    const region = person.region || '';
+                    csvContent += `${name},${position},${gender},${region}\n`;
+                });
+                
+                csvContent += `\n`;
+                
+                // Incident Rate data
+                csvContent += `INCIDENT RATE DATA\n`;
+                csvContent += `Recordable Cases,Lost Days,Total Hours\n`;
+                csvContent += `${state.incidentRateData.recordableCases || 0},${state.incidentRateData.lostDays || 0},${state.incidentRateData.totalHours || 0}\n`;
+                
+                // Create download link
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', `ESH_Dashboard_${year}_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showToast(`✅ Data for ${year} exported successfully!`, 'success');
+                
+            } catch (error) {
+                console.error('❌ Export error:', error);
+                showToast('❌ Failed to export: ' + error.message, 'error');
+            }
+        }
+
+        function showAddYearDialog() {
+            const customYear = prompt('Enter a custom year (e.g., 2040):');
+            if (!customYear) return;
+            
+            const year = parseInt(customYear);
+            if (isNaN(year) || year < 2000 || year > 2100) {
+                showToast('❌ Invalid year. Please enter a year between 2000-2100.', 'error');
+                return;
+            }
+            
+            if (availableYears.includes(year)) {
+                showToast(`⚠️ Year ${year} already exists.`, 'warning');
+                return;
+            }
+            
+            availableYears.push(year);
+            availableYears.sort((a, b) => a - b);
+            renderYearOptions();
+            showToast(`✅ Year ${year} added successfully!`, 'success');
         }
 
         // ===== LOGIN & AUTH =====
@@ -3909,6 +4616,7 @@ function showBackupStatus(message, type) {
             
             if (t === 'settings') {
                 populateSettingsTab();
+                updateYearDisplay(); // Update year displays in settings
             }
             
             if (t === 'personnel') renderPTable();
@@ -4297,19 +5005,126 @@ function closeAllStatusDropdowns() {
 
                 const statusCtx = document.getElementById('statusChart');
                 if (statusCtx) {
+                    // Create gradients for modern look
+                    const ctx = statusCtx.getContext('2d');
+                    
+                    // Gradient 1: Blue gradient for On-Going
+                    const gradient1 = ctx.createLinearGradient(0, 0, 0, 400);
+                    gradient1.addColorStop(0, '#42a5f5');
+                    gradient1.addColorStop(0.5, '#1976D2');
+                    gradient1.addColorStop(1, '#0d47a1');
+                    
+                    // Gradient 2: Red gradient for Work Stoppage
+                    const gradient2 = ctx.createLinearGradient(0, 0, 0, 400);
+                    gradient2.addColorStop(0, '#ef5350');
+                    gradient2.addColorStop(0.5, '#d32f2f');
+                    gradient2.addColorStop(1, '#b71c1c');
+                    
+                    // Gradient 3: Gray gradient for Finished
+                    const gradient3 = ctx.createLinearGradient(0, 0, 0, 400);
+                    gradient3.addColorStop(0, '#9e9e9e');
+                    gradient3.addColorStop(0.5, '#616161');
+                    gradient3.addColorStop(1, '#424242');
+                    
+                    // Center text plugin
+                    const centerTextPlugin = {
+                        id: 'centerText',
+                        afterDraw: function(chart) {
+                            const ctx = chart.ctx;
+                            const width = chart.width;
+                            const height = chart.height;
+                            
+                            ctx.restore();
+                            
+                            // Calculate total and percentage
+                            const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? Math.round((statusCounts['on-going'] / total) * 100) : 0;
+                            
+                            // Draw percentage
+                            const fontSize = (height / 180).toFixed(2);
+                            ctx.font = `bold ${fontSize}em Inter, sans-serif`;
+                            ctx.textBaseline = 'middle';
+                            ctx.fillStyle = '#1b5e20';
+                            
+                            const percentText = percentage + '%';
+                            const percentTextX = Math.round((width - ctx.measureText(percentText).width) / 2);
+                            const percentTextY = height / 2 - 10;
+                            
+                            ctx.fillText(percentText, percentTextX, percentTextY);
+                            
+                            // Draw label
+                            const labelFontSize = (height / 320).toFixed(2);
+                            ctx.font = `${labelFontSize}em Inter, sans-serif`;
+                            ctx.fillStyle = '#666';
+                            
+                            const labelText = 'On-Going';
+                            const labelTextX = Math.round((width - ctx.measureText(labelText).width) / 2);
+                            const labelTextY = height / 2 + 18;
+                            
+                            ctx.fillText(labelText, labelTextX, labelTextY);
+                            
+                            ctx.save();
+                        }
+                    };
+                    
                     state.charts.status = new Chart(statusCtx, {
                         type: 'doughnut',
                         data: {
                             labels: ['On-Going', 'Work Stoppage', 'Finished'],
                             datasets: [{
                                 data: [statusCounts['on-going'], statusCounts['work-stoppage'], statusCounts['finished']],
-                                backgroundColor: ['#1976D2', '#d32f2f', '#616161']
+                                backgroundColor: [gradient1, gradient2, gradient3],
+                                borderWidth: 0,
+                                borderRadius: 8,
+                                spacing: 3
                             }]
                         },
                         options: { 
                             responsive: true,
-                            maintainAspectRatio: false
-                        }
+                            maintainAspectRatio: false,
+                            cutout: '70%',
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'bottom',
+                                    labels: {
+                                        padding: 15,
+                                        font: {
+                                            size: 12,
+                                            family: 'Inter, sans-serif'
+                                        },
+                                        usePointStyle: true,
+                                        pointStyle: 'circle'
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                    padding: 12,
+                                    cornerRadius: 8,
+                                    titleFont: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    },
+                                    bodyFont: {
+                                        size: 13
+                                    },
+                                    callbacks: {
+                                        label: function(context) {
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                            return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
+                                        }
+                                    }
+                                }
+                            },
+                            animation: {
+                                animateRotate: true,
+                                animateScale: true,
+                                duration: 1500,
+                                easing: 'easeInOutQuart'
+                            }
+                        },
+                        plugins: [centerTextPlugin]
                     });
                 }
             }, 100);
@@ -5949,7 +6764,7 @@ function showModernDialog(title, message, isDanger = false) {
         // Message
         const messageEl = document.createElement('p');
         messageEl.className = 'modern-dialog-message';
-        messageEl.textContent = message;
+        messageEl.innerHTML = message; // Changed to innerHTML to render HTML tags
 
         // Buttons
         const buttonsDiv = document.createElement('div');
@@ -6691,7 +7506,9 @@ function updateTrendChart(tabType) {
 function saveUserDataLocal(email) {
     if (!email) return;
     
+    const year = state.selectedYear || 2026;
     const userData = {
+        year: year,
         projects: state.projects.map(p => { const c = {...p}; delete c.selected; return c; }),
         personnelData: state.personnelData,
         incidentRateData: state.incidentRateData,
@@ -6701,9 +7518,9 @@ function saveUserDataLocal(email) {
         lastModified: new Date().toISOString()
     };
     
-    localStorage.setItem('esh_dashboard_' + email, JSON.stringify(userData));
-    localStorage.setItem('esh_' + email, JSON.stringify(userData));
-    console.log('💾 Saved to localStorage (local only)');
+    // Save with year-based key
+    localStorage.setItem(`esh_dashboard_${year}_${email}`, JSON.stringify(userData));
+    console.log(`💾 Saved to localStorage (local only) for year ${year}`);
 }
 
 // Main Firebase Save Button Handler
@@ -6737,22 +7554,36 @@ async function saveToFirebase() {
 
     try {
         const userId = getCurrentUserId();
-        const docRef = window.firebase.doc(window.firebaseDb, 'users', userId);
+        const year = state.selectedYear || 2026;
+        
+        // NEW: Year-based structure - save to /users/{userId}/{year}/
+        const yearDocRef = window.firebase.doc(window.firebaseDb, 'users', userId, 'years', year.toString());
         
         const dataToSave = {
+            year: year,
             email: state.currentUser?.email || 'local-user',
             displayName: state.currentUser?.displayName || localStorage.getItem('esh_displayname_' + state.currentUser?.email) || '',
             projects: state.projects || [],
             personnelData: state.personnelData || [],
             incidentRateData: state.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 },
-            darkMode: state.darkMode || false,
             lastUpdated: new Date().toISOString(),
             timestamp: Date.now()
         };
 
-        await window.firebase.setDoc(docRef, dataToSave, { merge: true });
+        await window.firebase.setDoc(yearDocRef, dataToSave, { merge: true });
+        
+        // Also save user preferences (darkMode) to main user doc
+        const userDocRef = window.firebase.doc(window.firebaseDb, 'users', userId);
+        await window.firebase.setDoc(userDocRef, {
+            email: state.currentUser?.email,
+            displayName: dataToSave.displayName,
+            darkMode: state.darkMode || false,
+            lastActiveYear: year,
+            isDataMigrated: true
+        }, { merge: true });
+        
         state.lastSyncTimestamp = dataToSave.timestamp;
-        console.log('✅ Data saved to Firebase:', new Date().toLocaleTimeString());
+        console.log(`✅ Data saved to Firebase for year ${year}:`, new Date().toLocaleTimeString());
         return true;
         
     } catch (error) {
@@ -6762,7 +7593,7 @@ async function saveToFirebase() {
     }
 }
 
-// OPTIMIZED: Load from Firebase - ONCE on login only  
+// OPTIMIZED: Load from Firebase - ONCE on login only with YEAR SUPPORT + AUTO MIGRATION
 async function loadFromFirebase() {
     if (!firebaseReady || !window.firebaseDb) {
         console.log('⏳ Firebase not ready, loading from localStorage only');
@@ -6773,69 +7604,121 @@ async function loadFromFirebase() {
     try {
         const userId = getCurrentUserId();
         const userEmail = state.currentUser?.email;
-        const docRef = window.firebase.doc(window.firebaseDb, 'users', userId);
-        const docSnap = await window.firebase.getDoc(docRef);
-
-        // Check localStorage for newer unsaved data
-        const localKey = `esh_dashboard_${userEmail}`;
+        const year = state.selectedYear || 2026;
+        
+        // Load user preferences first
+        const userDocRef = window.firebase.doc(window.firebaseDb, 'users', userId);
+        const userDocSnap = await window.firebase.getDoc(userDocRef);
+        
+        // 🔄 AUTO-MIGRATION: Check if old data structure exists and migrate
+        if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            
+            // Load dark mode preference
+            if (userData.darkMode !== undefined) {
+                state.darkMode = userData.darkMode;
+            }
+            
+            // Load display name
+            if (userData.displayName) {
+                state.currentUser.displayName = userData.displayName;
+                localStorage.setItem('esh_displayname_' + userEmail, userData.displayName);
+                const badge = document.getElementById('user-badge');
+                if (badge) badge.innerHTML = `<i class="fas fa-user-circle"></i> ${userData.displayName}`;
+            }
+            
+            // 🚨 MIGRATION: If old structure detected (has projects array at root), migrate to 2026
+            if (userData.projects && !userData.isDataMigrated) {
+                console.log('🔄 OLD STRUCTURE DETECTED - Migrating to year-based structure...');
+                
+                // Create backup
+                const backupDocRef = window.firebase.doc(window.firebaseDb, 'users', userId, 'backups', 'pre_migration');
+                await window.firebase.setDoc(backupDocRef, {
+                    ...userData,
+                    migratedAt: new Date().toISOString(),
+                    backupNote: 'Auto-backup before year-based migration'
+                });
+                console.log('✅ Backup created at /backups/pre_migration');
+                
+                // Migrate to 2026
+                const year2026Ref = window.firebase.doc(window.firebaseDb, 'users', userId, 'years', '2026');
+                await window.firebase.setDoc(year2026Ref, {
+                    year: 2026,
+                    email: userData.email,
+                    displayName: userData.displayName || '',
+                    projects: userData.projects || [],
+                    personnelData: userData.personnelData || [],
+                    incidentRateData: userData.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 },
+                    lastUpdated: new Date().toISOString(),
+                    timestamp: Date.now(),
+                    migratedFrom: 'old_structure'
+                });
+                console.log('✅ Data migrated to /years/2026');
+                
+                // Mark as migrated
+                await window.firebase.setDoc(userDocRef, { isDataMigrated: true }, { merge: true });
+                
+                showToast('✅ Your data has been migrated to year-based structure (2026)', 'success');
+            }
+        }
+        
+        // Load year-specific data
+        const yearDocRef = window.firebase.doc(window.firebaseDb, 'users', userId, 'years', year.toString());
+        const yearDocSnap = await window.firebase.getDoc(yearDocRef);
+        
+        // Check localStorage for newer unsaved data for this year
+        const localKey = `esh_dashboard_${year}_${userEmail}`;
         const localRaw = localStorage.getItem(localKey);
         const localData = localRaw ? JSON.parse(localRaw) : null;
         const localTimestamp = localData?.lastSaved ? new Date(localData.lastSaved).getTime() : 0;
 
-        if (docSnap.exists()) {
-            const fbData = docSnap.data();
+        if (yearDocSnap.exists()) {
+            const fbData = yearDocSnap.data();
             const fbTimestamp = fbData.timestamp || 0;
 
             // Use whichever is newer: localStorage or Firebase
             if (localTimestamp > fbTimestamp) {
-                console.log('💾 localStorage is newer than Firebase — loading from localStorage');
+                console.log(`💾 localStorage is newer for year ${year} — loading from localStorage`);
                 state.projects = localData.projects || [];
                 state.personnelData = localData.personnelData || [];
                 state.incidentRateData = localData.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
-                state.darkMode = fbData.darkMode || false;
                 state.lastSyncTimestamp = fbTimestamp;
                 // Push local data up to Firebase so it's in sync
                 await saveToFirebase();
             } else {
-                console.log('☁️ Firebase is newer — loading from Firebase');
+                console.log(`☁️ Firebase is newer for year ${year} — loading from Firebase`);
                 state.projects = fbData.projects || [];
                 state.personnelData = fbData.personnelData || [];
                 state.incidentRateData = fbData.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
-                state.darkMode = fbData.darkMode || false;
                 state.lastSyncTimestamp = fbTimestamp;
-                // Sync Firebase data down to localStorage (use local-only save to avoid loop)
+                // Sync Firebase data down to localStorage
                 saveUserDataLocal(userEmail);
             }
             
-            // Load display name from Firebase
-            if (fbData.displayName) {
-                state.currentUser.displayName = fbData.displayName;
-                localStorage.setItem('esh_displayname_' + userEmail, fbData.displayName);
-                // Update sidebar badge
-                const badge = document.getElementById('user-badge');
-                if (badge) badge.innerHTML = `<i class="fas fa-user-circle"></i> ${fbData.displayName}`;
-            }
-
-            // Apply dark mode
-            if (state.darkMode) {
-                document.body.classList.add('dark-mode');
-            }
-            
             state.filteredProjects = [...state.projects];
-            console.log('✅ Data loaded. Projects:', state.projects.length, '| Personnel:', state.personnelData.length);
+            console.log(`✅ Data loaded for year ${year}. Projects:`, state.projects.length, '| Personnel:', state.personnelData.length);
 
         } else {
-            // No Firebase doc yet — use localStorage if available, else start fresh
+            // No Firebase doc for this year — use localStorage if available, else start fresh
             if (localData) {
-                console.log('📝 No Firebase doc — restoring from localStorage');
+                console.log(`📝 No Firebase doc for year ${year} — restoring from localStorage`);
                 state.projects = localData.projects || [];
                 state.personnelData = localData.personnelData || [];
                 state.incidentRateData = localData.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
                 state.filteredProjects = [...state.projects];
+                await saveToFirebase(); // Save to create the year doc
             } else {
-                console.log('📝 No data anywhere — creating new document');
+                console.log(`📝 No data for year ${year} — starting fresh`);
+                state.projects = [];
+                state.personnelData = [];
+                state.incidentRateData = { recordableCases: 0, lostDays: 0, totalHours: 0 };
+                state.filteredProjects = [];
             }
-            await saveToFirebase();
+        }
+
+        // Apply dark mode
+        if (state.darkMode) {
+            document.body.classList.add('dark-mode');
         }
         
         // Update UI
@@ -6853,15 +7736,18 @@ async function loadFromFirebase() {
 function loadFromLocalStorage() {
     const userEmail = state.currentUser?.email;
     if (!userEmail) return;
-    const localKey = `esh_dashboard_${userEmail}`;
+    
+    const year = state.selectedYear || 2026;
+    const localKey = `esh_dashboard_${year}_${userEmail}`;
     const localRaw = localStorage.getItem(localKey);
+    
     if (localRaw) {
         const data = JSON.parse(localRaw);
         state.projects = data.projects || [];
         state.personnelData = data.personnelData || [];
         state.incidentRateData = data.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
         state.filteredProjects = [...state.projects];
-        console.log('💾 Loaded from localStorage fallback');
+        console.log(`💾 Loaded from localStorage fallback for year ${year}`);
         render();
         renderPTable();
     }
@@ -7229,6 +8115,7 @@ function setupAuthObserver() {
             // Show dashboard UI
             showUI();
             initDarkMode();
+            initializeYears(); // Initialize year selector
 
             // Load user data ONCE - no real-time listener!
             await loadFromFirebase();
@@ -7359,9 +8246,265 @@ document.addEventListener('DOMContentLoaded', function() {
 
 console.log('📱 Mobile responsive features loaded!');
 
+// ==================== SAFETY REMINDER SYSTEM ====================
+let workStartTime = Date.now();
+let timerInterval = null;
+let reminderTimeout = null;
+let currentReminderType = null;
+
+// Reminder configurations (in milliseconds)
+const REMINDERS = {
+    EYES_20: {
+        interval: 20 * 60 * 1000, // 20 minutes
+        icon: '👀',
+        title: '20-20-20 Rule',
+        text: 'Tumingin sa malayo (20 feet) sa loob ng 20 segundo para maiwasan ang eye strain!',
+        sound: true
+    },
+    MICRO_BREAK: {
+        interval: 60 * 60 * 1000, // 1 hour
+        icon: '🧘',
+        title: 'Micro Break Time',
+        text: 'Tumayo, mag-unat ng likod at balikat, at maglakad kahit ilang hakbang lang para iwas stiff muscles!',
+        sound: true
+    },
+    LONG_BREAK: {
+        interval: 2 * 60 * 60 * 1000, // 2 hours
+        icon: '☕',
+        title: 'Longer Break Time',
+        text: 'Mag-break ng 10-15 minuto. Lumayo sa workstation, uminom ng tubig, at huwag mag-cellphone!',
+        sound: true
+    },
+    EXTENDED_BREAK: {
+        interval: 3 * 60 * 60 * 1000, // 3 hours
+        icon: '🌳',
+        title: 'Extended Break',
+        text: 'Maglakad-lakad sa labas, huminga ng fresh air, at mag-relax. Importante ang kalusugan mo!',
+        sound: true
+    }
+};
+
+// Update timer display
+function updateTimerDisplay() {
+    const elapsed = Date.now() - workStartTime;
+    const hours = Math.floor(elapsed / (1000 * 60 * 60));
+    const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
+    
+    const display = document.getElementById('timer-display');
+    if (display) {
+        display.textContent = 
+            String(hours).padStart(2, '0') + ':' + 
+            String(minutes).padStart(2, '0') + ':' + 
+            String(seconds).padStart(2, '0');
+    }
+}
+
+// Determine which reminder to show based on elapsed time
+function getAppropriateReminder() {
+    const elapsed = Date.now() - workStartTime;
+    
+    // Check in reverse order (longest to shortest) to show the most relevant reminder
+    if (elapsed >= REMINDERS.EXTENDED_BREAK.interval && elapsed % REMINDERS.EXTENDED_BREAK.interval < 60000) {
+        return 'EXTENDED_BREAK';
+    } else if (elapsed >= REMINDERS.LONG_BREAK.interval && elapsed % REMINDERS.LONG_BREAK.interval < 60000) {
+        return 'LONG_BREAK';
+    } else if (elapsed >= REMINDERS.MICRO_BREAK.interval && elapsed % REMINDERS.MICRO_BREAK.interval < 60000) {
+        return 'MICRO_BREAK';
+    } else if (elapsed >= REMINDERS.EYES_20.interval && elapsed % REMINDERS.EYES_20.interval < 60000) {
+        return 'EYES_20';
+    }
+    
+    return null;
+}
+
+// Show reminder
+function showReminder(type) {
+    if (!REMINDERS[type]) return;
+    
+    const reminder = REMINDERS[type];
+    const container = document.getElementById('safety-reminder-container');
+    const iconEl = document.getElementById('reminder-icon');
+    const titleEl = document.getElementById('reminder-title');
+    const textEl = document.getElementById('reminder-text');
+    
+    if (!container || !iconEl || !titleEl || !textEl) return;
+    
+    // Update content
+    iconEl.textContent = reminder.icon;
+    titleEl.textContent = reminder.title;
+    textEl.textContent = reminder.text;
+    
+    // Show the reminder with animation
+    container.classList.add('show');
+    currentReminderType = type;
+    
+    // Play sound notification (simple beep using Web Audio API)
+    if (reminder.sound) {
+        playNotificationSound();
+    }
+    
+    // Auto-dismiss after 30 seconds if not manually dismissed
+    if (reminderTimeout) {
+        clearTimeout(reminderTimeout);
+    }
+    reminderTimeout = setTimeout(() => {
+        dismissReminder();
+    }, 30000);
+    
+    console.log(`🔔 Reminder shown: ${reminder.title}`);
+}
+
+// Dismiss reminder
+function dismissReminder() {
+    const container = document.getElementById('safety-reminder-container');
+    if (container) {
+        container.classList.remove('show');
+    }
+    currentReminderType = null;
+    
+    if (reminderTimeout) {
+        clearTimeout(reminderTimeout);
+        reminderTimeout = null;
+    }
+}
+
+// Play notification sound
+function playNotificationSound() {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800; // Frequency in Hz
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (e) {
+        console.warn('Could not play notification sound:', e);
+    }
+}
+
+// Check if reminder should be shown
+function checkReminders() {
+    const elapsed = Date.now() - workStartTime;
+    
+    // Check each reminder type
+    const checkIntervals = [
+        { type: 'EYES_20', interval: REMINDERS.EYES_20.interval },
+        { type: 'MICRO_BREAK', interval: REMINDERS.MICRO_BREAK.interval },
+        { type: 'LONG_BREAK', interval: REMINDERS.LONG_BREAK.interval },
+        { type: 'EXTENDED_BREAK', interval: REMINDERS.EXTENDED_BREAK.interval }
+    ];
+    
+    for (const check of checkIntervals) {
+        // Check if we've hit this interval (within 1 second tolerance)
+        if (elapsed >= check.interval) {
+            const timeSinceInterval = elapsed % check.interval;
+            if (timeSinceInterval < 1000 && currentReminderType !== check.type) {
+                showReminder(check.type);
+                break; // Show only one reminder at a time
+            }
+        }
+    }
+}
+
+// Initialize safety reminder system
+function initSafetyReminder() {
+    // Reset start time
+    workStartTime = Date.now();
+    
+    // Update timer every second
+    if (timerInterval) {
+        clearInterval(timerInterval);
+    }
+    timerInterval = setInterval(() => {
+        updateTimerDisplay();
+        checkReminders();
+    }, 1000);
+    
+    // Initial display update
+    updateTimerDisplay();
+    
+    console.log('✅ Safety reminder system initialized');
+}
+
+// Make dismiss function globally available
+window.dismissReminder = dismissReminder;
+
+// Start the system when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait a bit for the page to settle, then start
+    setTimeout(() => {
+        initSafetyReminder();
+    }, 2000);
+});
+
+// Reset timer when user becomes active again after being away
+let lastActivityTime = Date.now();
+let inactivityTimeout = null;
+
+function resetInactivityTimer() {
+    lastActivityTime = Date.now();
+    
+    // If user was inactive for more than 10 minutes, reset the work timer
+    if (inactivityTimeout) {
+        clearTimeout(inactivityTimeout);
+    }
+    
+    inactivityTimeout = setTimeout(() => {
+        const inactiveTime = Date.now() - lastActivityTime;
+        if (inactiveTime >= 10 * 60 * 1000) { // 10 minutes
+            console.log('🔄 User was inactive, resetting work timer');
+            workStartTime = Date.now();
+            dismissReminder();
+        }
+    }, 10 * 60 * 1000);
+}
+
+// Track user activity
+['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+    document.addEventListener(event, resetInactivityTimer, true);
+});
+
+console.log('✅ Safety reminder character loaded!');
+// ==================== END SAFETY REMINDER SYSTEM ====================
+
 // ==================== PRESENCE DEBUGGING ====================
 // ==================== END FIREBASE INTEGRATION ====================
     </script>
+
+<!-- Work Timer Display -->
+<div class="work-timer" id="work-timer">
+    <div class="work-timer-label">⏱️ Work Time</div>
+    <div class="work-timer-value" id="timer-display">00:00:00</div>
+</div>
+
+<!-- Safety Reminder Character -->
+<div id="safety-reminder-container">
+    <div class="safety-character">
+        <div class="reminder-bubble">
+            <div class="reminder-header">
+                <span class="reminder-icon" id="reminder-icon">👀</span>
+                <span class="reminder-title" id="reminder-title">20-20-20 Rule</span>
+            </div>
+            <div class="reminder-text" id="reminder-text">
+                Tumingin sa malayo (20 feet) sa loob ng 20 segundo para maiwasan ang eye strain!
+            </div>
+            <button class="reminder-dismiss" onclick="dismissReminder()">
+                <i class="fas fa-check"></i> Salamat sa Reminder!
+            </button>
+        </div>
+        <div class="character-emoji">👷‍♂️</div>
+    </div>
+</div>
 
 <!-- Toast Notification Container -->
 <div id="toast-container"></div>
