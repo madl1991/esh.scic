@@ -236,37 +236,6 @@
             background: #388e3c;
         }
 
-        /* Timer display */
-        .work-timer {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            background: rgba(46, 125, 50, 0.1);
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 12px;
-            color: #2e7d32;
-            border: 1px solid rgba(46, 125, 50, 0.3);
-            z-index: 1000;
-        }
-
-        body.dark-mode .work-timer {
-            background: rgba(76, 175, 80, 0.15);
-            color: #81c784;
-            border-color: rgba(76, 175, 80, 0.3);
-        }
-
-        .work-timer-label {
-            font-weight: 600;
-            margin-bottom: 3px;
-        }
-
-        .work-timer-value {
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            font-weight: 700;
-        }
-
         /* Responsive adjustments */
         @media (max-width: 768px) {
             #safety-reminder-container {
@@ -281,12 +250,6 @@
 
             .character-emoji {
                 font-size: 70px;
-            }
-
-            .work-timer {
-                top: 70px;
-                right: 10px;
-                font-size: 11px;
             }
         }
         /* ==================== END SAFETY REMINDER CHARACTER ==================== */
@@ -1294,6 +1257,60 @@
             font-weight: 700;
         }
         
+        /* Collapsible Navigation Groups */
+        .nav-group {
+            margin-bottom: 5px;
+        }
+        
+        .nav-group-header {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 10px 12px;
+            margin-bottom: 3px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.6);
+            transition: all 0.3s;
+            user-select: none;
+        }
+        
+        .nav-group-header:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .nav-group-header i.chevron {
+            font-size: 0.7rem;
+            transition: transform 0.3s;
+        }
+        
+        .nav-group-header.collapsed i.chevron {
+            transform: rotate(-90deg);
+        }
+        
+        .nav-group-items {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s;
+            opacity: 1;
+        }
+        
+        .nav-group-items.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+        
+        .nav-group-items .nav-item {
+            padding-left: 25px;
+            font-size: 0.72rem;
+        }
+        
         main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-body); }
         
         header {
@@ -1336,39 +1353,43 @@
         }
 
         .year-selector-btn {
-            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
-            border: 2px solid #4caf50;
-            color: white;
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
             cursor: pointer;
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 700;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 1.1rem;
             transition: all 0.3s;
             display: flex;
             align-items: center;
-            gap: 8px;
-            box-shadow: 0 2px 8px rgba(27, 94, 32, 0.3);
+            gap: 6px;
         }
 
         .year-selector-btn:hover {
-            background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(27, 94, 32, 0.4);
+            background: var(--border-color);
+            transform: scale(1.05);
         }
 
         .year-dropdown {
             position: absolute;
             top: calc(100% + 8px);
             right: 0;
-            background: var(--bg-card);
+            background: linear-gradient(180deg, rgba(46, 125, 50, 0.05) 0%, var(--bg-card) 30%, var(--bg-card) 100%);
             border: 2px solid #2e7d32;
-            border-radius: 8px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-            min-width: 200px;
+            border-radius: 12px;
+            box-shadow: 0 12px 32px rgba(46, 125, 50, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 140px;
+            width: fit-content;
             z-index: 1000;
             overflow: hidden;
             animation: dropdownSlideIn 0.2s ease-out;
+            backdrop-filter: blur(10px);
+        }
+        
+        body.dark-mode .year-dropdown {
+            background: linear-gradient(180deg, rgba(76, 175, 80, 0.08) 0%, var(--bg-card) 30%, var(--bg-card) 100%);
+            box-shadow: 0 12px 32px rgba(76, 175, 80, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         @keyframes dropdownSlideIn {
@@ -1458,6 +1479,354 @@
         body.dark-mode .year-dropdown {
             background: #2d2d2d;
             border-color: #1b5e20;
+        }
+
+        /* ========== NOTIFICATION BELL DROPDOWN ========== */
+        .notification-bell-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .notification-bell-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        .notification-bell-btn:hover {
+            background: var(--border-color);
+            transform: scale(1.05);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #d32f2f;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 700;
+            animation: pulse 2s infinite;
+        }
+
+        .notification-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: linear-gradient(180deg, rgba(255, 152, 0, 0.05) 0%, var(--bg-card) 30%, var(--bg-card) 100%);
+            border: 2px solid #ff9800;
+            border-radius: 12px;
+            box-shadow: 0 12px 32px rgba(255, 152, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 350px;
+            max-width: 400px;
+            z-index: 1000;
+            overflow: hidden;
+            animation: dropdownSlideIn 0.2s ease-out;
+            backdrop-filter: blur(10px);
+        }
+        
+        body.dark-mode .notification-dropdown {
+            background: linear-gradient(180deg, rgba(255, 152, 0, 0.08) 0%, var(--bg-card) 30%, var(--bg-card) 100%);
+            box-shadow: 0 12px 32px rgba(255, 152, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .notification-dropdown-header {
+            background: linear-gradient(135deg, #ff6f00 0%, #ff9800 100%);
+            color: white;
+            padding: 12px 15px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            border-bottom: 2px solid #fbc02d;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .notification-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .notification-item {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .notification-item:hover {
+            background: #fff3e0;
+        }
+
+        body.dark-mode .notification-item:hover {
+            background: #3a2f1f;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .notification-project {
+            font-weight: 700;
+            color: #d32f2f;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+
+        .notification-message {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .notification-empty {
+            padding: 30px 20px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .notification-empty i {
+            font-size: 2.5rem;
+            color: #4caf50;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        /* ========== SETTINGS DROPDOWN (FACEBOOK STYLE) ========== */
+        .settings-dropdown-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .settings-dropdown-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+        }
+
+        .settings-dropdown-btn:hover {
+            background: var(--border-color);
+            transform: scale(1.05);
+        }
+
+        .settings-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: linear-gradient(180deg, rgba(46, 125, 50, 0.05) 0%, var(--bg-card) 30%, var(--bg-card) 100%);
+            border: 2px solid #2e7d32;
+            border-radius: 12px;
+            box-shadow: 0 12px 32px rgba(46, 125, 50, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 280px;
+            z-index: 1000;
+            overflow: hidden;
+            animation: dropdownSlideIn 0.2s ease-out;
+            backdrop-filter: blur(10px);
+        }
+        
+        body.dark-mode .settings-dropdown {
+            background: linear-gradient(180deg, rgba(76, 175, 80, 0.08) 0%, var(--bg-card) 30%, var(--bg-card) 100%);
+            box-shadow: 0 12px 32px rgba(76, 175, 80, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .settings-dropdown-header {
+            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+            color: white;
+            padding: 12px 15px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .settings-menu {
+            padding: 8px;
+        }
+
+        .settings-menu-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-radius: 6px;
+            margin: 3px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .settings-menu-item:hover {
+            background: #e8f5e9;
+        }
+
+        body.dark-mode .settings-menu-item:hover {
+            background: #1b3d1b;
+        }
+
+        .settings-menu-item i {
+            width: 20px;
+            text-align: center;
+            font-size: 1rem;
+            color: #2e7d32;
+        }
+
+        body.dark-mode .settings-menu-item i {
+            color: #4caf50;
+        }
+
+        .settings-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 8px 0;
+        }
+
+        .settings-menu-item.logout {
+            color: #d32f2f;
+            font-weight: 600;
+        }
+
+        .settings-menu-item.logout i {
+            color: #d32f2f;
+        }
+
+        .settings-menu-item.logout:hover {
+            background: #ffebee;
+        }
+
+        body.dark-mode .settings-menu-item.logout:hover {
+            background: #3d1f1f;
+        }
+
+        /* ========== FLOATING EDIT/SAVE BUTTON ========== */
+        .floating-edit-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            background: rgba(46, 125, 50, 0.9);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-size: 1.3rem;
+            cursor: pointer;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 
+                        0 0 0 0 rgba(46, 125, 50, 0.7);
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            backdrop-filter: blur(10px);
+        }
+
+        .floating-edit-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 30px rgba(0, 0, 0, 0.4),
+                        0 0 0 10px rgba(46, 125, 50, 0.2);
+            background: rgba(46, 125, 50, 1);
+        }
+
+        .floating-edit-btn:active {
+            transform: scale(0.95);
+        }
+
+        .floating-edit-btn.save-mode {
+            background: rgba(251, 192, 45, 0.95);
+        }
+
+        .floating-edit-btn.save-mode:hover {
+            background: rgba(251, 192, 45, 1);
+            box-shadow: 0 6px 30px rgba(251, 192, 45, 0.5),
+                        0 0 0 10px rgba(251, 192, 45, 0.2);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { 
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
+                            0 0 0 0 rgba(251, 192, 45, 0.7);
+            }
+            50% { 
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
+                            0 0 20px 10px rgba(251, 192, 45, 0.4);
+            }
+        }
+
+        .floating-edit-btn .edit-tooltip {
+            position: absolute;
+            right: 75px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .floating-edit-btn:hover .edit-tooltip {
+            opacity: 1;
+        }
+
+        .floating-edit-btn .edit-tooltip::after {
+            content: '';
+            position: absolute;
+            right: -5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid rgba(0, 0, 0, 0.8);
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+        }
+
+        body.dark-mode .floating-edit-btn {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .floating-edit-btn {
+                width: 55px;
+                height: 55px;
+                font-size: 1.1rem;
+                bottom: 20px;
+                right: 20px;
+            }
         }
 
         /* Save button with Firebase sync indicator */
@@ -1622,31 +1991,145 @@
         .sort-select option { background: #1b5e20; color: white; }
 
         .project-row {
-            background: var(--bg-card); border: 1px solid var(--border-color); padding: 12px 15px; border-radius: 8px;
-            margin: 0 20px 8px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(241, 248, 233, 0.3) 100%);
+            border: 1px solid var(--border-color); 
+            padding: 14px 18px; 
+            border-radius: 10px;
+            margin: 0 20px 10px; 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            flex-wrap: wrap;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            border-left: 4px solid #4caf50;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        body.dark-mode .project-row {
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(31, 46, 31, 0.5) 100%);
+            border-left-color: #66bb6a;
+        }
+        
+        /* Subtle accent line */
+        .project-row::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #4caf50, #66bb6a, #81c784);
         }
         .project-checkbox { width: 20px; height: 20px; cursor: pointer; }
         .circular-progress {
-            width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center;
-            justify-content: center; background: conic-gradient(#1b5e20 var(--percentage), #e0e0e0 var(--percentage));
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1); flex-shrink: 0;
+            width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; 
+            background: conic-gradient(
+                from 0deg,
+                #1b5e20 0deg,
+                #2e7d32 calc(var(--percentage) * 0.5),
+                #4caf50 var(--percentage),
+                #e0e0e0 var(--percentage)
+            );
+            box-shadow: 0 3px 12px rgba(27, 94, 32, 0.3), 
+                        inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+            position: relative;
         }
+        
+        .circular-progress::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.3), transparent);
+            pointer-events: none;
+        }
+        
         .circular-progress-inner {
-            width: 44px; height: 44px; border-radius: 50%; background: var(--bg-card); display: flex;
-            align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem; color: #1b5e20;
+            width: 46px; height: 46px; border-radius: 50%; background: var(--bg-card); display: flex;
+            align-items: center; justify-content: center; font-weight: 800; font-size: 0.82rem; 
+            color: #1b5e20;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1;
         }
-        .project-info { display: flex; flex-direction: column; gap: 3px; flex-grow: 1; min-width: 150px; }
-        .project-name { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
-        .project-meta { font-size: 0.65rem; color: var(--text-secondary); }
-        .project-dates { display: flex; flex-direction: column; gap: 2px; min-width: 200px; font-size: 0.65rem; }
-        .date-label { font-weight: 600; color: #1b5e20; }
+        
+        body.dark-mode .circular-progress-inner {
+            color: #66bb6a;
+        }
+        .project-info { display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 150px; }
+        .project-name { 
+            font-size: 0.95rem; 
+            font-weight: 700; 
+            color: var(--text-primary);
+            letter-spacing: 0.3px;
+        }
+        .project-meta { 
+            font-size: 0.68rem; 
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .project-dates { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 4px; 
+            min-width: 200px; 
+            font-size: 0.68rem;
+            background: rgba(76, 175, 80, 0.05);
+            padding: 8px 12px;
+            border-radius: 6px;
+            border-left: 2px solid #4caf50;
+        }
+        
+        body.dark-mode .project-dates {
+            background: rgba(76, 175, 80, 0.1);
+        }
+        
+        .date-label { 
+            font-weight: 700; 
+            color: #1b5e20;
+            text-transform: uppercase;
+            font-size: 0.62rem;
+            letter-spacing: 0.5px;
+        }
+        
+        body.dark-mode .date-label {
+            color: #66bb6a;
+        }
         .status-badge {
-            padding: 6px 12px; border-radius: 4px; color: white; font-weight: 600; font-size: 0.65rem;
-            cursor: pointer; text-transform: uppercase; transition: 0.2s;
+            padding: 7px 14px; 
+            border-radius: 6px; 
+            color: white; 
+            font-weight: 700; 
+            font-size: 0.68rem;
+            cursor: pointer; 
+            text-transform: uppercase; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        .status-ongoing { background: #1976D2; }
-        .status-stoppage { background: #d32f2f; }
-        .status-finished { background: #616161; }
+        
+        .status-badge:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+        }
+        
+        .status-ongoing { 
+            background: linear-gradient(135deg, #1565c0 0%, #1976D2 100%);
+        }
+        
+        .status-stoppage { 
+            background: linear-gradient(135deg, #c62828 0%, #d32f2f 100%);
+        }
+        
+        .status-finished { 
+            background: linear-gradient(135deg, #424242 0%, #616161 100%);
+        }
 
         .modal {
             display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%;
@@ -1961,33 +2444,58 @@ body.dark-mode .backup-item {
             font-size: 0.7rem;
             table-layout: auto;
             color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            overflow: hidden;
         }
         
-        /* Option 4: Striped with Accent - Dark green header with yellow accent */
+        /* Modern Gradient Headers */
         th { 
-            background: #1b5e20; 
+            background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 25%, #2e7d32 50%, #43a047 75%, #66bb6a 100%);
             color: white; 
-            padding: 10px 8px; 
+            padding: 12px 10px; 
             border: none;
             border-bottom: 3px solid var(--safety-yellow);
             white-space: nowrap;
             min-width: auto;
             width: auto;
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 0.72rem;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
         }
         
-        /* Striped rows - white and very light green */
+        /* Shimmer effect on headers */
+        th::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        /* Enhanced Striped Rows */
         tbody tr {
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border-left: 3px solid transparent;
         }
         
         tbody tr:nth-child(odd) {
-            background: white;
+            background: #ffffff;
         }
         
         tbody tr:nth-child(even) {
-            background: #f1f8e9;
+            background: linear-gradient(90deg, #f1f8e9 0%, #f5faf0 100%);
         }
         
         /* Dark mode striped rows */
@@ -1996,23 +2504,26 @@ body.dark-mode .backup-item {
         }
         
         body.dark-mode tbody tr:nth-child(even) {
-            background: #1f2e1f;
+            background: linear-gradient(90deg, #1f2e1f 0%, #243324 100%);
         }
         
-        /* Hover effect with left border accent */
+        /* Enhanced Hover Effect with Shadow */
         tbody tr:hover {
-            border-left: 3px solid #4caf50;
-            background: #e8f5e9 !important;
+            border-left: 4px solid #4caf50;
+            background: linear-gradient(90deg, #e8f5e9 0%, #f1f8e9 100%) !important;
+            transform: translateX(2px);
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
         }
         
         body.dark-mode tbody tr:hover {
-            background: #1b3d1b !important;
+            background: linear-gradient(90deg, #1b3d1b 0%, #2a4d2a 100%) !important;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
         }
         
         td { 
             border: none;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 8px 6px; 
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            padding: 10px 8px; 
             text-align: center;
             min-width: auto;
             width: auto;
@@ -2020,32 +2531,35 @@ body.dark-mode .backup-item {
         }
         
         body.dark-mode td {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
         
         td:first-child {
             text-align: left;
             min-width: 200px;
             font-weight: 600;
+            padding-left: 12px;
         }
         
-        /* Previous Year Column - Inherits striped background */
+        /* Previous Year Column */
         td.prev-year {
-            font-weight: 600;
+            font-weight: 700;
             color: #2e7d32;
             min-width: auto;
             width: auto;
+            background: rgba(76, 175, 80, 0.05);
         }
 
         body.dark-mode td.prev-year {
             color: #a5d6a7;
+            background: rgba(76, 175, 80, 0.1);
         }
         
         td.prev-year {
             min-width: 65px;
             max-width: 70px;
             width: 70px;
-            padding: 6px 4px;
+            padding: 8px 6px;
             font-size: 0.7rem;
             text-align: center;
         }
@@ -2708,8 +3222,9 @@ body.dark-mode .toast-close:hover {
 }
 
 .project-row:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(27, 94, 32, 0.2) !important;
+    transform: translateY(-3px) translateX(2px);
+    box-shadow: 0 12px 32px rgba(27, 94, 32, 0.25) !important;
+    border-left-width: 6px;
 }
 
 .btn {
@@ -3096,61 +3611,91 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             <div id="user-badge" class="user-badge"></div>
         </div>
         <nav style="flex-grow: 1; padding-top: 10px;">
-            <div class="nav-item active" data-tab="overall" onclick="changeTab('overall')"><i class="fas fa-gauge-high"></i> Overall Dashboard</div>
-            <div class="nav-item" data-tab="exposures" onclick="changeTab('exposures')"><i class="fas fa-stopwatch"></i> Total Exposures</div>
-            <div class="nav-item" data-tab="rates" onclick="changeTab('rates')"><i class="fas fa-chart-line"></i> Statistics Rate</div>
-            <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-triangle-exclamation"></i> Accident/ Incident Record</div>
-            <div class="nav-item" data-tab="activities" onclick="changeTab('activities')"><i class="fas fa-clipboard-check"></i> ESH Activities & Programs</div>
-	    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fas fa-gavel"></i> Regulatory Issued NOV</div>
-            <div class="nav-item" data-tab="nov-monitoring" onclick="changeTab('nov-monitoring')"><i class="fas fa-chart-gantt"></i> ESH NOV Monitoring</div>
-            <div class="nav-item" data-tab="kpm" onclick="changeTab('kpm')"><i class="fas fa-file-lines"></i> Monthly Report</div>
-	    <div class="nav-item" data-tab="audit" onclick="changeTab('audit')"><i class="fas fa-magnifying-glass-dollar"></i> Internal ESH Audit Result</div>
-            <div class="nav-item" data-tab="cshp" onclick="changeTab('cshp')"><i class="fas fa-shield-heart"></i> CSHP</div>
-	    <div class="nav-item" data-tab="reg" onclick="changeTab('reg')"><i class="fas fa-certificate"></i> Certificate of Registration</div>
-            <div class="nav-item" data-tab="dole" onclick="changeTab('dole')"><i class="fas fa-file-contract"></i> DOLE Reportorial</div>
-	    <div class="nav-item" data-tab="permits" onclick="changeTab('permits')"><i class="fas fa-leaf"></i> Environmental Permits</div>
-	    <div class="nav-item" data-tab="emb" onclick="changeTab('emb')"><i class="fas fa-industry"></i> EMB Reportorial</div>
-            <div class="nav-item" data-tab="personnel" onclick="changeTab('personnel')"><i class="fas fa-users-viewfinder"></i> ESH Personnel Monitoring</div>
-            <div class="nav-item" data-tab="settings" onclick="changeTab('settings')"><i class="fas fa-sliders"></i> Settings</div>
+            <!-- DASHBOARD & ANALYTICS -->
+            <div class="nav-group">
+                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)">
+                    <span><i class="fas fa-chart-bar" style="margin-right: 6px;"></i> Dashboard & Analytics</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="nav-group-items collapsed">
+                    <div class="nav-item active" data-tab="overall" onclick="changeTab('overall')"><i class="fas fa-gauge-high"></i> Overall Dashboard</div>
+                    <div class="nav-item" data-tab="rates" onclick="changeTab('rates')"><i class="fas fa-chart-line"></i> Statistics Rate</div>
+                </div>
+            </div>
+
+            <!-- MONITORING -->
+            <div class="nav-group">
+                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)">
+                    <span><i class="fas fa-eye" style="margin-right: 6px;"></i> Monitoring</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="nav-group-items collapsed">
+                    <div class="nav-item" data-tab="exposures" onclick="changeTab('exposures')"><i class="fas fa-stopwatch"></i> Total Exposures</div>
+                    <div class="nav-item" data-tab="personnel" onclick="changeTab('personnel')"><i class="fas fa-users-viewfinder"></i> ESH Personnel Monitoring</div>
+                    <div class="nav-item" data-tab="activities" onclick="changeTab('activities')"><i class="fas fa-clipboard-check"></i> ESH Activities & Programs</div>
+                </div>
+            </div>
+
+            <!-- REPORTORIAL -->
+            <div class="nav-group">
+                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)">
+                    <span><i class="fas fa-file-alt" style="margin-right: 6px;"></i> Reportorial</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="nav-group-items collapsed">
+                    <div class="nav-item" data-tab="kpm" onclick="changeTab('kpm')"><i class="fas fa-file-lines"></i> Monthly Report</div>
+                    <div class="nav-item" data-tab="dole" onclick="changeTab('dole')"><i class="fas fa-file-contract"></i> DOLE Reportorial</div>
+                    <div class="nav-item" data-tab="emb" onclick="changeTab('emb')"><i class="fas fa-industry"></i> EMB Reportorial</div>
+                </div>
+            </div>
+
+            <!-- SAFETY RECORDS -->
+            <div class="nav-group">
+                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)">
+                    <span><i class="fas fa-triangle-exclamation" style="margin-right: 6px;"></i> Safety Records</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="nav-group-items collapsed">
+                    <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-triangle-exclamation"></i> Accident/Incident Record</div>
+                    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fas fa-gavel"></i> Regulatory Issued NOV</div>
+                    <div class="nav-item" data-tab="nov-monitoring" onclick="changeTab('nov-monitoring')"><i class="fas fa-chart-gantt"></i> ESH NOV Monitoring</div>
+                </div>
+            </div>
+
+            <!-- COMPLIANCE & AUDIT -->
+            <div class="nav-group">
+                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)">
+                    <span><i class="fa-solid fa-magnifying-glass-chart" style="margin-right: 6px;"></i> Compliance & Audit</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="nav-group-items collapsed">
+                    <div class="nav-item" data-tab="audit" onclick="changeTab('audit')"><i class="fas fa-magnifying-glass-dollar"></i> Internal ESH Audit Result</div>
+                    <div class="nav-item" data-tab="cshp" onclick="changeTab('cshp')"><i class="fas fa-shield-heart"></i> CSHP</div>
+                    <div class="nav-item" data-tab="reg" onclick="changeTab('reg')"><i class="fas fa-certificate"></i> Certificate of Registration</div>
+                    <div class="nav-item" data-tab="permits" onclick="changeTab('permits')"><i class="fas fa-leaf"></i> Environmental Permits</div>
+                </div>
+            </div>
+
+            <!-- Hidden Settings Tab -->
+            <div class="nav-item" data-tab="settings" onclick="changeTab('settings')" style="display: none;"><i class="fas fa-sliders"></i> Settings</div>
         </nav>
-        <div style="padding: 15px;">
-            <button onclick="handleLogout()" class="logout-btn">
-                <i class="fas fa-power-off"></i> LOGOUT SESSION
-            </button>
-        </div>
     </aside>
 
     <main id="main-content" class="hidden">
         <header>
             <h2 class="header-title">OVERALL DASHBOARD</h2>
             <div class="header-controls">
-                <!-- Search and filters - only show on OVERALL DASHBOARD -->
-                <input type="text" id="search-input" placeholder="Search projects..." onkeyup="handleSearch()">
-                <select id="region-filter" onchange="handleFilter()">
-                    <option value="">All Regions</option>
-                    <option value="NCR">NCR</option>
-                    <option value="SOUTH LUZON">South Luzon</option>
-                    <option value="NORTH LUZON">North Luzon</option>
-                    <option value="VISAYAS & MINDANAO">Visayas & Mindanao</option>
-                </select>
-                <select id="status-filter" onchange="handleFilter()">
-                    <option value="">All Status</option>
-                    <option value="on-going">On-Going</option>
-                    <option value="work-stoppage">Work Stoppage</option>
-                    <option value="finished">Finished</option>
-                </select>
+                <!-- Search and filters removed from header - moved to dashboard content area -->
                 
                 <!-- Always visible controls -->
-                <button class="theme-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
+                <button class="theme-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode" style="display: none;">
                     <i class="fas fa-moon" id="theme-icon"></i>
                 </button>
                 
                 <!-- YEAR SELECTOR -->
                 <div class="year-selector-container" style="position: relative;">
-                    <button class="year-selector-btn" onclick="toggleYearDropdown()" id="year-selector-btn" title="Select Year">
+                    <button class="year-selector-btn" onclick="toggleYearDropdown()" id="year-selector-btn" title="Select Year (Currently: 2026)">
                         <i class="fas fa-calendar-alt"></i>
-                        <span id="selected-year-display">2026</span>
-                        <i class="fas fa-chevron-down" style="font-size: 0.7rem; margin-left: 4px;"></i>
                     </button>
                     <div class="year-dropdown hidden" id="year-dropdown">
                         <div class="year-dropdown-header">Select Year</div>
@@ -3163,13 +3708,55 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     </div>
                 </div>
                 
-                <button id="edit-btn" class="btn btn-primary" onclick="toggleEdit()">
-                    <i class="fas fa-edit"></i> EDIT
-                </button>
-                <button id="save-btn" class="btn btn-primary hidden" onclick="saveData()">
-                    <i class="fas fa-cloud-upload-alt save-icon"></i>
-                    <span id="save-btn-text">SAVE</span>
-                </button>
+                <!-- NOTIFICATION BELL -->
+                <div class="notification-bell-container">
+                    <button class="notification-bell-btn" onclick="toggleNotificationDropdown()" id="notification-bell-btn" title="Notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge hidden" id="notification-badge">0</span>
+                    </button>
+                    <div class="notification-dropdown hidden" id="notification-dropdown">
+                        <div class="notification-dropdown-header">
+                            <i class="fas fa-bell"></i>
+                            <span>Overdue Reports</span>
+                        </div>
+                        <div class="notification-list" id="notification-list">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SETTINGS DROPDOWN -->
+                <div class="settings-dropdown-container">
+                    <button class="settings-dropdown-btn" onclick="toggleSettingsDropdown()" id="settings-dropdown-btn" title="Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <div class="settings-dropdown hidden" id="settings-dropdown-menu">
+                        <div class="settings-dropdown-header">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </div>
+                        <div class="settings-menu">
+                            <div class="settings-menu-item" onclick="openSettingsTab()">
+                                <i class="fas fa-sliders-h"></i>
+                                <span>Account Settings</span>
+                            </div>
+                            <div class="settings-menu-item" onclick="toggleDarkModeFromMenu()">
+                                <i class="fas fa-moon" id="settings-theme-icon"></i>
+                                <span id="settings-theme-text">Dark Mode</span>
+                            </div>
+                            <div class="settings-menu-item" onclick="saveToFirebaseMain()">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <span>Sync to Cloud</span>
+                            </div>
+                            <div class="settings-divider"></div>
+                            <div class="settings-menu-item logout" onclick="handleLogoutFromMenu()">
+                                <i class="fas fa-right-from-bracket"></i>
+                                <span>Logout Session</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
             </div>
         </header>
        
@@ -3628,6 +4215,14 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
               <i class="fas fa-right-from-bracket"></i> LOGOUT SESSION
             </button>
           </div>
+          
+          <!-- Footer - Copyright (Two-liner, Centered) -->
+          <div style="text-align: center; padding: 30px 20px 10px; margin-top: 20px; border-top: 1px solid var(--border-color);">
+            <div style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.8;">
+              <div style="opacity: 0.9;">© <span id="copyright-year">2026</span> Sta. Clara International Corporation. All rights reserved.</div>
+              <div style="opacity: 0.8; font-size: 0.72rem;">Environmental Safety & Health Department</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -3637,7 +4232,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             
     </main>
 
-    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script>
@@ -3790,6 +4385,11 @@ function showBackupRecoveryUI() {
     const userBackups = backupManager.getBackupsForUser(state.currentUser.email);
     const lastBackup = userBackups[0];
     const lastBackupTime = lastBackup ? backupManager.formatDate(lastBackup.timestamp) : 'Never';
+    
+    // Show only 3 backups initially
+    const showAllBackups = window.showAllBackupsFlag === true;
+    const displayBackups = showAllBackups ? userBackups : userBackups.slice(0, 3);
+    const hasMore = userBackups.length > 3;
 
     let html = `
         <div class="backup-section">
@@ -3821,7 +4421,7 @@ function showBackupRecoveryUI() {
                 <h5 style="color: #1b5e20; margin-top: 20px; margin-bottom: 10px;">
                     <i class="fas fa-history"></i> Backup History
                 </h5>
-                ${userBackups.length > 0 ? userBackups.map(backup => `
+                ${userBackups.length > 0 ? displayBackups.map(backup => `
                     <div class="backup-item">
                         <div class="backup-item-info">
                             <div class="backup-item-date">
@@ -3843,11 +4443,30 @@ function showBackupRecoveryUI() {
                         </div>
                     </div>
                 `).join('') : '<p style="color: var(--text-secondary); font-size: 0.85rem;">No backups available</p>'}
+                
+                ${hasMore && !showAllBackups ? `
+                    <button class="btn btn-outline" onclick="toggleShowAllBackups()" style="width: 100%; margin-top: 15px; padding: 10px;">
+                        <i class="fas fa-chevron-down"></i> See More (${userBackups.length - 3} more backups)
+                    </button>
+                ` : ''}
+                
+                ${showAllBackups && hasMore ? `
+                    <button class="btn btn-outline" onclick="toggleShowAllBackups()" style="width: 100%; margin-top: 15px; padding: 10px;">
+                        <i class="fas fa-chevron-up"></i> Show Less
+                    </button>
+                ` : ''}
             </div>
         </div>
     `;
 
     return html;
+}
+
+// Toggle show all backups
+function toggleShowAllBackups() {
+    window.showAllBackupsFlag = !window.showAllBackupsFlag;
+    const backupSection = document.getElementById('backup-recovery-section');
+    if (backupSection) backupSection.innerHTML = showBackupRecoveryUI();
 }
 
 function createManualBackup() {
@@ -4155,9 +4774,295 @@ function showBackupStatus(message, type) {
         }
 
         function updateYearDisplay() {
-            const display = document.getElementById('selected-year-display');
-            if (display) {
-                display.textContent = state.selectedYear;
+            const yearBtn = document.getElementById('year-selector-btn');
+            if (yearBtn) {
+                yearBtn.title = `Select Year (Currently: ${state.selectedYear})`;
+            }
+        }
+
+        // ========== NOTIFICATION BELL DROPDOWN ==========
+        function toggleNotificationDropdown() {
+            const dropdown = document.getElementById('notification-dropdown');
+            dropdown.classList.toggle('hidden');
+            
+            // Update notifications when opened
+            if (!dropdown.classList.contains('hidden')) {
+                updateNotifications();
+                setTimeout(() => {
+                    document.addEventListener('click', closeNotificationDropdownOnClickOutside);
+                }, 0);
+            }
+        }
+
+        function closeNotificationDropdownOnClickOutside(e) {
+            const dropdown = document.getElementById('notification-dropdown');
+            const btn = document.getElementById('notification-bell-btn');
+            
+            if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+                dropdown.classList.add('hidden');
+                document.removeEventListener('click', closeNotificationDropdownOnClickOutside);
+            }
+        }
+
+        function updateNotifications() {
+            const currentDate = new Date();
+            const currentMonth = currentDate.getMonth(); // 0-11
+            
+            // Group overdue reports by project
+            let projectOverdues = {};
+
+            // Check each project for overdue reports
+            state.projects.forEach(project => {
+                let overdueTabs = [];
+
+                // Check KPM reports (monthly)
+                let hasKpmOverdue = false;
+                const kpmRows = ['KPM&I'];
+                kpmRows.forEach(row => {
+                    const key = `kpm_${row}`;
+                    for (let month = 0; month < currentMonth; month++) {
+                        const value = project.vals[key] ? project.vals[key][month + 1] : '';
+                        if (!value || value.toString().trim() === '') {
+                            hasKpmOverdue = true;
+                            break;
+                        }
+                    }
+                });
+                if (hasKpmOverdue) {
+                    overdueTabs.push({ name: 'Monthly Report', tab: 'kpm' });
+                }
+
+                // Check DOLE reports (monthly)
+                let hasDoleOverdue = false;
+                const doleRows = ['WAIR', 'RSO', 'MOM'];
+                doleRows.forEach(row => {
+                    const key = `dole_${row}`;
+                    for (let month = 0; month < currentMonth; month++) {
+                        const value = project.vals[key] ? project.vals[key][month + 1] : '';
+                        if (!value || value.toString().trim() === '') {
+                            hasDoleOverdue = true;
+                            break;
+                        }
+                    }
+                    if (hasDoleOverdue) return; // Exit early if found
+                });
+                if (hasDoleOverdue) {
+                    overdueTabs.push({ name: 'DOLE Reportorial', tab: 'dole' });
+                }
+
+                // Check EMB reports (quarterly)
+                let hasEmbOverdue = false;
+                const embRows = ['SMR (Quarterly) - Submission Date'];
+                embRows.forEach(row => {
+                    const key = `emb_${row}`;
+                    for (let quarter = 1; quarter <= 4; quarter++) {
+                        const quarterEndMonth = (quarter * 3) - 1;
+                        if (currentMonth > quarterEndMonth) {
+                            const value = project.vals[key] ? project.vals[key][quarter] : '';
+                            if (!value || value.toString().trim() === '') {
+                                hasEmbOverdue = true;
+                                break;
+                            }
+                        }
+                    }
+                });
+                if (hasEmbOverdue) {
+                    overdueTabs.push({ name: 'EMB Reportorial', tab: 'emb' });
+                }
+
+                // Add to project overdues if any tabs have overdue reports
+                if (overdueTabs.length > 0) {
+                    projectOverdues[project.name] = overdueTabs;
+                }
+            });
+
+            // Count total projects with overdue reports
+            const totalProjects = Object.keys(projectOverdues).length;
+            
+            // Update badge
+            const badge = document.getElementById('notification-badge');
+            if (totalProjects > 0) {
+                badge.textContent = totalProjects > 99 ? '99+' : totalProjects;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            // Update notification list
+            const notificationList = document.getElementById('notification-list');
+            if (totalProjects === 0) {
+                notificationList.innerHTML = `
+                    <div class="notification-empty">
+                        <i class="fas fa-check-circle"></i>
+                        <div style="font-weight: 600; margin-bottom: 5px;">All caught up!</div>
+                        <div>No overdue reports at this time.</div>
+                    </div>
+                `;
+            } else {
+                let html = '';
+                
+                // Add hover effect CSS
+                html += `
+                    <style>
+                        .notification-project-item:hover {
+                            background: #fff3e0 !important;
+                        }
+                        body.dark-mode .notification-project-item:hover {
+                            background: #3a2f1f !important;
+                        }
+                    </style>
+                `;
+                
+                // Display each project with overdue tabs
+                Object.keys(projectOverdues).forEach(projectName => {
+                    const tabs = projectOverdues[projectName];
+                    const tabNames = tabs.map(t => t.name).join(' & ');
+                    const firstTab = tabs[0].tab; // Use first tab for redirect
+                    
+                    html += `
+                        <div class="notification-project-item" onclick="redirectToProjectTable('${projectName}', '${firstTab}')" 
+                             style="cursor: pointer; padding: 14px; border-bottom: 1px solid var(--border-color); transition: background 0.2s;">
+                            <div style="font-weight: 700; color: #d32f2f; font-size: 0.9rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-building" style="font-size: 0.85rem;"></i>
+                                ${projectName}
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.6;">
+                                <div style="margin-bottom: 4px;">
+                                    <i class="fas fa-file-circle-exclamation" style="color: #ff6f00; margin-right: 4px;"></i>
+                                    <strong style="color: var(--text-primary);">Overdue:</strong> ${tabNames}
+                                </div>
+                                <div style="font-size: 0.7rem; color: #2e7d32; font-weight: 600; margin-top: 6px;">
+                                    <i class="fas fa-hand-pointer"></i> Click to view project table
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                notificationList.innerHTML = html;
+            }
+        }
+
+        function redirectToProjectTable(projectName, tabName) {
+            // Close notification dropdown
+            document.getElementById('notification-dropdown').classList.add('hidden');
+            
+            // Change to the appropriate tab
+            changeTab(tabName);
+            
+            // Filter/search for the specific project
+            setTimeout(() => {
+                const searchInput = document.getElementById('search-input');
+                if (searchInput) {
+                    searchInput.value = projectName;
+                    // Trigger search/filter
+                    if (typeof filterProjects === 'function') {
+                        filterProjects();
+                    }
+                }
+                
+                // Show toast
+                showToast(`📋 Viewing "${projectName}" in ${getTabLabel(tabName)}`, 'info');
+            }, 100);
+        }
+        
+        function getTabLabel(tabName) {
+            const labels = {
+                'kpm': 'Monthly Report',
+                'dole': 'DOLE Reportorial',
+                'emb': 'EMB Reportorial'
+            };
+            return labels[tabName] || tabName;
+        }
+
+        function redirectToTab(tabName) {
+            // Close notification dropdown
+            document.getElementById('notification-dropdown').classList.add('hidden');
+            
+            // Change to the appropriate tab
+            changeTab(tabName);
+            
+            // Show toast
+            const tabLabels = {
+                'kpm': 'Monthly Report',
+                'dole': 'DOLE Reportorial',
+                'emb': 'EMB Reportorial'
+            };
+            showToast(`📋 Viewing ${tabLabels[tabName]} - Check overdue reports`, 'info');
+        }
+
+        function closeNotificationAndView(projectName) {
+            // Close notification dropdown
+            document.getElementById('notification-dropdown').classList.add('hidden');
+            
+            // Go to overall dashboard
+            changeTab('overall');
+            
+            // Show toast
+            showToast(`📋 Viewing overdue reports for: ${projectName}`, 'info');
+        }
+
+        // ========== SETTINGS DROPDOWN ==========
+        function toggleSettingsDropdown() {
+            const dropdown = document.getElementById('settings-dropdown-menu');
+            dropdown.classList.toggle('hidden');
+            
+            // Update theme icon/text
+            updateSettingsThemeDisplay();
+            
+            if (!dropdown.classList.contains('hidden')) {
+                setTimeout(() => {
+                    document.addEventListener('click', closeSettingsDropdownOnClickOutside);
+                }, 0);
+            }
+        }
+
+        function closeSettingsDropdownOnClickOutside(e) {
+            const dropdown = document.getElementById('settings-dropdown-menu');
+            const btn = document.getElementById('settings-dropdown-btn');
+            
+            if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+                dropdown.classList.add('hidden');
+                document.removeEventListener('click', closeSettingsDropdownOnClickOutside);
+            }
+        }
+
+        function updateSettingsThemeDisplay() {
+            const icon = document.getElementById('settings-theme-icon');
+            const text = document.getElementById('settings-theme-text');
+            const isDark = document.body.classList.contains('dark-mode');
+            
+            if (icon && text) {
+                if (isDark) {
+                    icon.className = 'fas fa-sun';
+                    text.textContent = 'Light Mode';
+                } else {
+                    icon.className = 'fas fa-moon';
+                    text.textContent = 'Dark Mode';
+                }
+            }
+        }
+
+        function toggleDarkModeFromMenu() {
+            toggleDarkMode();
+            updateSettingsThemeDisplay();
+            // Don't close dropdown so user sees the change
+        }
+
+        function openSettingsTab() {
+            document.getElementById('settings-dropdown-menu').classList.add('hidden');
+            changeTab('settings');
+        }
+
+        function handleLogoutFromMenu() {
+            document.getElementById('settings-dropdown-menu').classList.add('hidden');
+            handleLogout();
+        }
+
+        function updateYearDisplay() {
+            const yearBtn = document.getElementById('year-selector-btn');
+            if (yearBtn) {
+                yearBtn.title = `Select Year (Currently: ${state.selectedYear})`;
             }
             
             // Update settings page year displays
@@ -4597,33 +5502,46 @@ function showBackupStatus(message, type) {
 
         function toggleEdit() {
             state.isEditing = true;
-            // Keep filters visible only on overall tab
-            if (state.currentTab === 'overall') {
-                document.getElementById('search-input').style.display = 'block';
-                document.getElementById('region-filter').style.display = 'block';
-                document.getElementById('status-filter').style.display = 'block';
+            
+            // Update floating button to SAVE mode
+            const floatingBtn = document.getElementById('floating-edit-btn');
+            const floatingIcon = document.getElementById('floating-edit-icon');
+            const floatingTooltip = document.getElementById('floating-edit-tooltip');
+            
+            if (floatingBtn) {
+                floatingBtn.classList.add('save-mode');
+                floatingBtn.setAttribute('onclick', 'saveData()');
+                floatingBtn.setAttribute('title', 'Save Changes');
             }
-            document.getElementById('edit-btn').classList.add('hidden');
-            document.getElementById('save-btn').classList.remove('hidden');
+            if (floatingIcon) {
+                floatingIcon.className = 'fas fa-save';
+            }
+            if (floatingTooltip) {
+                floatingTooltip.textContent = 'Click to Save';
+            }
+            
             render();
         }
 
         async function saveData() {
-            const saveBtn = document.getElementById('save-btn');
-            const saveBtnText = document.getElementById('save-btn-text');
+            const floatingBtn = document.getElementById('floating-edit-btn');
+            const floatingIcon = document.getElementById('floating-edit-icon');
+            const floatingTooltip = document.getElementById('floating-edit-tooltip');
             
             // Disable editing mode UI
             state.isEditing = false;
             
-            // Hide filters - they'll be shown again by changeTab if on overall tab
-            document.getElementById('search-input').style.display = state.currentTab === 'overall' ? 'block' : 'none';
-            document.getElementById('region-filter').style.display = state.currentTab === 'overall' ? 'block' : 'none';
-            document.getElementById('status-filter').style.display = state.currentTab === 'overall' ? 'block' : 'none';
-            
-            // Show saving state
-            saveBtn.classList.add('saving');
-            saveBtn.disabled = true;
-            saveBtnText.textContent = 'SAVING...';
+            // Show saving state on floating button
+            if (floatingBtn) {
+                floatingBtn.style.pointerEvents = 'none';
+                floatingBtn.style.opacity = '0.6';
+            }
+            if (floatingIcon) {
+                floatingIcon.className = 'fas fa-spinner fa-spin';
+            }
+            if (floatingTooltip) {
+                floatingTooltip.textContent = 'Saving...';
+            }
             
             // Save to localStorage first (instant, no network)
             saveUserData(state.currentUser.email);
@@ -4632,25 +5550,41 @@ function showBackupStatus(message, type) {
             const success = await saveToFirebase();
             
             if (success) {
-                saveBtnText.textContent = '✓ SAVED!';
+                // Success state
+                if (floatingIcon) floatingIcon.className = 'fas fa-check';
+                if (floatingTooltip) floatingTooltip.textContent = 'Saved!';
                 showToast('✓ Data saved successfully!', 'success');
+                
                 setTimeout(() => {
-                    saveBtnText.textContent = 'SAVE';
-                    saveBtn.classList.remove('saving');
-                    saveBtn.disabled = false;
-                    document.getElementById('edit-btn').classList.remove('hidden');
-                    saveBtn.classList.add('hidden');
+                    // Return to EDIT mode
+                    if (floatingBtn) {
+                        floatingBtn.classList.remove('save-mode');
+                        floatingBtn.setAttribute('onclick', 'toggleEdit()');
+                        floatingBtn.setAttribute('title', 'Edit Mode');
+                        floatingBtn.style.pointerEvents = 'auto';
+                        floatingBtn.style.opacity = '1';
+                    }
+                    if (floatingIcon) floatingIcon.className = 'fas fa-edit';
+                    if (floatingTooltip) floatingTooltip.textContent = 'Click to Edit';
                     render();
                 }, 1500);
             } else {
-                saveBtnText.textContent = '✗ FAILED';
+                // Failure state
+                if (floatingIcon) floatingIcon.className = 'fas fa-times';
+                if (floatingTooltip) floatingTooltip.textContent = 'Failed!';
                 showToast('Failed to save data. Please try again.', 'error');
+                
                 setTimeout(() => {
-                    saveBtnText.textContent = 'SAVE';
-                    saveBtn.classList.remove('saving');
-                    saveBtn.disabled = false;
-                    document.getElementById('edit-btn').classList.remove('hidden');
-                    saveBtn.classList.add('hidden');
+                    // Return to EDIT mode
+                    if (floatingBtn) {
+                        floatingBtn.classList.remove('save-mode');
+                        floatingBtn.setAttribute('onclick', 'toggleEdit()');
+                        floatingBtn.setAttribute('title', 'Edit Mode');
+                        floatingBtn.style.pointerEvents = 'auto';
+                        floatingBtn.style.opacity = '1';
+                    }
+                    if (floatingIcon) floatingIcon.className = 'fas fa-edit';
+                    if (floatingTooltip) floatingTooltip.textContent = 'Click to Edit';
                     render();
                 }, 2000);
             }
@@ -4658,11 +5592,70 @@ function showBackupStatus(message, type) {
             console.log('💾 Data saved to localStorage and synced to Firebase');
         }
 
+        // Toggle navigation group expand/collapse
+        function toggleNavGroup(header) {
+            const items = header.nextElementSibling;
+            const isCollapsed = items.classList.contains('collapsed');
+            
+            if (isCollapsed) {
+                // Expand
+                items.classList.remove('collapsed');
+                header.classList.remove('collapsed');
+            } else {
+                // Collapse
+                items.classList.add('collapsed');
+                header.classList.add('collapsed');
+            }
+            
+            // Save state to localStorage
+            // Store true if expanded, false if collapsed
+            const groupName = header.querySelector('span').textContent.trim();
+            const navGroupStates = JSON.parse(localStorage.getItem('navGroupStates') || '{}');
+            const newState = !items.classList.contains('collapsed'); // true if expanded, false if collapsed
+            navGroupStates[groupName] = newState;
+            localStorage.setItem('navGroupStates', JSON.stringify(navGroupStates));
+        }
+        
+        // Restore navigation group states on load
+        function restoreNavGroupStates() {
+            const navGroupStates = JSON.parse(localStorage.getItem('navGroupStates') || '{}');
+            document.querySelectorAll('.nav-group-header').forEach(header => {
+                const groupName = header.querySelector('span').textContent.trim();
+                const isExpanded = navGroupStates[groupName];
+                
+                // Default: all groups collapsed (set in HTML)
+                // Only expand if explicitly saved as expanded in localStorage
+                if (isExpanded === true) {
+                    const items = header.nextElementSibling;
+                    items.classList.remove('collapsed');
+                    header.classList.remove('collapsed');
+                }
+            });
+        }
+
         function changeTab(t) {
             state.currentTab = t;
-            document.querySelectorAll('.nav-item').forEach(n =>
-                n.classList.toggle('active', n.dataset.tab === t)
-            );
+            document.querySelectorAll('.nav-item').forEach(n => {
+                const isActive = n.dataset.tab === t;
+                n.classList.toggle('active', isActive);
+                
+                // Auto-expand parent group if this item is active
+                if (isActive && n.parentElement.classList.contains('nav-group-items')) {
+                    const groupItems = n.parentElement;
+                    const groupHeader = groupItems.previousElementSibling;
+                    
+                    if (groupItems.classList.contains('collapsed')) {
+                        groupItems.classList.remove('collapsed');
+                        groupHeader.classList.remove('collapsed');
+                        
+                        // Save expanded state to localStorage
+                        const groupName = groupHeader.querySelector('span').textContent.trim();
+                        const navGroupStates = JSON.parse(localStorage.getItem('navGroupStates') || '{}');
+                        navGroupStates[groupName] = true; // Expanded
+                        localStorage.setItem('navGroupStates', JSON.stringify(navGroupStates));
+                    }
+                }
+            });
             const titles = {
                 'overall': 'OVERALL DASHBOARD', 'exposures': 'TOTAL EXPOSURES',
                 'rates': 'STATISTICS RATE', 'medical': 'ACCIDENT/ INCIDENT RECORD',
@@ -4702,12 +5695,6 @@ function showBackupStatus(message, type) {
                 void personnelView.offsetWidth;
                 personnelView.style.animation = 'slideRight 0.5s ease-out';
             }
-            
-            // Show/hide filters - only visible on OVERALL DASHBOARD
-            const isOverall = t === 'overall';
-            document.getElementById('search-input').style.display = isOverall ? '' : 'none';
-            document.getElementById('region-filter').style.display = isOverall ? '' : 'none';
-            document.getElementById('status-filter').style.display = isOverall ? '' : 'none';
             
             if (t === 'settings') {
                 populateSettingsTab();
@@ -5517,6 +6504,37 @@ function closeAllStatusDropdowns() {
             const overallAvg = state.projects.length > 0 ? Math.round(grandTotal / state.projects.length) : 0;
 
             if (state.currentTab === 'overall') {
+                // Add search and filters inside dashboard
+                html += `
+                <div style="background: var(--bg-card); padding: 15px 20px; margin: 0 20px 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid var(--border-color);">
+                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 250px;">
+                            <input type="text" id="search-input" placeholder="🔍 Search projects..." onkeyup="handleSearch()" 
+                                   style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary);">
+                        </div>
+                        <div>
+                            <select id="region-filter" onchange="handleFilter()" 
+                                    style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary); min-width: 180px;">
+                                <option value="">📍 All Regions</option>
+                                <option value="NCR">NCR</option>
+                                <option value="SOUTH LUZON">South Luzon</option>
+                                <option value="NORTH LUZON">North Luzon</option>
+                                <option value="VISAYAS & MINDANAO">Visayas & Mindanao</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select id="status-filter" onchange="handleFilter()" 
+                                    style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary); min-width: 160px;">
+                                <option value="">📊 All Status</option>
+                                <option value="on-going">On-Going</option>
+                                <option value="work-stoppage">Work Stoppage</option>
+                                <option value="finished">Finished</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                `;
+                
                 html += `<div id="grand-stats">
                     <div class="stat-card">
                         <div class="stat-label">TOTAL PROJECTS</div>
@@ -6875,6 +7893,10 @@ document.addEventListener('click', closeAllStatusDropdowns);
             // Backup section
             const backupSection = document.getElementById('backup-recovery-section');
             if (backupSection) backupSection.innerHTML = showBackupRecoveryUI();
+            
+            // Update copyright year
+            const copyrightYear = document.getElementById('copyright-year');
+            if (copyrightYear) copyrightYear.textContent = new Date().getFullYear();
         }
 
         setInterval(() => {
@@ -7989,6 +9011,12 @@ async function firebaseLogout() {
             cleanupPresence(state.currentUser.uid);
         }
         
+        // 🔊 Play logout sound before signing out
+        playLogoutSound();
+        
+        // ⏱️ Clear work timer on logout
+        clearWorkTimerOnLogout();
+        
         await window.firebase.signOut(window.firebaseAuth);
         
         // Unsubscribe from listener (if any exists)
@@ -8075,6 +9103,9 @@ function setupAuthObserver() {
 
             // Load user data ONCE - no real-time listener!
             await loadFromFirebase();
+            
+            // 🔊 Play login sound
+            playLoginSound();
 
         } else {
             console.log('👤 No user authenticated — showing login screen');
@@ -8159,6 +9190,9 @@ function toggleMobileMenu() {
 
 // Close mobile menu when clicking on nav items
 document.addEventListener('DOMContentLoaded', function() {
+    // Restore navigation group collapse states
+    restoreNavGroupStates();
+    
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
         item.addEventListener('click', function() {
@@ -8188,6 +9222,34 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 console.log('📱 Mobile responsive features loaded!');
+
+// ==================== AUDIO CONTEXT INITIALIZATION ====================
+// Create global AudioContext for sound effects (needed for browser autoplay policies)
+let globalAudioContext = null;
+
+function initAudioContext() {
+    if (!globalAudioContext) {
+        try {
+            globalAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+            console.log('🔊 AudioContext initialized');
+        } catch (e) {
+            console.warn('Could not initialize AudioContext:', e);
+        }
+    }
+    
+    // Resume AudioContext if suspended (required by browsers)
+    if (globalAudioContext && globalAudioContext.state === 'suspended') {
+        globalAudioContext.resume().then(() => {
+            console.log('🔊 AudioContext resumed');
+        });
+    }
+    
+    return globalAudioContext;
+}
+
+// Initialize on first user interaction
+document.addEventListener('click', initAudioContext, { once: true });
+document.addEventListener('keydown', initAudioContext, { once: true });
 
 // ==================== SAFETY REMINDER SYSTEM ====================
 // Load work start time from localStorage or initialize
@@ -8232,20 +9294,10 @@ const REMINDERS = {
     }
 };
 
-// Update timer display
+// Update timer display (no visual display, but keeps timer running for reminders)
 function updateTimerDisplay() {
-    const elapsed = Date.now() - workStartTime;
-    const hours = Math.floor(elapsed / (1000 * 60 * 60));
-    const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
-    
-    const display = document.getElementById('timer-display');
-    if (display) {
-        display.textContent = 
-            String(hours).padStart(2, '0') + ':' + 
-            String(minutes).padStart(2, '0') + ':' + 
-            String(seconds).padStart(2, '0');
-    }
+    // Timer runs silently in background for reminder calculations
+    // No visual display needed
 }
 
 // Determine which reminder to show based on elapsed time
@@ -8327,27 +9379,64 @@ function playNotificationSound() {
         clearInterval(soundInterval);
     }
     
-    // Function to play one beep
+    // Function to play one beep based on reminder type
     function playBeep() {
         try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
+            const audioContext = initAudioContext();
+            if (!audioContext) {
+                console.warn('AudioContext not available');
+                return;
+            }
             
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = 800; // Frequency in Hz
-            oscillator.type = 'sine';
-            
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.3);
+            // Play different sounds based on reminder type
+            if (currentReminderType === 'EYES_20') {
+                // Option 2: Gentle Chime - C-E-G notes
+                playNote(audioContext, 523, 0.2, 0.25, 0.01, 0.15); // C
+                setTimeout(() => playNote(audioContext, 659, 0.2, 0.25, 0.01, 0.15), 150); // E
+                setTimeout(() => playNote(audioContext, 784, 0.3, 0.25, 0.01, 0.2), 300); // G
+            } else if (currentReminderType === 'MICRO_BREAK') {
+                // Option 1: Rising Melody - Do-Re-Mi-Fa-Sol
+                playNote(audioContext, 523, 0.15, 0.3, 0.01, 0.1); // C
+                setTimeout(() => playNote(audioContext, 587, 0.15, 0.3, 0.01, 0.1), 120); // D
+                setTimeout(() => playNote(audioContext, 659, 0.15, 0.3, 0.01, 0.1), 240); // E
+                setTimeout(() => playNote(audioContext, 698, 0.15, 0.3, 0.01, 0.1), 360); // F
+                setTimeout(() => playNote(audioContext, 784, 0.25, 0.4, 0.01, 0.15), 480); // G
+            } else if (currentReminderType === 'LONG_BREAK') {
+                // Option 2: Alarm Clock - 4 repeating beeps
+                playNote(audioContext, 1047, 0.2, 0.45, 0.01, 0.15);
+                setTimeout(() => playNote(audioContext, 1047, 0.2, 0.45, 0.01, 0.15), 250);
+                setTimeout(() => playNote(audioContext, 1047, 0.2, 0.45, 0.01, 0.15), 500);
+                setTimeout(() => playNote(audioContext, 1047, 0.3, 0.5, 0.01, 0.2), 750);
+            } else if (currentReminderType === 'EXTENDED_BREAK') {
+                // Option 1: Emergency Alert - alternating high-low siren
+                playNote(audioContext, 880, 0.3, 0.5, 0.01, 0.2);
+                setTimeout(() => playNote(audioContext, 660, 0.3, 0.5, 0.01, 0.2), 350);
+                setTimeout(() => playNote(audioContext, 880, 0.3, 0.5, 0.01, 0.2), 700);
+                setTimeout(() => playNote(audioContext, 660, 0.3, 0.5, 0.01, 0.2), 1050);
+            }
         } catch (e) {
             console.warn('Could not play notification sound:', e);
         }
+    }
+    
+    // Helper function to play a single note
+    function playNote(ctx, frequency, duration, volume, attackTime, releaseTime) {
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'sine';
+        
+        const now = ctx.currentTime;
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(volume, now + attackTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration + releaseTime);
+        
+        oscillator.start(now);
+        oscillator.stop(now + duration + releaseTime);
     }
     
     // Play first beep immediately
@@ -8367,25 +9456,128 @@ function stopNotificationSound() {
     }
 }
 
+// Play login sound (once, no loop)
+function playLoginSound() {
+    try {
+        const audioContext = initAudioContext();
+        if (!audioContext) {
+            console.warn('AudioContext not available');
+            return;
+        }
+        
+        // Option 2: Success Jingle - E-G-C-E
+        playNote(audioContext, 659, 0.15, 0.3, 0.01, 0.1); // E
+        setTimeout(() => playNote(audioContext, 784, 0.15, 0.3, 0.01, 0.1), 120); // G
+        setTimeout(() => playNote(audioContext, 1047, 0.2, 0.35, 0.01, 0.15), 240); // C
+        setTimeout(() => playNote(audioContext, 1319, 0.25, 0.4, 0.01, 0.18), 360); // E
+        
+        console.log('🔊 Login sound played');
+    } catch (e) {
+        console.warn('Could not play login sound:', e);
+    }
+    
+    function playNote(ctx, frequency, duration, volume, attackTime, releaseTime) {
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'sine';
+        
+        const now = ctx.currentTime;
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(volume, now + attackTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration + releaseTime);
+        
+        oscillator.start(now);
+        oscillator.stop(now + duration + releaseTime);
+    }
+}
+
+// Play logout sound (once, no loop)
+function playLogoutSound() {
+    try {
+        const audioContext = initAudioContext();
+        if (!audioContext) {
+            console.warn('AudioContext not available');
+            return;
+        }
+        
+        // Option 1: Goodbye Tone - G-E-C descending
+        playNote(audioContext, 784, 0.15, 0.3, 0.01, 0.1); // G
+        setTimeout(() => playNote(audioContext, 659, 0.15, 0.3, 0.01, 0.1), 150); // E
+        setTimeout(() => playNote(audioContext, 523, 0.25, 0.35, 0.01, 0.18), 300); // C
+        
+        console.log('🔊 Logout sound played');
+    } catch (e) {
+        console.warn('Could not play logout sound:', e);
+    }
+    
+    function playNote(ctx, frequency, duration, volume, attackTime, releaseTime) {
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'sine';
+        
+        const now = ctx.currentTime;
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(volume, now + attackTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration + releaseTime);
+        
+        oscillator.start(now);
+        oscillator.stop(now + duration + releaseTime);
+    }
+}
+
+// Clear work timer on logout
+function clearWorkTimerOnLogout() {
+    // Stop any active reminders
+    dismissReminder();
+    
+    // Clear the timer interval
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+    
+    // Clear localStorage
+    localStorage.removeItem('workStartTime');
+    
+    console.log('⏱️ Work timer cleared on logout');
+}
+
 // Check if reminder should be shown
 function checkReminders() {
     const elapsed = Date.now() - workStartTime;
     
-    // Check each reminder type
+    // Don't check if a reminder is currently showing
+    if (currentReminderType) return;
+    
+    // Check reminders in PRIORITY ORDER (longer breaks override shorter ones)
+    // When multiple reminders are due at the same time, show the most important one
     const checkIntervals = [
-        { type: 'EYES_20', interval: REMINDERS.EYES_20.interval },
-        { type: 'MICRO_BREAK', interval: REMINDERS.MICRO_BREAK.interval },
-        { type: 'LONG_BREAK', interval: REMINDERS.LONG_BREAK.interval },
-        { type: 'EXTENDED_BREAK', interval: REMINDERS.EXTENDED_BREAK.interval }
+        { type: 'EXTENDED_BREAK', interval: REMINDERS.EXTENDED_BREAK.interval },   // 3 hours - HIGHEST PRIORITY
+        { type: 'LONG_BREAK', interval: REMINDERS.LONG_BREAK.interval },           // 2 hours
+        { type: 'MICRO_BREAK', interval: REMINDERS.MICRO_BREAK.interval },         // 1 hour
+        { type: 'EYES_20', interval: REMINDERS.EYES_20.interval }                  // 20 minutes - LOWEST PRIORITY
     ];
     
     for (const check of checkIntervals) {
-        // Check if we've hit this interval (within 1 second tolerance)
+        // Check if we've hit this interval (within 2 second tolerance for reliability)
         if (elapsed >= check.interval) {
             const timeSinceInterval = elapsed % check.interval;
-            if (timeSinceInterval < 1000 && currentReminderType !== check.type) {
+            
+            // Trigger within 2 seconds of the interval mark
+            if (timeSinceInterval < 2000) {
+                console.log(`🔔 Reminder triggered: ${check.type} at ${Math.floor(elapsed/60000)} minutes`);
                 showReminder(check.type);
-                break; // Show only one reminder at a time
+                break; // Show only one reminder at a time (highest priority wins)
             }
         }
     }
@@ -8414,8 +9606,68 @@ function initSafetyReminder() {
     // Initial display update
     updateTimerDisplay();
     
+    // Log reminder schedule
+    const elapsed = Date.now() - workStartTime;
     console.log('✅ Safety reminder system initialized');
+    console.log(`⏱️ Current work time: ${Math.floor(elapsed/60000)} minutes`);
+    console.log('📅 Reminder Schedule:');
+    console.log(`  👀 20-20-20 Rule: Every 20 minutes (20, 40, 60, 80, 100, 120...)`);
+    console.log(`  🧘 Micro Break: Every 60 minutes (60, 120, 180...)`);
+    console.log(`  ☕ Longer Break: Every 120 minutes (120, 240...)`);
+    console.log(`  🌳 Extended Break: Every 180 minutes (180, 360...)`);
+    console.log('');
+    console.log('🔧 Test Commands (paste in console):');
+    console.log('  testReminder("EYES_20")    - Test 20-20-20 reminder');
+    console.log('  testReminder("MICRO_BREAK") - Test micro break');
+    console.log('  testReminder("LONG_BREAK")  - Test longer break');
+    console.log('  testReminder("EXTENDED_BREAK") - Test extended break');
+    console.log('  resetWorkTimer()            - Reset timer to 0');
+    console.log('  setWorkTimer(minutes)       - Set timer to specific minutes');
 }
+
+// TEST FUNCTIONS for debugging
+window.testReminder = function(type) {
+    if (REMINDERS[type]) {
+        console.log(`🧪 Testing reminder: ${type}`);
+        showReminder(type);
+    } else {
+        console.error(`❌ Unknown reminder type: ${type}`);
+        console.log('Available types: EYES_20, MICRO_BREAK, LONG_BREAK, EXTENDED_BREAK');
+    }
+};
+
+window.resetWorkTimer = function() {
+    workStartTime = Date.now();
+    localStorage.setItem('workStartTime', workStartTime);
+    updateTimerDisplay();
+    console.log('🔄 Work timer reset to 0:00:00');
+};
+
+window.setWorkTimer = function(minutes) {
+    const targetTime = Date.now() - (minutes * 60 * 1000);
+    workStartTime = targetTime;
+    localStorage.setItem('workStartTime', workStartTime);
+    updateTimerDisplay();
+    console.log(`⏱️ Work timer set to ${minutes} minutes`);
+    console.log(`Next reminder should trigger at:`);
+    
+    // Calculate next reminder
+    if (minutes < 20) {
+        console.log(`  👀 20-20-20 Rule in ${20 - minutes} minutes`);
+    } else if (minutes < 60) {
+        const nextEyes = Math.ceil(minutes / 20) * 20;
+        console.log(`  👀 20-20-20 Rule in ${nextEyes - minutes} minutes`);
+    } else if (minutes < 120) {
+        const nextMicro = Math.ceil(minutes / 60) * 60;
+        console.log(`  🧘 Micro Break in ${nextMicro - minutes} minutes`);
+    } else if (minutes < 180) {
+        const nextLong = Math.ceil(minutes / 120) * 120;
+        console.log(`  ☕ Longer Break in ${nextLong - minutes} minutes`);
+    } else {
+        const nextExtended = Math.ceil(minutes / 180) * 180;
+        console.log(`  🌳 Extended Break in ${nextExtended - minutes} minutes`);
+    }
+};
 
 // Make dismiss function globally available
 window.dismissReminder = dismissReminder;
@@ -8461,13 +9713,184 @@ console.log('✅ Safety reminder character loaded!');
 
 // ==================== PRESENCE DEBUGGING ====================
 // ==================== END FIREBASE INTEGRATION ====================
-    </script>
 
-<!-- Work Timer Display -->
-<div class="work-timer" id="work-timer">
-    <div class="work-timer-label">⏱️ Work Time</div>
-    <div class="work-timer-value" id="timer-display">00:00:00</div>
-</div>
+// ==================== AUTOMATIC COLOR CODING FOR REPORTORIAL TABLES ====================
+function updateReportorialColors() {
+    // Only apply colors when on the relevant tabs
+    if (!['kpm', 'dole', 'emb'].includes(state.currentTab)) return;
+    
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth(); // 0-11 (0=January)
+    const currentYear = currentDate.getFullYear();
+    
+    // Helper function to check if a month/quarter is overdue
+    function isOverdue(monthIndex) {
+        // If the month has already passed (strictly less than current month)
+        if (monthIndex < currentMonth) {
+            return true;
+        }
+        return false;
+    }
+    
+    // Wait for table to be rendered
+    setTimeout(() => {
+        const tables = document.querySelectorAll('.table-container table');
+        
+        tables.forEach(table => {
+            const rows = table.querySelectorAll('tbody tr, tr');
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                
+                // Skip header rows
+                if (cells.length === 0) return;
+                
+                // For KPM and DOLE - monthly columns (1-12)
+                if (state.currentTab === 'kpm' || state.currentTab === 'dole') {
+                    // Check if this is a merged cell row (AEDR, AMR) - skip color coding
+                    const firstDataCell = cells[1];
+                    if (firstDataCell && firstDataCell.getAttribute('colspan') === '12') {
+                        return; // Skip annual report rows
+                    }
+                    
+                    // Process cells 1-12 (January to December)
+                    for (let i = 1; i <= 12 && i < cells.length; i++) {
+                        const cell = cells[i];
+                        const input = cell.querySelector('input[type="date"]');
+                        
+                        if (input) {
+                            const monthIndex = i - 1; // Convert to 0-based index (0=Jan, 11=Dec)
+                            const inputValue = input.value.trim();
+                            
+                            // If input is empty and month is overdue
+                            if (inputValue === '' && isOverdue(monthIndex)) {
+                                cell.style.backgroundColor = '#ffcdd2'; // Light red
+                                input.style.backgroundColor = '#ffcdd2';
+                                input.style.color = '#c62828'; // Dark red text
+                            } 
+                            // If input has a date - mark as green (submitted)
+                            else if (inputValue !== '') {
+                                cell.style.backgroundColor = '#c8e6c9'; // Light green
+                                input.style.backgroundColor = '#c8e6c9';
+                                input.style.color = '#2e7d32'; // Dark green text
+                            }
+                            // Future months - no special color
+                            else {
+                                cell.style.backgroundColor = '';
+                                input.style.backgroundColor = '';
+                                input.style.color = '';
+                            }
+                        }
+                    }
+                }
+                
+                // For EMB - quarterly columns (Q1-Q4)
+                else if (state.currentTab === 'emb') {
+                    const rowType = cells[0]?.textContent.trim() || '';
+                    
+                    // Only apply to "Submission Date" rows, not "Reference No." rows
+                    if (rowType.includes('Submission Date')) {
+                        // Check if this is a merged cell (CMR Semi-Annual) - special handling
+                        const firstDataCell = cells[1];
+                        if (firstDataCell && firstDataCell.getAttribute('colspan') === '4') {
+                            // CMR Semi-Annual - check based on Q2 (June = month 5)
+                            const input = firstDataCell.querySelector('input[type="date"]');
+                            if (input) {
+                                const inputValue = input.value.trim();
+                                // Semi-annual due by end of Q2 (June)
+                                if (inputValue === '' && currentMonth > 5) { // After June
+                                    firstDataCell.style.backgroundColor = '#ffcdd2';
+                                    input.style.backgroundColor = '#ffcdd2';
+                                    input.style.color = '#c62828';
+                                } else if (inputValue !== '') {
+                                    firstDataCell.style.backgroundColor = '#c8e6c9';
+                                    input.style.backgroundColor = '#c8e6c9';
+                                    input.style.color = '#2e7d32';
+                                } else {
+                                    firstDataCell.style.backgroundColor = '';
+                                    input.style.backgroundColor = '';
+                                    input.style.color = '';
+                                }
+                            }
+                        } else {
+                            // SMR Quarterly - Q1, Q2, Q3, Q4
+                            for (let q = 1; q <= 4 && q < cells.length; q++) {
+                                const cell = cells[q];
+                                const input = cell.querySelector('input[type="date"]');
+                                
+                                if (input) {
+                                    // Q1=Jan-Mar (months 0-2), Q2=Apr-Jun (3-5), Q3=Jul-Sep (6-8), Q4=Oct-Dec (9-11)
+                                    const quarterLastMonth = (q * 3) - 1; // Q1->2, Q2->5, Q3->8, Q4->11
+                                    const inputValue = input.value.trim();
+                                    
+                                    // If input is empty and quarter deadline has passed
+                                    if (inputValue === '' && currentMonth > quarterLastMonth) {
+                                        cell.style.backgroundColor = '#ffcdd2';
+                                        input.style.backgroundColor = '#ffcdd2';
+                                        input.style.color = '#c62828';
+                                    }
+                                    // If input has a date - mark as green
+                                    else if (inputValue !== '') {
+                                        cell.style.backgroundColor = '#c8e6c9';
+                                        input.style.backgroundColor = '#c8e6c9';
+                                        input.style.color = '#2e7d32';
+                                    }
+                                    // Future quarters - no color
+                                    else {
+                                        cell.style.backgroundColor = '';
+                                        input.style.backgroundColor = '';
+                                        input.style.color = '';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+        
+        console.log(`✅ Color coding applied for ${state.currentTab.toUpperCase()}`);
+    }, 100);
+}
+
+// Hook into the render function to update colors AND notifications after rendering
+// (Combining both hooks to avoid duplicate originalRender declaration)
+const originalRenderBase = render;
+render = function() {
+    originalRenderBase();
+    updateReportorialColors();
+    if (typeof updateNotifications === 'function') {
+        updateNotifications();
+    }
+};
+
+// Run color update when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        updateReportorialColors();
+        console.log('✅ Reportorial color coding system initialized');
+    }, 1500);
+});
+
+// Re-run color update whenever cells are edited
+function refreshReportorialColors() {
+    updateReportorialColors();
+}
+
+// Make the function globally available
+window.refreshReportorialColors = refreshReportorialColors;
+
+// Also update colors when input values change
+document.addEventListener('input', function(e) {
+    if (e.target.tagName === 'INPUT' && e.target.type === 'date') {
+        if (['kpm', 'dole', 'emb'].includes(state.currentTab)) {
+            setTimeout(updateReportorialColors, 50);
+        }
+    }
+});
+
+// ==================== END AUTOMATIC COLOR CODING ====================
+    </script>
 
 <!-- Safety Reminder Character -->
 <div id="safety-reminder-container">
@@ -8491,7 +9914,12 @@ console.log('✅ Safety reminder character loaded!');
 <!-- Toast Notification Container -->
 <div id="toast-container"></div>
 
+<!-- Floating Edit/Save Button -->
+<button id="floating-edit-btn" class="floating-edit-btn" onclick="toggleEdit()" title="Edit Mode">
+    <i class="fas fa-edit" id="floating-edit-icon"></i>
+    <span class="edit-tooltip" id="floating-edit-tooltip">Click to Edit</span>
+</button>
+
 </body>
 </html>
-
 
