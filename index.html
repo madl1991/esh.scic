@@ -537,6 +537,18 @@
             }
         }
 
+        /* Tab entrance animation - Slide from Right */
+        @keyframes slideRight {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
         body.dark-mode .login-card {
             background: rgba(45, 45, 45, 0.95);
         }
@@ -1213,21 +1225,46 @@
         }
 
         aside {
-            width: 260px; background: var(--safety-green-grad); color: white;
-            display: flex; flex-direction: column; flex-shrink: 0; z-index: 100; box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+            width: 260px; 
+            background: linear-gradient(180deg, #0d3d0f 0%, #1b5e20 50%, #2e7d32 100%);
+            color: white;
+            display: flex; flex-direction: column; flex-shrink: 0; z-index: 100; 
+            box-shadow: 4px 0 20px rgba(0,0,0,0.15);
             overflow-y: auto;
+            padding: 20px 15px;
         }
 
-        .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        .sidebar-header { 
+            padding-bottom: 20px; 
+            margin-bottom: 20px;
+            text-align: center; 
+        }
         .nav-item {
-            padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px;
-            transition: 0.3s; font-size: 0.75rem;
+            background: rgba(255,255,255,0.05);
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.75rem;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
             pointer-events: auto !important;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
         }
-        .nav-item:hover { background: rgba(255,255,255,0.1); }
-        .nav-item.active { background: rgba(255,255,255,0.2); border-left: 5px solid var(--safety-yellow); font-weight: 600; }
+        .nav-item:hover { 
+            background: rgba(255,255,255,0.1);
+            transform: translateX(5px);
+        }
+        .nav-item.active { 
+            background: linear-gradient(135deg, #fbc02d, #f57f17);
+            color: #1b5e20;
+            border-left: 3px solid #fff;
+            font-weight: 700;
+        }
         
         main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-body); }
         
@@ -2487,12 +2524,19 @@ table input[type="date"]:not(:focus)[value=""] {
             border: 1px solid rgba(255,255,255,0.2); padding: 10px; cursor: pointer;
             font-size: 0.75rem; border-radius: 4px;
         }
-        .user-badge { background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 4px;
-            font-size: 0.7rem; margin-top: 10px; border: 1px solid rgba(255,255,255,0.3); }
+        .user-badge { 
+            background: rgba(251, 192, 45, 0.2);
+            border: 1px solid rgba(251, 192, 45, 0.4);
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            margin-top: 10px;
+        }
 
         #dashboard-content {
             color: var(--text-primary);
             padding-bottom: 200px; /* Extra space at bottom for dropdowns and scrolling */
+            animation: slideRight 0.5s ease-out;
         }
 
 /* ========== TOAST NOTIFICATIONS ========== */
@@ -4608,6 +4652,32 @@ function showBackupStatus(message, type) {
             document.getElementById('personnel-view').classList.toggle('hidden', t !== 'personnel');
             document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel');
             
+            // Trigger slide animation on tab change
+            const dashContent = document.getElementById('dashboard-content');
+            const settingsView = document.getElementById('settings-view');
+            const personnelView = document.getElementById('personnel-view');
+            
+            // Animate dashboard content
+            if (dashContent && !dashContent.classList.contains('hidden')) {
+                dashContent.style.animation = 'none';
+                void dashContent.offsetWidth;
+                dashContent.style.animation = 'slideRight 0.5s ease-out';
+            }
+            
+            // Animate settings view
+            if (settingsView && !settingsView.classList.contains('hidden')) {
+                settingsView.style.animation = 'none';
+                void settingsView.offsetWidth;
+                settingsView.style.animation = 'slideRight 0.5s ease-out';
+            }
+            
+            // Animate personnel view
+            if (personnelView && !personnelView.classList.contains('hidden')) {
+                personnelView.style.animation = 'none';
+                void personnelView.offsetWidth;
+                personnelView.style.animation = 'slideRight 0.5s ease-out';
+            }
+            
             // Show/hide filters - only visible on OVERALL DASHBOARD
             const isOverall = t === 'overall';
             document.getElementById('search-input').style.display = isOverall ? '' : 'none';
@@ -4982,6 +5052,40 @@ function closeAllStatusDropdowns() {
                 if (regionCtx) {
                     const existingChart = Chart.getChart(regionCtx);
                     if (existingChart) existingChart.destroy();
+                    
+                    const ctx = regionCtx.getContext('2d');
+                    
+                    // Create unique gradient for each region
+                    const gradients = [];
+                    
+                    // NCR - Pink/Magenta gradient
+                    const gradient1 = ctx.createLinearGradient(0, 0, 0, 300);
+                    gradient1.addColorStop(0, '#ec407a');
+                    gradient1.addColorStop(0.5, '#e91e63');
+                    gradient1.addColorStop(1, '#c2185b');
+                    gradients.push(gradient1);
+                    
+                    // SOUTH LUZON - Blue gradient
+                    const gradient2 = ctx.createLinearGradient(0, 0, 0, 300);
+                    gradient2.addColorStop(0, '#42a5f5');
+                    gradient2.addColorStop(0.5, '#2196f3');
+                    gradient2.addColorStop(1, '#1976d2');
+                    gradients.push(gradient2);
+                    
+                    // NORTH LUZON - Green gradient
+                    const gradient3 = ctx.createLinearGradient(0, 0, 0, 300);
+                    gradient3.addColorStop(0, '#66bb6a');
+                    gradient3.addColorStop(0.5, '#4caf50');
+                    gradient3.addColorStop(1, '#388e3c');
+                    gradients.push(gradient3);
+                    
+                    // VISAYAS & MINDANAO - Orange gradient
+                    const gradient4 = ctx.createLinearGradient(0, 0, 0, 300);
+                    gradient4.addColorStop(0, '#ffa726');
+                    gradient4.addColorStop(0.5, '#ff9800');
+                    gradient4.addColorStop(1, '#f57c00');
+                    gradients.push(gradient4);
+                    
                     state.charts.region = new Chart(regionCtx, {
                         type: 'bar',
                         data: {
@@ -4989,16 +5093,36 @@ function closeAllStatusDropdowns() {
                             datasets: [{
                                 label: 'Compliance %',
                                 data: regionAvgs,
-                                backgroundColor: '#1b5e20',
-                                borderColor: '#0a2e10',
-                                borderWidth: 1
+                                backgroundColor: gradients,
+                                borderWidth: 0,
+                                borderRadius: 8
                             }]
                         },
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: { y: { beginAtZero: true, max: 100 } }
+                            plugins: { 
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                    padding: 12,
+                                    cornerRadius: 8
+                                }
+                            },
+                            scales: { 
+                                y: { 
+                                    beginAtZero: true, 
+                                    max: 100,
+                                    grid: {
+                                        color: 'rgba(0, 0, 0, 0.05)'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    }
+                                }
+                            }
                         }
                     });
                 }
@@ -6394,13 +6518,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                                 <tr>
                                     <th rowspan="2" style="min-width: 150px; position: sticky; left: 0; z-index: 10; background: #2e7d32;">PROJECT NAME</th>
                                     <th rowspan="2" class="prev-year">PREVIOUS</th>
-                                    <th colspan="12">2026 MONTHLY DATA</th>
-                                    <th colspan="4">SUMMARY</th>
-                                </tr>
-                                <tr>
                                     <th>JAN</th><th>FEB</th><th>MAR</th><th>APR</th>
                                     <th>MAY</th><th>JUN</th><th>JUL</th><th>AUG</th>
                                     <th>SEP</th><th>OCT</th><th>NOV</th><th>DEC</th>
+                                    <th colspan="4">SUMMARY</th>
+                                </tr>
+                                <tr>
                                     <th style="background: #66bb6a;">OPEN</th>
                                     <th style="background: #ffa726;">PENDING</th>
                                     <th style="background: #42a5f5;">CLOSED</th>
@@ -7425,13 +7548,35 @@ function updateTrendChart(tabType) {
         });
     }
     
-    // Create chart
+    // Create chart with gradient fills
     const ctx = canvas.getContext('2d');
+    
+    // Create gradients for each dataset
+    const datasetsWithGradients = datasets.map(ds => {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, ds.borderColor + '40');
+        gradient.addColorStop(1, ds.borderColor + '00');
+        
+        return {
+            label: ds.label,
+            data: ds.data,
+            borderColor: ds.borderColor,
+            backgroundColor: gradient,
+            borderWidth: 2,
+            pointRadius: 5,
+            pointBackgroundColor: ds.borderColor,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            tension: 0.4,
+            fill: true
+        };
+    });
+    
     trendChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels: months,
-            datasets: datasets
+            datasets: datasetsWithGradients
         },
         options: {
             responsive: true,
@@ -8247,10 +8392,15 @@ document.addEventListener('DOMContentLoaded', function() {
 console.log('📱 Mobile responsive features loaded!');
 
 // ==================== SAFETY REMINDER SYSTEM ====================
-let workStartTime = Date.now();
+// Load work start time from localStorage or initialize
+let workStartTime = parseInt(localStorage.getItem('workStartTime')) || Date.now();
+// Save to localStorage
+localStorage.setItem('workStartTime', workStartTime);
+
 let timerInterval = null;
 let reminderTimeout = null;
 let currentReminderType = null;
+let soundInterval = null; // For looping sound
 
 // Reminder configurations (in milliseconds)
 const REMINDERS = {
@@ -8363,32 +8513,59 @@ function dismissReminder() {
     }
     currentReminderType = null;
     
+    // Stop the looping sound
+    stopNotificationSound();
+    
     if (reminderTimeout) {
         clearTimeout(reminderTimeout);
         reminderTimeout = null;
     }
 }
 
-// Play notification sound
+// Play notification sound - loops continuously
 function playNotificationSound() {
-    try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.value = 800; // Frequency in Hz
-        oscillator.type = 'sine';
-        
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.3);
-    } catch (e) {
-        console.warn('Could not play notification sound:', e);
+    // Clear any existing sound interval
+    if (soundInterval) {
+        clearInterval(soundInterval);
+    }
+    
+    // Function to play one beep
+    function playBeep() {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800; // Frequency in Hz
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        } catch (e) {
+            console.warn('Could not play notification sound:', e);
+        }
+    }
+    
+    // Play first beep immediately
+    playBeep();
+    
+    // Then repeat every 2 seconds
+    soundInterval = setInterval(() => {
+        playBeep();
+    }, 2000);
+}
+
+// Stop notification sound
+function stopNotificationSound() {
+    if (soundInterval) {
+        clearInterval(soundInterval);
+        soundInterval = null;
     }
 }
 
@@ -8418,8 +8595,14 @@ function checkReminders() {
 
 // Initialize safety reminder system
 function initSafetyReminder() {
-    // Reset start time
-    workStartTime = Date.now();
+    // Load existing start time from localStorage or set new one
+    const savedTime = localStorage.getItem('workStartTime');
+    if (savedTime) {
+        workStartTime = parseInt(savedTime);
+    } else {
+        workStartTime = Date.now();
+        localStorage.setItem('workStartTime', workStartTime);
+    }
     
     // Update timer every second
     if (timerInterval) {
@@ -8464,6 +8647,7 @@ function resetInactivityTimer() {
         if (inactiveTime >= 10 * 60 * 1000) { // 10 minutes
             console.log('🔄 User was inactive, resetting work timer');
             workStartTime = Date.now();
+            localStorage.setItem('workStartTime', workStartTime);
             dismissReminder();
         }
     }, 10 * 60 * 1000);
