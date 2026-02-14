@@ -1973,10 +1973,6 @@
             z-index: 1;
         }
         
-        .region-banner:hover::after {
-            animation: shine 1.5s ease-in-out;
-        }
-        
         /* Ensure content is above shine effect */
         .region-banner > * {
             position: relative;
@@ -2001,26 +1997,14 @@
             gap: 15px; 
             flex-wrap: wrap;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-            border-left: 4px solid #4caf50;
             position: relative;
             overflow: hidden;
         }
         
         body.dark-mode .project-row {
             background: linear-gradient(135deg, var(--bg-card) 0%, rgba(31, 46, 31, 0.5) 100%);
-            border-left-color: #66bb6a;
         }
         
-        /* Subtle accent line */
-        .project-row::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #4caf50, #66bb6a, #81c784);
-        }
         .project-checkbox { width: 20px; height: 20px; cursor: pointer; }
         .circular-progress {
             width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center;
@@ -3192,11 +3176,7 @@ body.dark-mode .toast-close:hover {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.project-row:hover {
-    transform: translateY(-3px) translateX(2px);
-    box-shadow: 0 12px 32px rgba(27, 94, 32, 0.25) !important;
-    border-left-width: 6px;
-}
+
 
 .btn {
     transition: all 0.2s ease;
