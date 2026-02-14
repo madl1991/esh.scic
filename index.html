@@ -1178,9 +1178,48 @@
         }
 
         .region-banner {
-            background: var(--header-grad); color: white; padding: 15px 20px;
-            margin: 20px 20px 0; border-radius: 6px; font-weight: 700; display: flex;
-            justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;
+            color: white; 
+            padding: 15px 20px;
+            margin: 20px 20px 0; 
+            border-radius: 12px; 
+            font-weight: 700; 
+            display: flex;
+            justify-content: space-between; 
+            align-items: center; 
+            flex-wrap: wrap; 
+            gap: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 25%, #2e7d32 50%, #43a047 75%, #66bb6a 100%);
+        }
+        
+        /* Shine effect for region banners */
+        .region-banner::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(255, 255, 255, 0.1) 50%,
+                transparent 70%
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .region-banner:hover::after {
+            animation: shine 1.5s ease-in-out;
+        }
+        
+        /* Ensure content is above shine effect */
+        .region-banner > * {
+            position: relative;
+            z-index: 2;
         }
         .badge { background: var(--safety-yellow); color: #1b5e20; padding: 4px 12px;
             border-radius: 20px; font-size: 0.7rem; font-weight: 800; }
@@ -1532,44 +1571,81 @@ body.dark-mode .backup-item {
             color: var(--text-primary);
         }
         
+        /* Option 4: Striped with Accent - Dark green header with yellow accent */
         th { 
-    background: var(--table-header); 
-    color: white; 
-    padding: 10px 8px; 
-    border: 1px solid #1b5e20;
-    white-space: nowrap;
-    min-width: auto;
-    width: auto;
-}
+            background: #1b5e20; 
+            color: white; 
+            padding: 10px 8px; 
+            border: none;
+            border-bottom: 3px solid var(--safety-yellow);
+            white-space: nowrap;
+            min-width: auto;
+            width: auto;
+            font-weight: 600;
+        }
+        
+        /* Striped rows - white and very light green */
+        tbody tr {
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        tbody tr:nth-child(odd) {
+            background: white;
+        }
+        
+        tbody tr:nth-child(even) {
+            background: #f1f8e9;
+        }
+        
+        /* Dark mode striped rows */
+        body.dark-mode tbody tr:nth-child(odd) {
+            background: #2d2d2d;
+        }
+        
+        body.dark-mode tbody tr:nth-child(even) {
+            background: #1f2e1f;
+        }
+        
+        /* Hover effect with left border accent */
+        tbody tr:hover {
+            border-left: 3px solid #4caf50;
+            background: #e8f5e9 !important;
+        }
+        
+        body.dark-mode tbody tr:hover {
+            background: #1b3d1b !important;
+        }
         
         td { 
-    border: 1px solid var(--border-color); 
-    padding: 8px 6px; 
-    text-align: center;
-    min-width: auto;
-    width: auto;
-    background: var(--bg-card);
-    white-space: nowrap;
-}
+            border: none;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 8px 6px; 
+            text-align: center;
+            min-width: auto;
+            width: auto;
+            white-space: nowrap;
+        }
+        
+        body.dark-mode td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
         
         td:first-child {
             text-align: left;
             min-width: 200px;
             font-weight: 600;
-            background: var(--border-color);
         }
         
-        /* Previous Year Column - Light Green */
+        /* Previous Year Column - Inherits striped background */
         td.prev-year {
-    background: #c8e6c9;
-    font-weight: 600;
-    color: #2e7d32;
-    min-width: auto;
-    width: auto;
-}
+            font-weight: 600;
+            color: #2e7d32;
+            min-width: auto;
+            width: auto;
+        }
 
         body.dark-mode td.prev-year {
-            background: #1b5e20;
             color: #a5d6a7;
         }
         
@@ -1594,7 +1670,6 @@ body.dark-mode .backup-item {
         /* Monthly Columns - Default - NARROWER */
        /* Monthly Columns - Default - WIDER FOR 7 DIGITS */
 td.monthly-data, th.monthly-header {
-    background: var(--bg-card);
     min-width: 100px;
     max-width: none;
     width: auto;
@@ -1613,9 +1688,9 @@ th:not(.prev-year):not(.ytd-header):not([colspan]) {
 }
         
         /* YTD Column - Yellow - WIDER FOR "Running YTD" HEADER */
-        /* YTD Column - Yellow */
+        /* YTD Column - Yellow highlight maintained for emphasis */
 td.ytd-cell {
-    background: #fff59d;
+    background: #fff59d !important;
     font-weight: 700;
     color: #f57f17;
     min-width: 120px;
@@ -1646,10 +1721,10 @@ td.ytd-cell {
             color: white;
         }
         
-        /* Average Column - Light Yellow */
+        /* Average Column - Light Yellow highlight maintained */
        /* Average Column - Light Yellow */
 td.average-cell {
-    background: #fffde7;
+    background: #fffde7 !important;
     font-weight: 700;
     color: #f57f17;
     min-width: auto;
@@ -1671,6 +1746,23 @@ td.average-cell {
         body.dark-mode th.average-header {
             background: #e65100;
             color: white;
+        }
+        
+        /* Dark mode for striped rows - Option 4 */
+        body.dark-mode tbody tr:nth-child(odd) {
+            background: #2d2d2d;
+        }
+        
+        body.dark-mode tbody tr:nth-child(even) {
+            background: #1f2e1f;
+        }
+        
+        body.dark-mode tbody tr:hover {
+            background: #1b3d1b !important;
+        }
+        
+        body.dark-mode td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
         
         table input {
@@ -1729,37 +1821,67 @@ table input[type="date"]:not(:focus)[value=""] {
         }
         
         .stat-card {
-            background: var(--bg-card); 
-            padding: 15px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
-            color: var(--text-primary);
+            padding: 20px; 
+            border-radius: 16px; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1); 
+            color: #ffffff;
             position: relative;
             overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border: 3px solid;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
         }
         
-        /* Border colors for each card */
+        /* Vibrant gradient backgrounds with stronger contrast */
         .stat-card:nth-child(1) {
-            border-color: #1b5e20;
+            background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 25%, #2e7d32 50%, #43a047 75%, #66bb6a 100%);
         }
         
         .stat-card:nth-child(2) {
-            border-color: #fbc02d;
+            background: linear-gradient(135deg, #c17900 0%, #f57f17 25%, #fbc02d 50%, #fdd835 75%, #ffeb3b 100%);
         }
         
         .stat-card:nth-child(3) {
-            border-color: #1976D2;
+            background: linear-gradient(135deg, #01579b 0%, #0d47a1 25%, #1976D2 50%, #2196F3 75%, #64b5f6 100%);
         }
         
         .stat-card:nth-child(4) {
-            border-color: #d32f2f;
+            background: linear-gradient(135deg, #7f0000 0%, #b71c1c 25%, #d32f2f 50%, #e53935 75%, #ef5350 100%);
+        }
+        
+        /* Add subtle shine effect to enhance gradient visibility */
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(255, 255, 255, 0.1) 50%,
+                transparent 70%
+            );
+            pointer-events: none;
+            z-index: 1;
         }
         
         .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
+        }
+        
+        .stat-card:hover::after {
+            animation: shine 1.5s ease-in-out;
+        }
+        
+        @keyframes shine {
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(45deg);
+            }
+            100% {
+                transform: translateX(100%) translateY(100%) rotate(45deg);
+            }
         }
         
         /* Ripple effect - only on hover */
@@ -1810,25 +1932,153 @@ table input[type="date"]:not(:focus)[value=""] {
             }
         }
         
-        /* Ensure content is above ripple layer */
+        /* Ensure content is above all background layers */
         .stat-card > * {
             position: relative;
-            z-index: 1;
+            z-index: 2;
         }
         
         .stat-value { 
             font-size: 1.5rem; 
             font-weight: 900; 
-            color: #1b5e20; 
+            color: #ffffff; 
             margin-top: 5px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 0 20px rgba(0,0,0,0.2);
         }
         .stat-label { 
             font-size: 0.65rem; 
-            color: var(--text-secondary); 
+            color: rgba(255, 255, 255, 0.95); 
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+        
+        /* ============================================
+           WAVE ANIMATIONS FOR STAT CARDS
+           ============================================ */
+        .waves-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 600%;
+            height: 100%;
+        }
+        
+        /* Green waves for TOTAL PROJECTS (card 1) */
+        .wave-green-1 {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,65 Q100,45 200,65 T400,65 T600,65 T800,65 T1000,65 T1200,65 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.25'/%3E%3C/svg%3E");
+            background-size: 16.66% 100%;
+            background-repeat: repeat-x;
+            animation: wave-flow-1 14s linear infinite;
+            z-index: 3;
+        }
+        .wave-green-2 {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,80 Q100,60 200,80 T400,80 T600,80 T800,80 T1000,80 T1200,80 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.18'/%3E%3C/svg%3E");
+            background-size: 16.66% 100%;
+            background-repeat: repeat-x;
+            animation: wave-flow-2 20s linear infinite reverse;
+            z-index: 2;
+        }
+        .wave-green-3 {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,90 Q100,75 200,90 T400,90 T600,90 T800,90 T1000,90 T1200,90 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.12'/%3E%3C/svg%3E");
+            background-size: 16.66% 100%;
+            background-repeat: repeat-x;
+            animation: wave-flow-3 26s linear infinite;
+            z-index: 1;
+        }
+        
+        /* Yellow waves for OVERALL COMPLIANCE (card 2) */
+        .wave-yellow-1 {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,65 Q100,45 200,65 T400,65 T600,65 T800,65 T1000,65 T1200,65 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.25'/%3E%3C/svg%3E");
+            background-size: 16.66% 100%;
+            background-repeat: repeat-x;
+            animation: wave-flow-1 14s linear infinite;
+            z-index: 3;
+        }
+        .wave-yellow-2 {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,80 Q100,60 200,80 T400,80 T600,80 T800,80 T1000,80 T1200,80 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.18'/%3E%3C/svg%3E");
+            background-size: 16.66% 100%;
+            background-repeat: repeat-x;
+            animation: wave-flow-2 20s linear infinite reverse;
+            z-index: 2;
+        }
+        .wave-yellow-3 {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,90 Q100,75 200,90 T400,90 T600,90 T800,90 T1000,90 T1200,90 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.12'/%3E%3C/svg%3E");
+            background-size: 16.66% 100%;
+            background-repeat: repeat-x;
+            animation: wave-flow-3 26s linear infinite;
+            z-index: 1;
+        }
+        
+        /* Blue waves for ON-GOING (card 3) */
+        .wave-blue-1 {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,65 Q100,45 200,65 T400,65 T600,65 T800,65 T1000,65 T1200,65 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.25'/%3E%3C/svg%3E");
+            background-size: 16.66% 100%;
+            background-repeat: repeat-x;
+            animation: wave-flow-1 14s linear infinite;
+            z-index: 3;
+        }
+        .wave-blue-2 {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,80 Q100,60 200,80 T400,80 T600,80 T800,80 T1000,80 T1200,80 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.18'/%3E%3C/svg%3E");
+            background-size: 16.66% 100%;
+            background-repeat: repeat-x;
+            animation: wave-flow-2 20s linear infinite reverse;
+            z-index: 2;
+        }
+        .wave-blue-3 {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,90 Q100,75 200,90 T400,90 T600,90 T800,90 T1000,90 T1200,90 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.12'/%3E%3C/svg%3E");
+            background-size: 16.66% 100%;
+            background-repeat: repeat-x;
+            animation: wave-flow-3 26s linear infinite;
+            z-index: 1;
+        }
+        
+        /* Red waves for WORK STOPPAGE (card 4) */
+        .wave-red-1 {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,65 Q100,45 200,65 T400,65 T600,65 T800,65 T1000,65 T1200,65 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.25'/%3E%3C/svg%3E");
+            background-size: 16.66% 100%;
+            background-repeat: repeat-x;
+            animation: wave-flow-1 14s linear infinite;
+            z-index: 3;
+        }
+        .wave-red-2 {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,80 Q100,60 200,80 T400,80 T600,80 T800,80 T1000,80 T1200,80 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.18'/%3E%3C/svg%3E");
+            background-size: 16.66% 100%;
+            background-repeat: repeat-x;
+            animation: wave-flow-2 20s linear infinite reverse;
+            z-index: 2;
+        }
+        .wave-red-3 {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,90 Q100,75 200,90 T400,90 T600,90 T800,90 T1000,90 T1200,90 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.12'/%3E%3C/svg%3E");
+            background-size: 16.66% 100%;
+            background-repeat: repeat-x;
+            animation: wave-flow-3 26s linear infinite;
+            z-index: 1;
+        }
+        
+        /* Wave animation keyframes */
+        @keyframes wave-flow-1 {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-16.66%); }
+        }
+        @keyframes wave-flow-2 {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-16.66%); }
+        }
+        @keyframes wave-flow-3 {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-16.66%); }
         }
         .charts-container {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;
@@ -2517,15 +2767,16 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
     <div style="background: var(--bg-card); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid var(--border-color);">
 
         <!-- Header Banner -->
-        <div style="background: linear-gradient(90deg,#1b5e20 0%,#2e7d32 100%); padding: 18px 24px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:space-between;">
-            <div style="display:flex; align-items:center; gap:10px;">
+        <div style="background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 25%, #2e7d32 50%, #43a047 75%, #66bb6a 100%); padding: 18px 24px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:space-between; box-shadow: 0 4px 15px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%); pointer-events: none; z-index: 1;"></div>
+            <div style="display:flex; align-items:center; gap:10px; position: relative; z-index: 2;">
                 <i class="fas fa-users-gear" style="font-size:1.3rem; color:var(--safety-yellow);"></i>
                 <div>
                     <div style="font-size:1rem; font-weight:800; color:white; letter-spacing:0.5px;">ESH PERSONNEL MONITORING</div>
                     <div style="font-size:0.65rem; color:#a5d6a7; margin-top:2px;">Environment, Safety &amp; Health Team Registry</div>
                 </div>
             </div>
-            <div id="p-summary-badges" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+            <div id="p-summary-badges" style="display:flex; gap:8px; flex-wrap:wrap; position: relative; z-index: 2;"></div>
         </div>
 
         <!-- Controls Bar -->
@@ -4294,6 +4545,7 @@ function closeAllStatusDropdowns() {
             // ── INCIDENT TABULATION RATE summary always shows at the TOP of Statistics Rate ──
             if (state.currentTab === 'rates') {
                 html += buildIncidentTabulationHTML();
+                html += buildTrendChartHTML('rates');
             }
 
             let grandTotal = 0;
@@ -4305,18 +4557,38 @@ function closeAllStatusDropdowns() {
                     <div class="stat-card">
                         <div class="stat-label">TOTAL PROJECTS</div>
                         <div class="stat-value">${state.projects.length}</div>
+                        <div class="waves-container">
+                            <div class="wave wave-green-1"></div>
+                            <div class="wave wave-green-2"></div>
+                            <div class="wave wave-green-3"></div>
+                        </div>
                     </div>
                     <div class="stat-card" style="border-left-color: var(--safety-yellow);">
                         <div class="stat-label">OVERALL COMPLIANCE</div>
                         <div class="stat-value">${overallAvg}%</div>
+                        <div class="waves-container">
+                            <div class="wave wave-yellow-1"></div>
+                            <div class="wave wave-yellow-2"></div>
+                            <div class="wave wave-yellow-3"></div>
+                        </div>
                     </div>
                     <div class="stat-card" style="border-left-color: #1976D2;">
                         <div class="stat-label">ON-GOING</div>
-                        <div class="stat-value" style="color: #1976D2;">${state.projects.filter(p => p.status === 'on-going').length}</div>
+                        <div class="stat-value">${state.projects.filter(p => p.status === 'on-going').length}</div>
+                        <div class="waves-container">
+                            <div class="wave wave-blue-1"></div>
+                            <div class="wave wave-blue-2"></div>
+                            <div class="wave wave-blue-3"></div>
+                        </div>
                     </div>
                     <div class="stat-card" style="border-left-color: #d32f2f;">
                         <div class="stat-label">WORK STOPPAGE</div>
-                        <div class="stat-value" style="color: #d32f2f;">${state.projects.filter(p => p.status === 'work-stoppage').length}</div>
+                        <div class="stat-value">${state.projects.filter(p => p.status === 'work-stoppage').length}</div>
+                        <div class="waves-container">
+                            <div class="wave wave-red-1"></div>
+                            <div class="wave wave-red-2"></div>
+                            <div class="wave wave-red-3"></div>
+                        </div>
                     </div>
                 </div>
                 <div class="charts-container">
@@ -4328,6 +4600,11 @@ function closeAllStatusDropdowns() {
 
             const displayProjects = state.filteredProjects.length > 0 ? state.filteredProjects : state.projects;
 
+            // Add trend chart for medical tab
+            if (state.currentTab === 'medical') {
+                html += buildTrendChartHTML('medical');
+            }
+
             // ────────────────────────────────────────────────────────────────────────
             // OVERALL SUMMARY - ALL REGIONS (para sa specific tabs)
             // ────────────────────────────────────────────────────────────────────────
@@ -4336,8 +4613,9 @@ function closeAllStatusDropdowns() {
                 const isNov = state.currentTab === 'nov';
                 
                 html += `
-                <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); color: white; padding: 20px; margin: 20px 20px 0; border-radius: 12px; box-shadow: 0 4px 15px rgba(27,94,32,0.3);">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                <div style="background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 25%, #2e7d32 50%, #43a047 75%, #66bb6a 100%); color: white; padding: 20px; margin: 20px 20px 0; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1); position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%); pointer-events: none; z-index: 1;"></div>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px; position: relative; z-index: 2;">
                         <i class="fas fa-globe" style="font-size: 1.8rem; color: #fbc02d;"></i>
                         <div>
                             <h2 style="margin: 0; font-size: 1.3rem; font-weight: 800; letter-spacing: 0.5px;">OVERALL SUMMARY - ALL REGIONS</h2>
@@ -4445,7 +4723,7 @@ function closeAllStatusDropdowns() {
                 const regionAvg = projs.length > 0 ? Math.round(regSum / projs.length) : 0;
 
                 // Always show region banner, even if empty (so user can add projects)
-                html += `<div class="region-banner">
+                html += `<div class="region-banner region-${reg.toLowerCase()}">
                     <div><i class="fas fa-location-dot"></i> ${reg} <span class="badge">${projs.length} PROJ</span> ${projs.length > 0 ? `<span class="badge" style="background:#1b5e20; color:var(--safety-yellow);">AVG: ${regionAvg}%</span>` : ''}</div>
                     ${state.isEditing ? `<button onclick="openAddProjectModal('${reg}')" class="btn btn-primary">+ ADD PROJECT</button>` : ''}
                     ${state.currentTab === 'overall' && projs.length > 0 ? `<select class="sort-select" onchange="sortProjects(this.value)">
@@ -4506,9 +4784,9 @@ if (state.currentTab === 'audit') {
                 background: white;
             }
             
-            /* Enhanced Green Header with gradient */
+            /* Enhanced Green Header - Option 4 Style */
             .audit-table thead th {
-                background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #388e3c 100%);
+                background: #1b5e20;
                 color: #ffffff;
                 font-weight: 700;
                 text-transform: uppercase;
@@ -4516,6 +4794,7 @@ if (state.currentTab === 'audit') {
                 font-size: 11px;
                 padding: 16px 8px;
                 border: none;
+                border-bottom: 3px solid var(--safety-yellow);
                 position: relative;
                 text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
             }
@@ -4526,14 +4805,14 @@ if (state.currentTab === 'audit') {
                 padding: 18px 8px;
                 font-weight: 800;
                 letter-spacing: 1.2px;
-                background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+                background: #1b5e20;
             }
             
             /* Second row - Score labels */
             .audit-table thead tr:nth-child(2) th {
                 font-size: 12px;
                 padding: 14px 8px;
-                background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
+                background: #1b5e20;
             }
             
             /* Column headers with white background */
@@ -4555,27 +4834,34 @@ if (state.currentTab === 'audit') {
                 font-weight: 700;
             }
             
-            /* Body cells */
+            /* Body cells - Option 4 striped design */
             .audit-table td { 
-                border: 1px solid #e0e0e0;
+                border: none;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
                 text-align: center; 
                 vertical-align: middle; 
                 padding: 12px 8px;
                 font-size: 13px;
                 transition: all 0.2s ease;
-                background: white;
             }
             
-            /* Row hover effect */
+            /* Row hover effect - Option 4 style with left border */
             .audit-table tbody tr {
-                background-color: #ffffff;
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                border-left: 3px solid transparent;
+            }
+            
+            .audit-table tbody tr:nth-child(odd) {
+                background-color: #ffffff;
+            }
+            
+            .audit-table tbody tr:nth-child(even) {
+                background-color: #f1f8e9;
             }
             
             .audit-table tbody tr:hover {
-                background-color: #f1f8f4;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(27, 94, 32, 0.1);
+                border-left: 3px solid #4caf50;
+                background-color: #e8f5e9 !important;
             }
             
             /* Specific cell styles */
@@ -4641,6 +4927,27 @@ if (state.currentTab === 'audit') {
                 padding: 0; 
                 font-size: 11px;
                 line-height: 1.4;
+            }
+            
+            /* Dark mode support for audit table */
+            body.dark-mode .audit-table {
+                background: #2d2d2d;
+            }
+            
+            body.dark-mode .audit-table tbody tr:nth-child(odd) {
+                background-color: #2d2d2d;
+            }
+            
+            body.dark-mode .audit-table tbody tr:nth-child(even) {
+                background-color: #1f2e1f;
+            }
+            
+            body.dark-mode .audit-table tbody tr:hover {
+                background-color: #1b3d1b !important;
+            }
+            
+            body.dark-mode .audit-table td {
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             }
             
             /* Responsive design */
@@ -4901,7 +5208,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                     const regSum  = projs.reduce((sum, p) => sum + getPerc(p), 0);
                     const regAvg  = Math.round(regSum / projs.length);
 
-                    html += `<div class="region-banner">
+                    html += `<div class="region-banner region-${reg.toLowerCase()}">
                         <div><i class="fas fa-location-dot"></i> ${reg}
                             <span class="badge">${projs.length} PROJ</span>
                             <span class="badge" style="background:#1b5e20;color:var(--safety-yellow);">AVG: ${regAvg}%</span>
@@ -5063,20 +5370,39 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                         width: 100%;
                         margin: 10px 0;
                         font-family: Arial, sans-serif;
-                        border: 0.5px solid #d1d1d1;
+                        border: none;
                     }
+                    /* Option 4: Dark green header with yellow accent */
                     .nov-monitoring-table th {
-                        background-color: #2e7d32;
+                        background-color: #1b5e20;
                         color: #ffffff;
                         font-weight: bold;
                         text-transform: uppercase;
                         font-size: 10px;
                         padding: 8px 4px;
-                        border: 0.5px solid #1b5e20;
+                        border: none;
+                        border-bottom: 3px solid var(--safety-yellow);
                         text-align: center;
                     }
+                    /* Striped rows */
+                    .nov-monitoring-table tbody tr {
+                        transition: all 0.2s ease;
+                        border-left: 3px solid transparent;
+                    }
+                    .nov-monitoring-table tbody tr:nth-child(odd) {
+                        background: white;
+                    }
+                    .nov-monitoring-table tbody tr:nth-child(even) {
+                        background: #f1f8e9;
+                    }
+                    /* Hover effect with left border accent */
+                    .nov-monitoring-table tbody tr:hover {
+                        border-left: 3px solid #4caf50;
+                        background: #e8f5e9 !important;
+                    }
                     .nov-monitoring-table td {
-                        border: 0.5px solid #d1d1d1;
+                        border: none;
+                        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
                         text-align: center;
                         vertical-align: middle;
                         padding: 4px;
@@ -5085,7 +5411,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                     .nov-monitoring-table td.project-name {
                         text-align: left;
                         font-weight: 600;
-                        background: var(--border-color);
                         min-width: 150px;
                         position: sticky;
                         left: 0;
@@ -5108,16 +5433,38 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                         max-width: 50px;
                     }
                     .nov-monitoring-table td.total-col {
-                        background: #fff9c4;
+                        background: #fff9c4 !important;
                         font-weight: 700;
                     }
                     .nov-monitoring-table tr.regional-total {
-                        background: #e8f5e9;
+                        background: #c8e6c9 !important;
                         font-weight: 700;
                     }
                     .nov-monitoring-table tr.overall-total {
-                        background: #c8e6c9;
+                        background: #a5d6a7 !important;
                         font-weight: 700;
+                    }
+                    /* Dark mode support for NOV monitoring table */
+                    body.dark-mode .nov-monitoring-table tbody tr:nth-child(odd) {
+                        background: #2d2d2d;
+                    }
+                    body.dark-mode .nov-monitoring-table tbody tr:nth-child(even) {
+                        background: #1f2e1f;
+                    }
+                    body.dark-mode .nov-monitoring-table tbody tr:hover {
+                        background: #1b3d1b !important;
+                    }
+                    body.dark-mode .nov-monitoring-table td {
+                        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                    }
+                    body.dark-mode .nov-monitoring-table td.total-col {
+                        background: #4a4a1f !important;
+                    }
+                    body.dark-mode .nov-monitoring-table tr.regional-total {
+                        background: #2e5d2e !important;
+                    }
+                    body.dark-mode .nov-monitoring-table tr.overall-total {
+                        background: #3d6d3d !important;
                     }
                 </style>`;
                 
@@ -5161,8 +5508,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                 
                 // Render Overall Total Table at the TOP - NEW DESIGN
                 html += `
-                <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); color: white; padding: 20px; margin: 20px 20px 0; border-radius: 12px; box-shadow: 0 4px 15px rgba(27,94,32,0.3);">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                <div style="background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 25%, #2e7d32 50%, #43a047 75%, #66bb6a 100%); color: white; padding: 20px; margin: 20px 20px 0; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1); position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%); pointer-events: none; z-index: 1;"></div>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px; position: relative; z-index: 2;">
                         <i class="fas fa-globe" style="font-size: 1.8rem; color: #fbc02d;"></i>
                         <div>
                             <h2 style="margin: 0; font-size: 1.3rem; font-weight: 800; letter-spacing: 0.5px;">OVERALL SUMMARY - ALL REGIONS</h2>
@@ -5221,7 +5569,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                     const projs = displayProjects.filter(p => p.region === reg);
                     if (projs.length === 0) return;
                     
-                    html += `<div class="region-banner" style="margin-top: 30px;">
+                    html += `<div class="region-banner region-${reg.toLowerCase()}" style="margin-top: 30px;">
                         <div><i class="fas fa-location-dot"></i> ${reg} <span class="badge">${projs.length} PROJECTS</span></div>
                     </div>`;
                     
@@ -5341,6 +5689,14 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
             }
 
             container.innerHTML = html;
+            
+            // Initialize trend chart if on rates or medical tab
+            if (state.currentTab === 'rates' || state.currentTab === 'medical') {
+                setTimeout(() => {
+                    populateProjectFilter();
+                    updateTrendChart(state.currentTab);
+                }, 100);
+            }
         }
 
 
@@ -5993,10 +6349,11 @@ function buildIncidentTabulationHTML() {
       <div style="background: var(--bg-card); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color); margin-bottom: 6px;">
 
         <!-- Panel header -->
-        <div style="background: linear-gradient(90deg, #1b5e20 0%, #2e7d32 100%); color: white; padding: 14px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-          <i class="fas fa-calculator" style="font-size: 1.1rem;"></i>
-          <span style="font-weight: 700; font-size: 1rem; letter-spacing: 0.5px;">INCIDENT TABULATION RATE</span>
-          <span style="background: var(--safety-yellow); color: #1b5e20; padding: 3px 10px; border-radius: 20px; font-size: 0.68rem; font-weight: 800; margin-left: 4px;">AUTO-COMPUTED FROM ALL PROJECTS</span>
+        <div style="background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 25%, #2e7d32 50%, #43a047 75%, #66bb6a 100%); color: white; padding: 14px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; box-shadow: 0 4px 15px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1); position: relative; overflow: hidden;">
+          <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%); pointer-events: none; z-index: 1;"></div>
+          <i class="fas fa-calculator" style="font-size: 1.1rem; position: relative; z-index: 2;"></i>
+          <span style="font-weight: 700; font-size: 1rem; letter-spacing: 0.5px; position: relative; z-index: 2;">INCIDENT TABULATION RATE</span>
+          <span style="background: var(--safety-yellow); color: #1b5e20; padding: 3px 10px; border-radius: 20px; font-size: 0.68rem; font-weight: 800; margin-left: 4px; position: relative; z-index: 2;">AUTO-COMPUTED FROM ALL PROJECTS</span>
         </div>
 
         <!-- 4 summary cards -->
@@ -6087,6 +6444,243 @@ function buildIncidentTabulationHTML() {
 
       </div>
     </div>`;
+}
+
+// ==================== TREND LINE CHART FUNCTIONS ====================
+
+function buildTrendChartHTML(tabType) {
+    const chartId = `trendChart_${tabType}`;
+    const title = tabType === 'rates' ? 'STATISTICS RATE TRENDS' : 'ACCIDENT/INCIDENT TRENDS';
+    const icon = tabType === 'rates' ? 'fa-chart-line' : 'fa-chart-area';
+    
+    return `
+    <div id="trend-chart-panel" style="padding: 20px 20px 0 20px;">
+      <div style="background: var(--bg-card); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color); margin-bottom: 20px;">
+        
+        <!-- Chart header with filters -->
+        <div style="background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 25%, #2e7d32 50%, #43a047 75%, #66bb6a 100%); color: white; padding: 14px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1); position: relative; overflow: hidden;">
+          <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%); pointer-events: none; z-index: 1;"></div>
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; position: relative; z-index: 2;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <i class="fas ${icon}" style="font-size: 1.1rem;"></i>
+              <span style="font-weight: 700; font-size: 1rem; letter-spacing: 0.5px;">${title}</span>
+            </div>
+            
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <!-- Region Filter -->
+              <select id="trendRegionFilter" onchange="updateTrendChart('${tabType}')" 
+                      style="padding: 6px 12px; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; background: white; color: #1b5e20; cursor: pointer;">
+                <option value="all">All Regions</option>
+                <option value="NCR">NCR</option>
+                <option value="LUZON">LUZON</option>
+                <option value="VISAYAS">VISAYAS</option>
+                <option value="MINDANAO">MINDANAO</option>
+              </select>
+              
+              <!-- Project Filter -->
+              <select id="trendProjectFilter" onchange="updateTrendChart('${tabType}')" 
+                      style="padding: 6px 12px; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; background: white; color: #1b5e20; cursor: pointer;">
+                <option value="all">All Projects</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Chart canvas -->
+        <div style="padding: 20px;">
+          <canvas id="${chartId}" style="max-height: 400px;"></canvas>
+        </div>
+        
+      </div>
+    </div>`;
+}
+
+function populateProjectFilter() {
+    const projectFilter = document.getElementById('trendProjectFilter');
+    if (!projectFilter) return;
+    
+    // Keep the "All Projects" option
+    projectFilter.innerHTML = '<option value="all">All Projects</option>';
+    
+    // Add each project
+    state.projects.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.name;
+        option.textContent = p.name;
+        projectFilter.appendChild(option);
+    });
+}
+
+let trendChartInstance = null;
+
+function updateTrendChart(tabType) {
+    const regionFilter = document.getElementById('trendRegionFilter')?.value || 'all';
+    const projectFilter = document.getElementById('trendProjectFilter')?.value || 'all';
+    const chartId = `trendChart_${tabType}`;
+    const canvas = document.getElementById(chartId);
+    
+    if (!canvas) return;
+    
+    // Destroy existing chart
+    if (trendChartInstance) {
+        trendChartInstance.destroy();
+        trendChartInstance = null;
+    }
+    
+    // Filter projects based on selection
+    let filteredProjects = state.projects;
+    
+    if (regionFilter !== 'all') {
+        filteredProjects = filteredProjects.filter(p => p.region === regionFilter);
+    }
+    
+    if (projectFilter !== 'all') {
+        filteredProjects = filteredProjects.filter(p => p.name === projectFilter);
+    }
+    
+    // Prepare data
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const datasets = [];
+    
+    if (tabType === 'rates') {
+        // Statistics Rate data
+        const rateTypes = ['LTIR', 'TRIR', 'SEVERITY RATE'];
+        const colors = ['#1b5e20', '#1565c0', '#b71c1c'];
+        
+        rateTypes.forEach((rateType, idx) => {
+            const data = new Array(12).fill(0);
+            const counts = new Array(12).fill(0);
+            
+            filteredProjects.forEach(p => {
+                const key = `rates_${rateType}`;
+                if (p.vals && p.vals[key]) {
+                    for (let i = 1; i <= 12; i++) {
+                        const val = parseFloat(p.vals[key][i]) || 0;
+                        if (val > 0) {
+                            data[i-1] += val;
+                            counts[i-1]++;
+                        }
+                    }
+                }
+            });
+            
+            // Calculate averages
+            const avgData = data.map((sum, i) => counts[i] > 0 ? (sum / counts[i]).toFixed(2) : 0);
+            
+            datasets.push({
+                label: rateType,
+                data: avgData,
+                borderColor: colors[idx],
+                backgroundColor: colors[idx] + '20',
+                tension: 0.4,
+                fill: true,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            });
+        });
+        
+    } else if (tabType === 'medical') {
+        // Accident/Incident Record data
+        const incidentTypes = ['Medical Treatment', 'First Aid', 'LTA', 'Fatality', 'High-Potential incident', 'Dangerous Occurrences'];
+        const colors = ['#1b5e20', '#2e7d32', '#1565c0', '#b71c1c', '#e65100', '#f57c00'];
+        
+        incidentTypes.forEach((incidentType, idx) => {
+            const data = new Array(12).fill(0);
+            
+            filteredProjects.forEach(p => {
+                const key = `medical_${incidentType}`;
+                if (p.vals && p.vals[key]) {
+                    for (let i = 1; i <= 12; i++) {
+                        const val = parseFloat(p.vals[key][i]) || 0;
+                        data[i-1] += val;
+                    }
+                }
+            });
+            
+            datasets.push({
+                label: incidentType,
+                data: data,
+                borderColor: colors[idx],
+                backgroundColor: colors[idx] + '20',
+                tension: 0.4,
+                fill: false,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            });
+        });
+    }
+    
+    // Create chart
+    const ctx = canvas.getContext('2d');
+    trendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        boxWidth: 12,
+                        padding: 10,
+                        font: {
+                            size: 11,
+                            weight: 600
+                        },
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#333'
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 13,
+                        weight: 'bold'
+                    },
+                    bodyFont: {
+                        size: 12
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        },
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#666'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        },
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#666'
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
 }
 
 
