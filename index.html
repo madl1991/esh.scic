@@ -95,13 +95,6 @@
             --input-bg: #3a3a3a;
         }
 
-        /* Dark mode active users badge */
-        body.dark-mode #active-users-badge {
-            background: rgba(27, 94, 32, 0.3);
-            border-color: #2e7d32;
-            color: #81c784;
-        }
-
         /* ==================== SAFETY REMINDER CHARACTER ==================== */
         #safety-reminder-container {
             position: fixed;
@@ -1209,12 +1202,47 @@
             position: fixed; inset: 0; background: linear-gradient(135deg, #0a2e10 0%, #1b5e20 100%);
             display: flex; align-items: center; justify-content: center; z-index: 20000; flex-direction: column; gap: 20px;
         }
-        #firebase-loading-overlay .spinner {
-            width: 48px; height: 48px; border: 5px solid rgba(255,255,255,0.3);
-            border-top-color: #fbc02d; border-radius: 50%; animation: spin 0.8s linear infinite;
+        /* Shield Pulse Loader */
+        #firebase-loading-overlay .shield-loader {
+            width: 80px; 
+            height: 80px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            animation: shieldPulse 1.5s ease-in-out infinite;
         }
+        
+        #firebase-loading-overlay .shield-loader i {
+            font-size: 60px;
+            color: #fbc02d;
+            filter: drop-shadow(0 0 20px rgba(251, 192, 45, 0.6));
+            animation: shieldGlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes shieldPulse {
+            0%, 100% { 
+                transform: scale(1);
+            }
+            50% { 
+                transform: scale(1.1);
+            }
+        }
+        
+        @keyframes shieldGlow {
+            0%, 100% { 
+                filter: drop-shadow(0 0 20px rgba(251, 192, 45, 0.6));
+                color: #fbc02d;
+            }
+            50% { 
+                filter: drop-shadow(0 0 30px rgba(251, 192, 45, 0.9));
+                color: #fdd835;
+            }
+        }
+        
         #firebase-loading-overlay p {
-            color: #a5d6a7; font-size: 0.85rem; font-weight: 600; letter-spacing: 1px; margin: 0;
+            color: #a5d6a7; font-size: 0.95rem; font-weight: 700; letter-spacing: 1.5px; margin: 0;
+            text-shadow: 0 0 10px rgba(165, 214, 167, 0.5);
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -2924,8 +2952,10 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
     <!-- Firebase initialization loading screen -->
     <div id="firebase-loading-overlay">
-        <div class="spinner"></div>
-        <p>INITIALIZING SYSTEM...</p>
+        <div class="shield-loader">
+            <i class="fas fa-shield-halved"></i>
+        </div>
+        <p>🛡️ SECURING YOUR WORKSPACE...</p>
     </div>
 
 	
@@ -3066,22 +3096,22 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             <div id="user-badge" class="user-badge"></div>
         </div>
         <nav style="flex-grow: 1; padding-top: 10px;">
-            <div class="nav-item active" data-tab="overall" onclick="changeTab('overall')"><i class="fas fa-chart-pie"></i> Overall Dashboard</div>
-            <div class="nav-item" data-tab="exposures" onclick="changeTab('exposures')"><i class="fas fa-clock"></i> Total Exposures</div>
-            <div class="nav-item" data-tab="rates" onclick="changeTab('rates')"><i class="fas fa-chart-line"></i> Statistics Rate</div>
-            <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-kit-medical"></i> Accident/ Incident Record</div>
-            <div class="nav-item" data-tab="activities" onclick="changeTab('activities')"><i class="fas fa-list-check"></i> ESH Activities & Programs</div>
-	    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fa-solid fa-helmet-safety"></i> Regulatory Issued NOV</div>
-            <div class="nav-item" data-tab="nov-monitoring" onclick="changeTab('nov-monitoring')"><i class="fas fa-chart-bar"></i> ESH NOV Monitoring</div>
-            <div class="nav-item" data-tab="kpm" onclick="changeTab('kpm')"><i class="fas fa-file-export"></i> Monthly Report</div>
-	    <div class="nav-item" data-tab="audit" onclick="changeTab('audit')"><i class="fa-solid fa-square-poll-horizontal"></i> Internal ESH Audit Result</div>
-            <div class="nav-item" data-tab="cshp" onclick="changeTab('cshp')"><i class="fas fa-calendar-check"></i> CSHP</div>
-	    <div class="nav-item" data-tab="reg" onclick="changeTab('reg')"><i class="fas fa-calendar-check"></i> Certificate of Registration</div>
-            <div class="nav-item" data-tab="dole" onclick="changeTab('dole')"><i class="fas fa-file-export"></i> DOLE Reportorial</div>
-	    <div class="nav-item" data-tab="permits" onclick="changeTab('permits')"><i class="fas fa-certificate"></i> Environmental Permits</div>
-	    <div class="nav-item" data-tab="emb" onclick="changeTab('emb')"><i class="fas fa-file-export"></i> EMB Reportorial</div>
-            <div class="nav-item" data-tab="personnel" onclick="changeTab('personnel')"><i class="fas fa-users-gear"></i> ESH Personnel Monitoring</div>
-            <div class="nav-item" data-tab="settings" onclick="changeTab('settings')"><i class="fas fa-cog"></i> Settings</div>
+            <div class="nav-item active" data-tab="overall" onclick="changeTab('overall')"><i class="fas fa-gauge-high"></i> Overall Dashboard</div>
+            <div class="nav-item" data-tab="exposures" onclick="changeTab('exposures')"><i class="fas fa-stopwatch"></i> Total Exposures</div>
+            <div class="nav-item" data-tab="rates" onclick="changeTab('rates')"><i class="fas fa-chart-line-up"></i> Statistics Rate</div>
+            <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-triangle-exclamation"></i> Accident/ Incident Record</div>
+            <div class="nav-item" data-tab="activities" onclick="changeTab('activities')"><i class="fas fa-clipboard-check"></i> ESH Activities & Programs</div>
+	    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fas fa-gavel"></i> Regulatory Issued NOV</div>
+            <div class="nav-item" data-tab="nov-monitoring" onclick="changeTab('nov-monitoring')"><i class="fas fa-chart-gantt"></i> ESH NOV Monitoring</div>
+            <div class="nav-item" data-tab="kpm" onclick="changeTab('kpm')"><i class="fas fa-file-chart-line"></i> Monthly Report</div>
+	    <div class="nav-item" data-tab="audit" onclick="changeTab('audit')"><i class="fas fa-magnifying-glass-dollar"></i> Internal ESH Audit Result</div>
+            <div class="nav-item" data-tab="cshp" onclick="changeTab('cshp')"><i class="fas fa-shield-heart"></i> CSHP</div>
+	    <div class="nav-item" data-tab="reg" onclick="changeTab('reg')"><i class="fas fa-certificate"></i> Certificate of Registration</div>
+            <div class="nav-item" data-tab="dole" onclick="changeTab('dole')"><i class="fas fa-file-contract"></i> DOLE Reportorial</div>
+	    <div class="nav-item" data-tab="permits" onclick="changeTab('permits')"><i class="fas fa-leaf"></i> Environmental Permits</div>
+	    <div class="nav-item" data-tab="emb" onclick="changeTab('emb')"><i class="fas fa-industry"></i> EMB Reportorial</div>
+            <div class="nav-item" data-tab="personnel" onclick="changeTab('personnel')"><i class="fas fa-users-viewfinder"></i> ESH Personnel Monitoring</div>
+            <div class="nav-item" data-tab="settings" onclick="changeTab('settings')"><i class="fas fa-sliders"></i> Settings</div>
         </nav>
         <div style="padding: 15px;">
             <button onclick="handleLogout()" class="logout-btn">
@@ -3133,11 +3163,6 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     </div>
                 </div>
                 
-                <div id="active-users-badge" style="display: flex; align-items: center; gap: 6px; background: rgba(27, 94, 32, 0.15); border: 2px solid #1b5e20; padding: 8px 14px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; color: #1b5e20;" title="Real-time active users">
-                    <i class="fas fa-circle" id="presence-status-icon" style="color: #4caf50; font-size: 0.5rem; animation: pulse 2s ease-in-out infinite;"></i>
-                    <span id="active-users-count">...</span>
-                    <span style="font-weight: 500;" id="active-users-label">loading</span>
-                </div>
                 <button id="edit-btn" class="btn btn-primary" onclick="toggleEdit()">
                     <i class="fas fa-edit"></i> EDIT
                 </button>
@@ -4334,7 +4359,7 @@ function showBackupStatus(message, type) {
 
             // Wait for Firebase to be ready
             if (!window.firebase || !window.firebaseAuth) {
-                errorDiv.innerText = '⏳ System initializing, please try again...';
+                errorDiv.innerText = '🛡️ Securing workspace, please try again...';
                 return;
             }
 
@@ -8010,217 +8035,6 @@ async function firebaseResetPassword(email) {
     }
 }
 
-// ==================== REAL-TIME PRESENCE TRACKING ====================
-let presenceListener = null; // Track the listener so we can unsubscribe
-
-async function setupPresenceTracking(userId, userEmail) {
-    console.log('🔧 Setting up presence tracking for:', userEmail, 'UID:', userId);
-    
-    // Update UI to show loading state
-    const counterEl = document.getElementById('active-users-count');
-    const labelEl = document.getElementById('active-users-label');
-    const iconEl = document.getElementById('presence-status-icon');
-    
-    if (counterEl) counterEl.textContent = '...';
-    if (labelEl) labelEl.textContent = 'connecting';
-    if (iconEl) {
-        iconEl.style.color = '#ffa726';
-        iconEl.className = 'fas fa-circle-notch fa-spin';
-    }
-    
-    if (!window.firebaseRealtimeDb || !window.firebase) {
-        console.error('❌ Realtime Database not initialized!');
-        if (counterEl) counterEl.textContent = '1';
-        if (labelEl) labelEl.textContent = 'offline';
-        if (iconEl) {
-            iconEl.style.color = '#d32f2f';
-            iconEl.className = 'fas fa-times-circle';
-        }
-        return;
-    }
-
-    try {
-        console.log('🔗 Creating database references...');
-        
-        // Strategy 1: Try writing to presence/{userId}
-        const userPresenceRef = window.firebase.dbRef(window.firebaseRealtimeDb, `presence/${userId}`);
-        const userData = {
-            email: userEmail,
-            online: true,
-            timestamp: Date.now()
-        };
-        
-        console.log('💾 ATTEMPT 1: Writing to presence/' + userId);
-        console.log('   Data:', userData);
-        
-        try {
-            await window.firebase.set(userPresenceRef, userData);
-            console.log('✅ Write successful!');
-            
-            // Update UI to show success
-            if (iconEl) {
-                iconEl.style.color = '#4caf50';
-                iconEl.className = 'fas fa-circle';
-            }
-            
-        } catch (writeError) {
-            console.error('❌ Write failed:', writeError);
-            console.error('   Code:', writeError.code);
-            console.error('   Message:', writeError.message);
-            
-            // Show error in UI
-            if (counterEl) counterEl.textContent = 'ERR';
-            if (labelEl) labelEl.textContent = 'blocked';
-            if (iconEl) {
-                iconEl.style.color = '#d32f2f';
-                iconEl.className = 'fas fa-exclamation-triangle';
-            }
-            
-            // Show user-friendly alert
-            console.error('');
-            console.error('🚨 ========== FIREBASE DATABASE WRITE BLOCKED ==========');
-            console.error('');
-            console.error('The presence tracking feature cannot write to Firebase.');
-            console.error('');
-            console.error('SOLUTION:');
-            console.error('1. Go to Firebase Console: https://console.firebase.google.com');
-            console.error('2. Select your project: esh-dashboard');
-            console.error('3. Go to: Realtime Database → Rules');
-            console.error('4. Change rules to:');
-            console.error('');
-            console.error('   {');
-            console.error('     "rules": {');
-            console.error('       ".read": "auth != null",');
-            console.error('       ".write": "auth != null"');
-            console.error('     }');
-            console.error('   }');
-            console.error('');
-            console.error('5. Click "Publish"');
-            console.error('');
-            console.error('🚨 ====================================================');
-            console.error('');
-            
-            // Strategy 2: Try with update instead
-            console.log('💾 ATTEMPT 2: Trying update() instead of set()');
-            try {
-                await window.firebase.update(userPresenceRef, userData);
-                console.log('✅ Update successful!');
-                if (iconEl) {
-                    iconEl.style.color = '#4caf50';
-                    iconEl.className = 'fas fa-circle';
-                }
-            } catch (updateError) {
-                console.error('❌ Update also failed:', updateError);
-                
-                // Strategy 3: Try writing to a test path
-                console.log('💾 ATTEMPT 3: Trying test path');
-                const testRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'test/connection');
-                try {
-                    await window.firebase.set(testRef, { test: true, timestamp: Date.now() });
-                    console.log('✅ Test write successful! Problem is with presence path.');
-                } catch (testError) {
-                    console.error('❌ Even test write failed:', testError);
-                    console.error('🚨 DATABASE WRITE IS COMPLETELY BLOCKED');
-                    console.error('💡 Check Firebase Console → Realtime Database → Rules');
-                }
-            }
-        }
-        
-        // Setup disconnect handler
-        console.log('🔌 Setting up disconnect handler...');
-        try {
-            await window.firebase.onDisconnect(userPresenceRef).remove();
-            console.log('✅ Disconnect handler set');
-        } catch (disconnectError) {
-            console.error('❌ Failed to set disconnect handler:', disconnectError);
-        }
-        
-        // Setup real-time listener
-        console.log('👂 Setting up real-time listener...');
-        const presenceRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'presence');
-        
-        if (presenceListener) {
-            console.log('🧹 Cleaning up old listener');
-            presenceListener();
-        }
-        
-        presenceListener = window.firebase.onValue(
-            presenceRef, 
-            (snapshot) => {
-                const activeUsers = snapshot.val();
-                console.log('📊 Presence snapshot received:', activeUsers);
-                
-                const count = activeUsers ? Object.keys(activeUsers).length : 0;
-                console.log('👥 Active users count:', count);
-                
-                if (activeUsers) {
-                    Object.entries(activeUsers).forEach(([uid, data]) => {
-                        console.log(`  👤 ${data.email} (${uid})`);
-                    });
-                }
-                
-                // Update UI
-                if (counterEl) {
-                    counterEl.textContent = count.toString();
-                    console.log('✅ UI updated: ' + count + ' active');
-                }
-                if (labelEl) {
-                    labelEl.textContent = count === 1 ? 'user' : 'users';
-                }
-                if (iconEl && count > 0) {
-                    iconEl.style.color = '#4caf50';
-                    iconEl.className = 'fas fa-circle';
-                    iconEl.style.animation = 'pulse 2s ease-in-out infinite';
-                }
-            },
-            (error) => {
-                console.error('❌ Listener error:', error);
-                if (counterEl) counterEl.textContent = '1';
-                if (labelEl) labelEl.textContent = 'error';
-                if (iconEl) {
-                    iconEl.style.color = '#d32f2f';
-                    iconEl.className = 'fas fa-exclamation-circle';
-                }
-            }
-        );
-        
-        console.log('✅ Presence tracking setup complete');
-        
-    } catch (error) {
-        console.error('❌ EXCEPTION in setupPresenceTracking:', error);
-        console.error('Stack:', error.stack);
-        if (counterEl) counterEl.textContent = '1';
-        if (labelEl) labelEl.textContent = 'error';
-        if (iconEl) {
-            iconEl.style.color = '#d32f2f';
-            iconEl.className = 'fas fa-times-circle';
-        }
-    }
-}
-
-async function cleanupPresence(userId) {
-    console.log('🧹 Cleaning up presence for:', userId);
-    
-    if (!window.firebaseRealtimeDb || !window.firebase || !userId) {
-        console.warn('⚠️ Cannot cleanup - missing database or userId');
-        return;
-    }
-    
-    try {
-        const userPresenceRef = window.firebase.dbRef(window.firebaseRealtimeDb, `presence/${userId}`);
-        await window.firebase.remove(userPresenceRef);
-        console.log('✅ Presence cleaned up');
-            
-        if (presenceListener) {
-            console.log('🧹 Unsubscribing from listener');
-            presenceListener();
-            presenceListener = null;
-        }
-    } catch (error) {
-        console.error('❌ Cleanup error:', error);
-    }
-}
-// ==================== END PRESENCE TRACKING ====================
 
 // Auth State Observer - OPTIMIZED: No real-time listener!
 function setupAuthObserver() {
@@ -8261,19 +8075,6 @@ function setupAuthObserver() {
 
             // Load user data ONCE - no real-time listener!
             await loadFromFirebase();
-
-            // Immediately show at least 1 active user (current user) while setting up
-            const counterEl = document.getElementById('active-users-count');
-            const labelEl = document.getElementById('active-users-label');
-            if (counterEl) {
-                counterEl.textContent = '...';
-            }
-            if (labelEl) {
-                labelEl.textContent = 'loading';
-            }
-
-            // Setup real-time presence tracking (will update count properly)
-            setupPresenceTracking(user.uid, user.email);
 
         } else {
             console.log('👤 No user authenticated — showing login screen');
@@ -8692,5 +8493,4 @@ console.log('✅ Safety reminder character loaded!');
 
 </body>
 </html>
-
 
