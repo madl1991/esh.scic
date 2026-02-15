@@ -444,10 +444,10 @@
         .login-card {
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(20px);
-            padding: 50px 45px;
-            border-radius: 24px;
+            padding: 35px 35px;
+            border-radius: 20px;
             width: 100%;
-            max-width: 480px;
+            max-width: 460px;
             position: relative;
             z-index: 1;
             box-shadow: 
@@ -488,13 +488,14 @@
 
         .login-header {
             position: relative;
-            margin-bottom: 35px;
+            margin-bottom: 25px;
+            text-align: center;
         }
 
         .login-shield {
-            width: 90px;
-            height: 90px;
-            margin: 0 auto 20px;
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 15px;
             background: linear-gradient(135deg, #0a2e10 0%, #1b5e20 50%, #2e7d32 100%);
             border-radius: 50%;
             display: flex;
@@ -544,23 +545,26 @@
 
         .login-title {
             color: #1b5e20;
-            font-size: 1.4rem;
+            font-size: 1.35rem;
             font-weight: 800;
-            letter-spacing: 1.5px;
-            margin: 0 0 8px 0;
+            letter-spacing: 0.8px;
+            margin: 0 0 10px 0;
             text-transform: uppercase;
             background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            white-space: nowrap;
+            text-align: center;
         }
 
         .login-subtitle {
             color: #666;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             font-weight: 600;
-            margin: 0 0 5px 0;
+            margin: 0 0 8px 0;
             letter-spacing: 0.5px;
+            text-align: center;
         }
 
         body.dark-mode .login-subtitle {
@@ -571,9 +575,9 @@
             display: inline-block;
             background: linear-gradient(135deg, #fbc02d 0%, #f9a825 100%);
             color: #1b5e20;
-            font-size: 0.65rem;
+            font-size: 0.7rem;
             font-weight: 700;
-            padding: 4px 14px;
+            padding: 5px 16px;
             border-radius: 20px;
             letter-spacing: 1px;
             margin-top: 5px;
@@ -680,6 +684,7 @@
             line-height: 1.6;
             position: relative;
             overflow: hidden;
+            text-align: justify;
         }
 
         .disclaimer-box::before {
@@ -1777,26 +1782,132 @@
             background: linear-gradient(135deg, #424242 0%, #616161 100%);
         }
 
+        /* ==================== MODAL STYLE 5 DESIGN ==================== */
         .modal {
-            display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%;
-            height: 100%; background: rgba(0,0,0,0.4); align-items: center; justify-content: center;
+            display: none; 
+            position: fixed; 
+            z-index: 2000; 
+            left: 0; 
+            top: 0; 
+            width: 100%;
+            height: 100%; 
+            background: rgba(0,0,0,0.5); 
+            align-items: center; 
+            justify-content: center;
+            animation: fadeIn 0.2s;
+            padding: 20px;
         }
-        .modal.show { display: flex; }
+        .modal.show { 
+            display: flex; 
+        }
         .modal-content {
-            background: var(--bg-card); padding: 30px; border-radius: 12px; width: 90%; max-width: 500px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2); color: var(--text-primary);
+            background: var(--bg-card); 
+            padding: 40px 35px 35px; 
+            border-radius: 16px; 
+            width: 90%; 
+            max-width: 550px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.25); 
+            color: var(--text-primary);
+            animation: scaleIn 0.3s;
+            position: relative;
         }
-        .modal-header { font-size: 1.2rem; font-weight: 700; color: #1b5e20; margin-bottom: 20px;
-            display: flex; justify-content: space-between; align-items: center; }
-        .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 5px; color: var(--text-primary); }
-        .form-group input, .form-group select {
-            width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.9rem;
-            background: var(--input-bg); color: var(--text-primary);
+        /* Custom scrollbar for modal */
+        .modal-content::-webkit-scrollbar {
+            width: 8px;
         }
-        .form-group input:focus, .form-group select:focus {
-            outline: none; border-color: #1b5e20; box-shadow: 0 0 5px rgba(27,94,32,0.2);
+        .modal-content::-webkit-scrollbar-track {
+            background: var(--border-color);
+            border-radius: 10px;
+        }
+        .modal-content::-webkit-scrollbar-thumb {
+            background: #2e7d32;
+            border-radius: 10px;
+        }
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: #1b5e20;
+        }
+        .modal-header { 
+            font-size: 1.4rem; 
+            font-weight: 700; 
+            color: var(--text-primary); 
+            margin-bottom: 8px;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start;
+        }
+        .modal-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #2e7d32, #4caf50);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            margin: 0 auto 20px;
+            box-shadow: 0 5px 20px rgba(46, 125, 50, 0.3);
+        }
+        .modal-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+        }
+        .modal-close { 
+            background: none; 
+            border: none; 
+            font-size: 1.8rem; 
+            cursor: pointer; 
+            color: var(--text-secondary);
+            line-height: 1;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        .modal-close:hover {
+            background: rgba(0,0,0,0.1);
+            color: var(--text-primary);
+        }
+        body.dark-mode .modal-close:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .form-group { 
+            margin-bottom: 18px; 
+        }
+        .form-group label { 
+            display: block; 
+            font-size: 0.85rem; 
+            font-weight: 600; 
+            margin-bottom: 6px; 
+            color: var(--text-primary); 
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; 
+            padding: 12px 14px; 
+            border: 2px solid var(--border-color); 
+            border-radius: 8px; 
+            font-size: 0.9rem;
+            background: var(--input-bg); 
+            color: var(--text-primary);
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none; 
+            border-color: #2e7d32; 
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
         }
         .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
         .error-message { color: #d32f2f; font-size: 0.8rem; margin-top: 10px; }
@@ -1970,75 +2081,109 @@ body.dark-mode .backup-item {
 
 
 /* Modern Dialog Styles */
+/* ==================== STYLE 5: Success/Error/Warning Dialog ==================== */
+@keyframes scaleIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
 .modern-dialog-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 9999;
+    animation: fadeIn 0.2s;
 }
 
 .modern-dialog {
     background: var(--bg-card);
-    border-radius: 12px;
-    padding: 30px;
-    max-width: 400px;
+    border-radius: 16px;
+    padding: 40px 30px 30px;
+    max-width: 420px;
     width: 90%;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    color: var(--text-primary);
+    box-shadow: 0 15px 50px rgba(0,0,0,0.25);
+    text-align: center;
+    animation: scaleIn 0.3s;
+}
+
+.modern-dialog-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #2e7d32, #4caf50);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 40px;
+    margin: 0 auto 20px;
+    box-shadow: 0 5px 20px rgba(46, 125, 50, 0.3);
+}
+
+.modern-dialog.error .modern-dialog-icon {
+    background: linear-gradient(135deg, #d32f2f, #f44336);
+    box-shadow: 0 5px 20px rgba(211, 47, 47, 0.3);
+}
+
+.modern-dialog.warning .modern-dialog-icon {
+    background: linear-gradient(135deg, #f57c00, #fbc02d);
+    box-shadow: 0 5px 20px rgba(245, 124, 0, 0.3);
 }
 
 .modern-dialog-title {
-    font-size: 1.3rem;
+    font-size: 22px;
     font-weight: 700;
-    margin: 0 0 12px 0;
-    color: #1b5e20;
+    color: var(--text-primary);
+    margin: 0 0 15px 0;
 }
 
 .modern-dialog-message {
-    font-size: 0.95rem;
     color: var(--text-secondary);
-    margin: 0 0 25px 0;
-    line-height: 1.5;
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 30px;
 }
 
 .modern-dialog-buttons {
     display: flex;
     gap: 10px;
-    justify-content: flex-end;
+    justify-content: center;
 }
 
 .modern-dialog-btn {
-    padding: 10px 20px;
+    padding: 12px 40px;
     border: none;
-    border-radius: 6px;
-    font-size: 0.85rem;
+    border-radius: 25px;
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    transition: 0.2s;
+    transition: all 0.3s;
 }
 
 .modern-dialog-btn-cancel {
-    background: var(--border-color);
-    color: var(--text-primary);
+    background: #f5f5f5;
+    color: #666;
 }
 
 .modern-dialog-btn-cancel:hover {
-    background: #ccc;
+    background: #e0e0e0;
 }
 
 .modern-dialog-btn-confirm {
-    background: var(--safety-green-grad);
+    background: #2e7d32;
     color: white;
 }
 
 .modern-dialog-btn-confirm:hover {
-    opacity: 0.9;
+    background: #1b5e20;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(46, 125, 50, 0.3);
 }
 
 .modern-dialog-btn-danger {
@@ -2048,6 +2193,17 @@ body.dark-mode .backup-item {
 
 .modern-dialog-btn-danger:hover {
     background: #b71c1c;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(211, 47, 47, 0.3);
+}
+
+body.dark-mode .modern-dialog-btn-cancel {
+    background: #3a3a3a;
+    color: #e4e4e4;
+}
+
+body.dark-mode .modern-dialog-btn-cancel:hover {
+    background: #4a4a4a;
 }
 
 	.status-dropdown {
@@ -3210,10 +3366,14 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
     <div id="addProjectModal" class="modal">
         <div class="modal-content">
+            <div class="modal-icon">
+                <i class="fas fa-folder-plus"></i>
+            </div>
             <div class="modal-header">
                 <span>Add New Project</span>
                 <button class="modal-close" onclick="closeAddProjectModal()">&times;</button>
             </div>
+            <div class="modal-subtitle">Create a new project site to track ESH compliance</div>
             <div class="form-group">
                 <label>Project Name *</label>
                 <input type="text" id="projectNameInput" placeholder="Enter project name" required>
@@ -3254,6 +3414,193 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <button class="btn btn-primary" onclick="confirmAddProject()">Add Project</button>
             </div>
             <div id="projectModalError" class="error-message"></div>
+        </div>
+    </div>
+
+    <!-- Add Personnel Modal -->
+    <div id="addPersonnelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-icon">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <div class="modal-header">
+                <span>Add New Personnel</span>
+                <button class="modal-close" onclick="closeAddPersonnelModal()">&times;</button>
+            </div>
+            <div class="modal-subtitle">Add a new ESH team member to the registry</div>
+            <div class="form-group">
+                <label>Full Name *</label>
+                <input type="text" id="personnelNameInput" placeholder="Enter full name" required>
+            </div>
+            <div class="form-group">
+                <label>Position *</label>
+                <select id="personnelPositionInput" required>
+                    <option value="">Select Position</option>
+                    <optgroup label="Project-Based Positions">
+                        <option value="ESH Superintendent">ESH Superintendent</option>
+                        <option value="ESH Head">ESH Head</option>
+                        <option value="Safety Officer I">Safety Officer I</option>
+                        <option value="Safety Officer II">Safety Officer II</option>
+                        <option value="Safety Officer III">Safety Officer III</option>
+                        <option value="Safety Officer IV">Safety Officer IV</option>
+                        <option value="PCO">PCO</option>
+                        <option value="Project Physician">Project Physician</option>
+                        <option value="Project Nurse">Project Nurse</option>
+                        <option value="First Aider">First Aider</option>
+                    </optgroup>
+                    <optgroup label="Corporate Positions">
+                        <option value="QESH Group Manager">QESH Group Manager</option>
+                        <option value="QESH Deputy Manager">QESH Deputy Manager</option>
+                        <option value="ESH Manager for Regulation & Compliance">ESH Manager for Regulation & Compliance</option>
+                        <option value="ESH Manager for Project Implementation">ESH Manager for Project Implementation</option>
+                        <option value="Environmental and Sustainability Head">Environmental and Sustainability Head</option>
+                        <option value="Corporate Physician">Corporate Physician</option>
+                        <option value="Corporate Nurse">Corporate Nurse</option>
+                        <option value="QESH Corp. DC">QESH Corp. DC</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                        <option value="Others">Others</option>
+                    </optgroup>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>ID Number *</label>
+                <input type="text" id="personnelIdInput" placeholder="Enter ID number" required>
+            </div>
+            <div class="form-group">
+                <label>Date Hired *</label>
+                <input type="date" id="personnelHiredInput" required>
+            </div>
+            <div class="form-group">
+                <label>Current Assignment *</label>
+                <select id="personnelAssignmentInput" required>
+                    <option value="">Select Assignment</option>
+                    <option value="Corporate Office">Corporate Office</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Age *</label>
+                <input type="number" id="personnelAgeInput" placeholder="Enter age" min="18" max="100" required>
+            </div>
+            <div class="form-group">
+                <label>Gender *</label>
+                <select id="personnelGenderInput" required>
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="personnelEmailInput" placeholder="email@example.com">
+            </div>
+            <div class="form-group">
+                <label>Contact Number</label>
+                <input type="tel" id="personnelContactInput" placeholder="09XX-XXX-XXXX">
+            </div>
+            <div class="form-group">
+                <label>Home Address</label>
+                <textarea id="personnelAddressInput" placeholder="Enter home address"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeAddPersonnelModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmAddPersonnel()">Add Personnel</button>
+            </div>
+            <div id="personnelModalError" class="error-message"></div>
+        </div>
+    </div>
+
+    <!-- Edit Personnel Modal -->
+    <div id="editPersonnelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-icon">
+                <i class="fas fa-user-edit"></i>
+            </div>
+            <div class="modal-header">
+                <span>Edit Personnel</span>
+                <button class="modal-close" onclick="closeEditPersonnelModal()">&times;</button>
+            </div>
+            <div class="modal-subtitle">Update personnel information</div>
+            <input type="hidden" id="editPersonnelIndex">
+            <div class="form-group">
+                <label>Full Name *</label>
+                <input type="text" id="editPersonnelNameInput" placeholder="Enter full name" required>
+            </div>
+            <div class="form-group">
+                <label>Position *</label>
+                <select id="editPersonnelPositionInput" required>
+                    <option value="">Select Position</option>
+                    <optgroup label="Project-Based Positions">
+                        <option value="ESH Superintendent">ESH Superintendent</option>
+                        <option value="ESH Head">ESH Head</option>
+                        <option value="Safety Officer I">Safety Officer I</option>
+                        <option value="Safety Officer II">Safety Officer II</option>
+                        <option value="Safety Officer III">Safety Officer III</option>
+                        <option value="Safety Officer IV">Safety Officer IV</option>
+                        <option value="PCO">PCO</option>
+                        <option value="Project Physician">Project Physician</option>
+                        <option value="Project Nurse">Project Nurse</option>
+                        <option value="First Aider">First Aider</option>
+                    </optgroup>
+                    <optgroup label="Corporate Positions">
+                        <option value="QESH Group Manager">QESH Group Manager</option>
+                        <option value="QESH Deputy Manager">QESH Deputy Manager</option>
+                        <option value="ESH Manager for Regulation & Compliance">ESH Manager for Regulation & Compliance</option>
+                        <option value="ESH Manager for Project Implementation">ESH Manager for Project Implementation</option>
+                        <option value="Environmental and Sustainability Head">Environmental and Sustainability Head</option>
+                        <option value="Corporate Physician">Corporate Physician</option>
+                        <option value="Corporate Nurse">Corporate Nurse</option>
+                        <option value="QESH Corp. DC">QESH Corp. DC</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                        <option value="Others">Others</option>
+                    </optgroup>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>ID Number *</label>
+                <input type="text" id="editPersonnelIdInput" placeholder="Enter ID number" required>
+            </div>
+            <div class="form-group">
+                <label>Date Hired *</label>
+                <input type="date" id="editPersonnelHiredInput" required>
+            </div>
+            <div class="form-group">
+                <label>Current Assignment *</label>
+                <select id="editPersonnelAssignmentInput" required>
+                    <option value="">Select Assignment</option>
+                    <option value="Corporate Office">Corporate Office</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Age *</label>
+                <input type="number" id="editPersonnelAgeInput" placeholder="Enter age" min="18" max="100" required>
+            </div>
+            <div class="form-group">
+                <label>Gender *</label>
+                <select id="editPersonnelGenderInput" required>
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="editPersonnelEmailInput" placeholder="email@example.com">
+            </div>
+            <div class="form-group">
+                <label>Contact Number</label>
+                <input type="tel" id="editPersonnelContactInput" placeholder="09XX-XXX-XXXX">
+            </div>
+            <div class="form-group">
+                <label>Home Address</label>
+                <textarea id="editPersonnelAddressInput" placeholder="Enter home address"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeEditPersonnelModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmEditPersonnel()">Save Changes</button>
+            </div>
+            <div id="editPersonnelModalError" class="error-message"></div>
         </div>
     </div>
 
@@ -3475,7 +3822,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         </header>
        
 
- <div id="dashboard-content"></div>
+ <div id="dashboard-content" style="margin-top: 20px;"></div>
 
 
 
@@ -3509,7 +3856,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <input type="text" id="p-filter-value" placeholder="Search personnel..." onkeyup="filterPTable()" style="flex:1; padding:8px 12px; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:0.75rem;">
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
-                <button class="btn btn-primary" onclick="addPRow()" style="padding:8px 16px; display:flex; align-items:center; gap:6px; font-size:0.78rem; border-radius:6px;">
+                <button class="btn btn-primary" onclick="openAddPersonnelModal()" style="padding:8px 16px; display:flex; align-items:center; gap:6px; font-size:0.78rem; border-radius:6px;">
                     <i class="fas fa-user-plus"></i> Add Personnel
                 </button>
                 <div id="p-global-action" style="display:none; gap:6px;">
@@ -6264,25 +6611,22 @@ function closeAllStatusDropdowns() {
                 }
             }
             
-            // Escape = Cancel edit or close modals
+            // Escape = Cancel edit mode only (not modals)
             if (e.key === 'Escape') {
+                // Check if any modal is open
+                const modals = document.querySelectorAll('.modal.show');
+                if (modals.length > 0) {
+                    // Modal is open - ESC key does nothing
+                    // User must click Cancel or Save button
+                    showToast('ℹ️ Please use Cancel or Save button to close', 'info', 2000);
+                    return;
+                }
+                
                 if (state.isEditing) {
-                    // Close any open modals first
-                    const modals = document.querySelectorAll('.modal');
-                    let modalClosed = false;
-                    modals.forEach(m => {
-                        if (m.style.display === 'flex') {
-                            m.style.display = 'none';
-                            modalClosed = true;
-                        }
-                    });
-                    
-                    if (!modalClosed) {
-                        // No modal open, so cancel edit mode
-                        const confirmCancel = confirm('Cancel editing? Unsaved changes will be lost.');
-                        if (confirmCancel) {
-                            location.reload();
-                        }
+                    // No modal open, so cancel edit mode
+                    const confirmCancel = confirm('Cancel editing? Unsaved changes will be lost.');
+                    if (confirmCancel) {
+                        location.reload();
                     }
                 }
             }
@@ -7970,7 +8314,12 @@ function showModernDialog(title, message, isDanger = false) {
 
         // Create dialog
         const dialog = document.createElement('div');
-        dialog.className = 'modern-dialog';
+        dialog.className = isDanger ? 'modern-dialog error' : 'modern-dialog';
+
+        // Icon
+        const iconEl = document.createElement('div');
+        iconEl.className = 'modern-dialog-icon';
+        iconEl.innerHTML = isDanger ? '<i class="fas fa-times"></i>' : '<i class="fas fa-check"></i>';
 
         // Title
         const titleEl = document.createElement('h2');
@@ -8005,20 +8354,16 @@ function showModernDialog(title, message, isDanger = false) {
         buttonsDiv.appendChild(cancelBtn);
         buttonsDiv.appendChild(confirmBtn);
 
+        dialog.appendChild(iconEl);
         dialog.appendChild(titleEl);
         dialog.appendChild(messageEl);
         dialog.appendChild(buttonsDiv);
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
 
-        // Close on overlay click
-        overlay.onclick = (e) => {
-            if (e.target === overlay) {
-                overlay.remove();
-                resolve(false);
-            }
-        };
-
+        // Modal is locked - no overlay click close
+        // User must use CANCEL or CONFIRM buttons
+        
         confirmBtn.focus();
     });
 }
@@ -8055,6 +8400,236 @@ function addPRow() {
     const newIdx = state.personnelData.length - 1;
     setTimeout(() => pRowEdit(newIdx), 50);
     saveUserData(state.currentUser.email);
+}
+
+// Add Personnel Modal Functions
+function openAddPersonnelModal() {
+    // Populate assignment dropdown with projects
+    const assignmentSelect = document.getElementById('personnelAssignmentInput');
+    let options = '<option value="">Select Assignment</option>';
+    options += '<option value="Corporate Office">Corporate Office</option>';
+    
+    if (state.projects && state.projects.length > 0) {
+        state.projects.forEach(p => {
+            options += `<option value="${p.name}">${p.name}</option>`;
+        });
+    }
+    
+    assignmentSelect.innerHTML = options;
+    
+    // Clear all inputs
+    document.getElementById('personnelNameInput').value = '';
+    document.getElementById('personnelPositionInput').value = '';
+    document.getElementById('personnelIdInput').value = '';
+    document.getElementById('personnelHiredInput').value = '';
+    document.getElementById('personnelAssignmentInput').value = '';
+    document.getElementById('personnelAgeInput').value = '';
+    document.getElementById('personnelGenderInput').value = '';
+    document.getElementById('personnelEmailInput').value = '';
+    document.getElementById('personnelContactInput').value = '';
+    document.getElementById('personnelAddressInput').value = '';
+    document.getElementById('personnelModalError').textContent = '';
+    
+    // Show modal
+    document.getElementById('addPersonnelModal').classList.add('show');
+}
+
+function closeAddPersonnelModal() {
+    document.getElementById('addPersonnelModal').classList.remove('show');
+}
+
+function confirmAddPersonnel() {
+    const name = document.getElementById('personnelNameInput').value.trim();
+    const pos = document.getElementById('personnelPositionInput').value;
+    const id = document.getElementById('personnelIdInput').value.trim();
+    const hired = document.getElementById('personnelHiredInput').value;
+    const current = document.getElementById('personnelAssignmentInput').value;
+    const age = document.getElementById('personnelAgeInput').value;
+    const gen = document.getElementById('personnelGenderInput').value;
+    const mail = document.getElementById('personnelEmailInput').value.trim();
+    const num = document.getElementById('personnelContactInput').value.trim();
+    const addr = document.getElementById('personnelAddressInput').value.trim();
+    
+    const errorEl = document.getElementById('personnelModalError');
+    
+    // Validation
+    if (!name) {
+        errorEl.textContent = '⚠️ Please enter full name';
+        return;
+    }
+    if (!pos) {
+        errorEl.textContent = '⚠️ Please select position';
+        return;
+    }
+    if (!id) {
+        errorEl.textContent = '⚠️ Please enter ID number';
+        return;
+    }
+    if (!hired) {
+        errorEl.textContent = '⚠️ Please enter date hired';
+        return;
+    }
+    if (!current) {
+        errorEl.textContent = '⚠️ Please select current assignment';
+        return;
+    }
+    if (!age || age < 18 || age > 100) {
+        errorEl.textContent = '⚠️ Please enter valid age (18-100)';
+        return;
+    }
+    if (!gen) {
+        errorEl.textContent = '⚠️ Please select gender';
+        return;
+    }
+    
+    // Check for duplicate ID
+    if (state.personnelData && state.personnelData.some(p => p.id === id)) {
+        errorEl.textContent = '⚠️ ID Number already exists';
+        return;
+    }
+    
+    // Calculate years of service
+    const len = calculateYearsOfService(hired);
+    
+    // Add personnel
+    if (!state.personnelData) state.personnelData = [];
+    state.personnelData.push({
+        name: name,
+        pos: pos,
+        id: id,
+        hired: hired,
+        current: current,
+        age: age,
+        gen: gen,
+        mail: mail,
+        num: num,
+        addr: addr,
+        len: len
+    });
+    
+    // Save and refresh
+    saveUserData(state.currentUser.email);
+    renderPTable();
+    updatePersonnelSummary();
+    closeAddPersonnelModal();
+    showToast('✅ Personnel added successfully!', 'success');
+}
+
+// Edit Personnel Modal Functions
+function openEditPersonnelModal(index) {
+    const person = state.personnelData[index];
+    if (!person) return;
+    
+    // Populate assignment dropdown with projects
+    const assignmentSelect = document.getElementById('editPersonnelAssignmentInput');
+    let options = '<option value="">Select Assignment</option>';
+    options += '<option value="Corporate Office">Corporate Office</option>';
+    
+    if (state.projects && state.projects.length > 0) {
+        state.projects.forEach(p => {
+            options += `<option value="${p.name}">${p.name}</option>`;
+        });
+    }
+    
+    assignmentSelect.innerHTML = options;
+    
+    // Fill form with current data
+    document.getElementById('editPersonnelIndex').value = index;
+    document.getElementById('editPersonnelNameInput').value = person.name || '';
+    document.getElementById('editPersonnelPositionInput').value = person.pos || '';
+    document.getElementById('editPersonnelIdInput').value = person.id || '';
+    document.getElementById('editPersonnelHiredInput').value = person.hired || '';
+    document.getElementById('editPersonnelAssignmentInput').value = person.current || '';
+    document.getElementById('editPersonnelAgeInput').value = person.age || '';
+    document.getElementById('editPersonnelGenderInput').value = person.gen || '';
+    document.getElementById('editPersonnelEmailInput').value = person.mail || '';
+    document.getElementById('editPersonnelContactInput').value = person.num || '';
+    document.getElementById('editPersonnelAddressInput').value = person.addr || '';
+    document.getElementById('editPersonnelModalError').textContent = '';
+    
+    // Show modal
+    document.getElementById('editPersonnelModal').classList.add('show');
+}
+
+function closeEditPersonnelModal() {
+    document.getElementById('editPersonnelModal').classList.remove('show');
+}
+
+function confirmEditPersonnel() {
+    const index = parseInt(document.getElementById('editPersonnelIndex').value);
+    const name = document.getElementById('editPersonnelNameInput').value.trim();
+    const pos = document.getElementById('editPersonnelPositionInput').value;
+    const id = document.getElementById('editPersonnelIdInput').value.trim();
+    const hired = document.getElementById('editPersonnelHiredInput').value;
+    const current = document.getElementById('editPersonnelAssignmentInput').value;
+    const age = document.getElementById('editPersonnelAgeInput').value;
+    const gen = document.getElementById('editPersonnelGenderInput').value;
+    const mail = document.getElementById('editPersonnelEmailInput').value.trim();
+    const num = document.getElementById('editPersonnelContactInput').value.trim();
+    const addr = document.getElementById('editPersonnelAddressInput').value.trim();
+    
+    const errorEl = document.getElementById('editPersonnelModalError');
+    
+    // Validation
+    if (!name) {
+        errorEl.textContent = '⚠️ Please enter full name';
+        return;
+    }
+    if (!pos) {
+        errorEl.textContent = '⚠️ Please select position';
+        return;
+    }
+    if (!id) {
+        errorEl.textContent = '⚠️ Please enter ID number';
+        return;
+    }
+    if (!hired) {
+        errorEl.textContent = '⚠️ Please enter date hired';
+        return;
+    }
+    if (!current) {
+        errorEl.textContent = '⚠️ Please select current assignment';
+        return;
+    }
+    if (!age || age < 18 || age > 100) {
+        errorEl.textContent = '⚠️ Please enter valid age (18-100)';
+        return;
+    }
+    if (!gen) {
+        errorEl.textContent = '⚠️ Please select gender';
+        return;
+    }
+    
+    // Check for duplicate ID (excluding current record)
+    if (state.personnelData && state.personnelData.some((p, idx) => p.id === id && idx !== index)) {
+        errorEl.textContent = '⚠️ ID Number already exists';
+        return;
+    }
+    
+    // Calculate years of service
+    const len = calculateYearsOfService(hired);
+    
+    // Update personnel
+    state.personnelData[index] = {
+        name: name,
+        pos: pos,
+        id: id,
+        hired: hired,
+        current: current,
+        age: age,
+        gen: gen,
+        mail: mail,
+        num: num,
+        addr: addr,
+        len: len
+    };
+    
+    // Save and refresh
+    saveUserData(state.currentUser.email);
+    renderPTable();
+    updatePersonnelSummary();
+    closeEditPersonnelModal();
+    showToast('✅ Personnel updated successfully!', 'success');
 }
 
 function renderPTable() {
@@ -8158,8 +8733,7 @@ function renderPTable() {
                 <input type="number" value="${yearsOfService !== '' ? yearsOfService : (p.len||'')}" style="width:50px;text-align:center;background:#f0f0f0;color:#666;font-weight:600;" min="0" max="99" disabled readonly title="Auto-calculated from Date Hired">
             </td>
             <td style="width:100px; text-align:center; white-space:nowrap;">
-                <button class="p-edit-btn" id="p-edit-btn-${i}" onclick="pRowEdit(${i})"><i class="fas fa-edit"></i></button>
-                <button class="p-save-btn" id="p-save-btn-${i}" onclick="pRowSave(${i})"><i class="fas fa-save"></i></button>
+                <button class="p-edit-btn" id="p-edit-btn-${i}" onclick="openEditPersonnelModal(${i})"><i class="fas fa-edit"></i></button>
                 <button class="p-del-btn" onclick="pRowDelete(${i})" title="Delete"><i class="fas fa-trash"></i></button>
             </td>
         </tr>`;
@@ -9468,251 +10042,223 @@ async function exportCurrentTabToPDF() {
     showToast('📄 Generating PDF report...', 'info');
     
     try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l', 'mm', 'a4'); // Landscape A4
+        
         const year = state.selectedYear || 2026;
         const tabName = state.currentTab || 'overall';
         
-        // Prepare data
-        const exportData = {
-            year: year,
-            tab: tabName,
-            exportDate: new Date(),
-            projects: state.projects || []
+        // Tab titles
+        const tabTitles = {
+            'overall': 'OVERALL SUMMARY',
+            'exposures': 'SAFETY EXPOSURES',
+            'medical': 'ACCIDENT/INCIDENT RECORD',
+            'activities': 'SAFETY ACTIVITIES',
+            'audit': 'SAFETY AUDIT',
+            'nov': 'NOV',
+            'rates': 'STATISTICS RATE',
+            'personnel': 'ESH PERSONNEL MONITORING',
+            'doe-report': 'DOE REPORTORIAL',
+            'doe-permit': 'DOE SAFETY OFFICER PERMIT'
         };
         
-        const pdfFilename = `ESH_Compliance_${tabName.toUpperCase()}_${year}_${new Date().toISOString().split('T')[0]}.pdf`;
+        const title = tabTitles[tabName] || 'ESH COMPLIANCE REPORT';
+        const filename = `ESH_${tabName.toUpperCase()}_${year}_${new Date().toISOString().split('T')[0]}.pdf`;
         
-        // Generate PDF using jsPDF
-        generateComprehensivePDF(exportData, pdfFilename);
+        // Add header
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 14;
+        
+        doc.setFillColor(27, 94, 32);
+        doc.rect(0, 0, pageWidth, 30, 'F');
+        
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ESH COMPLIANCE DASHBOARD', pageWidth / 2, 12, { align: 'center' });
+        
+        doc.setFontSize(14);
+        doc.text(title, pageWidth / 2, 22, { align: 'center' });
+        
+        // Add metadata
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Year: ${year}`, margin, 38);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, margin, 43);
+        doc.text(`Total Projects: ${(state.projects || []).length}`, margin, 48);
+        
+        let startY = 55;
+        
+        // Generate data based on tab
+        let headers = [];
+        let rows = [];
+        
+        if (tabName === 'personnel') {
+            // Personnel data
+            headers = ['#', 'Full Name', 'Position', 'ID Number', 'Date Hired', 'Current Assignment', 'Age', 'Gender', 'Email', 'Contact No.', 'Home Address', 'Yrs. of Svc'];
+            const personnelData = state.personnelData || [];
+            rows = personnelData.map((p, idx) => [
+                String(idx + 1),
+                p.name || '',
+                p.pos || '',
+                p.id || '',
+                p.hired || '',
+                p.current || '',
+                p.age || '',
+                p.gen || '',
+                p.mail || '',
+                p.num || '',
+                p.addr || '',
+                p.len || ''
+            ]);
+        } else if (tabName === 'overall') {
+            // Overall summary
+            headers = ['#', 'Project Name', 'Region', 'Start Date', 'Status', 'Completion %'];
+            const projects = state.projects || [];
+            rows = projects.map((p, idx) => [
+                String(idx + 1),
+                p.name || '',
+                p.region || '',
+                p.start || '',
+                p.status || 'on-going',
+                String(getPerc(p)) + '%'
+            ]);
+        } else {
+            // Other tabs - try to get table from DOM
+            let table = null;
+            const dashboardContent = document.getElementById('dashboard-content');
+            table = dashboardContent ? dashboardContent.querySelector('table') : null;
+            
+            if (table) {
+                // Get headers
+                const headerCells = table.querySelectorAll('thead th');
+                headerCells.forEach(th => {
+                    const text = th.textContent.trim().replace(/\s+/g, ' ');
+                    headers.push(text);
+                });
+                
+                // Get rows
+                const bodyRows = table.querySelectorAll('tbody tr');
+                bodyRows.forEach(tr => {
+                    const row = [];
+                    const cells = tr.querySelectorAll('td');
+                    cells.forEach(td => {
+                        // Check for input/select elements
+                        const input = td.querySelector('input[type="text"], input[type="date"], input[type="number"], select, textarea');
+                        if (input) {
+                            row.push(input.value || '');
+                        } else {
+                            // Clean up text content
+                            let text = td.textContent.trim().replace(/\s+/g, ' ');
+                            // Remove button text
+                            text = text.replace(/\b(Edit|Save|Delete|Cancel|View|Upload|Download|✓|✕)\b/gi, '').trim();
+                            row.push(text);
+                        }
+                    });
+                    if (row.some(cell => cell !== '')) {
+                        rows.push(row);
+                    }
+                });
+            } else {
+                // If no table found, extract from state.projects
+                const categoryMap = {
+                    'exposures': 'exposures',
+                    'medical': 'medical',
+                    'activities': 'activities',
+                    'audit': 'audit',
+                    'nov': 'nov',
+                    'rates': 'rates'
+                };
+                
+                const category = categoryMap[tabName];
+                if (category) {
+                    headers = ['#', 'Project Name', 'Region', 'Data Entries'];
+                    const projects = state.projects || [];
+                    rows = projects.map((p, idx) => {
+                        let dataCount = 0;
+                        if (p.vals) {
+                            Object.keys(p.vals).forEach(key => {
+                                if (key.startsWith(category + '_') || key.startsWith(category + '-')) {
+                                    const val = p.vals[key];
+                                    if (val && typeof val === 'object') {
+                                        dataCount += Object.values(val).filter(v => v && String(v).trim() !== '').length;
+                                    }
+                                }
+                            });
+                        }
+                        return [
+                            String(idx + 1),
+                            p.name || '',
+                            p.region || '',
+                            String(dataCount) + ' entries'
+                        ];
+                    });
+                }
+            }
+        }
+        
+        if (headers.length === 0 || rows.length === 0) {
+            doc.setTextColor(150, 150, 150);
+            doc.setFontSize(10);
+            doc.text('No data available for this tab.', margin, startY);
+        } else {
+            // Generate table
+            doc.autoTable({
+                startY: startY,
+                head: [headers],
+                body: rows,
+                theme: 'grid',
+                styles: {
+                    fontSize: 7,
+                    cellPadding: 2,
+                    lineColor: [200, 200, 200],
+                    lineWidth: 0.1,
+                    overflow: 'linebreak',
+                    cellWidth: 'wrap'
+                },
+                headStyles: {
+                    fillColor: [27, 94, 32],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: 8,
+                    halign: 'center',
+                    valign: 'middle'
+                },
+                alternateRowStyles: {
+                    fillColor: [245, 245, 245]
+                },
+                margin: { left: margin, right: margin, top: 55, bottom: 15 },
+                didDrawPage: function(data) {
+                    // Footer
+                    const pageCount = doc.internal.getNumberOfPages();
+                    const pageSize = doc.internal.pageSize;
+                    const pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
+                    
+                    doc.setFontSize(8);
+                    doc.setTextColor(100, 100, 100);
+                    doc.text(
+                        'ESH Compliance Dashboard - SCIC',
+                        margin,
+                        pageHeight - 8
+                    );
+                    doc.text(
+                        `Page ${data.pageNumber} of ${pageCount}`,
+                        pageWidth - margin - 20,
+                        pageHeight - 8
+                    );
+                }
+            });
+        }
+        
+        // Save PDF
+        doc.save(filename);
+        showToast('✅ PDF report generated successfully!', 'success');
         
     } catch (error) {
         console.error('Error exporting PDF:', error);
         showToast('❌ Failed to generate PDF: ' + error.message, 'error');
     }
-}
-
-function generateComprehensivePDF(data, filename) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape A4
-    
-    let yPos = 20;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 15;
-    const contentWidth = pageWidth - (margin * 2);
-    
-    // Helper function to add new page if needed
-    const checkPageBreak = (requiredSpace = 20) => {
-        if (yPos + requiredSpace > pageHeight - margin) {
-            doc.addPage();
-            yPos = 20;
-            return true;
-        }
-        return false;
-    };
-    
-    // Title
-    doc.setFillColor(27, 94, 32);
-    doc.rect(0, 0, pageWidth, 35, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ESH COMPLIANCE DASHBOARD', pageWidth / 2, 15, { align: 'center' });
-    doc.setFontSize(14);
-    doc.text('OVERALL SUMMARY REPORT', pageWidth / 2, 25, { align: 'center' });
-    
-    yPos = 45;
-    
-    // Metadata box
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    
-    const metaData = [
-        ['Report Year:', String(data.year)],
-        ['Export Date:', data.exportDate.toLocaleString()],
-        ['Total Projects:', String(data.projects.length)]
-    ];
-    
-    doc.autoTable({
-        startY: yPos,
-        head: [],
-        body: metaData,
-        theme: 'plain',
-        styles: { fontSize: 10, cellPadding: 3 },
-        columnStyles: {
-            0: { fontStyle: 'bold', cellWidth: 40 },
-            1: { cellWidth: 80 }
-        },
-        margin: { left: margin }
-    });
-    
-    yPos = doc.lastAutoTable.finalY + 15;
-    
-    // Projects Summary Table
-    checkPageBreak(40);
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(46, 125, 50);
-    doc.text('PROJECT OVERVIEW', margin, yPos);
-    yPos += 10;
-    
-    if (data.projects.length === 0) {
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(100, 100, 100);
-        doc.text('No projects found.', margin, yPos);
-        yPos += 10;
-    } else {
-        // Create project summary table
-        const projectTableData = data.projects.map((p, idx) => [
-            String(idx + 1),
-            p.name || 'N/A',
-            p.region || 'N/A',
-            p.start || 'N/A',
-            p.isRenewable ? 'Yes' : 'No'
-        ]);
-        
-        doc.autoTable({
-            startY: yPos,
-            head: [['#', 'PROJECT NAME', 'REGION', 'START DATE', 'RENEWABLE']],
-            body: projectTableData,
-            theme: 'grid',
-            headStyles: {
-                fillColor: [46, 125, 50],
-                textColor: 255,
-                fontStyle: 'bold',
-                fontSize: 10
-            },
-            styles: {
-                fontSize: 9,
-                cellPadding: 4
-            },
-            columnStyles: {
-                0: { cellWidth: 15, halign: 'center' },
-                1: { cellWidth: 100 },
-                2: { cellWidth: 40, halign: 'center' },
-                3: { cellWidth: 35, halign: 'center' },
-                4: { cellWidth: 30, halign: 'center' }
-            },
-            alternateRowStyles: { fillColor: [245, 245, 245] },
-            margin: { left: margin, right: margin }
-        });
-        
-        yPos = doc.lastAutoTable.finalY + 15;
-    }
-    
-    // Detailed Project Information
-    data.projects.forEach((project, idx) => {
-        doc.addPage();
-        yPos = 20;
-        
-        // Project header
-        doc.setFillColor(46, 125, 50);
-        doc.rect(margin, yPos, contentWidth, 12, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`PROJECT ${idx + 1}: ${project.name || 'Unnamed'}`, margin + 5, yPos + 8);
-        
-        yPos += 20;
-        
-        // Project details
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(10);
-        
-        const detailsData = [
-            ['Region:', project.region || 'N/A'],
-            ['Start Date:', project.start || 'N/A'],
-            ['End Date:', project.end || 'N/A'],
-            ['Status:', project.status || 'N/A'],
-            ['Renewable Energy:', project.isRenewable ? 'Yes' : 'No']
-        ];
-        
-        doc.autoTable({
-            startY: yPos,
-            body: detailsData,
-            theme: 'plain',
-            styles: { fontSize: 10, cellPadding: 3 },
-            columnStyles: {
-                0: { fontStyle: 'bold', cellWidth: 45 },
-                1: { cellWidth: 80 }
-            },
-            margin: { left: margin }
-        });
-        
-        yPos = doc.lastAutoTable.finalY + 15;
-        
-        // Compliance data summary
-        if (project.vals && Object.keys(project.vals).length > 0) {
-            doc.setFontSize(11);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(76, 175, 80);
-            doc.text('Compliance Records:', margin, yPos);
-            yPos += 8;
-            
-            doc.setFontSize(9);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(0, 0, 0);
-            
-            // Group by category
-            const categories = {};
-            for (const [key, value] of Object.entries(project.vals)) {
-                if (key.includes('_')) {
-                    const [cat, field] = key.split('_', 2);
-                    if (!categories[cat]) categories[cat] = [];
-                    
-                    // Count filled fields
-                    let filledCount = 0;
-                    if (value && typeof value === 'object') {
-                        filledCount = Object.values(value).filter(v => v && String(v).trim() !== '').length;
-                    }
-                    
-                    if (filledCount > 0) {
-                        categories[cat].push({ field, count: filledCount });
-                    }
-                }
-            }
-            
-            // Display categories
-            for (const [cat, fields] of Object.entries(categories)) {
-                if (checkPageBreak(8)) {
-                    doc.setFontSize(11);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(76, 175, 80);
-                    doc.text('Compliance Records (continued):', margin, yPos);
-                    yPos += 8;
-                    doc.setFontSize(9);
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(0, 0, 0);
-                }
-                
-                const catName = cat.toUpperCase().replace(/-/g, ' ');
-                doc.setFont('helvetica', 'bold');
-                doc.text(`${catName}:`, margin + 5, yPos);
-                yPos += 5;
-                
-                doc.setFont('helvetica', 'normal');
-                fields.slice(0, 5).forEach(item => {
-                    if (checkPageBreak(5)) {
-                        doc.text('(continued...)', margin + 10, yPos);
-                        yPos += 5;
-                    }
-                    doc.text(`  • ${item.field}: ${item.count} record(s)`, margin + 10, yPos);
-                    yPos += 5;
-                });
-                
-                yPos += 3;
-            }
-        } else {
-            doc.setFontSize(9);
-            doc.setTextColor(150, 150, 150);
-            doc.text('No compliance data recorded.', margin, yPos);
-        }
-    });
-    
-    // Save PDF
-    doc.save(filename);
-    showToast('✅ PDF report generated successfully!', 'success');
 }
 
 // ==================== END EXPORT PDF ====================
@@ -10626,6 +11172,15 @@ async function deleteDoePermitPdf(projectName) {
 }
 
 // DOE Safety Officer Permit Functions (deprecated - now using table format)
+
+// ==================== MODAL OVERLAY HANDLERS ====================
+// Modals are now LOCKED - cannot close by clicking outside
+// Users must explicitly click Cancel or Save buttons to exit
+// This prevents accidental data loss during editing
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔒 Modal safety enabled: Click-outside disabled');
+    console.log('💡 Use Cancel or Save buttons to close modals');
+});
 
 // ==================== END DOE FUNCTIONS ====================
     </script>
