@@ -5062,6 +5062,150 @@ function showBackupStatus(message, type) {
             doePermitData: { permitNumber: '', validityDate: '' } // NEW: DOE Safety Officer Permit
         };
 
+        // ==================== COMPREHENSIVE DEBUG SYSTEM ====================
+        window.DEBUG_MODE = true; // Set to false to disable debug logs
+        
+        // Debug logger with timestamp
+        function debugLog(category, message, data = null) {
+            if (!window.DEBUG_MODE) return;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const styles = {
+                'CRITICAL': 'color: red; font-weight: bold',
+                'ERROR': 'color: orange; font-weight: bold',
+                'WARNING': 'color: yellow',
+                'INFO': 'color: cyan',
+                'SUCCESS': 'color: lightgreen',
+                'DATA': 'color: lightblue'
+            };
+            
+            console.log(`%c[${timestamp}] [${category}] ${message}`, styles[category] || 'color: white', data || '');
+        }
+        
+        // Validate state integrity
+        function validateState() {
+            const issues = [];
+            
+            // Check if projects and masterProjects are in sync
+            if (state.projects.length > state.masterProjects.length) {
+                issues.push('⚠️ projects has more items than masterProjects - data inconsistency!');
+            }
+            
+            // Check for duplicate projects
+            const projectNames = state.projects.map(p => p.name);
+            const duplicates = projectNames.filter((name, index) => projectNames.indexOf(name) !== index);
+            if (duplicates.length > 0) {
+                issues.push(`⚠️ Duplicate projects found: ${duplicates.join(', ')}`);
+            }
+            
+            // Check for projects without required fields
+            state.projects.forEach(p => {
+                if (!p.name) issues.push(`⚠️ Project without name found`);
+                if (!p.region) issues.push(`⚠️ Project "${p.name}" missing region`);
+                if (!p.dateStarted) issues.push(`⚠️ Project "${p.name}" missing dateStarted`);
+                if (!p.status) issues.push(`⚠️ Project "${p.name}" missing status`);
+            });
+            
+            // Check filtered projects sync
+            if (state.filteredProjects.length > state.projects.length) {
+                issues.push('⚠️ filteredProjects has more items than projects');
+            }
+            
+            return {
+                isValid: issues.length === 0,
+                issues: issues,
+                stats: {
+                    totalProjects: state.projects.length,
+                    masterProjects: state.masterProjects.length,
+                    filteredProjects: state.filteredProjects.length,
+                    selectedYear: state.selectedYear,
+                    isLoggedIn: state.isLoggedIn
+                }
+            };
+        }
+        
+        // Test year filtering logic
+        function testYearFiltering() {
+            debugLog('INFO', '🧪 Testing year filtering logic...');
+            
+            // Create test projects
+            const testProjects = [
+                { name: 'Test1', dateStarted: '2020-01-01', dateFinished: null, status: 'on-going' },
+                { name: 'Test2', dateStarted: '2024-01-01', dateFinished: '2025-12-31', status: 'finished' },
+                { name: 'Test3', dateStarted: '2026-01-01', dateFinished: null, status: 'on-going' }
+            ];
+            
+            // Test for different years
+            [2020, 2024, 2025, 2026, 2027].forEach(year => {
+                const filtered = filterProjectsByYear(testProjects, year);
+                debugLog('DATA', `Year ${year}:`, filtered.map(p => p.name));
+            });
+            
+            debugLog('SUCCESS', '✅ Year filtering test complete');
+        }
+        
+        // Monitor Firebase operations
+        const originalSaveToFirebase = window.saveToFirebase;
+        window.debugSaveToFirebase = async function() {
+            debugLog('INFO', '💾 saveToFirebase() called');
+            debugLog('DATA', 'State before save:', {
+                projects: state.projects.length,
+                masterProjects: state.masterProjects.length,
+                year: state.selectedYear
+            });
+            
+            const result = await originalSaveToFirebase?.();
+            
+            if (result) {
+                debugLog('SUCCESS', '✅ Save to Firebase successful');
+            } else {
+                debugLog('ERROR', '❌ Save to Firebase failed');
+            }
+            
+            return result;
+        };
+        
+        // Debug console commands
+        window.debugCommands = {
+            state: () => {
+                console.log('Current State:', state);
+                return state;
+            },
+            validate: () => {
+                const result = validateState();
+                console.log('Validation Result:', result);
+                if (!result.isValid) {
+                    console.error('Issues found:', result.issues);
+                }
+                return result;
+            },
+            testFiltering: testYearFiltering,
+            projects: () => {
+                console.log('Projects:', state.projects);
+                console.log('Master Projects:', state.masterProjects);
+                console.log('Filtered Projects:', state.filteredProjects);
+            },
+            clearConsole: () => console.clear(),
+            help: () => {
+                console.log(`
+%c🔍 Debug Commands Available:
+%cdebugCommands.state() - View current state
+debugCommands.validate() - Validate state integrity
+debugCommands.testFiltering() - Test year filtering
+debugCommands.projects() - View all project arrays
+debugCommands.clearConsole() - Clear console
+debugCommands.help() - Show this help
+                `, 'color: cyan; font-weight: bold', 'color: white');
+            }
+        };
+        
+        // Auto-validate on critical operations
+        const originalDeleteProject = window.deleteProject;
+        
+        // Log startup
+        debugLog('INFO', '🚀 Debug system initialized');
+        debugLog('INFO', '💡 Type debugCommands.help() in console for available commands');
+
         // ===== DARK MODE FUNCTIONS =====
         function initDarkMode() {
             const savedTheme = localStorage.getItem('esh_theme_preference');
@@ -5225,19 +5369,36 @@ function showBackupStatus(message, type) {
         }
 
         async function switchYear(newYear) {
-            console.log(`🔄 Switching from ${state.selectedYear} to ${newYear}`);
+            debugLog('INFO', `🔄 switchYear() called: ${state.selectedYear} → ${newYear}`);
+            
+            const beforeCount = state.projects.length;
+            const masterCount = state.masterProjects.length;
             
             // Update selected year
             const oldYear = state.selectedYear;
             state.selectedYear = newYear;
             localStorage.setItem('esh_selected_year', newYear);
             
+            debugLog('DATA', 'Before filtering:', {
+                masterProjects: masterCount,
+                currentProjects: beforeCount,
+                targetYear: newYear
+            });
+            
             // INSTANT: Just filter the master project list locally (no Firebase!)
             state.projects = filterProjectsByYear(state.masterProjects, newYear);
             state.filteredProjects = [...state.projects];
             state.selectedProjects = [];
             
-            console.log(`✅ Showing ${state.projects.length} projects for year ${newYear}`);
+            const afterCount = state.projects.length;
+            
+            debugLog('SUCCESS', `✅ Filtered to ${afterCount} projects for year ${newYear}`);
+            debugLog('DATA', 'Projects shown:', state.projects.map(p => `${p.name} (${p.dateStarted || 'no date'})`));
+            
+            // Validate consistency
+            if (afterCount > masterCount) {
+                debugLog('ERROR', '❌ CRITICAL: More projects shown than in master list!');
+            }
             
             // Update UI immediately
             updateYearDisplay();
@@ -5245,6 +5406,12 @@ function showBackupStatus(message, type) {
             render();
             
             showToast(`✅ Switched to year ${newYear}`, 'success');
+            
+            // Validate after switch
+            const validation = validateState();
+            if (!validation.isValid) {
+                debugLog('WARNING', '⚠️ State validation issues after year switch:', validation.issues);
+            }
         }
 
         function updateYearDisplay() {
@@ -6598,15 +6765,75 @@ function updateAuditData(pName, qtr, field, val) {
         // ==================== END PDF UPLOAD FUNCTIONS ====================
 
 
-        function deleteProject(projectName) {
-    showModernDialog('Delete Project', `Are you sure you want to delete "${projectName}"? This action cannot be undone.`, true).then(confirmed => {
-        if (confirmed) {
-            state.projects = state.projects.filter(p => p.name !== projectName);
-            state.filteredProjects = state.filteredProjects.filter(p => p.name !== projectName);
-            saveUserData(state.currentUser.email);
-            render();
+        async function deleteProject(projectName) {
+    debugLog('INFO', `🗑️ deleteProject() called for: ${projectName}`);
+    
+    // Validate before delete
+    const beforeValidation = validateState();
+    debugLog('DATA', 'State before delete:', beforeValidation.stats);
+    
+    const confirmed = await showModernDialog('Delete Project', `Are you sure you want to delete "${projectName}"? This action cannot be undone.`, true);
+    
+    if (confirmed) {
+        // Remove from both projects arrays
+        const beforeCount = {
+            projects: state.projects.length,
+            masterProjects: state.masterProjects.length,
+            filtered: state.filteredProjects.length
+        };
+        
+        state.projects = state.projects.filter(p => p.name !== projectName);
+        state.filteredProjects = state.filteredProjects.filter(p => p.name !== projectName);
+        
+        // Also remove from masterProjects
+        state.masterProjects = state.masterProjects.filter(p => p.name !== projectName);
+        
+        const afterCount = {
+            projects: state.projects.length,
+            masterProjects: state.masterProjects.length,
+            filtered: state.filteredProjects.length
+        };
+        
+        debugLog('DATA', 'Delete counts:', { before: beforeCount, after: afterCount });
+        
+        // Validate deletions
+        if (afterCount.projects !== beforeCount.projects - 1) {
+            debugLog('ERROR', '❌ projects array: deletion count mismatch!');
         }
-    });
+        if (afterCount.masterProjects !== beforeCount.masterProjects - 1) {
+            debugLog('ERROR', '❌ masterProjects array: deletion count mismatch!');
+        }
+        
+        // Save to localStorage first
+        saveUserData(state.currentUser.email);
+        debugLog('SUCCESS', '✅ Saved to localStorage');
+        
+        // Save to Firebase immediately
+        showToast('💾 Saving deletion to server...', 'info');
+        debugLog('INFO', '☁️ Syncing to Firebase...');
+        
+        const saved = await saveToFirebase();
+        
+        if (saved) {
+            showToast(`✅ Project "${projectName}" deleted successfully`, 'success');
+            debugLog('SUCCESS', `✅ Project "${projectName}" deleted from Firebase`);
+        } else {
+            showToast('⚠️ Deleted locally, but failed to sync to server', 'warning');
+            debugLog('ERROR', '❌ Firebase sync failed');
+        }
+        
+        // Validate after delete
+        const afterValidation = validateState();
+        if (!afterValidation.isValid) {
+            debugLog('ERROR', '❌ State validation failed after delete:', afterValidation.issues);
+        } else {
+            debugLog('SUCCESS', '✅ State validation passed after delete');
+        }
+        
+        render();
+    } else {
+        debugLog('INFO', 'Delete cancelled by user');
+    }
 }
 
      function changeProjectStatus(projectName, event) {
@@ -10598,7 +10825,66 @@ waitForFirebase().then(async () => {
     
     // Setup auth observer — handles login state, UI show/hide, and data loading
     setupAuthObserver();
+    
+    // Setup inactivity auto-logout
+    setupInactivityTimer();
 });
+
+// ==================== AUTO-LOGOUT AFTER INACTIVITY ====================
+let inactivityTimer = null;
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+
+function setupInactivityTimer() {
+    console.log('⏰ Inactivity timer initialized (30 minutes)');
+    
+    // Events that indicate user activity
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    
+    // Reset the timer on any user activity
+    function resetInactivityTimer() {
+        // Only track if user is logged in
+        if (!state.isLoggedIn) return;
+        
+        // Clear existing timer
+        if (inactivityTimer) {
+            clearTimeout(inactivityTimer);
+        }
+        
+        // Set new timer
+        inactivityTimer = setTimeout(() => {
+            handleInactivityLogout();
+        }, INACTIVITY_TIMEOUT);
+    }
+    
+    // Handle logout due to inactivity
+    async function handleInactivityLogout() {
+        console.log('⏰ User inactive for 30 minutes - logging out...');
+        
+        // Show warning
+        showToast('⏰ You have been logged out due to inactivity (30 minutes)', 'warning');
+        
+        // Wait a moment for the toast to show
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Perform logout
+        if (window.firebaseAuth) {
+            try {
+                await window.firebase.signOut(window.firebaseAuth);
+                console.log('✅ Auto-logout successful');
+            } catch (error) {
+                console.error('❌ Error during auto-logout:', error);
+            }
+        }
+    }
+    
+    // Attach event listeners
+    activityEvents.forEach(event => {
+        document.addEventListener(event, resetInactivityTimer, true);
+    });
+    
+    // Start the initial timer
+    resetInactivityTimer();
+}
 
 // Cleanup presence when page is closed or refreshed
 window.addEventListener('beforeunload', () => {
