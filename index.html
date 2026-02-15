@@ -75,7 +75,7 @@
             --safety-green-grad: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
             --header-grad: linear-gradient(90deg, #1b5e20 0%, #388e3c 100%);
             --safety-yellow: #fbc02d;
-            --bg-body: #f4f7f6;
+            --bg-body: #ced4da;
             --text-primary: #333;
             --text-secondary: #666;
             --bg-card: #ffffff;
@@ -2996,130 +2996,265 @@ table input[type="date"]:not(:focus)[value=""] {
         }
         
         /* ============================================
-           WAVE ANIMATIONS FOR STAT CARDS
+           FLOATING PARTICLES ANIMATIONS FOR STAT CARDS
            ============================================ */
-        .waves-container {
+        .particles-container {
             position: absolute;
-            bottom: 0;
+            top: 0;
             left: 0;
             width: 100%;
-            height: 60px;
+            height: 100%;
             overflow: hidden;
             z-index: 1;
+            pointer-events: none;
         }
         
-        .wave {
+        .particle {
             position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 600%;
-            height: 100%;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.5);
+            pointer-events: none;
         }
         
-        /* Green waves for TOTAL PROJECTS (card 1) */
-        .wave-green-1 {
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,65 Q100,45 200,65 T400,65 T600,65 T800,65 T1000,65 T1200,65 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.25'/%3E%3C/svg%3E");
-            background-size: 16.66% 100%;
-            background-repeat: repeat-x;
-            animation: wave-flow-1 14s linear infinite;
-            z-index: 3;
-        }
-        .wave-green-2 {
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,80 Q100,60 200,80 T400,80 T600,80 T800,80 T1000,80 T1200,80 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.18'/%3E%3C/svg%3E");
-            background-size: 16.66% 100%;
-            background-repeat: repeat-x;
-            animation: wave-flow-2 20s linear infinite reverse;
-            z-index: 2;
-        }
-        .wave-green-3 {
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,90 Q100,75 200,90 T400,90 T600,90 T800,90 T1000,90 T1200,90 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.12'/%3E%3C/svg%3E");
-            background-size: 16.66% 100%;
-            background-repeat: repeat-x;
-            animation: wave-flow-3 26s linear infinite;
-            z-index: 1;
+        /* Green particles for TOTAL PROJECTS (card 1) */
+        .particle-green-1 {
+            width: 12px;
+            height: 12px;
+            top: 70%;
+            left: 15%;
+            background: rgba(102, 187, 106, 0.6);
+            box-shadow: 0 0 10px rgba(102, 187, 106, 0.4);
+            animation: float-particle-1 25.5s ease-in-out infinite;
         }
         
-        /* Yellow waves for OVERALL COMPLIANCE (card 2) */
-        .wave-yellow-1 {
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,65 Q100,45 200,65 T400,65 T600,65 T800,65 T1000,65 T1200,65 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.25'/%3E%3C/svg%3E");
-            background-size: 16.66% 100%;
-            background-repeat: repeat-x;
-            animation: wave-flow-1 14s linear infinite;
-            z-index: 3;
-        }
-        .wave-yellow-2 {
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,80 Q100,60 200,80 T400,80 T600,80 T800,80 T1000,80 T1200,80 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.18'/%3E%3C/svg%3E");
-            background-size: 16.66% 100%;
-            background-repeat: repeat-x;
-            animation: wave-flow-2 20s linear infinite reverse;
-            z-index: 2;
-        }
-        .wave-yellow-3 {
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,90 Q100,75 200,90 T400,90 T600,90 T800,90 T1000,90 T1200,90 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.12'/%3E%3C/svg%3E");
-            background-size: 16.66% 100%;
-            background-repeat: repeat-x;
-            animation: wave-flow-3 26s linear infinite;
-            z-index: 1;
+        .particle-green-2 {
+            width: 18px;
+            height: 18px;
+            top: 40%;
+            left: 65%;
+            background: rgba(76, 175, 80, 0.5);
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
+            animation: float-particle-2 32.4s ease-in-out infinite 7.5s;
         }
         
-        /* Blue waves for ON-GOING (card 3) */
-        .wave-blue-1 {
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,65 Q100,45 200,65 T400,65 T600,65 T800,65 T1000,65 T1200,65 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.25'/%3E%3C/svg%3E");
-            background-size: 16.66% 100%;
-            background-repeat: repeat-x;
-            animation: wave-flow-1 14s linear infinite;
-            z-index: 3;
-        }
-        .wave-blue-2 {
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,80 Q100,60 200,80 T400,80 T600,80 T800,80 T1000,80 T1200,80 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.18'/%3E%3C/svg%3E");
-            background-size: 16.66% 100%;
-            background-repeat: repeat-x;
-            animation: wave-flow-2 20s linear infinite reverse;
-            z-index: 2;
-        }
-        .wave-blue-3 {
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,90 Q100,75 200,90 T400,90 T600,90 T800,90 T1000,90 T1200,90 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.12'/%3E%3C/svg%3E");
-            background-size: 16.66% 100%;
-            background-repeat: repeat-x;
-            animation: wave-flow-3 26s linear infinite;
-            z-index: 1;
+        .particle-green-3 {
+            width: 10px;
+            height: 10px;
+            top: 55%;
+            left: 40%;
+            background: rgba(129, 199, 132, 0.4);
+            box-shadow: 0 0 8px rgba(129, 199, 132, 0.3);
+            animation: float-particle-3 28.1s ease-in-out infinite 15.2s;
         }
         
-        /* Red waves for WORK STOPPAGE (card 4) */
-        .wave-red-1 {
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,65 Q100,45 200,65 T400,65 T600,65 T800,65 T1000,65 T1200,65 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.25'/%3E%3C/svg%3E");
-            background-size: 16.66% 100%;
-            background-repeat: repeat-x;
-            animation: wave-flow-1 14s linear infinite;
-            z-index: 3;
-        }
-        .wave-red-2 {
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,80 Q100,60 200,80 T400,80 T600,80 T800,80 T1000,80 T1200,80 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.18'/%3E%3C/svg%3E");
-            background-size: 16.66% 100%;
-            background-repeat: repeat-x;
-            animation: wave-flow-2 20s linear infinite reverse;
-            z-index: 2;
-        }
-        .wave-red-3 {
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,90 Q100,75 200,90 T400,90 T600,90 T800,90 T1000,90 T1200,90 L1200,120 L0,120 Z' fill='%23ffffff' fill-opacity='0.12'/%3E%3C/svg%3E");
-            background-size: 16.66% 100%;
-            background-repeat: repeat-x;
-            animation: wave-flow-3 26s linear infinite;
-            z-index: 1;
+        .particle-green-4 {
+            width: 14px;
+            height: 14px;
+            top: 25%;
+            left: 80%;
+            background: rgba(102, 187, 106, 0.5);
+            box-shadow: 0 0 12px rgba(102, 187, 106, 0.4);
+            animation: float-particle-4 38.2s ease-in-out infinite 3.9s;
         }
         
-        /* Wave animation keyframes */
-        @keyframes wave-flow-1 {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-16.66%); }
+        /* Yellow particles for OVERALL COMPLIANCE (card 2) */
+        .particle-yellow-1 {
+            width: 12px;
+            height: 12px;
+            top: 70%;
+            left: 15%;
+            background: rgba(255, 235, 59, 0.6);
+            box-shadow: 0 0 10px rgba(255, 235, 59, 0.4);
+            animation: float-particle-1 30.6s ease-in-out infinite 5.4s;
         }
-        @keyframes wave-flow-2 {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-16.66%); }
+        
+        .particle-yellow-2 {
+            width: 18px;
+            height: 18px;
+            top: 40%;
+            left: 65%;
+            background: rgba(255, 202, 40, 0.5);
+            box-shadow: 0 0 15px rgba(255, 202, 40, 0.3);
+            animation: float-particle-2 35.8s ease-in-out infinite 12.9s;
         }
-        @keyframes wave-flow-3 {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-16.66%); }
+        
+        .particle-yellow-3 {
+            width: 10px;
+            height: 10px;
+            top: 55%;
+            left: 40%;
+            background: rgba(255, 238, 88, 0.4);
+            box-shadow: 0 0 8px rgba(255, 238, 88, 0.3);
+            animation: float-particle-3 26.7s ease-in-out infinite;
+        }
+        
+        .particle-yellow-4 {
+            width: 14px;
+            height: 14px;
+            top: 25%;
+            left: 80%;
+            background: rgba(255, 235, 59, 0.5);
+            box-shadow: 0 0 12px rgba(255, 235, 59, 0.4);
+            animation: float-particle-4 33.9s ease-in-out infinite 9.6s;
+        }
+        
+        /* Blue particles for ON-GOING (card 3) */
+        .particle-blue-1 {
+            width: 12px;
+            height: 12px;
+            top: 70%;
+            left: 15%;
+            background: rgba(100, 181, 246, 0.6);
+            box-shadow: 0 0 10px rgba(100, 181, 246, 0.4);
+            animation: float-particle-1 32.4s ease-in-out infinite 8.7s;
+        }
+        
+        .particle-blue-2 {
+            width: 18px;
+            height: 18px;
+            top: 40%;
+            left: 65%;
+            background: rgba(33, 150, 243, 0.5);
+            box-shadow: 0 0 15px rgba(33, 150, 243, 0.3);
+            animation: float-particle-2 36.3s ease-in-out infinite;
+        }
+        
+        .particle-blue-3 {
+            width: 10px;
+            height: 10px;
+            top: 55%;
+            left: 40%;
+            background: rgba(144, 202, 249, 0.4);
+            box-shadow: 0 0 8px rgba(144, 202, 249, 0.3);
+            animation: float-particle-3 27.6s ease-in-out infinite 14.1s;
+        }
+        
+        .particle-blue-4 {
+            width: 14px;
+            height: 14px;
+            top: 25%;
+            left: 80%;
+            background: rgba(100, 181, 246, 0.5);
+            box-shadow: 0 0 12px rgba(100, 181, 246, 0.4);
+            animation: float-particle-4 41.1s ease-in-out infinite 5.7s;
+        }
+        
+        /* Red particles for WORK STOPPAGE (card 4) */
+        .particle-red-1 {
+            width: 12px;
+            height: 12px;
+            top: 70%;
+            left: 15%;
+            background: rgba(239, 83, 80, 0.6);
+            box-shadow: 0 0 10px rgba(239, 83, 80, 0.4);
+            animation: float-particle-1 34.5s ease-in-out infinite 2.4s;
+        }
+        
+        .particle-red-2 {
+            width: 18px;
+            height: 18px;
+            top: 40%;
+            left: 65%;
+            background: rgba(229, 57, 53, 0.5);
+            box-shadow: 0 0 15px rgba(229, 57, 53, 0.3);
+            animation: float-particle-2 30.3s ease-in-out infinite 11.1s;
+        }
+        
+        .particle-red-3 {
+            width: 10px;
+            height: 10px;
+            top: 55%;
+            left: 40%;
+            background: rgba(244, 143, 177, 0.4);
+            box-shadow: 0 0 8px rgba(244, 143, 177, 0.3);
+            animation: float-particle-3 42.6s ease-in-out infinite 15.3s;
+        }
+        
+        .particle-red-4 {
+            width: 14px;
+            height: 14px;
+            top: 25%;
+            left: 80%;
+            background: rgba(239, 83, 80, 0.5);
+            box-shadow: 0 0 12px rgba(239, 83, 80, 0.4);
+            animation: float-particle-4 24.9s ease-in-out infinite;
+        }
+        
+        /* Floating particle animations - 4 unique variations */
+        @keyframes float-particle-1 {
+            0%, 100% {
+                transform: translateY(0px) translateX(0px);
+                opacity: 0.8;
+            }
+            25% {
+                transform: translateY(-25px) translateX(10px);
+                opacity: 1;
+            }
+            50% {
+                transform: translateY(-15px) translateX(-8px);
+                opacity: 0.6;
+            }
+            75% {
+                transform: translateY(-30px) translateX(5px);
+                opacity: 0.9;
+            }
+        }
+        
+        @keyframes float-particle-2 {
+            0%, 100% {
+                transform: translateY(0px) translateX(0px) rotate(0deg);
+                opacity: 0.7;
+            }
+            30% {
+                transform: translateY(-20px) translateX(-12px) rotate(5deg);
+                opacity: 0.95;
+            }
+            60% {
+                transform: translateY(-28px) translateX(7px) rotate(-3deg);
+                opacity: 0.55;
+            }
+            80% {
+                transform: translateY(-18px) translateX(-5px) rotate(2deg);
+                opacity: 0.85;
+            }
+        }
+        
+        @keyframes float-particle-3 {
+            0%, 100% {
+                transform: translateY(0px) translateX(0px) scale(1);
+                opacity: 0.75;
+            }
+            20% {
+                transform: translateY(-32px) translateX(6px) scale(1.1);
+                opacity: 0.9;
+            }
+            55% {
+                transform: translateY(-12px) translateX(-10px) scale(0.95);
+                opacity: 0.5;
+            }
+            85% {
+                transform: translateY(-22px) translateX(8px) scale(1.05);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes float-particle-4 {
+            0%, 100% {
+                transform: translateY(0px) translateX(0px);
+                opacity: 0.65;
+            }
+            35% {
+                transform: translateY(-18px) translateX(-7px);
+                opacity: 0.85;
+            }
+            65% {
+                transform: translateY(-35px) translateX(12px);
+                opacity: 1;
+            }
+            90% {
+                transform: translateY(-10px) translateX(-4px);
+                opacity: 0.7;
+            }
         }
         .charts-container {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;
@@ -7486,37 +7621,41 @@ function closeAllStatusDropdowns() {
                     <div class="stat-card">
                         <div class="stat-label">TOTAL PROJECTS</div>
                         <div class="stat-value">${state.projects.length}</div>
-                        <div class="waves-container">
-                            <div class="wave wave-green-1"></div>
-                            <div class="wave wave-green-2"></div>
-                            <div class="wave wave-green-3"></div>
+                        <div class="particles-container">
+                            <div class="particle particle-green-1"></div>
+                            <div class="particle particle-green-2"></div>
+                            <div class="particle particle-green-3"></div>
+                            <div class="particle particle-green-4"></div>
                         </div>
                     </div>
                     <div class="stat-card" style="border-left-color: var(--safety-yellow);">
                         <div class="stat-label">OVERALL COMPLIANCE</div>
                         <div class="stat-value">${overallAvg}%</div>
-                        <div class="waves-container">
-                            <div class="wave wave-yellow-1"></div>
-                            <div class="wave wave-yellow-2"></div>
-                            <div class="wave wave-yellow-3"></div>
+                        <div class="particles-container">
+                            <div class="particle particle-yellow-1"></div>
+                            <div class="particle particle-yellow-2"></div>
+                            <div class="particle particle-yellow-3"></div>
+                            <div class="particle particle-yellow-4"></div>
                         </div>
                     </div>
                     <div class="stat-card" style="border-left-color: #1976D2;">
                         <div class="stat-label">ON-GOING</div>
                         <div class="stat-value">${state.projects.filter(p => p.status === 'on-going').length}</div>
-                        <div class="waves-container">
-                            <div class="wave wave-blue-1"></div>
-                            <div class="wave wave-blue-2"></div>
-                            <div class="wave wave-blue-3"></div>
+                        <div class="particles-container">
+                            <div class="particle particle-blue-1"></div>
+                            <div class="particle particle-blue-2"></div>
+                            <div class="particle particle-blue-3"></div>
+                            <div class="particle particle-blue-4"></div>
                         </div>
                     </div>
                     <div class="stat-card" style="border-left-color: #d32f2f;">
                         <div class="stat-label">WORK STOPPAGE</div>
                         <div class="stat-value">${state.projects.filter(p => p.status === 'work-stoppage').length}</div>
-                        <div class="waves-container">
-                            <div class="wave wave-red-1"></div>
-                            <div class="wave wave-red-2"></div>
-                            <div class="wave wave-red-3"></div>
+                        <div class="particles-container">
+                            <div class="particle particle-red-1"></div>
+                            <div class="particle particle-red-2"></div>
+                            <div class="particle particle-red-3"></div>
+                            <div class="particle particle-red-4"></div>
                         </div>
                     </div>
                 </div>
