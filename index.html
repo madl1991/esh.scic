@@ -5204,22 +5204,87 @@ function showBackupStatus(message, type) {
                 await saveToFirebase();
             }
             
+            // Store current projects structure and old year
+            const currentProjectsStructure = JSON.parse(JSON.stringify(state.projects));
+            const oldYear = state.selectedYear;
+            
             // Update selected year
             state.selectedYear = newYear;
             localStorage.setItem('esh_selected_year', newYear);
             
-            // Clear current data
-            state.projects = [];
-            state.personnelData = [];
-            state.incidentRateData = { recordableCases: 0, lostDays: 0, totalHours: 0 };
-            state.filteredProjects = [];
-            state.selectedProjects = [];
-            
-            // Load new year data
+            // Try to load data from new year
+            let newYearHasData = false;
             if (state.isLoggedIn && state.currentUser) {
                 showToast(`📂 Loading ${newYear} data...`, 'info');
-                await loadFromFirebase();
+                const userId = state.currentUser.uid;
+                const userDocRef = window.firebase.doc(window.firebaseDb, 'users', userId);
+                const userDoc = await window.firebase.getDoc(userDocRef);
+                
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    const yearData = userData[`year_${newYear}`];
+                    
+                    if (yearData && yearData.projects && yearData.projects.length > 0) {
+                        // New year already has data - load it
+                        newYearHasData = true;
+                        state.projects = yearData.projects || [];
+                        state.personnelData = yearData.personnelData || [];
+                        state.incidentRateData = yearData.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
+                    }
+                }
             }
+            
+            // Only copy structure if:
+            // 1. New year has no data
+            // 2. We're moving to a FUTURE year (newYear > oldYear)
+            // 3. Current year has projects to copy
+            const isMovingToFuture = newYear > oldYear;
+            
+            if (!newYearHasData && isMovingToFuture && currentProjectsStructure.length > 0) {
+                console.log(`📋 Copying project structure from ${oldYear} to ${newYear} (with blank data)`);
+                state.projects = currentProjectsStructure.map(project => {
+                    const newProject = {
+                        name: project.name,
+                        location: project.location || '',
+                        category: project.category || '',
+                        vals: {},
+                        safetyMeasures: [],
+                        documents: []
+                    };
+                    
+                    // Copy the keys structure but with empty/default values
+                    Object.keys(project.vals || {}).forEach(key => {
+                        newProject.vals[key] = {};
+                        // Don't copy any actual values - keep everything blank
+                    });
+                    
+                    return newProject;
+                });
+                
+                // Clear personnel and incident rate data
+                state.personnelData = [];
+                state.incidentRateData = { recordableCases: 0, lostDays: 0, totalHours: 0 };
+                
+                // Auto-save the new structure
+                if (state.isLoggedIn && state.currentUser) {
+                    await saveToFirebase();
+                }
+                
+                showToast(`📋 Project structure copied to ${newYear} (data blank)`, 'info');
+            } else if (!newYearHasData) {
+                // No structure to copy or moving to past year - start with blank slate
+                state.projects = [];
+                state.personnelData = [];
+                state.incidentRateData = { recordableCases: 0, lostDays: 0, totalHours: 0 };
+                
+                if (oldYear > newYear) {
+                    console.log(`⏪ Moving to past year ${newYear} - starting with blank slate`);
+                }
+            }
+            
+            // Clear filtered and selected projects
+            state.filteredProjects = [];
+            state.selectedProjects = [];
             
             // Update UI
             updateYearDisplay();
@@ -10433,24 +10498,39 @@ function initAudioContext() {
     }
     
     // Resume AudioContext if suspended (required by browsers)
-    if (globalAudioContext && globalAudioContext.state === 'suspended') {
-        globalAudioContext.resume().then(() => {
-            console.log('🔊 AudioContext resumed');
+    if (globalAudioContext) {
+        if (globalAudioContext.state === 'suspended') {
+            globalAudioContext.resume().then(() => {
+                console.log('🔊 AudioContext resumed - ready for sounds!');
+                audioContextReady = true;
+            }).catch(err => {
+                console.warn('Could not resume AudioContext:', err);
+            });
+        } else if (globalAudioContext.state === 'running') {
+            console.log('🔊 AudioContext already running!');
             audioContextReady = true;
-        }).catch(err => {
-            console.warn('Could not resume AudioContext:', err);
-        });
-    } else if (globalAudioContext && globalAudioContext.state === 'running') {
-        audioContextReady = true;
+        }
     }
     
     return globalAudioContext;
 }
 
-// Initialize on first user interaction
+// Initialize on first user interaction (multiple events for better compatibility)
 document.addEventListener('click', initAudioContext, { once: true });
 document.addEventListener('keydown', initAudioContext, { once: true });
 document.addEventListener('touchstart', initAudioContext, { once: true });
+document.addEventListener('mousedown', initAudioContext, { once: true });
+document.addEventListener('scroll', initAudioContext, { once: true });
+
+// Also try to initialize when page is ready
+window.addEventListener('load', () => {
+    // Try to initialize immediately when page loads
+    setTimeout(() => {
+        if (!audioContextReady) {
+            initAudioContext();
+        }
+    }, 1000);
+});
 
 // ==================== SAFETY REMINDER SYSTEM ====================
 // Load work start time from localStorage or initialize
@@ -11111,15 +11191,20 @@ document.addEventListener('DOMContentLoaded', function() {
 // Reset timer when user becomes active again after being away
 let lastActivityTime = Date.now();
 let inactivityTimeout = null;
+let inactivityLogoutTimeout = null;
 
 function resetInactivityTimer() {
     lastActivityTime = Date.now();
     
-    // If user was inactive for more than 10 minutes, reset the work timer
+    // Clear existing timeouts
     if (inactivityTimeout) {
         clearTimeout(inactivityTimeout);
     }
+    if (inactivityLogoutTimeout) {
+        clearTimeout(inactivityLogoutTimeout);
+    }
     
+    // 10 minutes timeout - reset work timer
     inactivityTimeout = setTimeout(() => {
         const inactiveTime = Date.now() - lastActivityTime;
         if (inactiveTime >= 10 * 60 * 1000) { // 10 minutes
@@ -11129,11 +11214,175 @@ function resetInactivityTimer() {
             dismissReminder();
         }
     }, 10 * 60 * 1000);
+    
+    // 1 hour timeout - autosave and logout (only if user is logged in)
+    if (window.firebaseAuth && window.firebaseAuth.currentUser) {
+        inactivityLogoutTimeout = setTimeout(async () => {
+            const inactiveTime = Date.now() - lastActivityTime;
+            if (inactiveTime >= 60 * 60 * 1000) { // 1 hour
+                console.log('⏰ 1 hour inactivity detected - autosaving and logging out');
+                await handleInactivityLogout();
+            }
+        }, 60 * 60 * 1000);
+    }
+}
+
+// Handle inactivity logout with autosave
+async function handleInactivityLogout() {
+    try {
+        // Autosave current state
+        await saveToFirebase();
+        console.log('✅ Auto-saved due to inactivity');
+        
+        // Show inactivity dialog
+        showInactivityDialog();
+        
+        // Wait 5 seconds before logging out to show the dialog
+        setTimeout(async () => {
+            // Logout user
+            await window.firebase.signOut(window.firebaseAuth);
+            console.log('🔒 Logged out due to inactivity');
+        }, 5000);
+        
+    } catch (error) {
+        console.error('Error during inactivity logout:', error);
+        // Still logout even if save fails
+        setTimeout(async () => {
+            await window.firebase.signOut(window.firebaseAuth);
+        }, 5000);
+    }
+}
+
+// Show inactivity dialog with matching style
+function showInactivityDialog() {
+    // Create dialog overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'inactivity-dialog-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease;
+    `;
+    
+    // Create dialog box with same style as reminder bubble
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+        background: white;
+        padding: 30px 35px;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        min-width: 400px;
+        max-width: 500px;
+        border: 3px solid #2e7d32;
+        animation: slideUp 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    `;
+    
+    // Check if dark mode
+    if (document.body.classList.contains('dark-mode')) {
+        dialog.style.background = '#2d2d2d';
+        dialog.style.color = '#e4e4e4';
+        dialog.style.borderColor = '#4caf50';
+    }
+    
+    dialog.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+            <span style="font-size: 48px;">⏰</span>
+            <div>
+                <div style="font-weight: 700; font-size: 22px; color: #2e7d32; ${document.body.classList.contains('dark-mode') ? 'color: #81c784;' : ''}">
+                    Inactivity Detected
+                </div>
+                <div style="font-size: 14px; color: #666; ${document.body.classList.contains('dark-mode') ? 'color: #b0b0b0;' : ''}">
+                    Auto-logout in progress
+                </div>
+            </div>
+        </div>
+        
+        <div style="font-size: 16px; line-height: 1.6; color: #333; margin-bottom: 20px; ${document.body.classList.contains('dark-mode') ? 'color: #e4e4e4;' : ''}">
+            <p style="margin: 0 0 15px 0;">
+                <strong>Wala kang activity sa loob ng 1 oras.</strong>
+            </p>
+            <p style="margin: 0 0 10px 0;">
+                ✅ <strong style="color: #2e7d32; ${document.body.classList.contains('dark-mode') ? 'color: #81c784;' : ''}">Na-save na ang lahat ng iyong changes</strong>
+            </p>
+            <p style="margin: 0;">
+                🔒 Ilo-logout ka na para sa security ng iyong account.
+            </p>
+        </div>
+        
+        <div style="background: #f4f7f6; padding: 15px; border-radius: 12px; border-left: 4px solid #2e7d32; margin-bottom: 20px; ${document.body.classList.contains('dark-mode') ? 'background: #1a1a1a; border-left-color: #4caf50;' : ''}">
+            <div style="font-size: 14px; color: #666; ${document.body.classList.contains('dark-mode') ? 'color: #b0b0b0;' : ''}">
+                💡 <em>Puwede ka na mag-login ulit anumang oras!</em>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 10px; align-items: center; font-size: 13px; color: #666; ${document.body.classList.contains('dark-mode') ? 'color: #b0b0b0;' : ''}">
+            <i class="fas fa-sync fa-spin" style="color: #2e7d32; ${document.body.classList.contains('dark-mode') ? 'color: #81c784;' : ''}"></i>
+            <span>Redirecting to login page...</span>
+        </div>
+    `;
+    
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    // Add animations if not yet added
+    if (!document.getElementById('inactivity-animations')) {
+        const style = document.createElement('style');
+        style.id = 'inactivity-animations';
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes slideUp {
+                from { 
+                    transform: translateY(50px);
+                    opacity: 0;
+                }
+                to { 
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
 }
 
 // Track user activity
-['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove', 'click'].forEach(event => {
     document.addEventListener(event, resetInactivityTimer, true);
+});
+
+// Initialize timers when user logs in (wrapped in DOMContentLoaded to ensure firebaseAuth exists)
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait for Firebase to be ready
+    const checkFirebaseAuth = setInterval(() => {
+        if (window.firebaseAuth && window.firebase && window.firebase.onAuthStateChanged) {
+            clearInterval(checkFirebaseAuth);
+            
+            window.firebase.onAuthStateChanged(window.firebaseAuth, user => {
+                if (user) {
+                    console.log('⏱️ Inactivity tracking started (10 min work reset + 1 hour logout)');
+                    resetInactivityTimer();
+                } else {
+                    // Clear timers when logged out
+                    if (inactivityTimeout) clearTimeout(inactivityTimeout);
+                    if (inactivityLogoutTimeout) clearTimeout(inactivityLogoutTimeout);
+                }
+            });
+        }
+    }, 100);
+    
+    // Timeout after 10 seconds if Firebase doesn't load
+    setTimeout(() => clearInterval(checkFirebaseAuth), 10000);
 });
 
 console.log('✅ Safety reminder character loaded!');
