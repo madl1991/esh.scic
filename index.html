@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESH COMPLIANCE DASHBOARD - SCIC</title>
-    <link rel="icon" type="image/svg+xml" href="esh.svg">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
@@ -1913,6 +1913,267 @@
         .error-message { color: #d32f2f; font-size: 0.8rem; margin-top: 10px; }
         .success-message { color: #1b5e20; font-size: 0.8rem; margin-top: 10px; font-weight: 600; }
         .hidden { display: none !important; }
+
+        /* ==================== CUSTOM CONFIRMATION MODAL ==================== */
+        .confirm-modal-icon.warning {
+            background: linear-gradient(135deg, #f57c00, #ff9800);
+            box-shadow: 0 5px 20px rgba(245, 124, 0, 0.3);
+        }
+        
+        .confirm-modal-content {
+            background: var(--bg-card);
+            padding: 35px 30px 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 480px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+            color: var(--text-primary);
+            animation: scaleIn 0.3s;
+            position: relative;
+        }
+
+        .confirm-modal-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .confirm-modal-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 15px 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .confirm-modal-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+
+        .confirm-modal-body {
+            background: rgba(255, 152, 0, 0.08);
+            border-left: 4px solid #ff9800;
+            padding: 18px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        body.dark-mode .confirm-modal-body {
+            background: rgba(255, 152, 0, 0.12);
+        }
+
+        .confirm-modal-body ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .confirm-modal-body li {
+            padding: 8px 0;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: start;
+            gap: 10px;
+        }
+
+        .confirm-modal-body li::before {
+            content: "•";
+            color: #ff9800;
+            font-size: 1.2rem;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .confirm-modal-question {
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        .confirm-modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .confirm-modal-buttons .btn {
+            flex: 1;
+            max-width: 180px;
+            padding: 12px 24px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .confirm-modal-buttons .btn-cancel {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .confirm-modal-buttons .btn-cancel:hover {
+            background: #bbb;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        body.dark-mode .confirm-modal-buttons .btn-cancel {
+            background: #444;
+            color: var(--text-primary);
+        }
+
+        body.dark-mode .confirm-modal-buttons .btn-cancel:hover {
+            background: #555;
+        }
+
+        .confirm-modal-buttons .btn-proceed {
+            background: var(--header-grad);
+            color: white;
+        }
+
+        .confirm-modal-buttons .btn-proceed:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(27, 94, 32, 0.3);
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* ==================== SUCCESS MODAL ==================== */
+        .success-modal-icon.success {
+            background: linear-gradient(135deg, #2e7d32, #4caf50);
+            box-shadow: 0 5px 20px rgba(46, 125, 50, 0.4);
+        }
+
+        .success-modal-content {
+            background: var(--bg-card);
+            padding: 35px 30px 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 480px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+            color: var(--text-primary);
+            animation: scaleIn 0.3s;
+            position: relative;
+        }
+
+        .success-modal-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .success-modal-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 15px 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .success-modal-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+
+        .success-modal-body {
+            background: rgba(46, 125, 50, 0.08);
+            border-left: 4px solid #4caf50;
+            padding: 18px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        body.dark-mode .success-modal-body {
+            background: rgba(46, 125, 50, 0.15);
+        }
+
+        .success-modal-body ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .success-modal-body li {
+            padding: 8px 0;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: start;
+            gap: 10px;
+        }
+
+        .success-modal-body li::before {
+            content: "✓";
+            color: #4caf50;
+            font-size: 1.2rem;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .success-modal-footer {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
+        .success-modal-countdown {
+            font-weight: 700;
+            color: #2e7d32;
+            font-size: 1.1rem;
+        }
+
+        body.dark-mode .success-modal-countdown {
+            color: #4caf50;
+        }
+
+        .success-modal-button {
+            width: 100%;
+            max-width: 200px;
+            margin: 0 auto;
+            display: block;
+            padding: 12px 24px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: var(--header-grad);
+            color: white;
+        }
+
+        .success-modal-button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(27, 94, 32, 0.3);
+        }
         
 /* Backup & Recovery Styles */
 .backup-section {
@@ -3364,6 +3625,82 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         </div>
     </div>
 
+    <!-- ==================== CUSTOM CONFIRMATION MODAL ==================== -->
+    <div id="confirmModal" class="modal">
+        <div class="confirm-modal-content">
+            <div class="confirm-modal-header">
+                <div class="modal-icon confirm-modal-icon warning">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="confirm-modal-title">
+                    <i class="fas fa-lock"></i> SECURITY CONFIRMATION
+                </div>
+                <div class="confirm-modal-subtitle">Please review the following before proceeding</div>
+            </div>
+
+            <div class="confirm-modal-body">
+                <strong style="display: block; margin-bottom: 10px; color: var(--text-primary);">
+                    ⚠️ After changing your password:
+                </strong>
+                <ul>
+                    <li>You will be logged out automatically</li>
+                    <li>All other devices will be logged out</li>
+                    <li>You'll need to login again with new password</li>
+                    <li>You'll receive an email confirmation</li>
+                </ul>
+            </div>
+
+            <div class="confirm-modal-question">
+                Do you want to proceed?
+            </div>
+
+            <div class="confirm-modal-buttons">
+                <button class="btn btn-cancel" onclick="closeConfirmModal(false)">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn btn-proceed" onclick="closeConfirmModal(true)">
+                    <i class="fas fa-check"></i> Yes, Proceed
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SUCCESS MODAL ==================== -->
+    <div id="successModal" class="modal">
+        <div class="success-modal-content">
+            <div class="success-modal-header">
+                <div class="modal-icon success-modal-icon success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="success-modal-title">
+                    ✅ PASSWORD CHANGED SUCCESSFULLY!
+                </div>
+                <div class="success-modal-subtitle">Your password has been updated securely</div>
+            </div>
+
+            <div class="success-modal-body">
+                <strong style="display: block; margin-bottom: 10px; color: var(--text-primary);">
+                    🔐 For your security:
+                </strong>
+                <ul>
+                    <li>All sessions have been logged out</li>
+                    <li>Please login again with your new password</li>
+                    <li>Check your email for confirmation</li>
+                </ul>
+            </div>
+
+            <div class="success-modal-footer">
+                <div style="margin-bottom: 10px;">You will be redirected to login in</div>
+                <div class="success-modal-countdown" id="countdown-timer">3</div>
+                <div style="margin-top: 5px; font-size: 0.85rem;">seconds...</div>
+            </div>
+
+            <button class="success-modal-button" onclick="closeSuccessModal()">
+                <i class="fas fa-sign-in-alt"></i> Login Now
+            </button>
+        </div>
+    </div>
+
     <div id="addProjectModal" class="modal">
         <div class="modal-content">
             <div class="modal-icon">
@@ -4145,34 +4482,90 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         </div>
       </div>
 
-      <!-- Change Password -->
+      <!-- Change Password - IMPROVED SECURITY -->
       <div class="settings-card">
         <div class="settings-card-header">
           <i class="fas fa-lock"></i>
           <span class="settings-card-title">CHANGE PASSWORD</span>
+          <span style="font-size: 11px; color: var(--safety-yellow); background: rgba(251, 192, 45, 0.15); padding: 3px 8px; border-radius: 4px; margin-left: 10px;">
+            🔐 Enhanced Security
+          </span>
         </div>
         <div class="settings-card-body">
+          
+          <!-- SECURITY INFO BOX -->
+          <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; color: white;">
+            <div style="display: flex; align-items: start; gap: 10px;">
+              <i class="fas fa-shield-alt" style="font-size: 20px; margin-top: 2px;"></i>
+              <div style="flex: 1;">
+                <strong style="display: block; margin-bottom: 6px; font-size: 13px;">🔒 Security Requirements:</strong>
+                <ul style="margin: 0; padding-left: 18px; font-size: 11px; line-height: 1.5;">
+                  <li>Must enter your <strong>current password</strong> to verify identity</li>
+                  <li>New password: <strong>8+ characters</strong>, include <strong>numbers & special chars</strong></li>
+                  <li>All devices will be <strong>logged out automatically</strong></li>
+                  <li>You'll receive an <strong>email confirmation</strong></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- CURRENT PASSWORD -->
           <div class="settings-input-group">
-            <label class="settings-label">New Password</label>
+            <label class="settings-label">
+              <i class="fas fa-lock"></i> Current Password
+              <span style="color: #e53935; font-size: 11px; font-weight: normal;">(Required for verification)</span>
+            </label>
             <div class="settings-input-icon">
-              <input type="password" id="new-password" class="settings-input" placeholder="Min. 6 characters">
+              <input type="password" id="current-password" class="settings-input" placeholder="Enter your current password">
+              <button class="icon-btn" onclick="togglePwd('current-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+            </div>
+          </div>
+
+          <!-- NEW PASSWORD -->
+          <div class="settings-input-group">
+            <label class="settings-label">
+              <i class="fas fa-key"></i> New Password
+              <span style="color: #666; font-size: 11px; font-weight: normal;">(Min. 8 characters)</span>
+            </label>
+            <div class="settings-input-icon">
+              <input type="password" id="new-password" class="settings-input" placeholder="Min. 8 chars, include numbers & special chars">
               <button class="icon-btn" onclick="togglePwd('new-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
             </div>
           </div>
+          
+          <!-- PASSWORD STRENGTH INDICATOR -->
+          <div id="pwd-strength" style="margin-bottom:10px; font-size:0.75rem; min-height:16px; font-weight: 500;"></div>
+
+          <!-- CONFIRM PASSWORD -->
           <div class="settings-input-group">
-            <label class="settings-label">Confirm Password</label>
+            <label class="settings-label">
+              <i class="fas fa-check-double"></i> Confirm New Password
+            </label>
             <div class="settings-input-icon">
-              <input type="password" id="confirm-password" class="settings-input" placeholder="Re-enter password">
+              <input type="password" id="confirm-password" class="settings-input" placeholder="Re-enter new password">
               <button class="icon-btn" onclick="togglePwd('confirm-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
             </div>
           </div>
-          <div id="pwd-strength" style="margin-bottom:10px; font-size:0.7rem; height:14px;"></div>
-          <button class="settings-btn settings-btn-primary" id="update-pwd-btn" onclick="updatePassword()">
+
+          <!-- UPDATE BUTTON -->
+          <button class="settings-btn settings-btn-primary" id="update-pwd-btn" onclick="updatePasswordSecure()">
             <i class="fas fa-key"></i> UPDATE PASSWORD
           </button>
-          <button class="settings-btn settings-btn-outline" style="margin-top:8px;" onclick="sendPasswordReset()">
-            <i class="fas fa-envelope"></i> SEND RESET EMAIL
-          </button>
+          
+          <!-- PASSWORD RESET OPTION -->
+          <div style="margin-top: 12px; padding: 10px; background: rgba(25, 118, 210, 0.05); border-left: 3px solid #1976d2; border-radius: 4px;">
+            <strong style="color: #1976d2; display: block; margin-bottom: 4px; font-size: 12px;">
+              <i class="fas fa-envelope"></i> Forgot your current password?
+            </strong>
+            <p style="margin: 0 0 8px 0; font-size: 11px; color: #666;">
+              We'll send a password reset link to your email
+            </p>
+            <button class="settings-btn settings-btn-outline" style="margin-top:0;" onclick="sendPasswordReset()">
+              <i class="fas fa-paper-plane"></i> SEND RESET EMAIL
+            </button>
+          </div>
+
+          <!-- STATUS MESSAGE -->
           <div id="settings-message" class="settings-msg"></div>
         </div>
       </div>
@@ -5515,6 +5908,103 @@ function showBackupStatus(message, type) {
         function closeAddProjectModal() {
             document.getElementById('addProjectModal').classList.remove('show');
         }
+
+        // ==================== CUSTOM CONFIRMATION MODAL FUNCTIONS ====================
+        let confirmModalResolve = null;
+
+        function showConfirmModal() {
+            return new Promise((resolve) => {
+                confirmModalResolve = resolve;
+                const modal = document.getElementById('confirmModal');
+                modal.classList.add('show');
+            });
+        }
+
+        function closeConfirmModal(confirmed) {
+            const modal = document.getElementById('confirmModal');
+            modal.classList.remove('show');
+            if (confirmModalResolve) {
+                confirmModalResolve(confirmed);
+                confirmModalResolve = null;
+            }
+        }
+
+        // Close modal when clicking outside (optional)
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('confirmModal');
+            if (e.target === modal) {
+                closeConfirmModal(false);
+            }
+        });
+
+        // Keyboard support for confirmation modal
+        document.addEventListener('keydown', function(e) {
+            const modal = document.getElementById('confirmModal');
+            if (modal && modal.classList.contains('show')) {
+                if (e.key === 'Escape') {
+                    closeConfirmModal(false);
+                } else if (e.key === 'Enter') {
+                    closeConfirmModal(true);
+                }
+            }
+        });
+
+        // ==================== SUCCESS MODAL FUNCTIONS ====================
+        let countdownInterval = null;
+        let logoutTimeout = null;
+
+        function showSuccessModal() {
+            const modal = document.getElementById('successModal');
+            modal.classList.add('show');
+            
+            // Start countdown
+            let seconds = 3;
+            const countdownEl = document.getElementById('countdown-timer');
+            countdownEl.textContent = seconds;
+            
+            countdownInterval = setInterval(() => {
+                seconds--;
+                if (seconds >= 0) {
+                    countdownEl.textContent = seconds;
+                }
+            }, 1000);
+            
+            // Auto-logout after 3 seconds
+            logoutTimeout = setTimeout(async () => {
+                await firebaseLogout();
+                location.reload();
+            }, 3000);
+        }
+
+        function closeSuccessModal() {
+            const modal = document.getElementById('successModal');
+            modal.classList.remove('show');
+            
+            // Clear timers
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            if (logoutTimeout) {
+                clearTimeout(logoutTimeout);
+                logoutTimeout = null;
+            }
+            
+            // Logout immediately
+            firebaseLogout().then(() => {
+                location.reload();
+            });
+        }
+
+        // Keyboard support for success modal
+        document.addEventListener('keydown', function(e) {
+            const modal = document.getElementById('successModal');
+            if (modal && modal.classList.contains('show')) {
+                if (e.key === 'Enter' || e.key === 'Escape') {
+                    closeSuccessModal();
+                }
+            }
+        });
 
         function confirmAddProject() {
             const name = document.getElementById('projectNameInput').value.trim();
@@ -8100,21 +8590,67 @@ document.addEventListener('click', closeAllStatusDropdowns);
             }
         }
 
-        // Password strength indicator
+        // IMPROVED: Password strength indicator with detailed feedback
         document.addEventListener('input', function(e) {
             if (e.target.id === 'new-password') {
-                const val = e.target.value;
-                const el = document.getElementById('pwd-strength');
-                if (!el || !val) { if(el) el.innerHTML=''; return; }
-                let score = 0;
-                if (val.length >= 6) score++;
-                if (val.length >= 10) score++;
-                if (/[A-Z]/.test(val)) score++;
-                if (/[0-9]/.test(val)) score++;
-                if (/[^A-Za-z0-9]/.test(val)) score++;
-                const labels = ['', '🔴 Weak', '🟠 Fair', '🟡 Good', '🟢 Strong', '✅ Very Strong'];
-                const colors = ['', '#f44336', '#ff9800', '#ffc107', '#4caf50', '#1b5e20'];
-                el.innerHTML = `<span style="color:${colors[score]};font-weight:700;">${labels[score] || ''}</span>`;
+                const pwd = e.target.value;
+                const strengthDiv = document.getElementById('pwd-strength');
+                
+                if (!strengthDiv) return;
+                
+                if (!pwd) {
+                    strengthDiv.innerHTML = '';
+                    return;
+                }
+
+                let strength = 0;
+                let feedback = [];
+                
+                // Length check (25 points)
+                if (pwd.length >= 8) {
+                    strength += 25;
+                } else {
+                    feedback.push('min 8 characters');
+                }
+                
+                // Number check (25 points)
+                if (/[0-9]/.test(pwd)) {
+                    strength += 25;
+                } else {
+                    feedback.push('add numbers');
+                }
+                
+                // Special character check (25 points)
+                if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd)) {
+                    strength += 25;
+                } else {
+                    feedback.push('add special chars (!@#$)');
+                }
+                
+                // Uppercase/lowercase check (25 points)
+                if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) {
+                    strength += 25;
+                } else {
+                    feedback.push('mix upper & lowercase');
+                }
+
+                let color, label;
+                if (strength < 50) {
+                    color = '#e53935'; label = '❌ Weak';
+                } else if (strength < 75) {
+                    color = '#ff9800'; label = '⚠️ Moderate';
+                } else if (strength < 100) {
+                    color = '#fbc02d'; label = '✓ Good';
+                } else {
+                    color = '#2e7d32'; label = '✅ Strong';
+                }
+
+                let html = `<span style="color: ${color}; font-weight: 600;">${label}</span>`;
+                if (feedback.length > 0) {
+                    html += ` <span style="color: #666; font-size: 11px;">— Need: ${feedback.join(', ')}</span>`;
+                }
+                
+                strengthDiv.innerHTML = html;
             }
         });
 
@@ -8173,34 +8709,113 @@ document.addEventListener('click', closeAllStatusDropdowns);
         }
 
         // Update Password via Firebase
-        async function updatePassword() {
+        // IMPROVED: Secure password update with re-authentication
+        async function updatePasswordSecure() {
+            const currentPass = document.getElementById('current-password').value;
             const newPass = document.getElementById('new-password').value;
             const confirmPass = document.getElementById('confirm-password').value;
             const btn = document.getElementById('update-pwd-btn');
 
             showSettingsMsg('settings-message', '', '');
 
-            if (!newPass || !confirmPass) { showSettingsMsg('settings-message', '⚠️ Please fill both fields', 'error'); return; }
-            if (newPass !== confirmPass) { showSettingsMsg('settings-message', '❌ Passwords do not match', 'error'); return; }
-            if (newPass.length < 6) { showSettingsMsg('settings-message', '❌ Password must be at least 6 characters', 'error'); return; }
+            // Validation checks
+            if (!currentPass || !newPass || !confirmPass) {
+                showSettingsMsg('settings-message', '⚠️ Please fill all fields', 'error');
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                showSettingsMsg('settings-message', '❌ New passwords do not match', 'error');
+                return;
+            }
+
+            if (newPass.length < 8) {
+                showSettingsMsg('settings-message', '❌ Password must be at least 8 characters', 'error');
+                return;
+            }
+
+            // Password strength validation
+            const hasNumber = /[0-9]/.test(newPass);
+            const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPass);
+            
+            if (!hasNumber || !hasSpecial) {
+                showSettingsMsg('settings-message', '❌ Password must contain at least one number and one special character (!@#$%^&*)', 'error');
+                return;
+            }
+
+            if (currentPass === newPass) {
+                showSettingsMsg('settings-message', '⚠️ New password must be different from current password', 'error');
+                return;
+            }
+
+            // Show custom confirmation dialog
+            const confirmChange = await showConfirmModal();
+
+            if (!confirmChange) return;
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> UPDATING...';
-            showSettingsMsg('settings-message', 'Updating password in Firebase...', 'loading');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> VERIFYING & UPDATING...';
+            showSettingsMsg('settings-message', '🔐 Step 1/3: Verifying your identity...', 'loading');
 
-            const success = await firebaseChangePassword(newPass);
-            if (success) {
-                showSettingsMsg('settings-message', '✅ Password updated successfully in Firebase!', 'success');
+            try {
+                // STEP 1: Re-authenticate with current password
+                const user = window.firebaseAuth.currentUser;
+                const email = user.email;
+                
+                // Import reauthenticateWithCredential if not already available
+                if (!window.firebase.reauthenticateWithCredential) {
+                    const { reauthenticateWithCredential, EmailAuthProvider } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+                    window.firebase.reauthenticateWithCredential = reauthenticateWithCredential;
+                    window.firebase.EmailAuthProvider = EmailAuthProvider;
+                }
+
+                const credential = window.firebase.EmailAuthProvider.credential(email, currentPass);
+                
+                try {
+                    await window.firebase.reauthenticateWithCredential(user, credential);
+                    console.log('✅ Re-authentication successful');
+                } catch (authError) {
+                    throw new Error('WRONG_PASSWORD');
+                }
+
+                // STEP 2: Update password
+                showSettingsMsg('settings-message', '🔑 Step 2/3: Updating password securely...', 'loading');
+                await window.firebase.updatePassword(user, newPass);
+                console.log('✅ Password updated successfully');
+
+                // STEP 3: Logout for security
+                showSettingsMsg('settings-message', '✅ Step 3/3: Password updated! Logging out all sessions...', 'success');
+                
+                // Clear form
+                document.getElementById('current-password').value = '';
                 document.getElementById('new-password').value = '';
                 document.getElementById('confirm-password').value = '';
                 document.getElementById('pwd-strength').innerHTML = '';
-            } else {
-                // firebaseChangePassword already shows alert on error
-                showSettingsMsg('settings-message', '❌ Password update failed. If you just logged in, please re-login and try again.', 'error');
-            }
 
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-key"></i> UPDATE PASSWORD';
+                // Show custom success modal with countdown
+                setTimeout(() => {
+                    showSuccessModal();
+                }, 500);
+
+            } catch (error) {
+                console.error('❌ Password update error:', error);
+                
+                if (error.message === 'WRONG_PASSWORD') {
+                    showSettingsMsg('settings-message', '❌ Current password is incorrect. Please try again.', 'error');
+                } else if (error.code === 'auth/requires-recent-login') {
+                    showSettingsMsg('settings-message', '❌ For security, please log out and log back in before changing your password.', 'error');
+                } else {
+                    showSettingsMsg('settings-message', '❌ Password update failed: ' + error.message, 'error');
+                }
+                
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-key"></i> UPDATE PASSWORD';
+            }
+        }
+
+        // Legacy function name support (in case called elsewhere)
+        async function updatePassword() {
+            await updatePasswordSecure();
         }
 
         // Send password reset email
