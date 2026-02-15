@@ -2560,7 +2560,7 @@ body.dark-mode .modern-dialog-btn-cancel:hover {
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
             padding: 8px 6px; 
             text-align: center;
-            min-width: auto;
+            min-width: 90px;
             width: auto;
             white-space: nowrap;
         }
@@ -2590,9 +2590,9 @@ body.dark-mode .modern-dialog-btn-cancel:hover {
         }
         
         td.prev-year {
-            min-width: 65px;
-            max-width: 70px;
-            width: 70px;
+            min-width: 90px;
+            max-width: 110px;
+            width: 100px;
             padding: 8px 6px;
             font-size: 0.7rem;
             text-align: center;
@@ -2600,9 +2600,9 @@ body.dark-mode .modern-dialog-btn-cancel:hover {
         
         th.prev-year {
             background: #2e7d32;
-            min-width: 65px;
-            max-width: 70px;
-            width: 70px;
+            min-width: 90px;
+            max-width: 110px;
+            width: 100px;
             padding: 6px 4px;
             font-size: 0.7rem;
         }
@@ -2822,16 +2822,21 @@ td.average-cell {
         }
         
         table input[type="number"] {
-    min-width: auto;
-    width: auto;
+    min-width: 60px;
+    max-width: 100px;
+    width: 85px;
     padding: 6px 4px;
+    box-sizing: border-box;
+    font-size: 0.7rem;
 }
 
 table input[type="date"] {
     min-width: 110px;
-    width: auto;
+    width: 110px;
+    max-width: 120px;
     padding: 6px 8px;
     cursor: pointer;
+    box-sizing: border-box;
 }
 
 /* Always show calendar icon for date inputs */
@@ -6073,6 +6078,10 @@ function showBackupStatus(message, type) {
 
             editingProjectOriginalName = projectName;
             
+            // Set today's date as max for date finished
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('editProjectDateFinished').setAttribute('max', today);
+            
             document.getElementById('editProjectNameInput').value = project.name;
             document.getElementById('editProjectDateStarted').value = project.dateStarted || '';
             document.getElementById('editProjectDateFinished').value = project.dateFinished || '';
@@ -6100,8 +6109,23 @@ function showBackupStatus(message, type) {
             if (!newName) { errorDiv.innerText = '⚠️ Project name is required'; return; }
             if (!dateStarted) { errorDiv.innerText = '⚠️ Date started is required'; return; }
             if (!newRegion) { errorDiv.innerText = '⚠️ Region is required'; return; }
-            if (dateFinished && new Date(dateFinished) < new Date(dateStarted)) {
-                errorDiv.innerText = '⚠️ Date finished cannot be before date started'; return;
+            
+            // Validate date finished
+            if (dateFinished) {
+                const finishedDate = new Date(dateFinished);
+                const startDate = new Date(dateStarted);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Reset time to compare dates only
+                
+                if (finishedDate < startDate) {
+                    errorDiv.innerText = '⚠️ Date finished cannot be before date started'; 
+                    return;
+                }
+                
+                if (finishedDate > today) {
+                    errorDiv.innerText = '⚠️ Date finished cannot be in the future'; 
+                    return;
+                }
             }
             
             // Check if new name conflicts with another project (but allow keeping the same name)
@@ -6361,6 +6385,24 @@ function showBackupStatus(message, type) {
         }
 
 function updateAuditData(pName, qtr, field, val) {
+    // Prevent negative numbers
+    const numVal = parseFloat(val);
+    if (numVal < 0) {
+        showToast('⚠️ Negative numbers are not allowed', 'warning');
+        // Reset the input field to 0 or empty
+        const input = event?.target;
+        if (input) input.value = '';
+        return;
+    }
+    
+    // Prevent values over 100 for audit scores
+    if (numVal > 100) {
+        showToast('⚠️ Audit scores cannot exceed 100%', 'warning');
+        const input = event?.target;
+        if (input) input.value = '100';
+        val = '100';
+    }
+    
     const p = state.projects.find(x => x.name === pName);
     if (p) {
         if (!p.auditData) {
@@ -6375,6 +6417,16 @@ function updateAuditData(pName, qtr, field, val) {
 }
 
         function updateVal(pName, key, mIdx, val) {
+            // Prevent negative numbers
+            const numVal = parseFloat(val);
+            if (numVal < 0) {
+                showToast('⚠️ Negative numbers are not allowed', 'warning');
+                // Reset the input field to 0 or empty
+                const input = event?.target;
+                if (input) input.value = '';
+                return;
+            }
+            
             const p = state.projects.find(x => x.name === pName);
             if (p) {
                 if (!p.vals[key]) p.vals[key] = new Array(13).fill("");
@@ -6579,7 +6631,22 @@ function updateAuditData(pName, qtr, field, val) {
         const btn = document.createElement('button');
         btn.textContent = status.label;
         btn.style.fontWeight = project.status === status.value ? '700' : '400';
+        
+        // Disable work-stoppage if no finished date
+        if (status.value === 'work-stoppage' && !project.dateFinished) {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+            btn.title = 'Work Stoppage requires a finished date. Edit the project and add a finished date first.';
+        }
+        
         btn.onclick = () => {
+            // Double-check validation before changing status
+            if (status.value === 'work-stoppage' && !project.dateFinished) {
+                showToast('⚠️ Work Stoppage requires a finished date. Please edit the project and add a finished date first.', 'warning');
+                return;
+            }
+            
             project.status = status.value;
             saveUserData(state.currentUser.email);
             closeAllStatusDropdowns();
@@ -7660,8 +7727,8 @@ if (state.currentTab === 'audit') {
         totalYearAvg += qAvg;
 
         html += `
-            <td class="cell-white"><input type="number" value="${audit.scoreImpl}" ${state.isEditing ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)" placeholder="0"></td>
-            <td class="cell-white"><input type="number" value="${audit.docuComp}" ${state.isEditing ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)" placeholder="0"></td>
+            <td class="cell-white"><input type="number" min="0" max="100" value="${audit.scoreImpl}" ${state.isEditing ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)" placeholder="0"></td>
+            <td class="cell-white"><input type="number" min="0" max="100" value="${audit.docuComp}" ${state.isEditing ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)" placeholder="0"></td>
             <td class="cell-avg-gray" style="border-right: 2px solid #e0e0e0;">${qAvg.toFixed(2)}</td>`;
     });
 
@@ -7987,9 +8054,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 const qAvg  = (audit.scoreImpl + audit.docuComp) / 2;
                                 totalYearAvg += qAvg;
                                 html += `
-                                    <td class="cell-white"><input type="number" value="${audit.scoreImpl}" ${state.isEditing ? '' : 'disabled'}
+                                    <td class="cell-white"><input type="number" min="0" max="100" value="${audit.scoreImpl}" ${state.isEditing ? '' : 'disabled'}
                                         oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)" placeholder="0"></td>
-                                    <td class="cell-white"><input type="number" value="${audit.docuComp}" ${state.isEditing ? '' : 'disabled'}
+                                    <td class="cell-white"><input type="number" min="0" max="100" value="${audit.docuComp}" ${state.isEditing ? '' : 'disabled'}
                                         oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)" placeholder="0"></td>
                                     <td class="cell-avg-gray" style="border-right: 2px solid #e0e0e0;">${qAvg.toFixed(2)}</td>`;
                             });
@@ -8495,7 +8562,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         html += `<tr>
                             <td class="project-name">${p.name}</td>
                             <td class="prev-year">
-                                <input type="number" value="${p.vals[key][0] || ''}" ${state.isEditing ? '' : 'disabled'} 
+                                <input type="number" min="0" value="${p.vals[key][0] || ''}" ${state.isEditing ? '' : 'disabled'} 
                                     oninput="updateVal('${p.name}','${key}',0,this.value)">
                             </td>`;
                         
@@ -8507,7 +8574,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         for (let i = 1; i <= 12; i++) {
                             const val = parseFloat(p.vals[key][i]) || 0;
                             html += `<td class="month-col">
-                                <input type="number" value="${p.vals[key][i] || ''}" ${state.isEditing ? '' : 'disabled'}
+                                <input type="number" min="0" value="${p.vals[key][i] || ''}" ${state.isEditing ? '' : 'disabled'}
                                     oninput="updateVal('${p.name}','${key}',${i},this.value)">
                             </td>`;
                             regionalTotals.months[i-1] += val;
@@ -8520,15 +8587,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         const closedVal = parseFloat(p.vals[key][15]) || 0;
                         
                         html += `<td class="summary-col" style="background: #c8e6c9;">
-                            <input type="number" value="${p.vals[key][13] || ''}" ${state.isEditing ? '' : 'disabled'}
+                            <input type="number" min="0" value="${p.vals[key][13] || ''}" ${state.isEditing ? '' : 'disabled'}
                                 oninput="updateVal('${p.name}','${key}',13,this.value)">
                         </td>
                         <td class="summary-col" style="background: #ffe0b2;">
-                            <input type="number" value="${p.vals[key][14] || ''}" ${state.isEditing ? '' : 'disabled'}
+                            <input type="number" min="0" value="${p.vals[key][14] || ''}" ${state.isEditing ? '' : 'disabled'}
                                 oninput="updateVal('${p.name}','${key}',14,this.value)">
                         </td>
                         <td class="summary-col" style="background: #bbdefb;">
-                            <input type="number" value="${p.vals[key][15] || ''}" ${state.isEditing ? '' : 'disabled'}
+                            <input type="number" min="0" value="${p.vals[key][15] || ''}" ${state.isEditing ? '' : 'disabled'}
                                 oninput="updateVal('${p.name}','${key}',15,this.value)">
                         </td>
                         <td class="total-col">${rowTotal}</td>
@@ -10547,6 +10614,41 @@ console.log('🔥 Firebase integration loaded - OPTIMIZED: Save button only!');
 document.addEventListener('DOMContentLoaded', function() {
     // Restore navigation group collapse states
     restoreNavGroupStates();
+    
+    // PREVENT NEGATIVE NUMBERS IN ALL NUMBER INPUTS
+    document.addEventListener('keydown', function(e) {
+        // Check if the target is a number input
+        if (e.target.type === 'number') {
+            // Prevent minus sign (-), plus sign (+), and 'e' (scientific notation)
+            if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                e.preventDefault();
+                showToast('⚠️ Only positive numbers are allowed', 'warning');
+            }
+        }
+    });
+    
+    // ALSO PREVENT PASTE OF NEGATIVE NUMBERS
+    document.addEventListener('paste', function(e) {
+        if (e.target.type === 'number') {
+            const pasteData = e.clipboardData.getData('text');
+            const number = parseFloat(pasteData);
+            if (number < 0) {
+                e.preventDefault();
+                showToast('⚠️ Cannot paste negative numbers', 'warning');
+            }
+        }
+    });
+    
+    // ALSO VALIDATE ON INPUT CHANGE
+    document.addEventListener('input', function(e) {
+        if (e.target.type === 'number') {
+            const value = parseFloat(e.target.value);
+            if (value < 0) {
+                e.target.value = '';
+                showToast('⚠️ Negative numbers are not allowed', 'warning');
+            }
+        }
+    });
 });
 
 // ==================== AUDIO CONTEXT INITIALIZATION ====================
