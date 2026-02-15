@@ -236,22 +236,6 @@
             background: #388e3c;
         }
 
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            #safety-reminder-container {
-                right: 10px;
-            }
-
-            .reminder-bubble {
-                min-width: 260px;
-                max-width: 300px;
-                padding: 15px 20px;
-            }
-
-            .character-emoji {
-                font-size: 70px;
-            }
-        }
         /* ==================== END SAFETY REMINDER CHARACTER ==================== */
 
         * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
@@ -271,16 +255,9 @@
             overflow: hidden;
             color: var(--text-primary);
             transition: background-color 0.3s, color 0.3s;
-            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
         }
 
-        /* Better touch scrolling on iOS */
-        aside,
-        main {
-            -webkit-overflow-scrolling: touch;
-        }
-
-        /* Prevent text selection on buttons for better mobile UX */
+        /* Prevent text selection on buttons for better UX */
         button,
         .btn,
         .nav-item {
@@ -733,323 +710,9 @@
            RESPONSIVE DESIGN - MOBILE FIRST
            ============================================ */
 
-        /* Mobile Menu Toggle Button */
-        .mobile-menu-toggle {
-            display: none;
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            z-index: 1001;
-            background: var(--safety-green-grad);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            width: 45px;
-            height: 45px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(27, 94, 32, 0.3);
-            transition: all 0.3s ease;
-            pointer-events: auto !important;
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-        }
+        /* Tablet Styles (768px and below) - REMOVED */
 
-        .mobile-menu-toggle:active {
-            transform: scale(0.95);
-        }
-
-        /* Tablet Styles (768px and below) */
-        @media screen and (max-width: 768px) {
-            /* Show mobile menu toggle */
-            .mobile-menu-toggle {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            /* Sidebar transforms to mobile menu */
-            aside {
-                position: fixed;
-                left: -280px;
-                top: 0;
-                height: 100vh;
-                width: 280px;
-                z-index: 1000;
-                transition: left 0.3s ease;
-                box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
-                pointer-events: auto;
-            }
-
-            aside.mobile-open {
-                left: 0;
-            }
-
-            /* Overlay when menu is open */
-            .mobile-overlay {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.5);
-                z-index: 999;
-                pointer-events: auto;
-                touch-action: auto;
-            }
-
-            .mobile-overlay.active {
-                display: block;
-            }
-
-            /* Main content adjusts */
-            main {
-                margin-left: 0;
-            }
-
-            /* Header stacks vertically */
-            header {
-                padding: 70px 15px 12px;
-                flex-direction: column;
-                gap: 10px;
-                align-items: flex-start;
-            }
-
-            .header-title {
-                font-size: 1rem;
-            }
-
-            .header-controls {
-                width: 100%;
-                flex-direction: column;
-                gap: 8px;
-            }
-
-            .header-controls input,
-            .header-controls select,
-            .header-controls button {
-                width: 100%;
-            }
-
-            /* Region banner stacks */
-            .region-banner {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-                padding: 12px 15px;
-                margin: 15px 10px 0;
-            }
-
-            /* Project rows stack vertically */
-            .project-row {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 15px;
-                margin: 0 10px 8px;
-                gap: 12px;
-            }
-
-            .project-info {
-                width: 100%;
-            }
-
-            .project-dates {
-                width: 100%;
-            }
-
-            .circular-progress {
-                align-self: center;
-                margin: 10px 0;
-            }
-
-            /* Modal adjusts */
-            .modal-content {
-                width: 95%;
-                max-width: none;
-                padding: 20px;
-                margin: 10px;
-            }
-
-            .modal-header {
-                font-size: 1rem;
-            }
-
-            /* Login card responsive */
-            .login-card {
-                padding: 30px 25px;
-                max-width: 95%;
-                margin: 10px;
-            }
-
-            .login-shield {
-                width: 70px;
-                height: 70px;
-            }
-
-            .login-shield i {
-                font-size: 2rem;
-            }
-
-            .login-title {
-                font-size: 1.2rem;
-            }
-
-            /* Form inputs touch-friendly */
-            .form-group input,
-            .form-group select {
-                font-size: 16px; /* Prevents zoom on iOS */
-                padding: 12px;
-            }
-
-            .login-card input {
-                font-size: 16px;
-                padding: 14px 18px 14px 48px;
-            }
-
-            /* Buttons more touch-friendly */
-            .btn {
-                padding: 12px 18px;
-                font-size: 0.85rem;
-                min-height: 44px; /* iOS touch target */
-            }
-
-            .login-btn {
-                padding: 18px;
-                font-size: 1rem;
-            }
-
-            /* Navigation items bigger for touch */
-            .nav-item {
-                padding: 16px 20px;
-                font-size: 0.85rem;
-            }
-
-            /* PDF controls stack */
-            .pdf-upload-container {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 8px;
-            }
-
-            .pdf-upload-btn,
-            .pdf-view-btn {
-                width: 100%;
-                justify-content: center;
-            }
-
-            /* Status badges */
-            .status-badge {
-                padding: 8px 14px;
-                font-size: 0.75rem;
-            }
-
-            /* Backup section */
-            .backup-buttons {
-                flex-direction: column;
-            }
-
-            .backup-buttons .btn {
-                width: 100%;
-            }
-
-            .backup-item {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-
-            .backup-item-actions {
-                width: 100%;
-                justify-content: flex-start;
-            }
-
-            /* Toast notifications */
-            #toast-container {
-                bottom: 80px;
-                left: 10px;
-                right: 10px;
-            }
-
-            /* Safety icons smaller on mobile */
-            .safety-icon-float {
-                font-size: 50px;
-            }
-        }
-
-        /* Small Mobile Styles (480px and below) */
-        @media screen and (max-width: 480px) {
-            .login-card {
-                padding: 25px 20px;
-            }
-
-            .login-title {
-                font-size: 1rem;
-                letter-spacing: 1px;
-            }
-
-            .login-subtitle {
-                font-size: 0.75rem;
-            }
-
-            .login-badge {
-                font-size: 0.6rem;
-                padding: 3px 10px;
-            }
-
-            .disclaimer-box {
-                font-size: 0.7rem;
-                padding: 12px;
-            }
-
-            .header-title {
-                font-size: 0.9rem;
-            }
-
-            .project-name {
-                font-size: 0.85rem;
-            }
-
-            .project-meta,
-            .project-dates {
-                font-size: 0.6rem;
-            }
-
-            .circular-progress {
-                width: 45px;
-                height: 45px;
-            }
-
-            .circular-progress-inner {
-                width: 39px;
-                height: 39px;
-                font-size: 0.7rem;
-            }
-
-            .region-banner {
-                font-size: 0.85rem;
-            }
-
-            .badge {
-                font-size: 0.65rem;
-                padding: 3px 10px;
-            }
-
-            /* Background animations less intensive on small screens */
-            #login-overlay::before,
-            #login-overlay::after {
-                width: 400px;
-                height: 400px;
-            }
-
-            .safety-icon-float {
-                font-size: 40px;
-            }
-
-            .safety-pattern {
-                opacity: 0.02;
-            }
-        }
+        /* Small Mobile Styles (480px and below) - REMOVED */
 
         /* Large Desktop (1920px and above) */
         @media screen and (min-width: 1920px) {
@@ -1520,7 +1183,6 @@
             justify-content: center;
             font-size: 0.65rem;
             font-weight: 700;
-            animation: pulse 2s infinite;
         }
 
         .notification-dropdown {
@@ -1818,17 +1480,6 @@
             border-color: rgba(255, 255, 255, 0.2);
         }
 
-        /* Mobile responsive */
-        @media (max-width: 768px) {
-            .floating-edit-btn {
-                width: 55px;
-                height: 55px;
-                font-size: 1.1rem;
-                bottom: 20px;
-                right: 20px;
-            }
-        }
-
         /* Save button with Firebase sync indicator */
         .btn-primary.saving {
             background: #666;
@@ -1941,7 +1592,7 @@
         .region-banner {
             color: white; 
             padding: 15px 20px;
-            margin: 20px 20px 0; 
+            margin: 20px 20px 15px; 
             border-radius: 12px; 
             font-weight: 700; 
             display: flex;
@@ -2069,6 +1720,11 @@
             border-left: 2px solid #4caf50;
         }
         
+        .project-dates > div {
+            display: flex;
+            align-items: center;
+        }
+        
         body.dark-mode .project-dates {
             background: rgba(76, 175, 80, 0.1);
         }
@@ -2077,25 +1733,31 @@
             font-weight: 700; 
             color: #1b5e20;
             text-transform: uppercase;
-            font-size: 0.62rem;
-            letter-spacing: 0.5px;
+            font-size: 0.6rem;
+            letter-spacing: 0.3px;
+            display: inline-block;
+            width: 75px;
+            flex-shrink: 0;
         }
         
         body.dark-mode .date-label {
             color: #66bb6a;
         }
         .status-badge {
-            padding: 7px 14px; 
+            padding: 8px 12px; 
             border-radius: 6px; 
             color: white; 
             font-weight: 700; 
-            font-size: 0.68rem;
+            font-size: 0.6rem;
             cursor: pointer; 
             text-transform: uppercase; 
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            letter-spacing: 0.5px;
+            letter-spacing: 0.2px;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.2);
+            white-space: nowrap;
+            min-width: 130px;
+            text-align: center;
         }
         
         .status-badge:hover {
@@ -2626,6 +2288,102 @@ td.average-cell {
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
         
+        /* ==================== DOE REPORTORIAL STYLES ==================== */
+        .pdf-upload-container {
+            display: inline-block;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        
+        .pdf-upload-btn {
+            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(27, 94, 32, 0.3);
+        }
+        
+        .pdf-upload-btn:hover {
+            background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(27, 94, 32, 0.4);
+        }
+        
+        .pdf-file-info {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.7rem;
+            padding: 4px 8px;
+            background: rgba(76, 175, 80, 0.1);
+            border-radius: 6px;
+        }
+        
+        body.dark-mode .pdf-file-info {
+            background: rgba(76, 175, 80, 0.2);
+        }
+        
+        .pdf-view-btn, .pdf-delete-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 3px 7px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 0.75rem;
+        }
+        
+        .pdf-view-btn {
+            color: #1976D2;
+        }
+        
+        .pdf-view-btn:hover {
+            background: #e3f2fd;
+            transform: translateY(-1px);
+        }
+        
+        body.dark-mode .pdf-view-btn:hover {
+            background: #1a3a52;
+        }
+        
+        .pdf-delete-btn {
+            color: #d32f2f;
+        }
+        
+        .pdf-delete-btn:hover {
+            background: #ffebee;
+            transform: translateY(-1px);
+        }
+        
+        body.dark-mode .pdf-delete-btn:hover {
+            background: #5a1414;
+        }
+        
+        /* Renewable Energy Badge */
+        .re-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            box-shadow: 0 2px 4px rgba(46, 125, 50, 0.3);
+            animation: subtlePulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes subtlePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+        /* ==================== END DOE REPORTORIAL STYLES ==================== */
+        
         table input {
             width: 100%;
             border: 1px solid var(--border-color);
@@ -2994,23 +2752,6 @@ table input[type="date"]:not(:focus)[value=""] {
             background: rgba(27, 94, 32, 0.7);
         }
         
-        @media screen and (max-width: 768px) {
-            .chart-box {
-                min-height: 200px;
-            }
-            .chart-box canvas {
-                max-height: 250px !important;
-            }
-        }
-        
-        @media screen and (max-width: 480px) {
-            .chart-box {
-                min-height: 180px;
-            }
-            .chart-box canvas {
-                max-height: 200px !important;
-            }
-        }
         .loading-spinner {
             display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3);
             border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite;
@@ -3408,14 +3149,6 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 </head>
 <body>
 
-    <!-- Mobile Menu Toggle Button -->
-    <button class="mobile-menu-toggle" id="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Toggle Menu">
-        <i class="fas fa-bars"></i>
-    </button>
-
-    <!-- Mobile Menu Overlay -->
-    <div class="mobile-overlay" id="mobile-overlay" onclick="toggleMobileMenu()"></div>
-
     <!-- Firebase initialization loading screen -->
     <div id="firebase-loading-overlay">
         <div class="shield-loader">
@@ -3503,6 +3236,17 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <option value="VISAYAS & MINDANAO">Visayas & Mindanao</option>
                 </select>
             </div>
+            
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="projectIsRenewable" style="width: auto; cursor: pointer;">
+                    <span>Renewable Energy Project</span>
+                    <i class="fas fa-leaf" style="color: #4caf50;"></i>
+                </label>
+                <small style="color: var(--text-secondary); font-size: 0.75rem; display: block; margin-top: 5px;">
+                    <i class="fas fa-info-circle"></i> Check if this is a Renewable Energy project (required for DOE Reportorial)
+                </small>
+            </div>
 
 
             <div class="modal-buttons">
@@ -3544,6 +3288,17 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <option value="NORTH LUZON">North Luzon</option>
                     <option value="VISAYAS & MINDANAO">Visayas & Mindanao</option>
                 </select>
+            </div>
+            
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="editProjectIsRenewable" style="width: auto; cursor: pointer;">
+                    <span>Renewable Energy Project</span>
+                    <i class="fas fa-leaf" style="color: #4caf50;"></i>
+                </label>
+                <small style="color: var(--text-secondary); font-size: 0.75rem; display: block; margin-top: 5px;">
+                    <i class="fas fa-info-circle"></i> Check if this is a Renewable Energy project (required for DOE Reportorial)
+                </small>
             </div>
 
             <div class="modal-buttons">
@@ -3597,6 +3352,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <div class="nav-item" data-tab="kpm" onclick="changeTab('kpm')"><i class="fas fa-file-lines"></i> Monthly Report</div>
                     <div class="nav-item" data-tab="dole" onclick="changeTab('dole')"><i class="fas fa-file-contract"></i> DOLE Reportorial</div>
                     <div class="nav-item" data-tab="emb" onclick="changeTab('emb')"><i class="fas fa-industry"></i> EMB Reportorial</div>
+                    <div class="nav-item" data-tab="doe" onclick="changeTab('doe')"><i class="fas fa-solar-panel"></i> DOE Reportorial</div>
                 </div>
             </div>
 
@@ -3623,6 +3379,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <div class="nav-item" data-tab="audit" onclick="changeTab('audit')"><i class="fas fa-magnifying-glass-dollar"></i> Internal ESH Audit Result</div>
                     <div class="nav-item" data-tab="cshp" onclick="changeTab('cshp')"><i class="fas fa-shield-heart"></i> CSHP</div>
                     <div class="nav-item" data-tab="reg" onclick="changeTab('reg')"><i class="fas fa-certificate"></i> Certificate of Registration</div>
+                    <div class="nav-item" data-tab="doe-permit" onclick="changeTab('doe-permit')"><i class="fas fa-id-card"></i> DOE Safety Officer Permit</div>
                     <div class="nav-item" data-tab="permits" onclick="changeTab('permits')"><i class="fas fa-leaf"></i> Environmental Permits</div>
                 </div>
             </div>
@@ -3639,6 +3396,12 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <!-- Search and filters removed from header - moved to dashboard content area -->
                 
                 <!-- Always visible controls -->
+                
+                <!-- EXPORT PDF BUTTON -->
+                <button class="year-selector-btn" onclick="exportCurrentTabToPDF()" title="Export to PDF Report">
+                    <i class="fas fa-file-pdf"></i>
+                </button>
+                
                 <button class="theme-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode" style="display: none;">
                     <i class="fas fa-moon" id="theme-icon"></i>
                 </button>
@@ -4527,7 +4290,9 @@ function showBackupStatus(message, type) {
     'permits': ["ECC", "CNC", "Certificate of Accreditation (DENR-EMB)", "Certificate of Accreditation (LLDA)", "Company Registration System", "LLDA Clearance", "Permit to Operate", "Discharge Permit", "Hazardous Waste Generator's ID", "Permit to Transport (Haz Waste)", "Permit to Transport (Logs)", "Tree Cutting Permit (STCP or S/PLTP)", "Permit to Cut Coconut Tree", "NWRB Water Permit"],
     'emb': ["SMR (Quarterly) - Submission Date", "SMR (Quarterly) - Reference No.", "CMR (Semi-Annual) - Submission Date", "CMR (Semi-Annual) - Reference No."],
     'cshp': ["CSHP Approval Date"],
-    'reg': ["DOLE Certificate of Registration Date"]
+    'reg': ["DOLE Certificate of Registration Date"],
+    'doe': ["DOE Quarterly Report Submission Date"],
+    'doe-permit': ["DOE Safety Officer Permit"]
 };
 
         // Regions are maintained - users add their own projects via "Add Project" button
@@ -4547,7 +4312,8 @@ function showBackupStatus(message, type) {
             charts: {},
             currentSort: 'name',
             darkMode: false,
-            isDataMigrated: false // Track if data has been migrated to year-based structure
+            isDataMigrated: false, // Track if data has been migrated to year-based structure
+            doePermitData: { permitNumber: '', validityDate: '' } // NEW: DOE Safety Officer Permit
         };
 
         // ===== DARK MODE FUNCTIONS =====
@@ -4801,14 +4567,41 @@ function showBackupStatus(message, type) {
                     overdueTabs.push({ name: 'DOLE Reportorial', tab: 'dole' });
                 }
 
-                // Check EMB reports (quarterly)
+                // Check EMB reports (quarterly) - Due 15th of following month
                 let hasEmbOverdue = false;
                 const embRows = ['SMR (Quarterly) - Submission Date'];
                 embRows.forEach(row => {
                     const key = `emb_${row}`;
                     for (let quarter = 1; quarter <= 4; quarter++) {
-                        const quarterEndMonth = (quarter * 3) - 1;
-                        if (currentMonth > quarterEndMonth) {
+                        let isOverdue = false;
+                        
+                        // Special handling for Q4 (due January 15 of NEXT year)
+                        if (quarter === 4) {
+                            // Q4 of selectedYear is due January 15 of selectedYear+1
+                            const deadlineYear = state.selectedYear + 1;
+                            const currentYear = currentDate.getFullYear();
+                            
+                            if (currentYear > deadlineYear) {
+                                isOverdue = true;
+                            } else if (currentYear === deadlineYear) {
+                                if (currentMonth === 0 && currentDate.getDate() > 15) {
+                                    isOverdue = true;
+                                } else if (currentMonth > 0) {
+                                    isOverdue = true;
+                                }
+                            }
+                            // If currentYear < deadlineYear, not overdue yet
+                        } else {
+                            // For Q1, Q2, Q3 - normal logic
+                            const quarterEndMonth = (quarter * 3) - 1;
+                            const deadlineMonth = (quarterEndMonth + 1) % 12;
+                            
+                            if (currentMonth > deadlineMonth || (currentMonth === deadlineMonth && currentDate.getDate() > 15)) {
+                                isOverdue = true;
+                            }
+                        }
+                        
+                        if (isOverdue) {
                             const value = project.vals[key] ? project.vals[key][quarter] : '';
                             if (!value || value.toString().trim() === '') {
                                 hasEmbOverdue = true;
@@ -4821,19 +4614,51 @@ function showBackupStatus(message, type) {
                     overdueTabs.push({ name: 'EMB Reportorial', tab: 'emb' });
                 }
 
+                // Check for missing DOE Safety Officer Permit (Renewable Energy projects only)
+                if (project.isRenewable === true) {
+                    const doePermitKey = 'doe-permit_DOE Safety Officer Permit';
+                    const permitNumber = project.vals[doePermitKey] ? project.vals[doePermitKey][1] : '';
+                    const validUntil = project.vals[doePermitKey] ? project.vals[doePermitKey][2] : '';
+                    
+                    if (!permitNumber || permitNumber.trim() === '' || !validUntil || validUntil.trim() === '') {
+                        overdueTabs.push({ name: 'DOE Safety Officer Permit (Missing)', tab: 'doe-permit' });
+                    }
+                }
+
+                // Check for missing Certificate of Registration
+                const certKey = 'permits_Certificate of Registration';
+                const certNumber = project.vals[certKey] ? project.vals[certKey][1] : '';
+                const certIssued = project.vals[certKey] ? project.vals[certKey][2] : '';
+                const certExpiry = project.vals[certKey] ? project.vals[certKey][3] : '';
+                
+                if (!certNumber || certNumber.trim() === '' || !certIssued || certIssued.trim() === '' || !certExpiry || certExpiry.trim() === '') {
+                    overdueTabs.push({ name: 'Certificate of Registration (Missing)', tab: 'permits' });
+                }
+
+                // Check for missing CSHP
+                const cshpKey = 'cshp_CSHP Approval Date';
+                const cshpDate = project.vals[cshpKey] ? project.vals[cshpKey][1] : '';
+                
+                if (!cshpDate || cshpDate.trim() === '') {
+                    overdueTabs.push({ name: 'CSHP (Missing)', tab: 'cshp' });
+                }
+
                 // Add to project overdues if any tabs have overdue reports
                 if (overdueTabs.length > 0) {
                     projectOverdues[project.name] = overdueTabs;
                 }
             });
 
-            // Count total projects with overdue reports
-            const totalProjects = Object.keys(projectOverdues).length;
+            // Count total issues (not just projects)
+            let totalIssues = 0;
+            Object.keys(projectOverdues).forEach(projectName => {
+                totalIssues += projectOverdues[projectName].length;
+            });
             
             // Update badge
             const badge = document.getElementById('notification-badge');
-            if (totalProjects > 0) {
-                badge.textContent = totalProjects > 99 ? '99+' : totalProjects;
+            if (totalIssues > 0) {
+                badge.textContent = totalIssues > 99 ? '99+' : totalIssues;
                 badge.classList.remove('hidden');
             } else {
                 badge.classList.add('hidden');
@@ -4841,12 +4666,13 @@ function showBackupStatus(message, type) {
 
             // Update notification list
             const notificationList = document.getElementById('notification-list');
-            if (totalProjects === 0) {
+            const totalProjects = Object.keys(projectOverdues).length;
+            if (totalIssues === 0) {
                 notificationList.innerHTML = `
                     <div class="notification-empty">
                         <i class="fas fa-check-circle"></i>
                         <div style="font-weight: 600; margin-bottom: 5px;">All caught up!</div>
-                        <div>No overdue reports at this time.</div>
+                        <div>No overdue reports or missing permits.</div>
                     </div>
                 `;
             } else {
@@ -4867,27 +4693,33 @@ function showBackupStatus(message, type) {
                 // Display each project with overdue tabs
                 Object.keys(projectOverdues).forEach(projectName => {
                     const tabs = projectOverdues[projectName];
-                    const tabNames = tabs.map(t => t.name).join(' & ');
-                    const firstTab = tabs[0].tab; // Use first tab for redirect
                     
-                    html += `
-                        <div class="notification-project-item" onclick="redirectToProjectTable('${projectName}', '${firstTab}')" 
-                             style="cursor: pointer; padding: 14px; border-bottom: 1px solid var(--border-color); transition: background 0.2s;">
-                            <div style="font-weight: 700; color: #d32f2f; font-size: 0.9rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
-                                <i class="fas fa-building" style="font-size: 0.85rem;"></i>
-                                ${projectName}
-                            </div>
-                            <div style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.6;">
-                                <div style="margin-bottom: 4px;">
-                                    <i class="fas fa-file-circle-exclamation" style="color: #ff6f00; margin-right: 4px;"></i>
-                                    <strong style="color: var(--text-primary);">Overdue:</strong> ${tabNames}
+                    // Create separate notification item for each overdue report
+                    tabs.forEach(tabInfo => {
+                        const isMissing = tabInfo.name.includes('Missing');
+                        const iconClass = isMissing ? 'fa-exclamation-triangle' : 'fa-file-circle-exclamation';
+                        const statusText = isMissing ? 'Missing' : 'Overdue';
+                        const statusColor = isMissing ? '#d32f2f' : '#ff6f00';
+                        
+                        html += `
+                            <div class="notification-project-item" onclick="redirectToProjectTable('${projectName}', '${tabInfo.tab}')" 
+                                 style="cursor: pointer; padding: 14px; border-bottom: 1px solid var(--border-color); transition: background 0.2s;">
+                                <div style="font-weight: 700; color: #d32f2f; font-size: 0.9rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fas fa-building" style="font-size: 0.85rem;"></i>
+                                    ${projectName}
                                 </div>
-                                <div style="font-size: 0.7rem; color: #2e7d32; font-weight: 600; margin-top: 6px;">
-                                    <i class="fas fa-hand-pointer"></i> Click to view project table
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.6;">
+                                    <div style="margin-bottom: 4px;">
+                                        <i class="fas ${iconClass}" style="color: ${statusColor}; margin-right: 4px;"></i>
+                                        <strong style="color: var(--text-primary);">${statusText}:</strong> ${tabInfo.name.replace(' (Missing)', '')}
+                                    </div>
+                                    <div style="font-size: 0.7rem; color: #2e7d32; font-weight: 600; margin-top: 6px;">
+                                        <i class="fas fa-hand-pointer"></i> Click to view project table
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        `;
+                    });
                 });
                 
                 notificationList.innerHTML = html;
@@ -5336,6 +5168,7 @@ function showBackupStatus(message, type) {
             const dateStarted = document.getElementById('projectDateStarted').value;
             const dateFinished = document.getElementById('projectDateFinished').value;
             const region = document.getElementById('projectRegion').value;
+            const isRenewable = document.getElementById('projectIsRenewable').checked;
             const errorDiv = document.getElementById('projectModalError');
 
             errorDiv.innerText = '';
@@ -5352,7 +5185,10 @@ function showBackupStatus(message, type) {
 
             state.projects.push({
     name, region, status: 'on-going',
-    dateStarted, dateFinished, vals: {}, selected: false,
+    dateStarted, dateFinished, 
+    isRenewable: isRenewable,
+    vals: {}, selected: false,
+    doePdfFiles: {},
     auditData: {
         Q1: { scoreImpl: 0, docuComp: 0 },
         Q2: { scoreImpl: 0, docuComp: 0 },
@@ -5365,6 +5201,12 @@ function showBackupStatus(message, type) {
             saveUserData(state.currentUser.email);
             closeAddProjectModal();
             render();
+            
+            if (isRenewable) {
+                showToast(`✅ Project "${name}" added as Renewable Energy project`, 'success');
+            } else {
+                showToast(`✅ Project "${name}" added successfully`, 'success');
+            }
         }
 
         // Edit Project Modal Functions
@@ -5380,6 +5222,7 @@ function showBackupStatus(message, type) {
             document.getElementById('editProjectDateStarted').value = project.dateStarted || '';
             document.getElementById('editProjectDateFinished').value = project.dateFinished || '';
             document.getElementById('editProjectRegion').value = project.region;
+            document.getElementById('editProjectIsRenewable').checked = project.isRenewable || false;
             document.getElementById('editProjectModalError').innerText = '';
             document.getElementById('editProjectModal').classList.add('show');
         }
@@ -5394,6 +5237,7 @@ function showBackupStatus(message, type) {
             const dateStarted = document.getElementById('editProjectDateStarted').value;
             const dateFinished = document.getElementById('editProjectDateFinished').value;
             const newRegion = document.getElementById('editProjectRegion').value;
+            const isRenewable = document.getElementById('editProjectIsRenewable').checked;
             const errorDiv = document.getElementById('editProjectModalError');
 
             errorDiv.innerText = '';
@@ -5420,6 +5264,7 @@ function showBackupStatus(message, type) {
                 project.dateStarted = dateStarted;
                 project.dateFinished = dateFinished;
                 project.region = newRegion;
+                project.isRenewable = isRenewable;
                 
                 // Auto-update status based on dateFinished
                 if (dateFinished) {
@@ -5433,6 +5278,8 @@ function showBackupStatus(message, type) {
                 saveUserData(state.currentUser.email);
                 closeEditProjectModal();
                 render();
+                
+                showToast(`✅ Project updated${isRenewable ? ' (Renewable Energy)' : ''}`, 'success');
             }
         }
 
@@ -5614,6 +5461,7 @@ function showBackupStatus(message, type) {
                 'nov-monitoring': 'ESH NOV MONITORING',
                 'activities': 'ESH ACTIVITIES AND PROGRAMS','kpm': 'KEY PERFORMANCE MEASURES REPORT','reg': 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)','audit': 'INTERNAL ESH AUDIT REPORT',
                 'cshp': 'CONSTRUCTION SAFETY & HEALTH PROGRAM (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL','permits': 'ENVIRONMENTAL PERMITS/LICENSES/CLEARANCE','emb': ["EMB REPORTORIAL"],
+                'doe': 'DOE REPORTORIAL - RENEWABLE ENERGY PROJECTS', 'doe-permit': 'DOE SAFETY OFFICER PERMIT',
                 'personnel': 'ESH PERSONNEL MONITORING', 'settings': 'SETTINGS'
             };
             document.querySelector('.header-title').innerText = titles[t] || t.toUpperCase();
@@ -5945,11 +5793,13 @@ function closeAllStatusDropdowns() {
                     }
                 }
             } else if (row === "CMR (Semi-Annual) - Submission Date") {
-                total += 1; // Single merged field
+                total += 2; // Two semi-annual periods
                 if (proj.vals[key] && proj.vals[key][1]) filled++;
+                if (proj.vals[key] && proj.vals[key][2]) filled++;
             } else if (row === "CMR (Semi-Annual) - Reference No.") {
-                total += 1; // Single merged field
+                total += 2; // Two semi-annual periods
                 if (proj.vals[key] && proj.vals[key][1]) filled++;
+                if (proj.vals[key] && proj.vals[key][2]) filled++;
             }
         } else {
             // Handle DOLE AEDR/AMR specially - they use only 1 field
@@ -6648,7 +6498,9 @@ function closeAllStatusDropdowns() {
                 </div>`;
             }
 
-            REGIONS.forEach(reg => {
+            // Skip region-based rendering for DOE tabs (they have their own rendering)
+            if (state.currentTab !== 'doe' && state.currentTab !== 'doe-permit') {
+                REGIONS.forEach(reg => {
                 const projs = displayProjects.filter(p => p.region === reg);
                 
                 // Calculate region average only if there are projects
@@ -6965,13 +6817,17 @@ if (state.currentTab === 'audit') {
         </table>
     </div>`;
 }
+
+                  // ==================== DOE TABS MOVED AFTER GROUPED TABLES ====================
+                  // (See after line ~7687 for DOE Reportorial and DOE Safety Officer Permit rendering)
+                  
                   if (state.currentTab === 'nov-monitoring') {
     // Special rendering for ESH NOV Monitoring - all projects grouped per region
     // Skip individual project rendering - will be done at region level
 }
-else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
+else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state.currentTab !== 'doe' && state.currentTab !== 'doe-permit') {
     const isDateType = ['kpm','dole','permits','emb','cshp','reg'].includes(state.currentTab);
-    const isCshp = state.currentTab === 'cshp'|| state.currentTab === 'reg';
+    const isCshp = state.currentTab === 'cshp' || state.currentTab === 'reg';
     const hasYTD = ['exposures', 'rates', 'medical', 'nov', 'activities'].includes(state.currentTab);
     const isNov = state.currentTab === 'nov';
 
@@ -6997,10 +6853,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
 
         // Main columns
         if (state.currentTab === 'emb') {
-            html += `<th style="background: #388e3c;">Q1 (JAN-MAR)</th>`;
-            html += `<th style="background: #388e3c;">Q2 (APR-JUN)</th>`;
-            html += `<th style="background: #388e3c;">Q3 (JUL-SEP)</th>`;
-            html += `<th style="background: #388e3c;">Q4 (OCT-DEC)</th>`;
+            html += `<th style="background: #388e3c;">Q1 (JAN-MAR)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Apr 15</small></th>`;
+            html += `<th style="background: #388e3c;">Q2 (APR-JUN)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Jul 15</small></th>`;
+            html += `<th style="background: #388e3c;">Q3 (JUL-SEP)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Oct 15</small></th>`;
+            html += `<th style="background: #388e3c;">Q4 (OCT-DEC)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Jan 15</small></th>`;
         } else if (state.currentTab === 'permits') {
             html += `<th style="background: #388e3c; min-width: 200px; white-space: normal; padding: 10px 12px;">PERMIT NO. / ACCREDITATION NO.</th>`;
             html += `<th style="background: #388e3c; min-width: 140px; white-space: nowrap;">DATE ISSUED</th>`;
@@ -7019,6 +6875,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
 
     SCHEMA[state.currentTab].forEach((row, rowIdx) => {
         const key = `${state.currentTab}_${row}`;
+        
         html += `<tr><td style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; text-align:left; font-weight:700; background:#e8f5e9; color:#1b5e20; position: sticky; left: 0; z-index: 5; white-space: normal; padding: 10px 12px; line-height: 1.3; vertical-align: middle;">${row}</td>`;
 
         if (isCshp) {
@@ -7061,13 +6918,33 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                         html += `<td class="monthly-data"><input type="text" placeholder="Ref #" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
                     }
                 } else if (row === "CMR (Semi-Annual) - Submission Date") {
-                    // CMR: Merged cell across Q1-Q4
-                    const v = p.vals[key] ? p.vals[key][1] : "";
-                    html += `<td colspan="4" style="text-align: center;"><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;"></td>`;
+                    // CMR: 2 semi-annual periods with clear labels
+                    // Period 1: Jan-June (Q1-Q2 merged) - Due July 15
+                    const v1 = p.vals[key] ? p.vals[key][1] : "";
+                    html += `<td colspan="2" style="text-align: center; border-right: 2px solid #ddd;">
+                        <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px; font-weight: 600;">Jan-Jun (Due: Jul 15)</div>
+                        <input type="date" value="${v1}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;">
+                    </td>`;
+                    // Period 2: Jul-Dec (Q3-Q4 merged) - Due January 15
+                    const v2 = p.vals[key] ? p.vals[key][2] : "";
+                    html += `<td colspan="2" style="text-align: center;">
+                        <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px; font-weight: 600;">Jul-Dec (Due: Jan 15)</div>
+                        <input type="date" value="${v2}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',2,this.value)" style="width: 180px;">
+                    </td>`;
                 } else if (row === "CMR (Semi-Annual) - Reference No.") {
-                    // CMR: Merged cell across Q1-Q4
-                    const v = p.vals[key] ? p.vals[key][1] : "";
-                    html += `<td colspan="4" style="text-align: center;"><input type="text" placeholder="Ref #" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;"></td>`;
+                    // CMR: 2 semi-annual periods with clear labels
+                    // Period 1: Jan-June (Q1-Q2 merged)
+                    const v1 = p.vals[key] ? p.vals[key][1] : "";
+                    html += `<td colspan="2" style="text-align: center; border-right: 2px solid #ddd;">
+                        <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px; font-weight: 600;">Jan-Jun</div>
+                        <input type="text" placeholder="Ref #" value="${v1}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;">
+                    </td>`;
+                    // Period 2: Jul-Dec (Q3-Q4 merged)
+                    const v2 = p.vals[key] ? p.vals[key][2] : "";
+                    html += `<td colspan="2" style="text-align: center;">
+                        <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px; font-weight: 600;">Jul-Dec</div>
+                        <input type="text" placeholder="Ref #" value="${v2}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',2,this.value)" style="width: 180px;">
+                    </td>`;
                 }
             } else {
                 // Monthly Columns for other tabs
@@ -7126,6 +7003,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
 
         });
             });
+            } // End skip for DOE tabs
 
             // ── PER-REGION GROUPED TABLES: kpm, cshp, reg, audit ──
             if (['kpm','cshp','reg','audit'].includes(state.currentTab)) {
@@ -7291,6 +7169,226 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit') {
                     }
                 });
             }
+
+            // ==================== DOE REPORTORIAL TAB ====================
+            if (state.currentTab === 'doe') {
+                html = ''; // Start fresh
+                
+                // Filter only renewable energy projects
+                const renewableProjects = displayProjects.filter(p => p.isRenewable === true);
+                
+                if (renewableProjects.length === 0) {
+                    html += `
+                        <div style="background: var(--bg-card); padding: 40px; margin: 20px; border-radius: 12px; text-align: center; border: 2px dashed var(--border-color);">
+                            <i class="fas fa-solar-panel" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 15px;"></i>
+                            <h3 style="color: var(--text-primary); margin-bottom: 10px;">No Renewable Energy Projects</h3>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                                DOE Reportorial only applies to Renewable Energy projects.<br>
+                                Mark projects as "Renewable Energy" when adding/editing them to see them here.
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 20px; margin: 20px 20px 0; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <i class="fas fa-solar-panel" style="font-size: 1.8rem; color: #fbc02d;"></i>
+                                <div>
+                                    <h2 style="margin: 0; font-size: 1.3rem; font-weight: 800;">DOE REPORTORIAL - RENEWABLE ENERGY PROJECTS</h2>
+                                    <p style="margin: 5px 0 0; font-size: 0.85rem; opacity: 0.9;">
+                                        Quarterly submission (Due: 20th of the following month after each quarter)
+                                    </p>
+                                    <p style="margin: 5px 0 0; font-size: 0.75rem; opacity: 0.8;">
+                                        <i class="fas fa-leaf"></i> Showing ${renewableProjects.length} Renewable Energy project(s)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="table-container">
+                            <table>
+                                <tr>
+                                    <th style="width: 280px; text-align: left;">PROJECT NAME</th>
+                                    <th>Q1 (JAN-MAR)<br><small style="font-weight: 400; font-size: 0.65rem;">Due: Apr 20</small></th>
+                                    <th>Q2 (APR-JUN)<br><small style="font-weight: 400; font-size: 0.65rem;">Due: Jul 20</small></th>
+                                    <th>Q3 (JUL-SEP)<br><small style="font-weight: 400; font-size: 0.65rem;">Due: Oct 20</small></th>
+                                    <th>Q4 (OCT-DEC)<br><small style="font-weight: 400; font-size: 0.65rem;">Due: Jan 20</small></th>
+                                </tr>
+    `;
+                    
+                    renewableProjects.forEach(p => {
+                        const key = 'doe_DOE Quarterly Report Submission Date';
+                        
+                        html += `<tr>
+                            <td style="text-align: left; font-weight: 700; background: #e8f5e9; color: #1b5e20; position: sticky; left: 0; z-index: 5;">
+                                <i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;"></i>
+                                ${p.name}
+                            </td>`;
+                        
+                        for (let q = 1; q <= 4; q++) {
+                            const val = p.vals[key] ? p.vals[key][q] : '';
+                            const hasPdf = p.doePdfFiles && p.doePdfFiles[`Q${q}`];
+                            
+                            html += `<td>
+                                <input type="date" 
+                                       value="${val}" 
+                                       ${state.isEditing ? '' : 'disabled'} 
+                                       oninput="updateVal('${p.name}','${key}',${q},this.value)"
+                                       style="width: 140px;">
+                                
+                                ${state.isEditing ? `
+                                    <div class="pdf-upload-container">
+                                        ${hasPdf ? `
+                                            <span class="pdf-file-info">
+                                                <i class="fas fa-file-pdf" style="color: #d32f2f;"></i>
+                                                <span style="font-size: 0.65rem; color: var(--text-secondary);">
+                                                    ${p.doePdfFiles[`Q${q}`].fileName.substring(0, 12)}...
+                                                </span>
+                                                <button class="pdf-view-btn" 
+                                                        onclick="viewDoePdf('${p.name}', ${q})" 
+                                                        title="View PDF">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="pdf-delete-btn" 
+                                                        onclick="deleteDoePdf('${p.name}', ${q})" 
+                                                        title="Delete PDF">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </span>
+                                        ` : `
+                                            <button class="pdf-upload-btn" 
+                                                    onclick="uploadDoePdf('${p.name}', ${q})" 
+                                                    title="Upload Certificate PDF">
+                                                <i class="fas fa-upload"></i> Upload
+                                            </button>
+                                        `}
+                                    </div>
+                                ` : hasPdf ? `
+                                    <button class="pdf-view-btn" 
+                                            onclick="viewDoePdf('${p.name}', ${q})" 
+                                            title="View PDF"
+                                            style="margin-left: 10px;">
+                                        <i class="fas fa-file-pdf"></i> View
+                                    </button>
+                                ` : ''}
+                            </td>`;
+                        }
+                        
+                        html += `</tr>`;
+                    });
+                    
+                    html += `
+                            </table>
+                        </div>
+                    `;
+                }
+            }
+            // ==================== END DOE REPORTORIAL ====================
+
+            // ==================== DOE SAFETY OFFICER PERMIT TAB ====================
+            if (state.currentTab === 'doe-permit') {
+                html = ''; // Start fresh
+                
+                // Filter only renewable energy projects
+                const renewableProjects = displayProjects.filter(p => p.isRenewable === true);
+                
+                if (renewableProjects.length === 0) {
+                    html += `
+                        <div style="background: var(--bg-card); padding: 40px; margin: 20px; border-radius: 12px; text-align: center; border: 2px dashed var(--border-color);">
+                            <i class="fas fa-id-card" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 15px;"></i>
+                            <h3 style="color: var(--text-primary); margin-bottom: 10px;">No Renewable Energy Projects</h3>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                                DOE Safety Officer Permit only applies to Renewable Energy projects.<br>
+                                Mark projects as "Renewable Energy" when adding/editing them to see them here.
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 20px; margin: 20px 20px 0; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <i class="fas fa-id-card" style="font-size: 1.8rem; color: #fbc02d;"></i>
+                                <div>
+                                    <h2 style="margin: 0; font-size: 1.3rem; font-weight: 800;">DOE SAFETY OFFICER PERMIT</h2>
+                                    <p style="margin: 5px 0 0; font-size: 0.85rem; opacity: 0.9;">
+                                        Department Circular No. DC2012-11-0009 (RE Safety, Health and Environment Rules)
+                                    </p>
+                                    <p style="margin: 5px 0 0; font-size: 0.75rem; opacity: 0.8;">
+                                        <i class="fas fa-leaf"></i> Showing ${renewableProjects.length} Renewable Energy project(s)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="table-container">
+                            <table>
+                                <tr>
+                                    <th style="width: 280px; text-align: left;">PROJECT NAME</th>
+                                    <th style="width: 200px;">SAFETY OFFICER PERMIT NUMBER</th>
+                                    <th style="width: 150px;">VALID UNTIL</th>
+                                    <th style="width: 200px;">PDF FILE</th>
+                                </tr>
+    `;
+                    
+                    const key = 'doe-permit_DOE Safety Officer Permit';
+                    
+                    renewableProjects.forEach(p => {
+                        const permitNumber = p.vals[key] ? p.vals[key][1] : "";
+                        const validUntil = p.vals[key] ? p.vals[key][2] : "";
+                        const hasPdf = p.vals[key] && p.vals[key][3];
+                        
+                        let pdfCell = '';
+                        if (state.isEditing) {
+                            if (hasPdf) {
+                                pdfCell = `
+                                    <span class="pdf-file-info">
+                                        <button class="pdf-view-btn" onclick="viewDoePermitPdf('${p.name}')" title="View PDF">
+                                            <i class="fas fa-file-pdf"></i> View
+                                        </button>
+                                        <button class="pdf-delete-btn" onclick="deleteDoePermitPdf('${p.name}')" title="Replace PDF">
+                                            <i class="fas fa-sync-alt"></i> Replace
+                                        </button>
+                                    </span>
+                                `;
+                            } else {
+                                pdfCell = `
+                                    <button class="pdf-upload-btn" onclick="uploadDoePermitPdf('${p.name}')" title="Upload Permit PDF">
+                                        <i class="fas fa-upload"></i> Upload
+                                    </button>
+                                `;
+                            }
+                        } else {
+                            if (hasPdf) {
+                                pdfCell = `
+                                    <button class="pdf-view-btn" onclick="viewDoePermitPdf('${p.name}')" title="View PDF">
+                                        <i class="fas fa-file-pdf"></i> View
+                                    </button>
+                                `;
+                            } else {
+                                pdfCell = '<span style="color: var(--text-secondary); font-size: 0.75rem;">No PDF</span>';
+                            }
+                        }
+                        
+                        html += `<tr>
+                            <td style="text-align: left; font-weight: 700; background: #e8f5e9; color: #1b5e20; position: sticky; left: 0; z-index: 5;">
+                                <i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;"></i>
+                                ${p.name}
+                            </td>
+                            <td><input type="text" placeholder="e.g., HOEMD-2025-486" value="${permitNumber}" ${state.isEditing ? '' : 'disabled'}
+                                oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 100%;"></td>
+                            <td><input type="date" value="${validUntil}" ${state.isEditing ? '' : 'disabled'}
+                                oninput="updateVal('${p.name}','${key}',2,this.value)" style="width: 100%;"></td>
+                            <td style="text-align: center;">${pdfCell}</td>
+                        </tr>`;
+                    });
+                    
+                    html += `
+                            </table>
+                        </div>
+                    `;
+                }
+            }
+            // ==================== END DOE SAFETY OFFICER PERMIT ====================
 
             // ESH NOV MONITORING - Render grouped tables per region
             if (state.currentTab === 'nov-monitoring') {
@@ -9117,66 +9215,16 @@ window.addEventListener('beforeunload', () => {
 console.log('🔥 Firebase integration loaded - OPTIMIZED: Save button only!');
 
 // ==================== MOBILE MENU FUNCTIONALITY ====================
-function toggleMobileMenu() {
-    const sidebar = document.querySelector('aside');
-    const overlay = document.getElementById('mobile-overlay');
-    const menuToggle = document.getElementById('mobile-menu-toggle');
-    
-    if (sidebar && overlay && menuToggle) {
-        const isOpen = sidebar.classList.contains('mobile-open');
-        
-        if (isOpen) {
-            // Close menu
-            sidebar.classList.remove('mobile-open');
-            overlay.classList.remove('active');
-            menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
-        } else {
-            // Open menu
-            sidebar.classList.add('mobile-open');
-            overlay.classList.add('active');
-            menuToggle.innerHTML = '<i class="fas fa-times"></i>';
-        }
-    }
-}
-
-// Close mobile menu when clicking on nav items
+// Restore navigation states on load
 document.addEventListener('DOMContentLoaded', function() {
     // Restore navigation group collapse states
     restoreNavGroupStates();
-    
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-        item.addEventListener('click', function() {
-            // Only close on mobile/tablet
-            if (window.innerWidth <= 768) {
-                toggleMobileMenu();
-            }
-        });
-    });
-
-    // Close menu on window resize if going from mobile to desktop
-    let resizeTimer;
-    window.addEventListener('resize', function() {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(function() {
-            if (window.innerWidth > 768) {
-                const sidebar = document.querySelector('aside');
-                const overlay = document.getElementById('mobile-overlay');
-                const menuToggle = document.getElementById('mobile-menu-toggle');
-                
-                if (sidebar) sidebar.classList.remove('mobile-open');
-                if (overlay) overlay.classList.remove('active');
-                if (menuToggle) menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
-            }
-        }, 250);
-    });
 });
-
-console.log('📱 Mobile responsive features loaded!');
 
 // ==================== AUDIO CONTEXT INITIALIZATION ====================
 // Create global AudioContext for sound effects (needed for browser autoplay policies)
 let globalAudioContext = null;
+let audioContextReady = false;
 
 function initAudioContext() {
     if (!globalAudioContext) {
@@ -9185,6 +9233,7 @@ function initAudioContext() {
             console.log('🔊 AudioContext initialized');
         } catch (e) {
             console.warn('Could not initialize AudioContext:', e);
+            return null;
         }
     }
     
@@ -9192,7 +9241,12 @@ function initAudioContext() {
     if (globalAudioContext && globalAudioContext.state === 'suspended') {
         globalAudioContext.resume().then(() => {
             console.log('🔊 AudioContext resumed');
+            audioContextReady = true;
+        }).catch(err => {
+            console.warn('Could not resume AudioContext:', err);
         });
+    } else if (globalAudioContext && globalAudioContext.state === 'running') {
+        audioContextReady = true;
     }
     
     return globalAudioContext;
@@ -9201,6 +9255,7 @@ function initAudioContext() {
 // Initialize on first user interaction
 document.addEventListener('click', initAudioContext, { once: true });
 document.addEventListener('keydown', initAudioContext, { once: true });
+document.addEventListener('touchstart', initAudioContext, { once: true });
 
 // ==================== SAFETY REMINDER SYSTEM ====================
 // Load work start time from localStorage or initialize
@@ -9333,37 +9388,37 @@ function playNotificationSound() {
     // Function to play one beep based on reminder type
     function playBeep() {
         try {
-            const audioContext = initAudioContext();
-            if (!audioContext) {
-                console.warn('AudioContext not available');
+            // Don't call initAudioContext() - just check if it exists and is ready
+            if (!globalAudioContext || !audioContextReady) {
+                console.log('🔇 Reminder sound skipped (AudioContext not ready)');
                 return;
             }
             
             // Play different sounds based on reminder type
             if (currentReminderType === 'EYES_20') {
                 // Option 2: Gentle Chime - C-E-G notes
-                playNote(audioContext, 523, 0.2, 0.25, 0.01, 0.15); // C
-                setTimeout(() => playNote(audioContext, 659, 0.2, 0.25, 0.01, 0.15), 150); // E
-                setTimeout(() => playNote(audioContext, 784, 0.3, 0.25, 0.01, 0.2), 300); // G
+                playNote(globalAudioContext, 523, 0.2, 0.25, 0.01, 0.15); // C
+                setTimeout(() => playNote(globalAudioContext, 659, 0.2, 0.25, 0.01, 0.15), 150); // E
+                setTimeout(() => playNote(globalAudioContext, 784, 0.3, 0.25, 0.01, 0.2), 300); // G
             } else if (currentReminderType === 'MICRO_BREAK') {
                 // Option 1: Rising Melody - Do-Re-Mi-Fa-Sol
-                playNote(audioContext, 523, 0.15, 0.3, 0.01, 0.1); // C
-                setTimeout(() => playNote(audioContext, 587, 0.15, 0.3, 0.01, 0.1), 120); // D
-                setTimeout(() => playNote(audioContext, 659, 0.15, 0.3, 0.01, 0.1), 240); // E
-                setTimeout(() => playNote(audioContext, 698, 0.15, 0.3, 0.01, 0.1), 360); // F
-                setTimeout(() => playNote(audioContext, 784, 0.25, 0.4, 0.01, 0.15), 480); // G
+                playNote(globalAudioContext, 523, 0.15, 0.3, 0.01, 0.1); // C
+                setTimeout(() => playNote(globalAudioContext, 587, 0.15, 0.3, 0.01, 0.1), 120); // D
+                setTimeout(() => playNote(globalAudioContext, 659, 0.15, 0.3, 0.01, 0.1), 240); // E
+                setTimeout(() => playNote(globalAudioContext, 698, 0.15, 0.3, 0.01, 0.1), 360); // F
+                setTimeout(() => playNote(globalAudioContext, 784, 0.25, 0.4, 0.01, 0.15), 480); // G
             } else if (currentReminderType === 'LONG_BREAK') {
                 // Option 2: Alarm Clock - 4 repeating beeps
-                playNote(audioContext, 1047, 0.2, 0.45, 0.01, 0.15);
-                setTimeout(() => playNote(audioContext, 1047, 0.2, 0.45, 0.01, 0.15), 250);
-                setTimeout(() => playNote(audioContext, 1047, 0.2, 0.45, 0.01, 0.15), 500);
-                setTimeout(() => playNote(audioContext, 1047, 0.3, 0.5, 0.01, 0.2), 750);
+                playNote(globalAudioContext, 1047, 0.2, 0.45, 0.01, 0.15);
+                setTimeout(() => playNote(globalAudioContext, 1047, 0.2, 0.45, 0.01, 0.15), 250);
+                setTimeout(() => playNote(globalAudioContext, 1047, 0.2, 0.45, 0.01, 0.15), 500);
+                setTimeout(() => playNote(globalAudioContext, 1047, 0.3, 0.5, 0.01, 0.2), 750);
             } else if (currentReminderType === 'EXTENDED_BREAK') {
                 // Option 1: Emergency Alert - alternating high-low siren
-                playNote(audioContext, 880, 0.3, 0.5, 0.01, 0.2);
-                setTimeout(() => playNote(audioContext, 660, 0.3, 0.5, 0.01, 0.2), 350);
-                setTimeout(() => playNote(audioContext, 880, 0.3, 0.5, 0.01, 0.2), 700);
-                setTimeout(() => playNote(audioContext, 660, 0.3, 0.5, 0.01, 0.2), 1050);
+                playNote(globalAudioContext, 880, 0.3, 0.5, 0.01, 0.2);
+                setTimeout(() => playNote(globalAudioContext, 660, 0.3, 0.5, 0.01, 0.2), 350);
+                setTimeout(() => playNote(globalAudioContext, 880, 0.3, 0.5, 0.01, 0.2), 700);
+                setTimeout(() => playNote(globalAudioContext, 660, 0.3, 0.5, 0.01, 0.2), 1050);
             }
         } catch (e) {
             console.warn('Could not play notification sound:', e);
@@ -9407,20 +9462,275 @@ function stopNotificationSound() {
     }
 }
 
+// ==================== EXPORT TO PDF FUNCTIONALITY ====================
+
+async function exportCurrentTabToPDF() {
+    showToast('📄 Generating PDF report...', 'info');
+    
+    try {
+        const year = state.selectedYear || 2026;
+        const tabName = state.currentTab || 'overall';
+        
+        // Prepare data
+        const exportData = {
+            year: year,
+            tab: tabName,
+            exportDate: new Date(),
+            projects: state.projects || []
+        };
+        
+        const pdfFilename = `ESH_Compliance_${tabName.toUpperCase()}_${year}_${new Date().toISOString().split('T')[0]}.pdf`;
+        
+        // Generate PDF using jsPDF
+        generateComprehensivePDF(exportData, pdfFilename);
+        
+    } catch (error) {
+        console.error('Error exporting PDF:', error);
+        showToast('❌ Failed to generate PDF: ' + error.message, 'error');
+    }
+}
+
+function generateComprehensivePDF(data, filename) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape A4
+    
+    let yPos = 20;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentWidth = pageWidth - (margin * 2);
+    
+    // Helper function to add new page if needed
+    const checkPageBreak = (requiredSpace = 20) => {
+        if (yPos + requiredSpace > pageHeight - margin) {
+            doc.addPage();
+            yPos = 20;
+            return true;
+        }
+        return false;
+    };
+    
+    // Title
+    doc.setFillColor(27, 94, 32);
+    doc.rect(0, 0, pageWidth, 35, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ESH COMPLIANCE DASHBOARD', pageWidth / 2, 15, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text('OVERALL SUMMARY REPORT', pageWidth / 2, 25, { align: 'center' });
+    
+    yPos = 45;
+    
+    // Metadata box
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    
+    const metaData = [
+        ['Report Year:', String(data.year)],
+        ['Export Date:', data.exportDate.toLocaleString()],
+        ['Total Projects:', String(data.projects.length)]
+    ];
+    
+    doc.autoTable({
+        startY: yPos,
+        head: [],
+        body: metaData,
+        theme: 'plain',
+        styles: { fontSize: 10, cellPadding: 3 },
+        columnStyles: {
+            0: { fontStyle: 'bold', cellWidth: 40 },
+            1: { cellWidth: 80 }
+        },
+        margin: { left: margin }
+    });
+    
+    yPos = doc.lastAutoTable.finalY + 15;
+    
+    // Projects Summary Table
+    checkPageBreak(40);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(46, 125, 50);
+    doc.text('PROJECT OVERVIEW', margin, yPos);
+    yPos += 10;
+    
+    if (data.projects.length === 0) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100);
+        doc.text('No projects found.', margin, yPos);
+        yPos += 10;
+    } else {
+        // Create project summary table
+        const projectTableData = data.projects.map((p, idx) => [
+            String(idx + 1),
+            p.name || 'N/A',
+            p.region || 'N/A',
+            p.start || 'N/A',
+            p.isRenewable ? 'Yes' : 'No'
+        ]);
+        
+        doc.autoTable({
+            startY: yPos,
+            head: [['#', 'PROJECT NAME', 'REGION', 'START DATE', 'RENEWABLE']],
+            body: projectTableData,
+            theme: 'grid',
+            headStyles: {
+                fillColor: [46, 125, 50],
+                textColor: 255,
+                fontStyle: 'bold',
+                fontSize: 10
+            },
+            styles: {
+                fontSize: 9,
+                cellPadding: 4
+            },
+            columnStyles: {
+                0: { cellWidth: 15, halign: 'center' },
+                1: { cellWidth: 100 },
+                2: { cellWidth: 40, halign: 'center' },
+                3: { cellWidth: 35, halign: 'center' },
+                4: { cellWidth: 30, halign: 'center' }
+            },
+            alternateRowStyles: { fillColor: [245, 245, 245] },
+            margin: { left: margin, right: margin }
+        });
+        
+        yPos = doc.lastAutoTable.finalY + 15;
+    }
+    
+    // Detailed Project Information
+    data.projects.forEach((project, idx) => {
+        doc.addPage();
+        yPos = 20;
+        
+        // Project header
+        doc.setFillColor(46, 125, 50);
+        doc.rect(margin, yPos, contentWidth, 12, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`PROJECT ${idx + 1}: ${project.name || 'Unnamed'}`, margin + 5, yPos + 8);
+        
+        yPos += 20;
+        
+        // Project details
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        
+        const detailsData = [
+            ['Region:', project.region || 'N/A'],
+            ['Start Date:', project.start || 'N/A'],
+            ['End Date:', project.end || 'N/A'],
+            ['Status:', project.status || 'N/A'],
+            ['Renewable Energy:', project.isRenewable ? 'Yes' : 'No']
+        ];
+        
+        doc.autoTable({
+            startY: yPos,
+            body: detailsData,
+            theme: 'plain',
+            styles: { fontSize: 10, cellPadding: 3 },
+            columnStyles: {
+                0: { fontStyle: 'bold', cellWidth: 45 },
+                1: { cellWidth: 80 }
+            },
+            margin: { left: margin }
+        });
+        
+        yPos = doc.lastAutoTable.finalY + 15;
+        
+        // Compliance data summary
+        if (project.vals && Object.keys(project.vals).length > 0) {
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(76, 175, 80);
+            doc.text('Compliance Records:', margin, yPos);
+            yPos += 8;
+            
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(0, 0, 0);
+            
+            // Group by category
+            const categories = {};
+            for (const [key, value] of Object.entries(project.vals)) {
+                if (key.includes('_')) {
+                    const [cat, field] = key.split('_', 2);
+                    if (!categories[cat]) categories[cat] = [];
+                    
+                    // Count filled fields
+                    let filledCount = 0;
+                    if (value && typeof value === 'object') {
+                        filledCount = Object.values(value).filter(v => v && String(v).trim() !== '').length;
+                    }
+                    
+                    if (filledCount > 0) {
+                        categories[cat].push({ field, count: filledCount });
+                    }
+                }
+            }
+            
+            // Display categories
+            for (const [cat, fields] of Object.entries(categories)) {
+                if (checkPageBreak(8)) {
+                    doc.setFontSize(11);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(76, 175, 80);
+                    doc.text('Compliance Records (continued):', margin, yPos);
+                    yPos += 8;
+                    doc.setFontSize(9);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(0, 0, 0);
+                }
+                
+                const catName = cat.toUpperCase().replace(/-/g, ' ');
+                doc.setFont('helvetica', 'bold');
+                doc.text(`${catName}:`, margin + 5, yPos);
+                yPos += 5;
+                
+                doc.setFont('helvetica', 'normal');
+                fields.slice(0, 5).forEach(item => {
+                    if (checkPageBreak(5)) {
+                        doc.text('(continued...)', margin + 10, yPos);
+                        yPos += 5;
+                    }
+                    doc.text(`  • ${item.field}: ${item.count} record(s)`, margin + 10, yPos);
+                    yPos += 5;
+                });
+                
+                yPos += 3;
+            }
+        } else {
+            doc.setFontSize(9);
+            doc.setTextColor(150, 150, 150);
+            doc.text('No compliance data recorded.', margin, yPos);
+        }
+    });
+    
+    // Save PDF
+    doc.save(filename);
+    showToast('✅ PDF report generated successfully!', 'success');
+}
+
+// ==================== END EXPORT PDF ====================
+
 // Play login sound (once, no loop)
 function playLoginSound() {
     try {
-        const audioContext = initAudioContext();
-        if (!audioContext) {
-            console.warn('AudioContext not available');
+        // Don't call initAudioContext() here - just check if it exists
+        if (!globalAudioContext || !audioContextReady) {
+            console.log('🔇 Login sound skipped (waiting for user interaction)');
             return;
         }
         
         // Option 2: Success Jingle - E-G-C-E
-        playNote(audioContext, 659, 0.15, 0.3, 0.01, 0.1); // E
-        setTimeout(() => playNote(audioContext, 784, 0.15, 0.3, 0.01, 0.1), 120); // G
-        setTimeout(() => playNote(audioContext, 1047, 0.2, 0.35, 0.01, 0.15), 240); // C
-        setTimeout(() => playNote(audioContext, 1319, 0.25, 0.4, 0.01, 0.18), 360); // E
+        playNote(globalAudioContext, 659, 0.15, 0.3, 0.01, 0.1); // E
+        setTimeout(() => playNote(globalAudioContext, 784, 0.15, 0.3, 0.01, 0.1), 120); // G
+        setTimeout(() => playNote(globalAudioContext, 1047, 0.2, 0.35, 0.01, 0.15), 240); // C
+        setTimeout(() => playNote(globalAudioContext, 1319, 0.25, 0.4, 0.01, 0.18), 360); // E
         
         console.log('🔊 Login sound played');
     } catch (e) {
@@ -9450,16 +9760,16 @@ function playLoginSound() {
 // Play logout sound (once, no loop)
 function playLogoutSound() {
     try {
-        const audioContext = initAudioContext();
-        if (!audioContext) {
-            console.warn('AudioContext not available');
+        // Don't call initAudioContext() - just check if it exists
+        if (!globalAudioContext || !audioContextReady) {
+            console.log('🔇 Logout sound skipped (AudioContext not ready)');
             return;
         }
         
         // Option 1: Goodbye Tone - G-E-C descending
-        playNote(audioContext, 784, 0.15, 0.3, 0.01, 0.1); // G
-        setTimeout(() => playNote(audioContext, 659, 0.15, 0.3, 0.01, 0.1), 150); // E
-        setTimeout(() => playNote(audioContext, 523, 0.25, 0.35, 0.01, 0.18), 300); // C
+        playNote(globalAudioContext, 784, 0.15, 0.3, 0.01, 0.1); // G
+        setTimeout(() => playNote(globalAudioContext, 659, 0.15, 0.3, 0.01, 0.1), 150); // E
+        setTimeout(() => playNote(globalAudioContext, 523, 0.25, 0.35, 0.01, 0.18), 300); // C
         
         console.log('🔊 Logout sound played');
     } catch (e) {
@@ -9668,7 +9978,7 @@ console.log('✅ Safety reminder character loaded!');
 // ==================== AUTOMATIC COLOR CODING FOR REPORTORIAL TABLES ====================
 function updateReportorialColors() {
     // Only apply colors when on the relevant tabs
-    if (!['kpm', 'dole', 'emb'].includes(state.currentTab)) return;
+    if (!['kpm', 'dole', 'emb', 'doe', 'doe-permit'].includes(state.currentTab)) return;
     
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth(); // 0-11 (0=January)
@@ -9741,41 +10051,140 @@ function updateReportorialColors() {
                     
                     // Only apply to "Submission Date" rows, not "Reference No." rows
                     if (rowType.includes('Submission Date')) {
-                        // Check if this is a merged cell (CMR Semi-Annual) - special handling
+                        // Check if this is CMR Semi-Annual (has colspan="2")
                         const firstDataCell = cells[1];
-                        if (firstDataCell && firstDataCell.getAttribute('colspan') === '4') {
-                            // CMR Semi-Annual - check based on Q2 (June = month 5)
-                            const input = firstDataCell.querySelector('input[type="date"]');
-                            if (input) {
-                                const inputValue = input.value.trim();
-                                // Semi-annual due by end of Q2 (June)
-                                if (inputValue === '' && currentMonth > 5) { // After June
+                        const secondDataCell = cells[2];
+                        
+                        if (firstDataCell && firstDataCell.getAttribute('colspan') === '2' && 
+                            secondDataCell && secondDataCell.getAttribute('colspan') === '2') {
+                            // CMR Semi-Annual with 2 periods
+                            
+                            // Period 1: Jan-June, Due July 15
+                            const input1 = firstDataCell.querySelector('input[type="date"]');
+                            if (input1) {
+                                const inputValue1 = input1.value.trim();
+                                let isOverdue1 = false;
+                                
+                                // Due July 15 of the selected year
+                                if (currentDate.getFullYear() > state.selectedYear) {
+                                    // Past the deadline year
+                                    isOverdue1 = true;
+                                } else if (currentDate.getFullYear() === state.selectedYear) {
+                                    if (currentMonth > 6) { // After July
+                                        isOverdue1 = true;
+                                    } else if (currentMonth === 6 && currentDate.getDate() > 15) { // After July 15
+                                        isOverdue1 = true;
+                                    }
+                                }
+                                
+                                if (inputValue1 === '' && isOverdue1) {
                                     firstDataCell.style.backgroundColor = '#ffcdd2';
-                                    input.style.backgroundColor = '#ffcdd2';
-                                    input.style.color = '#c62828';
-                                } else if (inputValue !== '') {
+                                    input1.style.backgroundColor = '#ffcdd2';
+                                    input1.style.color = '#c62828';
+                                } else if (inputValue1 !== '') {
                                     firstDataCell.style.backgroundColor = '#c8e6c9';
-                                    input.style.backgroundColor = '#c8e6c9';
-                                    input.style.color = '#2e7d32';
+                                    input1.style.backgroundColor = '#c8e6c9';
+                                    input1.style.color = '#2e7d32';
                                 } else {
                                     firstDataCell.style.backgroundColor = '';
-                                    input.style.backgroundColor = '';
-                                    input.style.color = '';
+                                    input1.style.backgroundColor = '';
+                                    input1.style.color = '';
+                                }
+                            }
+                            
+                            // Period 2: Jul-Dec, Due January 15 of NEXT year
+                            const input2 = secondDataCell.querySelector('input[type="date"]');
+                            if (input2) {
+                                const inputValue2 = input2.value.trim();
+                                let isOverdue2 = false;
+                                
+                                // CMR Jul-Dec 2026 is due January 15, 2027
+                                // Using EXACT same logic as Q4 SMR
+                                const deadlineYear = state.selectedYear + 1; // Deadline is in the next year
+                                const currentYear = currentDate.getFullYear();
+                                
+                                // Check if we've passed the deadline
+                                if (currentYear > deadlineYear) {
+                                    // Already past the deadline year
+                                    isOverdue2 = true;
+                                } else if (currentYear === deadlineYear) {
+                                    // In the deadline year - check month and day
+                                    if (currentMonth === 0 && currentDate.getDate() > 15) {
+                                        // January 16+ of deadline year
+                                        isOverdue2 = true;
+                                    } else if (currentMonth > 0) {
+                                        // February or later of deadline year
+                                        isOverdue2 = true;
+                                    }
+                                }
+                                // If currentYear < deadlineYear, not overdue yet
+                                
+                                if (inputValue2 === '' && isOverdue2) {
+                                    secondDataCell.style.backgroundColor = '#ffcdd2';
+                                    input2.style.backgroundColor = '#ffcdd2';
+                                    input2.style.color = '#c62828';
+                                } else if (inputValue2 !== '') {
+                                    secondDataCell.style.backgroundColor = '#c8e6c9';
+                                    input2.style.backgroundColor = '#c8e6c9';
+                                    input2.style.color = '#2e7d32';
+                                } else {
+                                    secondDataCell.style.backgroundColor = '';
+                                    input2.style.backgroundColor = '';
+                                    input2.style.color = '';
                                 }
                             }
                         } else {
-                            // SMR Quarterly - Q1, Q2, Q3, Q4
+                            // SMR Quarterly - Due 15th of following month after quarter
+                            // Q1 (Jan-Mar) due April 15, Q2 (Apr-Jun) due July 15
+                            // Q3 (Jul-Sep) due October 15, Q4 (Oct-Dec) due January 15 NEXT YEAR
                             for (let q = 1; q <= 4 && q < cells.length; q++) {
                                 const cell = cells[q];
                                 const input = cell.querySelector('input[type="date"]');
                                 
                                 if (input) {
-                                    // Q1=Jan-Mar (months 0-2), Q2=Apr-Jun (3-5), Q3=Jul-Sep (6-8), Q4=Oct-Dec (9-11)
-                                    const quarterLastMonth = (q * 3) - 1; // Q1->2, Q2->5, Q3->8, Q4->11
+                                    // Deadline is 15th of month after quarter ends
+                                    // Q1 ends March (month 2), due April 15 (month 3, day 15)
+                                    // Q2 ends June (month 5), due July 15 (month 6, day 15)
+                                    // Q3 ends September (month 8), due October 15 (month 9, day 15)
+                                    // Q4 ends December (month 11), due January 15 NEXT YEAR (month 0, day 15)
+                                    const quarterEndMonth = (q * 3) - 1; // Q1->2(Mar), Q2->5(Jun), Q3->8(Sep), Q4->11(Dec)
+                                    const deadlineMonth = (quarterEndMonth + 1) % 12; // Next month: Q1->3(Apr), Q2->6(Jul), Q3->9(Oct), Q4->0(Jan)
                                     const inputValue = input.value.trim();
                                     
-                                    // If input is empty and quarter deadline has passed
-                                    if (inputValue === '' && currentMonth > quarterLastMonth) {
+                                    let isOverdue = false;
+                                    
+                                    // Special handling for Q4 (due January 15 of NEXT year)
+                                    if (q === 4) {
+                                        // Q4 2026 is due January 15, 2027
+                                        const deadlineYear = state.selectedYear + 1; // Q4's deadline is in the next year
+                                        const currentYear = currentDate.getFullYear();
+                                        
+                                        // Check if we've passed the deadline
+                                        if (currentYear > deadlineYear) {
+                                            // Already past the deadline year
+                                            isOverdue = true;
+                                        } else if (currentYear === deadlineYear) {
+                                            // In the deadline year - check month and day
+                                            if (currentMonth === 0 && currentDate.getDate() > 15) {
+                                                // January 16+ of deadline year
+                                                isOverdue = true;
+                                            } else if (currentMonth > 0) {
+                                                // February or later of deadline year
+                                                isOverdue = true;
+                                            }
+                                        }
+                                        // If currentYear < deadlineYear, not overdue yet
+                                    } else {
+                                        // For Q1, Q2, Q3 - normal logic
+                                        if (currentMonth > deadlineMonth) {
+                                            isOverdue = true;
+                                        } else if (currentMonth === deadlineMonth && currentDate.getDate() > 15) {
+                                            isOverdue = true;
+                                        }
+                                    }
+                                    
+                                    // If input is empty and deadline has passed
+                                    if (inputValue === '' && isOverdue) {
                                         cell.style.backgroundColor = '#ffcdd2';
                                         input.style.backgroundColor = '#ffcdd2';
                                         input.style.color = '#c62828';
@@ -9797,6 +10206,119 @@ function updateReportorialColors() {
                         }
                     }
                 }
+                
+                // For DOE - quarterly columns (Q1-Q4) - due 20th of following month
+                else if (state.currentTab === 'doe') {
+                    const rowType = cells[0]?.textContent.trim() || '';
+                    
+                    // DOE only has submission date row now
+                    if (rowType.includes('Submission Date')) {
+                        // DOE Quarterly - Q1, Q2, Q3, Q4
+                        for (let q = 1; q <= 4 && q < cells.length; q++) {
+                            const cell = cells[q];
+                            const input = cell.querySelector('input[type="date"]');
+                            
+                            if (input) {
+                                const inputValue = input.value.trim();
+                                let isOverdue = false;
+                                
+                                // Special handling for Q4 (due January 20 of NEXT year)
+                                if (q === 4) {
+                                    // Q4 2026 is due January 20, 2027
+                                    const deadlineYear = state.selectedYear + 1;
+                                    const currentYear = currentDate.getFullYear();
+                                    
+                                    if (currentYear > deadlineYear) {
+                                        isOverdue = true;
+                                    } else if (currentYear === deadlineYear) {
+                                        if (currentMonth === 0 && currentDate.getDate() > 20) {
+                                            isOverdue = true;
+                                        } else if (currentMonth > 0) {
+                                            isOverdue = true;
+                                        }
+                                    }
+                                } else {
+                                    // For Q1, Q2, Q3 - normal logic
+                                    const quarterLastMonth = (q * 3) - 1;
+                                    const deadlineMonth = quarterLastMonth + 1;
+                                    
+                                    if (currentMonth > deadlineMonth) {
+                                        isOverdue = true;
+                                    } else if (currentMonth === deadlineMonth && currentDate.getDate() > 20) {
+                                        isOverdue = true;
+                                    }
+                                }
+                                
+                                if (inputValue === '' && isOverdue) {
+                                    cell.style.backgroundColor = '#ffcdd2';
+                                    input.style.backgroundColor = '#ffcdd2';
+                                    input.style.color = '#c62828';
+                                }
+                                else if (inputValue !== '') {
+                                    cell.style.backgroundColor = '#c8e6c9';
+                                    input.style.backgroundColor = '#c8e6c9';
+                                    input.style.color = '#2e7d32';
+                                }
+                                else {
+                                    cell.style.backgroundColor = '';
+                                    input.style.backgroundColor = '';
+                                    input.style.color = '';
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // For DOE Safety Officer Permit - check expiry dates
+                else if (state.currentTab === 'doe-permit') {
+                    // Find "Valid Until" column (index 2)
+                    if (cells.length >= 3) {
+                        const validUntilCell = cells[2];
+                        const dateInput = validUntilCell.querySelector('input[type="date"]');
+                        
+                        if (dateInput) {
+                            const validUntilValue = dateInput.value.trim();
+                            
+                            if (validUntilValue !== '') {
+                                const expiryDate = new Date(validUntilValue);
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                expiryDate.setHours(0, 0, 0, 0);
+                                
+                                // Check if expired
+                                if (expiryDate < today) {
+                                    // EXPIRED - Red
+                                    validUntilCell.style.backgroundColor = '#ffcdd2';
+                                    dateInput.style.backgroundColor = '#ffcdd2';
+                                    dateInput.style.color = '#c62828';
+                                    dateInput.style.fontWeight = '700';
+                                } 
+                                // Check if expiring within 30 days
+                                else {
+                                    const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+                                    
+                                    if (daysUntilExpiry <= 30) {
+                                        // Expiring soon - Yellow
+                                        validUntilCell.style.backgroundColor = '#fff9c4';
+                                        dateInput.style.backgroundColor = '#fff9c4';
+                                        dateInput.style.color = '#f57c00';
+                                        dateInput.style.fontWeight = '600';
+                                    } else {
+                                        // Valid - Green
+                                        validUntilCell.style.backgroundColor = '#c8e6c9';
+                                        dateInput.style.backgroundColor = '#c8e6c9';
+                                        dateInput.style.color = '#2e7d32';
+                                    }
+                                }
+                            } else {
+                                // No date entered - leave default
+                                validUntilCell.style.backgroundColor = '';
+                                dateInput.style.backgroundColor = '';
+                                dateInput.style.color = '';
+                            }
+                        }
+                    }
+                }
             });
         });
         
@@ -9813,7 +10335,64 @@ render = function() {
     if (typeof updateNotifications === 'function') {
         updateNotifications();
     }
+    checkExpiredPermits(); // Check for expired DOE permits
 };
+
+// Check for expired DOE Safety Officer Permits and show notification
+function checkExpiredPermits() {
+    if (state.currentTab !== 'doe-permit') return;
+    
+    const renewableProjects = state.projects.filter(p => p.isRenewable === true);
+    const key = 'doe-permit_DOE Safety Officer Permit';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const expiredPermits = [];
+    const expiringSoon = [];
+    
+    renewableProjects.forEach(p => {
+        const validUntil = p.vals[key] ? p.vals[key][2] : "";
+        
+        if (validUntil) {
+            const expiryDate = new Date(validUntil);
+            expiryDate.setHours(0, 0, 0, 0);
+            
+            if (expiryDate < today) {
+                expiredPermits.push({
+                    project: p.name,
+                    expiryDate: validUntil
+                });
+            } else {
+                const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+                if (daysUntilExpiry <= 30) {
+                    expiringSoon.push({
+                        project: p.name,
+                        expiryDate: validUntil,
+                        daysLeft: daysUntilExpiry
+                    });
+                }
+            }
+        }
+    });
+    
+    // Show notifications for expired permits
+    if (expiredPermits.length > 0) {
+        const message = expiredPermits.length === 1
+            ? `⚠️ DOE Safety Officer Permit for "${expiredPermits[0].project}" has EXPIRED!`
+            : `⚠️ ${expiredPermits.length} DOE Safety Officer Permits have EXPIRED!`;
+        
+        showToast(message, 'error');
+    }
+    
+    // Show notification for expiring soon
+    if (expiringSoon.length > 0) {
+        const message = expiringSoon.length === 1
+            ? `⏰ DOE Safety Officer Permit for "${expiringSoon[0].project}" expires in ${expiringSoon[0].daysLeft} day(s)`
+            : `⏰ ${expiringSoon.length} DOE Safety Officer Permits expiring within 30 days`;
+        
+        showToast(message, 'warning');
+    }
+}
 
 // Run color update when page loads
 document.addEventListener('DOMContentLoaded', function() {
@@ -9834,13 +10413,221 @@ window.refreshReportorialColors = refreshReportorialColors;
 // Also update colors when input values change
 document.addEventListener('input', function(e) {
     if (e.target.tagName === 'INPUT' && e.target.type === 'date') {
-        if (['kpm', 'dole', 'emb'].includes(state.currentTab)) {
+        if (['kpm', 'dole', 'emb', 'doe'].includes(state.currentTab)) {
             setTimeout(updateReportorialColors, 50);
         }
     }
 });
 
 // ==================== END AUTOMATIC COLOR CODING ====================
+
+// ==================== DOE REPORTORIAL & SAFETY OFFICER PERMIT FUNCTIONS ====================
+
+// PDF Upload Functions for DOE Reportorial
+async function uploadDoePdf(projectName, quarter) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf';
+    
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        if (file.type !== 'application/pdf') {
+            showToast('⚠️ Please select a PDF file', 'warning');
+            return;
+        }
+        
+        if (file.size > 10 * 1024 * 1024) {
+            showToast('⚠️ File size must be less than 10MB', 'warning');
+            return;
+        }
+        
+        try {
+            showToast(`📤 Uploading PDF for Q${quarter}...`, 'info');
+            
+            const userId = getCurrentUserId();
+            const year = state.selectedYear;
+            const fileName = `${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_Q${quarter}_${Date.now()}.pdf`;
+            const storagePath = `doe-reports/${userId}/${year}/${fileName}`;
+            
+            const storageRef = window.firebase.ref(window.firebaseStorage, storagePath);
+            await window.firebase.uploadBytes(storageRef, file);
+            const downloadURL = await window.firebase.getDownloadURL(storageRef);
+            
+            const project = state.projects.find(p => p.name === projectName);
+            if (project) {
+                if (!project.doePdfFiles) project.doePdfFiles = {};
+                project.doePdfFiles[`Q${quarter}`] = {
+                    url: downloadURL,
+                    fileName: file.name,
+                    storagePath: storagePath,
+                    uploadedAt: new Date().toISOString()
+                };
+                
+                await saveToFirebase();
+                render();
+                showToast(`✅ PDF uploaded for Q${quarter}`, 'success');
+            }
+        } catch (error) {
+            console.error('Error uploading PDF:', error);
+            showToast('❌ Failed to upload PDF: ' + error.message, 'error');
+        }
+    };
+    
+    input.click();
+}
+
+async function viewDoePdf(projectName, quarter) {
+    const project = state.projects.find(p => p.name === projectName);
+    if (!project || !project.doePdfFiles || !project.doePdfFiles[`Q${quarter}`]) {
+        showToast('⚠️ No PDF file found', 'warning');
+        return;
+    }
+    
+    const pdfData = project.doePdfFiles[`Q${quarter}`];
+    window.open(pdfData.url, '_blank');
+}
+
+async function deleteDoePdf(projectName, quarter) {
+    const confirmed = await showModernDialog(
+        '🗑️ Delete PDF',
+        `Delete the uploaded PDF for Q${quarter}?<br><br>This action cannot be undone.`,
+        true
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+        const project = state.projects.find(p => p.name === projectName);
+        if (!project || !project.doePdfFiles || !project.doePdfFiles[`Q${quarter}`]) {
+            showToast('⚠️ No PDF file found', 'warning');
+            return;
+        }
+        
+        const pdfData = project.doePdfFiles[`Q${quarter}`];
+        
+        const storageRef = window.firebase.ref(window.firebaseStorage, pdfData.storagePath);
+        await window.firebase.deleteObject(storageRef);
+        
+        delete project.doePdfFiles[`Q${quarter}`];
+        
+        await saveToFirebase();
+        render();
+        showToast(`✅ PDF deleted for Q${quarter}`, 'success');
+    } catch (error) {
+        console.error('Error deleting PDF:', error);
+        showToast('❌ Failed to delete PDF: ' + error.message, 'error');
+    }
+}
+
+// DOE Safety Officer Permit PDF Functions
+async function uploadDoePermitPdf(projectName) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf';
+    
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        if (file.type !== 'application/pdf') {
+            showToast('⚠️ Please select a PDF file', 'warning');
+            return;
+        }
+        
+        if (file.size > 10 * 1024 * 1024) {
+            showToast('⚠️ File size must be less than 10MB', 'warning');
+            return;
+        }
+        
+        try {
+            showToast('📤 Uploading DOE Safety Officer Permit...', 'info');
+            
+            const userId = getCurrentUserId();
+            const year = state.selectedYear;
+            const fileName = `${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_DOE_Permit_${Date.now()}.pdf`;
+            const storagePath = `doe-permits/${userId}/${year}/${fileName}`;
+            
+            const storageRef = window.firebase.ref(window.firebaseStorage, storagePath);
+            await window.firebase.uploadBytes(storageRef, file);
+            const downloadURL = await window.firebase.getDownloadURL(storageRef);
+            
+            const project = state.projects.find(p => p.name === projectName);
+            if (project) {
+                const key = 'doe-permit_DOE Safety Officer Permit';
+                if (!project.vals[key]) project.vals[key] = {};
+                
+                // Store PDF URL in index 3
+                project.vals[key][3] = downloadURL;
+                project.vals[key].pdfFileName = file.name;
+                project.vals[key].pdfStoragePath = storagePath;
+                
+                await saveToFirebase();
+                render();
+                showToast('✅ DOE Safety Officer Permit PDF uploaded', 'success');
+            }
+        } catch (error) {
+            console.error('Error uploading PDF:', error);
+            showToast('❌ Failed to upload PDF: ' + error.message, 'error');
+        }
+    };
+    
+    input.click();
+}
+
+async function viewDoePermitPdf(projectName) {
+    const project = state.projects.find(p => p.name === projectName);
+    const key = 'doe-permit_DOE Safety Officer Permit';
+    
+    if (!project || !project.vals[key] || !project.vals[key][3]) {
+        showToast('⚠️ No PDF file found', 'warning');
+        return;
+    }
+    
+    window.open(project.vals[key][3], '_blank');
+}
+
+async function deleteDoePermitPdf(projectName) {
+    const confirmed = await showModernDialog(
+        '🔄 Replace PDF',
+        'This will delete the current PDF so you can upload a new one. Continue?',
+        true
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+        const project = state.projects.find(p => p.name === projectName);
+        const key = 'doe-permit_DOE Safety Officer Permit';
+        
+        if (!project || !project.vals[key] || !project.vals[key][3]) {
+            showToast('⚠️ No PDF file found', 'warning');
+            return;
+        }
+        
+        const storagePath = project.vals[key].pdfStoragePath;
+        if (storagePath) {
+            const storageRef = window.firebase.ref(window.firebaseStorage, storagePath);
+            await window.firebase.deleteObject(storageRef);
+        }
+        
+        delete project.vals[key][3];
+        delete project.vals[key].pdfFileName;
+        delete project.vals[key].pdfStoragePath;
+        
+        await saveToFirebase();
+        render();
+        showToast('✅ PDF deleted. You can now upload a new one.', 'success');
+    } catch (error) {
+        console.error('Error deleting PDF:', error);
+        showToast('❌ Failed to delete PDF: ' + error.message, 'error');
+    }
+}
+
+// DOE Safety Officer Permit Functions (deprecated - now using table format)
+
+// ==================== END DOE FUNCTIONS ====================
     </script>
 
 <!-- Safety Reminder Character -->
