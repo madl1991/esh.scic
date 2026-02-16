@@ -8316,9 +8316,21 @@ debugCommands.help() - Show this help
                 return;
             }
 
-            // Security: Email domain validation for SCIC
-            if (!email.toLowerCase().endsWith('@scic.com.ph') && !email.toLowerCase().endsWith('@staclara.com.ph')) {
-                errorDiv.innerText = '⚠️ Access restricted to SCIC corporate email addresses only';
+            // Security: Email domain validation for SCIC and Superintendents
+            const validDomains = [
+                '@scic.com.ph',
+                '@staclara.com.ph',
+                '@ncr.com.ph',
+                '@north.com.ph',
+                '@south.com.ph',
+                '@vismin.com.ph'
+            ];
+            
+            const emailLower = email.toLowerCase();
+            const isValidDomain = validDomains.some(domain => emailLower.endsWith(domain));
+            
+            if (!isValidDomain) {
+                errorDiv.innerText = '⚠️ Access restricted to authorized email addresses only';
                 return;
             }
 
@@ -9839,6 +9851,9 @@ function closeAllStatusDropdowns() {
                 info: 'ℹ'
             };
             
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
             toast.innerHTML = `
                 <span class="toast-icon">${icons[type]}</span>
                 <span class="toast-message">${message}</span>
