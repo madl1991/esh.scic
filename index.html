@@ -6994,18 +6994,18 @@ function updateAuditData(pName, qtr, field, val) {
         btn.textContent = status.label;
         btn.style.fontWeight = project.status === status.value ? '700' : '400';
         
-        // Disable work-stoppage if no finished date
-        if (status.value === 'work-stoppage' && !project.dateFinished) {
+        // Disable finished if no finished date
+        if (status.value === 'finished' && !project.dateFinished) {
             btn.disabled = true;
             btn.style.opacity = '0.5';
             btn.style.cursor = 'not-allowed';
-            btn.title = 'Work Stoppage requires a finished date. Edit the project and add a finished date first.';
+            btn.title = 'Finished status requires a finished date. Edit the project and add a finished date first.';
         }
         
         btn.onclick = () => {
             // Double-check validation before changing status
-            if (status.value === 'work-stoppage' && !project.dateFinished) {
-                showToast('⚠️ Work Stoppage requires a finished date. Please edit the project and add a finished date first.', 'warning');
+            if (status.value === 'finished' && !project.dateFinished) {
+                showToast('⚠️ Finished status requires a finished date. Please edit the project and add a finished date first.', 'warning');
                 return;
             }
             
@@ -12496,4 +12496,3 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </body>
 </html>
-
