@@ -1014,6 +1014,7 @@
             transform: scale(1.05);
         }
 
+
         /* Year Selector Styles */
         .year-selector-container {
             position: relative;
@@ -1149,6 +1150,260 @@
             border-color: #1b5e20;
         }
 
+        /* ========== DEVICE COUNTER & ACTIVE USERS ========== */
+        .device-counter-container,
+        .active-users-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .device-counter-btn,
+        .active-users-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+        }
+
+        .device-counter-btn:hover,
+        .active-users-btn:hover {
+            background: var(--border-color);
+            transform: scale(1.05);
+        }
+
+        .counter-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #2e7d32;
+            color: white;
+            border-radius: 50%;
+            min-width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0 4px;
+        }
+
+        .device-dropdown,
+        .users-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: linear-gradient(180deg, rgba(46, 125, 50, 0.05) 0%, var(--bg-card) 30%, var(--bg-card) 100%);
+            border: 2px solid #2e7d32;
+            border-radius: 12px;
+            box-shadow: 0 12px 32px rgba(46, 125, 50, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 320px;
+            max-width: 400px;
+            z-index: 1000;
+            overflow: hidden;
+            animation: dropdownSlideIn 0.2s ease-out;
+            backdrop-filter: blur(10px);
+        }
+
+        body.dark-mode .device-dropdown,
+        body.dark-mode .users-dropdown {
+            background: linear-gradient(180deg, rgba(76, 175, 80, 0.08) 0%, var(--bg-card) 30%, var(--bg-card) 100%);
+            box-shadow: 0 12px 32px rgba(76, 175, 80, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .dropdown-header {
+            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+            color: white;
+            padding: 12px 15px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            border-bottom: 2px solid #fbc02d;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dropdown-list {
+            max-height: 350px;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .dropdown-item {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 4px 0;
+            background: rgba(46, 125, 50, 0.03);
+            border: 1px solid rgba(46, 125, 50, 0.1);
+            transition: all 0.2s;
+        }
+
+        body.dark-mode .dropdown-item {
+            background: rgba(76, 175, 80, 0.05);
+            border-color: rgba(76, 175, 80, 0.15);
+        }
+
+        .dropdown-item:hover {
+            background: rgba(46, 125, 50, 0.08);
+            transform: translateX(2px);
+        }
+
+        body.dark-mode .dropdown-item:hover {
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .device-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .device-icon {
+            font-size: 1.5rem;
+            color: #2e7d32;
+        }
+
+        body.dark-mode .device-icon {
+            color: #4caf50;
+        }
+
+        .device-details {
+            flex: 1;
+        }
+
+        .device-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .device-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .user-details {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .user-activity {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .user-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .status-online {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-idle {
+            background: #fff8e1;
+            color: #f57c00;
+        }
+
+        .status-offline {
+            background: #fce4ec;
+            color: #c62828;
+        }
+
+        body.dark-mode .status-online {
+            background: rgba(76, 175, 80, 0.2);
+            color: #81c784;
+        }
+
+        body.dark-mode .status-idle {
+            background: rgba(255, 152, 0, 0.2);
+            color: #ffb74d;
+        }
+
+        body.dark-mode .status-offline {
+            background: rgba(244, 67, 54, 0.2);
+            color: #e57373;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-online .status-indicator {
+            background: #2e7d32;
+        }
+
+        .status-idle .status-indicator {
+            background: #f57c00;
+        }
+
+        .status-offline .status-indicator {
+            background: #c62828;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .dropdown-empty {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .dropdown-empty i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
         /* ========== NOTIFICATION BELL DROPDOWN ========== */
         .notification-bell-container {
             position: relative;
@@ -1273,6 +1528,151 @@
             color: #4caf50;
             margin-bottom: 10px;
             display: block;
+        }
+
+        /* ========== DEVICE COUNTER & ACTIVE USERS (ADMIN ONLY) ========== */
+        .device-counter-container,
+        .active-users-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .device-counter-btn,
+        .active-users-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+        }
+
+        .device-counter-btn:hover,
+        .active-users-btn:hover {
+            background: var(--border-color);
+            transform: scale(1.05);
+        }
+
+        .device-count,
+        .users-count {
+            background: #2e7d32;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .device-dropdown,
+        .active-users-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--bg-card);
+            border: 2px solid #2e7d32;
+            border-radius: 12px;
+            box-shadow: 0 12px 32px rgba(46, 125, 50, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 320px;
+            max-width: 400px;
+            z-index: 1000;
+            overflow: hidden;
+            animation: dropdownSlideIn 0.2s ease-out;
+        }
+
+        .device-dropdown-header,
+        .active-users-dropdown-header {
+            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+            color: white;
+            padding: 12px 15px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .device-list,
+        .active-users-list {
+            max-height: 350px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .device-item,
+        .active-user-item {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.2s;
+        }
+
+        .device-item:hover,
+        .active-user-item:hover {
+            background: #e8f5e9;
+        }
+
+        body.dark-mode .device-item:hover,
+        body.dark-mode .active-user-item:hover {
+            background: rgba(27, 94, 32, 0.15);
+        }
+
+        .device-item:last-child,
+        .active-user-item:last-child {
+            border-bottom: none;
+        }
+
+        .device-platform {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .device-details {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .user-status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #4caf50;
+            box-shadow: 0 0 6px #4caf50;
+        }
+
+        .status-idle {
+            background: #ff9800;
+        }
+
+        .status-offline {
+            background: #9e9e9e;
+        }
+
+        .user-activity {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .user-activity-icon {
+            font-size: 0.7rem;
         }
 
         /* ========== SETTINGS DROPDOWN (FACEBOOK STYLE) ========== */
@@ -1659,6 +2059,27 @@
         
         body.dark-mode .project-row {
             background: linear-gradient(135deg, var(--bg-card) 0%, rgba(31, 46, 31, 0.5) 100%);
+        }
+        
+        /* Phase 3: Regional Locking - Locked Project Styling */
+        .project-locked {
+            opacity: 0.7;
+            background: linear-gradient(135deg, rgba(245, 245, 245, 0.5) 0%, rgba(224, 224, 224, 0.3) 100%) !important;
+            border: 1px dashed #bdbdbd !important;
+        }
+        
+        body.dark-mode .project-locked {
+            background: linear-gradient(135deg, rgba(60, 60, 60, 0.5) 0%, rgba(45, 45, 45, 0.3) 100%) !important;
+            border: 1px dashed #666 !important;
+        }
+        
+        .project-locked .project-checkbox {
+            cursor: not-allowed;
+        }
+        
+        .project-locked .status-badge {
+            cursor: not-allowed;
+            opacity: 0.6;
         }
         
         .project-checkbox { width: 20px; height: 20px; cursor: pointer; }
@@ -2392,6 +2813,11 @@ body.dark-mode .backup-item {
     box-shadow: 0 5px 20px rgba(211, 47, 47, 0.3);
 }
 
+.modern-dialog.info .modern-dialog-icon {
+    background: linear-gradient(135deg, #1976d2, #2196f3);
+    box-shadow: 0 5px 20px rgba(25, 118, 210, 0.3);
+}
+
 .modern-dialog.warning .modern-dialog-icon {
     background: linear-gradient(135deg, #f57c00, #fbc02d);
     box-shadow: 0 5px 20px rgba(245, 124, 0, 0.3);
@@ -2425,6 +2851,10 @@ body.dark-mode .backup-item {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
 }
 
 .modern-dialog-btn-cancel {
@@ -4210,6 +4640,15 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
             <!-- Hidden Settings Tab -->
             <div class="nav-item" data-tab="settings" onclick="changeTab('settings')" style="display: none;"><i class="fas fa-sliders"></i> Settings</div>
+            
+            <!-- Hidden Admin Panel Tab (Only for Admins) -->
+            <div class="nav-item nav-item-admin" data-tab="admin" onclick="changeTab('admin')" style="display: none;">
+                <i class="fas fa-shield-halved"></i> 
+                <span style="display: flex; align-items: center; gap: 8px;">
+                    Admin Panel
+                    <span style="background: linear-gradient(135deg, #d32f2f, #f44336); color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.6rem; font-weight: 700;">ADMIN</span>
+                </span>
+            </div>
         </nav>
     </aside>
 
@@ -4225,6 +4664,40 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <button class="year-selector-btn" onclick="exportCurrentTabToPDF()" title="Export to PDF Report">
                     <i class="fas fa-file-pdf"></i>
                 </button>
+                
+                <!-- DEVICE COUNTER (Admin Only) -->
+                <div class="device-counter-container" id="device-counter-container" style="display: none;">
+                    <button class="device-counter-btn" onclick="toggleDeviceDropdown()" id="device-counter-btn" title="Active Devices">
+                        <i class="fas fa-laptop"></i>
+                        <span class="counter-badge" id="device-count-badge">0</span>
+                    </button>
+                    <div class="device-dropdown hidden" id="device-dropdown">
+                        <div class="dropdown-header">
+                            <i class="fas fa-laptop"></i>
+                            <span>Active Devices</span>
+                        </div>
+                        <div class="dropdown-list" id="device-list">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ACTIVE USERS (Admin Only) -->
+                <div class="active-users-container" id="active-users-container" style="display: none;">
+                    <button class="active-users-btn" onclick="toggleUsersDropdown()" id="active-users-btn" title="Active Users">
+                        <i class="fas fa-users"></i>
+                        <span class="counter-badge" id="users-count-badge">0</span>
+                    </button>
+                    <div class="users-dropdown hidden" id="users-dropdown">
+                        <div class="dropdown-header">
+                            <i class="fas fa-users"></i>
+                            <span>Active Users</span>
+                        </div>
+                        <div class="dropdown-list" id="users-list">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
                 
                 <button class="theme-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode" style="display: none;">
                     <i class="fas fa-moon" id="theme-icon"></i>
@@ -4301,6 +4774,157 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
  <div id="dashboard-content" style="margin-top: 20px;"></div>
 
+
+
+<!-- ==================== ADMIN PANEL ==================== -->
+<div id="admin-view" class="hidden" style="padding: 20px;">
+    <div style="max-width: 1400px; margin: 0 auto;">
+        
+        <!-- Admin Header -->
+        <div style="background: linear-gradient(135deg, #b71c1c 0%, #d32f2f 50%, #f44336 100%); padding: 30px; border-radius: 16px 16px 0 0; box-shadow: 0 8px 32px rgba(183, 28, 28, 0.3); position: relative; overflow: hidden;">
+            <div style="position: absolute; top: -50%; right: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); pointer-events: none;"></div>
+            <div style="position: relative; z-index: 1;">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                    <div style="width: 70px; height: 70px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+                        <i class="fas fa-shield-halved" style="font-size: 35px; color: white;"></i>
+                    </div>
+                    <div>
+                        <h1 style="margin: 0; color: white; font-size: 2rem; font-weight: 800; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">ADMIN CONTROL PANEL</h1>
+                        <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">System Management & User Monitoring</p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 12px 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
+                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8); margin-bottom: 3px;">Admin User</div>
+                        <div style="font-size: 1rem; color: white; font-weight: 700;" id="admin-user-email">—</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 12px 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
+                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8); margin-bottom: 3px;">Access Level</div>
+                        <div style="font-size: 1rem; color: white; font-weight: 700;">FULL ADMIN</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 12px 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
+                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8); margin-bottom: 3px;">Session Time</div>
+                        <div style="font-size: 1rem; color: white; font-weight: 700;" id="admin-session-time">—</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Admin Stats Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0;">
+            <div style="background: var(--bg-card); border-radius: 12px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-left: 4px solid #2196f3;">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 8px;">Total Users</div>
+                        <div style="font-size: 2rem; font-weight: 800; color: #2196f3;" id="admin-total-users">0</div>
+                    </div>
+                    <div style="width: 50px; height: 50px; background: rgba(33, 150, 243, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-users" style="font-size: 24px; color: #2196f3;"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background: var(--bg-card); border-radius: 12px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-left: 4px solid #4caf50;">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 8px;">Total Logins (24h)</div>
+                        <div style="font-size: 2rem; font-weight: 800; color: #4caf50;" id="admin-logins-24h">0</div>
+                    </div>
+                    <div style="width: 50px; height: 50px; background: rgba(76, 175, 80, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-sign-in-alt" style="font-size: 24px; color: #4caf50;"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background: var(--bg-card); border-radius: 12px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-left: 4px solid #ff9800;">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 8px;">Unique IPs (7d)</div>
+                        <div style="font-size: 2rem; font-weight: 800; color: #ff9800;" id="admin-unique-ips">0</div>
+                    </div>
+                    <div style="width: 50px; height: 50px; background: rgba(255, 152, 0, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-network-wired" style="font-size: 24px; color: #ff9800;"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background: var(--bg-card); border-radius: 12px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-left: 4px solid #9c27b0;">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 8px;">Audit Logs</div>
+                        <div style="font-size: 2rem; font-weight: 800; color: #9c27b0;" id="admin-total-audits">0</div>
+                    </div>
+                    <div style="width: 50px; height: 50px; background: rgba(156, 39, 176, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-clipboard-list" style="font-size: 24px; color: #9c27b0;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Login Logbook Section -->
+        <div style="background: var(--bg-card); border-radius: 12px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h2 style="margin: 0; color: var(--text-primary); font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-book" style="color: #2196f3;"></i>
+                        Login Logbook
+                    </h2>
+                    <p style="margin: 5px 0 0 0; color: var(--text-secondary); font-size: 0.85rem;">Complete history of user logins with IP addresses and locations</p>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="settings-btn settings-btn-secondary" onclick="refreshLogbook()">
+                        <i class="fas fa-sync-alt"></i> REFRESH
+                    </button>
+                    <button class="settings-btn settings-btn-secondary" onclick="exportLogbook()">
+                        <i class="fas fa-download"></i> EXPORT CSV
+                    </button>
+                    <button class="settings-btn settings-btn-danger" onclick="clearLogbook()">
+                        <i class="fas fa-trash"></i> CLEAR LOG
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                <input type="text" id="logbook-search" placeholder="🔍 Search by email, IP, or location..." onkeyup="filterLogbook()" 
+                       style="flex: 1; min-width: 250px; padding: 10px 15px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary);">
+                <select id="logbook-action-filter" onchange="filterLogbook()" 
+                        style="padding: 10px 15px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary);">
+                    <option value="">All Actions</option>
+                    <option value="LOGIN">Login Only</option>
+                    <option value="LOGOUT">Logout Only</option>
+                </select>
+            </div>
+            
+            <!-- Logbook Table -->
+            <div id="logbook-container" style="overflow-x: auto; border-radius: 8px; border: 1px solid var(--border-color);">
+                <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i>
+                    <p>Loading logbook...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- User Management Section -->
+        <div style="background: var(--bg-card); border-radius: 12px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+            <div style="margin-bottom: 20px;">
+                <h2 style="margin: 0; color: var(--text-primary); font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-users-cog" style="color: #4caf50;"></i>
+                    User Management
+                </h2>
+                <p style="margin: 5px 0 0 0; color: var(--text-secondary); font-size: 0.85rem;">View and manage all system users</p>
+            </div>
+            
+            <div id="user-management-container">
+                <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i>
+                    <p>Loading users...</p>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
 
 
 <div id="personnel-view" class="hidden" style="padding: 20px;">
@@ -4793,6 +5417,54 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         </div>
       </div>
 
+      <!-- Audit Trail Log - Full Width -->
+      <div class="settings-card settings-card-full">
+        <div class="settings-card-header">
+          <i class="fas fa-history"></i>
+          <span class="settings-card-title">AUDIT TRAIL</span>
+          <span style="font-size: 11px; color: var(--safety-yellow); background: rgba(251, 192, 45, 0.15); padding: 3px 8px; border-radius: 4px; margin-left: 10px;">
+            📝 Activity Log
+          </span>
+        </div>
+        <div class="settings-card-body">
+          <p style="margin: 0 0 15px 0; font-size: 0.85rem; color: var(--text-secondary);">
+            Complete log of all actions performed in the system. Changes are tracked automatically for security and compliance.
+          </p>
+          
+          <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+            <button class="settings-btn settings-btn-secondary" onclick="viewAuditLog()">
+              <i class="fas fa-list"></i> VIEW LOG
+            </button>
+            <button class="settings-btn settings-btn-secondary" onclick="exportAuditLog()">
+              <i class="fas fa-download"></i> EXPORT CSV
+            </button>
+            <button class="settings-btn settings-btn-secondary" onclick="clearAuditLog()">
+              <i class="fas fa-trash"></i> CLEAR LOG
+            </button>
+          </div>
+          
+          <div style="background: linear-gradient(135deg, #1976d2 0%, #2196f3 100%); padding: 12px 15px; border-radius: 8px; color: white;">
+            <div style="display: flex; align-items: start; gap: 10px;">
+              <i class="fas fa-info-circle" style="font-size: 20px; margin-top: 2px;"></i>
+              <div style="flex: 1;">
+                <strong style="display: block; margin-bottom: 6px; font-size: 13px;">What's Logged:</strong>
+                <ul style="margin: 0; padding-left: 18px; font-size: 11px; line-height: 1.5;">
+                  <li>Project additions, edits, and deletions</li>
+                  <li>Data changes and updates</li>
+                  <li>User login and logout activities</li>
+                  <li>Settings modifications</li>
+                  <li>File uploads and downloads</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <div id="audit-log-preview" style="margin-top: 15px; max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background: var(--input-bg); display: none;">
+            <!-- Audit log entries will be displayed here -->
+          </div>
+        </div>
+      </div>
+
       <!-- Danger Zone - Full Width -->
       <div class="settings-card settings-card-full danger-zone-card">
         <div class="settings-card-header">
@@ -5155,6 +5827,445 @@ function showBackupStatus(message, type) {
     }, 4000);
 }
 
+// ==================== AUDIT LOG FUNCTIONS ====================
+function viewAuditLog() {
+    const preview = document.getElementById('audit-log-preview');
+    if (!preview) return;
+    
+    if (preview.style.display === 'none') {
+        const recentLogs = AuditLogger.getRecent(50);
+        
+        if (recentLogs.length === 0) {
+            preview.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">No audit logs yet</p>';
+        } else {
+            preview.innerHTML = recentLogs.map(log => {
+                // Format details in a readable way
+                let detailsHTML = '';
+                if (Object.keys(log.details).length > 0) {
+                    const details = log.details;
+                    let detailItems = [];
+                    
+                    // Format each detail field nicely
+                    if (details.projectName) detailItems.push(`Project: ${details.projectName}`);
+                    if (details.email) detailItems.push(`Email: ${details.email}`);
+                    if (details.status) detailItems.push(`Status: ${details.status}`);
+                    if (details.year) detailItems.push(`Year: ${details.year}`);
+                    if (details.tab) detailItems.push(`Tab: ${details.tab}`);
+                    if (details.step !== undefined) detailItems.push(`Step: ${details.step}`);
+                    if (details.totalSteps !== undefined) detailItems.push(`Total Steps: ${details.totalSteps}`);
+                    if (details.remainingProjects !== undefined) detailItems.push(`Remaining: ${details.remainingProjects}`);
+                    if (details.exportDate) detailItems.push(`Export Date: ${new Date(details.exportDate).toLocaleString()}`);
+                    if (details.timestamp) detailItems.push(`Time: ${new Date(details.timestamp).toLocaleString()}`);
+                    
+                    if (detailItems.length > 0) {
+                        detailsHTML = `
+                            <div style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 5px; padding: 5px 10px; background: rgba(0,0,0,0.03); border-radius: 4px;">
+                                ${detailItems.join(' • ')}
+                            </div>
+                        `;
+                    }
+                }
+                
+                return `
+                    <div style="padding: 12px; border-bottom: 1px solid var(--border-color); font-size: 0.8rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 5px;">
+                            <strong style="color: var(--text-primary); font-size: 0.85rem;">${formatActionName(log.action)}</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.75rem; white-space: nowrap; margin-left: 10px;">
+                                ${new Date(log.timestamp).toLocaleString()}
+                            </span>
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.75rem;">
+                            👤 ${log.userName} | 📅 Year ${log.year}
+                        </div>
+                        ${detailsHTML}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+// Helper function to format action names nicely
+function formatActionName(action) {
+    const actionNames = {
+        'USER_LOGIN': '🔐 User Login',
+        'USER_LOGOUT': '🚪 User Logout',
+        'USER_ONLINE': '🌐 User Connected',
+        'PROJECT_CREATED': '➕ Project Created',
+        'PROJECT_EDITED': '✏️ Project Edited',
+        'PROJECT_DELETED': '🗑️ Project Deleted',
+        'DATA_SAVED': '💾 Data Saved',
+        'TUTORIAL_STARTED': '🎓 Tutorial Started',
+        'TUTORIAL_COMPLETED': '✅ Tutorial Completed',
+        'TUTORIAL_SKIPPED': '⏭️ Tutorial Skipped',
+        'HELP_VIEWED': '❓ Help Viewed',
+        'SYSTEM_ONLINE': '🌐 System Online',
+        'SYSTEM_OFFLINE': '📵 System Offline',
+        'AUDIT_LOG_EXPORTED': '📥 Audit Log Exported',
+        'PASSWORD_CHANGED': '🔑 Password Changed',
+        'SETTINGS_UPDATED': '⚙️ Settings Updated'
+    };
+    
+    return actionNames[action] || action.replace(/_/g, ' ');
+}
+
+function exportAuditLog() {
+    const csv = AuditLogger.exportToCSV();
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `audit_log_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    showToast('📥 Audit log exported successfully!', 'success');
+    AuditLogger.log('AUDIT_LOG_EXPORTED', { exportDate: new Date().toISOString() });
+}
+
+async function clearAuditLog() {
+    const confirmed = await showModernDialog(
+        '🗑️ Clear Audit Log',
+        'Are you sure you want to clear the audit log? This action cannot be undone.',
+        true
+    );
+    
+    if (confirmed) {
+        state.auditLog = [];
+        localStorage.removeItem('esh_audit_log');
+        
+        const preview = document.getElementById('audit-log-preview');
+        if (preview) {
+            preview.style.display = 'none';
+        }
+        
+        showToast('✅ Audit log cleared', 'success');
+    }
+}
+
+// ==================== ADMIN PANEL FUNCTIONS ====================
+function renderAdminPanel() {
+    if (!state.isAdmin) {
+        showToast('⛔ Access Denied: Admin privileges required', 'error');
+        changeTab('overall');
+        return;
+    }
+    
+    // Update admin email
+    document.getElementById('admin-user-email').textContent = state.currentUser.email;
+    
+    // Update stats
+    updateAdminStats();
+    
+    // Render logbook
+    renderLogbook();
+    
+    // Render user management
+    renderUserManagement();
+    
+    // Update session time every second
+    updateSessionTime();
+}
+
+function updateAdminStats() {
+    // Total unique devices (based on IP + User Agent combination)
+    const devices = new Set(
+        state.loginLogbook.map(entry => `${entry.ip}_${entry.userAgent}`)
+    );
+    document.getElementById('admin-total-users').textContent = devices.size;
+    // Update label
+    const label = document.querySelector('#admin-total-users').parentElement.parentElement.querySelector('.stat-secondary');
+    if (label) label.textContent = 'Unique Devices';
+    
+    // Active sessions in last 24 hours
+    const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+    const logins24h = state.loginLogbook.filter(entry => 
+        entry.action === 'LOGIN' && new Date(entry.timestamp).getTime() > oneDayAgo
+    ).length;
+    document.getElementById('admin-logins-24h').textContent = logins24h;
+    
+    // Unique IPs in last 7 days
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    const uniqueIps = new Set(
+        state.loginLogbook
+            .filter(entry => new Date(entry.timestamp).getTime() > sevenDaysAgo)
+            .map(entry => entry.ip)
+    );
+    document.getElementById('admin-unique-ips').textContent = uniqueIps.size;
+    
+    // Total audit logs
+    document.getElementById('admin-total-audits').textContent = state.auditLog.length;
+}
+
+function updateSessionTime() {
+    // This is a simple implementation - you can enhance it
+    const sessionStart = new Date();
+    setInterval(() => {
+        const now = new Date();
+        const diff = now - sessionStart;
+        const minutes = Math.floor(diff / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        document.getElementById('admin-session-time').textContent = `${minutes}m ${seconds}s`;
+    }, 1000);
+}
+
+function renderLogbook() {
+    const container = document.getElementById('logbook-container');
+    const logs = state.loginLogbook;
+    
+    if (logs.length === 0) {
+        container.innerHTML = `
+            <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+                <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; opacity: 0.3;"></i>
+                <p style="font-size: 1.1rem; font-weight: 600;">No login records yet</p>
+                <p style="font-size: 0.9rem;">Login history will appear here</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+            <thead>
+                <tr style="background: var(--table-header); color: white;">
+                    <th style="padding: 12px; text-align: left; font-weight: 600;">Timestamp</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600;">Action</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600;">User</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600;">IP Address</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600;">Location</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600;">Device</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600;">Browser</th>
+                </tr>
+            </thead>
+            <tbody id="logbook-tbody">
+                ${logs.slice(0, 100).map((entry, index) => `
+                    <tr style="border-bottom: 1px solid var(--border-color); ${index % 2 === 0 ? 'background: rgba(0,0,0,0.02);' : ''}">
+                        <td style="padding: 10px; white-space: nowrap;">
+                            <div style="font-weight: 600;">${new Date(entry.timestamp).toLocaleDateString()}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">${new Date(entry.timestamp).toLocaleTimeString()}</div>
+                        </td>
+                        <td style="padding: 10px;">
+                            <span style="padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 0.75rem; ${entry.action === 'LOGIN' ? 'background: #e8f5e9; color: #2e7d32;' : 'background: #ffebee; color: #c62828;'}">
+                                ${entry.action === 'LOGIN' ? '🔐 LOGIN' : '🚪 LOGOUT'}
+                            </span>
+                        </td>
+                        <td style="padding: 10px;">
+                            <div style="font-weight: 600;">${entry.displayName || 'Unknown'}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">${entry.email}</div>
+                        </td>
+                        <td style="padding: 10px;">
+                            <span style="font-family: monospace; background: rgba(0,0,0,0.05); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">
+                                ${entry.ip || 'Unknown'}
+                            </span>
+                        </td>
+                        <td style="padding: 10px;">
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <span>${getCountryFlag(entry.country)}</span>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 0.8rem;">${entry.city || 'Unknown'}</div>
+                                    <div style="font-size: 0.7rem; color: var(--text-secondary);">${entry.region || ''}, ${entry.country || 'Unknown'}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="padding: 10px;">
+                            <div style="font-size: 0.8rem;">${entry.device || '-'}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary);">${entry.os || '-'}</div>
+                        </td>
+                        <td style="padding: 10px; font-size: 0.8rem;">${entry.browser || '-'}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+        ${logs.length > 100 ? `
+            <div style="padding: 15px; text-align: center; background: rgba(0,0,0,0.02); border-top: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.85rem;">
+                Showing 100 of ${logs.length} entries. <a href="#" onclick="exportLogbook(); return false;" style="color: #2196f3; text-decoration: none; font-weight: 600;">Export all →</a>
+            </div>
+        ` : ''}
+    `;
+}
+
+function getCountryFlag(country) {
+    const flags = {
+        'Philippines': '🇵🇭',
+        'United States': '🇺🇸',
+        'Japan': '🇯🇵',
+        'Singapore': '🇸🇬',
+        'China': '🇨🇳',
+        'South Korea': '🇰🇷',
+        'Australia': '🇦🇺',
+        'United Kingdom': '🇬🇧',
+        'Canada': '🇨🇦',
+        'Germany': '🇩🇪'
+    };
+    return flags[country] || '🌐';
+}
+
+async function renderUserManagement() {
+    const container = document.getElementById('user-management-container');
+    const users = await AdminSystem.getAllUsers();
+    
+    if (users.length === 0) {
+        container.innerHTML = `
+            <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+                <i class="fas fa-users-slash" style="font-size: 48px; margin-bottom: 15px; opacity: 0.3;"></i>
+                <p>No users found</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 15px;">
+            ${users.map(user => `
+                <div style="background: var(--input-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 20px; transition: all 0.2s;">
+                    <div style="display: flex; align-items: start; justify-content: space-between; margin-bottom: 15px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #2196f3, #1976d2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.2rem;">
+                                ${(user.displayName || user.email).charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">${user.displayName}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">${user.email}</div>
+                            </div>
+                        </div>
+                        ${AdminSystem.isAdmin(user.email) ? `
+                            <span style="background: linear-gradient(135deg, #d32f2f, #f44336); color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 700;">ADMIN</span>
+                        ` : ''}
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                        <div style="background: var(--bg-card); padding: 10px; border-radius: 8px;">
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 3px;">Last Login</div>
+                            <div style="font-weight: 600; font-size: 0.8rem; color: var(--text-primary);">${new Date(user.lastLogin).toLocaleDateString()}</div>
+                        </div>
+                        <div style="background: var(--bg-card); padding: 10px; border-radius: 8px;">
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 3px;">Total Logins</div>
+                            <div style="font-weight: 600; font-size: 0.8rem; color: var(--text-primary);">${user.loginCount}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: var(--bg-card); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                        <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 5px;">Locations</div>
+                        <div style="font-size: 0.75rem; color: var(--text-primary);">
+                            ${Array.from(user.locations).slice(0, 2).join(', ')}
+                            ${user.locations.size > 2 ? ` +${user.locations.size - 2} more` : ''}
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px;">
+                        <button class="settings-btn settings-btn-secondary" onclick="viewUserActivity('${user.email}')" style="flex: 1; padding: 8px 12px; font-size: 0.75rem;">
+                            <i class="fas fa-eye"></i> View Activity
+                        </button>
+                        ${!AdminSystem.isAdmin(user.email) ? `
+                            <button class="settings-btn settings-btn-danger" onclick="revokeUserAccess('${user.email}')" style="flex: 1; padding: 8px 12px; font-size: 0.75rem;">
+                                <i class="fas fa-ban"></i> Revoke
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function refreshLogbook() {
+    showToast('🔄 Refreshing logbook...', 'info');
+    updateAdminStats();
+    renderLogbook();
+    renderUserManagement();
+    showToast('✅ Logbook refreshed', 'success');
+}
+
+function exportLogbook() {
+    const csv = LoginLogbook.exportToCSV();
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `login_logbook_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    showToast('📥 Logbook exported successfully!', 'success');
+    AuditLogger.log('LOGBOOK_EXPORTED', { admin: state.currentUser.email });
+}
+
+async function clearLogbook() {
+    const confirmed = await showModernDialog(
+        '🗑️ Clear Login Logbook',
+        'Are you sure you want to clear the entire login logbook? This action cannot be undone.',
+        true
+    );
+    
+    if (confirmed) {
+        state.loginLogbook = [];
+        localStorage.removeItem('esh_login_logbook');
+        renderLogbook();
+        updateAdminStats();
+        showToast('✅ Logbook cleared', 'success');
+        AuditLogger.log('LOGBOOK_CLEARED', { admin: state.currentUser.email });
+    }
+}
+
+function filterLogbook() {
+    const searchTerm = document.getElementById('logbook-search').value.toLowerCase();
+    const actionFilter = document.getElementById('logbook-action-filter').value;
+    
+    let filtered = state.loginLogbook;
+    
+    if (searchTerm) {
+        filtered = filtered.filter(entry => 
+            entry.email.toLowerCase().includes(searchTerm) ||
+            entry.ip.toLowerCase().includes(searchTerm) ||
+            (entry.city && entry.city.toLowerCase().includes(searchTerm)) ||
+            (entry.country && entry.country.toLowerCase().includes(searchTerm))
+        );
+    }
+    
+    if (actionFilter) {
+        filtered = filtered.filter(entry => entry.action === actionFilter);
+    }
+    
+    // Re-render with filtered data
+    const originalLogbook = state.loginLogbook;
+    state.loginLogbook = filtered;
+    renderLogbook();
+    state.loginLogbook = originalLogbook;
+}
+
+function viewUserActivity(email) {
+    const userLogs = LoginLogbook.filterByUser(email);
+    
+    // Create a modal or detailed view
+    showToast(`📊 ${userLogs.length} activities found for ${email}`, 'info');
+    
+    // You can create a custom modal here to show detailed activity
+    console.log('User activity:', userLogs);
+}
+
+async function revokeUserAccess(email) {
+    const confirmed = await showModernDialog(
+        '🚫 Revoke Access',
+        `Are you sure you want to revoke access for <strong>${email}</strong>?<br><br>This will prevent the user from logging in.`,
+        true
+    );
+    
+    if (confirmed) {
+        await AdminSystem.revokeAccess(email);
+        renderUserManagement();
+    }
+}
+
+
+
         const REGIONS = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
         const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
        const SCHEMA = {
@@ -5194,11 +6305,1044 @@ function showBackupStatus(message, type) {
             currentSort: 'name',
             darkMode: false,
             isDataMigrated: false, // Track if data has been migrated to year-based structure
-            doePermitData: { permitNumber: '', validityDate: '' } // NEW: DOE Safety Officer Permit
+            doePermitData: { permitNumber: '', validityDate: '' }, // NEW: DOE Safety Officer Permit
+            auditLog: [], // NEW: Audit trail for all changes
+            offlineQueue: [], // NEW: Queue for offline changes
+            isOnline: navigator.onLine, // NEW: Online status
+            isAdmin: false, // NEW: Admin role flag
+            loginLogbook: [], // NEW: Login history with IP and location
+            searchTerm: '', // NEW: Preserve search input
+            regionFilter: '', // NEW: Preserve region filter
+            statusFilter: '', // NEW: Preserve status filter
+            // ==================== NEW: MULTI-USER COLLABORATION ====================
+            userRole: null, // 'admin' or 'superintendent'
+            userRegion: null, // 'ALL', 'NCR', 'NORTH LUZON', 'SOUTH LUZON', 'VISAYAS & MINDANAO'
+            userColor: '#FF0000', // Color for user identification
+            deviceFingerprint: null, // Unique device identifier
+            activeUsers: {}, // Real-time presence tracking {userId: {status, activity, ...}}
+            activeDevices: [], // List of active devices
+            presenceListener: null, // Firebase listener for presence updates
+            deviceListener: null // Firebase listener for device updates
         };
 
         // ==================== COMPREHENSIVE DEBUG SYSTEM ====================
         window.DEBUG_MODE = true; // Set to false to disable debug logs
+        
+        // ==================== DEVICE FINGERPRINTING SYSTEM ====================
+        const DeviceFingerprint = {
+            async generate() {
+                const components = {
+                    // Canvas fingerprint
+                    canvas: await this.getCanvasFingerprint(),
+                    // WebGL fingerprint
+                    webgl: this.getWebGLFingerprint(),
+                    // Screen properties
+                    screen: `${screen.width}x${screen.height}x${screen.colorDepth}`,
+                    // Timezone
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    // Language
+                    language: navigator.language,
+                    // Platform
+                    platform: navigator.platform,
+                    // User agent
+                    userAgent: navigator.userAgent,
+                    // Hardware concurrency (CPU cores)
+                    hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
+                    // Device memory (if available)
+                    deviceMemory: navigator.deviceMemory || 'unknown',
+                    // Plugins
+                    plugins: Array.from(navigator.plugins || []).map(p => p.name).join(','),
+                    // Touch support
+                    touchSupport: 'ontouchstart' in window
+                };
+                
+                // Create hash from all components
+                const fingerprint = await this.hashComponents(components);
+                console.log('🔑 Device Fingerprint Generated:', fingerprint.substring(0, 16) + '...');
+                return fingerprint;
+            },
+            
+            async getCanvasFingerprint() {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = 200;
+                    canvas.height = 50;
+                    
+                    ctx.textBaseline = 'top';
+                    ctx.font = '14px Arial';
+                    ctx.fillStyle = '#f60';
+                    ctx.fillRect(125, 1, 62, 20);
+                    ctx.fillStyle = '#069';
+                    ctx.fillText('ESH Dashboard 🛡️', 2, 15);
+                    ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+                    ctx.fillText('Fingerprint Test', 4, 17);
+                    
+                    return canvas.toDataURL();
+                } catch (e) {
+                    return 'canvas-error';
+                }
+            },
+            
+            getWebGLFingerprint() {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                    if (!gl) return 'no-webgl';
+                    
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (!debugInfo) return 'no-debug-info';
+                    
+                    const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                    const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                    
+                    return `${vendor}~${renderer}`;
+                } catch (e) {
+                    return 'webgl-error';
+                }
+            },
+            
+            async hashComponents(components) {
+                const str = JSON.stringify(components);
+                const encoder = new TextEncoder();
+                const data = encoder.encode(str);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            },
+            
+            getPlatformInfo() {
+                const ua = navigator.userAgent;
+                let platform = 'Unknown';
+                let browser = 'Unknown';
+                
+                // Detect platform
+                if (ua.indexOf('Win') !== -1) platform = 'Windows';
+                else if (ua.indexOf('Mac') !== -1) platform = 'MacOS';
+                else if (ua.indexOf('Linux') !== -1) platform = 'Linux';
+                else if (ua.indexOf('Android') !== -1) platform = 'Android';
+                else if (ua.indexOf('iOS') !== -1 || ua.indexOf('iPhone') !== -1 || ua.indexOf('iPad') !== -1) platform = 'iOS';
+                
+                // Detect browser
+                if (ua.indexOf('Chrome') !== -1 && ua.indexOf('Edg') === -1) browser = 'Chrome';
+                else if (ua.indexOf('Safari') !== -1 && ua.indexOf('Chrome') === -1) browser = 'Safari';
+                else if (ua.indexOf('Firefox') !== -1) browser = 'Firefox';
+                else if (ua.indexOf('Edg') !== -1) browser = 'Edge';
+                else if (ua.indexOf('MSIE') !== -1 || ua.indexOf('Trident') !== -1) browser = 'IE';
+                
+                return { platform, browser };
+            }
+        };
+        
+        // ==================== AUDIT TRAIL SYSTEM ====================
+        const AuditLogger = {
+            log(action, details = {}) {
+                const entry = {
+                    id: Date.now() + Math.random().toString(36).substr(2, 9),
+                    timestamp: new Date().toISOString(),
+                    user: state.currentUser?.email || 'Unknown',
+                    userName: state.currentUser?.displayName || 'Unknown User',
+                    action: action,
+                    details: details,
+                    year: state.selectedYear
+                };
+                
+                state.auditLog.unshift(entry); // Add to beginning
+                
+                // Keep only last 500 entries in memory
+                if (state.auditLog.length > 500) {
+                    state.auditLog = state.auditLog.slice(0, 500);
+                }
+                
+                // Save to localStorage for persistence
+                this.saveToStorage();
+                
+                console.log('📝 Audit:', action, details);
+            },
+            
+            saveToStorage() {
+                try {
+                    localStorage.setItem('esh_audit_log', JSON.stringify(state.auditLog));
+                } catch (e) {
+                    console.error('Failed to save audit log to localStorage:', e);
+                }
+            },
+            
+            loadFromStorage() {
+                try {
+                    const saved = localStorage.getItem('esh_audit_log');
+                    if (saved) {
+                        state.auditLog = JSON.parse(saved);
+                    }
+                } catch (e) {
+                    console.error('Failed to load audit log from localStorage:', e);
+                }
+            },
+            
+            
+            getRecent(limit = 50) {
+                return state.auditLog.slice(0, limit);
+            },
+            
+            filterByAction(action) {
+                return state.auditLog.filter(entry => entry.action === action);
+            },
+            
+            filterByDateRange(startDate, endDate) {
+                const start = new Date(startDate).getTime();
+                const end = new Date(endDate).getTime();
+                return state.auditLog.filter(entry => {
+                    const timestamp = new Date(entry.timestamp).getTime();
+                    return timestamp >= start && timestamp <= end;
+                });
+            },
+            
+            exportToCSV() {
+                const headers = ['Timestamp', 'User', 'Action', 'Details', 'Year'];
+                const rows = state.auditLog.map(entry => {
+                    // Format details in a readable way
+                    let detailsText = '';
+                    if (Object.keys(entry.details).length > 0) {
+                        const details = entry.details;
+                        let parts = [];
+                        
+                        if (details.projectName) parts.push(`Project: ${details.projectName}`);
+                        if (details.email) parts.push(`Email: ${details.email}`);
+                        if (details.status) parts.push(`Status: ${details.status}`);
+                        if (details.year) parts.push(`Year: ${details.year}`);
+                        if (details.tab) parts.push(`Tab: ${details.tab}`);
+                        if (details.step !== undefined) parts.push(`Step: ${details.step}`);
+                        if (details.totalSteps !== undefined) parts.push(`Total Steps: ${details.totalSteps}`);
+                        if (details.remainingProjects !== undefined) parts.push(`Remaining: ${details.remainingProjects}`);
+                        
+                        detailsText = parts.join('; ');
+                    }
+                    
+                    return [
+                        new Date(entry.timestamp).toLocaleString(),
+                        entry.userName,
+                        entry.action.replace(/_/g, ' '),
+                        detailsText,
+                        entry.year
+                    ];
+                });
+                
+                let csv = headers.join(',') + '\n';
+                rows.forEach(row => {
+                    csv += row.map(cell => `"${cell}"`).join(',') + '\n';
+                });
+                
+                return csv;
+            }
+        };
+        
+        // Load audit log on startup
+        AuditLogger.loadFromStorage();
+        
+        // ==================== LOGIN LOGBOOK SYSTEM ====================
+        const LoginLogbook = {
+            async logLogin(user) {
+                try {
+                    // Get IP address and location info
+                    const ipInfo = await this.getIPInfo();
+                    
+                    const entry = {
+                        id: Date.now() + Math.random().toString(36).substr(2, 9),
+                        timestamp: new Date().toISOString(),
+                        email: user.email,
+                        displayName: user.displayName || 'Unknown User',
+                        uid: user.uid,
+                        ip: ipInfo.ip || 'Unknown',
+                        country: ipInfo.country || 'Unknown',
+                        region: ipInfo.region || 'Unknown',
+                        city: ipInfo.city || 'Unknown',
+                        timezone: ipInfo.timezone || 'Unknown',
+                        isp: ipInfo.isp || 'Unknown',
+                        userAgent: navigator.userAgent,
+                        browser: this.getBrowserInfo(),
+                        os: this.getOSInfo(),
+                        device: this.getDeviceInfo(),
+                        screenResolution: `${screen.width}x${screen.height}`,
+                        action: 'LOGIN'
+                    };
+                    
+                    state.loginLogbook.unshift(entry);
+                    
+                    // Keep only last 1000 entries
+                    if (state.loginLogbook.length > 1000) {
+                        state.loginLogbook = state.loginLogbook.slice(0, 1000);
+                    }
+                    
+                    // Save to localStorage
+                    this.saveToStorage();
+                    
+                    // Save to Firebase (only for admin viewing)
+                    await this.saveToFirebase(entry);
+                    
+                    console.log('✅ Login logged:', entry);
+                } catch (error) {
+                    console.error('Failed to log login:', error);
+                }
+            },
+            
+            async logLogout(user) {
+                try {
+                    const ipInfo = await this.getIPInfo();
+                    
+                    const entry = {
+                        id: Date.now() + Math.random().toString(36).substr(2, 9),
+                        timestamp: new Date().toISOString(),
+                        email: user.email,
+                        displayName: user.displayName || 'Unknown User',
+                        uid: user.uid,
+                        ip: ipInfo.ip || 'Unknown',
+                        action: 'LOGOUT'
+                    };
+                    
+                    state.loginLogbook.unshift(entry);
+                    if (state.loginLogbook.length > 1000) {
+                        state.loginLogbook = state.loginLogbook.slice(0, 1000);
+                    }
+                    
+                    this.saveToStorage();
+                    await this.saveToFirebase(entry);
+                } catch (error) {
+                    console.error('Failed to log logout:', error);
+                }
+            },
+            
+            async getIPInfo() {
+                try {
+                    // Using ipapi.co for IP geolocation (free, no API key needed)
+                    const response = await fetch('https://ipapi.co/json/');
+                    if (response.ok) {
+                        const data = await response.json();
+                        return {
+                            ip: data.ip,
+                            country: data.country_name,
+                            region: data.region,
+                            city: data.city,
+                            timezone: data.timezone,
+                            isp: data.org
+                        };
+                    }
+                } catch (error) {
+                    console.warn('Failed to get IP info:', error);
+                }
+                return {};
+            },
+            
+            getBrowserInfo() {
+                const ua = navigator.userAgent;
+                if (ua.includes('Chrome')) return 'Chrome';
+                if (ua.includes('Firefox')) return 'Firefox';
+                if (ua.includes('Safari')) return 'Safari';
+                if (ua.includes('Edge')) return 'Edge';
+                if (ua.includes('Opera')) return 'Opera';
+                return 'Unknown';
+            },
+            
+            getOSInfo() {
+                const ua = navigator.userAgent;
+                if (ua.includes('Windows')) return 'Windows';
+                if (ua.includes('Mac')) return 'macOS';
+                if (ua.includes('Linux')) return 'Linux';
+                if (ua.includes('Android')) return 'Android';
+                if (ua.includes('iOS')) return 'iOS';
+                return 'Unknown';
+            },
+            
+            getDeviceInfo() {
+                const ua = navigator.userAgent;
+                if (ua.includes('Mobile')) return 'Mobile';
+                if (ua.includes('Tablet')) return 'Tablet';
+                return 'Desktop';
+            },
+            
+            saveToStorage() {
+                try {
+                    localStorage.setItem('esh_login_logbook', JSON.stringify(state.loginLogbook));
+                } catch (e) {
+                    console.error('Failed to save logbook to localStorage:', e);
+                }
+            },
+            
+            loadFromStorage() {
+                try {
+                    const saved = localStorage.getItem('esh_login_logbook');
+                    if (saved) {
+                        state.loginLogbook = JSON.parse(saved);
+                    }
+                } catch (e) {
+                    console.error('Failed to load logbook from localStorage:', e);
+                }
+            },
+            
+            async saveToFirebase(entry) {
+                // Only save to Firebase if feature is enabled
+                // Admin can view all login logs from Firebase
+                try {
+                    const logbookRef = window.firebase.dbRef(
+                        window.firebaseRealtimeDb,
+                        `login-logbook/${entry.id}`
+                    );
+                    await window.firebase.set(logbookRef, entry);
+                } catch (e) {
+                    // Silently fail if no permission
+                    console.warn('Could not save to Firebase logbook:', e.message);
+                }
+            },
+            
+            getRecent(limit = 100) {
+                return state.loginLogbook.slice(0, limit);
+            },
+            
+            filterByUser(email) {
+                return state.loginLogbook.filter(entry => entry.email === email);
+            },
+            
+            filterByDateRange(startDate, endDate) {
+                const start = new Date(startDate).getTime();
+                const end = new Date(endDate).getTime();
+                return state.loginLogbook.filter(entry => {
+                    const timestamp = new Date(entry.timestamp).getTime();
+                    return timestamp >= start && timestamp <= end;
+                });
+            },
+            
+            exportToCSV() {
+                const headers = ['Timestamp', 'Action', 'Email', 'Display Name', 'IP Address', 'Location', 'Browser', 'OS', 'Device'];
+                const rows = state.loginLogbook.map(entry => [
+                    new Date(entry.timestamp).toLocaleString(),
+                    entry.action,
+                    entry.email,
+                    entry.displayName,
+                    entry.ip,
+                    `${entry.city}, ${entry.region}, ${entry.country}`,
+                    entry.browser || '-',
+                    entry.os || '-',
+                    entry.device || '-'
+                ]);
+                
+                let csv = headers.join(',') + '\n';
+                rows.forEach(row => {
+                    csv += row.map(cell => `"${cell}"`).join(',') + '\n';
+                });
+                
+                return csv;
+            }
+        };
+        
+        // Load logbook on startup
+        LoginLogbook.loadFromStorage();
+        
+        // ==================== USER ACCOUNT MANAGEMENT SYSTEM ====================
+        const UserAccounts = {
+            // Predefined superintendent accounts with credentials
+            superintendents: {
+                'esh@ncr.com.ph': {
+                    password: 'NCR2026!',
+                    role: 'superintendent',
+                    displayName: 'NCR Superintendent',
+                    region: 'NCR',
+                    color: '#2196F3' // Blue
+                },
+                'esh@north.com.ph': {
+                    password: 'NORTH2026!',
+                    role: 'superintendent',
+                    displayName: 'North Luzon Superintendent',
+                    region: 'NORTH LUZON',
+                    color: '#4CAF50' // Green
+                },
+                'esh@south.com.ph': {
+                    password: 'SOUTH2026!',
+                    role: 'superintendent',
+                    displayName: 'South Luzon Superintendent',
+                    region: 'SOUTH LUZON',
+                    color: '#FF9800' // Orange
+                },
+                'esh@vismin.com.ph': {
+                    password: 'VISMIN2026!',
+                    role: 'superintendent',
+                    displayName: 'Visayas & Mindanao Superintendent',
+                    region: 'VISAYAS & MINDANAO',
+                    color: '#9C27B0' // Purple
+                }
+            },
+            
+            getUserInfo(email) {
+                // Check if superintendent
+                if (this.superintendents[email]) {
+                    return this.superintendents[email];
+                }
+                
+                // Otherwise, it's admin
+                return {
+                    role: 'admin',
+                    displayName: 'Administrator',
+                    region: 'ALL',
+                    color: '#D32F2F' // Red
+                };
+            },
+            
+            isAdmin(email) {
+                return !this.superintendents[email];
+            },
+            
+            isSuperintendent(email) {
+                return !!this.superintendents[email];
+            },
+            
+            canEdit(userEmail, projectRegion) {
+                const userInfo = this.getUserInfo(userEmail);
+                
+                // Admin can edit everything
+                if (userInfo.role === 'admin') return true;
+                
+                // Superintendent can only edit their region
+                return userInfo.region === projectRegion;
+            },
+            
+            getAccessLevel(userEmail) {
+                const userInfo = this.getUserInfo(userEmail);
+                return {
+                    role: userInfo.role,
+                    region: userInfo.region,
+                    permissions: {
+                        viewAll: true,
+                        editAll: userInfo.role === 'admin',
+                        editOwn: userInfo.role === 'superintendent',
+                        accessSettings: userInfo.role === 'admin',
+                        viewUsers: userInfo.role === 'admin',
+                        viewDevices: userInfo.role === 'admin',
+                        deleteProjects: userInfo.role === 'admin',
+                        createAccounts: userInfo.role === 'admin'
+                    }
+                };
+            }
+        };
+        
+        // ==================== PRESENCE TRACKING SYSTEM ====================
+        const PresenceTracker = {
+            myPresenceRef: null,
+            usersPresenceRef: null,
+            devicesRef: null,
+            activityTimeout: null,
+            lastActivityTime: Date.now(),
+            
+            async initialize(userId, userEmail) {
+                if (!window.firebaseRealtimeDb) {
+                    console.warn('Firebase Realtime DB not available');
+                    return;
+                }
+                
+                const userInfo = UserAccounts.getUserInfo(userEmail);
+                const deviceInfo = DeviceFingerprint.getPlatformInfo();
+                
+                // Setup my presence
+                this.myPresenceRef = window.firebase.dbRef(
+                    window.firebaseRealtimeDb,
+                    `presence/${userId}`
+                );
+                
+                // Setup all users presence listener
+                this.usersPresenceRef = window.firebase.dbRef(
+                    window.firebaseRealtimeDb,
+                    'presence'
+                );
+                
+                // Setup devices reference
+                this.devicesRef = window.firebase.dbRef(
+                    window.firebaseRealtimeDb,
+                    `devices/${state.deviceFingerprint}`
+                );
+                
+                // Initial presence data
+                const presenceData = {
+                    status: 'online',
+                    displayName: userInfo.displayName,
+                    email: userEmail,
+                    role: userInfo.role,
+                    region: userInfo.region,
+                    color: userInfo.color,
+                    currentActivity: {
+                        action: 'viewing',
+                        tab: state.currentTab,
+                        project: null,
+                        cell: null,
+                        timestamp: Date.now()
+                    },
+                    lastSeen: Date.now(),
+                    deviceId: state.deviceFingerprint,
+                    platform: deviceInfo.platform,
+                    browser: deviceInfo.browser
+                };
+                
+                // Set initial presence
+                await window.firebase.set(this.myPresenceRef, presenceData);
+                
+                // Setup disconnect handler
+                const disconnectRef = window.firebase.onDisconnect(this.myPresenceRef);
+                disconnectRef.set({
+                    ...presenceData,
+                    status: 'offline',
+                    lastSeen: window.firebase.serverTimestamp()
+                });
+                
+                // Register device
+                await this.registerDevice(userId, userEmail, deviceInfo);
+                
+                // Listen to all users presence (admin only)
+                if (userInfo.role === 'admin') {
+                    this.startPresenceListener();
+                    this.startDeviceListener();
+                }
+                
+                // Setup activity tracking
+                this.setupActivityTracking();
+                
+                console.log('✅ Presence tracking initialized');
+            },
+            
+            async registerDevice(userId, userEmail, deviceInfo) {
+                const deviceData = {
+                    userId: userId,
+                    email: userEmail,
+                    fingerprint: state.deviceFingerprint,
+                    platform: deviceInfo.platform,
+                    browser: deviceInfo.browser,
+                    firstSeen: Date.now(),
+                    lastSeen: Date.now(),
+                    status: 'active'
+                };
+                
+                await window.firebase.set(this.devicesRef, deviceData);
+                
+                // Setup disconnect
+                const disconnectRef = window.firebase.onDisconnect(this.devicesRef);
+                disconnectRef.update({
+                    status: 'offline',
+                    lastSeen: window.firebase.serverTimestamp()
+                });
+            },
+            
+            startPresenceListener() {
+                window.firebase.onValue(this.usersPresenceRef, (snapshot) => {
+                    const presenceData = snapshot.val() || {};
+                    state.activeUsers = presenceData;
+                    
+                    // Update UI if admin is viewing
+                    if (state.userRole === 'admin' && state.isLoggedIn) {
+                        this.updateActiveUsersUI();
+                    }
+                });
+            },
+            
+            startDeviceListener() {
+                const allDevicesRef = window.firebase.dbRef(
+                    window.firebaseRealtimeDb,
+                    'devices'
+                );
+                
+                window.firebase.onValue(allDevicesRef, (snapshot) => {
+                    const devicesData = snapshot.val() || {};
+                    state.activeDevices = Object.values(devicesData);
+                    
+                    // Update device counter UI
+                    if (state.userRole === 'admin' && state.isLoggedIn) {
+                        this.updateDeviceCounterUI();
+                    }
+                });
+            },
+            
+            setupActivityTracking() {
+                // Track user activity
+                const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+                
+                events.forEach(event => {
+                    document.addEventListener(event, () => {
+                        this.lastActivityTime = Date.now();
+                        this.updateStatus('online');
+                    });
+                });
+                
+                // Check for idle status every 30 seconds
+                setInterval(() => {
+                    const idleTime = Date.now() - this.lastActivityTime;
+                    
+                    if (idleTime > 5 * 60 * 1000) { // 5 minutes
+                        this.updateStatus('idle');
+                    }
+                }, 30000);
+            },
+            
+            async updateStatus(status) {
+                if (!this.myPresenceRef) return;
+                
+                await window.firebase.update(this.myPresenceRef, {
+                    status: status,
+                    lastSeen: Date.now()
+                });
+            },
+            
+            async updateActivity(action, details = {}) {
+                if (!this.myPresenceRef) return;
+                
+                await window.firebase.update(this.myPresenceRef, {
+                    'currentActivity/action': action,
+                    'currentActivity/tab': details.tab || state.currentTab,
+                    'currentActivity/project': details.project || null,
+                    'currentActivity/cell': details.cell || null,
+                    'currentActivity/timestamp': Date.now(),
+                    lastSeen: Date.now()
+                });
+            },
+            
+            updateActiveUsersUI() {
+                if (!state.isAdmin) return;
+                
+                const usersList = document.getElementById('users-list');
+                const usersBadge = document.getElementById('users-count-badge');
+                const container = document.getElementById('active-users-container');
+                
+                if (!usersList || !usersBadge || !container) {
+                    console.warn('⚠️ Active users UI elements not found');
+                    return;
+                }
+                
+                // Show container for admin
+                container.style.display = 'inline-block';
+                console.log('👥 Active users container shown');
+                
+                const users = Object.entries(state.activeUsers || {});
+                const onlineCount = users.filter(([, data]) => data.status === 'online').length;
+                
+                // Update badge
+                usersBadge.textContent = onlineCount;
+                
+                if (users.length === 0) {
+                    usersList.innerHTML = `
+                        <div class="dropdown-empty">
+                            <i class="fas fa-user-slash"></i>
+                            <div>No users online</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Sort: online first, then by name
+                users.sort((a, b) => {
+                    if (a[1].status !== b[1].status) {
+                        const statusOrder = { online: 0, idle: 1, offline: 2 };
+                        return statusOrder[a[1].status] - statusOrder[b[1].status];
+                    }
+                    return (a[1].displayName || '').localeCompare(b[1].displayName || '');
+                });
+                
+                usersList.innerHTML = users.map(([userId, data]) => {
+                    const initials = (data.displayName || data.email || 'U').substring(0, 2).toUpperCase();
+                    const activityText = this.getActivityText(data.currentActivity);
+                    const statusClass = `status-${data.status}`;
+                    const statusText = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                    
+                    return `
+                        <div class="dropdown-item">
+                            <div class="user-info">
+                                <div class="user-avatar" style="background: ${data.color || '#2e7d32'}">
+                                    ${initials}
+                                </div>
+                                <div class="user-details">
+                                    <div class="user-name">${data.displayName || 'Unknown User'}</div>
+                                    <div class="user-activity">
+                                        <i class="fas fa-${this.getActivityIcon(data.currentActivity?.action)}"></i>
+                                        ${activityText}
+                                    </div>
+                                    <span class="user-status ${statusClass}">
+                                        <span class="status-indicator"></span>
+                                        ${statusText}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+            
+            updateDeviceCounterUI() {
+                if (!state.isAdmin) return;
+                
+                const deviceList = document.getElementById('device-list');
+                const deviceBadge = document.getElementById('device-count-badge');
+                const container = document.getElementById('device-counter-container');
+                
+                if (!deviceList || !deviceBadge || !container) {
+                    console.warn('⚠️ Device counter UI elements not found');
+                    return;
+                }
+                
+                // Show container for admin
+                container.style.display = 'inline-block';
+                console.log('🖥️ Device counter container shown');
+                
+                const devices = state.activeDevices || [];
+                const activeDevices = devices.filter(d => d.status === 'active');
+                
+                // Update badge
+                deviceBadge.textContent = activeDevices.length;
+                
+                if (activeDevices.length === 0) {
+                    deviceList.innerHTML = `
+                        <div class="dropdown-empty">
+                            <i class="fas fa-laptop"></i>
+                            <div>No devices connected</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Sort by last seen (most recent first)
+                activeDevices.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
+                
+                deviceList.innerHTML = activeDevices.map(device => {
+                    const icon = this.getDeviceIcon(device.platform);
+                    const timeSince = this.getTimeSince(device.lastSeen);
+                    
+                    return `
+                        <div class="dropdown-item">
+                            <div class="device-info">
+                                <i class="device-icon fas fa-${icon}"></i>
+                                <div class="device-details">
+                                    <div class="device-name">${device.platform || 'Unknown'} - ${device.browser || 'Browser'}</div>
+                                    <div class="device-meta">
+                                        <i class="fas fa-clock"></i> ${timeSince}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+            
+            getDeviceIcon(platform) {
+                const p = (platform || '').toLowerCase();
+                if (p.includes('windows')) return 'windows';
+                if (p.includes('mac')) return 'apple';
+                if (p.includes('linux')) return 'linux';
+                if (p.includes('android')) return 'mobile-alt';
+                if (p.includes('iphone') || p.includes('ipad')) return 'mobile-alt';
+                return 'laptop';
+            },
+            
+            getTimeSince(timestamp) {
+                if (!timestamp) return 'Unknown';
+                
+                const seconds = Math.floor((Date.now() - timestamp) / 1000);
+                
+                if (seconds < 60) return 'Just now';
+                if (seconds < 3600) return `${Math.floor(seconds / 60)} mins ago`;
+                if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+                return `${Math.floor(seconds / 86400)} days ago`;
+            },
+            
+            getActivityText(activity) {
+                if (!activity) return 'Idle';
+                
+                const action = activity.action || 'viewing';
+                const tab = activity.tab || 'dashboard';
+                const project = activity.project;
+                
+                if (action === 'editing' && project) {
+                    return `Editing ${tab.toUpperCase()} - ${project}`;
+                }
+                if (action === 'viewing' && project) {
+                    return `Viewing ${project}`;
+                }
+                return `${action.charAt(0).toUpperCase() + action.slice(1)} ${tab}`;
+            },
+            
+            getActivityIcon(action) {
+                const icons = {
+                    editing: 'edit',
+                    viewing: 'eye',
+                    idle: 'moon'
+                };
+                return icons[action] || 'circle';
+            },
+            
+            cleanup() {
+                if (this.myPresenceRef) {
+                    window.firebase.set(this.myPresenceRef, {
+                        status: 'offline',
+                        lastSeen: Date.now()
+                    });
+                }
+            }
+        };
+        
+        // Load logbook on startup
+        LoginLogbook.loadFromStorage();
+        
+        // ==================== ADMIN SYSTEM (LEGACY - Deprecated) ====================
+        // Note: Admin detection now handled by UserAccounts system
+        // This AdminSystem is kept for backward compatibility but not used for access control
+        const AdminSystem = {
+            // Legacy admin email list - NO LONGER USED
+            // Admin status is now determined by UserAccounts.getUserInfo()
+            adminEmails: [],
+            
+            isAdmin(email) {
+                // Redirect to new system
+                return UserAccounts.isAdmin(email);
+            },
+            
+            checkAdminAccess() {
+                // Deprecated - admin access now set by UserAccounts
+                if (!state.currentUser) return false;
+                return state.isAdmin;
+            },
+            
+            showAdminPanel() {
+                if (!state.isAdmin) {
+                    showToast('⛔ Access Denied: Admin privileges required', 'error');
+                    return;
+                }
+                
+                // Switch to admin tab
+                changeTab('admin');
+            },
+            
+            async getAllUsers() {
+                // Get all unique users from login logbook
+                const users = {};
+                state.loginLogbook.forEach(entry => {
+                    if (!users[entry.email]) {
+                        users[entry.email] = {
+                            email: entry.email,
+                            displayName: entry.displayName,
+                            uid: entry.uid,
+                            lastLogin: entry.timestamp,
+                            loginCount: 0,
+                            locations: new Set()
+                        };
+                    }
+                    users[entry.email].loginCount++;
+                    if (entry.city && entry.country) {
+                        users[entry.email].locations.add(`${entry.city}, ${entry.country}`);
+                    }
+                    // Keep most recent login
+                    if (new Date(entry.timestamp) > new Date(users[entry.email].lastLogin)) {
+                        users[entry.email].lastLogin = entry.timestamp;
+                    }
+                });
+                
+                return Object.values(users);
+            },
+            
+            async revokeAccess(email) {
+                // This would typically involve Firebase Admin SDK
+                // For now, just log the action
+                AuditLogger.log('ACCESS_REVOKED', { targetUser: email, admin: state.currentUser.email });
+                showToast(`🚫 Access revoked for ${email}`, 'warning');
+            }
+        };
+        
+        // ==================== OFFLINE MODE SYSTEM ====================
+        const OfflineManager = {
+            init() {
+                window.addEventListener('online', () => this.handleOnline());
+                window.addEventListener('offline', () => this.handleOffline());
+                
+                // Check initial status
+                state.isOnline = navigator.onLine;
+                console.log(`📡 Network status: ${state.isOnline ? 'Online' : 'Offline'}`);
+            },
+            
+            handleOnline() {
+                state.isOnline = true;
+                showToast('🌐 Back online! Syncing changes...', 'success');
+                this.syncOfflineQueue();
+                AuditLogger.log('SYSTEM_ONLINE', { status: 'Connected to internet' });
+            },
+            
+            handleOffline() {
+                state.isOnline = false;
+                showToast('📵 You are offline. Changes will sync when online.', 'warning');
+                AuditLogger.log('SYSTEM_OFFLINE', { status: 'Disconnected from internet' });
+            },
+            
+            addToQueue(action, data) {
+                state.offlineQueue.push({
+                    id: Date.now(),
+                    action: action,
+                    data: data,
+                    timestamp: new Date().toISOString()
+                });
+                localStorage.setItem('esh_offline_queue', JSON.stringify(state.offlineQueue));
+            },
+            
+            async syncOfflineQueue() {
+                if (state.offlineQueue.length === 0) return;
+                
+                console.log(`🔄 Syncing ${state.offlineQueue.length} offline changes...`);
+                
+                for (const item of state.offlineQueue) {
+                    try {
+                        await this.processQueueItem(item);
+                    } catch (e) {
+                        console.error('Failed to sync item:', item, e);
+                    }
+                }
+                
+                state.offlineQueue = [];
+                localStorage.removeItem('esh_offline_queue');
+                showToast('✅ All offline changes synced!', 'success');
+            },
+            
+            async processQueueItem(item) {
+                // Process based on action type
+                if (item.action === 'SAVE_DATA') {
+                    await saveToFirebase();
+                }
+                // Add more action types as needed
+            }
+        };
+        
+        // ==================== REAL-TIME COLLABORATION ====================
+        
+        // ==================== LAZY LOADING SYSTEM ====================
+        const LazyLoader = {
+            observer: null,
+            
+            init() {
+                this.observer = new IntersectionObserver(
+                    (entries) => this.handleIntersection(entries),
+                    { rootMargin: '50px' }
+                );
+            },
+            
+            handleIntersection(entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        this.loadContent(entry.target);
+                        this.observer.unobserve(entry.target);
+                    }
+                });
+            },
+            
+            observe(elements) {
+                elements.forEach(el => this.observer.observe(el));
+            },
+            
+            loadContent(element) {
+                // Load data for this element
+                const projectName = element.dataset.projectName;
+                if (projectName) {
+                    console.log('Lazy loading project:', projectName);
+                    // Render project details here
+                }
+            }
+        };
+        
         
         // Debug logger with timestamp
         function debugLog(category, message, data = null) {
@@ -5502,6 +7646,66 @@ debugCommands.help() - Show this help
                 }
             });
         }
+        
+        // ==================== DEVICE COUNTER & ACTIVE USERS DROPDOWNS ====================
+        
+        function toggleDeviceDropdown() {
+            const dropdown = document.getElementById('device-dropdown');
+            const usersDropdown = document.getElementById('users-dropdown');
+            
+            // Close users dropdown if open
+            if (usersDropdown && !usersDropdown.classList.contains('hidden')) {
+                usersDropdown.classList.add('hidden');
+            }
+            
+            dropdown.classList.toggle('hidden');
+            
+            // Close dropdown when clicking outside
+            if (!dropdown.classList.contains('hidden')) {
+                setTimeout(() => {
+                    document.addEventListener('click', closeDeviceDropdownOnClickOutside);
+                }, 0);
+            }
+        }
+        
+        function closeDeviceDropdownOnClickOutside(e) {
+            const dropdown = document.getElementById('device-dropdown');
+            const btn = document.getElementById('device-counter-btn');
+            
+            if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+                dropdown.classList.add('hidden');
+                document.removeEventListener('click', closeDeviceDropdownOnClickOutside);
+            }
+        }
+        
+        function toggleUsersDropdown() {
+            const dropdown = document.getElementById('users-dropdown');
+            const deviceDropdown = document.getElementById('device-dropdown');
+            
+            // Close device dropdown if open
+            if (deviceDropdown && !deviceDropdown.classList.contains('hidden')) {
+                deviceDropdown.classList.add('hidden');
+            }
+            
+            dropdown.classList.toggle('hidden');
+            
+            // Close dropdown when clicking outside
+            if (!dropdown.classList.contains('hidden')) {
+                setTimeout(() => {
+                    document.addEventListener('click', closeUsersDropdownOnClickOutside);
+                }, 0);
+            }
+        }
+        
+        function closeUsersDropdownOnClickOutside(e) {
+            const dropdown = document.getElementById('users-dropdown');
+            const btn = document.getElementById('active-users-btn');
+            
+            if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+                dropdown.classList.add('hidden');
+                document.removeEventListener('click', closeUsersDropdownOnClickOutside);
+            }
+        }
 
         async function switchYear(newYear) {
             debugLog('INFO', `🔄 switchYear() called: ${state.selectedYear} → ${newYear}`);
@@ -5524,6 +7728,11 @@ debugCommands.help() - Show this help
             state.projects = filterProjectsByYear(state.masterProjects, newYear);
             state.filteredProjects = [...state.projects];
             state.selectedProjects = [];
+            
+            // Clear search and filters when year changes
+            state.searchTerm = '';
+            state.regionFilter = '';
+            state.statusFilter = '';
             
             const afterCount = state.projects.length;
             
@@ -5749,8 +7958,11 @@ debugCommands.help() - Show this help
                     </style>
                 `;
                 
+                // Sort project names alphabetically for consistent notification display
+                const sortedProjectNames = Object.keys(projectOverdues).sort((a, b) => a.localeCompare(b));
+                
                 // Display each project with overdue tabs
-                Object.keys(projectOverdues).forEach(projectName => {
+                sortedProjectNames.forEach(projectName => {
                     const tabs = projectOverdues[projectName];
                     
                     // Create separate notification item for each overdue report
@@ -6143,6 +8355,11 @@ debugCommands.help() - Show this help
       function handleLogout() {
     showModernDialog('Logout Confirmation', 'Are you sure you want to logout?').then(async confirmed => {
         if (confirmed) {
+            // Log logout before clearing state
+            if (state.currentUser) {
+                await LoginLogbook.logLogout(state.currentUser);
+            }
+            
             backupManager.stopAutoSave();
             state.isLoggedIn = false;
             state.currentUser = null;
@@ -6210,7 +8427,10 @@ debugCommands.help() - Show this help
                 }
                 return 0;
             });
-            state.filteredProjects = [...state.projects];
+            
+            // Reapply current filters after sorting instead of just copying all projects
+            reapplyFilters();
+            
             saveUserData(state.currentUser?.email);
             render();
         }
@@ -6360,6 +8580,7 @@ debugCommands.help() - Show this help
 });
 
             sortProjects(state.currentSort);
+            reapplyFilters(); // Reapply current filters
             saveUserData(state.currentUser.email);
             closeAddProjectModal();
             render();
@@ -6456,6 +8677,7 @@ debugCommands.help() - Show this help
                 }
 
                 sortProjects(state.currentSort);
+                reapplyFilters(); // Reapply current filters
                 saveUserData(state.currentUser.email);
                 closeEditProjectModal();
                 render();
@@ -6465,19 +8687,97 @@ debugCommands.help() - Show this help
         }
 
         function handleSearch() {
-            const search = document.getElementById('search-input').value.toLowerCase();
-            const region = document.getElementById('region-filter').value;
-            const status = document.getElementById('status-filter').value;
+            try {
+                const searchInput = document.getElementById('search-input');
+                const regionFilter = document.getElementById('region-filter');
+                const statusFilter = document.getElementById('status-filter');
+                
+                // Check if elements exist
+                if (!searchInput || !regionFilter || !statusFilter) {
+                    return;
+                }
+                
+                // Store current focus
+                const activeElement = document.activeElement;
+                const cursorPosition = searchInput.selectionStart;
+                
+                const search = searchInput.value.toLowerCase().trim();
+                const region = regionFilter.value;
+                const status = statusFilter.value;
 
-            state.filteredProjects = state.projects.filter(p =>
-                p.name.toLowerCase().includes(search) &&
-                (!region || p.region === region) &&
-                (!status || p.status === status)
-            );
-            render();
+                // Save filter values to state
+                state.searchTerm = searchInput.value;
+                state.regionFilter = region;
+                state.statusFilter = status;
+
+                // Start with all projects
+                let filtered = [...state.projects];
+                
+                // Apply search filter
+                if (search) {
+                    filtered = filtered.filter(p => 
+                        p.name.toLowerCase().includes(search)
+                    );
+                }
+                
+                // Apply region filter (only if not empty/All Regions)
+                if (region && region !== '') {
+                    filtered = filtered.filter(p => p.region === region);
+                }
+                
+                // Apply status filter (only if not empty/All Status)
+                if (status && status !== '') {
+                    filtered = filtered.filter(p => p.status === status);
+                }
+                
+                state.filteredProjects = filtered;
+                
+                render();
+                
+                // Restore focus and cursor position
+                if (activeElement && activeElement.id === 'search-input') {
+                    const newSearchInput = document.getElementById('search-input');
+                    if (newSearchInput) {
+                        newSearchInput.focus();
+                        newSearchInput.setSelectionRange(cursorPosition, cursorPosition);
+                    }
+                }
+            } catch (error) {
+                console.error('Error in handleSearch:', error);
+            }
         }
 
-        function handleFilter() { handleSearch(); }
+        function handleFilter() { 
+            handleSearch(); 
+        }
+
+        // Reapply current filters to the project list (useful after add/edit/delete)
+        function reapplyFilters() {
+            const search = state.searchTerm.toLowerCase().trim();
+            const region = state.regionFilter;
+            const status = state.statusFilter;
+
+            let filtered = [...state.projects];
+            
+            // Apply search filter
+            if (search) {
+                filtered = filtered.filter(p => 
+                    p.name.toLowerCase().includes(search)
+                );
+            }
+            
+            // Apply region filter
+            if (region && region !== '') {
+                filtered = filtered.filter(p => p.region === region);
+            }
+            
+            // Apply status filter
+            if (status && status !== '') {
+                filtered = filtered.filter(p => p.status === status);
+            }
+            
+            state.filteredProjects = filtered;
+        }
 
         function toggleEdit() {
             state.isEditing = true;
@@ -6643,12 +8943,18 @@ debugCommands.help() - Show this help
                 'activities': 'ESH ACTIVITIES AND PROGRAMS','kpm': 'KEY PERFORMANCE MEASURES REPORT','reg': 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)','audit': 'INTERNAL ESH AUDIT REPORT',
                 'cshp': 'CONSTRUCTION SAFETY & HEALTH PROGRAM (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL','permits': 'ENVIRONMENTAL PERMITS/LICENSES/CLEARANCE','emb': ["EMB REPORTORIAL"],
                 'doe': 'DOE REPORTORIAL - RENEWABLE ENERGY PROJECTS', 'doe-permit': 'DOE SAFETY OFFICER PERMIT',
-                'personnel': 'ESH PERSONNEL MONITORING', 'settings': 'SETTINGS'
+                'personnel': 'ESH PERSONNEL MONITORING', 'settings': 'SETTINGS', 'admin': 'ADMIN CONTROL PANEL'
             };
             document.querySelector('.header-title').innerText = titles[t] || t.toUpperCase();
             document.getElementById('settings-view').classList.toggle('hidden', t !== 'settings');
             document.getElementById('personnel-view').classList.toggle('hidden', t !== 'personnel');
-            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel');
+            document.getElementById('admin-view').classList.toggle('hidden', t !== 'admin');
+            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel' || t === 'admin');
+            
+            // If switching to admin tab, render admin panel
+            if (t === 'admin') {
+                renderAdminPanel();
+            }
             
             // Trigger slide animation on tab change
             const dashContent = document.getElementById('dashboard-content');
@@ -6719,6 +9025,13 @@ function updateAuditData(pName, qtr, field, val) {
 }
 
         function updateVal(pName, key, mIdx, val) {
+            // Phase 3: Regional Locking - Check permission
+            const p = state.projects.find(x => x.name === pName);
+            if (p && !UserAccounts.canEdit(state.currentUser?.email, p.region)) {
+                showLockedMessage();
+                return;
+            }
+            
             // Prevent negative numbers
             const numVal = parseFloat(val);
             if (numVal < 0) {
@@ -6729,7 +9042,6 @@ function updateAuditData(pName, qtr, field, val) {
                 return;
             }
             
-            const p = state.projects.find(x => x.name === pName);
             if (p) {
                 if (!p.vals[key]) p.vals[key] = new Array(13).fill("");
                 p.vals[key][mIdx] = val;
@@ -6903,6 +9215,13 @@ function updateAuditData(pName, qtr, field, val) {
         async function deleteProject(projectName) {
     debugLog('INFO', `🗑️ deleteProject() called for: ${projectName}`);
     
+    // Phase 3: Regional Locking - Check permission
+    const project = state.projects.find(p => p.name === projectName);
+    if (project && !UserAccounts.canEdit(state.currentUser?.email, project.region)) {
+        showLockedMessage();
+        return;
+    }
+    
     // Validate before delete
     const beforeValidation = validateState();
     debugLog('DATA', 'State before delete:', beforeValidation.stats);
@@ -6918,10 +9237,12 @@ function updateAuditData(pName, qtr, field, val) {
         };
         
         state.projects = state.projects.filter(p => p.name !== projectName);
-        state.filteredProjects = state.filteredProjects.filter(p => p.name !== projectName);
         
         // Also remove from masterProjects
         state.masterProjects = state.masterProjects.filter(p => p.name !== projectName);
+        
+        // Reapply filters to update filteredProjects correctly
+        reapplyFilters();
         
         const afterCount = {
             projects: state.projects.length,
@@ -6952,6 +9273,13 @@ function updateAuditData(pName, qtr, field, val) {
         if (saved) {
             showToast(`✅ Project "${projectName}" deleted successfully`, 'success');
             debugLog('SUCCESS', `✅ Project "${projectName}" deleted from Firebase`);
+            
+            // Audit log the deletion
+            AuditLogger.log('PROJECT_DELETED', {
+                projectName: projectName,
+                year: state.selectedYear,
+                remainingProjects: state.projects.length
+            });
         } else {
             showToast('⚠️ Deleted locally, but failed to sync to server', 'warning');
             debugLog('ERROR', '❌ Firebase sync failed');
@@ -7010,6 +9338,7 @@ function updateAuditData(pName, qtr, field, val) {
             }
             
             project.status = status.value;
+            reapplyFilters(); // Reapply filters after status change
             saveUserData(state.currentUser.email);
             closeAllStatusDropdowns();
             render();
@@ -7503,9 +9832,6 @@ function closeAllStatusDropdowns() {
             const container = document.getElementById('toast-container');
             if (!container) return;
             
-            const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
-            
             const icons = {
                 success: '✓',
                 error: '✕',
@@ -7526,6 +9852,11 @@ function closeAllStatusDropdowns() {
                 toast.classList.add('hiding');
                 setTimeout(() => toast.remove(), 300);
             }, duration);
+        }
+        
+        // Phase 3: Regional Locking - Show locked message
+        function showLockedMessage() {
+            showToast('🔒 View Only - You can only edit projects in your assigned region. Contact admin for access.', 'warning', 4000);
         }
 
         // ===== KEYBOARD SHORTCUTS =====
@@ -7592,25 +9923,26 @@ function closeAllStatusDropdowns() {
                     <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                         <div style="flex: 1; min-width: 250px;">
                             <input type="text" id="search-input" placeholder="🔍 Search projects..." onkeyup="handleSearch()" 
+                                   value="${state.searchTerm || ''}"
                                    style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary);">
                         </div>
                         <div>
                             <select id="region-filter" onchange="handleFilter()" 
                                     style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary); min-width: 180px;">
-                                <option value="">📍 All Regions</option>
-                                <option value="NCR">NCR</option>
-                                <option value="SOUTH LUZON">South Luzon</option>
-                                <option value="NORTH LUZON">North Luzon</option>
-                                <option value="VISAYAS & MINDANAO">Visayas & Mindanao</option>
+                                <option value="" ${state.regionFilter === '' ? 'selected' : ''}>📍 All Regions</option>
+                                <option value="NCR" ${state.regionFilter === 'NCR' ? 'selected' : ''}>NCR</option>
+                                <option value="SOUTH LUZON" ${state.regionFilter === 'SOUTH LUZON' ? 'selected' : ''}>South Luzon</option>
+                                <option value="NORTH LUZON" ${state.regionFilter === 'NORTH LUZON' ? 'selected' : ''}>North Luzon</option>
+                                <option value="VISAYAS & MINDANAO" ${state.regionFilter === 'VISAYAS & MINDANAO' ? 'selected' : ''}>Visayas & Mindanao</option>
                             </select>
                         </div>
                         <div>
                             <select id="status-filter" onchange="handleFilter()" 
                                     style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary); min-width: 160px;">
-                                <option value="">📊 All Status</option>
-                                <option value="on-going">On-Going</option>
-                                <option value="work-stoppage">Work Stoppage</option>
-                                <option value="finished">Finished</option>
+                                <option value="" ${state.statusFilter === '' ? 'selected' : ''}>📊 All Status</option>
+                                <option value="on-going" ${state.statusFilter === 'on-going' ? 'selected' : ''}>On-Going</option>
+                                <option value="work-stoppage" ${state.statusFilter === 'work-stoppage' ? 'selected' : ''}>Work Stoppage</option>
+                                <option value="finished" ${state.statusFilter === 'finished' ? 'selected' : ''}>Finished</option>
                             </select>
                         </div>
                     </div>
@@ -7666,7 +9998,8 @@ function closeAllStatusDropdowns() {
                 renderCharts();
             }
 
-            const displayProjects = state.filteredProjects.length > 0 ? state.filteredProjects : state.projects;
+            // Always use filteredProjects (it will equal projects when no filters active)
+            const displayProjects = state.filteredProjects;
 
             // Add trend chart for medical tab
             if (state.currentTab === 'medical') {
@@ -7817,26 +10150,33 @@ function closeAllStatusDropdowns() {
                     const perc = getPerc(p);
                     const statusClass = p.status === 'on-going' ? 'status-ongoing' : p.status === 'work-stoppage' ? 'status-stoppage' : 'status-finished';
                     const statusLabel = p.status === 'on-going' ? 'On-Going' : p.status === 'work-stoppage' ? 'Work Stoppage' : 'Finished';
+                    
+                    // Check if user can edit this project (Phase 3: Regional Locking)
+                    const canEdit = UserAccounts.canEdit(state.currentUser?.email, p.region);
+                    const isLocked = !canEdit;
 
-                    html += `<div class="project-row">
-                        ${state.isEditing ? `<input type="checkbox" class="project-checkbox" ${p.selected ? 'checked' : ''} onchange="toggleProjectSelect('${p.name}')">` : ''}
+                    html += `<div class="project-row ${isLocked ? 'project-locked' : ''}">
+                        ${state.isEditing ? `<input type="checkbox" class="project-checkbox" ${p.selected ? 'checked' : ''} ${isLocked ? 'disabled' : ''} onchange="toggleProjectSelect('${p.name}')">` : ''}
                         <div class="circular-progress" style="--percentage: ${perc * 3.6}deg;">
                             <div class="circular-progress-inner">${perc}%</div>
                         </div>
                         <div class="project-info">
-                            <div class="project-name">${p.name}</div>
-                            <div class="project-meta">Safety Compliance</div>
+                            <div class="project-name">
+                                ${isLocked ? '<i class="fas fa-lock" style="color: #f57c00; margin-right: 6px;" title="View Only - Contact admin to edit"></i>' : ''}
+                                ${p.name}
+                            </div>
+                            <div class="project-meta">Safety Compliance • ${p.region || 'No Region'}</div>
                         </div>
                         <div class="project-dates">
                             <div><span class="date-label">Started:</span> ${p.dateStarted ? new Date(p.dateStarted).toLocaleDateString() : 'Not set'}</div>
                             <div><span class="date-label">Finished:</span> ${p.dateFinished ? new Date(p.dateFinished).toLocaleDateString() : 'Ongoing'}</div>
                         </div>
-                        <span class="status-badge ${statusClass}" onclick="changeProjectStatus('${p.name}', event)">${statusLabel}</span>
+                        <span class="status-badge ${statusClass}" onclick="${isLocked ? 'showLockedMessage()' : `changeProjectStatus('${p.name}', event)`}">${statusLabel}</span>
                         ${state.isEditing ? `
-                            <button class="btn btn-secondary" onclick="openEditProjectModal('${p.name.replace(/'/g, "\\'")}', '${p.region}')" style="margin-right: 5px;" title="Edit Project Details">
+                            <button class="btn btn-secondary" ${isLocked ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} onclick="${isLocked ? 'showLockedMessage()' : `openEditProjectModal('${p.name.replace(/'/g, "\\'")}', '${p.region}')`}" style="margin-right: 5px;" title="${isLocked ? 'View Only - Contact admin to edit' : 'Edit Project Details'}">
                                 <i class="fas fa-pen"></i>
                             </button>
-                            <button class="btn btn-danger" onclick="deleteProject('${p.name}')"><i class="fas fa-trash"></i></button>
+                            <button class="btn btn-danger" ${isLocked ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} onclick="${isLocked ? 'showLockedMessage()' : `deleteProject('${p.name}')`}" title="${isLocked ? 'View Only - Contact admin to edit' : 'Delete Project'}"><i class="fas fa-trash"></i></button>
                         ` : ''}
                     </div>`;
 
@@ -8159,6 +10499,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
     }
 
     html += `</tr>`;
+
+    // Safety check: Ensure SCHEMA exists for this tab
+    if (!SCHEMA[state.currentTab]) {
+        console.warn(`⚠️ No SCHEMA defined for tab: ${state.currentTab}`);
+        html += `</table></div>`;
+        return html;
+    }
 
     SCHEMA[state.currentTab].forEach((row, rowIdx) => {
         const key = `${state.currentTab}_${row}`;
@@ -9434,6 +11781,67 @@ function showModernDialog(title, message, isDanger = false) {
         // Modal is locked - no overlay click close
         // User must use CANCEL or CONFIRM buttons
         
+        confirmBtn.focus();
+    });
+}
+
+// Custom confirm dialog with customizable button labels and icon
+function showCustomConfirm(title, message, confirmText = 'CONFIRM', cancelText = 'CANCEL', iconClass = 'fa-graduation-cap', isInfo = true) {
+    return new Promise((resolve) => {
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'modern-dialog-overlay';
+
+        // Create dialog
+        const dialog = document.createElement('div');
+        dialog.className = isInfo ? 'modern-dialog info' : 'modern-dialog';
+
+        // Icon
+        const iconEl = document.createElement('div');
+        iconEl.className = 'modern-dialog-icon';
+        iconEl.style.background = isInfo ? 'linear-gradient(135deg, #1976d2, #2196f3)' : 'linear-gradient(135deg, #2e7d32, #4caf50)';
+        iconEl.innerHTML = `<i class="fas ${iconClass}"></i>`;
+
+        // Title
+        const titleEl = document.createElement('h2');
+        titleEl.className = 'modern-dialog-title';
+        titleEl.textContent = title;
+
+        // Message
+        const messageEl = document.createElement('p');
+        messageEl.className = 'modern-dialog-message';
+        messageEl.innerHTML = message;
+
+        // Buttons
+        const buttonsDiv = document.createElement('div');
+        buttonsDiv.className = 'modern-dialog-buttons';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'modern-dialog-btn modern-dialog-btn-cancel';
+        cancelBtn.innerHTML = `<i class="fas fa-times"></i> ${cancelText}`;
+        cancelBtn.onclick = () => {
+            overlay.remove();
+            resolve(false);
+        };
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.className = 'modern-dialog-btn modern-dialog-btn-confirm';
+        confirmBtn.innerHTML = `<i class="fas fa-check"></i> ${confirmText}`;
+        confirmBtn.onclick = () => {
+            overlay.remove();
+            resolve(true);
+        };
+
+        buttonsDiv.appendChild(cancelBtn);
+        buttonsDiv.appendChild(confirmBtn);
+
+        dialog.appendChild(iconEl);
+        dialog.appendChild(titleEl);
+        dialog.appendChild(messageEl);
+        dialog.appendChild(buttonsDiv);
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+
         confirmBtn.focus();
     });
 }
@@ -10818,7 +13226,7 @@ async function firebaseLogout() {
     try {
         // Cleanup presence before signing out
         if (state.currentUser && state.currentUser.uid) {
-            cleanupPresence(state.currentUser.uid);
+            PresenceTracker.cleanup();
         }
         
         // 🔊 Play logout sound before signing out
@@ -10890,14 +13298,32 @@ function setupAuthObserver() {
             state.currentUser = { email: user.email, uid: user.uid };
             state.isLoggedIn = true;
 
+            // ==================== INITIALIZE USER ROLE & REGION ====================
+            const userInfo = UserAccounts.getUserInfo(user.email);
+            state.userRole = userInfo.role;
+            state.userRegion = userInfo.region;
+            state.userColor = userInfo.color;
+            state.isAdmin = userInfo.role === 'admin';
+            
+            console.log(`🎭 Role: ${state.userRole} | Region: ${state.userRegion}`);
+            
+            // ==================== GENERATE DEVICE FINGERPRINT ====================
+            if (!state.deviceFingerprint) {
+                state.deviceFingerprint = await DeviceFingerprint.generate();
+                console.log('🔑 Device fingerprint generated');
+            }
+
             // Hide login, show main UI
             const loginOverlay = document.getElementById('login-overlay');
             if (loginOverlay) loginOverlay.style.display = 'none';
 
-            // Update user badge
+            // Update user badge with role
             const userBadge = document.getElementById('user-badge');
             if (userBadge) {
-                userBadge.innerHTML = `<i class="fas fa-user-circle"></i> ${user.email}`;
+                const roleIcon = state.isAdmin ? 'fa-user-shield' : 'fa-user-tie';
+                const roleLabel = state.isAdmin ? 'Admin' : userInfo.displayName;
+                userBadge.innerHTML = `<i class="fas ${roleIcon}"></i> ${roleLabel}`;
+                userBadge.style.color = userInfo.color;
             }
 
             // Update user-email field (settings page)
@@ -10916,11 +13342,76 @@ function setupAuthObserver() {
             
             // 🔊 Play login sound
             playLoginSound();
+            
+            // ==================== INITIALIZE NEW SYSTEMS ====================
+            // Initialize Offline Mode Management
+            OfflineManager.init();
+            
+            // Initialize Lazy Loading
+            LazyLoader.init();
+            
+            // Note: AdminSystem.checkAdminAccess() removed - now using UserAccounts system
+            // state.isAdmin already set correctly by UserAccounts.getUserInfo()
+            
+            // Show admin panel nav item if admin
+            if (state.isAdmin) {
+                const adminNav = document.querySelector('.nav-item-admin');
+                if (adminNav) {
+                    adminNav.style.display = 'flex';
+                }
+                console.log('🛡️ Admin access granted');
+            } else {
+                // Hide settings tab for superintendents
+                const settingsTab = document.querySelector('[onclick*="settings"]');
+                if (settingsTab) {
+                    settingsTab.style.display = 'none';
+                }
+                console.log('👔 Superintendent access - restricted mode');
+            }
+            
+            // Initialize presence tracking
+            await PresenceTracker.initialize(user.uid, user.email);
+            console.log('🟢 Presence tracking active');
+            
+            // Show admin UI elements (device counter & active users)
+            if (state.isAdmin) {
+                // Small delay to ensure Firebase listeners are ready
+                setTimeout(() => {
+                    PresenceTracker.updateDeviceCounterUI();
+                    PresenceTracker.updateActiveUsersUI();
+                }, 500);
+            }
+            
+            // Log login to logbook with IP and location
+            await LoginLogbook.logLogin(user);
+            
+            // Log user login in audit trail
+            AuditLogger.log('USER_LOGIN', { 
+                email: user.email, 
+                role: state.userRole,
+                region: state.userRegion,
+                timestamp: new Date().toISOString(),
+                isAdmin: state.isAdmin,
+                deviceId: state.deviceFingerprint
+            });
+            
+            console.log('✅ All systems initialized successfully!');
+            // ==================== END NEW SYSTEMS ====================
+
 
         } else {
             console.log('👤 No user authenticated — showing login screen');
+            
+            // Cleanup presence tracking
+            if (state.currentUser) {
+                PresenceTracker.cleanup();
+            }
+            
             state.currentUser = null;
             state.isLoggedIn = false;
+            state.userRole = null;
+            state.userRegion = null;
+            state.isAdmin = false;
 
             // Show login overlay
             const loginOverlay = document.getElementById('login-overlay');
@@ -11028,7 +13519,7 @@ function setupInactivityTimer() {
 // Cleanup presence when page is closed or refreshed
 window.addEventListener('beforeunload', () => {
     if (state.currentUser && state.currentUser.uid) {
-        cleanupPresence(state.currentUser.uid);
+        PresenceTracker.cleanup();
     }
 });
 
