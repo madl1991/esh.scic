@@ -830,7 +830,7 @@
 
         /* Firebase init loading overlay */
         #firebase-loading-overlay {
-            position: fixed; inset: 0; background: linear-gradient(135deg, #0a2e10 0%, #1b5e20 100%);
+            position: fixed; inset: 0; background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
             display: flex; align-items: center; justify-content: center; z-index: 20000; flex-direction: column; gap: 20px;
         }
         /* Shield Pulse Loader */
@@ -885,7 +885,7 @@
 
         aside {
             width: 260px; 
-            background: linear-gradient(180deg, #0d3d0f 0%, #1b5e20 50%, #2e7d32 100%);
+            background: linear-gradient(180deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%);
             color: white;
             display: flex; flex-direction: column; flex-shrink: 0; z-index: 100; 
             box-shadow: 4px 0 20px rgba(0,0,0,0.15);
@@ -1995,44 +1995,101 @@
         }
 
         .region-banner {
-            color: white; 
-            padding: 15px 20px;
-            margin: 20px 20px 15px; 
-            border-radius: 12px; 
-            font-weight: 700; 
-            display: flex;
-            justify-content: space-between; 
-            align-items: center; 
-            flex-wrap: wrap; 
-            gap: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
-            position: relative;
+            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px 20px 15px;
             overflow: hidden;
-            background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 25%, #2e7d32 50%, #43a047 75%, #66bb6a 100%);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.1);
+            user-select: none;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            color: white;
+            font-weight: 700;
+            flex-wrap: wrap;
         }
         
-        /* Shine effect for region banners */
-        .region-banner::after {
+        /* Glass effect overlay */
+        .region-banner::before {
             content: '';
             position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(
-                45deg,
-                transparent 30%,
-                rgba(255, 255, 255, 0.1) 50%,
-                transparent 70%
-            );
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
             pointer-events: none;
             z-index: 1;
         }
         
-        /* Ensure content is above shine effect */
+        /* Ensure content is above glass effect */
         .region-banner > * {
             position: relative;
             z-index: 2;
+        }
+        
+        .region-banner:hover {
+            transform: scale(1.02);
+            box-shadow: 0 12px 32px rgba(46, 125, 50, 0.3);
+        }
+        
+        .region-banner.collapsed {
+            margin-bottom: 10px;
+        }
+        
+        .region-toggle-icon {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-left: 10px;
+            font-size: 0.9rem;
+            will-change: transform;
+        }
+        
+        .region-banner.collapsed .region-toggle-icon {
+            transform: rotate(-180deg);
+        }
+        
+        .region-content {
+            max-height: 5000px;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+            opacity: 1;
+            will-change: max-height, opacity;
+        }
+        
+        .region-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+        }
+        
+        /* Region banner left section */
+        .region-banner > div:first-child {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        /* Region banner right section */
+        .region-banner > div:last-child {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        /* Glass effect for AVG badge */
+        .region-banner .badge[style*="background:#1b5e20"] {
+            background: rgba(255,255,255,0.15) !important;
+            backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-size: 0.8rem;
         }
         .badge { background: var(--safety-yellow); color: #1b5e20; padding: 4px 12px;
             border-radius: 20px; font-size: 0.7rem; font-weight: 800; }
@@ -2846,55 +2903,65 @@ body.dark-mode .backup-item {
 .modern-dialog-btn {
     padding: 12px 40px;
     border: none;
-    border-radius: 25px;
-    font-size: 15px;
-    font-weight: 600;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.3s;
     display: inline-flex;
     align-items: center;
     gap: 8px;
     justify-content: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .modern-dialog-btn-cancel {
-    background: #f5f5f5;
-    color: #666;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 2px solid var(--border-color);
 }
 
 .modern-dialog-btn-cancel:hover {
-    background: #e0e0e0;
+    background: rgba(0,0,0,0.05);
+    border-color: #999;
+    color: var(--text-primary);
 }
 
 .modern-dialog-btn-confirm {
-    background: #2e7d32;
+    background: linear-gradient(135deg, #2e7d32, #4caf50);
     color: white;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
 }
 
 .modern-dialog-btn-confirm:hover {
-    background: #1b5e20;
+    background: linear-gradient(135deg, #1b5e20, #2e7d32);
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(46, 125, 50, 0.3);
+    box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4);
 }
 
 .modern-dialog-btn-danger {
-    background: #d32f2f;
+    background: linear-gradient(135deg, #d32f2f, #f44336);
     color: white;
+    box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
 }
 
 .modern-dialog-btn-danger:hover {
-    background: #b71c1c;
+    background: linear-gradient(135deg, #b71c1c, #d32f2f);
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(211, 47, 47, 0.3);
+    box-shadow: 0 6px 20px rgba(211, 47, 47, 0.4);
 }
 
 body.dark-mode .modern-dialog-btn-cancel {
-    background: #3a3a3a;
-    color: #e4e4e4;
+    background: transparent;
+    border-color: #555;
+    color: #b0b0b0;
 }
 
 body.dark-mode .modern-dialog-btn-cancel:hover {
-    background: #4a4a4a;
+    background: rgba(255,255,255,0.05);
+    border-color: #777;
+    color: #e4e4e4;
 }
 
 	.status-dropdown {
@@ -3750,12 +3817,29 @@ table input[type="date"]:not(:focus)[value=""] {
             font-size: 0.75rem; border-radius: 4px;
         }
         .user-badge { 
-            background: rgba(251, 192, 45, 0.2);
-            border: 1px solid rgba(251, 192, 45, 0.4);
-            padding: 8px 10px;
-            border-radius: 8px;
-            font-size: 0.7rem;
+            background: linear-gradient(135deg, #fbc02d, #f57f17);
+            padding: 10px 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(251, 192, 45, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
             margin-top: 10px;
+            text-align: center;
+        }
+        
+        .user-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(251, 192, 45, 0.4);
+        }
+        
+        .user-badge .name {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: #1b5e20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         #dashboard-content {
@@ -4661,7 +4745,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <!-- Always visible controls -->
                 
                 <!-- EXPORT PDF BUTTON -->
-                <button class="year-selector-btn" onclick="exportCurrentTabToPDF()" title="Export to PDF Report">
+                <button id="export-pdf-btn" class="year-selector-btn" onclick="exportCurrentTabToPDF()" title="Export to PDF Report">
                     <i class="fas fa-file-pdf"></i>
                 </button>
                 
@@ -5355,7 +5439,8 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             </div>
           </div>
           <div class="settings-divider"></div>
-          <div class="settings-input-group" style="margin-bottom:0;">
+          <!-- Force Sync - Admin Only -->
+          <div class="settings-input-group" style="margin-bottom:0;" id="force-sync-section">
             <label class="settings-label">Firebase Cloud Sync</label>
             <button class="settings-btn settings-btn-primary" onclick="saveToFirebaseMain()">
               <i class="fas fa-cloud-upload-alt"></i> FORCE SYNC TO CLOUD
@@ -5364,8 +5449,8 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         </div>
       </div>
 
-      <!-- Year Data Management - Full Width -->
-      <div class="settings-card settings-card-full">
+      <!-- Year Data Management - Full Width - Admin Only -->
+      <div class="settings-card settings-card-full" id="year-management-section">
         <div class="settings-card-header">
           <i class="fas fa-calendar-check"></i>
           <span class="settings-card-title">YEAR DATA MANAGEMENT</span>
@@ -5417,8 +5502,8 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         </div>
       </div>
 
-      <!-- Audit Trail Log - Full Width -->
-      <div class="settings-card settings-card-full">
+      <!-- Audit Trail Log - Full Width - Admin Only -->
+      <div class="settings-card settings-card-full" id="audit-trail-section">
         <div class="settings-card-header">
           <i class="fas fa-history"></i>
           <span class="settings-card-title">AUDIT TRAIL</span>
@@ -5465,8 +5550,8 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         </div>
       </div>
 
-      <!-- Danger Zone - Full Width -->
-      <div class="settings-card settings-card-full danger-zone-card">
+      <!-- Danger Zone - Full Width - Admin Only -->
+      <div class="settings-card settings-card-full danger-zone-card" id="danger-zone-section">
         <div class="settings-card-header">
           <i class="fas fa-triangle-exclamation"></i>
           <span class="settings-card-title">DANGER ZONE</span>
@@ -9001,10 +9086,28 @@ debugCommands.help() - Show this help
             
             if (t === 'personnel') renderPTable();
             
+            // PDF Export button visibility control
+            const pdfBtn = document.getElementById('export-pdf-btn');
+            if (pdfBtn) {
+                // Hide PDF button for non-admins when in personnel tab
+                if (t === 'personnel' && !state.isAdmin) {
+                    pdfBtn.style.display = 'none';
+                } else {
+                    pdfBtn.style.display = 'inline-block';
+                }
+            }
+            
             render();
         }
 
 function updateAuditData(pName, qtr, field, val) {
+    // Phase 3: Regional Locking - Check permission
+    const p = state.projects.find(x => x.name === pName);
+    if (p && !UserAccounts.canEdit(state.currentUser?.email, p.region)) {
+        showLockedMessage();
+        return;
+    }
+    
     // Prevent negative numbers
     const numVal = parseFloat(val);
     if (numVal < 0) {
@@ -9023,7 +9126,7 @@ function updateAuditData(pName, qtr, field, val) {
         val = '100';
     }
     
-    const p = state.projects.find(x => x.name === pName);
+    // p is already defined at the top for permission check
     if (p) {
         if (!p.auditData) {
             p.auditData = {
@@ -9798,7 +9901,7 @@ function closeAllStatusDropdowns() {
             if (loginOverlay) loginOverlay.style.display = 'none';
             document.getElementById('main-sidebar').classList.remove('hidden');
             document.getElementById('main-content').classList.remove('hidden');
-            document.getElementById('user-badge').innerHTML = `<i class="fas fa-user-circle"></i> ${state.currentUser.email}`;
+            // Note: User badge is already set by onAuthStateChanged before this function is called
             changeTab('overall');
         }
 
@@ -9851,7 +9954,6 @@ function closeAllStatusDropdowns() {
                 info: 'ℹ'
             };
             
-            // Create toast element
             const toast = document.createElement('div');
             toast.className = `toast toast-${type}`;
             toast.innerHTML = `
@@ -9907,13 +10009,56 @@ function closeAllStatusDropdowns() {
                 
                 if (state.isEditing) {
                     // No modal open, so cancel edit mode
-                    const confirmCancel = confirm('Cancel editing? Unsaved changes will be lost.');
-                    if (confirmCancel) {
-                        location.reload();
-                    }
+                    showModernDialog(
+                        'Cancel Editing?', 
+                        'Unsaved changes will be lost. Are you sure you want to cancel?',
+                        true,
+                        'Yes, Discard Changes',
+                        'No, Continue Editing'
+                    ).then(confirmed => {
+                        if (confirmed) {
+                            location.reload();
+                        }
+                    });
                 }
             }
         });
+
+        // ==================== REGION COLLAPSE/EXPAND FUNCTIONS ====================
+        const collapsedRegions = new Set(JSON.parse(localStorage.getItem('esh_collapsed_regions') || '[]'));
+        
+        function toggleRegion(regionName, event) {
+            // Prevent toggle if clicking on buttons inside banner
+            if (event && (event.target.tagName === 'BUTTON' || event.target.tagName === 'SELECT' || 
+                         event.target.closest('button') || event.target.closest('select'))) {
+                return;
+            }
+            
+            const regionContent = document.getElementById(`region-content-${regionName}`);
+            const regionBanner = document.getElementById(`region-banner-${regionName}`);
+            
+            if (!regionContent || !regionBanner) return;
+            
+            if (collapsedRegions.has(regionName)) {
+                // Expand
+                collapsedRegions.delete(regionName);
+                regionContent.classList.remove('collapsed');
+                regionBanner.classList.remove('collapsed');
+            } else {
+                // Collapse
+                collapsedRegions.add(regionName);
+                regionContent.classList.add('collapsed');
+                regionBanner.classList.add('collapsed');
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('esh_collapsed_regions', JSON.stringify([...collapsedRegions]));
+        }
+        
+        function isRegionCollapsed(regionName) {
+            return collapsedRegions.has(regionName);
+        }
+        // ==================== END REGION COLLAPSE/EXPAND ====================
 
         function render() {
             if (state.currentTab === 'settings' || state.currentTab === 'personnel') return;
@@ -10141,17 +10286,29 @@ function closeAllStatusDropdowns() {
                 const regionAvg = projs.length > 0 ? Math.round(regSum / projs.length) : 0;
 
                 // Always show region banner, even if empty (so user can add projects)
-                html += `<div class="region-banner region-${reg.toLowerCase()}">
-                    <div><i class="fas fa-location-dot"></i> ${reg} <span class="badge">${projs.length} PROJ</span> ${projs.length > 0 ? `<span class="badge" style="background:#1b5e20; color:var(--safety-yellow);">AVG: ${regionAvg}%</span>` : ''}</div>
+                const canEditRegion = UserAccounts.canEdit(state.currentUser?.email, reg);
+                const isCollapsed = isRegionCollapsed(reg);
+                
+                html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)">
+                    <div>
+                        <i class="fas fa-location-dot"></i> ${reg}
+                        ${!canEditRegion ? `<i class="fas fa-lock" style="color: #f57c00; margin-left: 8px;" title="🔒 View Only - This region is locked for you"></i>` : ''}
+                        <span class="badge">${projs.length} PROJ</span>
+                        ${projs.length > 0 ? `<span class="badge" style="background:#1b5e20; color:var(--safety-yellow);">AVG: ${regionAvg}%</span>` : ''}
+                        <i class="fas fa-chevron-down region-toggle-icon"></i>
+                    </div>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        ${state.isEditing ? `<button onclick="openAddProjectModal('${reg}')" class="btn btn-primary">+ ADD PROJECT</button>` : ''}
-                        ${state.currentTab === 'overall' && projs.length > 0 ? `<select class="sort-select" onchange="sortProjects(this.value)">
+                        ${state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary">+ ADD PROJECT</button>` : ''}
+                        ${state.isEditing && !canEditRegion ? `<button disabled style="opacity: 0.5; cursor: not-allowed; background: #999;" class="btn btn-primary" title="You can only add projects to your assigned region">LOCKED</button>` : ''}
+                        ${state.currentTab === 'overall' && projs.length > 0 ? `<select class="sort-select" onclick="event.stopPropagation()" onchange="sortProjects(this.value)">
                             <option value="name" ${state.currentSort === 'name' ? 'selected' : ''}>Sort: Name</option>
                             <option value="dateStarted" ${state.currentSort === 'dateStarted' ? 'selected' : ''}>Sort: Date Started</option>
                             <option value="dateFinished" ${state.currentSort === 'dateFinished' ? 'selected' : ''}>Sort: Date Finished</option>
                         </select>` : ''}
                     </div>
                 </div>`;
+                
+                html += `<div id="region-content-${reg}" class="region-content ${isCollapsed ? 'collapsed' : ''}">`;
                 
                 // Show empty state message if no projects in this region
                 if (projs.length === 0 && state.isEditing) {
@@ -10169,6 +10326,7 @@ function closeAllStatusDropdowns() {
                     // Check if user can edit this project (Phase 3: Regional Locking)
                     const canEdit = UserAccounts.canEdit(state.currentUser?.email, p.region);
                     const isLocked = !canEdit;
+                    const inputsEditable = state.isEditing && canEdit; // For table inputs
 
                     html += `<div class="project-row ${isLocked ? 'project-locked' : ''}">
                         ${state.isEditing ? `<input type="checkbox" class="project-checkbox" ${p.selected ? 'checked' : ''} ${isLocked ? 'disabled' : ''} onchange="toggleProjectSelect('${p.name}')">` : ''}
@@ -10178,6 +10336,7 @@ function closeAllStatusDropdowns() {
                         <div class="project-info">
                             <div class="project-name">
                                 ${isLocked ? '<i class="fas fa-lock" style="color: #f57c00; margin-right: 6px;" title="View Only - Contact admin to edit"></i>' : ''}
+                                ${p.isRenewable ? '<span style="display: inline-flex; align-items: center; gap: 4px; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; margin-right: 6px;"><i class="fas fa-leaf" style="color: #4caf50;"></i> RE</span>' : ''}
                                 ${p.name}
                             </div>
                             <div class="project-meta">Safety Compliance • ${p.region || 'No Region'}</div>
@@ -10448,8 +10607,8 @@ if (state.currentTab === 'audit') {
         totalYearAvg += qAvg;
 
         html += `
-            <td class="cell-white"><input type="number" min="0" max="100" value="${audit.scoreImpl}" ${state.isEditing ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)" placeholder="0"></td>
-            <td class="cell-white"><input type="number" min="0" max="100" value="${audit.docuComp}" ${state.isEditing ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)" placeholder="0"></td>
+            <td class="cell-white"><input type="number" min="0" max="100" value="${audit.scoreImpl}" ${inputsEditable ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)" placeholder="0"></td>
+            <td class="cell-white"><input type="number" min="0" max="100" value="${audit.docuComp}" ${inputsEditable ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)" placeholder="0"></td>
             <td class="cell-avg-gray" style="border-right: 2px solid #e0e0e0;">${qAvg.toFixed(2)}</td>`;
     });
 
@@ -10529,7 +10688,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
         if (isCshp) {
             const v = p.vals[key] ? p.vals[key][1] : "";
-            html += `<td><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)"></td>`;
+            html += `<td><input type="date" value="${v}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)"></td>`;
         } else {
             // Previous Year Column
             const prevVal = p.vals[key] ? p.vals[key][0] : "";
@@ -10538,7 +10697,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}">
                     <input type="${isDateType ? 'date' : 'number'}"
                         value="${prevVal}"
-                        ${state.isEditing ? '' : 'disabled'}
+                        ${inputsEditable ? '' : 'disabled'}
                         oninput="updateVal('${p.name}','${key}',0,this.value)">
                 </td>`;
             }
@@ -10549,22 +10708,22 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 const permitNo = p.vals[key] ? p.vals[key][1] : "";
                 const dateIssued = p.vals[key] ? p.vals[key][2] : "";
                 const expiryDate = p.vals[key] ? p.vals[key][3] : "";
-                html += `<td style="min-width: 200px; padding: 8px 12px;"><input type="text" placeholder="Permit/Accreditation #" value="${permitNo}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 100%;"></td>`;
-                html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${dateIssued}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',2,this.value)" style="width: 100%;"></td>`;
-                html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${expiryDate}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',3,this.value)" style="width: 100%;"></td>`;
+                html += `<td style="min-width: 200px; padding: 8px 12px;"><input type="text" placeholder="Permit/Accreditation #" value="${permitNo}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 100%;"></td>`;
+                html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${dateIssued}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',2,this.value)" style="width: 100%;"></td>`;
+                html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${expiryDate}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',3,this.value)" style="width: 100%;"></td>`;
             } else if (state.currentTab === 'emb') {
                 // EMB Reportorial - Simple approach
                 if (row === "SMR (Quarterly) - Submission Date") {
                     // SMR: Q1, Q2, Q3, Q4
                     for (let i = 1; i <= 4; i++) {
                         const v = p.vals[key] ? p.vals[key][i] : "";
-                        html += `<td class="monthly-data"><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
+                        html += `<td class="monthly-data"><input type="date" value="${v}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
                     }
                 } else if (row === "SMR (Quarterly) - Reference No.") {
                     // SMR: Q1, Q2, Q3, Q4
                     for (let i = 1; i <= 4; i++) {
                         const v = p.vals[key] ? p.vals[key][i] : "";
-                        html += `<td class="monthly-data"><input type="text" placeholder="Ref #" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
+                        html += `<td class="monthly-data"><input type="text" placeholder="Ref #" value="${v}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
                     }
                 } else if (row === "CMR (Semi-Annual) - Submission Date") {
                     // CMR: 2 semi-annual periods with clear labels
@@ -10572,13 +10731,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const v1 = p.vals[key] ? p.vals[key][1] : "";
                     html += `<td colspan="2" style="text-align: center; border-right: 2px solid #ddd;">
                         <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px; font-weight: 600;">Jan-Jun (Due: Jul 15)</div>
-                        <input type="date" value="${v1}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;">
+                        <input type="date" value="${v1}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;">
                     </td>`;
                     // Period 2: Jul-Dec (Q3-Q4 merged) - Due January 15
                     const v2 = p.vals[key] ? p.vals[key][2] : "";
                     html += `<td colspan="2" style="text-align: center;">
                         <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px; font-weight: 600;">Jul-Dec (Due: Jan 15)</div>
-                        <input type="date" value="${v2}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',2,this.value)" style="width: 180px;">
+                        <input type="date" value="${v2}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',2,this.value)" style="width: 180px;">
                     </td>`;
                 } else if (row === "CMR (Semi-Annual) - Reference No.") {
                     // CMR: 2 semi-annual periods with clear labels
@@ -10586,13 +10745,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const v1 = p.vals[key] ? p.vals[key][1] : "";
                     html += `<td colspan="2" style="text-align: center; border-right: 2px solid #ddd;">
                         <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px; font-weight: 600;">Jan-Jun</div>
-                        <input type="text" placeholder="Ref #" value="${v1}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;">
+                        <input type="text" placeholder="Ref #" value="${v1}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;">
                     </td>`;
                     // Period 2: Jul-Dec (Q3-Q4 merged)
                     const v2 = p.vals[key] ? p.vals[key][2] : "";
                     html += `<td colspan="2" style="text-align: center;">
                         <div style="font-size: 0.7rem; color: #666; margin-bottom: 4px; font-weight: 600;">Jul-Dec</div>
-                        <input type="text" placeholder="Ref #" value="${v2}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',2,this.value)" style="width: 180px;">
+                        <input type="text" placeholder="Ref #" value="${v2}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',2,this.value)" style="width: 180px;">
                     </td>`;
                 }
             } else {
@@ -10602,12 +10761,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 // Check if this is AEDR or AMR (annual reports) - use colspan=12
                 if (isDole && (row === 'AEDR' || row === 'AMR')) {
                     const v = p.vals[key] ? p.vals[key][1] : "";
-                    html += `<td colspan="12" style="text-align: center;"><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;"></td>`;
+                    html += `<td colspan="12" style="text-align: center;"><input type="date" value="${v}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;"></td>`;
                 } else {
                     // Normal monthly columns - REMOVED RED "NO REPORT", just normal input
                     for (let i = 1; i <= 12; i++) {
                         const v = p.vals[key] ? p.vals[key][i] : "";
-                        html += `<td class="${isNov ? 'nov-narrow-td' : (isDole ? 'dole-narrow-td' : 'monthly-data')}"><input type="${isDateType ? 'date' : 'number'}" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
+                        html += `<td class="${isNov ? 'nov-narrow-td' : (isDole ? 'dole-narrow-td' : 'monthly-data')}"><input type="${isDateType ? 'date' : 'number'}" value="${v}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
                     }
                 }
             }
@@ -10642,7 +10801,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
             const v = p.vals[key] ? p.vals[key][1] : "";
             html += `<tr>
                 <td style="text-align:left; font-weight:600; background:var(--border-color); position: sticky; left: 0; z-index: 5;">${row}</td>
-                <td class="dole-narrow-td"><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)"></td>
+                <td class="dole-narrow-td"><input type="date" value="${v}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)"></td>
             </tr>`;
         });
         
@@ -10651,6 +10810,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 }
 
         });
+html += '</div>'; // Close region-content
             });
             } // End skip for DOE tabs
 
@@ -10667,16 +10827,24 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     const regSum  = projs.reduce((sum, p) => sum + getPerc(p), 0);
                     const regAvg  = Math.round(regSum / projs.length);
+                    const canEditRegion = UserAccounts.canEdit(state.currentUser?.email, reg);
+                    const isCollapsed = isRegionCollapsed(reg);
 
-                    html += `<div class="region-banner region-${reg.toLowerCase()}">
-                        <div><i class="fas fa-location-dot"></i> ${reg}
+                    html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)">
+                        <div>
+                            <i class="fas fa-location-dot"></i> ${reg}
+                            ${!canEditRegion ? `<i class="fas fa-lock" style="color: #f57c00; margin-left: 8px;" title="🔒 View Only - This region is locked for you"></i>` : ''}
                             <span class="badge">${projs.length} PROJ</span>
                             <span class="badge" style="background:#1b5e20;color:var(--safety-yellow);">AVG: ${regAvg}%</span>
+                            <i class="fas fa-chevron-down region-toggle-icon"></i>
                         </div>
                         <div style="display: flex; gap: 10px; align-items: center;">
-                            ${state.isEditing ? `<button onclick="openAddProjectModal('${reg}')" class="btn btn-primary">+ ADD PROJECT</button>` : ''}
+                            ${state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary">+ ADD PROJECT</button>` : ''}
+                            ${state.isEditing && !canEditRegion ? `<button disabled style="opacity: 0.5; cursor: not-allowed; background: #999;" class="btn btn-primary" title="You can only add projects to your assigned region">LOCKED</button>` : ''}
                         </div>
                     </div>`;
+                    
+                    html += `<div id="region-content-${reg}" class="region-content ${isCollapsed ? 'collapsed' : ''}">`;
 
                     // ── CSHP / REG ──
                     if (isCshpReg) {
@@ -10705,7 +10873,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                             <i class="fas fa-file-pdf"></i> View
                                         </a>
                                         <span class="pdf-filename" title="${pdfData.name}">${pdfData.name}</span>
-                                        ${state.isEditing ? `
+                                        ${state.isEditing && canEditRegion ? `
                                             <input type="file" id="pdf_${p.name}_${state.currentTab}" accept=".pdf" 
                                                 style="display:none;" onchange="uploadPDF(this, '${p.name}','${pdfKey}', true)">
                                             <button class="pdf-replace-btn" onclick="document.getElementById('pdf_${p.name}_${state.currentTab}').click()" title="Replace PDF">
@@ -10718,7 +10886,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     </div>`;
                             } else {
                                 // No PDF - show upload button
-                                pdfCell = state.isEditing ? `
+                                pdfCell = (state.isEditing && canEditRegion) ? `
                                     <div class="pdf-upload-container">
                                         <input type="file" id="pdf_${p.name}_${state.currentTab}" accept=".pdf" 
                                             style="display:none;" onchange="uploadPDF(this, '${p.name}','${pdfKey}', false)">
@@ -10729,8 +10897,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             }
                             
                             html += `<tr>
-                                <td style="text-align:left;font-weight:600;background:var(--border-color); position: sticky; left: 0; z-index: 5;">${p.name}</td>
-                                <td><input type="date" value="${v}" ${state.isEditing ? '' : 'disabled'}
+                                <td style="text-align:left;font-weight:600;background:var(--border-color); position: sticky; left: 0; z-index: 5;">
+                                    ${p.isRenewable ? '<i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;" title="Renewable Energy Project"></i>' : ''}
+                                    ${p.name}
+                                </td>
+                                <td><input type="date" value="${v}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
                                     oninput="updateVal('${p.name}','${key}',1,this.value)"></td>
                                 <td>${pdfCell}</td>
                             </tr>`;
@@ -10776,15 +10947,18 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         projs.forEach(p => {
                             let totalYearAvg = 0;
-                            html += `<tr><td style="text-align:left; font-weight:700; background:#f8f9fa; padding:10px 12px; color:#1b5e20; border-right: 2px solid #e0e0e0; position: sticky; left: 0; z-index: 5;">${p.name}</td>`;
+                            html += `<tr><td style="text-align:left; font-weight:700; background:#f8f9fa; padding:10px 12px; color:#1b5e20; border-right: 2px solid #e0e0e0; position: sticky; left: 0; z-index: 5;">
+                                ${p.isRenewable ? '<i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;" title="Renewable Energy Project"></i>' : ''}
+                                ${p.name}
+                            </td>`;
                             ['Q1','Q2','Q3','Q4'].forEach(q => {
                                 const audit = p.auditData?.[q] || { scoreImpl: 0, docuComp: 0 };
                                 const qAvg  = (audit.scoreImpl + audit.docuComp) / 2;
                                 totalYearAvg += qAvg;
                                 html += `
-                                    <td class="cell-white"><input type="number" min="0" max="100" value="${audit.scoreImpl}" ${state.isEditing ? '' : 'disabled'}
+                                    <td class="cell-white"><input type="number" min="0" max="100" value="${audit.scoreImpl}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
                                         oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)" placeholder="0"></td>
-                                    <td class="cell-white"><input type="number" min="0" max="100" value="${audit.docuComp}" ${state.isEditing ? '' : 'disabled'}
+                                    <td class="cell-white"><input type="number" min="0" max="100" value="${audit.docuComp}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
                                         oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)" placeholder="0"></td>
                                     <td class="cell-avg-gray" style="border-right: 2px solid #e0e0e0;">${qAvg.toFixed(2)}</td>`;
                             });
@@ -10804,12 +10978,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             SCHEMA['kpm'].forEach(row => {
                                 const key = `kpm_${row}`;
                                 html += `<tr>
-                                    <td style="text-align:left;font-weight:600;background:var(--border-color); position: sticky; left: 0; z-index: 5;">${p.name}</td>`;
+                                    <td style="text-align:left;font-weight:600;background:var(--border-color); position: sticky; left: 0; z-index: 5;">
+                                        ${p.isRenewable ? '<i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;" title="Renewable Energy Project"></i>' : ''}
+                                        ${p.name}
+                                    </td>`;
                                 for (let i = 1; i <= 12; i++) {
                                     const v = p.vals[key] ? p.vals[key][i] : "";
                                     // Removed red NO REPORT - just normal input
                                     html += `<td class="monthly-data"><input type="date" value="${v}"
-                                        ${state.isEditing ? '' : 'disabled'}
+                                        ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
                                         oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
                                 }
                                 html += `</tr>`;
@@ -10818,6 +10995,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         html += `</table></div>`;
                     }
+                    html += `</div>`; // Close region-content
                 });
             }
 
@@ -10855,7 +11033,31 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 </div>
                             </div>
                         </div>
+                    `;
+                    
+                    // Group by region
+                    const key = 'doe_DOE Quarterly Report Submission Date';
+                    
+                    REGIONS.forEach(reg => {
+                        const regProjects = renewableProjects.filter(p => p.region === reg);
+                        if (regProjects.length === 0) return;
                         
+                        const canEditRegion = UserAccounts.canEdit(state.currentUser?.email, reg);
+                        const isCollapsed = isRegionCollapsed(reg);
+                        
+                        // Region banner with lock icon
+                        html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" style="margin-top: 20px;" onclick="toggleRegion('${reg}', event)">
+                            <div>
+                                <i class="fas fa-location-dot"></i> ${reg}
+                                ${!canEditRegion ? `<i class="fas fa-lock" style="color: #f57c00; margin-left: 8px;" title="🔒 View Only - This region is locked for you"></i>` : ''}
+                                <span class="badge">${regProjects.length} PROJ</span>
+                                <i class="fas fa-chevron-down region-toggle-icon"></i>
+                            </div>
+                        </div>`;
+                        
+                        html += `<div id="region-content-${reg}" class="region-content ${isCollapsed ? 'collapsed' : ''}">`;
+                        
+                        html += `
                         <div class="table-container">
                             <table>
                                 <tr>
@@ -10865,73 +11067,73 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     <th>Q3 (JUL-SEP)<br><small style="font-weight: 400; font-size: 0.65rem;">Due: Oct 20</small></th>
                                     <th>Q4 (OCT-DEC)<br><small style="font-weight: 400; font-size: 0.65rem;">Due: Jan 20</small></th>
                                 </tr>
-    `;
-                    
-                    renewableProjects.forEach(p => {
-                        const key = 'doe_DOE Quarterly Report Submission Date';
+                        `;
                         
-                        html += `<tr>
-                            <td style="text-align: left; font-weight: 700; background: #e8f5e9; color: #1b5e20; position: sticky; left: 0; z-index: 5;">
-                                <i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;"></i>
-                                ${p.name}
-                            </td>`;
-                        
-                        for (let q = 1; q <= 4; q++) {
-                            const val = p.vals[key] ? p.vals[key][q] : '';
-                            const hasPdf = p.doePdfFiles && p.doePdfFiles[`Q${q}`];
+                        regProjects.forEach(p => {
+                            html += `<tr>
+                                <td style="text-align: left; font-weight: 700; background: #e8f5e9; color: #1b5e20; position: sticky; left: 0; z-index: 5;">
+                                    <i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;"></i>
+                                    ${p.name}
+                                </td>`;
                             
-                            html += `<td>
-                                <input type="date" 
-                                       value="${val}" 
-                                       ${state.isEditing ? '' : 'disabled'} 
-                                       oninput="updateVal('${p.name}','${key}',${q},this.value)"
-                                       style="width: 140px;">
+                            for (let q = 1; q <= 4; q++) {
+                                const val = p.vals[key] ? p.vals[key][q] : '';
+                                const hasPdf = p.doePdfFiles && p.doePdfFiles[`Q${q}`];
                                 
-                                ${state.isEditing ? `
-                                    <div class="pdf-upload-container">
-                                        ${hasPdf ? `
-                                            <span class="pdf-file-info">
-                                                <i class="fas fa-file-pdf" style="color: #d32f2f;"></i>
-                                                <span style="font-size: 0.65rem; color: var(--text-secondary);">
-                                                    ${p.doePdfFiles[`Q${q}`].fileName.substring(0, 12)}...
+                                html += `<td>
+                                    <input type="date" 
+                                           value="${val}" 
+                                           ${(state.isEditing && canEditRegion) ? '' : 'disabled'} 
+                                           oninput="updateVal('${p.name}','${key}',${q},this.value)"
+                                           style="width: 140px;">
+                                    
+                                    ${(state.isEditing && canEditRegion) ? `
+                                        <div class="pdf-upload-container">
+                                            ${hasPdf ? `
+                                                <span class="pdf-file-info">
+                                                    <i class="fas fa-file-pdf" style="color: #d32f2f;"></i>
+                                                    <span style="font-size: 0.65rem; color: var(--text-secondary);">
+                                                        ${p.doePdfFiles[`Q${q}`].fileName.substring(0, 12)}...
+                                                    </span>
+                                                    <button class="pdf-view-btn" 
+                                                            onclick="viewDoePdf('${p.name}', ${q})" 
+                                                            title="View PDF">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="pdf-delete-btn" 
+                                                            onclick="deleteDoePdf('${p.name}', ${q})" 
+                                                            title="Delete PDF">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
                                                 </span>
-                                                <button class="pdf-view-btn" 
-                                                        onclick="viewDoePdf('${p.name}', ${q})" 
-                                                        title="View PDF">
-                                                    <i class="fas fa-eye"></i>
+                                            ` : `
+                                                <button class="pdf-upload-btn" 
+                                                        onclick="uploadDoePdf('${p.name}', ${q})" 
+                                                        title="Upload Certificate PDF">
+                                                    <i class="fas fa-upload"></i> Upload
                                                 </button>
-                                                <button class="pdf-delete-btn" 
-                                                        onclick="deleteDoePdf('${p.name}', ${q})" 
-                                                        title="Delete PDF">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </span>
-                                        ` : `
-                                            <button class="pdf-upload-btn" 
-                                                    onclick="uploadDoePdf('${p.name}', ${q})" 
-                                                    title="Upload Certificate PDF">
-                                                <i class="fas fa-upload"></i> Upload
-                                            </button>
-                                        `}
-                                    </div>
-                                ` : hasPdf ? `
-                                    <button class="pdf-view-btn" 
-                                            onclick="viewDoePdf('${p.name}', ${q})" 
-                                            title="View PDF"
-                                            style="margin-left: 10px;">
-                                        <i class="fas fa-file-pdf"></i> View
-                                    </button>
-                                ` : ''}
-                            </td>`;
-                        }
+                                            `}
+                                        </div>
+                                    ` : hasPdf ? `
+                                        <button class="pdf-view-btn" 
+                                                onclick="viewDoePdf('${p.name}', ${q})" 
+                                                title="View PDF"
+                                                style="margin-left: 10px;">
+                                            <i class="fas fa-file-pdf"></i> View
+                                        </button>
+                                    ` : ''}
+                                </td>`;
+                            }
+                            
+                            html += `</tr>`;
+                        });
                         
-                        html += `</tr>`;
-                    });
-                    
-                    html += `
+                        html += `
                             </table>
                         </div>
-                    `;
+                        `;
+                        html += `</div>`; // Close region-content
+                    });
                 }
             }
             // ==================== END DOE REPORTORIAL ====================
@@ -10970,7 +11172,31 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 </div>
                             </div>
                         </div>
+                    `;
+                    
+                    // Group by region
+                    const key = 'doe-permit_DOE Safety Officer Permit';
+                    
+                    REGIONS.forEach(reg => {
+                        const regProjects = renewableProjects.filter(p => p.region === reg);
+                        if (regProjects.length === 0) return;
                         
+                        const canEditRegion = UserAccounts.canEdit(state.currentUser?.email, reg);
+                        const isCollapsed = isRegionCollapsed(reg);
+                        
+                        // Region banner with lock icon
+                        html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" style="margin-top: 20px;" onclick="toggleRegion('${reg}', event)">
+                            <div>
+                                <i class="fas fa-location-dot"></i> ${reg}
+                                ${!canEditRegion ? `<i class="fas fa-lock" style="color: #f57c00; margin-left: 8px;" title="🔒 View Only - This region is locked for you"></i>` : ''}
+                                <span class="badge">${regProjects.length} PROJ</span>
+                                <i class="fas fa-chevron-down region-toggle-icon"></i>
+                            </div>
+                        </div>`;
+                        
+                        html += `<div id="region-content-${reg}" class="region-content ${isCollapsed ? 'collapsed' : ''}">`;
+                        
+                        html += `
                         <div class="table-container">
                             <table>
                                 <tr>
@@ -10979,64 +11205,64 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     <th style="width: 150px;">VALID UNTIL</th>
                                     <th style="width: 200px;">PDF FILE</th>
                                 </tr>
-    `;
-                    
-                    const key = 'doe-permit_DOE Safety Officer Permit';
-                    
-                    renewableProjects.forEach(p => {
-                        const permitNumber = p.vals[key] ? p.vals[key][1] : "";
-                        const validUntil = p.vals[key] ? p.vals[key][2] : "";
-                        const hasPdf = p.vals[key] && p.vals[key][3];
+                        `;
                         
-                        let pdfCell = '';
-                        if (state.isEditing) {
-                            if (hasPdf) {
-                                pdfCell = `
-                                    <span class="pdf-file-info">
+                        regProjects.forEach(p => {
+                            const permitNumber = p.vals[key] ? p.vals[key][1] : "";
+                            const validUntil = p.vals[key] ? p.vals[key][2] : "";
+                            const hasPdf = p.vals[key] && p.vals[key][3];
+                            
+                            let pdfCell = '';
+                            if (state.isEditing && canEditRegion) {
+                                if (hasPdf) {
+                                    pdfCell = `
+                                        <span class="pdf-file-info">
+                                            <button class="pdf-view-btn" onclick="viewDoePermitPdf('${p.name}')" title="View PDF">
+                                                <i class="fas fa-file-pdf"></i> View
+                                            </button>
+                                            <button class="pdf-delete-btn" onclick="deleteDoePermitPdf('${p.name}')" title="Replace PDF">
+                                                <i class="fas fa-sync-alt"></i> Replace
+                                            </button>
+                                        </span>
+                                    `;
+                                } else {
+                                    pdfCell = `
+                                        <button class="pdf-upload-btn" onclick="uploadDoePermitPdf('${p.name}')" title="Upload Permit PDF">
+                                            <i class="fas fa-upload"></i> Upload
+                                        </button>
+                                    `;
+                                }
+                            } else {
+                                if (hasPdf) {
+                                    pdfCell = `
                                         <button class="pdf-view-btn" onclick="viewDoePermitPdf('${p.name}')" title="View PDF">
                                             <i class="fas fa-file-pdf"></i> View
                                         </button>
-                                        <button class="pdf-delete-btn" onclick="deleteDoePermitPdf('${p.name}')" title="Replace PDF">
-                                            <i class="fas fa-sync-alt"></i> Replace
-                                        </button>
-                                    </span>
-                                `;
-                            } else {
-                                pdfCell = `
-                                    <button class="pdf-upload-btn" onclick="uploadDoePermitPdf('${p.name}')" title="Upload Permit PDF">
-                                        <i class="fas fa-upload"></i> Upload
-                                    </button>
-                                `;
+                                    `;
+                                } else {
+                                    pdfCell = '<span style="color: var(--text-secondary); font-size: 0.75rem;">No PDF</span>';
+                                }
                             }
-                        } else {
-                            if (hasPdf) {
-                                pdfCell = `
-                                    <button class="pdf-view-btn" onclick="viewDoePermitPdf('${p.name}')" title="View PDF">
-                                        <i class="fas fa-file-pdf"></i> View
-                                    </button>
-                                `;
-                            } else {
-                                pdfCell = '<span style="color: var(--text-secondary); font-size: 0.75rem;">No PDF</span>';
-                            }
-                        }
+                            
+                            html += `<tr>
+                                <td style="text-align: left; font-weight: 700; background: #e8f5e9; color: #1b5e20; position: sticky; left: 0; z-index: 5;">
+                                    <i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;"></i>
+                                    ${p.name}
+                                </td>
+                                <td><input type="text" placeholder="e.g., HOEMD-2025-486" value="${permitNumber}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
+                                    oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 100%;"></td>
+                                <td><input type="date" value="${validUntil}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
+                                    oninput="updateVal('${p.name}','${key}',2,this.value)" style="width: 100%;"></td>
+                                <td style="text-align: center;">${pdfCell}</td>
+                            </tr>`;
+                        });
                         
-                        html += `<tr>
-                            <td style="text-align: left; font-weight: 700; background: #e8f5e9; color: #1b5e20; position: sticky; left: 0; z-index: 5;">
-                                <i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;"></i>
-                                ${p.name}
-                            </td>
-                            <td><input type="text" placeholder="e.g., HOEMD-2025-486" value="${permitNumber}" ${state.isEditing ? '' : 'disabled'}
-                                oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 100%;"></td>
-                            <td><input type="date" value="${validUntil}" ${state.isEditing ? '' : 'disabled'}
-                                oninput="updateVal('${p.name}','${key}',2,this.value)" style="width: 100%;"></td>
-                            <td style="text-align: center;">${pdfCell}</td>
-                        </tr>`;
-                    });
-                    
-                    html += `
+                        html += `
                             </table>
                         </div>
-                    `;
+                        `;
+                        html += `</div>`; // Close region-content
+                    });
                 }
             }
             // ==================== END DOE SAFETY OFFICER PERMIT ====================
@@ -11251,9 +11477,19 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const projs = displayProjects.filter(p => p.region === reg);
                     if (projs.length === 0) return;
                     
-                    html += `<div class="region-banner region-${reg.toLowerCase()}" style="margin-top: 30px;">
-                        <div><i class="fas fa-location-dot"></i> ${reg} <span class="badge">${projs.length} PROJECTS</span></div>
+                    const canEditRegion = UserAccounts.canEdit(state.currentUser?.email, reg);
+                    const isCollapsed = isRegionCollapsed(reg);
+                    
+                    html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" style="margin-top: 30px;" onclick="toggleRegion('${reg}', event)">
+                        <div>
+                            <i class="fas fa-location-dot"></i> ${reg}
+                            ${!canEditRegion ? `<i class="fas fa-lock" style="color: #f57c00; margin-left: 8px;" title="🔒 View Only - This region is locked for you"></i>` : ''}
+                            <span class="badge">${projs.length} PROJECTS</span>
+                            <i class="fas fa-chevron-down region-toggle-icon"></i>
+                        </div>
                     </div>`;
+                    
+                    html += `<div id="region-content-${reg}" class="region-content ${isCollapsed ? 'collapsed' : ''}">`;
                     
                     html += `<div class="table-container">
                         <table class="nov-monitoring-table">
@@ -11288,9 +11524,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         if (!p.vals[key]) p.vals[key] = new Array(17).fill("");
                         
                         html += `<tr>
-                            <td class="project-name">${p.name}</td>
+                            <td class="project-name">
+                                ${p.isRenewable ? '<i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;" title="Renewable Energy Project"></i>' : ''}
+                                ${p.name}
+                            </td>
                             <td class="prev-year">
-                                <input type="number" min="0" value="${p.vals[key][0] || ''}" ${state.isEditing ? '' : 'disabled'} 
+                                <input type="number" min="0" value="${p.vals[key][0] || ''}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'} 
                                     oninput="updateVal('${p.name}','${key}',0,this.value)">
                             </td>`;
                         
@@ -11302,7 +11541,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         for (let i = 1; i <= 12; i++) {
                             const val = parseFloat(p.vals[key][i]) || 0;
                             html += `<td class="month-col">
-                                <input type="number" min="0" value="${p.vals[key][i] || ''}" ${state.isEditing ? '' : 'disabled'}
+                                <input type="number" min="0" value="${p.vals[key][i] || ''}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
                                     oninput="updateVal('${p.name}','${key}',${i},this.value)">
                             </td>`;
                             regionalTotals.months[i-1] += val;
@@ -11315,15 +11554,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         const closedVal = parseFloat(p.vals[key][15]) || 0;
                         
                         html += `<td class="summary-col" style="background: #c8e6c9;">
-                            <input type="number" min="0" value="${p.vals[key][13] || ''}" ${state.isEditing ? '' : 'disabled'}
+                            <input type="number" min="0" value="${p.vals[key][13] || ''}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
                                 oninput="updateVal('${p.name}','${key}',13,this.value)">
                         </td>
                         <td class="summary-col" style="background: #ffe0b2;">
-                            <input type="number" min="0" value="${p.vals[key][14] || ''}" ${state.isEditing ? '' : 'disabled'}
+                            <input type="number" min="0" value="${p.vals[key][14] || ''}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
                                 oninput="updateVal('${p.name}','${key}',14,this.value)">
                         </td>
                         <td class="summary-col" style="background: #bbdefb;">
-                            <input type="number" min="0" value="${p.vals[key][15] || ''}" ${state.isEditing ? '' : 'disabled'}
+                            <input type="number" min="0" value="${p.vals[key][15] || ''}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
                                 oninput="updateVal('${p.name}','${key}',15,this.value)">
                         </td>
                         <td class="total-col">${rowTotal}</td>
@@ -11363,6 +11602,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     </tr>`;
                     
                     html += `</tbody></table></div>`;
+                    html += `</div>`; // Close region-content
                 });
             }
 
@@ -11722,6 +11962,27 @@ document.addEventListener('click', closeAllStatusDropdowns);
             // Update copyright year
             const copyrightYear = document.getElementById('copyright-year');
             if (copyrightYear) copyrightYear.textContent = new Date().getFullYear();
+            
+            // Hide admin-only sections for superintendents
+            const isAdmin = UserAccounts.isAdmin(user.email);
+            const forceSyncSection = document.getElementById('force-sync-section');
+            const yearManagementSection = document.getElementById('year-management-section');
+            const auditTrailSection = document.getElementById('audit-trail-section');
+            const dangerZoneSection = document.getElementById('danger-zone-section');
+            
+            if (!isAdmin) {
+                // Hide these sections for superintendents
+                if (forceSyncSection) forceSyncSection.style.display = 'none';
+                if (yearManagementSection) yearManagementSection.style.display = 'none';
+                if (auditTrailSection) auditTrailSection.style.display = 'none';
+                if (dangerZoneSection) dangerZoneSection.style.display = 'none';
+            } else {
+                // Show for admins
+                if (forceSyncSection) forceSyncSection.style.display = 'block';
+                if (yearManagementSection) yearManagementSection.style.display = 'block';
+                if (auditTrailSection) auditTrailSection.style.display = 'block';
+                if (dangerZoneSection) dangerZoneSection.style.display = 'block';
+            }
         }
 
         setInterval(() => {
@@ -11738,7 +11999,7 @@ document.addEventListener('click', closeAllStatusDropdowns);
     // Firebase auth state is handled by setupAuthObserver() in the Firebase integration section below.
     // No session storage check needed — Firebase persists login automatically.
 });
-function showModernDialog(title, message, isDanger = false) {
+function showModernDialog(title, message, isDanger = false, confirmText = null, cancelText = 'Cancel') {
     return new Promise((resolve) => {
         // Create overlay
         const overlay = document.createElement('div');
@@ -11751,7 +12012,7 @@ function showModernDialog(title, message, isDanger = false) {
         // Icon
         const iconEl = document.createElement('div');
         iconEl.className = 'modern-dialog-icon';
-        iconEl.innerHTML = isDanger ? '<i class="fas fa-times"></i>' : '<i class="fas fa-check"></i>';
+        iconEl.innerHTML = isDanger ? '<i class="fas fa-exclamation-triangle"></i>' : '<i class="fas fa-check-circle"></i>';
 
         // Title
         const titleEl = document.createElement('h2');
@@ -11769,7 +12030,7 @@ function showModernDialog(title, message, isDanger = false) {
 
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'modern-dialog-btn modern-dialog-btn-cancel';
-        cancelBtn.textContent = 'CANCEL';
+        cancelBtn.textContent = cancelText;
         cancelBtn.onclick = () => {
             overlay.remove();
             resolve(false);
@@ -11777,7 +12038,14 @@ function showModernDialog(title, message, isDanger = false) {
 
         const confirmBtn = document.createElement('button');
         confirmBtn.className = isDanger ? 'modern-dialog-btn modern-dialog-btn-danger' : 'modern-dialog-btn modern-dialog-btn-confirm';
-        confirmBtn.textContent = isDanger ? 'DELETE' : 'CONFIRM';
+        
+        // Set button text based on parameter or default
+        if (confirmText) {
+            confirmBtn.textContent = confirmText;
+        } else {
+            confirmBtn.textContent = isDanger ? 'Delete' : 'OK';
+        }
+        
         confirmBtn.onclick = () => {
             overlay.remove();
             resolve(true);
@@ -11903,7 +12171,13 @@ function openAddPersonnelModal() {
     options += '<option value="Corporate Office">Corporate Office</option>';
     
     if (state.projects && state.projects.length > 0) {
-        state.projects.forEach(p => {
+        // For non-admin users, only show projects from their region
+        let projectsList = state.projects;
+        if (!state.isAdmin && state.userRegion) {
+            projectsList = state.projects.filter(p => p.region === state.userRegion);
+        }
+        
+        projectsList.forEach(p => {
             options += `<option value="${p.name}">${p.name}</option>`;
         });
     }
@@ -12013,13 +12287,33 @@ function openEditPersonnelModal(index) {
     const person = state.personnelData[index];
     if (!person) return;
     
+    // Check permission for non-admin users
+    if (!state.isAdmin && state.userRegion) {
+        // Get user's region projects
+        const userProjects = state.masterProjects
+            .filter(p => p.region === state.userRegion)
+            .map(p => p.name);
+        
+        // Check if person is assigned to user's region or Corporate Office
+        if (person.current !== 'Corporate Office' && !userProjects.includes(person.current)) {
+            showToast('⚠️ Access Denied - You can only edit personnel from your region', 'error');
+            return;
+        }
+    }
+    
     // Populate assignment dropdown with projects
     const assignmentSelect = document.getElementById('editPersonnelAssignmentInput');
     let options = '<option value="">Select Assignment</option>';
     options += '<option value="Corporate Office">Corporate Office</option>';
     
     if (state.projects && state.projects.length > 0) {
-        state.projects.forEach(p => {
+        // For non-admin users, only show projects from their region
+        let projectsList = state.projects;
+        if (!state.isAdmin && state.userRegion) {
+            projectsList = state.projects.filter(p => p.region === state.userRegion);
+        }
+        
+        projectsList.forEach(p => {
             options += `<option value="${p.name}">${p.name}</option>`;
         });
     }
@@ -12140,7 +12434,20 @@ function renderPTable() {
         projOptions += '</optgroup>';
     }
     
-    const data = state.personnelData || [];
+    let data = state.personnelData || [];
+    
+    // Regional Filtering: Non-admin users only see personnel from their region's projects
+    if (!state.isAdmin && state.userRegion) {
+        // Get all project names in user's region
+        const userProjects = state.masterProjects
+            .filter(p => p.region === state.userRegion)
+            .map(p => p.name);
+        
+        // Filter personnel: show only if assigned to user's region projects or Corporate Office
+        data = data.filter(person => {
+            return person.current === 'Corporate Office' || userProjects.includes(person.current);
+        });
+    }
 
     tbody.innerHTML = data.map((p, i) => {
         const genderClass = p.gen === 'Male' ? 'p-gender-m' : p.gen === 'Female' ? 'p-gender-f' : '';
@@ -12309,9 +12616,27 @@ function pRowSave(i) {
 }
 
 function pRowDelete(i) {
+    const person = state.personnelData[i];
+    if (!person) return;
+    
+    // Check permission for non-admin users
+    if (!state.isAdmin && state.userRegion) {
+        // Get user's region projects
+        const userProjects = state.masterProjects
+            .filter(p => p.region === state.userRegion)
+            .map(p => p.name);
+        
+        // Check if person is assigned to user's region or Corporate Office
+        if (person.current !== 'Corporate Office' && !userProjects.includes(person.current)) {
+            showToast('⚠️ Access Denied - You can only delete personnel from your region', 'error');
+            return;
+        }
+    }
+    
     state.personnelData.splice(i, 1);
     renderPTable();
     saveUserData(state.currentUser.email);
+    showToast('✅ Personnel deleted successfully', 'success');
 }
 
 function filterPTable() {
@@ -12838,6 +13163,15 @@ function getCurrentUserId() {
     return window.firebaseAuth?.currentUser?.uid || 'local-user';
 }
 
+// NEW: Get the UID to read data from (always admin's UID for shared data)
+function getDataSourceUserId() {
+    // HARDCODED: Admin's UID from Firebase
+    const ADMIN_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
+    
+    // All users read from admin's data location
+    return ADMIN_UID;
+}
+
 function waitForFirebase() {
     return new Promise((resolve) => {
         const checkInterval = setInterval(() => {
@@ -12858,7 +13192,8 @@ async function saveToFirebase() {
     }
 
     try {
-        const userId = getCurrentUserId();
+        const dataUserId = getDataSourceUserId(); // Save to admin's UID (shared location)
+        const currentUserId = getCurrentUserId(); // Current user's UID for preferences
         const currentYear = state.selectedYear || 2026;
         
         // Update masterProjects with current changes
@@ -12895,7 +13230,7 @@ async function saveToFirebase() {
         // Save to each year
         const savePromises = [];
         projectsByYear.forEach((projects, year) => {
-            const yearDocRef = window.firebase.doc(window.firebaseDb, 'users', userId, 'years', year.toString());
+            const yearDocRef = window.firebase.doc(window.firebaseDb, 'users', dataUserId, 'years', year.toString());
             
             const dataToSave = {
                 year: year,
@@ -12918,8 +13253,8 @@ async function saveToFirebase() {
         // Save all in parallel for speed
         await Promise.all(savePromises);
         
-        // Also save user preferences (darkMode) to main user doc
-        const userDocRef = window.firebase.doc(window.firebaseDb, 'users', userId);
+        // Also save user preferences (darkMode) to CURRENT user's doc
+        const userDocRef = window.firebase.doc(window.firebaseDb, 'users', currentUserId);
         await window.firebase.setDoc(userDocRef, {
             email: state.currentUser?.email,
             displayName: state.currentUser?.displayName || '',
@@ -13107,7 +13442,7 @@ async function loadAllProjectsAndFilter() {
     }
 
     try {
-        const userId = getCurrentUserId();
+        const dataUserId = getDataSourceUserId(); // Use admin's UID for shared data
         const selectedYear = state.selectedYear;
         
         console.log(`📂 Loading master project list from Firebase...`);
@@ -13118,7 +13453,7 @@ async function loadAllProjectsAndFilter() {
         const projectMap = new Map(); // Use Map to avoid duplicates by name
         
         for (const year of availableYears) {
-            const yearDocRef = window.firebase.doc(window.firebaseDb, 'users', userId, 'years', year.toString());
+            const yearDocRef = window.firebase.doc(window.firebaseDb, 'users', dataUserId, 'years', year.toString());
             const yearDocSnap = await window.firebase.getDoc(yearDocRef);
             
             if (yearDocSnap.exists()) {
@@ -13151,7 +13486,7 @@ async function loadAllProjectsAndFilter() {
         console.log(`📊 Projects to display:`, state.projects.map(p => p.name));
         
         // Load personnel and incident data for the selected year
-        const yearDocRef = window.firebase.doc(window.firebaseDb, 'users', userId, 'years', selectedYear.toString());
+        const yearDocRef = window.firebase.doc(window.firebaseDb, 'users', dataUserId, 'years', selectedYear.toString());
         const yearDocSnap = await window.firebase.getDoc(yearDocRef);
         
         if (yearDocSnap.exists()) {
@@ -13310,7 +13645,26 @@ function setupAuthObserver() {
 
         if (user) {
             console.log('👤 User authenticated:', user.email);
-            state.currentUser = { email: user.email, uid: user.uid };
+            
+            // Load displayName from Firestore
+            let displayName = user.email; // Default to email
+            try {
+                const userDocRef = window.firebase.doc(window.firebaseDb, 'users', user.uid);
+                const userDocSnap = await window.firebase.getDoc(userDocRef);
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    displayName = userData.displayName || user.email;
+                    console.log('✅ Loaded display name:', displayName);
+                }
+            } catch (error) {
+                console.log('⚠️ Could not load display name, using email');
+            }
+            
+            state.currentUser = { 
+                email: user.email, 
+                uid: user.uid,
+                displayName: displayName 
+            };
             state.isLoggedIn = true;
 
             // ==================== INITIALIZE USER ROLE & REGION ====================
@@ -13336,9 +13690,15 @@ function setupAuthObserver() {
             const userBadge = document.getElementById('user-badge');
             if (userBadge) {
                 const roleIcon = state.isAdmin ? 'fa-user-shield' : 'fa-user-tie';
-                const roleLabel = state.isAdmin ? 'Admin' : userInfo.displayName;
-                userBadge.innerHTML = `<i class="fas ${roleIcon}"></i> ${roleLabel}`;
-                userBadge.style.color = userInfo.color;
+                // Use custom displayName if available, otherwise use default role name
+                const roleLabel = state.currentUser.displayName || (state.isAdmin ? 'ESH Admin' : userInfo.displayName);
+                
+                userBadge.innerHTML = `
+                    <div class="name">
+                        <i class="fas ${roleIcon}"></i>
+                        ${roleLabel}
+                    </div>
+                `;
             }
 
             // Update user-email field (settings page)
