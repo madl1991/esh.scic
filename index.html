@@ -4793,6 +4793,11 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                             </div>
                         </div>
                         <div class="dropdown-list" id="device-list"></div>
+                        <div style="padding: 8px 12px; border-top: 1px solid var(--border-color);">
+                            <button onclick="clearStalePresenceData()" style="width:100%; padding:7px; background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
+                                <i class="fas fa-broom"></i> Clear Stale Data
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -7272,13 +7277,9 @@ async function revokeUserAccess(email) {
                 // Set initial presence
                 await window.firebase.set(this.myPresenceRef, presenceData);
                 
-                // Setup disconnect handler
+                // Setup disconnect handler — removes entry entirely on abrupt disconnect
                 const disconnectRef = window.firebase.onDisconnect(this.myPresenceRef);
-                disconnectRef.set({
-                    ...presenceData,
-                    status: 'offline',
-                    lastSeen: window.firebase.serverTimestamp()
-                });
+                disconnectRef.remove();
                 
                 // Register device
                 await this.registerDevice(userId, userEmail, deviceInfo);
@@ -7315,12 +7316,9 @@ async function revokeUserAccess(email) {
                     console.error('👉 Fix: Update Firebase Realtime Database Rules in Firebase Console.');
                 }
                 
-                // Setup disconnect
+                // Setup disconnect — removes device entry entirely on abrupt disconnect
                 const disconnectRef = window.firebase.onDisconnect(this.devicesRef);
-                disconnectRef.update({
-                    status: 'offline',
-                    lastSeen: window.firebase.serverTimestamp()
-                });
+                disconnectRef.remove();
             },
             
             startPresenceListener() {
@@ -7417,7 +7415,16 @@ async function revokeUserAccess(email) {
                 console.log('👥 Active users container shown');
                 
                 const users = Object.entries(state.activeUsers || {});
-                const onlineCount = users.filter(([, data]) => data.status === 'online').length;
+                const now = Date.now();
+                const STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes — if lastSeen older than this and not actively pinging, consider offline
+                
+                // Filter: only count as online if status=online AND lastSeen is recent
+                const onlineCount = users.filter(([, data]) => {
+                    if (data.status !== 'online') return false;
+                    // If lastSeen exists and is too old, treat as stale/offline
+                    if (data.lastSeen && (now - data.lastSeen) > STALE_THRESHOLD) return false;
+                    return true;
+                }).length;
                 
                 // Update badge
                 usersBadge.textContent = onlineCount;
@@ -7492,8 +7499,14 @@ async function revokeUserAccess(email) {
                 // FIX: Use presence data as primary source of truth for LIVE count.
                 // Presence is updated instantly on tab close (via cleanup() + onDisconnect).
                 // Devices node can lag slightly on network disconnect, so presence is more reliable.
+                const now = Date.now();
+                const STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes
                 const presenceOnline = Object.values(state.activeUsers || {})
-                    .filter(u => u.status === 'online' || u.status === 'idle').length;
+                    .filter(u => {
+                        if (u.status !== 'online') return false;
+                        if (u.lastSeen && (now - u.lastSeen) > STALE_THRESHOLD) return false;
+                        return true;
+                    }).length;
                 
                 // Use presence count — it reflects instantly when a tab is closed
                 const displayCount = presenceOnline;
@@ -7580,21 +7593,26 @@ async function revokeUserAccess(email) {
                 return icons[action] || 'circle';
             },
             
-            cleanup() {
-                // Mark presence as offline immediately (beforeunload / logout)
+            async cleanup() {
+                // Remove presence and device entries completely on logout/tab close
+                // Using remove() is better than status:'offline' — no ghost data left in Firebase
+                const tasks = [];
                 if (this.myPresenceRef) {
-                    window.firebase.set(this.myPresenceRef, {
-                        status: 'offline',
-                        lastSeen: Date.now()
-                    });
+                    tasks.push(
+                        window.firebase.remove(this.myPresenceRef)
+                            .then(() => console.log('✅ Presence removed from Firebase'))
+                            .catch(e => console.warn('⚠️ Could not remove presence:', e.message))
+                    );
                 }
-                // Also mark device as offline immediately
                 if (this.devicesRef) {
-                    window.firebase.update(this.devicesRef, {
-                        status: 'offline',
-                        lastSeen: Date.now()
-                    });
+                    tasks.push(
+                        window.firebase.remove(this.devicesRef)
+                            .then(() => console.log('✅ Device removed from Firebase'))
+                            .catch(e => console.warn('⚠️ Could not remove device:', e.message))
+                    );
                 }
+                // Wait for both to complete before Firebase signs out
+                await Promise.all(tasks);
             }
         };
         
@@ -8068,6 +8086,49 @@ debugCommands.help() - Show this help
         
         // ==================== DEVICE COUNTER & ACTIVE USERS DROPDOWNS ====================
         
+        // ==================== CLEAR STALE PRESENCE/DEVICE DATA ====================
+        async function clearStalePresenceData() {
+            if (!state.isAdmin) return;
+
+            const STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes
+            const now = Date.now();
+            let clearedCount = 0;
+
+            try {
+                // Clean stale presence entries
+                const presenceData = state.activeUsers || {};
+                for (const [uid, data] of Object.entries(presenceData)) {
+                    const isStale = data.status === 'offline' ||
+                        (data.lastSeen && (now - data.lastSeen) > STALE_THRESHOLD && data.status !== 'online');
+                    const isOldOnline = data.status === 'online' && data.lastSeen && (now - data.lastSeen) > STALE_THRESHOLD;
+
+                    if (isStale || isOldOnline) {
+                        const ref = window.firebase.dbRef(window.firebaseRealtimeDb, `presence/${uid}`);
+                        await window.firebase.remove(ref);
+                        clearedCount++;
+                    }
+                }
+
+                // Clean stale device entries
+                const devicesData = state.activeDevices || [];
+                for (const device of devicesData) {
+                    const isStale = device.status === 'offline' ||
+                        (device.lastSeen && (now - device.lastSeen) > STALE_THRESHOLD);
+                    if (isStale && device.userId) {
+                        const ref = window.firebase.dbRef(window.firebaseRealtimeDb, `devices/${device.userId}`);
+                        await window.firebase.remove(ref);
+                        clearedCount++;
+                    }
+                }
+
+                showToast(`🧹 Cleared ${clearedCount} stale entr${clearedCount === 1 ? 'y' : 'ies'} from Firebase`, 'success');
+                console.log(`✅ Cleared ${clearedCount} stale presence/device entries`);
+            } catch (err) {
+                console.error('❌ Failed to clear stale data:', err);
+                showToast('❌ Failed to clear stale data', 'error');
+            }
+        }
+
         function toggleDeviceDropdown() {
             const dropdown = document.getElementById('device-dropdown');
             const usersDropdown = document.getElementById('users-dropdown');
@@ -14001,7 +14062,7 @@ async function firebaseLogout() {
     try {
         // Cleanup presence before signing out
         if (state.currentUser && state.currentUser.uid) {
-            PresenceTracker.cleanup();
+            await PresenceTracker.cleanup(); // ← MUST await — cleanup writes to Firebase before signOut
         }
         
         // 🔊 Play logout sound before signing out
@@ -14321,8 +14382,11 @@ function setupInactivityTimer() {
 
 // Cleanup presence when page is closed or refreshed
 window.addEventListener('beforeunload', () => {
+    // Note: async/await doesn't work in beforeunload — browser won't wait for promises.
+    // onDisconnect (set up at login) handles this server-side reliably via Firebase.
+    // cleanup() is called here as a best-effort attempt for faster cleanup.
     if (state.currentUser && state.currentUser.uid) {
-        PresenceTracker.cleanup();
+        PresenceTracker.cleanup(); // fire-and-forget is fine here — onDisconnect is the real safety net
     }
 });
 
