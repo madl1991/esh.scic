@@ -10361,7 +10361,7 @@ function closeAllStatusDropdowns() {
         // ==================== END REGION COLLAPSE/EXPAND ====================
 
         function render() {
-            if (state.currentTab === 'settings' || state.currentTab === 'personnel') return;
+            if (state.currentTab === 'settings' || state.currentTab === 'personnel' || state.currentTab === 'admin') return;
 
             const container = document.getElementById('dashboard-content');
             let html = '';
