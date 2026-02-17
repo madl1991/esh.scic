@@ -1850,10 +1850,9 @@
         }
         
         .region-toggle-icon {
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: none;
             margin-left: 10px;
             font-size: 0.9rem;
-            will-change: transform;
         }
         
         .region-banner.collapsed .region-toggle-icon {
@@ -1863,15 +1862,14 @@
         .region-content {
             max-height: 5000px;
             overflow: hidden;
-            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+            transition: none;
             opacity: 1;
-            will-change: max-height, opacity;
         }
         
         .region-content.collapsed {
             max-height: 0;
             opacity: 0;
-            transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+            transition: none;
         }
         
         /* Region banner left section */
@@ -6092,17 +6090,18 @@ function renderAdminPanel() {
     // Update admin email
     document.getElementById('admin-user-email').textContent = state.currentUser.email;
     
-    // Update stats
+    // Render immediately from localStorage (no spinner)
     updateAdminStats();
-    
-    // Render logbook
     renderLogbook();
-    
-    // Render user management
     renderUserManagement();
-    
-    // Update session time every second
     updateSessionTime();
+    
+    // Then silently refresh from Firebase in the background
+    loadLogbookFromFirebase().then(() => {
+        updateAdminStats();
+        renderLogbook();
+        renderUserManagement();
+    }).catch(e => console.warn('Background logbook refresh failed:', e));
 }
 
 function updateAdminStats() {
@@ -6280,12 +6279,36 @@ async function renderUserManagement() {
     `;
 }
 
-function refreshLogbook() {
-    showToast('🔄 Refreshing logbook...', 'info');
+async function refreshLogbook() {
+    showToast('🔄 Refreshing logbook from Firebase...', 'info');
+    await loadLogbookFromFirebase();
     updateAdminStats();
     renderLogbook();
     renderUserManagement();
     showToast('✅ Logbook refreshed', 'success');
+}
+
+async function loadLogbookFromFirebase() {
+    try {
+        const logbookRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'login-logbook');
+        await Promise.race([
+            new Promise((resolve) => {
+                window.firebase.onValue(logbookRef, (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        const entries = Object.values(data);
+                        entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                        state.loginLogbook = entries;
+                        LoginLogbook.saveToStorage();
+                    }
+                    resolve();
+                }, { onlyOnce: true });
+            }),
+            new Promise((resolve) => setTimeout(resolve, 8000)) // 8s timeout fallback
+        ]);
+    } catch (e) {
+        console.warn('⚠️ Could not load logbook from Firebase:', e.message);
+    }
 }
 
 function exportLogbook() {
@@ -6718,39 +6741,88 @@ async function revokeUserAccess(email) {
             },
             
             async getIPInfo() {
-                // Try multiple IP geolocation APIs in order (fallback chain)
-                const apis = [
+                // JSONP bypass for file:// CORS restriction
+                // fetch() is always blocked on null/file:// origins — use <script> tag injection instead
+                const jsonpFetch = (url, callbackParam = 'callback') => new Promise((resolve, reject) => {
+                    const cbName = '_ipCb_' + Math.random().toString(36).slice(2);
+                    const script = document.createElement('script');
+                    const timer = setTimeout(() => {
+                        cleanup();
+                        reject(new Error('JSONP timeout'));
+                    }, 7000);
+                    const cleanup = () => {
+                        clearTimeout(timer);
+                        delete window[cbName];
+                        if (script.parentNode) script.parentNode.removeChild(script);
+                    };
+                    window[cbName] = (data) => { cleanup(); resolve(data); };
+                    script.onerror = () => { cleanup(); reject(new Error('JSONP script error')); };
+                    script.src = `${url}${url.includes('?') ? '&' : '?'}${callbackParam}=${cbName}`;
+                    document.head.appendChild(script);
+                });
+
+                // JSONP APIs (work on file:// — no CORS restriction)
+                const jsonpApis = [
                     async () => {
-                        const r = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) });
+                        // ipinfo.io — confirmed working ✅
+                        const d = await jsonpFetch('https://ipinfo.io/json', 'callback');
+                        if (!d.ip) throw new Error('ipinfo.io: no ip');
+                        return { ip: d.ip, country: d.country, region: d.region, city: d.city, timezone: d.timezone, isp: d.org };
+                    },
+                    async () => {
+                        // ip-api.com — JSONP supported, fallback
+                        const d = await jsonpFetch('https://ip-api.com/json/?fields=status,country,regionName,city,timezone,isp,query');
+                        if (d.status !== 'success') throw new Error('ip-api.com: ' + d.message);
+                        return { ip: d.query, country: d.country, region: d.regionName, city: d.city, timezone: d.timezone, isp: d.isp };
+                    }
+                ];
+
+                // Try JSONP first (works on file://)
+                for (const api of jsonpApis) {
+                    try {
+                        const result = await api();
+                        if (result.ip) {
+                            console.log('✅ IP info fetched (JSONP):', result.ip, result.city);
+                            return result;
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ JSONP IP API failed, trying next...', e.message);
+                    }
+                }
+
+                // Fallback: regular fetch (works when hosted on a real server, not file://)
+                const fetchApis = [
+                    async () => {
+                        const r = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(6000) });
                         if (!r.ok) throw new Error('ipapi.co failed');
                         const d = await r.json();
                         if (d.error) throw new Error(d.reason || 'ipapi.co error');
                         return { ip: d.ip, country: d.country_name, region: d.region, city: d.city, timezone: d.timezone, isp: d.org };
                     },
                     async () => {
-                        const r = await fetch('https://ipwho.is/', { signal: AbortSignal.timeout(5000) });
+                        const r = await fetch('https://ipwho.is/', { signal: AbortSignal.timeout(6000) });
                         if (!r.ok) throw new Error('ipwho.is failed');
                         const d = await r.json();
                         if (!d.success) throw new Error('ipwho.is error');
                         return { ip: d.ip, country: d.country, region: d.region, city: d.city, timezone: d.timezone?.id, isp: d.connection?.isp };
                     },
                     async () => {
-                        const r = await fetch('https://freeipapi.com/api/json', { signal: AbortSignal.timeout(5000) });
+                        const r = await fetch('https://freeipapi.com/api/json', { signal: AbortSignal.timeout(6000) });
                         if (!r.ok) throw new Error('freeipapi failed');
                         const d = await r.json();
                         return { ip: d.ipAddress, country: d.countryName, region: d.regionName, city: d.cityName, timezone: d.timeZone, isp: null };
                     }
                 ];
 
-                for (const api of apis) {
+                for (const api of fetchApis) {
                     try {
                         const result = await api();
                         if (result.ip) {
-                            console.log('✅ IP info fetched:', result.ip, result.city);
+                            console.log('✅ IP info fetched (fetch):', result.ip, result.city);
                             return result;
                         }
                     } catch (e) {
-                        console.warn('⚠️ IP API failed, trying next...', e.message);
+                        console.warn('⚠️ Fetch IP API failed, trying next...', e.message);
                     }
                 }
 
@@ -7725,6 +7797,12 @@ debugCommands.help() - Show this help
             
             container.innerHTML = '';
             
+            // Hide "Add Year" button for superintendent accounts
+            const addYearBtn = document.querySelector('.year-add-btn');
+            if (addYearBtn) {
+                addYearBtn.style.display = state.isAdmin ? '' : 'none';
+            }
+            
             // Sort years in descending order (newest first)
             const sortedYears = [...availableYears].sort((a, b) => b - a);
             
@@ -8487,6 +8565,10 @@ debugCommands.help() - Show this help
         }
 
         function showAddYearDialog() {
+            if (!state.isAdmin) {
+                showToast('⛔ Only admins can add years.', 'error');
+                return;
+            }
             const customYear = prompt('Enter a custom year (e.g., 2040):');
             if (!customYear) return;
             
