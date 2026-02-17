@@ -4874,9 +4874,28 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
     /* User management */
     .adm-users-wrap {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 10px;
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        padding-bottom: 10px;
+    }
+    
+    .adm-users-wrap::-webkit-scrollbar {
+        height: 8px;
+    }
+    
+    .adm-users-wrap::-webkit-scrollbar-track {
+        background: var(--bg-body);
+        border-radius: 4px;
+    }
+    
+    .adm-users-wrap::-webkit-scrollbar-thumb {
+        background: #2e7d32;
+        border-radius: 4px;
+    }
+    
+    .adm-users-wrap::-webkit-scrollbar-thumb:hover {
+        background: #1b5e20;
     }
 
     .adm-user-card {
@@ -4888,6 +4907,8 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         align-items: center;
         gap: 12px;
         transition: border-color 0.15s;
+        min-width: 280px;
+        flex-shrink: 0;
     }
 
 
@@ -6171,6 +6192,10 @@ function renderLogbook() {
         return;
     }
     
+    // Show 10 by default, or all if expanded
+    const isExpanded = container.dataset.expanded === 'true';
+    const displayLogs = isExpanded ? logs : logs.slice(0, 10);
+    
     container.innerHTML = `
         <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem; table-layout: fixed;">
             <thead>
@@ -6185,7 +6210,7 @@ function renderLogbook() {
                 </tr>
             </thead>
             <tbody id="logbook-tbody">
-                ${logs.slice(0, 100).map((entry, index) => `
+                ${displayLogs.map((entry, index) => `
                     <tr style="border-bottom: 1px solid var(--border-color); background: ${index % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-body)'};">
                         <td style="padding: 9px 14px; white-space: nowrap; text-align: left; overflow: hidden;">
                             <div style="font-weight: 600; font-size: 0.75rem; color: var(--text-primary);">${new Date(entry.timestamp).toLocaleDateString()}</div>
@@ -6218,12 +6243,21 @@ function renderLogbook() {
                 `).join('')}
             </tbody>
         </table>
-        ${logs.length > 100 ? `
-            <div style="padding: 12px 14px; text-align: center; background: var(--bg-body); border-top: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.75rem;">
-                Showing 100 of ${logs.length} entries. <a href="#" onclick="exportLogbook(); return false;" style="color: #2e7d32; text-decoration: none; font-weight: 600;">Export all →</a>
+        ${logs.length > 10 ? `
+            <div style="padding: 12px 14px; text-align: center; background: var(--bg-body); border-top: 1px solid var(--border-color);">
+                <button onclick="toggleLogbookExpand()" style="background: #2e7d32; color: white; border: none; padding: 8px 20px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: background 0.2s;">
+                    <i class="fas fa-${isExpanded ? 'chevron-up' : 'chevron-down'}"></i> ${isExpanded ? 'Show Less' : `See More (${logs.length - 10} more)`}
+                </button>
+                ${!isExpanded ? `<a href="#" onclick="exportLogbook(); return false;" style="color: #2e7d32; text-decoration: none; font-weight: 600; margin-left: 15px; font-size: 0.75rem;">Export All →</a>` : ''}
             </div>
         ` : ''}
     `;
+}
+
+function toggleLogbookExpand() {
+    const container = document.getElementById('logbook-container');
+    container.dataset.expanded = container.dataset.expanded === 'true' ? 'false' : 'true';
+    renderLogbook();
 }
 
 function getCountryFlag(country) {
