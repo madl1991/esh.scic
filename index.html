@@ -222,19 +222,11 @@
             transition: all 0.3s;
         }
 
-        .reminder-dismiss:hover {
-            background: #1b5e20;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(46, 125, 50, 0.3);
-        }
 
         body.dark-mode .reminder-dismiss {
             background: #4caf50;
         }
 
-        body.dark-mode .reminder-dismiss:hover {
-            background: #388e3c;
-        }
 
         /* ==================== END SAFETY REMINDER CHARACTER ==================== */
 
@@ -654,14 +646,7 @@
             transition: left 0.5s;
         }
 
-        .login-btn:hover::before {
-            left: 100%;
-        }
 
-        .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 30px rgba(27, 94, 32, 0.4);
-        }
 
         .login-btn:active {
             transform: translateY(0);
@@ -997,11 +982,10 @@
         /* Dark Mode Toggle Button */
         .theme-toggle {
             background: none;
-            border: 1px solid var(--border-color);
+            border: none;
             color: var(--text-primary);
             cursor: pointer;
             padding: 8px 12px;
-            border-radius: 4px;
             font-size: 1rem;
             transition: 0.3s;
             display: flex;
@@ -1009,10 +993,6 @@
             gap: 5px;
         }
 
-        .theme-toggle:hover {
-            background: var(--border-color);
-            transform: scale(1.05);
-        }
 
 
         /* Year Selector Styles */
@@ -1023,22 +1003,25 @@
 
         .year-selector-btn {
             background: none;
-            border: 1px solid var(--border-color);
+            border: none;
             color: var(--text-primary);
             cursor: pointer;
             padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 1.1rem;
             transition: all 0.3s;
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
-        .year-selector-btn:hover {
-            background: var(--border-color);
-            transform: scale(1.05);
+        #year-selector-label {
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: inherit;
+            line-height: 1;
+            display: flex;
+            align-items: center;
         }
+
 
         /* ═══════════════════════════════════════════
            UNIFIED DROPDOWN SYSTEM — Option B Style
@@ -1102,8 +1085,6 @@
             cursor: pointer;
             transition: background 0.15s;
         }
-        .ud-item:hover { background: #f0f7f0; }
-        body.dark-mode .ud-item:hover { background: rgba(46,125,50,0.12); }
         .ud-item-icon {
             width: 30px;
             height: 30px;
@@ -1123,11 +1104,10 @@
         .ud-item.logout .ud-item-label { color: #c62828; }
         .ud-item.logout .ud-item-icon  { background: #fff0f0 !important; }
         .ud-item.logout .ud-item-icon i { color: #c62828 !important; }
-        .ud-item.logout:hover { background: #fff5f5; }
-        body.dark-mode .ud-item.logout:hover { background: rgba(198,40,40,0.12); }
 
         /* Year sizing */
-        .year-dropdown { min-width: 160px; }
+        .year-dropdown { min-width: 100px; width: fit-content; }
+        .year-dropdown .ud-header { justify-content: center; text-align: center; }
 
         @keyframes dropdownSlideIn {
             from {
@@ -1149,32 +1129,32 @@
         }
 
         .year-option {
-            padding: 8px 12px;
+            padding: 7px 16px;
             cursor: pointer;
             border-radius: 7px;
             margin: 2px 0;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 10px;
+            justify-content: center;
             font-size: 0.82rem;
             font-weight: 500;
             color: var(--text-primary);
             transition: background 0.15s;
+            white-space: nowrap;
+            text-align: center;
         }
 
-        .year-option:hover { background: #f0f7f0; }
-        body.dark-mode .year-option:hover { background: rgba(46,125,50,0.12); }
 
         .year-option.active {
-            background: #e8f5e9;
+            background: #c8e6c9;
             color: #1b5e20;
-            font-weight: 700;
+            font-weight: 800;
         }
 
         body.dark-mode .year-option.active {
-            background: rgba(46,125,50,0.2);
-            color: #66bb6a;
+            background: rgba(46,125,50,0.35);
+            color: #43a047;
+            font-weight: 800;
         }
 
         .year-add-btn {
@@ -1195,9 +1175,7 @@
             font-family: inherit;
         }
 
-        .year-add-btn:hover { background: #f0f7f0; }
         body.dark-mode .year-add-btn { color: #66bb6a; }
-        body.dark-mode .year-add-btn:hover { background: rgba(46,125,50,0.12); }
 
 
         /* ========== DEVICE COUNTER & ACTIVE USERS ========== */
@@ -1210,11 +1188,10 @@
         .device-counter-btn,
         .active-users-btn {
             background: none;
-            border: 1px solid var(--border-color);
+            border: none;
             color: var(--text-primary);
             cursor: pointer;
             padding: 8px 12px;
-            border-radius: 4px;
             font-size: 1.1rem;
             transition: all 0.3s;
             display: flex;
@@ -1223,11 +1200,6 @@
             position: relative;
         }
 
-        .device-counter-btn:hover,
-        .active-users-btn:hover {
-            background: var(--border-color);
-            transform: scale(1.05);
-        }
 
         .counter-badge {
             position: absolute;
@@ -1266,8 +1238,6 @@
             transition: background 0.15s;
         }
 
-        .dropdown-item:hover { background: #f0f7f0; }
-        body.dark-mode .dropdown-item:hover { background: rgba(46,125,50,0.12); }
 
         /* device item inner */
         .device-info { display: flex; align-items: center; gap: 10px; flex: 1; }
@@ -1376,11 +1346,10 @@
 
         .notification-bell-btn {
             background: none;
-            border: 1px solid var(--border-color);
+            border: none;
             color: var(--text-primary);
             cursor: pointer;
             padding: 8px 12px;
-            border-radius: 4px;
             font-size: 1.1rem;
             transition: all 0.3s;
             display: flex;
@@ -1388,10 +1357,6 @@
             position: relative;
         }
 
-        .notification-bell-btn:hover {
-            background: var(--border-color);
-            transform: scale(1.05);
-        }
 
         .notification-badge {
             position: absolute;
@@ -1433,8 +1398,6 @@
 
         .notification-item:last-child { border-bottom: none; }
 
-        .notification-item:hover { background: #f0f7f0; }
-        body.dark-mode .notification-item:hover { background: rgba(46,125,50,0.12); }
 
         .notif-icon-box {
             width: 30px;
@@ -1487,11 +1450,10 @@
         .device-counter-btn,
         .active-users-btn {
             background: none;
-            border: 1px solid var(--border-color);
+            border: none;
             color: var(--text-primary);
             cursor: pointer;
             padding: 8px 12px;
-            border-radius: 4px;
             font-size: 0.9rem;
             transition: all 0.3s;
             display: flex;
@@ -1500,11 +1462,6 @@
             font-weight: 600;
         }
 
-        .device-counter-btn:hover,
-        .active-users-btn:hover {
-            background: var(--border-color);
-            transform: scale(1.05);
-        }
 
         .device-count,
         .users-count {
@@ -1558,15 +1515,7 @@
             transition: background 0.2s;
         }
 
-        .device-item:hover,
-        .active-user-item:hover {
-            background: #e8f5e9;
-        }
 
-        body.dark-mode .device-item:hover,
-        body.dark-mode .active-user-item:hover {
-            background: rgba(27, 94, 32, 0.15);
-        }
 
         .device-item:last-child,
         .active-user-item:last-child {
@@ -1630,21 +1579,16 @@
 
         .settings-dropdown-btn {
             background: none;
-            border: 1px solid var(--border-color);
+            border: none;
             color: var(--text-primary);
             cursor: pointer;
             padding: 8px 12px;
-            border-radius: 4px;
             font-size: 1.1rem;
             transition: all 0.3s;
             display: flex;
             align-items: center;
         }
 
-        .settings-dropdown-btn:hover {
-            background: var(--border-color);
-            transform: scale(1.05);
-        }
 
         .settings-dropdown { min-width: 230px; }
 
@@ -1664,8 +1608,6 @@
             color: var(--text-primary);
         }
 
-        .settings-menu-item:hover { background: #f0f7f0; }
-        body.dark-mode .settings-menu-item:hover { background: rgba(46,125,50,0.12); }
 
         .settings-menu-item .smi-icon {
             width: 30px;
@@ -1686,8 +1628,6 @@
         .settings-menu-item.logout { color: #c62828; }
         .settings-menu-item.logout .smi-icon { background: #fff0f0 !important; }
         .settings-menu-item.logout .smi-icon i { color: #c62828 !important; }
-        .settings-menu-item.logout:hover { background: #fff5f5; }
-        body.dark-mode .settings-menu-item.logout:hover { background: rgba(198,40,40,0.12); }
 
         /* ========== FLOATING EDIT/SAVE BUTTON ========== */
         .floating-edit-btn {
@@ -1712,12 +1652,6 @@
             backdrop-filter: blur(10px);
         }
 
-        .floating-edit-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 30px rgba(0, 0, 0, 0.4),
-                        0 0 0 10px rgba(46, 125, 50, 0.2);
-            background: rgba(46, 125, 50, 1);
-        }
 
         .floating-edit-btn:active {
             transform: scale(0.95);
@@ -1727,11 +1661,6 @@
             background: rgba(251, 192, 45, 0.95);
         }
 
-        .floating-edit-btn.save-mode:hover {
-            background: rgba(251, 192, 45, 1);
-            box-shadow: 0 6px 30px rgba(251, 192, 45, 0.5),
-                        0 0 0 10px rgba(251, 192, 45, 0.2);
-        }
 
         @keyframes float {
             0%, 100% { transform: translateY(0px); }
@@ -1764,9 +1693,6 @@
             transition: opacity 0.3s;
         }
 
-        .floating-edit-btn:hover .edit-tooltip {
-            opacity: 1;
-        }
 
         .floating-edit-btn .edit-tooltip::after {
             content: '';
@@ -1807,11 +1733,8 @@
             font-size: 0.75rem; white-space: nowrap;
         }
         .btn-primary { background: var(--safety-green-grad); color: white; }
-        .btn-primary:hover { opacity: 0.9; }
         .btn-secondary { background: var(--border-color); color: var(--text-primary); }
-        .btn-secondary:hover { background: #ccc; }
         .btn-danger { background: #d32f2f; color: white; }
-        .btn-danger:hover { background: #b71c1c; }
 
         /* PDF Upload Styles */
         .pdf-upload-container {
@@ -1834,9 +1757,6 @@
             gap: 5px;
             transition: background 0.2s;
         }
-        .pdf-upload-btn:hover {
-            background: #1565C0;
-        }
         .pdf-upload-btn i {
             font-size: 0.8rem;
         }
@@ -1855,9 +1775,6 @@
             text-decoration: none;
             transition: background 0.2s;
         }
-        .pdf-view-btn:hover {
-            background: #1b5e20;
-        }
         .pdf-replace-btn {
             padding: 6px 10px;
             background: #f57c00;
@@ -1868,9 +1785,6 @@
             font-size: 0.7rem;
             transition: background 0.2s;
         }
-        .pdf-replace-btn:hover {
-            background: #e65100;
-        }
         .pdf-delete-btn {
             padding: 6px 10px;
             background: #d32f2f;
@@ -1880,9 +1794,6 @@
             cursor: pointer;
             font-size: 0.7rem;
             transition: background 0.2s;
-        }
-        .pdf-delete-btn:hover {
-            background: #b71c1c;
         }
         .pdf-filename {
             font-size: 0.7rem;
@@ -1933,10 +1844,6 @@
             z-index: 2;
         }
         
-        .region-banner:hover {
-            transform: scale(1.02);
-            box-shadow: 0 12px 32px rgba(46, 125, 50, 0.3);
-        }
         
         .region-banner.collapsed {
             margin-bottom: 10px;
@@ -2143,10 +2050,6 @@
             text-align: center;
         }
         
-        .status-badge:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
-        }
         
         .status-ongoing { 
             background: linear-gradient(135deg, #1565c0 0%, #1976D2 100%);
@@ -2203,9 +2106,6 @@
             background: #2e7d32;
             border-radius: 10px;
         }
-        .modal-content::-webkit-scrollbar-thumb:hover {
-            background: #1b5e20;
-        }
         .modal-header { 
             font-size: 1.4rem; 
             font-weight: 700; 
@@ -2249,13 +2149,6 @@
             justify-content: center;
             border-radius: 50%;
             transition: all 0.2s;
-        }
-        .modal-close:hover {
-            background: rgba(0,0,0,0.1);
-            color: var(--text-primary);
-        }
-        body.dark-mode .modal-close:hover {
-            background: rgba(255,255,255,0.1);
         }
         .form-group { 
             margin-bottom: 18px; 
@@ -2402,31 +2295,18 @@
             color: var(--text-primary);
         }
 
-        .confirm-modal-buttons .btn-cancel:hover {
-            background: #bbb;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
 
         body.dark-mode .confirm-modal-buttons .btn-cancel {
             background: #444;
             color: var(--text-primary);
         }
 
-        body.dark-mode .confirm-modal-buttons .btn-cancel:hover {
-            background: #555;
-        }
 
         .confirm-modal-buttons .btn-proceed {
             background: var(--header-grad);
             color: white;
         }
 
-        .confirm-modal-buttons .btn-proceed:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(27, 94, 32, 0.3);
-        }
 
         @keyframes scaleIn {
             from {
@@ -2547,11 +2427,6 @@
             color: white;
         }
 
-        .success-modal-button:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(27, 94, 32, 0.3);
-        }
         
 /* Backup & Recovery Styles */
 .backup-section {
@@ -2683,18 +2558,12 @@ body.dark-mode .backup-item {
     color: white;
 }
 
-.backup-item-btn-restore:hover {
-    background: #0a2e10;
-}
 
 .backup-item-btn-delete {
     background: #d32f2f;
     color: white;
 }
 
-.backup-item-btn-delete:hover {
-    background: #b71c1c;
-}
 
 .backup-progress {
     width: 100%;
@@ -2822,11 +2691,6 @@ body.dark-mode .backup-item {
     border: 2px solid var(--border-color);
 }
 
-.modern-dialog-btn-cancel:hover {
-    background: rgba(0,0,0,0.05);
-    border-color: #999;
-    color: var(--text-primary);
-}
 
 .modern-dialog-btn-confirm {
     background: linear-gradient(135deg, #2e7d32, #4caf50);
@@ -2834,11 +2698,6 @@ body.dark-mode .backup-item {
     box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
 }
 
-.modern-dialog-btn-confirm:hover {
-    background: linear-gradient(135deg, #1b5e20, #2e7d32);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4);
-}
 
 .modern-dialog-btn-danger {
     background: linear-gradient(135deg, #d32f2f, #f44336);
@@ -2846,11 +2705,6 @@ body.dark-mode .backup-item {
     box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
 }
 
-.modern-dialog-btn-danger:hover {
-    background: linear-gradient(135deg, #b71c1c, #d32f2f);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(211, 47, 47, 0.4);
-}
 
 body.dark-mode .modern-dialog-btn-cancel {
     background: transparent;
@@ -2858,11 +2712,6 @@ body.dark-mode .modern-dialog-btn-cancel {
     color: #b0b0b0;
 }
 
-body.dark-mode .modern-dialog-btn-cancel:hover {
-    background: rgba(255,255,255,0.05);
-    border-color: #777;
-    color: #e4e4e4;
-}
 
 	.status-dropdown {
     position: absolute;
@@ -2887,9 +2736,6 @@ body.dark-mode .modern-dialog-btn-cancel:hover {
     transition: 0.2s;
 }
 
-.status-dropdown button:hover {
-    background: var(--border-color);
-}
 
         /* IMPROVED TABLE STYLES - OPTION 4: STRIPED WITH ACCENT */
         .table-container {
@@ -2943,14 +2789,7 @@ body.dark-mode .modern-dialog-btn-cancel:hover {
         }
         
         /* Hover effect with left border accent */
-        tbody tr:hover {
-            border-left: 3px solid #4caf50;
-            background: #e8f5e9 !important;
-        }
         
-        body.dark-mode tbody tr:hover {
-            background: #1b3d1b !important;
-        }
         
         td { 
             border: none;
@@ -3094,9 +2933,6 @@ td.average-cell {
             background: #1f2e1f;
         }
         
-        body.dark-mode tbody tr:hover {
-            background: #1b3d1b !important;
-        }
         
         body.dark-mode td {
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -3122,11 +2958,6 @@ td.average-cell {
             box-shadow: 0 2px 4px rgba(27, 94, 32, 0.3);
         }
         
-        .pdf-upload-btn:hover {
-            background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(27, 94, 32, 0.4);
-        }
         
         .pdf-file-info {
             display: inline-flex;
@@ -3156,27 +2987,13 @@ td.average-cell {
             color: #1976D2;
         }
         
-        .pdf-view-btn:hover {
-            background: #e3f2fd;
-            transform: translateY(-1px);
-        }
         
-        body.dark-mode .pdf-view-btn:hover {
-            background: #1a3a52;
-        }
         
         .pdf-delete-btn {
             color: #d32f2f;
         }
         
-        .pdf-delete-btn:hover {
-            background: #ffebee;
-            transform: translateY(-1px);
-        }
         
-        body.dark-mode .pdf-delete-btn:hover {
-            background: #5a1414;
-        }
         
         /* Renewable Energy Badge */
         .re-badge {
@@ -3242,9 +3059,6 @@ table input[type="date"]::-webkit-calendar-picker-indicator {
     opacity: 0.7;
 }
 
-table input[type="date"]::-webkit-calendar-picker-indicator:hover {
-    opacity: 1;
-}
 
 /* Style for empty date inputs - show cleaner appearance */
 table input[type="date"]:not(:focus):invalid,
@@ -3304,14 +3118,7 @@ table input[type="date"]:not(:focus)[value=""] {
             z-index: 1;
         }
         
-        .stat-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 16px 40px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
-        }
         
-        .stat-card:hover::after {
-            animation: shine 1.5s ease-in-out;
-        }
         
         @keyframes shine {
             0% {
@@ -3353,9 +3160,6 @@ table input[type="date"]:not(:focus)[value=""] {
             background: radial-gradient(circle, rgba(211, 47, 47, 0.3) 0%, transparent 70%);
         }
         
-        .stat-card:hover::before {
-            animation: rippleEffect 0.6s ease-out;
-        }
         
         @keyframes rippleEffect {
             0% {
@@ -3701,10 +3505,6 @@ table input[type="date"]:not(:focus)[value=""] {
             border-radius: 4px;
         }
         
-        div[style*="overflow-x:auto"]::-webkit-scrollbar-thumb:hover,
-        div[style*="overflow-x: auto"]::-webkit-scrollbar-thumb:hover {
-            background: rgba(27, 94, 32, 0.7);
-        }
         
         .loading-spinner {
             display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3);
@@ -3728,9 +3528,6 @@ table input[type="date"]:not(:focus)[value=""] {
             position: relative;
         }
         
-        .user-badge:hover {
-            box-shadow: 0 4px 12px rgba(251, 192, 45, 0.3);
-        }
         
         .user-badge .name {
             font-size: 0.85rem;
@@ -3796,10 +3593,6 @@ table input[type="date"]:not(:focus)[value=""] {
             border-left: 3px solid transparent;
         }
         
-        .user-profile-item:hover {
-            background: rgba(27, 94, 32, 0.08);
-            border-left-color: #2e7d32;
-        }
         
         .user-profile-item i {
             width: 20px;
@@ -3821,10 +3614,6 @@ table input[type="date"]:not(:focus)[value=""] {
             color: #d32f2f;
         }
         
-        .user-profile-item.admin-only:hover {
-            background: rgba(211, 47, 47, 0.08);
-            border-left-color: #d32f2f;
-        }
         
         .admin-badge-small {
             background: linear-gradient(135deg, #d32f2f, #f44336);
@@ -3921,10 +3710,6 @@ table input[type="date"]:not(:focus)[value=""] {
     justify-content: center;
 }
 
-.toast-close:hover {
-    background: rgba(0,0,0,0.1);
-    color: #333;
-}
 
 @keyframes slideIn {
     from {
@@ -3970,10 +3755,6 @@ body.dark-mode .toast-close {
     color: #b0b0b0;
 }
 
-body.dark-mode .toast-close:hover {
-    background: rgba(255,255,255,0.1);
-    color: #e4e4e4;
-}
 
 /* ========== END TOAST ========== */
 
@@ -3988,10 +3769,6 @@ body.dark-mode .toast-close:hover {
     transition: all 0.2s ease;
 }
 
-.btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
 
 .btn:active {
     transform: translateY(0);
@@ -4044,9 +3821,6 @@ input[type="number"]:focus {
     border-top-color: #333;
 }
 
-.tooltip-trigger:hover .tooltip-content {
-    opacity: 1;
-}
 
 body.dark-mode .tooltip-content {
     background: #1a1a1a;
@@ -4141,10 +3915,6 @@ body.dark-mode .tooltip-content::after {
 }
 #p-body tr:nth-child(even) { background: rgba(0,0,0,0.018); }
 body.dark-mode #p-body tr:nth-child(even) { background: rgba(255,255,255,0.03); }
-#p-body tr:hover { background: #e8f5e9 !important; }
-body.dark-mode #p-body tr:hover { background: rgba(27,94,32,0.18) !important; }
-#p-body tr:hover td:first-child { background: #e8f5e9 !important; }
-body.dark-mode #p-body tr:hover td:first-child { background: rgba(27,94,32,0.18) !important; }
 #p-body tr.p-editing { background: #f1f8e9 !important; box-shadow: inset 3px 0 0 #2e7d32; }
 body.dark-mode #p-body tr.p-editing { background: rgba(27,94,32,0.25) !important; }
 #p-body tr.p-editing td:first-child { background: #f1f8e9 !important; }
@@ -4170,45 +3940,37 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 .p-gender-m { background: #e3f2fd !important; color: #1565c0 !important; }
 .p-gender-f { background: #fce4ec !important; color: #c2185b !important; }
 .p-edit-btn {
-    padding: 5px 10px;
-    background: #1976D2;
-    color: white;
+    padding: 4px;
+    background: none;
+    color: #1976D2;
     border: none;
-    border-radius: 5px;
-    font-size: 0.68rem;
+    font-size: 0.9rem;
     cursor: pointer;
-    font-weight: 600;
-    display: inline-flex; align-items:center; gap:4px;
+    display: inline-flex; align-items:center;
     transition: 0.2s;
 }
-.p-edit-btn:hover { background: #1565c0; }
 .p-save-btn {
     display: none;
-    padding: 5px 10px;
-    background: #2e7d32;
-    color: white;
+    padding: 4px;
+    background: none;
+    color: #2e7d32;
     border: none;
-    border-radius: 5px;
-    font-size: 0.68rem;
+    font-size: 0.9rem;
     cursor: pointer;
-    font-weight: 600;
     margin-left: 3px;
-    align-items:center; gap:4px;
+    align-items:center;
     transition: 0.2s;
 }
-.p-save-btn:hover { background: #1b5e20; }
 .p-del-btn {
-    padding: 5px 8px;
-    background: #ffebee;
+    padding: 4px;
+    background: none;
     color: #d32f2f;
-    border: 1px solid #ffcdd2;
-    border-radius: 5px;
-    font-size: 0.68rem;
+    border: none;
+    font-size: 0.9rem;
     cursor: pointer;
     margin-left: 3px;
     transition: 0.2s;
 }
-.p-del-btn:hover { background: #d32f2f; color: white; border-color: #d32f2f; }
 
     </style>
 </head>
@@ -4825,16 +4587,12 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
                 <!-- YEAR SELECTOR -->
                 <div class="year-selector-container" style="position: relative;">
-                    <button class="year-selector-btn" onclick="toggleYearDropdown()" id="year-selector-btn" title="Select Year (Currently: 2026)">
-                        <i class="fas fa-calendar-alt"></i>
+                    <button class="year-selector-btn" onclick="toggleYearDropdown()" id="year-selector-btn" title="Select Year">
+                        <span id="year-selector-label">2026</span>
                     </button>
                     <div class="year-dropdown hidden" id="year-dropdown">
                         <div class="ud-header">
-                            <div class="ud-header-icon"><i class="fas fa-calendar-alt"></i></div>
-                            <div>
-                                <div class="ud-header-text">Select Year</div>
-                                <div class="ud-header-sub">Filter data by year</div>
-                            </div>
+                            <div class="ud-header-text">Select Year</div>
                         </div>
                         <div class="year-options" id="year-options"></div>
                         <button class="year-add-btn" onclick="showAddYearDialog()" title="Add Custom Year">
@@ -5071,15 +4829,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         background: var(--bg-card);
     }
 
-    .adm-btn:hover {
-        border-color: #2e7d32;
-        color: #2e7d32;
-    }
 
-    .adm-btn.danger:hover {
-        border-color: #c62828;
-        color: #c62828;
-    }
 
     .adm-btn i { font-size: 0.65rem; }
 
@@ -5142,7 +4892,6 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         transition: border-color 0.15s;
     }
 
-    .adm-user-card:hover { border-color: #2e7d32; }
 
     .adm-user-avatar {
         width: 36px;
@@ -5208,15 +4957,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         flex-shrink: 0;
     }
 
-    .adm-revoke-btn:hover {
-        border-color: #c62828;
-        color: #c62828;
-        background: #fff5f5;
-    }
 
-    body.dark-mode .adm-revoke-btn:hover {
-        background: rgba(198,40,40,0.1);
-    }
 
     .adm-admin-tag {
         font-size: 0.58rem;
@@ -5230,9 +4971,6 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
     }
 
     /* Yellow accent line on stat hover */
-    .adm-stat:hover .adm-stat-dot {
-        box-shadow: 0 0 0 3px rgba(251,192,45,0.3);
-    }
 </style>
 
 <div id="admin-view" class="hidden">
@@ -5455,7 +5193,6 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
       border: 1px solid var(--border-color);
       box-shadow: 0 2px 12px rgba(0,0,0,0.06); transition: box-shadow 0.2s;
     }
-    .settings-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
     .settings-card-full { grid-column: 1 / -1; }
     .settings-card-header {
       background: linear-gradient(90deg, #1b5e20 0%, #2e7d32 100%);
@@ -5492,7 +5229,6 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
       background: none; border: none; cursor: pointer; color: var(--text-secondary);
       font-size: 0.9rem; padding: 4px; transition: color 0.2s;
     }
-    .settings-input-icon .icon-btn:hover { color: #1b5e20; }
 
     .settings-btn {
       width: 100%; padding: 11px; border: none; border-radius: 8px;
@@ -5504,15 +5240,12 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
       background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
       color: white; box-shadow: 0 3px 10px rgba(27,94,32,0.3);
     }
-    .settings-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 5px 15px rgba(27,94,32,0.4); }
     .settings-btn-primary:disabled { opacity: 0.6; cursor: wait; transform: none; }
     .settings-btn-danger { background: #ffebee; color: #c62828; border: 1.5px solid #ffcdd2; }
-    .settings-btn-danger:hover { background: #c62828; color: white; border-color: #c62828; }
     .settings-btn-outline {
       background: transparent; color: #1b5e20;
       border: 1.5px solid #2e7d32;
     }
-    .settings-btn-outline:hover { background: #e8f5e9; }
     .settings-btn + .settings-btn { margin-top: 8px; }
 
     .settings-msg {
@@ -5534,7 +5267,6 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
       border: 2px solid var(--border-color); text-align: center;
       transition: all 0.2s; font-size: 0.75rem; font-weight: 600;
     }
-    .theme-option:hover { border-color: #2e7d32; }
     .theme-option.active { border-color: #2e7d32; background: #e8f5e9; color: #1b5e20; }
     body.dark-mode .theme-option.active { background: rgba(46,125,50,0.2); }
     .theme-option .theme-icon { font-size: 1.5rem; margin-bottom: 5px; }
@@ -5564,7 +5296,6 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
       color: #1976D2; font-size: 0.75rem; font-weight: 600;
       display: flex; align-items: center; gap: 4px;
     }
-    .username-edit-btn:hover { color: #1565c0; }
   </style>
 
   <div class="settings-page">
@@ -8004,10 +7735,7 @@ debugCommands.help() - Show this help
                     option.classList.add('active');
                 }
                 
-                option.innerHTML = `
-                    <span>${year}</span>
-                    ${year === state.selectedYear ? '<i class="fas fa-check"></i>' : ''}
-                `;
+                option.innerHTML = `<span>${year}</span>`;
                 
                 option.onclick = () => requestYearSwitch(year);
                 container.appendChild(option);
@@ -8241,7 +7969,9 @@ debugCommands.help() - Show this help
         function updateYearDisplay() {
             const yearBtn = document.getElementById('year-selector-btn');
             if (yearBtn) {
-                yearBtn.title = `Select Year (Currently: ${state.selectedYear})`;
+                yearBtn.title = `Select Year`;
+                const label = document.getElementById('year-selector-label');
+                if (label) label.textContent = state.selectedYear;
             }
         }
 
@@ -8429,12 +8159,6 @@ debugCommands.help() - Show this help
                 // Add hover effect CSS
                 html += `
                     <style>
-                        .notification-project-item:hover {
-                            background: #fff3e0 !important;
-                        }
-                        body.dark-mode .notification-project-item:hover {
-                            background: #3a2f1f !important;
-                        }
                     </style>
                 `;
                 
@@ -8596,7 +8320,9 @@ debugCommands.help() - Show this help
         function updateYearDisplay() {
             const yearBtn = document.getElementById('year-selector-btn');
             if (yearBtn) {
-                yearBtn.title = `Select Year (Currently: ${state.selectedYear})`;
+                yearBtn.title = `Select Year`;
+                const label = document.getElementById('year-selector-label');
+                if (label) label.textContent = state.selectedYear;
             }
             
             // Update settings page year displays
@@ -10423,8 +10149,8 @@ function closeAllStatusDropdowns() {
                         'Cancel Editing?', 
                         'Unsaved changes will be lost. Are you sure you want to cancel?',
                         true,
-                        'Yes, Discard Changes',
-                        'No, Continue Editing'
+                        'Discard',
+                        'Cancel'
                     ).then(confirmed => {
                         if (confirmed) {
                             location.reload();
@@ -10489,16 +10215,16 @@ function closeAllStatusDropdowns() {
             if (state.currentTab === 'overall') {
                 // Add search and filters inside dashboard
                 html += `
-                <div style="background: var(--bg-card); padding: 15px 20px; margin: 0 20px 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid var(--border-color);">
-                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <div style="background: var(--bg-card); padding: 8px 16px; margin: 0 20px 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid var(--border-color);">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <div style="flex: 1; min-width: 250px;">
                             <input type="text" id="search-input" placeholder="🔍 Search projects..." onkeyup="handleSearch()" 
                                    value="${state.searchTerm || ''}"
-                                   style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary);">
+                                   style="width: 100%; padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary);">
                         </div>
                         <div>
                             <select id="region-filter" onchange="handleFilter()" 
-                                    style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary); min-width: 180px;">
+                                    style="padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary); min-width: 180px;">
                                 <option value="" ${state.regionFilter === '' ? 'selected' : ''}>📍 All Regions</option>
                                 <option value="NCR" ${state.regionFilter === 'NCR' ? 'selected' : ''}>NCR</option>
                                 <option value="SOUTH LUZON" ${state.regionFilter === 'SOUTH LUZON' ? 'selected' : ''}>South Luzon</option>
@@ -10508,7 +10234,7 @@ function closeAllStatusDropdowns() {
                         </div>
                         <div>
                             <select id="status-filter" onchange="handleFilter()" 
-                                    style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary); min-width: 160px;">
+                                    style="padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary); min-width: 160px;">
                                 <option value="" ${state.statusFilter === '' ? 'selected' : ''}>📊 All Status</option>
                                 <option value="on-going" ${state.statusFilter === 'on-going' ? 'selected' : ''}>On-Going</option>
                                 <option value="work-stoppage" ${state.statusFilter === 'work-stoppage' ? 'selected' : ''}>Work Stoppage</option>
@@ -10757,10 +10483,10 @@ function closeAllStatusDropdowns() {
                         </div>
                         <span class="status-badge ${statusClass}" onclick="${isLocked ? 'showLockedMessage()' : `changeProjectStatus('${p.name}', event)`}">${statusLabel}</span>
                         ${state.isEditing ? `
-                            <button class="btn btn-secondary" ${isLocked ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} onclick="${isLocked ? 'showLockedMessage()' : `openEditProjectModal('${p.name.replace(/'/g, "\\'")}', '${p.region}')`}" style="margin-right: 5px;" title="${isLocked ? 'View Only - Contact admin to edit' : 'Edit Project Details'}">
+                            <button ${isLocked ? 'disabled' : ''} onclick="${isLocked ? 'showLockedMessage()' : `openEditProjectModal('${p.name.replace(/'/g, "\\'")}', '${p.region}')`}" style="background:none;border:none;cursor:pointer;color:#555;font-size:1rem;padding:4px 6px;margin-right:2px;opacity:${isLocked ? '0.5' : '1'};" title="${isLocked ? 'View Only - Contact admin to edit' : 'Edit Project Details'}">
                                 <i class="fas fa-pen"></i>
                             </button>
-                            <button class="btn btn-danger" ${isLocked ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} onclick="${isLocked ? 'showLockedMessage()' : `deleteProject('${p.name}')`}" title="${isLocked ? 'View Only - Contact admin to edit' : 'Delete Project'}"><i class="fas fa-trash"></i></button>
+                            <button ${isLocked ? 'disabled' : ''} onclick="${isLocked ? 'showLockedMessage()' : `deleteProject('${p.name}')`}" style="background:none;border:none;cursor:pointer;color:#d32f2f;font-size:1rem;padding:4px 6px;opacity:${isLocked ? '0.5' : '1'};" title="${isLocked ? 'View Only - Contact admin to edit' : 'Delete Project'}"><i class="fas fa-trash"></i></button>
                         ` : ''}
                     </div>`;
 
@@ -10855,10 +10581,6 @@ if (state.currentTab === 'audit') {
                 background-color: #f1f8e9;
             }
             
-            .audit-table tbody tr:hover {
-                border-left: 3px solid #4caf50;
-                background-color: #e8f5e9 !important;
-            }
             
             /* Specific cell styles */
             .cell-white { 
@@ -10899,10 +10621,6 @@ if (state.currentTab === 'audit') {
                 font-family: 'Inter', sans-serif;
             }
             
-            .audit-table input:hover {
-                border-color: #66bb6a;
-                background: #f1f8f4;
-            }
             
             .audit-table input:focus {
                 outline: none;
@@ -10938,9 +10656,6 @@ if (state.currentTab === 'audit') {
                 background-color: #1f2e1f;
             }
             
-            body.dark-mode .audit-table tbody tr:hover {
-                background-color: #1b3d1b !important;
-            }
             
             body.dark-mode .audit-table td {
                 border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -11714,10 +11429,6 @@ html += '</div>'; // Close region-content
                         background: #f1f8e9;
                     }
                     /* Hover effect with left border accent */
-                    .nov-monitoring-table tbody tr:hover {
-                        border-left: 3px solid #4caf50;
-                        background: #e8f5e9 !important;
-                    }
                     .nov-monitoring-table td {
                         border: none;
                         border-bottom: 1px solid rgba(0, 0, 0, 0.05);
@@ -11768,9 +11479,6 @@ html += '</div>'; // Close region-content
                     }
                     body.dark-mode .nov-monitoring-table tbody tr:nth-child(even) {
                         background: #1f2e1f;
-                    }
-                    body.dark-mode .nov-monitoring-table tbody tr:hover {
-                        background: #1b3d1b !important;
                     }
                     body.dark-mode .nov-monitoring-table td {
                         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
