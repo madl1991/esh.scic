@@ -6440,33 +6440,33 @@ function renderLogbook() {
         <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem; table-layout: fixed;">
             <thead>
                 <tr style="background: var(--bg-body);">
-                    <th style="width:13%; padding: 9px 14px; text-align: left;   font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">Timestamp</th>
-                    <th style="width:9%;  padding: 9px 14px; text-align: center; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">Action</th>
-                    <th style="width:18%; padding: 9px 14px; text-align: center; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">User</th>
-                    <th style="width:13%; padding: 9px 14px; text-align: center; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">IP Address</th>
-                    <th style="width:17%; padding: 9px 14px; text-align: center; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">Location</th>
-                    <th style="width:16%; padding: 9px 14px; text-align: center; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">Device</th>
-                    <th style="width:14%; padding: 9px 14px; text-align: center; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">Browser</th>
+                    <th style="width:12%; padding: 9px 14px; text-align: left;   font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">Timestamp</th>
+                    <th style="width:8%;  padding: 9px 14px; text-align: center; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">Action</th>
+                    <th style="width:17%; padding: 9px 14px; text-align: center; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">User</th>
+                    <th style="width:21%; padding: 9px 14px; text-align: center; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">IP Address</th>
+                    <th style="width:16%; padding: 9px 14px; text-align: center; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">Location</th>
+                    <th style="width:14%; padding: 9px 14px; text-align: center; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">Device</th>
+                    <th style="width:12%; padding: 9px 14px; text-align: center; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">Browser</th>
                 </tr>
             </thead>
             <tbody id="logbook-tbody">
                 ${logs.slice(0, 100).map((entry, index) => `
                     <tr style="border-bottom: 1px solid var(--border-color); background: ${index % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-body)'};">
-                        <td style="padding: 9px 14px; white-space: nowrap; text-align: left;">
+                        <td style="padding: 9px 14px; white-space: nowrap; text-align: left; overflow: hidden;">
                             <div style="font-weight: 600; font-size: 0.75rem; color: var(--text-primary);">${new Date(entry.timestamp).toLocaleDateString()}</div>
                             <div style="font-size: 0.68rem; color: var(--text-secondary);">${new Date(entry.timestamp).toLocaleTimeString()}</div>
                         </td>
-                        <td style="padding: 9px 14px; text-align: center;">
+                        <td style="padding: 9px 14px; text-align: center; overflow: hidden;">
                             <span style="padding: 2px 8px; border-radius: 3px; font-weight: 600; font-size: 0.65rem; letter-spacing: 0.04em; ${entry.action === 'LOGIN' ? 'background: #e8f5e9; color: #2e7d32;' : 'background: #fce4ec; color: #c62828;'}">
                                 ${entry.action === 'LOGIN' ? 'LOGIN' : 'LOGOUT'}
                             </span>
                         </td>
-                        <td style="padding: 9px 14px; text-align: center;">
-                            <div style="font-weight: 600; font-size: 0.75rem; color: var(--text-primary);">${entry.displayName || 'Unknown'}</div>
-                            <div style="font-size: 0.68rem; color: var(--text-secondary);">${entry.email}</div>
+                        <td style="padding: 9px 14px; text-align: center; overflow: hidden;">
+                            <div style="font-weight: 600; font-size: 0.75rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${entry.displayName || 'Unknown'}</div>
+                            <div style="font-size: 0.68rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${entry.email}</div>
                         </td>
-                        <td style="padding: 9px 14px; text-align: center;">
-                            <span style="font-family: monospace; font-size: 0.72rem; color: var(--text-secondary);">${entry.ip || 'Unknown'}</span>
+                        <td style="padding: 9px 14px; text-align: center; overflow: hidden;">
+                            <span style="font-family: monospace; font-size: 0.68rem; color: var(--text-secondary); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${entry.ip || 'Unknown'}">${entry.ip || 'Unknown'}</span>
                         </td>
                         <td style="padding: 9px 14px; text-align: center;">
                             <div style="display: inline-flex; align-items: center; gap: 5px;">
