@@ -3660,130 +3660,215 @@ table input[type="date"]:not(:focus)[value=""] {
             animation: slideRight 0.5s ease-out;
         }
 
-/* ========== TOAST NOTIFICATIONS ========== */
+/* ========== TOAST NOTIFICATIONS — MODERN ========== */
 #toast-container {
     position: fixed;
-    top: 80px;
-    right: 20px;
-    z-index: 10000;
+    bottom: 24px;
+    right: 24px;
+    z-index: 99999;
     display: flex;
-    flex-direction: column;
+    flex-direction: column-reverse;
     gap: 10px;
+    pointer-events: none;
 }
 
 .toast {
-    background: white;
-    padding: 16px 20px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    pointer-events: all;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 0;
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.13), 0 1.5px 4px rgba(0,0,0,0.07);
+    display: flex;
+    align-items: stretch;
+    min-width: 300px;
+    max-width: 380px;
+    animation: toastSlideIn 0.38s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.06);
+    position: relative;
+}
+
+.toast-accent {
+    width: 4px;
+    flex-shrink: 0;
+    border-radius: 14px 0 0 14px;
+}
+.toast-success .toast-accent { background: linear-gradient(180deg, #43e97b, #2e7d32); }
+.toast-error   .toast-accent { background: linear-gradient(180deg, #ff6b6b, #c62828); }
+.toast-warning .toast-accent { background: linear-gradient(180deg, #ffd93d, #e65100); }
+.toast-info    .toast-accent { background: linear-gradient(180deg, #74b9ff, #1565c0); }
+
+.toast-body {
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-width: 320px;
-    max-width: 400px;
-    animation: slideIn 0.3s ease-out;
-    border-left: 4px solid;
+    gap: 10px;
+    padding: 13px 14px 13px 12px;
+    flex: 1;
 }
 
-.toast-success {
-    border-left-color: #4caf50;
-    background: #f1f8f4;
-}
-
-.toast-error {
-    border-left-color: #f44336;
-    background: #fef5f5;
-}
-
-.toast-warning {
-    border-left-color: #ff9800;
-    background: #fff8f0;
-}
-
-.toast-info {
-    border-left-color: #2196f3;
-    background: #f0f7ff;
-}
-
-.toast-icon {
-    font-size: 20px;
+.toast-icon-wrap {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    font-size: 14px;
+    font-weight: 700;
+}
+.toast-success .toast-icon-wrap { background: #e8f5e9; color: #2e7d32; }
+.toast-error   .toast-icon-wrap { background: #ffebee; color: #c62828; }
+.toast-warning .toast-icon-wrap { background: #fff3e0; color: #e65100; }
+.toast-info    .toast-icon-wrap { background: #e3f2fd; color: #1565c0; }
+
+.toast-text-wrap {
+    flex: 1;
+    min-width: 0;
 }
 
-.toast-success .toast-icon { color: #4caf50; }
-.toast-error .toast-icon { color: #f44336; }
-.toast-warning .toast-icon { color: #ff9800; }
-.toast-info .toast-icon { color: #2196f3; }
+.toast-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 1px;
+}
+.toast-success .toast-title { color: #2e7d32; }
+.toast-error   .toast-title { color: #c62828; }
+.toast-warning .toast-title { color: #e65100; }
+.toast-info    .toast-title { color: #1565c0; }
 
 .toast-message {
-    flex: 1;
-    font-size: 14px;
-    color: #333;
+    font-size: 0.8rem;
+    color: #444;
     font-weight: 500;
     line-height: 1.4;
+    word-break: break-word;
 }
 
 .toast-close {
     background: none;
     border: none;
-    color: #999;
+    color: #bbb;
     cursor: pointer;
-    padding: 0;
-    font-size: 20px;
+    padding: 8px 10px 8px 4px;
+    font-size: 16px;
     line-height: 1;
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    align-self: flex-start;
+    margin-top: 6px;
+    border-radius: 6px;
+    transition: color 0.15s;
 }
+.toast-close:hover { color: #666; }
 
-
-@keyframes slideIn {
-    from {
-        transform: translateX(400px);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
+.toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2.5px;
+    border-radius: 0 0 14px 14px;
+    animation: toastProgress linear forwards;
 }
+.toast-success .toast-progress { background: linear-gradient(90deg,#43e97b,#2e7d32); }
+.toast-error   .toast-progress { background: linear-gradient(90deg,#ff6b6b,#c62828); }
+.toast-warning .toast-progress { background: linear-gradient(90deg,#ffd93d,#e65100); }
+.toast-info    .toast-progress { background: linear-gradient(90deg,#74b9ff,#1565c0); }
 
-@keyframes slideOut {
-    from {
-        transform: translateX(0);
-        opacity: 1;
-    }
-    to {
-        transform: translateX(400px);
-        opacity: 0;
-    }
+@keyframes toastSlideIn {
+    from { transform: translateX(120%) scale(0.95); opacity: 0; }
+    to   { transform: translateX(0)    scale(1);    opacity: 1; }
+}
+@keyframes toastSlideOut {
+    from { transform: translateX(0)    scale(1);    opacity: 1; max-height: 100px; margin-bottom: 0; }
+    to   { transform: translateX(120%) scale(0.95); opacity: 0; max-height: 0;    margin-bottom: -10px; }
+}
+@keyframes toastProgress {
+    from { width: 100%; }
+    to   { width: 0%; }
 }
 
 .toast.hiding {
-    animation: slideOut 0.3s ease-out forwards;
+    animation: toastSlideOut 0.32s cubic-bezier(0.4,0,1,1) forwards;
 }
 
+/* ── Sync Status Pill ── */
+#sync-status-pill {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    z-index: 99998;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px 8px 12px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    cursor: default;
+    user-select: none;
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease, background 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+    border: 1px solid rgba(255,255,255,0.3);
+    white-space: nowrap;
+}
+#sync-status-pill.visible {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: all;
+}
+#sync-status-pill.pill-pending {
+    background: rgba(255,152,0,0.92);
+    color: white;
+    border-color: rgba(255,255,255,0.25);
+}
+#sync-status-pill.pill-syncing {
+    background: rgba(25,118,210,0.92);
+    color: white;
+    border-color: rgba(255,255,255,0.25);
+}
+#sync-status-pill.pill-synced {
+    background: rgba(46,125,50,0.92);
+    color: white;
+    border-color: rgba(255,255,255,0.25);
+}
+#sync-status-pill.pill-offline {
+    background: rgba(97,97,97,0.92);
+    color: white;
+    border-color: rgba(255,255,255,0.15);
+}
+#sync-status-pill .pill-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.7);
+    flex-shrink: 0;
+}
+#sync-status-pill.pill-pending .pill-dot  { animation: pillPulse 1.2s ease-in-out infinite; }
+#sync-status-pill.pill-syncing .pill-dot  { animation: pillSpin 0.9s linear infinite; background: transparent; border: 2px solid white; border-top-color: transparent; border-radius: 50%; width: 9px; height: 9px; }
+@keyframes pillPulse { 0%,100%{opacity:0.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.3)} }
+@keyframes pillSpin  { to { transform: rotate(360deg); } }
+
+/* dark mode */
 body.dark-mode .toast {
-    background: #2d2d2d;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    background: rgba(30,30,30,0.93);
+    border-color: rgba(255,255,255,0.07);
 }
-
-body.dark-mode .toast-success { background: #1a3a1f; }
-body.dark-mode .toast-error { background: #3a1a1a; }
-body.dark-mode .toast-warning { background: #3a2a1a; }
-body.dark-mode .toast-info { background: #1a2a3a; }
-
-body.dark-mode .toast-message {
-    color: #e4e4e4;
-}
-
-body.dark-mode .toast-close {
-    color: #b0b0b0;
-}
-
+body.dark-mode .toast-message { color: #ddd; }
+body.dark-mode .toast-success .toast-icon-wrap { background: rgba(46,125,50,0.25); }
+body.dark-mode .toast-error   .toast-icon-wrap { background: rgba(198,40,40,0.25); }
+body.dark-mode .toast-warning .toast-icon-wrap { background: rgba(230,81,0,0.25);  }
+body.dark-mode .toast-info    .toast-icon-wrap { background: rgba(21,101,192,0.25);}
+body.dark-mode .toast-close { color: #666; }
+body.dark-mode .toast-close:hover { color: #aaa; }
 
 /* ========== END TOAST ========== */
 
@@ -8408,14 +8493,16 @@ function applyNumFmtToInputs() {
             
             handleOnline() {
                 state.isOnline = true;
-                showToast('🌐 Back online! Syncing changes...', 'success');
+                showSyncPill('syncing', 'Back online — syncing...');
+                showToast('Back online! Syncing changes...', 'success');
                 this.syncOfflineQueue();
                 AuditLogger.log('SYSTEM_ONLINE', { status: 'Connected to internet' });
             },
             
             handleOffline() {
                 state.isOnline = false;
-                showToast('📵 You are offline. Changes will sync when online.', 'warning');
+                showSyncPill('offline', '📵 Offline — local saves only');
+                showToast('You are offline. Changes will sync when back online.', 'warning');
                 AuditLogger.log('SYSTEM_OFFLINE', { status: 'Disconnected from internet' });
             },
             
@@ -8434,22 +8521,28 @@ function applyNumFmtToInputs() {
                 
                 console.log(`🔄 Syncing ${state.offlineQueue.length} offline changes...`);
                 
-                for (const item of state.offlineQueue) {
-                    try {
-                        await this.processQueueItem(item);
-                    } catch (e) {
-                        console.error('Failed to sync item:', item, e);
+                // FIX: Always push current localStorage state to Firebase (it has the latest data)
+                try {
+                    const success = await saveToFirebase();
+                    if (success) {
+                        state.offlineQueue = [];
+                        localStorage.removeItem('esh_offline_queue');
+                        markSyncComplete();
+                        showToast('All offline changes synced to cloud!', 'success');
+                    } else {
+                        showToast('⚠️ Sync failed — will retry shortly.', 'warning');
+                        setTimeout(() => this.syncOfflineQueue(), 15000);
                     }
+                } catch (e) {
+                    console.error('Failed to sync offline queue:', e);
+                    showToast('⚠️ Sync failed — will retry shortly.', 'warning');
+                    setTimeout(() => this.syncOfflineQueue(), 15000);
                 }
-                
-                state.offlineQueue = [];
-                localStorage.removeItem('esh_offline_queue');
-                showToast('✅ All offline changes synced!', 'success');
             },
             
             async processQueueItem(item) {
                 // Process based on action type
-                if (item.action === 'SAVE_DATA') {
+                if (item.action === 'SAVE_DATA' || item.action === 'SAVE_ALL') {
                     await saveToFirebase();
                 }
                 // Add more action types as needed
@@ -9641,7 +9734,9 @@ function openAdminQuickView() {
 
 
         function loadUserData(email) {
-            const storageKey = `esh_dashboard_${email}`;
+            const year = state.selectedYear || 2026;
+            // FIX: Use year-based key to match save function
+            const storageKey = `esh_dashboard_${year}_${email}`;
             const savedData = localStorage.getItem(storageKey);
 
             if (savedData) {
@@ -9667,8 +9762,11 @@ function openAdminQuickView() {
 
         function saveUserData(email) {
             if (!email) return;
-            const storageKey = `esh_dashboard_${email}`;
+            const year = state.selectedYear || 2026;
+            // FIX: Use year-based key to match the load function (esh_dashboard_${year}_${email})
+            const storageKey = `esh_dashboard_${year}_${email}`;
             const data = {
+                year: year,
                 projects: state.projects.map(p => {
                     const copy = { ...p };
                     delete copy.selected;
@@ -9676,6 +9774,7 @@ function openAdminQuickView() {
                 }),
                 personnelData: state.personnelData || [],
                 incidentRateData: state.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 },
+                oshData: state.oshData || {},
                 currentSort: state.currentSort,
                 lastSaved: new Date().toISOString(),
                 timestamp: Date.now()
@@ -9871,7 +9970,7 @@ function openAdminQuickView() {
                 return;
             }
 
-            state.projects.push({
+            const newProject = {
     name, region, status: 'on-going',
     dateStarted, dateFinished, 
     isRenewable: isRenewable,
@@ -9883,18 +9982,38 @@ function openAdminQuickView() {
         Q3: { scoreImpl: 0, docuComp: 0 },
         Q4: { scoreImpl: 0, docuComp: 0 }
     }
-});
+};
+            state.projects.push(newProject);
+
+            // FIX: Also add to masterProjects immediately so saveToFirebase() includes it
+            const masterIdx = state.masterProjects.findIndex(p => p.name === name);
+            if (masterIdx >= 0) {
+                state.masterProjects[masterIdx] = newProject;
+            } else {
+                state.masterProjects.push(newProject);
+            }
 
             sortProjects(state.currentSort);
             reapplyFilters(); // Reapply current filters
-            saveUserData(state.currentUser.email);
+            saveUserData(state.currentUser.email); // Save to localStorage immediately
             closeAddProjectModal();
             render();
+
+            // FIX: Also save to Firebase immediately so it persists on refresh
+            showSyncPill('syncing', 'Saving new project to cloud...');
+            saveToFirebase().then(success => {
+                if (success) {
+                    markSyncComplete();
+                } else {
+                    markSyncFailed();
+                    showToast('Project saved locally but cloud sync failed. Will retry when connection improves.', 'warning');
+                }
+            }).catch(() => markSyncFailed());
             
             if (isRenewable) {
-                showToast(`✅ Project "${name}" added as Renewable Energy project`, 'success');
+                showToast(`Project "${name}" added as Renewable Energy project`, 'success');
             } else {
-                showToast(`✅ Project "${name}" added successfully`, 'success');
+                showToast(`Project "${name}" added successfully`, 'success');
             }
         }
 
@@ -9983,13 +10102,20 @@ function openAdminQuickView() {
                     project.status = 'on-going';
                 }
 
+                // Also update masterProjects immediately
+                const mIdx = state.masterProjects.findIndex(p => p.name === editingProjectOriginalName);
+                if (mIdx >= 0) state.masterProjects[mIdx] = project;
+
                 sortProjects(state.currentSort);
-                reapplyFilters(); // Reapply current filters
+                reapplyFilters();
                 saveUserData(state.currentUser.email);
                 closeEditProjectModal();
                 render();
-                
-                showToast(`✅ Project updated${isRenewable ? ' (Renewable Energy)' : ''}`, 'success');
+
+                // FIX: Save to Firebase immediately
+                showSyncPill('syncing', 'Saving to cloud...');
+                saveToFirebase().then(s => s ? markSyncComplete() : markSyncFailed()).catch(() => markSyncFailed());
+                showToast(`Project updated${isRenewable ? ' (Renewable Energy)' : ''}`, 'success');
             }
         }
 
@@ -10131,15 +10257,42 @@ function openAdminQuickView() {
             
             // Save to localStorage first (instant, no network)
             saveUserData(state.currentUser.email);
+            markPendingSync();
+
+            // Show syncing pill
+            showSyncPill('syncing', 'Syncing to cloud...');
             
-            // Then sync to Firebase
-            const success = await saveToFirebase();
+            // Then sync to Firebase (with offline fallback)
+            let success = false;
+            if (!navigator.onLine) {
+                // Offline: queue the save, localStorage already has it
+                state.offlineQueue = state.offlineQueue || [];
+                state.offlineQueue.push({ id: Date.now(), action: 'SAVE_ALL', timestamp: new Date().toISOString() });
+                localStorage.setItem('esh_offline_queue', JSON.stringify(state.offlineQueue));
+                success = true; // treat as success since localStorage is saved
+                showSyncPill('offline', '📵 Offline — saved locally, will sync later');
+                hideSyncPill(4000);
+                showToast('Saved locally. Will sync to cloud when back online.', 'warning');
+            } else {
+                success = await saveToFirebase();
+                if (!success) {
+                    // Firebase failed but localStorage is saved — queue for retry
+                    state.offlineQueue = state.offlineQueue || [];
+                    state.offlineQueue.push({ id: Date.now(), action: 'SAVE_ALL', timestamp: new Date().toISOString() });
+                    localStorage.setItem('esh_offline_queue', JSON.stringify(state.offlineQueue));
+                    markSyncFailed();
+                    showToast('Cloud save failed — saved locally. Will retry automatically.', 'warning');
+                    success = true; // don't block UI — local is saved
+                } else {
+                    markSyncComplete();
+                }
+            }
             
             if (success) {
                 // Success state
                 if (floatingIcon) floatingIcon.className = 'fas fa-check';
                 if (floatingTooltip) floatingTooltip.textContent = 'Saved!';
-                showToast('✓ Data saved successfully!', 'success');
+                if (navigator.onLine) showToast('Data saved & synced to cloud!', 'success');
                 
                 setTimeout(() => {
                     // Return to EDIT mode
@@ -10494,6 +10647,8 @@ function updateAuditData(pName, qtr, field, val) {
                 if (!p.vals[key]) p.vals[key] = new Array(13).fill("");
                 p.vals[key][mIdx] = val;
             }
+            // Mark that there are unsaved changes pending cloud sync
+            if (typeof markPendingSync === 'function') markPendingSync();
             // Live-update the Incident Tabulation panel when relevant data changes
             if (state.currentTab === 'rates') {
                 const panel = document.getElementById('incident-tabulation-panel');
@@ -11409,29 +11564,94 @@ function closeAllStatusDropdowns() {
             const container = document.getElementById('toast-container');
             if (!container) return;
             
-            const icons = {
-                success: '✓',
-                error: '✕',
-                warning: '⚠',
-                info: 'ℹ'
+            const meta = {
+                success: { icon: '<i class="fas fa-check"></i>',   title: 'Success' },
+                error:   { icon: '<i class="fas fa-times"></i>',   title: 'Error'   },
+                warning: { icon: '<i class="fas fa-exclamation"></i>', title: 'Warning' },
+                info:    { icon: '<i class="fas fa-info"></i>',    title: 'Info'    },
             };
-            
+            const m = meta[type] || meta.info;
+
             const toast = document.createElement('div');
             toast.className = `toast toast-${type}`;
             toast.innerHTML = `
-                <span class="toast-icon">${icons[type]}</span>
-                <span class="toast-message">${message}</span>
-                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+                <div class="toast-accent"></div>
+                <div class="toast-body">
+                    <div class="toast-icon-wrap">${m.icon}</div>
+                    <div class="toast-text-wrap">
+                        <div class="toast-title">${m.title}</div>
+                        <div class="toast-message">${message}</div>
+                    </div>
+                </div>
+                <button class="toast-close" onclick="this.closest('.toast').remove()">×</button>
+                <div class="toast-progress" style="animation-duration:${duration}ms"></div>
             `;
             
             container.appendChild(toast);
             
-            // Auto remove after duration
-            setTimeout(() => {
+            // Limit to 4 toasts max
+            const toasts = container.querySelectorAll('.toast');
+            if (toasts.length > 4) toasts[0].remove();
+
+            // Auto remove
+            const timer = setTimeout(() => {
                 toast.classList.add('hiding');
-                setTimeout(() => toast.remove(), 300);
+                setTimeout(() => toast.remove(), 320);
             }, duration);
+
+            toast.querySelector('.toast-close').addEventListener('click', () => clearTimeout(timer));
         }
+
+        // ── Sync Status Pill System ──
+        let _syncPillTimer = null;
+        let _pendingSync = false;
+
+        function showSyncPill(state_str, label) {
+            let pill = document.getElementById('sync-status-pill');
+            if (!pill) {
+                pill = document.createElement('div');
+                pill.id = 'sync-status-pill';
+                pill.innerHTML = `<div class="pill-dot"></div><span class="pill-label"></span>`;
+                document.body.appendChild(pill);
+            }
+            pill.className = `sync-status-pill`;
+            pill.id = 'sync-status-pill';
+            pill.classList.add(`pill-${state_str}`, 'visible');
+            pill.querySelector('.pill-label').textContent = label;
+            clearTimeout(_syncPillTimer);
+        }
+
+        function hideSyncPill(delay = 2500) {
+            clearTimeout(_syncPillTimer);
+            _syncPillTimer = setTimeout(() => {
+                const pill = document.getElementById('sync-status-pill');
+                if (pill) pill.classList.remove('visible');
+            }, delay);
+        }
+
+        function markPendingSync() {
+            _pendingSync = true;
+            showSyncPill('pending', '⏳ Unsaved changes — not yet synced to cloud');
+        }
+
+        function markSyncComplete() {
+            _pendingSync = false;
+            showSyncPill('synced', '✓ Synced to cloud');
+            hideSyncPill(2500);
+        }
+
+        function markSyncFailed() {
+            _pendingSync = true;
+            showSyncPill('pending', '⚠ Saved locally — waiting to sync');
+        }
+
+        // Warn user if leaving with pending sync
+        window.addEventListener('beforeunload', (e) => {
+            if (_pendingSync) {
+                e.preventDefault();
+                e.returnValue = "You have changes that haven't been synced to the cloud yet. Are you sure you want to leave?";
+            }
+        });
         
         // Phase 3: Regional Locking - Show locked message
         function showLockedMessage(reason) {
@@ -11805,6 +12025,7 @@ function closeAllStatusDropdowns() {
                     'kpm': {
                         icon: 'fa-file-lines',
                         iconColor: '#fbc02d',
+                        title: 'MONTHLY REPORT (KPM&I)',
                         sub1: 'Monthly submission required for each project',
                         sub2: `<i class="fas fa-calendar-check"></i> Tracking ${displayProjects.length} project(s) — KPM & Inspection reports`
                     },
@@ -12296,12 +12517,19 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
             const prevValFmt = (!isDateType && prevVal !== '') ? fmtNum(prevVal) : prevVal;
             
             if (state.currentTab !== 'kpm' && state.currentTab !== 'dole' && state.currentTab !== 'emb' && state.currentTab !== 'permits') {
-                html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}">
+                // "Total Exposed Man-hour to date" — Previous is read-only (auto value)
+                if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
+                    html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}" style="text-align:center;background:rgba(46,125,50,0.07);">
+                        <span style="font-weight:700;color:#1b5e20;font-size:0.8rem;">${prevValFmt || ''}</span>
+                    </td>`;
+                } else {
+                    html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}">
                     <input type="${isDateType ? 'date' : 'text'}" ${isDateType ? '' : 'inputmode="decimal" data-num'}
                         value="${prevValFmt}"
                         ${inputsEditable ? '' : 'disabled'}
                         ${isDateType ? `oninput="updateVal('${p.name}','${key}',0,this.value)"` : `oninput="numFmtInput(this, function(v){updateVal('${p.name}','${key}',0,v)})"`}>
                 </td>`;
+                }
             }
             
             // Main data columns
@@ -12430,6 +12658,29 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             </span>
                         </td>`;
                     }
+                } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
+                    // AUTO-COMPUTED: cumulative sum = Previous + JAN + FEB + ... up to each month
+                    // Uses "Total Exposed Manhour" row values for monthly increments
+                    const manhourKey = `exposures_Total Exposed Manhour`;
+                    const prevManhour = parseFloat(p.vals[manhourKey] ? (p.vals[manhourKey][0] ?? 0) : 0) || 0;
+                    const prevToDate  = parseFloat(p.vals[key] ? (p.vals[key][0] ?? 0) : 0) || 0;
+                    // Use stored previous value (index 0) as base, then accumulate monthly manhours
+                    let cumulative = prevManhour > 0 ? prevManhour : prevToDate;
+                    // Also add the stored previous year value if "to date" previous is bigger
+                    if (prevToDate > cumulative) cumulative = prevToDate;
+                    for (let i = 1; i <= 12; i++) {
+                        const monthManhour = parseFloat(p.vals[manhourKey] ? (p.vals[manhourKey][i] ?? '') : '') || 0;
+                        if (monthManhour > 0) {
+                            cumulative += monthManhour;
+                        }
+                        const displayVal = cumulative > 0 ? fmtNum(cumulative) : '';
+                        const hasData = monthManhour > 0 || (i === 1 && cumulative > 0);
+                        html += `<td class="monthly-data" style="text-align:center;background:${hasData ? 'rgba(46,125,50,0.07)' : ''};" title="Auto-computed: Previous + sum of monthly manhours up to this month">
+                            <span style="font-weight:700;color:${cumulative > 0 ? '#1b5e20' : '#bbb'};font-size:0.8rem;">
+                                ${displayVal}${cumulative > 0 ? '<i class="fas fa-calculator" style="font-size:0.45rem;margin-left:3px;opacity:0.4;vertical-align:middle;"></i>' : ''}
+                            </span>
+                        </td>`;
+                    }
                 } else {
                     // Normal monthly columns - REMOVED RED "NO REPORT", just normal input
                     for (let i = 1; i <= 12; i++) {
@@ -12463,6 +12714,16 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         }
                     }
                     html += `<td class="ytd-cell" style="color:${ytdValue>0?'#2e7d32':''};">${ytdValue > 0 ? fmtNum(ytdValue) : ''}</td>`;
+                } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
+                    // YTD = final cumulative value = Previous manhour + all monthly manhours
+                    const _mhKey = `exposures_Total Exposed Manhour`;
+                    const _prevMh = parseFloat(p.vals[_mhKey] ? (p.vals[_mhKey][0] ?? 0) : 0) || 0;
+                    const _prevTd = parseFloat(p.vals[key] ? (p.vals[key][0] ?? 0) : 0) || 0;
+                    let _cum = _prevMh > _prevTd ? _prevMh : _prevTd;
+                    for (let _i = 1; _i <= 12; _i++) {
+                        _cum += parseFloat(p.vals[_mhKey] ? (p.vals[_mhKey][_i] ?? '') : '') || 0;
+                    }
+                    html += `<td class="ytd-cell" style="font-weight:800;">${_cum > 0 ? fmtNum(_cum) : ''}</td>`;
                 } else {
                     ytdValue = calculateYTD(p.vals[key], rowIdx);
                     html += `<td class="ytd-cell">${fmtNum(ytdValue)}</td>`;
@@ -12531,6 +12792,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             </div>
                             <div style="flex:1;">
                                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                    <h2 style="margin: 0; font-size: 0.95rem; font-weight: 900; line-height:1.2; letter-spacing:0.3px;">ENVIRONMENTAL MONTHLY REPORT</h2>
                                     <span style="background:rgba(255,255,255,0.2);font-size:0.62rem;padding:2px 8px;border-radius:10px;font-weight:700;border:1px solid rgba(255,255,255,0.3);">EMR</span>
                                 </div>
                                 <p style="margin: 4px 0 2px; font-size: 0.73rem; opacity: 0.9; display:flex;align-items:center;gap:5px;"><i class="fas fa-calendar-check"></i> Monthly submission required per project — Environmental compliance tracking</p>
@@ -12757,7 +13019,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <i class="fas fa-solar-panel" style="font-size: 1.2rem; color: #fbc02d; flex-shrink:0;"></i>
                                 <div>
-                                   
+                                    <h2 style="margin: 0; font-size: 0.9rem; font-weight: 800; line-height:1.2;">DOE REPORTORIAL - RENEWABLE ENERGY PROJECTS</h2>
                                     <p style="margin: 2px 0 0; font-size: 0.72rem; opacity: 0.9;">Quarterly submission (Due: 20th of the following month after each quarter)</p>
                                     <p style="margin: 1px 0 0; font-size: 0.68rem; opacity: 0.8;"><i class="fas fa-leaf"></i> Showing ${renewableProjects.length} Renewable Energy project(s)</p>
                                 </div>
@@ -13938,11 +14200,23 @@ function openAddPersonnelModal() {
         if (!state.isAdmin && state.userRegion) {
             projectsList = state.projects.filter(p => p.region === state.userRegion && p.region !== 'CORPORATE');
         } else if (state.isAdmin) {
-            projectsList = state.projects; // Admin sees all
+            projectsList = state.projects; // Admin sees all (including CORPORATE)
         }
         
+        // Admin: add Corporate project option if not already via "Corporate Office"
+        if (state.isAdmin) {
+            const hasCorporateProj = projectsList.some(p => p.name === 'Corporate' && p.region === 'CORPORATE');
+            if (!hasCorporateProj) {
+                options += `<option value="Corporate">Corporate (Corporate Region)</option>`;
+            }
+        }
+
         projectsList.forEach(p => {
-            options += `<option value="${p.name}">${p.name}</option>`;
+            if (p.region === 'CORPORATE') {
+                options += `<option value="${p.name}">${p.name} (Corporate Region)</option>`;
+            } else {
+                options += `<option value="${p.name}">${p.name}</option>`;
+            }
         });
     }
     
@@ -14077,7 +14351,10 @@ function confirmAddPersonnel() {
     renderPTable();
     updatePersonnelSummary();
     closeAddPersonnelModal();
-    showToast('✅ Personnel added successfully!', 'success');
+    showToast('Personnel added successfully!', 'success');
+    // FIX: Save to Firebase immediately
+    showSyncPill('syncing', 'Saving to cloud...');
+    saveToFirebase().then(s => s ? markSyncComplete() : markSyncFailed()).catch(() => markSyncFailed());
 }
 
 // Edit Personnel Modal Functions
@@ -14123,9 +14400,21 @@ function openEditPersonnelModal(index) {
         if (!state.isAdmin && state.userRegion) {
             projectsList = state.projects.filter(p => p.region === state.userRegion && p.region !== 'CORPORATE');
         }
+
+        // Admin: ensure Corporate project appears in list
+        if (state.isAdmin) {
+            const hasCorporateProj = projectsList.some(p => p.name === 'Corporate' && p.region === 'CORPORATE');
+            if (!hasCorporateProj) {
+                options += `<option value="Corporate">Corporate (Corporate Region)</option>`;
+            }
+        }
         
         projectsList.forEach(p => {
-            options += `<option value="${p.name}">${p.name}</option>`;
+            if (p.region === 'CORPORATE') {
+                options += `<option value="${p.name}">${p.name} (Corporate Region)</option>`;
+            } else {
+                options += `<option value="${p.name}">${p.name}</option>`;
+            }
         });
     }
     
@@ -14296,7 +14585,10 @@ function confirmEditPersonnel() {
     renderPTable();
     updatePersonnelSummary();
     closeEditPersonnelModal();
-    showToast('✅ Personnel updated successfully!', 'success');
+    showToast('Personnel updated successfully!', 'success');
+    // FIX: Save to Firebase immediately
+    showSyncPill('syncing', 'Saving to cloud...');
+    saveToFirebase().then(s => s ? markSyncComplete() : markSyncFailed()).catch(() => markSyncFailed());
 }
 
 // Track collapsed project/group cards
@@ -14505,13 +14797,14 @@ function renderPTable() {
     const projPosRank = pos => { const i = PROJECT_POS_ORDER.indexOf(pos); return i >= 0 ? i : PROJECT_POS_ORDER.length; };
     const regionRank  = r   => { const i = REGION_ORDER.indexOf((r||'').toUpperCase()); return i >= 0 ? i : REGION_ORDER.length; };
 
-    // Separate corporate vs project personnel
-    const corpPersonnel    = rawData.filter(p => p.current === 'Corporate Office').sort((a,b) => corpPosRank(a.pos)-corpPosRank(b.pos));
-    const projectPersonnel = rawData.filter(p => p.current !== 'Corporate Office');
-
-    // Build project→region map
+    // Build project→region map (needed early)
     const projectRegionMap = {};
     (state.masterProjects || state.projects || []).forEach(p => { if (p.name) projectRegionMap[p.name] = (p.region||'').toUpperCase(); });
+
+    // Separate corporate vs project personnel
+    // Corporate group = "Corporate Office" OR any project assigned to CORPORATE region
+    const corpPersonnel    = rawData.filter(p => p.current === 'Corporate Office' || projectRegionMap[p.current] === 'CORPORATE').sort((a,b) => corpPosRank(a.pos)-corpPosRank(b.pos));
+    const projectPersonnel = rawData.filter(p => p.current !== 'Corporate Office' && projectRegionMap[p.current] !== 'CORPORATE');
     projectPersonnel.forEach(p => { p._region = projectRegionMap[p.current] || 'OTHER'; });
 
     // Group by region → project
@@ -19604,5 +19897,6 @@ function dismissLoginFlash() {
     <i id="floating-edit-icon" class="fas fa-edit"></i>
     <span id="floating-edit-tooltip" class="edit-tooltip">Click to Edit</span>
 </button>
+    <div id="toast-container"></div>
 </body>
 </html>
