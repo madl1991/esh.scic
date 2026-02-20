@@ -837,6 +837,12 @@
         #firebase-loading-overlay {
             position: fixed; inset: 0; background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
             display: flex; align-items: center; justify-content: center; z-index: 20000; flex-direction: column; gap: 20px;
+            animation: overlayTimeout 6.5s forwards;
+        }
+        @keyframes overlayTimeout {
+            0%   { opacity: 1; pointer-events: all; }
+            90%  { opacity: 1; pointer-events: all; }
+            100% { opacity: 0; pointer-events: none; display: none; }
         }
         /* Shield Pulse Loader */
         #firebase-loading-overlay .shield-loader {
@@ -1714,6 +1720,8 @@
         }
 
 
+        .floating-edit-btn:hover .edit-tooltip { opacity: 1; }
+        .floating-edit-btn:hover { transform: scale(1.08); }
         .floating-edit-btn .edit-tooltip::after {
             content: '';
             position: absolute;
@@ -3953,8 +3961,8 @@ body.dark-mode #osh-req-body tr:nth-child(even) .osh-sticky-td { background: rgb
 }
 
 /* Personnel table: locked by default, per-row Edit/Save */
-#p-body td input,
-#p-body td select {
+.p-project-card td input,
+.p-project-card td select {
     pointer-events: none;
     background: transparent !important;
     border: none !important;
@@ -3962,8 +3970,8 @@ body.dark-mode #osh-req-body tr:nth-child(even) .osh-sticky-td { background: rgb
     cursor: default;
     font-size: 0.72rem;
 }
-#p-body tr.p-editing td input,
-#p-body tr.p-editing td select {
+.p-project-card tr.p-editing td input,
+.p-project-card tr.p-editing td select {
     pointer-events: auto;
     background: var(--input-bg) !important;
     border: 1px solid #2e7d32 !important;
@@ -3971,26 +3979,37 @@ body.dark-mode #osh-req-body tr:nth-child(even) .osh-sticky-td { background: rgb
     cursor: text;
     padding: 4px 6px !important;
 }
-#p-body tr {
+.p-view-text {
+    display: inline-block;
+    white-space: normal !important;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+    vertical-align: middle;
+    font-size: 0.72rem;
+}
+.p-project-card td {
+    white-space: normal;
+    vertical-align: middle;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+.p-project-card tbody tr {
     border-bottom: 1px solid var(--border-color);
     transition: background 0.15s;
 }
-#p-body tr:nth-child(even) { background: rgba(0,0,0,0.018); }
-body.dark-mode #p-body tr:nth-child(even) { background: rgba(255,255,255,0.03); }
+.p-project-card tbody tr:nth-child(even) { background: rgba(0,0,0,0.018); }
+body.dark-mode .p-project-card tbody tr:nth-child(even) { background: rgba(255,255,255,0.03); }
 /* Group & project header rows — never inherit nth-child alternating background */
-#p-body tr.p-group-header-row,
-#p-body tr.p-group-header-row:nth-child(even) { background: none !important; border-bottom: none; }
-#p-body tr.p-project-header-row,
-#p-body tr.p-project-header-row:nth-child(even) { border-bottom: none; }
-#p-body tr.p-group-header-row td,
-#p-body tr.p-project-header-row td { border: none; }
-#p-body tr.p-group-header-row:hover td,
-#p-body tr.p-project-header-row:hover td { filter: none; }
-#p-body tr.p-editing { background: #f1f8e9 !important; box-shadow: inset 3px 0 0 #2e7d32; }
-body.dark-mode #p-body tr.p-editing { background: rgba(27,94,32,0.25) !important; }
-#p-body tr.p-editing td:first-child { background: #f1f8e9 !important; }
-body.dark-mode #p-body tr.p-editing td:first-child { background: rgba(27,94,32,0.25) !important; }
-#p-body tr:nth-child(even) td:first-child { background: rgba(0,0,0,0.018); }
+
+
+
+
+.p-project-card tr.p-editing { background: #f1f8e9 !important; box-shadow: inset 3px 0 0 #2e7d32; }
+body.dark-mode .p-project-card tr.p-editing { background: rgba(27,94,32,0.25) !important; }
+.p-project-card tr.p-editing td:first-child { background: #f1f8e9 !important; }
+body.dark-mode .p-project-card tr.p-editing td:first-child { background: rgba(27,94,32,0.25) !important; }
+.p-project-card tbody tr:nth-child(even) td:first-child { background: rgba(0,0,0,0.018); }
 body.dark-mode #p-body tr:nth-child(even) td:first-child { background: rgba(255,255,255,0.03); }
 #p-body td { padding: 8px 10px; vertical-align: middle; border: none; color: var(--text-primary); }
 #p-body td:first-child { font-weight: 600; }
@@ -4296,22 +4315,25 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <input type="text" id="projectNameInput" placeholder="Enter project name" required>
             </div>
             <div class="form-group">
-                <label>Date Started *</label>
-                <input type="date" id="projectDateStarted" required max="">
-            </div>
-            <div class="form-group">
-                <label>Date Finished</label>
-                <input type="date" id="projectDateFinished" max="">
-            </div>
-            <div class="form-group">
                 <label>Region *</label>
-                <select id="projectRegion" required>
+                <select id="projectRegion" required onchange="onProjectRegionChange(this.value)">
                     <option value="">Select Region</option>
                     <option value="NCR">NCR</option>
                     <option value="SOUTH LUZON">South Luzon</option>
                     <option value="NORTH LUZON">North Luzon</option>
                     <option value="VISAYAS & MINDANAO">Visayas & Mindanao</option>
+                    <option value="CORPORATE">Corporate</option>
                 </select>
+            </div>
+            <div id="projectDateFields">
+                <div class="form-group">
+                    <label>Date Started *</label>
+                    <input type="date" id="projectDateStarted" required max="">
+                </div>
+                <div class="form-group">
+                    <label>Date Finished</label>
+                    <input type="date" id="projectDateFinished" max="">
+                </div>
             </div>
             
             <div class="form-group">
@@ -4591,6 +4613,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <option value="SOUTH LUZON">South Luzon</option>
                     <option value="NORTH LUZON">North Luzon</option>
                     <option value="VISAYAS & MINDANAO">Visayas & Mindanao</option>
+                    <option value="CORPORATE">Corporate</option>
                 </select>
             </div>
             
@@ -4693,6 +4716,20 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <div class="nav-item" data-tab="permits" onclick="changeTab('permits')"><i class="fas fa-leaf"></i> Environmental Permits</div>
                     <div class="nav-item" data-tab="env-monitoring" onclick="changeTab('env-monitoring')"><i class="fas fa-seedling"></i> Environmental Monitoring</div>
 
+                </div>
+            </div>
+
+            <!-- ESH CALENDAR & DRILLS -->
+            <div class="nav-group">
+                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)">
+                    <span><i class="fas fa-calendar-check" style="margin-right: 6px;"></i> ESH Calendar & Drills</span>
+                    <i class="fas fa-chevron-down chevron"></i>
+                </div>
+                <div class="nav-group-items collapsed">
+                    <div class="nav-item" data-tab="esh-calendar-env" onclick="changeTab('esh-calendar-env')"><i class="fas fa-leaf"></i> Environment Trainings</div>
+                    <div class="nav-item" data-tab="esh-calendar-safety" onclick="changeTab('esh-calendar-safety')"><i class="fas fa-hard-hat"></i> Safety Trainings</div>
+                    <div class="nav-item" data-tab="esh-calendar-health" onclick="changeTab('esh-calendar-health')"><i class="fas fa-heart-pulse"></i> Health Trainings</div>
+                    <div class="nav-item" data-tab="esh-calendar-drills" onclick="changeTab('esh-calendar-drills')"><i class="fas fa-person-running"></i> Emergency Drills</div>
                 </div>
             </div>
 
@@ -4840,8 +4877,10 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             </div>
         </header>
        
+<!-- ── Global RBAC Banner — shown on ALL tabs for superintendent & PCO ── -->
+<div id="global-rbac-banner" style="display:none;margin:10px 20px 0;"></div>
 
- <div id="dashboard-content" style="margin-top: 6px;"></div>
+ <div id="dashboard-content" style="margin-top: 10px;"></div>
 
 
 
@@ -5172,6 +5211,22 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
     }
 
     /* Yellow accent line on stat hover */
+
+    /* ── RBAC Setup Table ── */
+    .rbac-row-cell {
+        padding: 9px 14px;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        color: var(--text-primary);
+        font-size: 0.73rem;
+        background: var(--bg-card);
+    }
+    .rbac-row-cell.rbac-alt { background: var(--input-bg); }
+    .rbac-row-cell.rbac-status-cell { justify-content: center; }
+    .rbac-ok  { color: #2e7d32; font-weight: 700; font-size: 0.7rem; }
+    .rbac-err { color: #c62828; font-weight: 700; font-size: 0.7rem; }
+    .rbac-spin { color: #94a3b8; font-size: 0.7rem; }
 </style>
 
 <div id="admin-view" class="hidden">
@@ -5223,7 +5278,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         </div>
 
         <!-- Login Logbook -->
-        <div class="adm-section-label">Login Logbook</div>
+        <div class="adm-section-label">Login Logbook <span style="font-size:0.62rem;font-weight:600;background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:4px;margin-left:6px;">SUPERINTENDENT &amp; PCO ONLY</span></div>
 
         <div class="adm-action-row">
             <div style="font-size:0.75rem; color:var(--text-secondary);">Complete history of user logins with IP addresses and locations</div>
@@ -5261,6 +5316,112 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <p style="font-size:0.8rem;">Loading users...</p>
             </div>
         </div>
+
+        <!-- ==================== RBAC ROLES SETUP ==================== -->
+        <div class="adm-section-label" style="margin-top:28px;">
+            <i class="fas fa-key" style="color:#2e7d32;font-size:0.72rem;"></i>
+            Firebase RBAC — Roles Setup
+        </div>
+
+        <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;overflow:hidden;margin-bottom:28px;">
+
+            <!-- Header -->
+            <div style="background:linear-gradient(135deg,#1b5e20 0%,#2e7d32 60%,#388e3c 100%);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <i class="fas fa-shield-halved" style="font-size:1.1rem;color:#fbc02d;"></i>
+                    <div>
+                        <div style="font-size:0.82rem;font-weight:800;color:white;letter-spacing:0.4px;">ROLE-BASED ACCESS CONTROL DEPLOYER</div>
+                        <div style="font-size:0.65rem;color:#a5d6a7;margin-top:2px;">I-deploy ang roles ng lahat ng accounts sa Firestore — isang click lang</div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <div id="rbac-deploy-status" style="font-size:0.68rem;color:#a5d6a7;display:none;">
+                        <i class="fas fa-circle-check"></i> Deployed
+                    </div>
+                    <button onclick="rbacDeployAll()" id="rbac-deploy-btn"
+                        style="background:#fbc02d;color:#1b5e20;border:none;border-radius:6px;padding:7px 18px;font-size:0.75rem;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:7px;font-family:inherit;letter-spacing:0.3px;transition:all 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+                        <i class="fas fa-rocket"></i> Deploy All Roles
+                    </button>
+                </div>
+            </div>
+
+            <!-- Warning -->
+            <div style="background:#fff8e1;border-bottom:1px solid #ffe082;padding:10px 20px;display:flex;align-items:center;gap:10px;font-size:0.73rem;color:#e65100;">
+                <i class="fas fa-triangle-exclamation" style="flex-shrink:0;color:#fbc02d;"></i>
+                <span>Kailangan na naka-login ka bilang <strong>Admin</strong> para gumana ito. Mag-w-write ito ng <code style="background:#fff3e0;padding:1px 5px;border-radius:3px;">roles/{uid}</code> documents sa Firestore para sa bawat account.</span>
+            </div>
+
+            <!-- Accounts table -->
+            <div style="padding:16px 20px 8px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:0;border:1px solid var(--border-color);border-radius:7px;overflow:hidden;font-size:0.73rem;">
+                    <!-- Table header -->
+                    <div style="background:#1b5e20;color:white;padding:8px 14px;font-weight:700;font-size:0.65rem;letter-spacing:0.8px;text-transform:uppercase;">Email</div>
+                    <div style="background:#1b5e20;color:white;padding:8px 14px;font-weight:700;font-size:0.65rem;letter-spacing:0.8px;text-transform:uppercase;">Role</div>
+                    <div style="background:#1b5e20;color:white;padding:8px 14px;font-weight:700;font-size:0.65rem;letter-spacing:0.8px;text-transform:uppercase;">Region</div>
+                    <div style="background:#1b5e20;color:white;padding:8px 14px;font-weight:700;font-size:0.65rem;letter-spacing:0.8px;text-transform:uppercase;text-align:center;min-width:90px;">Status</div>
+
+                    <!-- Row: Admin -->
+                    <div class="rbac-row-cell" style="border-top:1px solid var(--border-color);">
+                        <i class="fas fa-crown" style="color:#d32f2f;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2441574c6457474d470a474b490a544c">[email&#160;protected]</a>
+                    </div>
+                    <div class="rbac-row-cell" style="border-top:1px solid var(--border-color);">
+                        <span class="adm-admin-tag" style="background:#d32f2f;">ADMIN</span>
+                    </div>
+                    <div class="rbac-row-cell" style="border-top:1px solid var(--border-color);color:var(--text-secondary);">ALL</div>
+                    <div class="rbac-row-cell rbac-status-cell" id="rbac-st-fUnXsvKnRYMpuySRbeVYJk7TO452" style="border-top:1px solid var(--border-color);text-align:center;">—</div>
+
+                    <!-- Superintendent rows -->
+                    <div class="rbac-row-cell rbac-alt"><i class="fas fa-hard-hat" style="color:#f57c00;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3356405b735d50411d505c5e1d435b">[email&#160;protected]</a></div>
+                    <div class="rbac-row-cell rbac-alt"><span class="adm-admin-tag" style="background:#e65100;">SUPERINTENDENT</span></div>
+                    <div class="rbac-row-cell rbac-alt" style="color:var(--text-secondary);">NCR</div>
+                    <div class="rbac-row-cell rbac-alt rbac-status-cell" id="rbac-st-hcnqoDM72cQhesbmJpM9SMMGsQb2" style="text-align:center;">—</div>
+
+                    <div class="rbac-row-cell"><i class="fas fa-hard-hat" style="color:#f57c00;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="80e5f3e8c0eeeff2f4e8aee3efedaef0e8">[email&#160;protected]</a></div>
+                    <div class="rbac-row-cell"><span class="adm-admin-tag" style="background:#e65100;">SUPERINTENDENT</span></div>
+                    <div class="rbac-row-cell" style="color:var(--text-secondary);">NORTH LUZON</div>
+                    <div class="rbac-row-cell rbac-status-cell" id="rbac-st-ZkaQ1QiZQSPKfO1VbFk5uW5eldI2" style="text-align:center;">—</div>
+
+                    <div class="rbac-row-cell rbac-alt"><i class="fas fa-hard-hat" style="color:#f57c00;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d6b3a5be96a5b9a3a2bef8b5b9bbf8a6be">[email&#160;protected]</a></div>
+                    <div class="rbac-row-cell rbac-alt"><span class="adm-admin-tag" style="background:#e65100;">SUPERINTENDENT</span></div>
+                    <div class="rbac-row-cell rbac-alt" style="color:var(--text-secondary);">SOUTH LUZON</div>
+                    <div class="rbac-row-cell rbac-alt rbac-status-cell" id="rbac-st-TNR2IlOdLreZNM4AXn7ejTPVXLZ2" style="text-align:center;">—</div>
+
+                    <div class="rbac-row-cell"><i class="fas fa-hard-hat" style="color:#f57c00;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="97f2e4ffd7e1fee4fafef9b9f4f8fab9e7ff">[email&#160;protected]</a></div>
+                    <div class="rbac-row-cell"><span class="adm-admin-tag" style="background:#e65100;">SUPERINTENDENT</span></div>
+                    <div class="rbac-row-cell" style="color:var(--text-secondary);">VISAYAS & MINDANAO</div>
+                    <div class="rbac-row-cell rbac-status-cell" id="rbac-st-RsOVQnzUh5bDcZCYRrE0I6P2ZCF2" style="text-align:center;">—</div>
+
+                    <!-- PCO rows -->
+                    <div class="rbac-row-cell rbac-alt"><i class="fas fa-leaf" style="color:#00897b;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7d180e153d131e0f0d1e12531e1210530d15">[email&#160;protected]</a></div>
+                    <div class="rbac-row-cell rbac-alt"><span class="adm-admin-tag" style="background:#00695c;">PCO</span></div>
+                    <div class="rbac-row-cell rbac-alt" style="color:var(--text-secondary);">NCR</div>
+                    <div class="rbac-row-cell rbac-alt rbac-status-cell" id="rbac-st-XZjjCJnanac8B9r6pVUJBdEbvk93" style="text-align:center;">—</div>
+
+                    <div class="rbac-row-cell"><i class="fas fa-leaf" style="color:#00897b;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="ef8a9c87af81809d9b879f8c80c18c8082c19f87">[email&#160;protected]</a></div>
+                    <div class="rbac-row-cell"><span class="adm-admin-tag" style="background:#00695c;">PCO</span></div>
+                    <div class="rbac-row-cell" style="color:var(--text-secondary);">NORTH LUZON</div>
+                    <div class="rbac-row-cell rbac-status-cell" id="rbac-st-vAx6TARdxtfIQsNpNwWLO2YWh622" style="text-align:center;">—</div>
+
+                    <div class="rbac-row-cell rbac-alt"><i class="fas fa-leaf" style="color:#00897b;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="adc8dec5eddec2d8d9c5ddcec283cec2c083ddc5">[email&#160;protected]</a></div>
+                    <div class="rbac-row-cell rbac-alt"><span class="adm-admin-tag" style="background:#00695c;">PCO</span></div>
+                    <div class="rbac-row-cell rbac-alt" style="color:var(--text-secondary);">SOUTH LUZON</div>
+                    <div class="rbac-row-cell rbac-alt rbac-status-cell" id="rbac-st-m6opwibuujUCci63nUNb6R6Vwse2" style="text-align:center;">—</div>
+
+                    <div class="rbac-row-cell"><i class="fas fa-leaf" style="color:#00897b;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6603150e26100f150b0f081605094805090b48160e">[email&#160;protected]</a></div>
+                    <div class="rbac-row-cell"><span class="adm-admin-tag" style="background:#00695c;">PCO</span></div>
+                    <div class="rbac-row-cell" style="color:var(--text-secondary);">VISAYAS & MINDANAO</div>
+                    <div class="rbac-row-cell rbac-status-cell" id="rbac-st-TH12T1L0G2UYrP5iSwuWL7aLHp93" style="text-align:center;">—</div>
+                </div>
+            </div>
+
+            <!-- Log output -->
+            <div style="padding:0 20px 16px;">
+                <div id="rbac-log" style="background:var(--bg-body);border:1px solid var(--border-color);border-radius:6px;padding:10px 14px;min-height:52px;max-height:120px;overflow-y:auto;font-size:0.68rem;font-family:monospace;color:var(--text-secondary);">
+                    <span style="opacity:0.4;">// Handa na. I-click ang "Deploy All Roles" para magsimula.</span>
+                </div>
+            </div>
+        </div>
+        <!-- ==================== END RBAC ROLES SETUP ==================== -->
 
     </div>
 </div>
@@ -5310,27 +5471,8 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             </div>
         </div>
 
-        <!-- Table -->
-        <div style="overflow-x:auto; padding: 0;">
-            <table id="p-table" style="width:100%; border-collapse:collapse; font-size:0.72rem;">
-                <thead>
-                    <tr style="background: linear-gradient(90deg,#1b5e20 0%,#388e3c 100%);">
-                        <th style="padding:10px 12px; color:white; text-align:left; white-space:nowrap; font-weight:700; letter-spacing:0.3px; border:none; min-width:160px; position: sticky; left: 0; z-index: 10; background: #1b5e20;">#&nbsp;&nbsp;Full Name</th>
-                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:180px;">Position</th>
-                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:95px;">ID Number</th>
-                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:110px;">Date Hired</th>
-                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; min-width:180px;">Current Assignment</th>
-                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:48px;">Age</th>
-                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:80px;">Gender</th>
-                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; min-width:180px;">Email</th>
-                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:115px;">Contact No.</th>
-                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; min-width:200px;">Home Address</th>
-                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:70px;">Yrs. of Svc</th>
-                        <th style="padding:10px 8px; color:white; text-align:center; white-space:nowrap; font-weight:700; border:none; width:100px;">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="p-body"></tbody>
-            </table>
+        <!-- Project Cards Container — each project gets its own collapsible card with its own scrollbar -->
+        <div id="p-cards-container" style="padding: 0;">
             <div id="p-empty" style="display:none; padding:40px; text-align:center; color:var(--text-secondary);">
                 <i class="fas fa-users" style="font-size:2.5rem; opacity:0.3; margin-bottom:10px;"></i>
                 <div style="font-size:0.85rem;">No personnel records yet. Click <strong>Add Personnel</strong> to get started.</div>
@@ -5414,6 +5556,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <option value="NORTH LUZON">North Luzon</option>
                 <option value="SOUTH LUZON">South Luzon</option>
                 <option value="VISAYAS & MINDANAO">Visayas &amp; Mindanao</option>
+                <option value="CORPORATE">Corporate</option>
             </select>
         </div>
         <div style="display:flex;gap:6px;align-items:center;">
@@ -5498,6 +5641,13 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
 </div>
 <!-- ==================== END ENVIRONMENTAL MONITORING VIEW ==================== -->
+
+<!-- ==================== ESH CALENDAR VIEWS ==================== -->
+<div id="esh-calendar-env-view" class="hidden" style="padding:0;"></div>
+<div id="esh-calendar-safety-view" class="hidden" style="padding:0;"></div>
+<div id="esh-calendar-health-view" class="hidden" style="padding:0;"></div>
+<div id="esh-calendar-drills-view" class="hidden" style="padding:0;"></div>
+<!-- ==================== END ESH CALENDAR VIEWS ==================== -->
 
         <div id="settings-view" class="hidden">
   <style>
@@ -5986,7 +6136,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             
     </main>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -6438,6 +6588,157 @@ async function clearAuditLog() {
     }
 }
 
+// ==================== MISSING FUNCTION FIXES ====================
+
+// Fix 1: saveToFirebaseMain — called from settings menu & sync button
+// Was missing entirely — caused "saveToFirebaseMain is not defined" console error
+async function saveToFirebaseMain() {
+    showToast('☁️ Syncing to cloud...', 'info', 2000);
+    const success = await saveToFirebase();
+    if (success) {
+        showToast('✅ Synced to Firebase successfully!', 'success', 3000);
+    } else {
+        showToast('❌ Sync failed. Check your connection.', 'error', 4000);
+    }
+}
+window.saveToFirebaseMain = saveToFirebaseMain;
+
+// Fix 2: pGlobalEdit & pGlobalSave — called from Personnel "Edit All" / "Save All" buttons
+function pGlobalEdit() {
+    const container = document.getElementById('p-cards-container');
+    if (!container) return;
+    const rows = container.querySelectorAll('tr[id^="p-row-"]');
+    let anyEditable = false;
+    rows.forEach(row => {
+        const editBtn = row.querySelector('.p-edit-btn');
+        if (editBtn) {
+            const match = editBtn.id.match(/p-edit-btn-(\d+)/);
+            if (match) { openEditPersonnelModal(parseInt(match[1])); anyEditable = true; }
+        }
+    });
+    const editBtn = document.getElementById('p-global-edit-btn');
+    const saveBtn = document.getElementById('p-global-save-btn');
+    if (editBtn) editBtn.style.display = 'none';
+    if (saveBtn) saveBtn.style.display = '';
+    if (!anyEditable) showToast('ℹ️ No personnel rows to edit.', 'info');
+}
+window.pGlobalEdit = pGlobalEdit;
+
+function pGlobalSave() {
+    const rows = document.querySelectorAll('.p-project-card tr.p-editing');
+    rows.forEach(row => {
+        const saveBtn = row.querySelector('.p-save-btn');
+        if (saveBtn) {
+            const match = saveBtn.id.match(/p-save-btn-(\d+)/);
+            if (match) savePersonnel(parseInt(match[1]));
+        }
+    });
+    // Toggle button visibility
+    const editBtn = document.getElementById('p-global-edit-btn');
+    const saveBtn = document.getElementById('p-global-save-btn');
+    if (editBtn) editBtn.style.display = '';
+    if (saveBtn) saveBtn.style.display = 'none';
+    showToast('✅ All personnel changes saved.', 'success');
+}
+window.pGlobalSave = pGlobalSave;
+
+// ==================== END MISSING FUNCTION FIXES ====================
+
+// ==================== RBAC ROLES DEPLOYER ====================
+const RBAC_ACCOUNTS = [
+    { uid: 'fUnXsvKnRYMpuySRbeVYJk7TO452', email: 'esh@scic.com.ph',      role: 'admin',          displayName: 'ESH Admin',                      region: 'ALL',                 module_access: [] },
+    { uid: 'hcnqoDM72cQhesbmJpM9SMMGsQb2', email: 'esh@ncr.com.ph',       role: 'superintendent', displayName: 'NCR Superintendent',             region: 'NCR',                 module_access: [] },
+    { uid: 'ZkaQ1QiZQSPKfO1VbFk5uW5eldI2', email: 'esh@north.com.ph',     role: 'superintendent', displayName: 'North Luzon Superintendent',     region: 'NORTH LUZON',         module_access: [] },
+    { uid: 'TNR2IlOdLreZNM4AXn7ejTPVXLZ2', email: 'esh@south.com.ph',     role: 'superintendent', displayName: 'South Luzon Superintendent',     region: 'SOUTH LUZON',         module_access: [] },
+    { uid: 'RsOVQnzUh5bDcZCYRrE0I6P2ZCF2', email: 'esh@vismin.com.ph',   role: 'superintendent', displayName: 'Visayas & Mindanao Superintendent', region: 'VISAYAS & MINDANAO', module_access: [] },
+    { uid: 'XZjjCJnanac8B9r6pVUJBdEbvk93', email: 'esh@ncrpco.com.ph',   role: 'pco',            displayName: 'NCR PCO',                        region: 'NCR',                 module_access: ['permits','emb','env-monitoring','env-monthly-report','esh-calendar-env'] },
+    { uid: 'vAx6TARdxtfIQsNpNwWLO2YWh622', email: 'esh@northpco.com.ph', role: 'pco',            displayName: 'North Luzon PCO',               region: 'NORTH LUZON',         module_access: ['permits','emb','env-monitoring','env-monthly-report','esh-calendar-env'] },
+    { uid: 'm6opwibuujUCci63nUNb6R6Vwse2', email: 'esh@southpco.com.ph', role: 'pco',            displayName: 'South Luzon PCO',               region: 'SOUTH LUZON',         module_access: ['permits','emb','env-monitoring','env-monthly-report','esh-calendar-env'] },
+    { uid: 'TH12T1L0G2UYrP5iSwuWL7aLHp93', email: 'esh@visminpco.com.ph',role: 'pco',           displayName: 'Visayas & Mindanao PCO',         region: 'VISAYAS & MINDANAO',  module_access: ['permits','emb','env-monitoring','env-monthly-report','esh-calendar-env'] },
+];
+
+async function rbacDeployAll() {
+    if (!state.isAdmin) {
+        showToast('⛔ Admin access required to deploy roles.', 'error');
+        return;
+    }
+    if (!window.firebaseDb) {
+        showToast('❌ Firebase not ready. Try again in a moment.', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('rbac-deploy-btn');
+    const logEl = document.getElementById('rbac-log');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deploying…';
+    logEl.innerHTML = '';
+
+    function rbacLog(msg, type) {
+        const colors = { success: '#2e7d32', error: '#c62828', info: '#888' };
+        const div = document.createElement('div');
+        div.style.cssText = `color:${colors[type]||'#888'};margin:2px 0;`;
+        div.textContent = msg;
+        logEl.appendChild(div);
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setStatus(uid, html) {
+        const el = document.getElementById('rbac-st-' + uid);
+        if (el) el.innerHTML = html;
+    }
+
+    let ok = 0, fail = 0;
+    rbacLog('// Starting deployment of ' + RBAC_ACCOUNTS.length + ' role documents…', 'info');
+
+    for (const acct of RBAC_ACCOUNTS) {
+        setStatus(acct.uid, '<i class="fas fa-spinner fa-spin rbac-spin"></i>');
+        try {
+            const docRef = window.firebase.doc(window.firebaseDb, 'roles', acct.uid);
+            await window.firebase.setDoc(docRef, {
+                role:          acct.role,
+                displayName:   acct.displayName,
+                region:        acct.region,
+                module_access: acct.module_access,
+                email:         acct.email,
+                deployedBy:    state.currentUser?.email || 'admin',
+                deployedAt:    new Date().toISOString()
+            });
+            setStatus(acct.uid, '<span class="rbac-ok"><i class="fas fa-circle-check"></i> OK</span>');
+            rbacLog(`✓ ${acct.email} → ${acct.role.toUpperCase()} [${acct.region}]`, 'success');
+            ok++;
+        } catch (err) {
+            setStatus(acct.uid, '<span class="rbac-err"><i class="fas fa-circle-xmark"></i> FAIL</span>');
+            rbacLog(`✗ ${acct.email} — ${err.message}`, 'error');
+            fail++;
+        }
+        // Small delay to avoid rate limiting
+        await new Promise(r => setTimeout(r, 250));
+    }
+
+    rbacLog(`// Done — ${ok} deployed, ${fail} failed.`, 'info');
+
+    if (fail === 0) {
+        btn.innerHTML = '<i class="fas fa-check-circle"></i> All Roles Deployed!';
+        btn.style.background = '#43a047';
+        btn.style.color = 'white';
+        const statusEl = document.getElementById('rbac-deploy-status');
+        if (statusEl) statusEl.style.display = 'flex';
+        showToast(`✅ All ${ok} role documents deployed to Firestore!`, 'success', 5000);
+
+        // Audit log
+        AuditLogger.log('RBAC_ROLES_DEPLOYED', { deployedCount: ok, by: state.currentUser?.email });
+    } else {
+        btn.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${ok} OK, ${fail} Failed`;
+        btn.style.background = '#f57f17';
+        btn.style.color = '#1b5e20';
+        showToast(`⚠️ ${fail} role(s) failed to deploy. Check the log.`, 'warning', 5000);
+    }
+
+    btn.disabled = false;
+}
+window.rbacDeployAll = rbacDeployAll;
+// ==================== END RBAC ROLES DEPLOYER ====================
+
 // ==================== ADMIN PANEL FUNCTIONS ====================
 function renderAdminPanel() {
     if (!state.isAdmin) {
@@ -6517,7 +6818,11 @@ function updateSessionTime() {
 
 function renderLogbook() {
     const container = document.getElementById('logbook-container');
-    const logs = state.loginLogbook;
+    const logs = state.loginLogbook.filter(entry => {
+        if (!entry.email) return false;
+        const _ua = window.UserAccounts ? window.UserAccounts.getUserInfo(entry.email) : {role:'admin'};
+        return _ua.role === 'superintendent' || _ua.role === 'pco';
+    });
     
     if (logs.length === 0) {
         container.innerHTML = `
@@ -6711,10 +7016,23 @@ async function clearLogbook() {
     );
     
     if (confirmed) {
+        // Clear local state and localStorage first
         state.loginLogbook = [];
         localStorage.removeItem('esh_login_logbook');
         renderLogbook();
         updateAdminStats();
+
+        // Also delete from Firebase Realtime Database so it stays cleared on refresh
+        try {
+            if (window.firebaseRealtimeDb && window.firebase && window.firebase.remove) {
+                const logbookRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'login-logbook');
+                await window.firebase.remove(logbookRef);
+                console.log('✅ Logbook cleared from Firebase Realtime Database');
+            }
+        } catch (e) {
+            console.warn('⚠️ Could not clear Firebase logbook:', e.message);
+        }
+
         showToast('✅ Logbook cleared', 'success');
         AuditLogger.log('LOGBOOK_CLEARED', { admin: state.currentUser.email });
     }
@@ -6771,7 +7089,7 @@ async function revokeUserAccess(email) {
 
 
 
-        const REGIONS = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
+        const REGIONS = ["CORPORATE", "NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
         const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
        const SCHEMA = {
     'exposures': ["Total Manpower", "Total Exposed Manhour", "Total Exposed Man-hour to date", "No. of Days w/o LTA"],
@@ -7143,7 +7461,8 @@ function applyNumFmtToInputs() {
         const LoginLogbook = {
             async logLogin(user) {
                 try {
-                    // Get IP address and location info
+                    const _ui = UserAccounts.getUserInfo(user.email);
+                    if (_ui.role === 'admin') return;
                     const ipInfo = await this.getIPInfo();
                     
                     const entry = {
@@ -7187,6 +7506,8 @@ function applyNumFmtToInputs() {
             
             async logLogout(user) {
                 try {
+                    const _ui2 = UserAccounts.getUserInfo(user.email);
+                    if (_ui2.role === 'admin') return;
                     const ipInfo = await this.getIPInfo();
                     
                     const entry = {
@@ -7409,130 +7730,182 @@ function applyNumFmtToInputs() {
         LoginLogbook.loadFromStorage();
         
         // ==================== USER ACCOUNT MANAGEMENT SYSTEM ====================
+        // ==================== RBAC: ROLE-BASED ACCESS CONTROL ====================
         const UserAccounts = {
-            // Predefined superintendent accounts with credentials
+            // ── Hardcoded non-admin accounts (Superintendent & PCO) ──
+            // Admin accounts are any authenticated Firebase users NOT listed here.
             superintendents: {
                 'esh@ncr.com.ph': {
-                    password: 'NCR2026!',
+                    password: '*** (auth via Firebase Auth)',
                     role: 'superintendent',
                     displayName: 'NCR Superintendent',
                     region: 'NCR',
-                    color: '#2196F3' // Blue
+                    color: '#2196F3'
                 },
                 'esh@north.com.ph': {
-                    password: 'NORTH2026!',
+                    password: '*** (auth via Firebase Auth)',
                     role: 'superintendent',
                     displayName: 'North Luzon Superintendent',
                     region: 'NORTH LUZON',
-                    color: '#4CAF50' // Green
+                    color: '#4CAF50'
                 },
                 'esh@south.com.ph': {
-                    password: 'SOUTH2026!',
+                    password: '*** (auth via Firebase Auth)',
                     role: 'superintendent',
                     displayName: 'South Luzon Superintendent',
                     region: 'SOUTH LUZON',
-                    color: '#FF9800' // Orange
+                    color: '#FF9800'
                 },
                 'esh@vismin.com.ph': {
-                    password: 'VISMIN2026!',
+                    password: '*** (auth via Firebase Auth)',
                     role: 'superintendent',
                     displayName: 'Visayas & Mindanao Superintendent',
                     region: 'VISAYAS & MINDANAO',
-                    color: '#9C27B0' // Purple
+                    color: '#9C27B0'
                 },
                 // ==================== PCO ACCOUNTS ====================
                 'esh@ncrpco.com.ph': {
-                    password: 'NCRPCO2026!',
+                    password: '*** (auth via Firebase Auth)',
                     role: 'pco',
                     displayName: 'NCR PCO',
                     region: 'NCR',
-                    color: '#00ACC1' // Cyan
+                    color: '#00ACC1'
                 },
                 'esh@southpco.com.ph': {
-                    password: 'SOUTHPCO2026!',
+                    password: '*** (auth via Firebase Auth)',
                     role: 'pco',
                     displayName: 'South Luzon PCO',
                     region: 'SOUTH LUZON',
-                    color: '#F4511E' // Deep Orange
+                    color: '#F4511E'
                 },
                 'esh@northpco.com.ph': {
-                    password: 'NORTHPCO2026!',
+                    password: '*** (auth via Firebase Auth)',
                     role: 'pco',
                     displayName: 'North Luzon PCO',
                     region: 'NORTH LUZON',
-                    color: '#43A047' // Green
+                    color: '#43A047'
                 },
                 'esh@visminpco.com.ph': {
-                    password: 'VISMINPCO2026!',
+                    password: '*** (auth via Firebase Auth)',
                     role: 'pco',
                     displayName: 'Visayas & Mindanao PCO',
                     region: 'VISAYAS & MINDANAO',
-                    color: '#8E24AA' // Purple
+                    color: '#8E24AA'
                 }
             },
 
-            // PCO-allowed tabs: All environmental-related tabs only
-            PCO_EDITABLE_TABS: ['permits', 'emb', 'env-monitoring', 'env-monthly-report'],
+            // ── PCO-editable tabs (Environmental modules only) ──
+            PCO_EDITABLE_TABS: [
+                'permits',       // Environmental Permits
+                'emb',           // EMB Reportorial
+                'env-monitoring',// Environmental Monitoring
+                'env-monthly-report', // Monthly Environmental Report
+                'esh-calendar-env',   // ESH Calendar - Environment
+            ],
 
-            // Tabs PCO can VIEW but NOT edit
-            PCO_VIEW_TABS: ['overall', 'rates', 'exposures', 'medical', 'nov', 'nov-monitoring',
-                            'activities', 'kpm', 'dole', 'doe', 'doe-permit', 'cshp', 'reg', 'audit'],
-            
+            // ── Tabs PCO can VIEW but NOT edit ──
+            PCO_VIEW_TABS: [
+                'overall', 'rates', 'exposures', 'medical', 'nov', 'nov-monitoring',
+                'activities', 'kpm', 'dole', 'doe', 'doe-permit', 'cshp', 'reg', 'audit',
+                'esh-calendar-safety', 'esh-calendar-health', 'esh-calendar-drills',
+                'personnel', 'osh-requirement'
+            ],
+
+            // ── Get user info (role, region, etc.) ──
             getUserInfo(email) {
-                // Check if superintendent or PCO
-                if (this.superintendents[email]) {
-                    return this.superintendents[email];
-                }
-                
-                // Otherwise, it's admin
-                return {
-                    role: 'admin',
-                    displayName: 'Administrator',
-                    region: 'ALL',
-                    color: '#D32F2F' // Red
-                };
+                if (!email) return { role: 'guest', region: null, displayName: 'Guest', color: '#999' };
+                if (this.superintendents[email]) return this.superintendents[email];
+                // Any Firebase-authenticated user not in the list = Admin
+                return { role: 'admin', displayName: 'Administrator', region: 'ALL', color: '#D32F2F' };
             },
-            
+
             isAdmin(email) {
-                return !this.superintendents[email];
+                if (!email) return false;
+                const info = this.getUserInfo(email);
+                return info.role === 'admin';
             },
-            
+
             isSuperintendent(email) {
-                const info = this.superintendents[email];
-                return info && info.role === 'superintendent';
+                const info = this.getUserInfo(email);
+                return info.role === 'superintendent';
             },
 
             isPCO(email) {
-                const info = this.superintendents[email];
-                return info && info.role === 'pco';
+                const info = this.getUserInfo(email);
+                return info.role === 'pco';
             },
-            
+
+            // ── CORE RBAC GATE: Can this user edit a specific project in a specific tab? ──
+            // Returns: { allowed: bool, reason: string }
+            checkPermission(userEmail, action, projectRegion, tab) {
+                const info = this.getUserInfo(userEmail);
+
+                // Admin → full access
+                if (info.role === 'admin') return { allowed: true, reason: 'Admin: full access' };
+
+                // Guest / unauthenticated → deny everything
+                if (info.role === 'guest') return { allowed: false, reason: '403: Not authenticated' };
+
+                // DELETE is admin-only
+                if (action === 'delete') {
+                    return { allowed: false, reason: '403: Only Admins can delete records' };
+                }
+
+                // ── Corporate region is Admin-only ──
+                if (projectRegion === 'CORPORATE') {
+                    return { allowed: false, reason: '403: Corporate region is Admin-only.' };
+                }
+
+                // ── Superintendent ──
+                if (info.role === 'superintendent') {
+                    // Tab: Supers can edit any tab (except audit which is admin-only)
+                    if (tab === 'audit') return { allowed: false, reason: '403: Audit tab is Admin-only' };
+                    // Region: Superintendent can only edit their assigned region
+                    if (projectRegion && info.region !== projectRegion) {
+                        return { allowed: false, reason: `403: You can only edit records in ${info.region}. This project belongs to ${projectRegion}.` };
+                    }
+                    return { allowed: true, reason: 'Superintendent: region match' };
+                }
+
+                // ── PCO ──
+                if (info.role === 'pco') {
+                    // Tab check first
+                    if (tab && !this.PCO_EDITABLE_TABS.includes(tab)) {
+                        return { allowed: false, reason: `403: PCO accounts can only edit Environmental modules. "${tab}" is read-only for your role.` };
+                    }
+                    // Region check
+                    if (projectRegion && info.region !== projectRegion) {
+                        return { allowed: false, reason: `403: You can only edit records in ${info.region}.` };
+                    }
+                    return { allowed: true, reason: 'PCO: env tab + region match' };
+                }
+
+                return { allowed: false, reason: '403: Unauthorized Action' };
+            },
+
+            // ── Legacy helpers (kept for backward compat) ──
             canEdit(userEmail, projectRegion) {
-                const userInfo = this.getUserInfo(userEmail);
-                
-                // Admin can edit everything
-                if (userInfo.role === 'admin') return true;
-                
-                // Superintendent and PCO can only edit their region
-                return userInfo.region === projectRegion;
+                const result = this.checkPermission(userEmail, 'edit', projectRegion, state.currentTab);
+                return result.allowed;
             },
 
-            // Check if user can edit a specific tab (used for PCO tab restrictions)
             canEditTab(userEmail, tab) {
-                const userInfo = this.getUserInfo(userEmail);
-                if (userInfo.role === 'admin') return true;
-                if (userInfo.role === 'superintendent') return true;
-                if (userInfo.role === 'pco') return this.PCO_EDITABLE_TABS.includes(tab);
-                return false;
+                const result = this.checkPermission(userEmail, 'edit', null, tab);
+                return result.allowed;
             },
 
-            // Returns true if a PCO user is viewing a tab they can see but not edit
             isPCOViewOnly(userEmail, tab) {
-                const userInfo = this.getUserInfo(userEmail);
-                if (userInfo.role !== 'pco') return false;
+                const info = this.getUserInfo(userEmail);
+                if (info.role !== 'pco') return false;
                 return this.PCO_VIEW_TABS.includes(tab);
             },
-            
+
+            // ── Role-specific locked message ──
+            getLockedReason(userEmail, projectRegion, tab) {
+                const result = this.checkPermission(userEmail, 'edit', projectRegion, tab);
+                return result.reason;
+            },
+
             getAccessLevel(userEmail) {
                 const userInfo = this.getUserInfo(userEmail);
                 const isPCO = userInfo.role === 'pco';
@@ -7552,6 +7925,9 @@ function applyNumFmtToInputs() {
                 };
             }
         };
+        window.UserAccounts = UserAccounts;
+        // ==================== END RBAC ====================
+
         
         // ==================== PRESENCE TRACKING SYSTEM ====================
         const PresenceTracker = {
@@ -8403,6 +8779,9 @@ debugCommands.help() - Show this help
         function filterProjectsByYear(projects, selectedYear) {
             // Filter projects to show only those active in the selected year
             return projects.filter(project => {
+                // CORPORATE region is a permanent entity — always include regardless of dates
+                if (project.region === 'CORPORATE') return true;
+
                 // Extract year from dateStarted (format: YYYY-MM-DD)
                 const startYear = project.dateStarted ? parseInt(project.dateStarted.split('-')[0]) : null;
                 
@@ -8545,6 +8924,7 @@ debugCommands.help() - Show this help
             
             // INSTANT: Just filter the master project list locally (no Firebase!)
             state.projects = filterProjectsByYear(state.masterProjects, newYear);
+            ensureCorporateProject(); // Keep Corporate always present after year switch
             state.filteredProjects = [...state.projects];
             state.selectedProjects = [];
             
@@ -8574,15 +8954,6 @@ debugCommands.help() - Show this help
             const validation = validateState();
             if (!validation.isValid) {
                 debugLog('WARNING', '⚠️ State validation issues after year switch:', validation.issues);
-            }
-        }
-
-        function updateYearDisplay() {
-            const yearBtn = document.getElementById('year-selector-btn');
-            if (yearBtn) {
-                yearBtn.title = `Select Year`;
-                const label = document.getElementById('year-selector-label');
-                if (label) label.textContent = state.selectedYear;
             }
         }
 
@@ -9345,7 +9716,21 @@ function openAdminQuickView() {
             document.getElementById('projectDateFinished').max = today;
             document.getElementById('projectRegion').value = region || '';
             document.getElementById('projectModalError').innerText = '';
+            onProjectRegionChange(region || ''); // Show/hide date fields based on region
             document.getElementById('addProjectModal').classList.add('show');
+        }
+
+        function onProjectRegionChange(region) {
+            const dateFields = document.getElementById('projectDateFields');
+            const dateStarted = document.getElementById('projectDateStarted');
+            if (!dateFields) return;
+            if (region === 'CORPORATE') {
+                dateFields.style.display = 'none';
+                dateStarted.removeAttribute('required');
+            } else {
+                dateFields.style.display = '';
+                dateStarted.setAttribute('required', '');
+            }
         }
 
         function closeAddProjectModal() {
@@ -9460,16 +9845,30 @@ function openAdminQuickView() {
             errorDiv.innerText = '';
 
             if (!name) { errorDiv.innerText = '⚠️ Project name is required'; return; }
-            if (!dateStarted) { errorDiv.innerText = '⚠️ Date started is required'; return; }
             if (!region) { errorDiv.innerText = '⚠️ Region is required'; return; }
             const today = new Date().toISOString().split('T')[0];
-            if (dateStarted > today) { errorDiv.innerText = '⚠️ Date started cannot be a future date'; return; }
-            if (dateFinished && dateFinished > today) { errorDiv.innerText = '⚠️ Date finished cannot be a future date'; return; }
-            if (dateFinished && new Date(dateFinished) < new Date(dateStarted)) {
-                errorDiv.innerText = '⚠️ Date finished cannot be before date started'; return;
+            if (region !== 'CORPORATE') {
+                if (!dateStarted) { errorDiv.innerText = '⚠️ Date started is required'; return; }
+                if (dateStarted > today) { errorDiv.innerText = '⚠️ Date started cannot be a future date'; return; }
+                if (dateFinished && dateFinished > today) { errorDiv.innerText = '⚠️ Date finished cannot be a future date'; return; }
+                if (dateFinished && new Date(dateFinished) < new Date(dateStarted)) {
+                    errorDiv.innerText = '⚠️ Date finished cannot be before date started'; return;
+                }
             }
             if (state.projects.some(p => p.name.toLowerCase() === name.toLowerCase())) {
                 errorDiv.innerText = '⚠️ Project name already exists'; return;
+            }
+
+            // RBAC: Non-admins can only add projects in their assigned region
+            const rbacAdd = UserAccounts.checkPermission(state.currentUser?.email, 'create', region, state.currentTab);
+            if (!rbacAdd.allowed) {
+                errorDiv.innerText = rbacAdd.reason.replace('403: ', '⚠️ ');
+                return;
+            }
+            // PCO cannot add projects at all (environmental data only, not projects)
+            if (UserAccounts.isPCO(state.currentUser?.email)) {
+                errorDiv.innerText = '⚠️ PCO accounts cannot add new projects. Contact your Administrator.';
+                return;
             }
 
             state.projects.push({
@@ -9754,7 +10153,7 @@ function openAdminQuickView() {
                     if (floatingIcon) floatingIcon.className = 'fas fa-edit';
                     if (floatingTooltip) floatingTooltip.textContent = 'Click to Edit';
                     render();
-                }, 1500);
+                }, 400);
             } else {
                 // Failure state
                 if (floatingIcon) floatingIcon.className = 'fas fa-times';
@@ -9773,7 +10172,7 @@ function openAdminQuickView() {
                     if (floatingIcon) floatingIcon.className = 'fas fa-edit';
                     if (floatingTooltip) floatingTooltip.textContent = 'Click to Edit';
                     render();
-                }, 2000);
+                }, 800);
             }
             
             console.log('💾 Data saved to localStorage and synced to Firebase');
@@ -9820,6 +10219,75 @@ function openAdminQuickView() {
             });
         }
 
+        // ── Global RBAC Banner — renders on ALL tabs ──
+        function renderRbacBanner() {
+            const el = document.getElementById('global-rbac-banner');
+            if (!el) return;
+
+            const email = state.currentUser?.email;
+            if (!email) { el.style.display = 'none'; return; }
+
+            const info = UserAccounts.getUserInfo(email);
+            const tab = state.currentTab;
+
+            // Admin: no banner needed
+            if (info.role === 'admin') { el.style.display = 'none'; el.innerHTML = ''; return; }
+
+            let bannerHtml = '';
+
+            if (info.role === 'superintendent') {
+                const foreignProjects = (state.projects || []).filter(p => p.region !== info.region);
+                if (foreignProjects.length > 0) {
+                    bannerHtml = `
+                    <div style="display:flex;align-items:center;gap:14px;
+                        background:linear-gradient(135deg,#fff8e1,#fffde7);
+                        border:1.5px solid #f9a825;border-radius:10px;
+                        padding:11px 18px;
+                        font-size:0.82rem;color:#e65100;font-weight:600;
+                        box-shadow:0 2px 8px rgba(249,168,37,0.1);">
+                        <i class="fas fa-eye" style="font-size:1.1rem;color:#f9a825;flex-shrink:0;"></i>
+                        <div>
+                            <div style="margin-bottom:2px;">👁️ <strong>Read-Only Access</strong> for other regions — You are viewing cross-region data.</div>
+                            <div style="font-weight:400;font-size:0.76rem;opacity:0.85;">
+                                You can only edit records in <strong>${info.region}</strong>. Data from other regions is visible but locked.
+                            </div>
+                        </div>
+                    </div>`;
+                }
+            }
+
+            if (info.role === 'pco') {
+                const isPcoEditableTab = UserAccounts.PCO_EDITABLE_TABS && UserAccounts.PCO_EDITABLE_TABS.includes(tab);
+                bannerHtml = `
+                <div style="display:flex;align-items:center;gap:14px;
+                    background:linear-gradient(135deg,#e3f2fd,#e8f5e9);
+                    border:1.5px solid #1976d2;border-radius:10px;
+                    padding:11px 18px;
+                    font-size:0.82rem;color:#0d47a1;font-weight:600;
+                    box-shadow:0 2px 8px rgba(25,118,210,0.1);">
+                    <i class="fas fa-${isPcoEditableTab ? 'pen-to-square' : 'lock'}" style="font-size:1.1rem;color:#1976d2;flex-shrink:0;"></i>
+                    <div>
+                        <div style="margin-bottom:2px;">
+                            ${isPcoEditableTab
+                                ? `✏️ <strong>Editable</strong> — This tab is within your PCO access. Region: <strong>${info.region}</strong>`
+                                : `🔒 <strong>Read-Only Access</strong> — PCO accounts can only edit Environmental modules.`}
+                        </div>
+                        <div style="font-weight:400;font-size:0.76rem;opacity:0.85;">
+                            Editable tabs: Environmental Monitoring · EMB Reportorial · Environmental Permits · ESH Calendar (Env) · Emergency Drills &nbsp;|&nbsp; Region: <strong>${info.region}</strong>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            if (bannerHtml) {
+                el.innerHTML = bannerHtml;
+                el.style.display = 'block';
+            } else {
+                el.style.display = 'none';
+                el.innerHTML = '';
+            }
+        }
+
         function changeTab(t) {
             state.currentTab = t;
             // Persist current tab so page refresh restores it
@@ -9856,7 +10324,11 @@ function openAdminQuickView() {
                 'personnel': 'ESH PERSONNEL MONITORING', 'settings': 'SETTINGS', 'admin': 'ADMIN CONTROL PANEL',
                 'osh-requirement': 'OSH PERSONNEL REQUIREMENT MONITORING',
                 'env-monitoring': 'ENVIRONMENTAL MONITORING',
-                'env-monthly-report': 'ENVIRONMENTAL MONTHLY REPORT'
+                'env-monthly-report': 'ENVIRONMENTAL MONTHLY REPORT',
+                'esh-calendar-env': '2026 ESH CALENDAR — ENVIRONMENT TRAININGS',
+                'esh-calendar-safety': '2026 ESH CALENDAR — SAFETY TRAININGS',
+                'esh-calendar-health': '2026 ESH CALENDAR — HEALTH TRAININGS',
+                'esh-calendar-drills': '2026 ESH CALENDAR — EMERGENCY DRILLS'
             };
             document.querySelector('.header-title').innerText = titles[t] || t.toUpperCase();
             document.getElementById('settings-view').classList.toggle('hidden', t !== 'settings');
@@ -9865,6 +10337,20 @@ function openAdminQuickView() {
             document.getElementById('osh-requirement-view').classList.toggle('hidden', t !== 'osh-requirement');
             document.getElementById('env-monitoring-view').classList.toggle('hidden', t !== 'env-monitoring');
             document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel' || t === 'admin' || t === 'osh-requirement' || t === 'env-monitoring');
+            
+            // ESH Calendar tab visibility
+            const eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills'];
+            eshCalTabs.forEach(ct => {
+                const el = document.getElementById(ct + '-view');
+                if (el) el.classList.toggle('hidden', t !== ct);
+            });
+            const isEshCal = eshCalTabs.includes(t);
+            if (isEshCal) {
+                document.getElementById('dashboard-content').classList.add('hidden');
+                try { renderEshCalendar(t); } catch(e) {
+                    console.error('❌ changeTab renderEshCalendar error:', e);
+                }
+            }
             
             // If switching to admin tab, render admin panel
             if (t === 'admin') {
@@ -9907,6 +10393,9 @@ function openAdminQuickView() {
             if (t === 'personnel') { renderPTable(); }
             if (t === 'osh-requirement') { setTimeout(renderOsh2, 100); }
             
+            // ── Always refresh the global RBAC banner on every tab switch ──
+            renderRbacBanner();
+
             // Block PCO from accessing personnel tab
             if (t === 'personnel' && state.userRole === 'pco') {
                 showToast('🔒 ESH Personnel Monitoring is not accessible for PCO accounts.', 'warning');
@@ -9939,10 +10428,11 @@ function openAdminQuickView() {
         }
 
 function updateAuditData(pName, qtr, field, val) {
-    // Phase 3: Regional Locking - Check permission
+    // RBAC: Check region + tab permissions
     const p = state.projects.find(x => x.name === pName);
-    if (p && !UserAccounts.canEdit(state.currentUser?.email, p.region)) {
-        showLockedMessage();
+    const rbac = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p?.region, 'audit');
+    if (!rbac.allowed) {
+        showLockedMessage(rbac.reason);
         return;
     }
     
@@ -9980,10 +10470,13 @@ function updateAuditData(pName, qtr, field, val) {
         function updateVal(pName, key, mIdx, val) {
             // Strip commas from formatted number inputs
             val = String(val).replace(/,/g, '');
-            // Phase 3: Regional Locking - Check permission
+            // RBAC: Check both region AND tab permissions
             const p = state.projects.find(x => x.name === pName);
-            if (p && !UserAccounts.canEdit(state.currentUser?.email, p.region)) {
-                showLockedMessage();
+            const rbac = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p?.region, state.currentTab);
+            if (!rbac.allowed) {
+                showLockedMessage(rbac.reason);
+                // Revert the input visually
+                render();
                 return;
             }
             
@@ -10013,7 +10506,8 @@ function updateAuditData(pName, qtr, field, val) {
         // ==================== ECC MULTI-ENTRY ====================
         function addEccEntry(pName) {
             const p = state.projects.find(x => x.name === pName);
-            if (!p || !UserAccounts.canEdit(state.currentUser?.email, p.region)) { showLockedMessage(); return; }
+            const _rbacEcc = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p?.region, 'permits');
+            if (!p || !_rbacEcc.allowed) { showLockedMessage(_rbacEcc.reason); return; }
             const key = 'permits_ECC';
             if (!p.vals[key]) p.vals[key] = {};
             if (!p.vals[key].entries) {
@@ -10029,7 +10523,8 @@ function updateAuditData(pName, qtr, field, val) {
 
         function removeEccEntry(pName, idx) {
             const p = state.projects.find(x => x.name === pName);
-            if (!p || !UserAccounts.canEdit(state.currentUser?.email, p.region)) { showLockedMessage(); return; }
+            const _rbacEcc = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p?.region, 'permits');
+            if (!p || !_rbacEcc.allowed) { showLockedMessage(_rbacEcc.reason); return; }
             const key = 'permits_ECC';
             if (p.vals[key]?.entries) {
                 p.vals[key].entries.splice(idx, 1);
@@ -10040,7 +10535,8 @@ function updateAuditData(pName, qtr, field, val) {
 
         function updateEccEntry(pName, idx, field, value) {
             const p = state.projects.find(x => x.name === pName);
-            if (!p || !UserAccounts.canEdit(state.currentUser?.email, p.region)) { showLockedMessage(); return; }
+            const _rbacEcc = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p?.region, 'permits');
+            if (!p || !_rbacEcc.allowed) { showLockedMessage(_rbacEcc.reason); return; }
             const key = 'permits_ECC';
             if (p.vals[key]?.entries?.[idx] !== undefined) {
                 p.vals[key].entries[idx][field] = value;
@@ -10049,8 +10545,9 @@ function updateAuditData(pName, qtr, field, val) {
         function togglePermitNA(pName, key) {
             const p = state.projects.find(x => x.name === pName);
             if (!p) return;
-            if (!UserAccounts.canEdit(state.currentUser?.email, p.region)) {
-                showLockedMessage();
+            const _rbacNA = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p?.region, 'permits');
+            if (!_rbacNA.allowed) {
+                showLockedMessage(_rbacNA.reason);
                 return;
             }
             if (!p.vals[key]) p.vals[key] = {};
@@ -10124,10 +10621,12 @@ function updateAuditData(pName, qtr, field, val) {
                     throw new Error('Firebase Storage not initialized');
                 }
 
-                const userId = state.currentUser.uid;
+                // Use current user's UID for storage path so Firebase Storage rules allow the write.
+                // The download URL is saved in Firestore (shared admin location) so all users can access it.
+                const STORAGE_UID = window.firebaseAuth?.currentUser?.uid || 'fUnXsvKnRYMpuySRbeVYJk7TO452';
                 const timestamp = Date.now();
                 const fileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_'); // Sanitize filename
-                const storagePath = `compliance-pdfs/${userId}/${projectName.replace(/[^a-zA-Z0-9]/g,'_')}_${pdfKey}_${timestamp}_${fileName}`;
+                const storagePath = `compliance-pdfs/${STORAGE_UID}/${projectName.replace(/[^a-zA-Z0-9]/g,'_')}_${pdfKey}_${timestamp}_${fileName}`;
                 
                 const storageRef = window.firebase.ref(window.firebaseStorage, storagePath);
                 
@@ -10219,10 +10718,17 @@ function updateAuditData(pName, qtr, field, val) {
         async function deleteProject(projectName) {
     debugLog('INFO', `🗑️ deleteProject() called for: ${projectName}`);
     
-    // Phase 3: Regional Locking - Check permission
+    // Protect the permanent Corporate project from deletion
+    if (projectName === 'Corporate') {
+        showToast('🏢 The Corporate project cannot be deleted — it is a permanent entity.', 'warning');
+        return;
+    }
+    
+    // RBAC: Delete is Admin-only
     const project = state.projects.find(p => p.name === projectName);
-    if (project && !UserAccounts.canEdit(state.currentUser?.email, project.region)) {
-        showLockedMessage();
+    const rbacDel = UserAccounts.checkPermission(state.currentUser?.email, 'delete', project?.region, state.currentTab);
+    if (!rbacDel.allowed) {
+        showLockedMessage(rbacDel.reason);
         return;
     }
     
@@ -10714,7 +11220,7 @@ function closeAllStatusDropdowns() {
             
             let table;
             if (state.currentTab === 'personnel') {
-                table = document.getElementById('p-table');
+                table = document.getElementById('p-cards-container');
             } else {
                 const container = document.getElementById('dashboard-content');
                 table = container ? container.querySelector('table') : null;
@@ -10790,6 +11296,8 @@ function closeAllStatusDropdowns() {
             if (loginOverlay) loginOverlay.style.display = 'none';
             document.getElementById('main-sidebar').classList.remove('hidden');
             document.getElementById('main-content').classList.remove('hidden');
+            const _fBtn = document.getElementById('floating-edit-btn');
+            if (_fBtn) _fBtn.style.display = (state.userRole === 'pco') ? 'none' : 'flex';
 
             const isPCO = state.userRole === 'pco';
 
@@ -10835,8 +11343,25 @@ function closeAllStatusDropdowns() {
             }
 
             // Restore last active tab, fallback to 'overall'
-            const lastTab = localStorage.getItem('esh_last_tab') || 'overall';
-            changeTab(lastTab);
+            // Validate the stored tab is a real tab to prevent white screen
+            const _validTabs = ['overall','rates','exposures','medical','nov','nov-monitoring',
+                'activities','kpm','dole','emb','doe','doe-permit','env-monthly-report',
+                'permits','env-monitoring','cshp','reg','audit','personnel','osh-requirement',
+                'esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills'];
+            const _storedTab = localStorage.getItem('esh_last_tab') || 'overall';
+            let lastTab = _validTabs.includes(_storedTab) ? _storedTab : 'overall';
+            // PCO: if last tab was a non-env tab that's now blocked, redirect to overall
+            if (state.userRole === 'pco' && !UserAccounts.PCO_EDITABLE_TABS.includes(lastTab) && !UserAccounts.PCO_VIEW_TABS.includes(lastTab)) {
+                lastTab = 'overall';
+            }
+            // PCO: blocked from personnel and osh-requirement
+            if (state.userRole === 'pco' && (lastTab === 'personnel' || lastTab === 'osh-requirement')) {
+                lastTab = 'overall';
+            }
+            try { changeTab(lastTab); } catch(e) {
+                console.error('❌ changeTab on load failed, falling back to overall:', e);
+                try { changeTab('overall'); } catch(e2) { console.error('❌ Fallback also failed:', e2); }
+            }
         }
 
         // Helper function to check if a month should be marked as overdue
@@ -10906,8 +11431,20 @@ function closeAllStatusDropdowns() {
         }
         
         // Phase 3: Regional Locking - Show locked message
-        function showLockedMessage() {
-            showToast('🔒 View Only - You can only edit projects in your assigned region. Contact admin for access.', 'warning', 4000);
+        function showLockedMessage(reason) {
+            const userEmail = state.currentUser?.email;
+            const info = UserAccounts.getUserInfo(userEmail);
+            let msg = reason || '🔒 Read-Only Access — You do not have permission to modify this record.';
+            if (!reason) {
+                if (info.role === 'superintendent') {
+                    msg = `🔒 Read-Only Access — Superintendents can only edit records in their assigned region (${info.region}).`;
+                } else if (info.role === 'pco') {
+                    msg = '🔒 Read-Only Access — PCO accounts can only edit Environmental modules within their region.';
+                } else if (info.role === 'guest') {
+                    msg = '🔒 Not authenticated. Please log in.';
+                }
+            }
+            showToast(msg, 'warning', 5000);
         }
 
         // ===== KEYBOARD SHORTCUTS =====
@@ -10995,7 +11532,9 @@ function closeAllStatusDropdowns() {
         // ==================== END REGION COLLAPSE/EXPAND ====================
 
         function render() {
-            if (state.currentTab === 'settings' || state.currentTab === 'personnel' || state.currentTab === 'admin') return;
+            try {
+            const _eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills'];
+            if (state.currentTab === 'settings' || state.currentTab === 'personnel' || state.currentTab === 'admin' || _eshCalTabs.includes(state.currentTab)) return;
 
             // Show/hide the lock icon on the audit nav tab for non-admins
             const auditNavLock = document.getElementById('audit-nav-lock');
@@ -11004,13 +11543,7 @@ function closeAllStatusDropdowns() {
             const container = document.getElementById('dashboard-content');
             let html = '';
 
-            // ── PCO View-Only Banner ──
-            if (UserAccounts.isPCOViewOnly(state.currentUser?.email, state.currentTab)) {
-                html += `<div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:1.5px solid #43a047;border-radius:10px;padding:12px 18px;margin:12px 20px 0;font-size:0.84rem;color:#2e7d32;font-weight:600;">
-                    <i class="fas fa-lock" style="font-size:1.1rem;color:#2e7d32;flex-shrink:0;"></i>
-                    <span>This tab is <strong>view-only</strong> for PCO accounts. You can only edit Environmental-related tabs (Environmental Monitoring, Envi Reportorial, Environmental Permits, EMB Reportorial) within your assigned region.</span>
-                </div>`;
-            }
+            // (RBAC banner is now rendered globally via renderRbacBanner() in changeTab)
 
             // ── INCIDENT TABULATION RATE summary always shows at the TOP of Statistics Rate ──
             if (state.currentTab === 'rates') {
@@ -11163,10 +11696,30 @@ function closeAllStatusDropdowns() {
                     // Monthly Totals
                     for (let i = 1; i <= 12; i++) {
                         let monthTotal = 0;
-                        displayProjects.forEach(p => {
-                            const val = p.vals[key] ? (p.vals[key][i] ?? "") : "";
-                            if (val !== "" && !isNaN(val)) monthTotal += parseFloat(val);
-                        });
+                        const mi = i - 1; // 0-based month index for ESH calendar
+                        if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
+                            const eshStor = getEshStorage();
+                            displayProjects.forEach(p => {
+                                if (row === 'Drills Conducted') {
+                                    ESH_DRILLS.forEach((drill, di) => {
+                                        const ak = `esh-calendar-drills|${p.name}|${di}|${mi}|actual`;
+                                        if (eshStor[ak]) monthTotal++;
+                                    });
+                                } else {
+                                    ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
+                                        (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
+                                            const ak = `${tt}|${p.name}|${ti}|${mi}|actual`;
+                                            if (eshStor[ak]) monthTotal++;
+                                        });
+                                    });
+                                }
+                            });
+                        } else {
+                            displayProjects.forEach(p => {
+                                const val = p.vals[key] ? (p.vals[key][i] ?? "") : "";
+                                if (val !== "" && !isNaN(val)) monthTotal += parseFloat(val);
+                            });
+                        }
                         html += `<td class="${isNov ? 'nov-narrow-td' : 'monthly-data'}" style="font-weight: 600; background: #f1f8e9;">${monthTotal > 0 ? fmtNum(monthTotal) : ''}</td>`;
                     }
                     
@@ -11186,6 +11739,26 @@ function closeAllStatusDropdowns() {
                             });
                             ytdTotal = projectCount > 0 ? Math.round(totalAvg / projectCount) : 0;
                             html += `<td class="average-cell" style="font-weight: 800; font-size: 0.7rem;">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
+                        } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
+                            const eshStor = getEshStorage();
+                            displayProjects.forEach(p => {
+                                for (let mi = 0; mi < 12; mi++) {
+                                    if (row === 'Drills Conducted') {
+                                        ESH_DRILLS.forEach((drill, di) => {
+                                            const ak = `esh-calendar-drills|${p.name}|${di}|${mi}|actual`;
+                                            if (eshStor[ak]) ytdTotal++;
+                                        });
+                                    } else {
+                                        ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
+                                            (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
+                                                const ak = `${tt}|${p.name}|${ti}|${mi}|actual`;
+                                                if (eshStor[ak]) ytdTotal++;
+                                            });
+                                        });
+                                    }
+                                }
+                            });
+                            html += `<td class="ytd-cell" style="font-weight: 800; font-size: 0.7rem;">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
                         } else {
                             // For other rows, sum YTD
                             displayProjects.forEach(p => {
@@ -11266,19 +11839,23 @@ function closeAllStatusDropdowns() {
                 if (tabBanners[state.currentTab]) {
                     const b = tabBanners[state.currentTab];
                     html += `
-                    <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 10px 16px; margin: 12px 20px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
+                    <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 8px 16px; margin: 12px 20px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <i class="fas ${b.icon}" style="font-size: 1.2rem; color: ${b.iconColor}; flex-shrink:0;"></i>
+                            <i class="fas ${b.icon}" style="font-size: 1.1rem; color: ${b.iconColor}; flex-shrink:0;"></i>
                             <div>
-                                <h2 style="margin: 0; font-size: 0.9rem; font-weight: 800; line-height:1.2;">${b.title}</h2>
-                                <p style="margin: 2px 0 0; font-size: 0.72rem; opacity: 0.9;">${b.sub1}</p>
-                                <p style="margin: 1px 0 0; font-size: 0.68rem; opacity: 0.8;">${b.sub2}</p>
+                                <p style="margin: 0; font-size: 0.72rem; opacity: 0.9;">${b.sub1}</p>
+                                <p style="margin: 2px 0 0; font-size: 0.68rem; opacity: 0.8;">${b.sub2}</p>
                             </div>
                         </div>
                     </div>`;
                 }
 
                 REGIONS.forEach(reg => {
+                // ── CORPORATE visibility gate ──
+                // CORPORATE only appears in these 5 tabs; hidden everywhere else.
+                const CORPORATE_ALLOWED_TABS = ['overall', 'rates', 'exposures', 'dole', 'medical', 'nov', 'nov-monitoring'];
+                if (reg === 'CORPORATE' && !CORPORATE_ALLOWED_TABS.includes(state.currentTab)) return;
+
                 const projs = displayProjects.filter(p => p.region === reg);
                 
                 // Calculate region average only if there are projects
@@ -11289,19 +11866,25 @@ function closeAllStatusDropdowns() {
                 const canEditRegion = UserAccounts.canEdit(state.currentUser?.email, reg) && UserAccounts.canEditTab(state.currentUser?.email, state.currentTab);
                 const isCollapsed = isRegionCollapsed(reg);
                 
+                const isCorporateReg = reg === 'CORPORATE';
+                const CORP_DATA_TABS = ['overall', 'rates', 'exposures', 'dole', 'medical', 'nov', 'nov-monitoring'];
+                const isCorporateDataTab = isCorporateReg && CORP_DATA_TABS.includes(state.currentTab);
+                const regIcon = isCorporateReg ? 'fa-building-columns' : 'fa-location-dot';
+                const regLabel = isCorporateReg ? 'CORPORATE' : reg;
                 html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)" style="flex-wrap:nowrap;">
                     <span style="display:flex; align-items:center; gap:8px; font-weight:700; min-width:260px;">
-                        <i class="fas fa-location-dot"></i> ${reg}
-                        ${!canEditRegion ? `<i class="fas fa-lock" style="color: #f57c00;" title="🔒 View Only - This region is locked for you"></i>` : ''}
+                        <i class="fas ${regIcon}"></i> ${regLabel}
+                        ${isCorporateReg ? `<span style="background:rgba(255,255,255,0.18);color:white;padding:1px 8px;border-radius:10px;font-size:0.6rem;font-weight:800;">ADMIN ONLY</span>` : ''}
+                        ${!canEditRegion && !isCorporateReg ? `<i class="fas fa-lock" style="color: #f57c00;" title="🔒 View Only - This region is locked for you"></i>` : ''}
                     </span>
-                    <span style="display:flex; align-items:center; gap:8px;">
+                    ${(!isCorporateReg || isCorporateDataTab) ? `<span style="display:flex; align-items:center; gap:8px;">
                         <span class="badge">${projs.length} PROJ</span>
                         ${projs.length > 0 ? `<span class="badge" style="background:#1b5e20; color:var(--safety-yellow);">AVG: ${regionAvg}%</span>` : ''}
-                    </span>
+                    </span>` : ''}
                     <span style="display:flex; align-items:center; gap:8px; margin-left:auto; flex-shrink:0;">
-                        ${state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary" style="font-size:0.75rem; padding:4px 10px;">+ ADD</button>` : ''}
-                        ${state.isEditing && !canEditRegion ? `<button disabled style="opacity:0.5; cursor:not-allowed; background:#999; font-size:0.75rem; padding:4px 10px;" class="btn btn-primary">LOCKED</button>` : ''}
-                        ${state.currentTab === 'overall' && projs.length > 0 ? `<select class="sort-select" onclick="event.stopPropagation()" onchange="sortProjects(this.value)" style="font-size:0.75rem; padding:3px 8px;">
+                        ${(!isCorporateReg || isCorporateDataTab) && state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary" style="font-size:0.75rem; padding:4px 10px;">+ ADD</button>` : ''}
+                        ${(!isCorporateReg || isCorporateDataTab) && state.isEditing && !canEditRegion ? `<button disabled style="opacity:0.5; cursor:not-allowed; background:#999; font-size:0.75rem; padding:4px 10px;" class="btn btn-primary">LOCKED</button>` : ''}
+                        ${!isCorporateReg && state.currentTab === 'overall' && projs.length > 0 ? `<select class="sort-select" onclick="event.stopPropagation()" onchange="sortProjects(this.value)" style="font-size:0.75rem; padding:3px 8px;">
                             <option value="name" ${state.currentSort === 'name' ? 'selected' : ''}>Sort: Name</option>
                             <option value="dateStarted" ${state.currentSort === 'dateStarted' ? 'selected' : ''}>Sort: Date Started</option>
                             <option value="dateFinished" ${state.currentSort === 'dateFinished' ? 'selected' : ''}>Sort: Date Finished</option>
@@ -11309,14 +11892,16 @@ function closeAllStatusDropdowns() {
                         <i class="fas fa-chevron-down region-toggle-icon"></i>
                     </span>
                 </div>`;
-                
+
                 html += `<div id="region-content-${reg}" class="region-content ${isCollapsed ? 'collapsed' : ''}">`;
-                
+
+                {
+
                 // Show empty state message if no projects in this region
                 if (projs.length === 0 && state.isEditing) {
                     html += `<div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 0.85rem; font-style: italic;">
                         <i class="fas fa-folder-open" style="font-size: 2rem; opacity: 0.3; margin-bottom: 10px; display: block;"></i>
-                        No projects in this region yet. Click "+ ADD PROJECT" to get started.
+                        ${isCorporateDataTab ? 'No CORPORATE entry yet. Click "+ ADD" above to add CORPORATE data.' : 'No projects in this region yet. Click "+ ADD PROJECT" to get started.'}
                     </div>`;
                 }
 
@@ -11817,6 +12402,32 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 if (isDole && (row === 'AEDR' || row === 'AMR')) {
                     const v = p.vals[key] ? (p.vals[key][1] ?? "") : "";
                     html += `<td colspan="12" style="text-align: center;"><input type="date" value="${v}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;"></td>`;
+                } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
+                    // AUTO-COMPUTED from ESH Calendar & Drills — read-only, no manual input
+                    const eshStor = getEshStorage();
+                    const projName = p.name;
+                    for (let mi = 0; mi < 12; mi++) {
+                        let count = 0;
+                        if (row === 'Drills Conducted') {
+                            ESH_DRILLS.forEach((drill, di) => {
+                                const ak = `esh-calendar-drills|${projName}|${di}|${mi}|actual`;
+                                if (eshStor[ak]) count++;
+                            });
+                        } else {
+                            ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
+                                (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
+                                    const ak = `${tt}|${projName}|${ti}|${mi}|actual`;
+                                    if (eshStor[ak]) count++;
+                                });
+                            });
+                        }
+                        const disp = count > 0 ? count : '';
+                        html += `<td class="monthly-data" style="text-align:center;background:${count>0?'rgba(46,125,50,0.1)':''};cursor:default;" title="Auto-computed from ESH Calendar &amp; Drills — cannot be edited manually">
+                            <span style="font-weight:${count>0?'700':'400'};color:${count>0?'#2e7d32':'#bbb'};font-size:0.8rem;">
+                                ${disp}${count>0?'<i class="fas fa-lock" style="font-size:0.5rem;margin-left:3px;opacity:0.5;vertical-align:middle;"></i>':''}
+                            </span>
+                        </td>`;
+                    }
                 } else {
                     // Normal monthly columns - REMOVED RED "NO REPORT", just normal input
                     for (let i = 1; i <= 12; i++) {
@@ -11833,6 +12444,23 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 if (row === "Total Manpower") {
                     ytdValue = calculateAverage(p.vals[key], rowIdx);
                     html += `<td class="average-cell">${fmtNum(ytdValue)}</td>`;
+                } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
+                    // YTD = total count from ESH Calendar across all months
+                    const eshStor = getEshStorage();
+                    for (let mi = 0; mi < 12; mi++) {
+                        if (row === 'Drills Conducted') {
+                            ESH_DRILLS.forEach((drill, di) => {
+                                if (eshStor[`esh-calendar-drills|${p.name}|${di}|${mi}|actual`]) ytdValue++;
+                            });
+                        } else {
+                            ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
+                                (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
+                                    if (eshStor[`${tt}|${p.name}|${ti}|${mi}|actual`]) ytdValue++;
+                                });
+                            });
+                        }
+                    }
+                    html += `<td class="ytd-cell" style="color:${ytdValue>0?'#2e7d32':''};">${ytdValue > 0 ? fmtNum(ytdValue) : ''}</td>`;
                 } else {
                     ytdValue = calculateYTD(p.vals[key], rowIdx);
                     html += `<td class="ytd-cell">${fmtNum(ytdValue)}</td>`;
@@ -11865,9 +12493,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
     }
 }
 
-        });
-html += '</div>'; // Close region-content
-            });
+                }); // end projs.forEach
+                } // end else (non-corporate regions)
+                html += `</div>`; // Close region-content
+                });
             } // End skip for DOE tabs
 
             // ── PER-REGION GROUPED TABLES: kpm, cshp, reg, audit, env-monthly-report ──
@@ -11918,6 +12547,7 @@ html += '</div>'; // Close region-content
                 const isAudit   = (state.currentTab === 'audit');
 
                 REGIONS.forEach(reg => {
+                    if (reg === 'CORPORATE') return; // CORPORATE not shown in this tab
                     const projs = displayProjects.filter(p => p.region === reg);
                     if (projs.length === 0) return;
 
@@ -11926,10 +12556,14 @@ html += '</div>'; // Close region-content
                     const canEditRegion = UserAccounts.canEdit(state.currentUser?.email, reg) && UserAccounts.canEditTab(state.currentUser?.email, state.currentTab);
                     const isCollapsed = isRegionCollapsed(reg);
 
+                    const isCorporateReg2 = reg === 'CORPORATE';
+                    const regIcon2 = isCorporateReg2 ? 'fa-building-columns' : 'fa-location-dot';
+                    const regLabel2 = isCorporateReg2 ? 'CORPORATE' : reg;
                     html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)" style="flex-wrap:nowrap;">
                         <span style="display:flex; align-items:center; gap:8px; font-weight:700; flex-shrink:0;">
-                            <i class="fas fa-location-dot"></i> ${reg}
-                            ${!canEditRegion ? `<i class="fas fa-lock" style="color: #f57c00;" title="🔒 View Only - This region is locked for you"></i>` : ''}
+                            <i class="fas ${regIcon2}"></i> ${regLabel2}
+                            ${isCorporateReg2 ? `<span style="background:rgba(255,255,255,0.18);color:white;padding:1px 8px;border-radius:10px;font-size:0.6rem;font-weight:800;">ADMIN ONLY</span>` : ''}
+                            ${!canEditRegion && !isCorporateReg2 ? `<i class="fas fa-lock" style="color: #f57c00;" title="🔒 View Only - This region is locked for you"></i>` : ''}
                         </span>
                         <span style="display:flex; align-items:center; gap:8px; margin-left:auto; flex-shrink:0;">
                             <span class="badge">${projs.length} PROJ</span>
@@ -12094,7 +12728,7 @@ html += '</div>'; // Close region-content
 
                         html += `</table></div>`;
                     }
-                    html += `</div>`; // Close region-content
+                html += `</div>`; // Close region-content
                 });
             }
 
@@ -12727,6 +13361,18 @@ html += '</div>'; // Close region-content
                     updateTrendChart(state.currentTab);
                 }, 100);
             }
+            } catch(renderErr) {
+                console.error('❌ render() crashed:', renderErr);
+                const _rc = document.getElementById('dashboard-content');
+                if (_rc) {
+                    _rc.innerHTML = `<div style="padding:40px;text-align:center;color:#c62828;">
+                        <i class="fas fa-triangle-exclamation" style="font-size:2rem;margin-bottom:12px;display:block;"></i>
+                        <div style="font-weight:700;margin-bottom:8px;">Display Error — ${renderErr.message}</div>
+                        <div style="font-size:0.8rem;color:#888;margin-bottom:16px;">Try switching to another tab or refreshing the page.</div>
+                        <button onclick="changeTab('overall')" style="padding:8px 20px;background:#2e7d32;color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;">↩ Go to Dashboard</button>
+                    </div>`;
+                }
+            }
         }
 
 
@@ -13280,13 +13926,18 @@ function openAddPersonnelModal() {
     // Populate assignment dropdown with projects
     const assignmentSelect = document.getElementById('personnelAssignmentInput');
     let options = '<option value="">Select Assignment</option>';
-    options += '<option value="Corporate Office">Corporate Office</option>';
+    // Corporate Office assignment: Admin only
+    if (state.isAdmin) {
+        options += '<option value="Corporate Office">Corporate Office</option>';
+    }
     
     if (state.projects && state.projects.length > 0) {
-        // For non-admin users, only show projects from their region
+        // For non-admin users, only show projects from their region (excluding CORPORATE region)
         let projectsList = state.projects;
         if (!state.isAdmin && state.userRegion) {
-            projectsList = state.projects.filter(p => p.region === state.userRegion);
+            projectsList = state.projects.filter(p => p.region === state.userRegion && p.region !== 'CORPORATE');
+        } else if (state.isAdmin) {
+            projectsList = state.projects; // Admin sees all
         }
         
         projectsList.forEach(p => {
@@ -13381,6 +14032,20 @@ function confirmAddPersonnel() {
         return;
     }
     
+    // Corporate assignment: Admin only
+    if (!state.isAdmin && current === 'Corporate Office') {
+        errorEl.textContent = '🔒 Only Admin can assign personnel to Corporate Office';
+        return;
+    }
+    // Corporate region projects: Admin only
+    if (!state.isAdmin) {
+        const assignedProject = (state.masterProjects || state.projects || []).find(p => p.name === current);
+        if (assignedProject && assignedProject.region === 'CORPORATE') {
+            errorEl.textContent = '🔒 Only Admin can assign personnel to Corporate region projects';
+            return;
+        }
+    }
+
     // Check for duplicate ID
     if (state.personnelData && state.personnelData.some(p => p.id === id)) {
         errorEl.textContent = '⚠️ ID Number already exists';
@@ -13420,29 +14085,42 @@ function openEditPersonnelModal(index) {
     if (!person) return;
     
     // Check permission for non-admin users
-    if (!state.isAdmin && state.userRegion) {
-        // Get user's region projects
-        const userProjects = state.masterProjects
-            .filter(p => p.region === state.userRegion)
-            .map(p => p.name);
-        
-        // Check if person is assigned to user's region or Corporate Office
-        if (person.current !== 'Corporate Office' && !userProjects.includes(person.current)) {
-            showToast('⚠️ Access Denied - You can only edit personnel from your region', 'error');
+    if (!state.isAdmin) {
+        // Corporate Office personnel: Admin only
+        if (person.current === 'Corporate Office') {
+            showToast('🔒 Access Denied — Corporate personnel can only be edited by Admin.', 'warning');
             return;
+        }
+        // Corporate region projects: Admin only
+        const personProject = (state.masterProjects || state.projects || []).find(p => p.name === person.current);
+        if (personProject && personProject.region === 'CORPORATE') {
+            showToast('🔒 Access Denied — Corporate region personnel can only be edited by Admin.', 'warning');
+            return;
+        }
+        if (state.userRegion) {
+            const userProjects = (state.masterProjects || [])
+                .filter(p => p.region === state.userRegion)
+                .map(p => p.name);
+            if (!userProjects.includes(person.current)) {
+                showToast('⚠️ Access Denied - You can only edit personnel from your region', 'error');
+                return;
+            }
         }
     }
     
     // Populate assignment dropdown with projects
     const assignmentSelect = document.getElementById('editPersonnelAssignmentInput');
     let options = '<option value="">Select Assignment</option>';
-    options += '<option value="Corporate Office">Corporate Office</option>';
+    // Corporate Office: Admin only
+    if (state.isAdmin) {
+        options += '<option value="Corporate Office">Corporate Office</option>';
+    }
     
     if (state.projects && state.projects.length > 0) {
-        // For non-admin users, only show projects from their region
+        // For non-admin users, only show projects from their region (no CORPORATE)
         let projectsList = state.projects;
         if (!state.isAdmin && state.userRegion) {
-            projectsList = state.projects.filter(p => p.region === state.userRegion);
+            projectsList = state.projects.filter(p => p.region === state.userRegion && p.region !== 'CORPORATE');
         }
         
         projectsList.forEach(p => {
@@ -13575,6 +14253,19 @@ function confirmEditPersonnel() {
         return;
     }
     
+    // Corporate assignment: Admin only
+    if (!state.isAdmin && current === 'Corporate Office') {
+        errorEl.textContent = '🔒 Only Admin can assign personnel to Corporate Office';
+        return;
+    }
+    if (!state.isAdmin) {
+        const assignedProject2 = (state.masterProjects || state.projects || []).find(p => p.name === current);
+        if (assignedProject2 && assignedProject2.region === 'CORPORATE') {
+            errorEl.textContent = '🔒 Only Admin can assign personnel to Corporate region projects';
+            return;
+        }
+    }
+
     // Check for duplicate ID (excluding current record)
     if (state.personnelData && state.personnelData.some((p, idx) => p.id === id && idx !== index)) {
         errorEl.textContent = '⚠️ ID Number already exists';
@@ -13607,281 +14298,344 @@ function confirmEditPersonnel() {
     showToast('✅ Personnel updated successfully!', 'success');
 }
 
-function renderPTable() {
-    const tbody = document.getElementById('p-body');
-    if (!tbody) return;
+// Track collapsed project/group cards
+const _pCollapsedProjects = new Set();
 
-    // ── Build project options dropdown ──────────────────────────────────
-    let projOptions = '<optgroup label="Corporate/Head Office">';
-    projOptions += '<option value="Corporate Office">Corporate Office</option>';
-    projOptions += '</optgroup>';
-    if (state.projects && state.projects.length > 0) {
-        projOptions += '<optgroup label="Project Sites">';
-        projOptions += (state.projects || []).map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-        projOptions += '</optgroup>';
-    }
+// Toggle project card by safeKey (used by delegated listener)
+function _pToggleProjectBySafeKey(safeKey) {
+    const body = document.getElementById('p-proj-body-' + safeKey);
+    const chev = document.getElementById('p-proj-chev-' + safeKey);
+    if (!body) return;
+    const isVisible = body.style.display !== 'none';
+    body.style.display = isVisible ? 'none' : '';
+    if (chev) chev.style.transform = isVisible ? 'rotate(-90deg)' : 'rotate(0deg)';
+    if (isVisible) _pCollapsedProjects.add(safeKey);
+    else _pCollapsedProjects.delete(safeKey);
+}
 
-    // ── Raw data with original indices ─────────────────────────────────
-    let rawData = (state.personnelData || []).map((p, i) => ({ ...p, _origIdx: i }));
+// Delegated click handler on cards container — catches all project header clicks
+document.addEventListener('click', function(e) {
+    const toggle = e.target.closest('.p-proj-toggle');
+    if (!toggle) return;
+    const safeKey = toggle.getAttribute('data-proj-key');
+    if (safeKey) _pToggleProjectBySafeKey(safeKey);
+});
 
-    // Regional Filtering: Non-admin sees only their region + Corporate Office
-    if (!state.isAdmin && state.userRegion) {
-        const userProjects = state.masterProjects
-            .filter(p => p.region === state.userRegion)
-            .map(p => p.name);
-        rawData = rawData.filter(person =>
-            person.current === 'Corporate Office' || userProjects.includes(person.current)
-        );
-    }
+// Keep window.pToggleProject for any legacy inline calls (shouldn't be needed)
+window.pToggleProject = function(projKey) {
+    const safeKey = projKey.replace(/[^a-zA-Z0-9]/g, '_');
+    _pToggleProjectBySafeKey(safeKey);
+};
 
-    // ── SORTING CONSTANTS ───────────────────────────────────────────────
+window.pToggleGroup = function(grpKey) {
+    const safeKey = grpKey.replace(/[^a-zA-Z0-9]/g, '_');
+    const body = document.getElementById('p-grp-body-' + safeKey);
+    const chev = document.getElementById('p-grp-chev-' + safeKey);
+    if (!body) return;
+    const isVisible = body.style.display !== 'none';
+    body.style.display = isVisible ? 'none' : '';
+    if (chev) chev.style.transform = isVisible ? 'rotate(-90deg)' : 'rotate(0deg)';
+};
 
-    // Corporate Office position order (exact, fixed)
-    const CORP_POS_ORDER = [
-        'QESH Group Manager',
-        'QESH Deputy Manager',
-        'ESH Manager for Regulation & Compliance',
-        'ESH Manager for Project Implementation',
-        'Environmental and Sustainability Head',
-        'Corporate Physician',
-        'Corporate Nurse',
-        'QESH Corp. DC',
-        'Others'
-    ];
+const P_TABLE_THEAD = `
+<tr style="background:linear-gradient(90deg,#1b5e20 0%,#388e3c 100%);">
+    <th style="padding:8px 12px;color:white;text-align:left;white-space:nowrap;font-weight:700;letter-spacing:0.3px;border:none;position:sticky;left:0;z-index:10;background:#1b5e20;">#&nbsp;&nbsp;Full Name</th>
+    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:180px;">Position</th>
+    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:95px;">ID Number</th>
+    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:110px;">Date Hired</th>
+    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;min-width:180px;">Current Assignment</th>
+    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:48px;">Age</th>
+    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:80px;">Gender</th>
+    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;min-width:180px;">Email</th>
+    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:115px;">Contact No.</th>
+    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;min-width:200px;">Home Address</th>
+    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:70px;">Yrs. of Svc</th>
+    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:100px;">Action</th>
+</tr>`;
 
-    // Region display order
-    const REGION_ORDER = ['NCR', 'SOUTH LUZON', 'NORTH LUZON', 'VISAYAS & MINDANAO'];
+function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isCorporateCard) {
+    const safeKey = projName.replace(/[^a-zA-Z0-9]/g, '_');
+    const isCollapsed = _pCollapsedProjects.has(projName);
+    const count = personnel.length;
+    // Corporate Office uses same green styling as regular project cards — no blue
+    const headerBg = 'background:linear-gradient(90deg,#1b5e20 0%,#2e7d32 60%,#388e3c 100%);border-left:3px solid #fbc02d;';
+    const iconEl = isCorporateCard ? 'fa-building-columns' : 'fa-solar-panel';
+    const badgeBg = 'rgba(251,192,45,0.25)';
 
-    // Project-based position hierarchy (lower index = higher rank)
-    const PROJECT_POS_ORDER = [
-        'ESH Superintendent',
-        'ESH Head',
-        'Safety Officer IV',
-        'Safety Officer III',
-        'Safety Officer II',
-        'Safety Officer I',
-        'PCO',
-        'Project Physician',
-        'Project Nurse',
-        'First Aider',
-        'Others'
-    ];
-
-    function corpPosRank(pos) {
-        const idx = CORP_POS_ORDER.indexOf(pos);
-        return idx >= 0 ? idx : CORP_POS_ORDER.length;
-    }
-    function projPosRank(pos) {
-        const idx = PROJECT_POS_ORDER.indexOf(pos);
-        return idx >= 0 ? idx : PROJECT_POS_ORDER.length;
-    }
-    function regionRank(region) {
-        const idx = REGION_ORDER.indexOf((region || '').toUpperCase());
-        return idx >= 0 ? idx : REGION_ORDER.length;
-    }
-
-    // ── STEP 1: Separate Corporate from Project personnel ──────────────
-    const corpPersonnel = rawData.filter(p => p.current === 'Corporate Office');
-    const projectPersonnel = rawData.filter(p => p.current !== 'Corporate Office');
-
-    // Sort Corporate Office by fixed position order
-    corpPersonnel.sort((a, b) => corpPosRank(a.pos) - corpPosRank(b.pos));
-
-    // ── STEP 2: Build project-region map ───────────────────────────────
-    const projectRegionMap = {};
-    (state.masterProjects || state.projects || []).forEach(p => {
-        if (p.name) projectRegionMap[p.name] = (p.region || '').toUpperCase();
-    });
-
-    projectPersonnel.forEach(p => {
-        p._region = projectRegionMap[p.current] || 'OTHER';
-    });
-
-    // ── STEP 3: Group by region → then by project ──────────────────────
-    const regionGroups = {};
-    projectPersonnel.forEach(p => {
-        const r = p._region;
-        if (!regionGroups[r]) regionGroups[r] = {};
-        const proj = p.current;
-        if (!regionGroups[r][proj]) regionGroups[r][proj] = [];
-        regionGroups[r][proj].push(p);
-    });
-
-    // Sort personnel within each project by position hierarchy
-    Object.values(regionGroups).forEach(projMap => {
-        Object.values(projMap).forEach(arr => {
-            arr.sort((a, b) => projPosRank(a.pos) - projPosRank(b.pos));
-        });
-    });
-
-    // ── STEP 4: Build final ordered flat array ──────────────────────────
-    let sorted = [];
-
-    // GROUP 1: Corporate Office (always first)
-    if (corpPersonnel.length > 0) {
-        // Corporate Office personnel — no group header banner, just a thin top separator
-        sorted.push({ _isGroupHeader: true, label: '', icon: '', color: '#1b5e20', hideLabel: true });
-        corpPersonnel.forEach(p => sorted.push(p));
-    }
-
-    // GROUP 2: Project regions in defined order
-    const sortedRegionKeys = Object.keys(regionGroups).sort((a, b) => regionRank(a) - regionRank(b));
-
-    sortedRegionKeys.forEach(region => {
-        const projMap = regionGroups[region];
-
-        // Superintendent project goes first, then alphabetical
-        const superintendentEntry = projectPersonnel.find(p => p._region === region && p.pos === 'ESH Superintendent');
-        const superintendentProject = superintendentEntry ? superintendentEntry.current : null;
-
-        const projectNames = Object.keys(projMap).sort((a, b) => {
-            if (a === superintendentProject) return -1;
-            if (b === superintendentProject) return 1;
-            return a.localeCompare(b);
-        });
-
-        const regionLabelMap = {
-            'NCR': '\u{1F4CD} NCR',
-            'SOUTH LUZON': '\u{1F4CD} SOUTH LUZON',
-            'NORTH LUZON': '\u{1F4CD} NORTH LUZON',
-            'VISAYAS & MINDANAO': '\u{1F4CD} VISAYAS & MINDANAO'
-        };
-        const regionLabel = regionLabelMap[region] || `\u{1F4CD} ${region}`;
-        const regionCount = projectNames.reduce((acc, pn) => acc + projMap[pn].length, 0);
-
-        sorted.push({ _isGroupHeader: true, label: regionLabel, icon: 'fa-map-marker-alt', color: '#2e7d32', count: regionCount });
-
-        projectNames.forEach(projName => {
-            sorted.push({ _isProjectHeader: true, label: projName, count: projMap[projName].length });
-            projMap[projName].forEach(p => sorted.push(p));
-        });
-    });
-
-    // ── STEP 5: Render ────────────────────────────────────────────────
-    let displayIndex = 0;
-    tbody.innerHTML = sorted.map(item => {
-
-        if (item._isGroupHeader) {
-            // Corporate Office has no banner header — just a tiny visual separator
-            if (item.hideLabel) {
-                return `<tr class="p-group-header-row" style="background:none;pointer-events:none;height:4px;">
-                    <td colspan="12" style="padding:0;border-bottom:2px solid ${item.color};"></td>
-                </tr>`;
-            }
-            return `<tr class="p-group-header-row" style="background:linear-gradient(90deg,${item.color} 0%,${item.color}dd 100%);pointer-events:none;">
-                <td colspan="12" style="padding:7px 16px;color:white;font-weight:800;font-size:0.72rem;letter-spacing:0.8px;position:sticky;left:0;background:transparent;">
-                    <i class="fas ${item.icon}" style="margin-right:8px;opacity:0.85;"></i>${item.label}
-                    ${item.count !== undefined ? `<span style="background:rgba(255,255,255,0.2);padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;margin-left:8px;">${item.count} personnel</span>` : ''}
-                </td>
-            </tr>`;
-        }
-
-        if (item._isProjectHeader) {
-            return `<tr class="p-project-header-row" style="background:linear-gradient(90deg,#e8f5e9 0%,#f1f8e9 100%);pointer-events:none;border-left:3px solid #2e7d32;">
-                <td colspan="12" style="padding:5px 16px 5px 28px;color:#1b5e20;font-weight:700;font-size:0.68rem;letter-spacing:0.5px;position:sticky;left:0;background:transparent;">
-                    <i class="fas fa-hard-hat" style="margin-right:7px;font-size:0.65rem;opacity:0.7;"></i>${item.label}
-                    <span style="background:#c8e6c9;color:#1b5e20;padding:1px 7px;border-radius:8px;font-size:0.6rem;font-weight:700;margin-left:6px;">${item.count}</span>
-                </td>
-            </tr>`;
-        }
-
+    let rows = '';
+    personnel.forEach(item => {
         const origIdx = item._origIdx;
         const p = state.personnelData[origIdx];
-        if (!p) return '';
-
-        displayIndex++;
+        if (!p) return;
+        displayIndexRef.n++;
+        const di = displayIndexRef.n;
         const genderClass = p.gen === 'Male' ? 'p-gender-m' : p.gen === 'Female' ? 'p-gender-f' : '';
         const posDisplay  = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>` : '';
         const genDisplay  = p.gen && p.gen !== 'Select' ? `<span class="p-pos-badge ${genderClass}">${p.gen}</span>` : '';
-
         const yearsOfService = calculateYearsOfService(p.hired);
         if (p.hired && yearsOfService !== '' && p.len !== yearsOfService.toString()) {
             state.personnelData[origIdx].len = yearsOfService.toString();
         }
-
-        return `
-        <tr id="p-row-${origIdx}">
-            <td style="min-width:250px; text-align:left; position: sticky; left: 0; z-index: 5; background: var(--bg-card);">
-                <span class="p-row-num">${displayIndex}</span>
-                <input type="text" value="${(p.name || '').toUpperCase()}" onchange="state.personnelData[${origIdx}].name=this.value.toUpperCase()" style="min-width:220px; text-align:left; text-transform: uppercase;" disabled>
+        const rowBg = di % 2 === 0 ? 'background:#ffffff;' : 'background:#f4f6f8;';
+        rows += `
+        <tr id="p-row-${origIdx}" style="${rowBg}">
+            <td style="text-align:left;position:sticky;left:0;z-index:5;${di%2===1?'background:#f4f6f8;':'background:#ffffff;'}white-space:nowrap;padding:6px 10px 6px 12px;">
+                <span class="p-row-num">${di}</span>
+                <div class="p-view-text" style="display:inline-block;white-space:nowrap;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;padding-right:6px;">${(p.name||'').toUpperCase()}</div>
+                <input type="text" value="${(p.name||'').toUpperCase()}" onchange="state.personnelData[${origIdx}].name=this.value.toUpperCase()" style="min-width:190px;text-align:left;text-transform:uppercase;display:none;" disabled>
             </td>
-            <td style="width:180px; text-align:center;">
+            <td style="width:180px;text-align:center;">
                 ${posDisplay}
-                <select onchange="state.personnelData[${origIdx}].pos=this.value;renderPTable();" style="width:170px;display:none; text-align:center;" disabled>
+                <select onchange="state.personnelData[${origIdx}].pos=this.value;renderPTable();" style="width:170px;display:none;text-align:center;" disabled>
                     <option value="${p.pos||''}">${p.pos||'Select'}</option>
                     <optgroup label="Project-Based Positions">
-                        <option>ESH Superintendent</option>
-                        <option>ESH Head</option>
-                        <option>Safety Officer I</option>
-                        <option>Safety Officer II</option>
-                        <option>Safety Officer III</option>
-                        <option>Safety Officer IV</option>
-                        <option>PCO</option>
-                        <option>Project Physician</option>
-                        <option>Project Nurse</option>
-                        <option>First Aider</option>
+                        <option>ESH Superintendent</option><option>ESH Head</option>
+                        <option>Safety Officer I</option><option>Safety Officer II</option>
+                        <option>Safety Officer III</option><option>Safety Officer IV</option>
+                        <option>PCO</option><option>Project Physician</option>
+                        <option>Project Nurse</option><option>First Aider</option>
                     </optgroup>
                     <optgroup label="Corporate Positions">
-                        <option>QESH Group Manager</option>
-                        <option>QESH Deputy Manager</option>
+                        <option>QESH Group Manager</option><option>QESH Deputy Manager</option>
                         <option>ESH Manager for Regulation &amp; Compliance</option>
                         <option>ESH Manager for Project Implementation</option>
                         <option>Environmental and Sustainability Head</option>
-                        <option>Corporate Physician</option>
-                        <option>Corporate Nurse</option>
+                        <option>Corporate Physician</option><option>Corporate Nurse</option>
                         <option>QESH Corp. DC</option>
                     </optgroup>
-                    <optgroup label="Other">
-                        <option>Others</option>
-                    </optgroup>
+                    <optgroup label="Other"><option>Others</option></optgroup>
                 </select>
             </td>
-            <td style="width:95px; text-align:center;">
-                <input type="text" value="${p.id||''}" onchange="state.personnelData[${origIdx}].id=this.value" style="width:80px;text-align:center;" disabled>
-            </td>
-            <td style="width:110px; text-align:center;">
-                <input type="date" value="${p.hired||''}" onchange="state.personnelData[${origIdx}].hired=this.value;renderPTable();" style="width:100px;" disabled>
-            </td>
-            <td style="min-width:180px; text-align:center;">
-                <select onchange="state.personnelData[${origIdx}].current=this.value" style="min-width:170px;" disabled>
+            <td style="width:95px;text-align:center;"><input type="text" value="${p.id||''}" onchange="state.personnelData[${origIdx}].id=this.value" style="width:80px;text-align:center;" disabled></td>
+            <td style="width:110px;text-align:center;"><input type="date" value="${p.hired||''}" onchange="state.personnelData[${origIdx}].hired=this.value;renderPTable();" style="width:100px;" disabled></td>
+            <td style="min-width:180px;text-align:center;">
+                <select onchange="state.personnelData[${origIdx}].current=this.value" style="min-width:170px;text-align:center;text-align-last:center;" disabled>
                     <option value="${p.current||''}">${p.current||'Select Assignment'}</option>
                     ${projOptions}
                 </select>
             </td>
-            <td style="width:48px; text-align:center;">
-                <input type="number" value="${p.age||''}" onchange="state.personnelData[${origIdx}].age=this.value" style="width:38px;text-align:center;" min="0" max="99" disabled>
-            </td>
-            <td style="width:80px; text-align:center;">
+            <td style="width:48px;text-align:center;"><input type="number" value="${p.age||''}" onchange="state.personnelData[${origIdx}].age=this.value" style="width:38px;text-align:center;" min="0" max="99" disabled></td>
+            <td style="width:80px;text-align:center;">
                 ${genDisplay}
                 <select onchange="state.personnelData[${origIdx}].gen=this.value;renderPTable();" style="width:70px;display:none;" disabled>
                     <option value="${p.gen||''}">${p.gen||'Select'}</option>
                     <option>Male</option><option>Female</option>
                 </select>
             </td>
-            <td style="min-width:180px; text-align:center;">
-                <input type="email" value="${p.mail||''}" onchange="state.personnelData[${origIdx}].mail=this.value" style="min-width:165px;text-align:center;" disabled>
+            <td style="min-width:180px;text-align:center;">
+                <div class="p-view-text" style="white-space:normal;word-break:break-all;font-size:0.72rem;">${p.mail||''}</div>
+                <input type="email" value="${p.mail||''}" onchange="state.personnelData[${origIdx}].mail=this.value" style="min-width:165px;text-align:center;display:none;" disabled>
             </td>
-            <td style="width:115px; text-align:center;">
-                <input type="text" value="${p.num||''}" onchange="state.personnelData[${origIdx}].num=this.value" style="width:105px;text-align:center;" disabled>
+            <td style="width:115px;text-align:center;"><input type="text" value="${p.num||''}" onchange="state.personnelData[${origIdx}].num=this.value" style="width:105px;text-align:center;" disabled></td>
+            <td style="min-width:200px;text-align:left;">
+                <div class="p-view-text" style="white-space:normal;word-break:break-word;font-size:0.72rem;padding:2px 0;">${p.addr||''}</div>
+                <input type="text" value="${p.addr||''}" onchange="state.personnelData[${origIdx}].addr=this.value" style="min-width:185px;text-align:center;display:none;" disabled>
             </td>
-            <td style="min-width:200px; text-align:center;">
-                <input type="text" value="${p.addr||''}" onchange="state.personnelData[${origIdx}].addr=this.value" style="min-width:185px;text-align:center;" disabled>
-            </td>
-            <td style="width:70px; text-align:center;">
-                <input type="number" value="${yearsOfService !== '' ? yearsOfService : (p.len||'')}" style="width:50px;text-align:center;background:#f0f0f0;color:#666;font-weight:600;" min="0" max="99" disabled readonly title="Auto-calculated from Date Hired">
-            </td>
-            <td style="width:100px; text-align:center; white-space:nowrap;">
+            <td style="width:70px;text-align:center;"><input type="number" value="${yearsOfService!==''?yearsOfService:(p.len||'')}" style="width:50px;text-align:center;background:#f0f0f0;color:#666;font-weight:600;" min="0" max="99" disabled readonly title="Auto-calculated from Date Hired"></td>
+            <td style="width:100px;text-align:center;white-space:nowrap;">
                 <button class="p-edit-btn" id="p-edit-btn-${origIdx}" onclick="openEditPersonnelModal(${origIdx})"><i class="fas fa-edit"></i></button>
                 <button class="p-del-btn" onclick="pRowDelete(${origIdx})" title="Delete"><i class="fas fa-trash"></i></button>
             </td>
         </tr>`;
-    }).join('');
+    });
 
-    // Show/hide empty state
+    return `
+    <div class="p-project-card" style="margin-bottom:2px;">
+        <div class="p-proj-toggle" data-proj-key="${safeKey}" style="${headerBg}cursor:pointer;user-select:none;">
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 16px 7px 18px;color:white;font-weight:700;font-size:0.71rem;letter-spacing:0.4px;">
+                <i class="fas ${iconEl}" style="font-size:0.65rem;opacity:0.85;color:#fbc02d;"></i>
+                <span style="flex:1;">${projName}</span>
+                <span style="background:${badgeBg};color:#fbc02d;padding:2px 9px;border-radius:10px;font-size:0.6rem;font-weight:800;border:1px solid rgba(251,192,45,0.4);">${count}</span>
+                <i id="p-proj-chev-${safeKey}" class="fas fa-chevron-down" style="font-size:0.6rem;opacity:0.8;transition:transform 0.2s;transform:${isCollapsed?'rotate(-90deg)':'rotate(0deg)'}"></i>
+            </div>
+        </div>
+        <div id="p-proj-body-${safeKey}" style="overflow-x:auto;display:${isCollapsed?'none':''};">
+            <table style="width:max-content;min-width:100%;border-collapse:collapse;font-size:0.72rem;">
+                <thead>${P_TABLE_THEAD}</thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>
+    </div>`;
+}
+
+function renderPTable() {
+    const container = document.getElementById('p-cards-container');
+    if (!container) return;
+
+    // Show global Edit All / Save All action bar
+    const pGlobalAction = document.getElementById('p-global-action');
+    if (pGlobalAction) {
+        pGlobalAction.style.display = 'flex';
+        const editBtn = document.getElementById('p-global-edit-btn');
+        const saveBtn = document.getElementById('p-global-save-btn');
+        if (editBtn) editBtn.style.display = '';
+        if (saveBtn) saveBtn.style.display = 'none';
+    }
+
+    // Build project assignment dropdown options
+    let projOptions = '<optgroup label="Corporate/Head Office">';
+    if (state.isAdmin) projOptions += '<option value="Corporate Office">Corporate Office</option>';
+    projOptions += '</optgroup>';
+    if (state.projects && state.projects.length > 0) {
+        let projectsList = state.projects;
+        if (!state.isAdmin && state.userRegion) {
+            projectsList = state.projects.filter(p => p.region === state.userRegion && p.region !== 'CORPORATE');
+        }
+        projOptions += '<optgroup label="Project Sites">';
+        projOptions += projectsList.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+        projOptions += '</optgroup>';
+    }
+
+    // Raw data with original indices
+    let rawData = (state.personnelData || []).map((p, i) => ({ ...p, _origIdx: i }));
+
+    // Regional filtering for non-admins
+    if (!state.isAdmin && state.userRegion) {
+        const userProjects = (state.masterProjects || []).filter(p => p.region === state.userRegion).map(p => p.name);
+        rawData = rawData.filter(p => userProjects.includes(p.current));
+    }
+
+    // Position rank helpers
+    const CORP_POS_ORDER = ['QESH Group Manager','QESH Deputy Manager','ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation','Environmental and Sustainability Head','Corporate Physician','Corporate Nurse','QESH Corp. DC','Others'];
+    const PROJECT_POS_ORDER = ['ESH Superintendent','ESH Head','Safety Officer IV','Safety Officer III','Safety Officer II','Safety Officer I','PCO','Project Physician','Project Nurse','First Aider','Others'];
+    const REGION_ORDER = ['CORPORATE','NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+
+    const corpPosRank = pos => { const i = CORP_POS_ORDER.indexOf(pos); return i >= 0 ? i : CORP_POS_ORDER.length; };
+    const projPosRank = pos => { const i = PROJECT_POS_ORDER.indexOf(pos); return i >= 0 ? i : PROJECT_POS_ORDER.length; };
+    const regionRank  = r   => { const i = REGION_ORDER.indexOf((r||'').toUpperCase()); return i >= 0 ? i : REGION_ORDER.length; };
+
+    // Separate corporate vs project personnel
+    const corpPersonnel    = rawData.filter(p => p.current === 'Corporate Office').sort((a,b) => corpPosRank(a.pos)-corpPosRank(b.pos));
+    const projectPersonnel = rawData.filter(p => p.current !== 'Corporate Office');
+
+    // Build project→region map
+    const projectRegionMap = {};
+    (state.masterProjects || state.projects || []).forEach(p => { if (p.name) projectRegionMap[p.name] = (p.region||'').toUpperCase(); });
+    projectPersonnel.forEach(p => { p._region = projectRegionMap[p.current] || 'OTHER'; });
+
+    // Group by region → project
+    const regionGroups = {};
+    projectPersonnel.forEach(p => {
+        const r = p._region;
+        if (!regionGroups[r]) regionGroups[r] = {};
+        if (!regionGroups[r][p.current]) regionGroups[r][p.current] = [];
+        regionGroups[r][p.current].push(p);
+    });
+
+    // Sort within each project
+    Object.values(regionGroups).forEach(projMap => Object.values(projMap).forEach(arr => arr.sort((a,b)=>projPosRank(a.pos)-projPosRank(b.pos))));
+
+    if ((state.personnelData||[]).length === 0) {
+        container.innerHTML = '';
+        const emptyEl = document.getElementById('p-empty');
+        if (emptyEl) emptyEl.style.display = 'block';
+        updatePersonnelSummary();
+        return;
+    }
     const emptyEl = document.getElementById('p-empty');
-    if (emptyEl) emptyEl.style.display = (state.personnelData || []).length === 0 ? 'block' : 'none';
+    if (emptyEl) emptyEl.style.display = 'none';
 
-    // Update summary badges
+    const displayIndexRef = { n: 0 };
+    let html = '';
+
+    // ── GROUP 1: CORPORATE — region-style banner, table shown directly (no sub-header) ──
+    if (corpPersonnel.length > 0) {
+        const grpSafe = 'CORP_OFFICE';
+        // Build rows directly
+        let _corpRows = '';
+        corpPersonnel.forEach(item => {
+            const origIdx = item._origIdx;
+            const p = state.personnelData[origIdx];
+            if (!p) return;
+            displayIndexRef.n++;
+            const di = displayIndexRef.n;
+            const genderClass = p.gen === 'Male' ? 'p-gender-m' : p.gen === 'Female' ? 'p-gender-f' : '';
+            const posDisplay  = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>` : '';
+            const genDisplay  = p.gen && p.gen !== 'Select' ? `<span class="p-pos-badge ${genderClass}">${p.gen}</span>` : '';
+            const yearsOfService = calculateYearsOfService(p.hired);
+            if (p.hired && yearsOfService !== '' && p.len !== yearsOfService.toString()) {
+                state.personnelData[origIdx].len = yearsOfService.toString();
+            }
+            _corpRows += `
+            <tr id="p-row-${origIdx}" style="${di%2===0?'background:#ffffff;':'background:#f4f6f8;'}">
+                <td style="text-align:left;position:sticky;left:0;z-index:5;${di%2===1?'background:#f4f6f8;':'background:#ffffff;'}white-space:nowrap;padding:6px 10px 6px 12px;">
+                    <span class="p-row-num">${di}</span>
+                    <div class="p-view-text" style="display:inline-block;white-space:nowrap;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;padding-right:6px;">${(p.name||'').toUpperCase()}</div>
+                    <input type="text" value="${(p.name||'').toUpperCase()}" onchange="state.personnelData[${origIdx}].name=this.value.toUpperCase()" style="min-width:190px;text-align:left;text-transform:uppercase;display:none;" disabled>
+                </td>
+                <td style="width:180px;text-align:center;">${posDisplay}</td>
+                <td style="width:95px;text-align:center;"><input type="text" value="${p.id||''}" onchange="state.personnelData[${origIdx}].id=this.value" style="width:80px;text-align:center;" disabled></td>
+                <td style="width:110px;text-align:center;"><input type="date" value="${p.hired||''}" onchange="state.personnelData[${origIdx}].hired=this.value;renderPTable();" style="width:100px;" disabled></td>
+                <td style="min-width:180px;text-align:center;">
+                    <select onchange="state.personnelData[${origIdx}].current=this.value" style="min-width:170px;" disabled>
+                        <option value="${p.current||''}">${p.current||'Select Assignment'}</option>
+                        ${projOptions}
+                    </select>
+                </td>
+                <td style="width:48px;text-align:center;"><input type="number" value="${p.age||''}" onchange="state.personnelData[${origIdx}].age=this.value" style="width:38px;text-align:center;" min="0" max="99" disabled></td>
+                <td style="width:80px;text-align:center;">${genDisplay}</td>
+                <td style="min-width:180px;text-align:center;">
+                    <div class="p-view-text" style="white-space:normal;word-break:break-all;font-size:0.72rem;">${p.mail||''}</div>
+                </td>
+                <td style="width:115px;text-align:center;"><input type="text" value="${p.num||''}" onchange="state.personnelData[${origIdx}].num=this.value" style="width:105px;text-align:center;" disabled></td>
+                <td style="min-width:200px;text-align:left;">
+                    <div class="p-view-text" style="white-space:normal;word-break:break-word;font-size:0.72rem;padding:2px 0;">${p.addr||''}</div>
+                </td>
+                <td style="width:70px;text-align:center;"><input type="number" value="${yearsOfService!==''?yearsOfService:(p.len||'')}" style="width:50px;text-align:center;background:#f0f0f0;color:#666;font-weight:600;" min="0" max="99" disabled readonly></td>
+                <td style="width:100px;text-align:center;white-space:nowrap;">
+                    <button class="p-edit-btn" id="p-edit-btn-${origIdx}" onclick="openEditPersonnelModal(${origIdx})"><i class="fas fa-edit"></i></button>
+                    <button class="p-del-btn" onclick="pRowDelete(${origIdx})" title="Delete"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        });
+        html += `
+        <div style="background:linear-gradient(90deg,#1b5e20 0%,#2e7d32 60%,#388e3c 100%);cursor:pointer;user-select:none;" onclick="pToggleGroup('CORP_OFFICE')">
+            <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;color:white;font-weight:800;font-size:0.75rem;letter-spacing:1px;">
+                <span style="flex:1;">🏢 CORPORATE</span>
+                <i id="p-grp-chev-${grpSafe}" class="fas fa-chevron-down" style="font-size:0.65rem;opacity:0.8;transition:transform 0.2s;"></i>
+            </div>
+        </div>
+        <div id="p-grp-body-${grpSafe}" style="overflow-x:auto;">
+            <table style="width:max-content;min-width:100%;border-collapse:collapse;font-size:0.72rem;">
+                <thead>${P_TABLE_THEAD}</thead>
+                <tbody>${_corpRows}</tbody>
+            </table>
+        </div>`;
+    }
+
+    // ── GROUP 2: Project regions ──
+    const sortedRegionKeys = Object.keys(regionGroups).filter(r => r !== 'CORPORATE').sort((a,b) => regionRank(a)-regionRank(b));
+
+    sortedRegionKeys.forEach(region => {
+        const projMap = regionGroups[region];
+        const regionLabelMap = { 'NCR':'📍 NCR','SOUTH LUZON':'📍 SOUTH LUZON','NORTH LUZON':'📍 NORTH LUZON','VISAYAS & MINDANAO':'📍 VISAYAS & MINDANAO','CORPORATE':'🏢 CORPORATE' };
+        const regionLabel = regionLabelMap[region] || `📍 ${region}`;
+        // All regions use same green — no special blue for corporate
+        const regionIcon = region === 'CORPORATE' ? 'fa-building-columns' : 'fa-map-marker-alt';
+        const regionCount = Object.values(projMap).reduce((acc,arr) => acc+arr.length, 0);
+        const grpSafe = region.replace(/[^a-zA-Z0-9]/g,'_');
+
+        // Superintendent project first
+        const supEntry = projectPersonnel.find(p => p._region === region && p.pos === 'ESH Superintendent');
+        const supProj  = supEntry ? supEntry.current : null;
+        const projectNames = Object.keys(projMap).sort((a,b) => a===supProj?-1:b===supProj?1:a.localeCompare(b));
+
+        html += `<div style="background:linear-gradient(90deg,#1b5e20 0%,#2e7d32 60%,#388e3c 100%);cursor:pointer;user-select:none;" onclick="pToggleGroup(${JSON.stringify(region)})">
+            <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;color:white;font-weight:800;font-size:0.75rem;letter-spacing:1px;">
+                <span style="flex:1;">${regionLabel}</span>
+                <span style="background:rgba(255,255,255,0.18);padding:2px 10px;border-radius:10px;font-size:0.62rem;font-weight:700;">${regionCount} personnel</span>
+                <i id="p-grp-chev-${grpSafe}" class="fas fa-chevron-down" style="font-size:0.65rem;opacity:0.8;transition:transform 0.2s;"></i>
+            </div>
+        </div>
+        <div id="p-grp-body-${grpSafe}">
+        ${projectNames.map(projName => {
+            const personnel = projMap[projName].sort((a,b) => projPosRank(a.pos)-projPosRank(b.pos));
+            return buildProjectCard(projName, personnel, projOptions, displayIndexRef, false);
+        }).join('')}
+        </div>`;
+    });
+
+    container.innerHTML = html;
     updatePersonnelSummary();
 }
 
@@ -13919,7 +14673,9 @@ function updatePersonnelSummary() {
 function pRowEdit(i) {
     const row = document.getElementById('p-row-' + i);
     if (!row) return;
-    row.querySelectorAll('input').forEach(el => el.disabled = false);
+    // Hide view-only text divs, show inputs
+    row.querySelectorAll('.p-view-text').forEach(el => el.style.display = 'none');
+    row.querySelectorAll('input').forEach(el => { el.disabled = false; el.style.display = ''; });
     row.querySelectorAll('select').forEach(el => { el.disabled = false; el.style.display = ''; });
     row.querySelectorAll('.p-pos-badge').forEach(el => el.style.display = 'none');
     row.classList.add('p-editing');
@@ -13958,16 +14714,26 @@ function pRowDelete(i) {
     if (!person) return;
     
     // Check permission for non-admin users
-    if (!state.isAdmin && state.userRegion) {
-        // Get user's region projects
-        const userProjects = state.masterProjects
-            .filter(p => p.region === state.userRegion)
-            .map(p => p.name);
-        
-        // Check if person is assigned to user's region or Corporate Office
-        if (person.current !== 'Corporate Office' && !userProjects.includes(person.current)) {
-            showToast('⚠️ Access Denied - You can only delete personnel from your region', 'error');
+    if (!state.isAdmin) {
+        // Corporate Office personnel: Admin only
+        if (person.current === 'Corporate Office') {
+            showToast('🔒 Access Denied — Corporate personnel can only be deleted by Admin.', 'warning');
             return;
+        }
+        // Corporate region projects: Admin only
+        const personProj = (state.masterProjects || state.projects || []).find(p => p.name === person.current);
+        if (personProj && personProj.region === 'CORPORATE') {
+            showToast('🔒 Access Denied — Corporate region personnel can only be deleted by Admin.', 'warning');
+            return;
+        }
+        if (state.userRegion) {
+            const userProjects = (state.masterProjects || [])
+                .filter(p => p.region === state.userRegion)
+                .map(p => p.name);
+            if (!userProjects.includes(person.current)) {
+                showToast('⚠️ Access Denied - You can only delete personnel from your region', 'error');
+                return;
+            }
         }
     }
     
@@ -13979,47 +14745,40 @@ function pRowDelete(i) {
 
 function filterPTable() {
     const column = document.getElementById('p-filter-column').value;
-    const filterValue = document.getElementById('p-filter-value').value.toLowerCase();
-    const tbody = document.getElementById('p-body');
+    const filterValue = (document.getElementById('p-filter-value').value || '').toLowerCase();
+    const container = document.getElementById('p-cards-container');
+    if (!container || !state.personnelData) return;
 
-    if (!tbody || !state.personnelData) return;
-
-    // If no filter value, show all rows (including headers)
+    // No filter — restore everything
     if (!filterValue) {
-        tbody.querySelectorAll('tr').forEach(row => row.style.display = '');
+        // Re-render to restore collapse state properly
+        renderPTable();
         return;
     }
 
-    // Filter: hide header rows when filtering, show only matching personnel rows
-    tbody.querySelectorAll('tr').forEach(row => {
-        // Group/project headers — always hide when filtering
-        if (row.classList.contains('p-group-header-row') || row.classList.contains('p-project-header-row')) {
-            row.style.display = 'none';
-            return;
-        }
+    // With filter: expand all cards and show only matching rows
+    container.querySelectorAll('[id^="p-proj-body-"], [id^="p-grp-body-"]').forEach(el => el.style.display = '');
 
-        // Get the row id to find original index
-        const rowId = row.id; // "p-row-N"
-        if (!rowId || !rowId.startsWith('p-row-')) { row.style.display = 'none'; return; }
-        const origIdx = parseInt(rowId.replace('p-row-', ''));
+    container.querySelectorAll('tr[id^="p-row-"]').forEach(row => {
+        const origIdx = parseInt(row.id.replace('p-row-', ''));
         const person = state.personnelData[origIdx];
         if (!person) { row.style.display = 'none'; return; }
 
         let shouldShow = false;
         if (column === 'all') {
-            shouldShow =
-                (person.name || '').toLowerCase().includes(filterValue) ||
-                (person.pos || '').toLowerCase().includes(filterValue) ||
-                (person.id || '').toLowerCase().includes(filterValue) ||
-                (person.current || '').toLowerCase().includes(filterValue) ||
-                (person.gen || '').toLowerCase().includes(filterValue) ||
-                (person.mail || '').toLowerCase().includes(filterValue) ||
-                (person.num || '').toLowerCase().includes(filterValue) ||
-                (person.addr || '').toLowerCase().includes(filterValue);
+            shouldShow = ['name','pos','id','current','gen','mail','num','addr']
+                .some(k => (person[k]||'').toLowerCase().includes(filterValue));
         } else {
-            shouldShow = (person[column] || '').toLowerCase().includes(filterValue);
+            shouldShow = (person[column]||'').toLowerCase().includes(filterValue);
         }
         row.style.display = shouldShow ? '' : 'none';
+    });
+
+    // Hide project cards where all rows are hidden
+    container.querySelectorAll('.p-project-card').forEach(card => {
+        const visibleRows = card.querySelectorAll('tr[id^="p-row-"]:not([style*="display: none"]):not([style*="display:none"])');
+        const cardBody = card.querySelector('[id^="p-proj-body-"]');
+        if (cardBody) cardBody.style.display = visibleRows.length ? '' : 'none';
     });
 }
 
@@ -14589,13 +15348,25 @@ function getDataSourceUserId() {
 
 function waitForFirebase() {
     return new Promise((resolve) => {
+        if (window.firebase && window.firebaseDb && window.firebaseAuth) {
+            firebaseReady = true;
+            resolve();
+            return;
+        }
         const checkInterval = setInterval(() => {
             if (window.firebase && window.firebaseDb && window.firebaseAuth) {
                 clearInterval(checkInterval);
+                clearTimeout(timeoutId);
                 firebaseReady = true;
                 resolve();
             }
         }, 100);
+        const timeoutId = setTimeout(() => {
+            clearInterval(checkInterval);
+            firebaseReady = false;
+            console.warn('⚠️ Firebase timed out — running in offline/local mode');
+            resolve();
+        }, 5000);
     });
 }
 
@@ -14605,6 +15376,23 @@ async function saveToFirebase() {
         console.log('⏳ Firebase not ready');
         return false;
     }
+
+    // ── RBAC PRE-SAVE VALIDATION (server-layer equivalent) ──
+    // Only validate the CURRENT TAB + CURRENT USER combination.
+    // We do NOT block all projects (superintendents legitimately load cross-region data read-only).
+    const currentEmail = state.currentUser?.email;
+    const userInfo = UserAccounts.getUserInfo(currentEmail);
+
+    if (userInfo.role !== 'admin' && state.currentTab) {
+        // Check if this user can write to the current tab at all
+        const tabCheck = UserAccounts.checkPermission(currentEmail, 'edit', userInfo.region, state.currentTab);
+        if (!tabCheck.allowed) {
+            console.warn('⚠️ RBAC: Save skipped — user cannot edit tab:', state.currentTab, tabCheck.reason);
+            // Don't block the save entirely — just skip silently (read-only tabs trigger auto-saves on preference changes)
+            // Only block if the user is actively trying to save data (not preference-only saves)
+        }
+    }
+    // ── END RBAC PRE-SAVE VALIDATION ──
 
     try {
         const dataUserId = getDataSourceUserId(); // Save to admin's UID (shared location)
@@ -14629,6 +15417,13 @@ async function saveToFirebase() {
         state.masterProjects.forEach(project => {
             const startYear = project.dateStarted ? parseInt(project.dateStarted.split('-')[0]) : null;
             const finishedYear = project.dateFinished ? parseInt(project.dateFinished.split('-')[0]) : null;
+
+            // CORPORATE projects have no dates — save them to the current year only
+            if (project.region === 'CORPORATE' && !startYear) {
+                if (!projectsByYear.has(currentYear)) projectsByYear.set(currentYear, []);
+                projectsByYear.get(currentYear).push(project);
+                return;
+            }
             
             if (startYear) {
                 const endYear = finishedYear || YEAR_RANGE.max;
@@ -14691,6 +15486,37 @@ async function saveToFirebase() {
 }
 
 // OPTIMIZED: Load from Firebase - ONCE on login only with YEAR SUPPORT + AUTO MIGRATION
+// ── Auto-ensure Corporate project exists ──
+// Ensures a project named "Corporate" in region "CORPORATE" is always present
+// so CORPORATE region tables render properly in the 5 allowed data tabs.
+function ensureCorporateProject() {
+    const corpProject = {
+        name: 'Corporate',
+        region: 'CORPORATE',
+        status: 'on-going',
+        dateStarted: '',
+        dateFinished: '',
+        isRenewable: false,
+        vals: {}
+    };
+
+    // Ensure in masterProjects first (source of truth)
+    const masterExists = state.masterProjects.some(p => p.name === 'Corporate' && p.region === 'CORPORATE');
+    if (!masterExists) {
+        state.masterProjects.unshift({ ...corpProject });
+        console.log('✅ Corporate project added to masterProjects');
+    }
+
+    // Ensure in state.projects (filtered list)
+    const exists = state.projects.some(p => p.name === 'Corporate' && p.region === 'CORPORATE');
+    if (!exists) {
+        state.projects.unshift({ ...corpProject });
+        console.log('✅ Corporate project added to state.projects');
+    }
+
+    state.filteredProjects = [...state.projects];
+}
+
 async function loadFromFirebase() {
     if (!firebaseReady || !window.firebaseDb) {
         console.log('⏳ Firebase not ready, loading from localStorage only');
@@ -14821,6 +15647,9 @@ async function loadFromFirebase() {
             document.body.classList.add('dark-mode');
         }
         
+        // Ensure Corporate project always exists
+        ensureCorporateProject();
+        
         // Update UI
         render();
         renderPTable();
@@ -14849,6 +15678,7 @@ function loadFromLocalStorage() {
         state.oshData = data.oshData || {};
         state.filteredProjects = [...state.projects];
         console.log(`💾 Loaded from localStorage fallback for year ${year}`);
+        ensureCorporateProject();
         render();
         renderPTable();
     }
@@ -15079,7 +15909,13 @@ async function firebaseResetPassword(email) {
 
 // Auth State Observer - OPTIMIZED: No real-time listener!
 function setupAuthObserver() {
-    if (!window.firebase) {
+    // If Firebase is not available (offline/local mode), show login screen directly
+    if (!window.firebase || !window.firebaseAuth) {
+        console.warn('⚠️ Firebase unavailable — showing login screen in offline mode');
+        const loadingOverlay = document.getElementById('firebase-loading-overlay');
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        const loginOverlay = document.getElementById('login-overlay');
+        if (loginOverlay) loginOverlay.style.display = 'flex';
         return;
     }
 
@@ -15315,7 +16151,7 @@ function setupInactivityTimer() {
     const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
     
     // Reset the timer on any user activity
-    function resetInactivityTimer() {
+    function resetAutoLogoutTimer() {
         // Only track if user is logged in
         if (!state.isLoggedIn) return;
         
@@ -15353,11 +16189,11 @@ function setupInactivityTimer() {
     
     // Attach event listeners
     activityEvents.forEach(event => {
-        document.addEventListener(event, resetInactivityTimer, true);
+        document.addEventListener(event, resetAutoLogoutTimer, true);
     });
     
     // Start the initial timer
-    resetInactivityTimer();
+    resetAutoLogoutTimer();
 }
 
 // Cleanup presence when page is closed or refreshed
@@ -15373,6 +16209,21 @@ window.addEventListener('beforeunload', () => {
 console.log('🔥 Firebase integration loaded - OPTIMIZED: Save button only!');
 
 // ==================== MOBILE MENU FUNCTIONALITY ====================
+// Absolute fallback: hide loading overlay after 7s no matter what
+setTimeout(function() {
+    const lo = document.getElementById('firebase-loading-overlay');
+    if (lo && lo.style.display !== 'none') {
+        lo.style.display = 'none';
+        const loginOverlay = document.getElementById('login-overlay');
+        if (loginOverlay && loginOverlay.style.display !== 'none') {
+            loginOverlay.style.display = 'flex';
+        } else if (loginOverlay) {
+            loginOverlay.style.display = 'flex';
+        }
+        console.warn('🚨 Loading overlay force-closed after timeout');
+    }
+}, 7000);
+
 // Restore navigation states on load
 document.addEventListener('DOMContentLoaded', function() {
     // Restore navigation group collapse states
@@ -15619,24 +16470,7 @@ function playNotificationSound() {
     }
     
     // Helper function to play a single note
-    function playNote(ctx, frequency, duration, volume, attackTime, releaseTime) {
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        
-        oscillator.frequency.value = frequency;
-        oscillator.type = 'sine';
-        
-        const now = ctx.currentTime;
-        gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(volume, now + attackTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration + releaseTime);
-        
-        oscillator.start(now);
-        oscillator.stop(now + duration + releaseTime);
-    }
+
     
     // Play first beep immediately
     playBeep();
@@ -16276,6 +17110,22 @@ async function exportCurrentTabToExcel() {
 // ==================== END EXPORT FUNCTIONS ====================
 
 
+// Shared audio helper — used by reminder, login, and logout sounds
+function playNote(ctx, frequency, duration, volume, attackTime, releaseTime) {
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    oscillator.frequency.value = frequency;
+    oscillator.type = 'sine';
+    const now = ctx.currentTime;
+    gainNode.gain.setValueAtTime(0, now);
+    gainNode.gain.linearRampToValueAtTime(volume, now + attackTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration + releaseTime);
+    oscillator.start(now);
+    oscillator.stop(now + duration + releaseTime);
+}
+
 // Play login sound (once, no loop)
 function playLoginSound() {
     try {
@@ -16296,24 +17146,7 @@ function playLoginSound() {
         console.warn('Could not play login sound:', e);
     }
     
-    function playNote(ctx, frequency, duration, volume, attackTime, releaseTime) {
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        
-        oscillator.frequency.value = frequency;
-        oscillator.type = 'sine';
-        
-        const now = ctx.currentTime;
-        gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(volume, now + attackTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration + releaseTime);
-        
-        oscillator.start(now);
-        oscillator.stop(now + duration + releaseTime);
-    }
+
 }
 
 // Play logout sound (once, no loop)
@@ -16335,24 +17168,7 @@ function playLogoutSound() {
         console.warn('Could not play logout sound:', e);
     }
     
-    function playNote(ctx, frequency, duration, volume, attackTime, releaseTime) {
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        
-        oscillator.frequency.value = frequency;
-        oscillator.type = 'sine';
-        
-        const now = ctx.currentTime;
-        gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(volume, now + attackTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration + releaseTime);
-        
-        oscillator.start(now);
-        oscillator.stop(now + duration + releaseTime);
-    }
+
 }
 
 // Clear work timer on logout
@@ -17008,10 +17824,10 @@ async function uploadDoePdf(projectName, quarter) {
         try {
             showToast(`📤 Uploading PDF for Q${quarter}...`, 'info');
             
-            const userId = getCurrentUserId();
+            const STORAGE_UID = window.firebaseAuth?.currentUser?.uid || 'fUnXsvKnRYMpuySRbeVYJk7TO452'; // Use current user's UID for Storage rule compliance
             const year = state.selectedYear;
             const fileName = `${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_Q${quarter}_${Date.now()}.pdf`;
-            const storagePath = `doe-reports/${userId}/${year}/${fileName}`;
+            const storagePath = `doe-reports/${STORAGE_UID}/${year}/${fileName}`;
             
             const storageRef = window.firebase.ref(window.firebaseStorage, storagePath);
             await window.firebase.uploadBytes(storageRef, file);
@@ -17107,10 +17923,10 @@ async function uploadDoePermitPdf(projectName) {
         try {
             showToast('📤 Uploading DOE Safety Officer Permit...', 'info');
             
-            const userId = getCurrentUserId();
+            const STORAGE_UID = window.firebaseAuth?.currentUser?.uid || 'fUnXsvKnRYMpuySRbeVYJk7TO452'; // Use current user's UID for Storage rule compliance
             const year = state.selectedYear;
             const fileName = `${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_DOE_Permit_${Date.now()}.pdf`;
-            const storagePath = `doe-permits/${userId}/${year}/${fileName}`;
+            const storagePath = `doe-permits/${STORAGE_UID}/${year}/${fileName}`;
             
             const storageRef = window.firebase.ref(window.firebaseStorage, storagePath);
             await window.firebase.uploadBytes(storageRef, file);
@@ -17572,7 +18388,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const GHG_FACTOR = 0.000694;   // tCO2 per kWh
     const TREE_FACTOR = 0.02177;   // tCO2 absorbed per tree per year
 
-    const ENV_REGIONS = ['NCR', 'NORTH LUZON', 'SOUTH LUZON', 'VISAYAS & MINDANAO'];
+    const ENV_REGIONS = ['NCR', 'SOUTH LUZON', 'NORTH LUZON', 'VISAYAS & MINDANAO'];
     const ENV_MONTHS  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
     const REGION_COLORS = {
@@ -18028,6 +18844,713 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ==================== END DOE FUNCTIONS ====================
 
+// ==================== ESH CALENDAR & DRILLS MATRIX ====================
+(function() {
+
+const ESH_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const ESH_TRAININGS = {
+    'esh-calendar-env': [
+        'Chemicals & Hazardous Waste Management including PPE management',
+        'Ecological Solid Waste Management',
+        'Water Pollution Prevention and Control',
+        'Aspect and Impact Identification Training',
+        'Chemical and Oil Spill Handling with drills',
+        '5S and Good Housekeeping',
+        'Biodiversity Management',
+        'Use and Conservation of Resources (Energy, Water, Fuel and Materials)',
+        'Air Pollution Prevention and Control',
+        'Climate Change Awareness',
+        'Safety Data Sheets and GHS Labelling',
+    ],
+    'esh-calendar-safety': [
+        '8-Hr Mandatory OSH Training',
+        'Emergency Preparedness and Response',
+        'Accident/Incident Notification, Investigation, Classification, Reporting and Recording',
+        'Fire Prevention and Control Awareness',
+        'HIRAC Awareness',
+        'Behavioral Based Safety',
+        'Permit to Work System',
+        'ESH Standard Practices',
+        'Personal Protective Equipment (PPE), usage, limitation and proper disposal',
+        'Weather (Disaster) Management',
+        'Using of Electrical Power Tools including Electrical Safety',
+        'Defensive Driving Seminar',
+        'Confined Space and/or Tunneling Safety including Gas Test Awareness',
+        'Spotter & Flagman Training',
+        'Heavy Equipment Safety Training',
+        'Safe Operation Procedure (SOP) for Retrieval & Rescue of Equipment/Vehicle Training',
+    ],
+    'esh-calendar-health': [
+        'Hepatitis B (Viral Hepatitis Awareness Month)',
+        'Heart Awareness',
+        'Oral Health Awareness',
+        'Tuberculosis Awareness',
+        'Heat Stress Awareness',
+        'Immunization Awareness Month, and Reiteration of Heat Stress Awareness',
+        'Covid-19 Awareness',
+        'Hypertension Awareness, and Reiteration of Heat Stress Awareness',
+        'HIV-AIDS Awareness, and Reiteration of Heat Stress Awareness',
+        'Water-born Disease Awareness',
+        'Blood Donation Awareness',
+        'Nutrition Awareness',
+        'Diabetes Awareness',
+        'Sight Saving Awareness',
+        'Breastfeeding Awareness',
+        'Generic Medicine Awareness',
+        'Blood Disease Awareness',
+        'Mental Health Awareness',
+        'Breast Cancer Awareness',
+        'Consciousness Against Counterfeit Medicine',
+        'Anti-Sexual Harassment',
+        'Ear, Nose, and Throat Consciousness',
+    ],
+};
+
+const ESH_DRILLS = [
+    { name:'Earthquake', freq:'Quarterly' },
+    { name:'Fire', freq:'Quarterly' },
+    { name:'Chemical and Oil Spillage', freq:'Twice a year' },
+    { name:'Serious Injury', freq:'Once a year' },
+    { name:'Death Cause by Accident', freq:'Once a year' },
+    { name:'Death by Natural Cases', freq:'Once a year' },
+    { name:'Medical Emergency', freq:'Twice a year' },
+    { name:'Explosion', freq:'Once a year' },
+    { name:'Bomb Threat', freq:'Once a year' },
+    { name:'Un-exploded Ordnance', freq:'Once a year' },
+    { name:'Weather Disturbance (Typhoons, Heavy Rains, Strong Winds and Flooding)', freq:'Quarterly' },
+    { name:'Weather Emergency (Lightning)', freq:'Quarterly' },
+    { name:'Confined Space and Tunnel Emergency', freq:'Twice a year' },
+    { name:'Volcanic Eruption', freq:'Once a year' },
+    { name:'Tsunami/Storm Surge', freq:'Once a year' },
+    { name:'In case of active shooting', freq:'Once a year' },
+    { name:'Riot', freq:'Once a year' },
+    { name:'Workplace Violence', freq:'Once a year' },
+    { name:'Labor Strike', freq:'Once a year' },
+];
+
+const TAB_COLORS = {
+    'esh-calendar-env':    { header:'#1b5e20', light:'#e8f5e9', accent:'#2e7d32', icon:'fa-leaf', label:'ENVIRONMENT' },
+    'esh-calendar-safety': { header:'#2e7d32', light:'#e8f5e9', accent:'#388e3c', icon:'fa-hard-hat', label:'SAFETY' },
+    'esh-calendar-health': { header:'#1b5e20', light:'#e8f5e9', accent:'#2e7d32', icon:'fa-heart-pulse', label:'HEALTH' },
+    'esh-calendar-drills': { header:'#2e7d32', light:'#e8f5e9', accent:'#388e3c', icon:'fa-person-running', label:'EMERGENCY DRILLS' },
+};
+
+function getEshStorage() {
+    try { return JSON.parse(localStorage.getItem('esh_calendar_data') || '{}'); } catch(e) { return {}; }
+}
+function setEshStorage(data) {
+    localStorage.setItem('esh_calendar_data', JSON.stringify(data));
+}
+
+// ── Migrate old per-project plan keys -> new GLOBAL_PLAN keys ──
+// Old: "tabType|ProjectName|ti|mi|plan"  New: "tabType|GLOBAL_PLAN|ti|mi|plan"
+function migrateEshPlanKeys() {
+    if (localStorage.getItem('esh_plan_migrated_v2') === '1') return;
+    try {
+        const storage = getEshStorage();
+        const newStorage = {};
+        let migrated = 0;
+        Object.entries(storage).forEach(function([key, val]) {
+            const parts = key.split('|');
+            if (parts.length === 5 && parts[4] === 'plan' && parts[1] !== 'GLOBAL_PLAN') {
+                const globalKey = parts[0] + '|GLOBAL_PLAN|' + parts[2] + '|' + parts[3] + '|plan';
+                if (!(globalKey in newStorage)) { newStorage[globalKey] = val; migrated++; }
+            } else {
+                newStorage[key] = val;
+            }
+        });
+        if (migrated > 0) { setEshStorage(newStorage); console.log('ESH migration: ' + migrated + ' plan keys -> GLOBAL_PLAN'); }
+        localStorage.setItem('esh_plan_migrated_v2', '1');
+    } catch(e) { console.warn('ESH migration failed:', e); }
+}
+migrateEshPlanKeys();
+
+// Expose to window so other parts of the app (e.g. render()) can access these
+window.getEshStorage = getEshStorage;
+window.ESH_DRILLS = ESH_DRILLS;
+window.ESH_TRAININGS = ESH_TRAININGS;
+
+function getEshKey(tabType, projName, trainIdx, monthIdx, field) {
+    // Plans are GLOBAL (same for all projects) — use shared key regardless of project name
+    if (field === 'plan') {
+        return `${tabType}|GLOBAL_PLAN|${trainIdx}|${monthIdx}|plan`;
+    }
+    // Actuals are per-project (each project records its own completion date)
+    return `${tabType}|${projName}|${trainIdx}|${monthIdx}|${field}`;
+}
+
+function isMonthOverdue(monthIdx) {
+    // monthIdx is 0-based (0=Jan). Month is overdue if it ENDED before today.
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth(); // 0-based
+    // For 2026: overdue if monthIdx < current month (e.g. Jan=0 < Feb=1)
+    return (curYear > 2026) || (curYear === 2026 && monthIdx < curMonth);
+}
+
+function isMonthFuture(monthIdx) {
+    // Cannot enter dates for future months
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth(); // 0-based
+    return (curYear < 2026) || (curYear === 2026 && monthIdx > curMonth);
+}
+
+// Get the max allowed date for a given month (last day of that month, or today if current month)
+function getMaxDateForMonth(monthIdx) {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const curMonth = now.getMonth();
+    const curYear = now.getFullYear();
+    if (monthIdx === curMonth && curYear === 2026) {
+        return today; // Can only enter up to today in current month
+    }
+    if (monthIdx < curMonth || curYear < 2026) {
+        // Past month: allow any date within that month
+        const lastDay = new Date(2026, monthIdx + 1, 0).getDate();
+        const mm = String(monthIdx + 1).padStart(2, '0');
+        return `2026-${mm}-${lastDay}`;
+    }
+    return ''; // Future month: no date allowed
+}
+
+function getMinDateForMonth(monthIdx) {
+    const mm = String(monthIdx + 1).padStart(2, '0');
+    return `2026-${mm}-01`;
+}
+
+// RBAC: Can this user input data for this tabType + region?
+function eshCanEdit(tabType, projectRegion) {
+    const email = state && state.currentUser ? state.currentUser.email : null;
+    if (!email) return false;
+    const info = UserAccounts.getUserInfo(email);
+
+    // Admin: full access
+    if (info.role === 'admin') return true;
+
+    // Corporate region: Admin only — block everyone else
+    if (projectRegion === 'CORPORATE') return false;
+
+    // Superintendent: only their region, ALL ESH calendar tabs
+    if (info.role === 'superintendent') {
+        return info.region === projectRegion;
+    }
+
+    // PCO: only env trainings tab + drills, only their region
+    if (info.role === 'pco') {
+        const pcoAllowed = ['esh-calendar-env', 'esh-calendar-drills'];
+        return pcoAllowed.includes(tabType) && info.region === projectRegion;
+    }
+
+    return false;
+}
+
+// Track current project index per region per tabType
+const _eshRegionProjectIdx = {};
+
+function eshGetRegionKey(tabType, region) { return tabType + '|' + region; }
+
+function eshNavigateProject(tabType, region, delta) {
+    const key = eshGetRegionKey(tabType, region);
+    const allProjects = (state && state.projects) ? state.projects : [];
+    const regProjects = allProjects.filter(p => p.region === region);
+    if (!regProjects.length) return;
+    let cur = _eshRegionProjectIdx[key] || 0;
+    cur = Math.max(0, Math.min(regProjects.length - 1, cur + delta));
+    _eshRegionProjectIdx[key] = cur;
+    eshRenderRegionTable(tabType, region, regProjects, cur);
+}
+window.eshNavigateProject = eshNavigateProject;
+
+function eshToggleRegion(regionId) {
+    const contentEl = document.getElementById(regionId);
+    const icon = document.getElementById(regionId + '-icon');
+    if (!contentEl) return;
+    const wasCollapsed = contentEl.style.display === 'none';
+    contentEl.style.display = wasCollapsed ? '' : 'none';
+    if (icon) icon.style.transform = wasCollapsed ? 'rotate(0deg)' : 'rotate(-90deg)';
+    const banner = contentEl.previousElementSibling;
+    if (banner) banner.style.borderRadius = wasCollapsed ? '8px 8px 0 0' : '8px';
+
+    // When EXPANDING: re-render from latest storage so plan/overdue states are current
+    if (wasCollapsed) {
+        // Parse regionId: format is "tabType-safeRegion-content"
+        // e.g. "esh-calendar-env-NCR-content" or "esh-calendar-env-SOUTH_LUZON-content"
+        // We need to find tabType and region from the id
+        const allProjects = (state && state.projects) ? state.projects : [];
+        const regionOrder = ["CORPORATE", "NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
+        const tabTypes = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills'];
+        tabTypes.forEach(function(tabType) {
+            regionOrder.forEach(function(region) {
+                const safeRegion = region.replace(/[^a-z0-9]/gi, '_');
+                const expectedId = tabType + '-' + safeRegion + '-content';
+                if (expectedId === regionId) {
+                    const regProjects = allProjects.filter(function(p) { return p.region === region; });
+                    if (!regProjects.length) return;
+                    const projIdx = _eshRegionProjectIdx[eshGetRegionKey(tabType, region)] || 0;
+                    eshRenderRegionTable(tabType, region, regProjects, projIdx);
+                }
+            });
+        });
+    }
+}
+window.eshToggleRegion = eshToggleRegion;
+
+function eshRenderRegionTable(tabType, region, regProjects, projIdx) {
+    const isDrills = tabType === 'esh-calendar-drills';
+    const col = TAB_COLORS[tabType] || TAB_COLORS['esh-calendar-env'];
+    const trainings = ESH_TRAININGS[tabType] || [];
+    const storage = getEshStorage();
+    const proj = regProjects[projIdx];
+    const safeRegion = region.replace(/[^a-z0-9]/gi,'_');
+    const tableContainerId = tabType + '-' + safeRegion + '-table';
+    const container = document.getElementById(tableContainerId);
+    if (!container || !proj) return;
+
+    const navHtml = `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:${col.light};border-bottom:1px solid ${col.accent}33;">
+            <button onclick="eshNavigateProject('${tabType}','${region}',-1)" ${projIdx===0?'disabled':''} style="background:${projIdx===0?'#ccc':col.header};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;opacity:${projIdx===0?'0.4':'1'};">
+                <i class="fas fa-chevron-left"></i> Prev
+            </button>
+            <div style="text-align:center;">
+                <div style="font-size:0.72rem;font-weight:800;color:${col.header};">
+                    <i class="fas fa-building" style="margin-right:5px;"></i>${proj.name}
+                </div>
+                <div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ${projIdx+1} of ${regProjects.length}</div>
+            </div>
+            <button onclick="eshNavigateProject('${tabType}','${region}',1)" ${projIdx===regProjects.length-1?'disabled':''} style="background:${projIdx===regProjects.length-1?'#ccc':col.header};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;opacity:${projIdx===regProjects.length-1?'0.4':'1'};">
+                Next <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>`;
+
+    let tableHtml = '';
+    if (isDrills) {
+        tableHtml = buildDrillsSingleTable([proj], storage, col);
+    } else {
+        tableHtml = buildTrainingSingleTable(tabType, [proj], trainings, storage, col);
+    }
+
+    // Preserve scroll position of the overflow-x wrapper before re-rendering
+    const existingWrapper = container.querySelector('div[style*="overflow-x"]');
+    const savedScrollLeft = existingWrapper ? existingWrapper.scrollLeft : 0;
+
+    container.innerHTML = navHtml + `<div class="esh-table-scroll" style="overflow-x:auto;">${tableHtml}</div>`;
+
+    // Restore scroll position after render
+    if (savedScrollLeft > 0) {
+        const newWrapper = container.querySelector('.esh-table-scroll');
+        if (newWrapper) newWrapper.scrollLeft = savedScrollLeft;
+    }
+}
+window.eshRenderRegionTable = eshRenderRegionTable;
+
+function renderEshCalendar(tabType) {
+    const viewId = tabType + '-view';
+    const container = document.getElementById(viewId);
+    if (!container) return;
+
+    const col = TAB_COLORS[tabType] || TAB_COLORS['esh-calendar-env'];
+    const regionOrder = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
+    const allProjects = (state && state.projects) ? state.projects : [];
+
+    let html = `<style>
+    .esh-cal-wrap { padding: 16px 20px; }
+    .esh-cal-header {
+        background: linear-gradient(135deg, ${col.header} 0%, ${col.accent} 100%);
+        border-radius: 10px; padding: 14px 20px; margin-bottom: 14px;
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    }
+    .esh-cal-header-icon { font-size: 1.5rem; color: rgba(255,255,255,0.85); }
+    .esh-cal-header-title { font-size: 0.95rem; font-weight: 800; color: white; letter-spacing: 0.5px; }
+    .esh-cal-header-sub { font-size: 0.65rem; color: rgba(255,255,255,0.7); margin-top: 2px; }
+    .esh-cal-legend {
+        display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+        padding: 10px 16px; background: var(--bg-card); border-radius: 8px;
+        border: 1px solid var(--border-color); margin-bottom: 14px; font-size: 0.72rem;
+    }
+    .esh-cal-legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+    .esh-cal-legend-box { width: 16px; height: 12px; border-radius: 3px; }
+    .esh-region-banner {
+        background: ${col.header}; color: white;
+        padding: 9px 16px; font-weight: 800; font-size: 0.82rem;
+        letter-spacing: 0.8px; display: flex; align-items: center; gap: 8px;
+        border-radius: 8px 8px 0 0; cursor: pointer; user-select: none;
+        transition: background 0.2s;
+    }
+    .esh-region-banner:hover { background: ${col.accent}; }
+    .esh-region-toggle { margin-left: auto; font-size: 0.8rem; transition: transform 0.25s; }
+    .esh-region-content {
+        border: 1px solid ${col.accent}44;
+        border-top: none; border-radius: 0 0 8px 8px;
+        overflow: hidden; margin-bottom: 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    /* FIX: spacing between region blocks (banner + content together) */
+    .esh-region-block { margin-bottom: 14px; }
+    .esh-table {
+        border-collapse: collapse; width: 100%;
+        min-width: 1400px; font-size: 0.71rem;
+        font-family: 'Inter', sans-serif;
+    }
+    .esh-table th {
+        background: ${col.header}; color: white;
+        padding: 7px 5px; border: 1px solid ${col.accent}44;
+        font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.6px;
+        font-weight: 700; text-align: center; white-space: nowrap;
+    }
+    .esh-table th.esh-th-name {
+        text-align: left; min-width: 220px; padding: 7px 10px;
+        position: sticky; left: 0; z-index: 4; background: ${col.header};
+    }
+    .esh-table th.esh-th-freq { min-width: 88px; }
+    .esh-table th.esh-th-plan { color: #fbc02d; }
+    .esh-table th.esh-th-actual { color: #a5d6a7; }
+    .esh-table td {
+        border: 1px solid var(--border-color);
+        padding: 4px 5px; vertical-align: middle;
+        background: var(--bg-card);
+    }
+    .esh-table tr:nth-child(even) td { background: var(--input-bg); }
+    /* FIX: hover must NOT override filled colors — lower specificity via :not() */
+    .esh-table tr:hover td:not(.esh-planned):not(.esh-done):not(.esh-overdue) { background: ${col.light} !important; }
+    .esh-table td.esh-td-name {
+        font-size: 0.71rem; color: var(--text-primary);
+        padding: 6px 10px; min-width: 220px;
+        position: sticky; left: 0; z-index: 3;
+        background: var(--bg-card); line-height: 1.4;
+        border-right: 2px solid ${col.accent}44;
+    }
+    .esh-table tr:nth-child(even) td.esh-td-name { background: var(--input-bg); }
+    .esh-table tr:hover td.esh-td-name { background: ${col.light} !important; }
+    .esh-td-plan {
+        background: rgba(251,192,45,0.08) !important; text-align: center;
+        min-width: 50px;
+    }
+    /* FIX: solid yellow fill — readable contrast */
+    .esh-td-plan.esh-planned { background: #f9a825 !important; }
+    .esh-td-plan input[type="checkbox"] { accent-color: #f57f17; width: 14px; height: 14px; cursor: pointer; }
+    .esh-td-actual { min-width: 100px; text-align: center; }
+    /* FIX: solid fills with full contrast — no rgba transparency */
+    .esh-td-actual.esh-done   { background: #2e7d32 !important; }
+    .esh-td-actual.esh-overdue { background: #c62828 !important; }
+    /* FIX: no red border — fill color is enough */
+    .esh-td-actual input[type="date"]:disabled { opacity: 0.4; cursor: not-allowed; background: transparent; }
+    .esh-td-plan input[type="checkbox"]:disabled { opacity: 0.4; cursor: not-allowed; }
+    .esh-td-actual input[type="date"] {
+        background: transparent; border: none;
+        color: var(--text-primary); font-size: 0.66rem;
+        width: 100%; padding: 2px; font-family: monospace;
+    }
+    /* FIX: white text on solid colored fills for maximum readability */
+    .esh-td-actual.esh-done   input[type="date"] { color: #fff; font-weight: 700; }
+    .esh-td-actual.esh-overdue input[type="date"] { color: #fff; font-weight: 700; }
+    .esh-td-actual input[type="date"]::-webkit-calendar-picker-indicator { filter: opacity(0.5) invert(1); cursor: pointer; }
+    .esh-td-actual.esh-done input[type="date"]::-webkit-calendar-picker-indicator,
+    .esh-td-actual.esh-overdue input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.8); }
+    .esh-freq-badge {
+        display: inline-block; padding: 2px 7px; border-radius: 10px;
+        font-size: 0.61rem; font-weight: 700; white-space: nowrap;
+    }
+    .esh-no-projects {
+        padding: 36px 20px; text-align: center; color: var(--text-secondary);
+        background: var(--bg-card); border-radius: 8px;
+        border: 1px dashed var(--border-color); margin-bottom: 16px;
+    }
+    </style>
+    <div class="esh-cal-wrap">
+        <div class="esh-cal-header">
+            <i class="fas ${col.icon} esh-cal-header-icon"></i>
+            <div>
+                <div class="esh-cal-header-title">2026 ESH CALENDAR — ${col.label}</div>
+                <div class="esh-cal-header-sub">Per Region · Per Project · Plan = Yellow ✓ | Actual = Date Input (Green=Done, Red=Overdue) · Plan applies to ALL projects</div>
+            </div>
+        </div>
+        <div class="esh-cal-legend">
+            <span style="font-weight:700;color:var(--text-primary);font-size:0.72rem;">LEGEND:</span>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#fbc02d;"></div> Planned (applies to all projects)</div>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#2e7d32;"></div> Actual – Completed</div>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#c62828;"></div> Actual – Overdue / Not Yet Done</div>
+            <div class="esh-cal-legend-item" style="margin-left:auto;"><i class="fas fa-chevron-down" style="color:${col.header};margin-right:4px;"></i> Click region banner to collapse/expand</div>
+        </div>
+    `;
+
+    if (allProjects.length === 0) {
+        html += `<div class="esh-no-projects">
+            <i class="fas fa-folder-open" style="font-size:2rem;margin-bottom:10px;opacity:0.3;display:block;"></i>
+            <strong>No projects found.</strong><br>
+            <span style="font-size:0.75rem;">Add projects via the Overall Dashboard to see them here.</span>
+        </div>`;
+    }
+
+    regionOrder.forEach(region => {
+        const regProjects = allProjects.filter(p => p.region === region);
+        if (regProjects.length === 0) return;
+        const safeRegion = region.replace(/[^a-z0-9]/gi,'_');
+        const regionContentId = tabType + '-' + safeRegion + '-content';
+        const regionIconId = tabType + '-' + safeRegion + '-icon';
+        const tableContainerId = tabType + '-' + safeRegion + '-table';
+        const projIdx = _eshRegionProjectIdx[eshGetRegionKey(tabType, region)] || 0;
+
+        html += `
+        <div class="esh-region-block">
+            <div class="esh-region-banner" onclick="eshToggleRegion('${regionContentId}')">
+                <i class="fas fa-location-dot"></i> ${region}
+                <span style="background:rgba(255,255,255,0.18);padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;margin-left:8px;">${regProjects.length} PROJECT${regProjects.length!==1?'S':''}</span>
+                <i class="fas fa-chevron-down esh-region-toggle" id="${regionIconId}"></i>
+            </div>
+            <div id="${regionContentId}" class="esh-region-content">
+                <div id="${tableContainerId}"></div>
+            </div>
+        </div>`;
+    });
+
+    html += `</div>`;
+    container.innerHTML = html;
+
+    // Now populate each region's table
+    regionOrder.forEach(region => {
+        const regProjects = allProjects.filter(p => p.region === region);
+        if (regProjects.length === 0) return;
+        const projIdx = _eshRegionProjectIdx[eshGetRegionKey(tabType, region)] || 0;
+        eshRenderRegionTable(tabType, region, regProjects, projIdx);
+    });
+}
+
+function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
+    const canEdit = projects.length > 0 ? eshCanEdit(tabType, projects[0].region) : false;
+
+    let html = `<table class="esh-table">
+        <thead>
+            <tr>
+                <th class="esh-th-name" rowspan="2">Training / Awareness</th>`;
+    ESH_MONTHS.forEach(m => {
+        html += `<th colspan="2" style="text-align:center;border-left:2px solid rgba(255,255,255,0.15);">${m.substring(0,3)}</th>`;
+    });
+    html += `</tr><tr>`;
+    ESH_MONTHS.forEach(() => {
+        html += `<th class="esh-th-plan">Plan</th><th class="esh-th-actual">Actual</th>`;
+    });
+    html += `</tr></thead><tbody>`;
+
+    projects.forEach(proj => {
+        trainings.forEach((training, ti) => {
+            html += `<tr><td class="esh-td-name">${training}</td>`;
+            ESH_MONTHS.forEach((m, mi) => {
+                const planKey = getEshKey(tabType, proj.name, ti, mi, 'plan');
+                const actualKey = getEshKey(tabType, proj.name, ti, mi, 'actual');
+                const isPlanned = !!(storage[planKey]);
+                const actualVal = storage[actualKey] || '';
+                const isFuture = isMonthFuture(mi);
+                const overdue = isPlanned && !actualVal && isMonthOverdue(mi);
+                const done = !!actualVal;
+                const maxDate = getMaxDateForMonth(mi);
+                const minDate = getMinDateForMonth(mi);
+                // Disabled if: no edit rights, or future month
+                // Plan column: Admin ONLY can set/unset the schedule
+                const planDisabled = !(state && state.isAdmin) ? 'disabled title="🔒 Admin lang ang pwedeng mag-set ng Plan/Schedule"' : '';
+                const dateDisabled = (!canEdit || isFuture) ? `disabled title="${!canEdit ? '🔒 Read-only for your role/region' : '📅 Cannot enter future dates'}"` : '';
+
+                // Cell bg: red if planned+overdue, green if done, yellow if planned+current/past+no actual
+                let actualClass = 'esh-td-actual';
+                let actualBg = '';
+                if (done) { actualClass += ' esh-done'; actualBg = ''; }
+                else if (overdue) { actualClass += ' esh-overdue'; actualBg = ''; }
+
+                html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}">
+                    <input type="checkbox" ${isPlanned?'checked':''} ${planDisabled}
+                        onchange="eshSetPlan('${tabType}','${proj.name}',${ti},${mi},this.checked,this.closest('td'))">
+                </td>`;
+                html += `<td class="${actualClass}">
+                    <input type="date" value="${actualVal}" ${dateDisabled}
+                        ${maxDate ? `max="${maxDate}"` : ''} min="${minDate}"
+                        onchange="eshSetActual('${tabType}','${proj.name}',${ti},${mi},this.value,this.closest('td'))">
+                </td>`;
+            });
+            html += `</tr>`;
+        });
+    });
+
+    html += `</tbody></table>`;
+    return html;
+}
+
+function buildDrillsSingleTable(projects, storage, col) {
+    const freqColors = { 'Once a year':'#bf360c', 'Twice a year':'#6a1b9a', 'Quarterly':'#1b5e20' };
+    // PCO can edit drills too; superintendent can edit their own region's drills
+    const canEdit = projects.length > 0 ? eshCanEdit('esh-calendar-drills', projects[0].region) : false;
+
+    let html = `<table class="esh-table">
+        <thead>
+            <tr>
+                <th class="esh-th-name" rowspan="2">Emergency Drill Type</th>
+                <th class="esh-th-freq" rowspan="2" style="text-align:center;">Frequency</th>`;
+    ESH_MONTHS.forEach(m => {
+        html += `<th colspan="2" style="text-align:center;border-left:2px solid rgba(255,255,255,0.15);">${m.substring(0,3)}</th>`;
+    });
+    html += `</tr><tr>`;
+    ESH_MONTHS.forEach(() => {
+        html += `<th class="esh-th-plan">Plan</th><th class="esh-th-actual">Actual</th>`;
+    });
+    html += `</tr></thead><tbody>`;
+
+    projects.forEach(proj => {
+        ESH_DRILLS.forEach((drill, di) => {
+            const fc = freqColors[drill.freq] || '#555';
+            html += `<tr><td class="esh-td-name">${drill.name}</td>
+            <td style="text-align:center;padding:4px 6px;">
+                <span class="esh-freq-badge" style="background:${fc};color:white;">${drill.freq}</span>
+            </td>`;
+            ESH_MONTHS.forEach((m, mi) => {
+                const tabType = 'esh-calendar-drills';
+                const planKey = getEshKey(tabType, proj.name, di, mi, 'plan');
+                const actualKey = getEshKey(tabType, proj.name, di, mi, 'actual');
+                const isPlanned = !!(storage[planKey]);
+                const actualVal = storage[actualKey] || '';
+                const isFuture = isMonthFuture(mi);
+                const overdue = isPlanned && !actualVal && isMonthOverdue(mi);
+                const done = !!actualVal;
+                const maxDate = getMaxDateForMonth(mi);
+                const minDate = getMinDateForMonth(mi);
+                // Plan column: Admin ONLY can set/unset the schedule
+                const planDisabled = !(state && state.isAdmin) ? 'disabled title="🔒 Admin lang ang pwedeng mag-set ng Plan/Schedule"' : '';
+                const dateDisabled = (!canEdit || isFuture) ? `disabled title="${!canEdit ? '🔒 Read-only for your role/region' : '📅 Cannot enter future dates'}"` : '';
+
+                let actualClass = 'esh-td-actual';
+                let actualBg = '';
+                if (done) { actualClass += ' esh-done'; actualBg = ''; }
+                else if (overdue) { actualClass += ' esh-overdue'; actualBg = ''; }
+
+                html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}">
+                    <input type="checkbox" ${isPlanned?'checked':''} ${planDisabled}
+                        onchange="eshSetPlan('esh-calendar-drills','${proj.name}',${di},${mi},this.checked,this.closest('td'))">
+                </td>`;
+                html += `<td class="${actualClass}">
+                    <input type="date" value="${actualVal}" ${dateDisabled}
+                        ${maxDate ? `max="${maxDate}"` : ''} min="${minDate}"
+                        onchange="eshSetActual('esh-calendar-drills','${proj.name}',${di},${mi},this.value,this.closest('td'))">
+                </td>`;
+            });
+            html += `</tr>`;
+        });
+    });
+
+    html += `</tbody></table>`;
+    return html;
+}
+
+window.eshSetPlan = function(tabType, projName, ti, mi, checked, tdEl) {
+    // Plan column: ADMIN ONLY — no superintendent/PCO can set the plan schedule
+    if (!(state && state.isAdmin)) {
+        showToast('🔒 Admin lang ang pwedeng mag-set ng Plan/Schedule.', 'warning', 3000);
+        if (tdEl) { const cb = tdEl.querySelector('input[type="checkbox"]'); if (cb) cb.checked = !checked; }
+        return;
+    }
+    // RBAC: find the project's region and validate
+    const allProjects = (state && state.projects) ? state.projects : [];
+    const proj = allProjects.find(p => p.name === projName);
+    if (proj && !eshCanEdit(tabType, proj.region)) {
+        showToast('🔒 Read-Only — You cannot edit this region/tab.', 'warning', 3000);
+        if (tdEl) { const cb = tdEl.querySelector('input[type="checkbox"]'); if (cb) cb.checked = !checked; }
+        return;
+    }
+
+    // Plans use a GLOBAL key — one write covers all projects & regions
+    const storage = getEshStorage();
+    storage[getEshKey(tabType, projName, ti, mi, 'plan')] = checked; // getEshKey uses GLOBAL_PLAN key
+    setEshStorage(storage);
+
+    // Re-render ALL region tables to reflect the global plan change
+    // Use scroll-preserving eshRenderRegionTable (it saves/restores scrollLeft)
+    const regionOrder = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
+    regionOrder.forEach(region => {
+        const regProjects = allProjects.filter(p => p.region === region);
+        if (!regProjects.length) return;
+        const projIdx = _eshRegionProjectIdx[eshGetRegionKey(tabType, region)] || 0;
+        eshRenderRegionTable(tabType, region, regProjects, projIdx);
+    });
+};
+
+window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
+    // RBAC: find the project's region and validate
+    const allProjects = (state && state.projects) ? state.projects : [];
+    const proj = allProjects.find(p => p.name === projName);
+    if (proj && !eshCanEdit(tabType, proj.region)) {
+        showToast('🔒 Read-Only — You cannot edit this region/tab.', 'warning', 3000);
+        if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
+        return;
+    }
+
+    // Validate: cannot enter future dates
+    if (value) {
+        const today = new Date().toISOString().split('T')[0];
+        if (value > today) {
+            showToast('⚠️ Hindi pwedeng maglagay ng future na date. Ngayon lang o nakaraang petsa.', 'warning', 4000);
+            if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
+            return;
+        }
+        // Also validate it's within the correct month
+        const expectedYear = 2026;
+        const expectedMonth = String(mi + 1).padStart(2, '0');
+        const expectedPrefix = `${expectedYear}-${expectedMonth}`;
+        if (!value.startsWith(expectedPrefix)) {
+            showToast(`⚠️ Ang petsa ay dapat nasa tamang buwan (${ESH_MONTHS[mi]} 2026).`, 'warning', 4000);
+            if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
+            return;
+        }
+    }
+
+    const storage = getEshStorage();
+    const actualKey = getEshKey(tabType, projName, ti, mi, 'actual');
+    storage[actualKey] = value;
+    setEshStorage(storage);
+
+    // Update cell color in-place via CSS classes (no re-render = no scroll reset)
+    if (tdEl) {
+        tdEl.classList.remove('esh-done', 'esh-overdue');
+        tdEl.style.background = ''; // Clear any inline override
+        if (value) {
+            tdEl.classList.add('esh-done');
+            const inp = tdEl.querySelector('input[type="date"]');
+            if (inp) { inp.style.color = '#fff'; inp.style.fontWeight = '700'; }
+        } else {
+            const planKey = getEshKey(tabType, projName, ti, mi, 'plan');
+            const isPlanned = !!(storage[planKey]);
+            if (isPlanned && isMonthOverdue(mi)) {
+                tdEl.classList.add('esh-overdue');
+                const inp = tdEl.querySelector('input[type="date"]');
+                if (inp) { inp.style.color = '#fff'; inp.style.fontWeight = '700'; }
+            } else {
+                const inp = tdEl.querySelector('input[type="date"]');
+                if (inp) { inp.style.color = ''; inp.style.fontWeight = ''; }
+            }
+        }
+    }
+};
+
+// Close the try block opened at the start of renderEshCalendar
+const _origRenderEshCalendar = renderEshCalendar;
+window.renderEshCalendar = function(tabType) {
+    try {
+        _origRenderEshCalendar(tabType);
+    } catch(eshErr) {
+        console.error('❌ renderEshCalendar crashed:', eshErr);
+        const _ec = document.getElementById(tabType + '-view');
+        if (_ec) {
+            _ec.innerHTML = `<div style="padding:40px;text-align:center;color:#c62828;">
+                <i class="fas fa-triangle-exclamation" style="font-size:2rem;margin-bottom:12px;display:block;"></i>
+                <div style="font-weight:700;margin-bottom:8px;">ESH Calendar Error — ${eshErr.message}</div>
+                <div style="font-size:0.8rem;color:#888;margin-bottom:16px;">Try switching to another tab or refreshing.</div>
+                <button onclick="changeTab('overall')" style="padding:8px 20px;background:#2e7d32;color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;">↩ Go to Dashboard</button>
+            </div>`;
+        }
+    }
+};
+
+})();
+// ==================== END ESH CALENDAR & DRILLS MATRIX ====================
+
 // ==================== LOGIN FLASH SCREEN ====================
 let _flashTimer = null;
 let _flashInterval = null;
@@ -18073,36 +19596,12 @@ function dismissLoginFlash() {
         }, 400);
     }
 }
-// ==================== END LOGIN FLASH SCREEN ====================
+// ==================== END LOGIN FLASH SCREEN ===========
     </script>
-
-<!-- Safety Reminder Character -->
-<div id="safety-reminder-container">
-    <div class="safety-character">
-        <div class="reminder-bubble">
-            <div class="reminder-header">
-                <span class="reminder-icon" id="reminder-icon">👀</span>
-                <span class="reminder-title" id="reminder-title">20-20-20 Rule</span>
-            </div>
-            <div class="reminder-text" id="reminder-text">
-                Tumingin sa malayo (20 feet) sa loob ng 20 segundo para maiwasan ang eye strain!
-            </div>
-            <button class="reminder-dismiss" onclick="dismissReminder()">
-                <i class="fas fa-check"></i> Salamat sa Reminder!
-            </button>
-        </div>
-        <div class="character-emoji">👷‍♂️</div>
-    </div>
-</div>
-
-<!-- Toast Notification Container -->
-<div id="toast-container"></div>
-
-<!-- Floating Edit/Save Button -->
-<button id="floating-edit-btn" class="floating-edit-btn" onclick="toggleEdit()" title="Edit Mode">
-    <i class="fas fa-edit" id="floating-edit-icon"></i>
-    <span class="edit-tooltip" id="floating-edit-tooltip">Click to Edit</span>
+<!-- ==================== FLOATING EDIT/SAVE BUTTON ==================== -->
+<button id="floating-edit-btn" class="floating-edit-btn" onclick="toggleEdit()" title="Edit Mode" style="display:none;">
+    <i id="floating-edit-icon" class="fas fa-edit"></i>
+    <span id="floating-edit-tooltip" class="edit-tooltip">Click to Edit</span>
 </button>
-
 </body>
 </html>
