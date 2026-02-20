@@ -4540,11 +4540,11 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             </div>
             <div class="form-group">
                 <label>Contact Number</label>
-                <input type="tel" id="personnelContactInput" placeholder="09XX-XXX-XXXX">
+                <input type="tel" id="personnelContactInput" placeholder="0977 172 6246" oninput="this.value=fmtPhone(this.value)" maxlength="13">
             </div>
             <div class="form-group">
                 <label>Home Address</label>
-                <textarea id="personnelAddressInput" placeholder="Enter home address"></textarea>
+                <textarea id="personnelAddressInput" placeholder="Enter home address" oninput="this.value=titleCase(this.value)"></textarea>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" onclick="closeAddPersonnelModal()">Cancel</button>
@@ -4654,11 +4654,11 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             </div>
             <div class="form-group">
                 <label>Contact Number</label>
-                <input type="tel" id="editPersonnelContactInput" placeholder="09XX-XXX-XXXX">
+                <input type="tel" id="editPersonnelContactInput" placeholder="0977 172 6246" oninput="this.value=fmtPhone(this.value)" maxlength="13">
             </div>
             <div class="form-group">
                 <label>Home Address</label>
-                <textarea id="editPersonnelAddressInput" placeholder="Enter home address"></textarea>
+                <textarea id="editPersonnelAddressInput" placeholder="Enter home address" oninput="this.value=titleCase(this.value)"></textarea>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" onclick="closeEditPersonnelModal()">Cancel</button>
@@ -10620,6 +10620,19 @@ function updateAuditData(pName, qtr, field, val) {
     }
 }
 
+        // Format phone number: 0977 172 6246 (4-3-4 pattern)
+        function fmtPhone(val) {
+            const digits = val.replace(/\D/g, '').slice(0, 11);
+            if (digits.length <= 4) return digits;
+            if (digits.length <= 7) return digits.slice(0,4) + ' ' + digits.slice(4);
+            return digits.slice(0,4) + ' ' + digits.slice(4,7) + ' ' + digits.slice(7);
+        }
+
+        // Capitalize each word
+        function titleCase(val) {
+            return val.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+        }
+
         // Live-update only the "Total Exposed Man-hour to date" monthly cells for a project
         // Called when user edits the Previous column — avoids full page re-render
         function updateToDateMonthCells(pName) {
@@ -11678,6 +11691,14 @@ function closeAllStatusDropdowns() {
             _pendingSync = true;
             showSyncPill('pending', '⚠ Saved locally — waiting to sync');
         }
+
+        // Expose sync/toast functions to global scope so personnel/project functions can use them
+        window.showSyncPill    = showSyncPill;
+        window.hideSyncPill    = hideSyncPill;
+        window.markPendingSync = markPendingSync;
+        window.markSyncComplete= markSyncComplete;
+        window.markSyncFailed  = markSyncFailed;
+        window.showToast       = showToast;
 
         // Warn user if leaving with pending sync
         window.addEventListener('beforeunload', (e) => {
@@ -14376,10 +14397,18 @@ function confirmAddPersonnel() {
     renderPTable();
     updatePersonnelSummary();
     closeAddPersonnelModal();
-    showToast('Personnel added successfully!', 'success');
-    // FIX: Save to Firebase immediately
-    showSyncPill('syncing', 'Saving to cloud...');
-    saveToFirebase().then(s => s ? markSyncComplete() : markSyncFailed()).catch(() => markSyncFailed());
+    if (window.showToast) window.showToast('Personnel added successfully!', 'success');
+    // Save to Firebase immediately
+    if (window.showSyncPill) window.showSyncPill('syncing', 'Saving to cloud...');
+    saveToFirebase()
+        .then(s => {
+            if (s) { if (window.markSyncComplete) window.markSyncComplete(); }
+            else   { if (window.markSyncFailed)   window.markSyncFailed(); }
+        })
+        .catch(err => {
+            console.error('Personnel add Firebase save failed:', err);
+            if (window.markSyncFailed) window.markSyncFailed();
+        });
 }
 
 // Edit Personnel Modal Functions
@@ -14494,8 +14523,8 @@ function openEditPersonnelModal(index) {
     document.getElementById('editPersonnelAgeInput').value = person.age || '';
     document.getElementById('editPersonnelGenderInput').value = person.gen || '';
     document.getElementById('editPersonnelEmailInput').value = person.mail || '';
-    document.getElementById('editPersonnelContactInput').value = person.num || '';
-    document.getElementById('editPersonnelAddressInput').value = person.addr || '';
+    document.getElementById('editPersonnelContactInput').value = fmtPhone(person.num || '');
+    document.getElementById('editPersonnelAddressInput').value = titleCase(person.addr || '');
     document.getElementById('editPersonnelModalError').textContent = '';
     
     // Show modal
@@ -14610,10 +14639,18 @@ function confirmEditPersonnel() {
     renderPTable();
     updatePersonnelSummary();
     closeEditPersonnelModal();
-    showToast('Personnel updated successfully!', 'success');
-    // FIX: Save to Firebase immediately
-    showSyncPill('syncing', 'Saving to cloud...');
-    saveToFirebase().then(s => s ? markSyncComplete() : markSyncFailed()).catch(() => markSyncFailed());
+    if (window.showToast) window.showToast('Personnel updated successfully!', 'success');
+    // Save to Firebase immediately
+    if (window.showSyncPill) window.showSyncPill('syncing', 'Saving to cloud...');
+    saveToFirebase()
+        .then(s => {
+            if (s) { if (window.markSyncComplete) window.markSyncComplete(); }
+            else   { if (window.markSyncFailed)   window.markSyncFailed(); }
+        })
+        .catch(err => {
+            console.error('Personnel edit Firebase save failed:', err);
+            if (window.markSyncFailed) window.markSyncFailed();
+        });
 }
 
 // Track collapsed project/group cards
@@ -14744,7 +14781,7 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
                 <div class="p-view-text" style="white-space:normal;word-break:break-all;font-size:0.72rem;">${p.mail||''}</div>
                 <input type="email" value="${p.mail||''}" onchange="state.personnelData[${origIdx}].mail=this.value" style="min-width:165px;text-align:center;display:none;" disabled>
             </td>
-            <td style="width:115px;text-align:center;"><input type="text" value="${p.num||''}" onchange="state.personnelData[${origIdx}].num=this.value" style="width:105px;text-align:center;" disabled></td>
+            <td style="width:115px;text-align:center;"><input type="text" value="${p.num||''}" onchange="state.personnelData[${origIdx}].num=fmtPhone(this.value);this.value=fmtPhone(this.value)" style="width:105px;text-align:center;" disabled></td>
             <td style="min-width:200px;text-align:left;">
                 <div class="p-view-text" style="white-space:normal;word-break:break-word;font-size:0.72rem;padding:2px 0;">${p.addr||''}</div>
                 <input type="text" value="${p.addr||''}" onchange="state.personnelData[${origIdx}].addr=this.value" style="min-width:185px;text-align:center;display:none;" disabled>
@@ -14896,7 +14933,7 @@ function renderPTable() {
                 <td style="min-width:180px;text-align:center;">
                     <div class="p-view-text" style="white-space:normal;word-break:break-all;font-size:0.72rem;">${p.mail||''}</div>
                 </td>
-                <td style="width:115px;text-align:center;"><input type="text" value="${p.num||''}" onchange="state.personnelData[${origIdx}].num=this.value" style="width:105px;text-align:center;" disabled></td>
+                <td style="width:115px;text-align:center;"><input type="text" value="${p.num||''}" onchange="state.personnelData[${origIdx}].num=fmtPhone(this.value);this.value=fmtPhone(this.value)" style="width:105px;text-align:center;" disabled></td>
                 <td style="min-width:200px;text-align:left;">
                     <div class="p-view-text" style="white-space:normal;word-break:break-word;font-size:0.72rem;padding:2px 0;">${p.addr||''}</div>
                 </td>
