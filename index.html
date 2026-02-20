@@ -10620,6 +10620,40 @@ function updateAuditData(pName, qtr, field, val) {
     }
 }
 
+        // Live-update only the "Total Exposed Man-hour to date" monthly cells for a project
+        // Called when user edits the Previous column — avoids full page re-render
+        function updateToDateMonthCells(pName) {
+            const p = state.projects.find(x => x.name === pName);
+            if (!p) return;
+            const key = 'exposures_Total Exposed Man-hour to date';
+            const manhourKey = 'exposures_Total Exposed Manhour';
+            const prevBase = parseFloat(p.vals[key] ? (p.vals[key][0] ?? 0) : 0) || 0;
+            let cumulative = prevBase;
+
+            for (let i = 1; i <= 12; i++) {
+                const monthManhour = parseFloat(p.vals[manhourKey] ? (p.vals[manhourKey][i] ?? '') : '') || 0;
+                if (monthManhour > 0) cumulative += monthManhour;
+
+                // Find the cell by data attribute and update its text
+                const cell = document.querySelector(`[data-todate-proj="${CSS.escape(pName)}"][data-todate-month="${i}"]`);
+                if (cell) {
+                    cell.textContent = cumulative > 0 ? fmtNum(cumulative) : '';
+                    cell.style.color = '';
+                    cell.style.fontWeight = '700';
+                }
+            }
+
+            // Update YTD cell too
+            const ytdCell = document.querySelector(`[data-todate-proj="${CSS.escape(pName)}"][data-todate-month="ytd"]`);
+            if (ytdCell) {
+                let ytdCum = prevBase;
+                for (let i = 1; i <= 12; i++) {
+                    ytdCum += parseFloat(p.vals[manhourKey] ? (p.vals[manhourKey][i] ?? '') : '') || 0;
+                }
+                ytdCell.textContent = ytdCum > 0 ? fmtNum(ytdCum) : '';
+            }
+        }
+
         function updateVal(pName, key, mIdx, val) {
             // Strip commas from formatted number inputs
             val = String(val).replace(/,/g, '');
@@ -12517,19 +12551,18 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
             const prevValFmt = (!isDateType && prevVal !== '') ? fmtNum(prevVal) : prevVal;
             
             if (state.currentTab !== 'kpm' && state.currentTab !== 'dole' && state.currentTab !== 'emb' && state.currentTab !== 'permits') {
-                // "Total Exposed Man-hour to date" — Previous is read-only (auto value)
-                if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
-                    html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}" style="text-align:center;background:rgba(46,125,50,0.07);">
-                        <span style="font-weight:700;color:#1b5e20;font-size:0.8rem;">${prevValFmt || ''}</span>
-                    </td>`;
-                } else {
-                    html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}">
+                // For "Total Exposed Man-hour to date" Previous column:
+                // editable, and monthly cells update live without full re-render
+                const _isToDate = state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date';
+                const _onchangeExtra = _isToDate
+                    ? `;updateToDateMonthCells('${p.name}')`
+                    : ``;
+                html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}">
                     <input type="${isDateType ? 'date' : 'text'}" ${isDateType ? '' : 'inputmode="decimal" data-num'}
                         value="${prevValFmt}"
                         ${inputsEditable ? '' : 'disabled'}
-                        ${isDateType ? `oninput="updateVal('${p.name}','${key}',0,this.value)"` : `oninput="numFmtInput(this, function(v){updateVal('${p.name}','${key}',0,v)})"`}>
+                        ${isDateType ? `oninput="updateVal('${p.name}','${key}',0,this.value)${_onchangeExtra}"` : `oninput="numFmtInput(this, function(v){updateVal('${p.name}','${key}',0,v)${_onchangeExtra}})"`}>
                 </td>`;
-                }
             }
             
             // Main data columns
@@ -12659,25 +12692,18 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         </td>`;
                     }
                 } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
-                    // AUTO-COMPUTED: cumulative sum = Previous + JAN + FEB + ... up to each month
-                    // Uses "Total Exposed Manhour" row values for monthly increments
+                    // AUTO-COMPUTED: cumulative = Previous (user-input) + JAN manhour + FEB manhour + ...
+                    // Base = Previous column of THIS row (index 0), user can edit it freely
                     const manhourKey = `exposures_Total Exposed Manhour`;
-                    const prevManhour = parseFloat(p.vals[manhourKey] ? (p.vals[manhourKey][0] ?? 0) : 0) || 0;
-                    const prevToDate  = parseFloat(p.vals[key] ? (p.vals[key][0] ?? 0) : 0) || 0;
-                    // Use stored previous value (index 0) as base, then accumulate monthly manhours
-                    let cumulative = prevManhour > 0 ? prevManhour : prevToDate;
-                    // Also add the stored previous year value if "to date" previous is bigger
-                    if (prevToDate > cumulative) cumulative = prevToDate;
+                    const prevBase = parseFloat(p.vals[key] ? (p.vals[key][0] ?? 0) : 0) || 0;
+                    let cumulative = prevBase;
                     for (let i = 1; i <= 12; i++) {
                         const monthManhour = parseFloat(p.vals[manhourKey] ? (p.vals[manhourKey][i] ?? '') : '') || 0;
-                        if (monthManhour > 0) {
-                            cumulative += monthManhour;
-                        }
+                        if (monthManhour > 0) cumulative += monthManhour;
                         const displayVal = cumulative > 0 ? fmtNum(cumulative) : '';
-                        const hasData = monthManhour > 0 || (i === 1 && cumulative > 0);
-                        html += `<td class="monthly-data" style="text-align:center;background:${hasData ? 'rgba(46,125,50,0.07)' : ''};" title="Auto-computed: Previous + sum of monthly manhours up to this month">
-                            <span style="font-weight:700;color:${cumulative > 0 ? '#1b5e20' : '#bbb'};font-size:0.8rem;">
-                                ${displayVal}${cumulative > 0 ? '<i class="fas fa-calculator" style="font-size:0.45rem;margin-left:3px;opacity:0.4;vertical-align:middle;"></i>' : ''}
+                        html += `<td class="monthly-data" data-todate-proj="${p.name}" data-todate-month="${i}" style="text-align:center;" title="Auto-computed: Previous + sum of Total Exposed Manhour up to this month">
+                            <span data-todate-proj="${p.name}" data-todate-month="${i}" style="font-size:0.7rem;color:var(--text-primary);font-weight:700;">
+                                ${displayVal}
                             </span>
                         </td>`;
                     }
@@ -12715,15 +12741,14 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     }
                     html += `<td class="ytd-cell" style="color:${ytdValue>0?'#2e7d32':''};">${ytdValue > 0 ? fmtNum(ytdValue) : ''}</td>`;
                 } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
-                    // YTD = final cumulative value = Previous manhour + all monthly manhours
+                    // YTD = final cumulative = Previous (user input) + all monthly manhours
                     const _mhKey = `exposures_Total Exposed Manhour`;
-                    const _prevMh = parseFloat(p.vals[_mhKey] ? (p.vals[_mhKey][0] ?? 0) : 0) || 0;
-                    const _prevTd = parseFloat(p.vals[key] ? (p.vals[key][0] ?? 0) : 0) || 0;
-                    let _cum = _prevMh > _prevTd ? _prevMh : _prevTd;
+                    const _prevBase = parseFloat(p.vals[key] ? (p.vals[key][0] ?? 0) : 0) || 0;
+                    let _cum = _prevBase;
                     for (let _i = 1; _i <= 12; _i++) {
                         _cum += parseFloat(p.vals[_mhKey] ? (p.vals[_mhKey][_i] ?? '') : '') || 0;
                     }
-                    html += `<td class="ytd-cell" style="font-weight:800;">${_cum > 0 ? fmtNum(_cum) : ''}</td>`;
+                    html += `<td class="ytd-cell" data-todate-proj="${p.name}" data-todate-month="ytd">${_cum > 0 ? fmtNum(_cum) : ''}</td>`;
                 } else {
                     ytdValue = calculateYTD(p.vals[key], rowIdx);
                     html += `<td class="ytd-cell">${fmtNum(ytdValue)}</td>`;
@@ -15731,12 +15756,9 @@ async function saveToFirebase() {
             }
         });
         
-        // Save to each year
-        const savePromises = [];
-        projectsByYear.forEach((projects, year) => {
-            const yearDocRef = window.firebase.doc(window.firebaseDb, 'users', dataUserId, 'years', year.toString());
-            
-            const dataToSave = {
+        // Build save payload helper
+        function buildYearPayload(year, projects) {
+            const payload = {
                 year: year,
                 email: state.currentUser?.email || 'local-user',
                 displayName: state.currentUser?.displayName || localStorage.getItem('esh_displayname_' + state.currentUser?.email) || '',
@@ -15744,32 +15766,52 @@ async function saveToFirebase() {
                 lastUpdated: new Date().toISOString(),
                 timestamp: Date.now()
             };
-            
-            // Add personnel and incident data only for current year
             if (year === currentYear) {
-                dataToSave.personnelData = state.personnelData || [];
-                dataToSave.incidentRateData = state.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
-                dataToSave.oshData = state.oshData || {};
+                payload.personnelData = state.personnelData || [];
+                payload.incidentRateData = state.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
+                payload.oshData = state.oshData || {};
             }
-            
-            savePromises.push(window.firebase.setDoc(yearDocRef, dataToSave, { merge: true }));
-        });
+            return payload;
+        }
+
+        // FAST PATH: Save current year first (this is what the spinner waits for)
+        const currentYearProjects = projectsByYear.get(currentYear) || [];
+        const currentYearRef = window.firebase.doc(window.firebaseDb, 'users', dataUserId, 'years', currentYear.toString());
         
-        // Save all in parallel for speed
-        await Promise.all(savePromises);
-        
-        // Also save user preferences (darkMode) to CURRENT user's doc
+        // Add 8-second timeout so spinner never hangs forever
+        const saveWithTimeout = (promise, ms = 8000) =>
+            Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('Save timeout')), ms))]);
+
+        await saveWithTimeout(window.firebase.setDoc(currentYearRef, buildYearPayload(currentYear, currentYearProjects), { merge: true }));
+
+        // Also save user preferences (non-blocking, runs in parallel)
         const userDocRef = window.firebase.doc(window.firebaseDb, 'users', currentUserId);
-        await window.firebase.setDoc(userDocRef, {
+        window.firebase.setDoc(userDocRef, {
             email: state.currentUser?.email,
             displayName: state.currentUser?.displayName || '',
             darkMode: state.darkMode || false,
             lastActiveYear: currentYear,
             isDataMigrated: true
-        }, { merge: true });
-        
+        }, { merge: true }).catch(e => console.warn('Preferences save failed:', e));
+
         state.lastSyncTimestamp = Date.now();
-        console.log(`✅ Data saved to Firebase for all relevant years:`, new Date().toLocaleTimeString());
+        console.log(`✅ Current year (${currentYear}) saved to Firebase:`, new Date().toLocaleTimeString());
+
+        // BACKGROUND: Save other years silently after spinner is done (non-blocking)
+        setTimeout(() => {
+            const bgPromises = [];
+            projectsByYear.forEach((projects, year) => {
+                if (year === currentYear) return; // already saved
+                const ref = window.firebase.doc(window.firebaseDb, 'users', dataUserId, 'years', year.toString());
+                bgPromises.push(window.firebase.setDoc(ref, buildYearPayload(year, projects), { merge: true }));
+            });
+            if (bgPromises.length > 0) {
+                Promise.all(bgPromises)
+                    .then(() => console.log(`☁️ Background save complete for ${bgPromises.length} other year(s)`))
+                    .catch(e => console.warn('Background year save failed:', e));
+            }
+        }, 500);
+
         return true;
         
     } catch (error) {
