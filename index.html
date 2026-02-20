@@ -3872,6 +3872,116 @@ body.dark-mode .toast-close:hover { color: #aaa; }
 
 /* ========== END TOAST ========== */
 
+/* ========== DELETE CONFIRMATION DIALOG ========== */
+.delete-dialog-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 99999; display: flex; align-items: center; justify-content: center;
+    animation: fadeInOverlay 0.2s ease;
+    backdrop-filter: blur(4px);
+}
+@keyframes fadeInOverlay { from{opacity:0} to{opacity:1} }
+
+.delete-dialog {
+    background: white; border-radius: 20px; padding: 32px 28px 24px;
+    width: 380px; max-width: 92vw; box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+    animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    text-align: center; position: relative;
+}
+@keyframes popIn { from{transform:scale(0.85);opacity:0} to{transform:scale(1);opacity:1} }
+
+.delete-dialog-icon {
+    width: 60px; height: 60px; border-radius: 50%;
+    background: #ffebee; display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px; font-size: 1.6rem; color: #c62828;
+}
+.delete-dialog-title {
+    font-size: 1.05rem; font-weight: 800; color: #1a1a1a; margin-bottom: 8px;
+}
+.delete-dialog-message {
+    font-size: 0.82rem; color: #666; line-height: 1.5; margin-bottom: 24px;
+}
+.delete-dialog-name {
+    font-weight: 700; color: #c62828; display: block; margin-top: 4px; font-size: 0.9rem;
+}
+.delete-dialog-btns {
+    display: flex; gap: 10px; justify-content: center;
+}
+.delete-dialog-cancel {
+    flex: 1; padding: 11px; border: 1.5px solid #ddd; border-radius: 10px;
+    background: white; color: #555; font-weight: 600; font-size: 0.85rem;
+    cursor: pointer; transition: all 0.15s;
+}
+.delete-dialog-cancel:hover { background: #f5f5f5; border-color: #bbb; }
+
+.delete-dialog-confirm {
+    flex: 1; padding: 11px; border: none; border-radius: 10px;
+    background: #c62828; color: white; font-weight: 700; font-size: 0.85rem;
+    cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.delete-dialog-confirm:disabled { opacity: 0.7; cursor: not-allowed; }
+.delete-dialog-confirm:not(:disabled):hover { background: #b71c1c; transform: translateY(-1px); }
+
+.delete-timer-ring {
+    width: 18px; height: 18px; flex-shrink: 0;
+}
+.delete-timer-ring circle {
+    fill: none; stroke: rgba(255,255,255,0.35); stroke-width: 2.5;
+}
+.delete-timer-ring .progress {
+    stroke: white; stroke-width: 2.5; stroke-linecap: round;
+    stroke-dasharray: 44; stroke-dashoffset: 0;
+    transform: rotate(-90deg); transform-origin: 50% 50%;
+    transition: stroke-dashoffset 1s linear;
+}
+
+/* Undo toast */
+.undo-toast {
+    pointer-events: all;
+    background: rgba(33,33,33,0.95);
+    backdrop-filter: blur(16px);
+    border-radius: 12px;
+    padding: 0;
+    display: flex; align-items: stretch;
+    min-width: 300px; max-width: 380px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    animation: toastSlideIn 0.38s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    overflow: hidden; border: 1px solid rgba(255,255,255,0.08);
+    position: relative;
+}
+.undo-toast-body {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 14px; flex: 1;
+}
+.undo-toast-icon {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(239,83,80,0.2); color: #ef5350;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+}
+.undo-toast-text { flex: 1; }
+.undo-toast-title { font-size: 0.72rem; font-weight: 700; color: #ef5350; letter-spacing: 0.4px; text-transform: uppercase; }
+.undo-toast-msg   { font-size: 0.79rem; color: #ccc; line-height: 1.3; }
+.undo-btn {
+    background: none; border: 1.5px solid rgba(255,255,255,0.2);
+    color: white; font-weight: 700; font-size: 0.78rem;
+    padding: 6px 14px; border-radius: 8px; cursor: pointer;
+    white-space: nowrap; margin-right: 10px; transition: all 0.15s;
+    align-self: center;
+}
+.undo-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.4); }
+.undo-toast-progress {
+    position: absolute; bottom: 0; left: 0; height: 2.5px;
+    background: linear-gradient(90deg,#ef5350,#ff7043);
+    border-radius: 0 0 12px 12px;
+    animation: toastProgress linear forwards;
+}
+body.dark-mode .delete-dialog { background: #1e1e1e; }
+body.dark-mode .delete-dialog-title { color: #eee; }
+body.dark-mode .delete-dialog-cancel { background: #2a2a2a; border-color: #444; color: #ccc; }
+body.dark-mode .delete-dialog-cancel:hover { background: #333; }
+/* ========== END DELETE DIALOG ========== */
+
 /* ========== SMOOTH TRANSITIONS ========== */
 .project-row {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -4660,9 +4770,14 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <label>Home Address</label>
                 <textarea id="editPersonnelAddressInput" placeholder="Enter home address" oninput="this.value=titleCase(this.value)"></textarea>
             </div>
-            <div class="modal-buttons">
-                <button class="btn btn-secondary" onclick="closeEditPersonnelModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="confirmEditPersonnel()">Save Changes</button>
+            <div class="modal-buttons" style="justify-content:space-between;align-items:center;">
+                <button class="btn" id="editPersonnelDeleteBtn" onclick="deletePersonnelFromModal()" style="background:#d32f2f;color:white;border:none;padding:10px 18px;border-radius:8px;font-size:0.8rem;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;transition:background 0.2s;" title="Delete this personnel">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn btn-secondary" onclick="closeEditPersonnelModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="confirmEditPersonnel()">Save Changes</button>
+                </div>
             </div>
             <div id="editPersonnelModalError" class="error-message"></div>
         </div>
@@ -10001,7 +10116,7 @@ function openAdminQuickView() {
 
             // FIX: Also save to Firebase immediately so it persists on refresh
             showSyncPill('syncing', 'Saving new project to cloud...');
-            saveToFirebase().then(success => {
+            saveToFirebaseWithRetry().then(success => {
                 if (success) {
                     markSyncComplete();
                 } else {
@@ -10114,7 +10229,7 @@ function openAdminQuickView() {
 
                 // FIX: Save to Firebase immediately
                 showSyncPill('syncing', 'Saving to cloud...');
-                saveToFirebase().then(s => s ? markSyncComplete() : markSyncFailed()).catch(() => markSyncFailed());
+                saveToFirebaseWithRetry().then(s => s ? markSyncComplete() : markSyncFailed()).catch(() => markSyncFailed());
                 showToast(`Project updated${isRenewable ? ' (Renewable Energy)' : ''}`, 'success');
             }
         }
@@ -10274,7 +10389,7 @@ function openAdminQuickView() {
                 hideSyncPill(4000);
                 showToast('Saved locally. Will sync to cloud when back online.', 'warning');
             } else {
-                success = await saveToFirebase();
+                success = await saveToFirebaseWithRetry();
                 if (!success) {
                     // Firebase failed but localStorage is saved — queue for retry
                     state.offlineQueue = state.offlineQueue || [];
@@ -10938,74 +11053,45 @@ function updateAuditData(pName, qtr, field, val) {
     const beforeValidation = validateState();
     debugLog('DATA', 'State before delete:', beforeValidation.stats);
     
-    const confirmed = await showModernDialog('Delete Project', `Are you sure you want to delete "${projectName}"? This action cannot be undone.`, true);
+    const confirmed = await showDeleteDialog('Project', projectName);
     
     if (confirmed) {
-        // Remove from both projects arrays
-        const beforeCount = {
-            projects: state.projects.length,
-            masterProjects: state.masterProjects.length,
-            filtered: state.filteredProjects.length
-        };
-        
-        state.projects = state.projects.filter(p => p.name !== projectName);
-        
-        // Also remove from masterProjects
+        // Save copies for undo
+        const deletedFromProjects       = state.projects.find(p => p.name === projectName);
+        const deletedFromMasterProjects = state.masterProjects.find(p => p.name === projectName);
+
+        state.projects       = state.projects.filter(p => p.name !== projectName);
         state.masterProjects = state.masterProjects.filter(p => p.name !== projectName);
-        
-        // Reapply filters to update filteredProjects correctly
         reapplyFilters();
-        
-        const afterCount = {
-            projects: state.projects.length,
-            masterProjects: state.masterProjects.length,
-            filtered: state.filteredProjects.length
-        };
-        
-        debugLog('DATA', 'Delete counts:', { before: beforeCount, after: afterCount });
-        
-        // Validate deletions
-        if (afterCount.projects !== beforeCount.projects - 1) {
-            debugLog('ERROR', '❌ projects array: deletion count mismatch!');
-        }
-        if (afterCount.masterProjects !== beforeCount.masterProjects - 1) {
-            debugLog('ERROR', '❌ masterProjects array: deletion count mismatch!');
-        }
-        
-        // Save to localStorage first
         saveUserData(state.currentUser.email);
-        debugLog('SUCCESS', '✅ Saved to localStorage');
-        
-        // Save to Firebase immediately
-        showToast('💾 Saving deletion to server...', 'info');
-        debugLog('INFO', '☁️ Syncing to Firebase...');
-        
-        const saved = await saveToFirebase();
-        
-        if (saved) {
-            showToast(`✅ Project "${projectName}" deleted successfully`, 'success');
-            debugLog('SUCCESS', `✅ Project "${projectName}" deleted from Firebase`);
-            
-            // Audit log the deletion
-            AuditLogger.log('PROJECT_DELETED', {
-                projectName: projectName,
-                year: state.selectedYear,
-                remainingProjects: state.projects.length
-            });
-        } else {
-            showToast('⚠️ Deleted locally, but failed to sync to server', 'warning');
-            debugLog('ERROR', '❌ Firebase sync failed');
-        }
-        
-        // Validate after delete
-        const afterValidation = validateState();
-        if (!afterValidation.isValid) {
-            debugLog('ERROR', '❌ State validation failed after delete:', afterValidation.issues);
-        } else {
-            debugLog('SUCCESS', '✅ State validation passed after delete');
-        }
-        
         render();
+
+        // Show undo toast — Firebase save is delayed to allow undo
+        showUndoToast(`"${projectName}" has been deleted.`, () => {
+            // Restore project
+            if (deletedFromProjects) state.projects.push(deletedFromProjects);
+            if (deletedFromMasterProjects) state.masterProjects.push(deletedFromMasterProjects);
+            reapplyFilters();
+            saveUserData(state.currentUser.email);
+            saveToFirebaseWithRetry().catch(() => {});
+            render();
+            showToast(`Project "${projectName}" restored!`, 'success');
+        });
+
+        // Delay Firebase sync to allow undo
+        setTimeout(async () => {
+            const saved = await saveToFirebaseWithRetry();
+            if (saved) {
+                debugLog('SUCCESS', `✅ Project "${projectName}" deleted from Firebase`);
+                AuditLogger.log('PROJECT_DELETED', {
+                    projectName: projectName,
+                    year: state.selectedYear,
+                    remainingProjects: state.projects.length
+                });
+            } else {
+                showToast('Deleted locally — failed to sync to cloud.', 'warning');
+            }
+        }, 5500);
     } else {
         debugLog('INFO', 'Delete cancelled by user');
     }
@@ -11992,13 +12078,19 @@ function closeAllStatusDropdowns() {
                                     });
                                 }
                             });
+                            // Past/current month with no entry → show 0 in summary too
+                            const _n = new Date(); const _cy = _n.getFullYear(); const _cm = _n.getMonth();
+                            const _sy = state.selectedYear || _cy;
+                            const _isPast = _sy < _cy || (_sy === _cy && mi <= _cm);
+                            const _disp = monthTotal > 0 ? fmtNum(monthTotal) : (_isPast ? '0' : '');
+                            html += `<td class="${isNov ? 'nov-narrow-td' : 'monthly-data'}" style="font-weight:600;background:${monthTotal>0?'#f1f8e9':''};">${_disp}</td>`;
                         } else {
                             displayProjects.forEach(p => {
                                 const val = p.vals[key] ? (p.vals[key][i] ?? "") : "";
                                 if (val !== "" && !isNaN(val)) monthTotal += parseFloat(val);
                             });
+                            html += `<td class="${isNov ? 'nov-narrow-td' : 'monthly-data'}" style="font-weight: 600; background: #f1f8e9;">${monthTotal > 0 ? fmtNum(monthTotal) : ''}</td>`;
                         }
-                        html += `<td class="${isNov ? 'nov-narrow-td' : 'monthly-data'}" style="font-weight: 600; background: #f1f8e9;">${monthTotal > 0 ? fmtNum(monthTotal) : ''}</td>`;
                     }
                     
                     // Running YTD Total
@@ -12209,8 +12301,8 @@ function closeAllStatusDropdowns() {
                             <div class="project-meta">Safety Compliance • ${p.region || 'No Region'}</div>
                         </div>
                         <div class="project-dates">
-                            <div><span class="date-label">Started:</span> ${p.dateStarted ? new Date(p.dateStarted).toLocaleDateString() : 'Not set'}</div>
-                            <div><span class="date-label">Finished:</span> ${p.dateFinished ? new Date(p.dateFinished).toLocaleDateString() : 'Ongoing'}</div>
+                            <div><span class="date-label">Started:</span> ${p.dateStarted ? formatDateDMY(p.dateStarted) : 'Not set'}</div>
+                            <div><span class="date-label">Finished:</span> ${p.dateFinished ? formatDateDMY(p.dateFinished) : 'Ongoing'}</div>
                         </div>
                         <span class="status-badge ${statusClass}" onclick="${isLocked ? 'showLockedMessage()' : `changeProjectStatus('${p.name}', event)`}">${statusLabel}</span>
                         ${state.isEditing ? `
@@ -12578,12 +12670,24 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 const _onchangeExtra = _isToDate
                     ? `;updateToDateMonthCells('${p.name}')`
                     : ``;
-                html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}">
+
+                // Drills Conducted & Training Conducted — ALWAYS read-only (auto from ESH Calendar)
+                const _isDrillTraining = state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted');
+
+                if (_isDrillTraining) {
+                    // Show computed previous value as read-only display (no manual input allowed)
+                    html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}" style="text-align:center;background:rgba(46,125,50,0.05);" title="Auto-computed from ESH Calendar & Drills — cannot be edited manually">
+                        <span style="font-size:0.7rem;color:var(--text-primary);font-weight:700;">${prevValFmt || ''}</span>
+                        <i class="fas fa-lock" style="font-size:0.45rem;margin-left:3px;opacity:0.4;vertical-align:middle;"></i>
+                    </td>`;
+                } else {
+                    html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}">
                     <input type="${isDateType ? 'date' : 'text'}" ${isDateType ? '' : 'inputmode="decimal" data-num'}
                         value="${prevValFmt}"
                         ${inputsEditable ? '' : 'disabled'}
                         ${isDateType ? `oninput="updateVal('${p.name}','${key}',0,this.value)${_onchangeExtra}"` : `oninput="numFmtInput(this, function(v){updateVal('${p.name}','${key}',0,v)${_onchangeExtra}})"`}>
                 </td>`;
+                }
             }
             
             // Main data columns
@@ -12688,8 +12792,14 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     html += `<td colspan="12" style="text-align: center;"><input type="date" value="${v}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;"></td>`;
                 } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
                     // AUTO-COMPUTED from ESH Calendar & Drills — read-only, no manual input
+                    // Past months with no entry = 0, future months = blank
                     const eshStor = getEshStorage();
                     const projName = p.name;
+                    const _now = new Date();
+                    const _curYear = _now.getFullYear();
+                    const _curMonth = _now.getMonth(); // 0-based, same as mi
+                    const _selYear = state.selectedYear || _curYear;
+
                     for (let mi = 0; mi < 12; mi++) {
                         let count = 0;
                         if (row === 'Drills Conducted') {
@@ -12705,9 +12815,20 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 });
                             });
                         }
-                        const disp = count > 0 ? count : '';
-                        html += `<td class="monthly-data" style="text-align:center;background:${count>0?'rgba(46,125,50,0.1)':''};cursor:default;" title="Auto-computed from ESH Calendar &amp; Drills — cannot be edited manually">
-                            <span style="font-weight:${count>0?'700':'400'};color:${count>0?'#2e7d32':'#bbb'};font-size:0.8rem;">
+
+                        // Determine if this month has already passed
+                        const isPast = _selYear < _curYear || (_selYear === _curYear && mi < _curMonth);
+                        const isCurrent = _selYear === _curYear && mi === _curMonth;
+
+                        // Past month with no entry → show 0; future → blank; has entry → show count
+                        const showZero = (isPast || isCurrent) && count === 0;
+                        const disp = count > 0 ? count : (showZero ? '0' : '');
+                        const dispColor = count > 0 ? '#2e7d32' : (showZero ? '#999' : '#bbb');
+                        const dispWeight = count > 0 ? '700' : (showZero ? '600' : '400');
+                        const bgColor = count > 0 ? 'rgba(46,125,50,0.1)' : (showZero ? 'rgba(0,0,0,0.02)' : '');
+
+                        html += `<td class="monthly-data" style="text-align:center;background:${bgColor};cursor:default;" title="Auto-computed from ESH Calendar &amp; Drills — cannot be edited manually">
+                            <span style="font-weight:${dispWeight};color:${dispColor};font-size:0.8rem;">
                                 ${disp}${count>0?'<i class="fas fa-lock" style="font-size:0.5rem;margin-left:3px;opacity:0.5;vertical-align:middle;"></i>':''}
                             </span>
                         </td>`;
@@ -14066,6 +14187,124 @@ document.addEventListener('click', closeAllStatusDropdowns);
     // Firebase auth state is handled by setupAuthObserver() in the Firebase integration section below.
     // No session storage check needed — Firebase persists login automatically.
 });
+// ── Modern Delete Confirmation with Timer + Undo ──
+function showDeleteDialog(itemLabel, itemName) {
+    return new Promise((resolve) => {
+        const COUNTDOWN = 5;
+        const circumference = 2 * Math.PI * 7; // r=7
+
+        const overlay = document.createElement('div');
+        overlay.className = 'delete-dialog-overlay';
+        overlay.innerHTML = `
+            <div class="delete-dialog">
+                <div class="delete-dialog-icon"><i class="fas fa-trash-alt"></i></div>
+                <div class="delete-dialog-title">Delete ${itemLabel}?</div>
+                <div class="delete-dialog-message">
+                    This will permanently delete
+                    <span class="delete-dialog-name">${itemName}</span>
+                    <span style="display:block;margin-top:8px;font-size:0.76rem;color:#999;">You can undo within 5 seconds after deleting.</span>
+                </div>
+                <div class="delete-dialog-btns">
+                    <button class="delete-dialog-cancel" id="dd-cancel">Cancel</button>
+                    <button class="delete-dialog-confirm" id="dd-confirm" disabled>
+                        <svg class="delete-timer-ring" viewBox="0 0 18 18">
+                            <circle cx="9" cy="9" r="7"/>
+                            <circle class="progress" id="dd-ring" cx="9" cy="9" r="7"
+                                stroke-dasharray="${circumference.toFixed(1)}"
+                                stroke-dashoffset="0"/>
+                        </svg>
+                        <span id="dd-label">Delete (${COUNTDOWN})</span>
+                    </button>
+                </div>
+            </div>`;
+
+        document.body.appendChild(overlay);
+
+        const confirmBtn = overlay.querySelector('#dd-confirm');
+        const cancelBtn  = overlay.querySelector('#dd-cancel');
+        const label      = overlay.querySelector('#dd-label');
+        const ring       = overlay.querySelector('#dd-ring');
+
+        let remaining = COUNTDOWN;
+        const interval = setInterval(() => {
+            remaining--;
+            const offset = circumference * (remaining / COUNTDOWN);
+            ring.style.strokeDashoffset = (circumference - offset).toFixed(1);
+            if (remaining <= 0) {
+                clearInterval(interval);
+                confirmBtn.disabled = false;
+                label.textContent = 'Delete';
+                ring.style.strokeDashoffset = circumference.toFixed(1);
+                ring.style.stroke = 'rgba(255,255,255,0.7)';
+            } else {
+                label.textContent = `Delete (${remaining})`;
+            }
+        }, 1000);
+
+        cancelBtn.onclick = () => {
+            clearInterval(interval);
+            overlay.remove();
+            resolve(false);
+        };
+        confirmBtn.onclick = () => {
+            if (confirmBtn.disabled) return;
+            clearInterval(interval);
+            overlay.remove();
+            resolve(true);
+        };
+        overlay.onclick = (e) => {
+            if (e.target === overlay) {
+                clearInterval(interval);
+                overlay.remove();
+                resolve(false);
+            }
+        };
+    });
+}
+
+// Show undo toast after delete — calls onUndo() if user clicks Undo within 5s
+function showUndoToast(message, onUndo, duration = 5000) {
+    const container = document.getElementById('toast-container') || (() => {
+        const c = document.createElement('div');
+        c.id = 'toast-container';
+        document.body.appendChild(c);
+        return c;
+    })();
+
+    const toast = document.createElement('div');
+    toast.className = 'undo-toast';
+    toast.innerHTML = `
+        <div class="undo-toast-body">
+            <div class="undo-toast-icon"><i class="fas fa-trash"></i></div>
+            <div class="undo-toast-text">
+                <div class="undo-toast-title">Deleted</div>
+                <div class="undo-toast-msg">${message}</div>
+            </div>
+        </div>
+        <button class="undo-btn" id="undo-btn-action">↩ Undo</button>
+        <div class="undo-toast-progress" style="animation-duration:${duration}ms"></div>
+    `;
+    container.appendChild(toast);
+
+    let undone = false;
+    const timer = setTimeout(() => {
+        if (!undone) {
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 320);
+        }
+    }, duration);
+
+    toast.querySelector('#undo-btn-action').onclick = () => {
+        if (!undone) {
+            undone = true;
+            clearTimeout(timer);
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 320);
+            onUndo();
+        }
+    };
+}
+
 function showModernDialog(title, message, isDanger = false, confirmText = null, cancelText = 'Cancel') {
     return new Promise((resolve) => {
         // Create overlay
@@ -14201,6 +14440,18 @@ function showCustomConfirm(title, message, confirmText = 'CONFIRM', cancelText =
 /**
  * Calculate years of service from hire date to current date
  */
+function formatDateDMY(isoStr) {
+    if (!isoStr) return '';
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const parts = isoStr.split('-');
+    if (parts.length !== 3) return isoStr;
+    const d = parseInt(parts[2], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const y = parts[0];
+    if (isNaN(d) || isNaN(m) || m < 0 || m > 11) return isoStr;
+    return `${d} ${months[m]} ${y}`;
+}
+
 function calculateYearsOfService(hireDate) {
     if (!hireDate) return '';
     
@@ -14400,7 +14651,7 @@ function confirmAddPersonnel() {
     if (window.showToast) window.showToast('Personnel added successfully!', 'success');
     // Save to Firebase immediately
     if (window.showSyncPill) window.showSyncPill('syncing', 'Saving to cloud...');
-    saveToFirebase()
+    saveToFirebaseWithRetry()
         .then(s => {
             if (s) { if (window.markSyncComplete) window.markSyncComplete(); }
             else   { if (window.markSyncFailed)   window.markSyncFailed(); }
@@ -14529,10 +14780,33 @@ function openEditPersonnelModal(index) {
     
     // Show modal
     document.getElementById('editPersonnelModal').classList.add('show');
+
+    // Show/hide delete button based on permissions
+    const deleteBtn = document.getElementById('editPersonnelDeleteBtn');
+    if (deleteBtn) {
+        let canDelete = true;
+        if (!state.isAdmin) {
+            if (person.current === 'Corporate Office') canDelete = false;
+            const personProject = (state.masterProjects || state.projects || []).find(p => p.name === person.current);
+            if (personProject && personProject.region === 'CORPORATE') canDelete = false;
+            if (state.userRegion) {
+                const userProjects = (state.masterProjects || []).filter(p => p.region === state.userRegion).map(p => p.name);
+                if (!userProjects.includes(person.current)) canDelete = false;
+            }
+        }
+        deleteBtn.style.display = canDelete ? '' : 'none';
+    }
 }
 
 function closeEditPersonnelModal() {
     document.getElementById('editPersonnelModal').classList.remove('show');
+}
+
+function deletePersonnelFromModal() {
+    const index = parseInt(document.getElementById('editPersonnelIndex').value);
+    closeEditPersonnelModal();
+    // Small delay so modal closes cleanly before delete dialog appears
+    setTimeout(() => pRowDelete(index), 200);
 }
 
 function confirmEditPersonnel() {
@@ -14642,7 +14916,7 @@ function confirmEditPersonnel() {
     if (window.showToast) window.showToast('Personnel updated successfully!', 'success');
     // Save to Firebase immediately
     if (window.showSyncPill) window.showSyncPill('syncing', 'Saving to cloud...');
-    saveToFirebase()
+    saveToFirebaseWithRetry()
         .then(s => {
             if (s) { if (window.markSyncComplete) window.markSyncComplete(); }
             else   { if (window.markSyncFailed)   window.markSyncFailed(); }
@@ -14762,7 +15036,10 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
                 </select>
             </td>
             <td style="width:95px;text-align:center;"><input type="text" value="${p.id||''}" onchange="state.personnelData[${origIdx}].id=this.value" style="width:80px;text-align:center;" disabled></td>
-            <td style="width:110px;text-align:center;"><input type="date" value="${p.hired||''}" onchange="state.personnelData[${origIdx}].hired=this.value;renderPTable();" style="width:100px;" disabled></td>
+            <td style="width:110px;text-align:center;">
+                <div class="p-view-text p-hired-display" style="font-size:0.72rem;white-space:nowrap;">${formatDateDMY(p.hired)}</div>
+                <input type="date" value="${p.hired||''}" onchange="state.personnelData[${origIdx}].hired=this.value;renderPTable();" style="width:100px;display:none;" disabled>
+            </td>
             <td style="min-width:180px;text-align:center;">
                 <select onchange="state.personnelData[${origIdx}].current=this.value" style="min-width:170px;text-align:center;text-align-last:center;" disabled>
                     <option value="${p.current||''}">${p.current||'Select Assignment'}</option>
@@ -14789,7 +15066,6 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
             <td style="width:70px;text-align:center;"><input type="number" value="${yearsOfService!==''?yearsOfService:(p.len||'')}" style="width:50px;text-align:center;background:#f0f0f0;color:#666;font-weight:600;" min="0" max="99" disabled readonly title="Auto-calculated from Date Hired"></td>
             <td style="width:100px;text-align:center;white-space:nowrap;">
                 <button class="p-edit-btn" id="p-edit-btn-${origIdx}" onclick="openEditPersonnelModal(${origIdx})"><i class="fas fa-edit"></i></button>
-                <button class="p-del-btn" onclick="pRowDelete(${origIdx})" title="Delete"><i class="fas fa-trash"></i></button>
             </td>
         </tr>`;
     });
@@ -14921,7 +15197,10 @@ function renderPTable() {
                 </td>
                 <td style="width:180px;text-align:center;">${posDisplay}</td>
                 <td style="width:95px;text-align:center;"><input type="text" value="${p.id||''}" onchange="state.personnelData[${origIdx}].id=this.value" style="width:80px;text-align:center;" disabled></td>
-                <td style="width:110px;text-align:center;"><input type="date" value="${p.hired||''}" onchange="state.personnelData[${origIdx}].hired=this.value;renderPTable();" style="width:100px;" disabled></td>
+                <td style="width:110px;text-align:center;">
+                    <div class="p-view-text p-hired-display" style="font-size:0.72rem;white-space:nowrap;">${formatDateDMY(p.hired)}</div>
+                    <input type="date" value="${p.hired||''}" onchange="state.personnelData[${origIdx}].hired=this.value;renderPTable();" style="width:100px;display:none;" disabled>
+                </td>
                 <td style="min-width:180px;text-align:center;">
                     <select onchange="state.personnelData[${origIdx}].current=this.value" style="min-width:170px;" disabled>
                         <option value="${p.current||''}">${p.current||'Select Assignment'}</option>
@@ -14940,7 +15219,6 @@ function renderPTable() {
                 <td style="width:70px;text-align:center;"><input type="number" value="${yearsOfService!==''?yearsOfService:(p.len||'')}" style="width:50px;text-align:center;background:#f0f0f0;color:#666;font-weight:600;" min="0" max="99" disabled readonly></td>
                 <td style="width:100px;text-align:center;white-space:nowrap;">
                     <button class="p-edit-btn" id="p-edit-btn-${origIdx}" onclick="openEditPersonnelModal(${origIdx})"><i class="fas fa-edit"></i></button>
-                    <button class="p-del-btn" onclick="pRowDelete(${origIdx})" title="Delete"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>`;
         });
@@ -15093,10 +15371,35 @@ function pRowDelete(i) {
         }
     }
     
-    state.personnelData.splice(i, 1);
-    renderPTable();
-    saveUserData(state.currentUser.email);
-    showToast('✅ Personnel deleted successfully', 'success');
+    const personName = person.name || 'this personnel';
+
+    showDeleteDialog('Personnel', personName).then(confirmed => {
+        if (!confirmed) return;
+
+        // Save a copy for undo
+        const deletedPerson = { ...state.personnelData[i] };
+        const deletedIndex  = i;
+
+        state.personnelData.splice(i, 1);
+        renderPTable();
+        saveUserData(state.currentUser.email);
+
+        // Show undo toast
+        showUndoToast(`"${personName}" has been removed.`, () => {
+            // Restore at original position (or end if index out of range)
+            const restoreAt = Math.min(deletedIndex, state.personnelData.length);
+            state.personnelData.splice(restoreAt, 0, deletedPerson);
+            renderPTable();
+            saveUserData(state.currentUser.email);
+            saveToFirebaseWithRetry().catch(() => {});
+            if (window.showToast) window.showToast('Personnel restored successfully!', 'success');
+        });
+
+        // Save to Firebase after a short delay (allows undo window)
+        setTimeout(() => {
+            saveToFirebaseWithRetry().catch(() => {});
+        }, 5500);
+    });
 }
 
 function filterPTable() {
@@ -15724,6 +16027,24 @@ function waitForFirebase() {
             resolve();
         }, 5000);
     });
+}
+
+// Save to Firebase with automatic retry on first failure
+async function saveToFirebaseWithRetry(maxRetries = 2, delayMs = 2000) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        // Wait for Firebase to be ready if it isn't yet
+        if (!firebaseReady || !window.firebaseDb || !state.currentUser) {
+            console.log(`⏳ Attempt ${attempt}: Firebase not ready — waiting...`);
+            await new Promise(r => setTimeout(r, 1500));
+        }
+        const success = await saveToFirebase();
+        if (success) return true;
+        if (attempt < maxRetries) {
+            console.log(`⚠️ Save attempt ${attempt} failed — retrying in ${delayMs}ms...`);
+            await new Promise(r => setTimeout(r, delayMs));
+        }
+    }
+    return false;
 }
 
 // OPTIMIZED: Save to Firebase - MANUAL ONLY
@@ -16491,15 +16812,9 @@ function setupAuthObserver() {
 const originalSaveUserData = window.saveUserData || function() {};
 
 window.saveUserData = function(email) {
-    // Always save to localStorage first (instant, no network)
+    // Save to localStorage only — Firebase is called explicitly after this
+    // to avoid double-save race conditions
     originalSaveUserData(email);
-    
-    // Also auto-save to Firebase if ready (prevents data loss on refresh)
-    if (firebaseReady && window.firebaseDb && state.currentUser) {
-        saveToFirebase().then(success => {
-            if (success) console.log('☁️ Auto-synced to Firebase');
-        }).catch(err => console.warn('⚠️ Firebase auto-sync failed:', err.message));
-    }
 };
 
 // Initialize Firebase Integration
