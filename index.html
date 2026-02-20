@@ -1834,97 +1834,206 @@
         }
 
         .region-banner {
-            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%);
-            border-radius: 12px;
+            background: linear-gradient(90deg, #1b5e20 0%, #2e7d32 60%, #388e3c 100%);
+            border-radius: 10px 10px 0 0;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 8px 20px 8px;
-            overflow: hidden;
+            transition: background 0.2s, box-shadow 0.2s;
+            margin: 10px 16px 0;
             position: relative;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: none;
+            box-shadow: 0 2px 8px rgba(27,94,32,0.18);
             user-select: none;
-            padding: 12px 18px;
+            padding: 0;
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
+            align-items: stretch;
             color: white;
             font-weight: 700;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            overflow: hidden;
         }
-        
-        /* Glass effect overlay */
+
+        .region-banner:hover {
+            background: linear-gradient(90deg, #155217 0%, #256427 60%, #2e7d32 100%);
+            box-shadow: 0 4px 14px rgba(27,94,32,0.28);
+        }
+
+        /* Left accent stripe */
         .region-banner::before {
             content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
-            pointer-events: none;
-            z-index: 1;
+            display: block;
+            width: 5px;
+            flex-shrink: 0;
+            background: #fbc02d;
+            border-radius: 10px 0 0 0;
         }
-        
-        /* Ensure content is above glass effect */
-        .region-banner > * {
-            position: relative;
-            z-index: 2;
-        }
-        
-        
+
         .region-banner.collapsed {
-            margin-bottom: 10px;
+            border-radius: 10px;
+            margin-bottom: 2px;
         }
-        
-        .region-toggle-icon {
-            transition: none;
-            margin-left: 10px;
-            font-size: 0.9rem;
+
+        .region-banner.collapsed::before {
+            border-radius: 10px 0 0 10px;
         }
-        
-        .region-banner.collapsed .region-toggle-icon {
-            transform: rotate(-180deg);
-        }
-        
-        .region-content {
-            max-height: 5000px;
-            overflow: hidden;
-            transition: none;
-            opacity: 1;
-        }
-        
-        .region-content.collapsed {
-            max-height: 0;
-            opacity: 0;
-            transition: none;
-        }
-        
-        /* Region banner left section */
-        .region-banner > div:first-child {
+
+        .region-banner-inner {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            width: 100%;
-            gap: 10px;
+            flex: 1;
+            padding: 10px 16px;
+            gap: 12px;
+            min-width: 0;
         }
-        
-        /* Region banner right section */
-        .region-banner > div:last-child {
+
+        .region-banner-left {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
+            min-width: 0;
+            flex-shrink: 1;
         }
-        
-        /* Glass effect for AVG badge */
-        .region-banner .badge[style*="background:#1b5e20"] {
-            background: rgba(255,255,255,0.15) !important;
-            backdrop-filter: blur(10px);
-            padding: 8px 16px;
-            border-radius: 12px;
+
+        .region-banner-left .region-icon {
+            font-size: 0.78rem;
+            opacity: 0.85;
+            flex-shrink: 0;
+        }
+
+        .region-banner-left .region-name {
+            font-size: 0.82rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .region-banner-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+
+        .region-toggle-icon {
+            transition: transform 0.25s ease;
+            font-size: 0.75rem;
+            opacity: 0.8;
+            width: 16px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .region-banner.collapsed .region-toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .region-content {
+            overflow: hidden;
+            opacity: 1;
+            border: 1px solid #c8e6c9;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            margin: 0 16px 10px;
+            padding: 10px 0 4px;
+        }
+
+        .region-content.collapsed {
+            max-height: 0 !important;
+            opacity: 0;
+            border: none;
+            margin-bottom: 0;
+        }
+
+        /* Badge styles inside banners */
+        .region-banner .rbadge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.6rem;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+            padding: 2px 8px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        .region-banner .rbadge-count {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+
+        .region-banner .rbadge-avg {
+            background: #fbc02d;
+            color: #1b5e20;
+        }
+
+        .region-banner .rbadge-admin {
+            background: rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.88);
             border: 1px solid rgba(255,255,255,0.2);
-            font-size: 0.8rem;
+            font-size: 0.56rem;
         }
+
+        /* Glass effect for AVG badge (legacy compat) */
+        .region-banner .badge[style*="background:#1b5e20"] {
+            background: #fbc02d !important;
+            color: #1b5e20 !important;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.6rem;
+            font-weight: 800;
+        }
+        /* ── Tab info bar (replaces old redundant banner titles) ── */
+        .tab-info-bar {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 10px 16px 0;
+            padding: 10px 16px;
+            background: var(--bg-card, #fff);
+            border: 1px solid #c8e6c9;
+            border-left: 4px solid #2e7d32;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(27,94,32,0.07);
+        }
+        .tab-info-bar .tib-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            font-size: 1rem;
+            color: #2e7d32;
+        }
+        .tab-info-bar .tib-body { flex: 1; min-width: 0; }
+        .tab-info-bar .tib-title {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: var(--text-primary, #1b2e1c);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin: 0 0 2px;
+        }
+        .tab-info-bar .tib-sub {
+            font-size: 0.65rem;
+            color: var(--text-secondary, #555);
+            margin: 0;
+            line-height: 1.5;
+        }
+        .tab-info-bar .tib-badges {
+            display: flex; gap: 6px; align-items: center; flex-shrink: 0;
+        }
+        .tab-info-bar .tib-pill {
+            font-size: 0.6rem; font-weight: 800; padding: 3px 9px;
+            border-radius: 20px; white-space: nowrap;
+        }
+        .tab-info-bar .tib-pill-green { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
+        .tab-info-bar .tib-pill-yellow { background: #fff8e1; color: #7a5c00; border: 1px solid #ffe082; }
+
         .badge { background: var(--safety-yellow); color: #1b5e20; padding: 4px 12px;
             border-radius: 20px; font-size: 0.7rem; font-weight: 800; }
         .sort-select {
@@ -4517,7 +4626,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <option value="SOUTH LUZON">South Luzon</option>
                     <option value="NORTH LUZON">North Luzon</option>
                     <option value="VISAYAS & MINDANAO">Visayas & Mindanao</option>
-                    <option value="CORPORATE">Corporate</option>
+    
                 </select>
             </div>
             <div id="projectDateFields">
@@ -5756,7 +5865,6 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <option value="NORTH LUZON">North Luzon</option>
                 <option value="SOUTH LUZON">South Luzon</option>
                 <option value="VISAYAS & MINDANAO">Visayas &amp; Mindanao</option>
-                <option value="CORPORATE">Corporate</option>
             </select>
         </div>
         <div style="display:flex;gap:6px;align-items:center;">
@@ -11997,7 +12105,8 @@ function closeAllStatusDropdowns() {
                 <div class="charts-container">
                     <div class="chart-box"><h3><i class="fas fa-chart-bar"></i> Compliance by Region</h3><canvas id="regionChart"></canvas></div>
                     <div class="chart-box"><h3><i class="fas fa-chart-pie"></i> Project Status</h3><canvas id="statusChart"></canvas></div>
-                </div>`;
+                </div>
+                `;
                 renderCharts();
             }
 
@@ -12017,13 +12126,14 @@ function closeAllStatusDropdowns() {
                 const isNov = state.currentTab === 'nov';
                 
                 html += `
-                <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 10px 16px; margin: 12px 20px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-globe" style="font-size: 1.2rem; color: #fbc02d; flex-shrink:0;"></i>
-                        <div>
-                            <h2 style="margin: 0; font-size: 0.9rem; font-weight: 800; line-height:1.2;">OVERALL SUMMARY - ALL REGIONS</h2>
-                            <p style="margin: 2px 0 0; font-size: 0.72rem; opacity: 0.9;">Consolidated data from all projects across all regions</p>
-                        </div>
+                <div class="tab-info-bar">
+                    <div class="tib-icon"><i class="fas fa-globe"></i></div>
+                    <div class="tib-body">
+                        <p class="tib-sub">Consolidated data from all projects across all regions</p>
+                    </div>
+                    <div class="tib-badges">
+                        <span class="tib-pill tib-pill-green">${displayProjects.length} PROJECTS</span>
+                        <span class="tib-pill tib-pill-yellow">ALL REGIONS</span>
                     </div>
                 </div>
                 
@@ -12209,13 +12319,14 @@ function closeAllStatusDropdowns() {
                 if (tabBanners[state.currentTab]) {
                     const b = tabBanners[state.currentTab];
                     html += `
-                    <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 8px 16px; margin: 12px 20px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <i class="fas ${b.icon}" style="font-size: 1.1rem; color: ${b.iconColor}; flex-shrink:0;"></i>
-                            <div>
-                                <p style="margin: 0; font-size: 0.72rem; opacity: 0.9;">${b.sub1}</p>
-                                <p style="margin: 2px 0 0; font-size: 0.68rem; opacity: 0.8;">${b.sub2}</p>
-                            </div>
+                    <div class="tab-info-bar">
+                        <div class="tib-icon"><i class="fas ${b.icon}"></i></div>
+                        <div class="tib-body">
+                            <p class="tib-sub">${b.sub1}</p>
+                            <p class="tib-sub" style="opacity:0.75;">${b.sub2}</p>
+                        </div>
+                        <div class="tib-badges">
+                            <span class="tib-pill tib-pill-green">${displayProjects.length} PROJECTS</span>
                         </div>
                     </div>`;
                 }
@@ -12241,26 +12352,27 @@ function closeAllStatusDropdowns() {
                 const isCorporateDataTab = isCorporateReg && CORP_DATA_TABS.includes(state.currentTab);
                 const regIcon = isCorporateReg ? 'fa-building-columns' : 'fa-location-dot';
                 const regLabel = isCorporateReg ? 'CORPORATE' : reg;
-                html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)" style="flex-wrap:nowrap;">
-                    <span style="display:flex; align-items:center; gap:8px; font-weight:700; min-width:260px;">
-                        <i class="fas ${regIcon}"></i> ${regLabel}
-                        ${isCorporateReg ? `<span style="background:rgba(255,255,255,0.18);color:white;padding:1px 8px;border-radius:10px;font-size:0.6rem;font-weight:800;">ADMIN ONLY</span>` : ''}
-                        ${!canEditRegion && !isCorporateReg ? `<i class="fas fa-lock" style="color: #f57c00;" title="🔒 View Only - This region is locked for you"></i>` : ''}
-                    </span>
-                    ${(!isCorporateReg || isCorporateDataTab) ? `<span style="display:flex; align-items:center; gap:8px;">
-                        <span class="badge">${projs.length} PROJ</span>
-                        ${projs.length > 0 ? `<span class="badge" style="background:#1b5e20; color:var(--safety-yellow);">AVG: ${regionAvg}%</span>` : ''}
-                    </span>` : ''}
-                    <span style="display:flex; align-items:center; gap:8px; margin-left:auto; flex-shrink:0;">
-                        ${(!isCorporateReg || isCorporateDataTab) && state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary" style="font-size:0.75rem; padding:4px 10px;">+ ADD</button>` : ''}
-                        ${(!isCorporateReg || isCorporateDataTab) && state.isEditing && !canEditRegion ? `<button disabled style="opacity:0.5; cursor:not-allowed; background:#999; font-size:0.75rem; padding:4px 10px;" class="btn btn-primary">LOCKED</button>` : ''}
-                        ${!isCorporateReg && state.currentTab === 'overall' && projs.length > 0 ? `<select class="sort-select" onclick="event.stopPropagation()" onchange="sortProjects(this.value)" style="font-size:0.75rem; padding:3px 8px;">
-                            <option value="name" ${state.currentSort === 'name' ? 'selected' : ''}>Sort: Name</option>
-                            <option value="dateStarted" ${state.currentSort === 'dateStarted' ? 'selected' : ''}>Sort: Date Started</option>
-                            <option value="dateFinished" ${state.currentSort === 'dateFinished' ? 'selected' : ''}>Sort: Date Finished</option>
-                        </select>` : ''}
-                        <i class="fas fa-chevron-down region-toggle-icon"></i>
-                    </span>
+                html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)">
+                    <div class="region-banner-inner">
+                        <div class="region-banner-left">
+                            <i class="fas ${regIcon} region-icon"></i>
+                            <span class="region-name">${regLabel}</span>
+                            ${isCorporateReg ? `<span class="rbadge rbadge-admin">ADMIN ONLY</span>` : ''}
+                            ${!canEditRegion && !isCorporateReg ? `<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="🔒 View Only"></i>` : ''}
+                        </div>
+                        <div class="region-banner-right">
+                            ${(!isCorporateReg || isCorporateDataTab) ? `<span class="rbadge rbadge-count">${projs.length} PROJ</span>` : ''}
+                            ${(!isCorporateReg || isCorporateDataTab) && projs.length > 0 ? `<span class="rbadge rbadge-avg">AVG ${regionAvg}%</span>` : ''}
+                            ${(!isCorporateReg || isCorporateDataTab) && state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary" style="font-size:0.68rem;padding:3px 10px;line-height:1.4;">+ ADD</button>` : ''}
+                            ${(!isCorporateReg || isCorporateDataTab) && state.isEditing && !canEditRegion ? `<button disabled style="opacity:0.45;cursor:not-allowed;background:#888;font-size:0.68rem;padding:3px 10px;line-height:1.4;" class="btn btn-primary">LOCKED</button>` : ''}
+                            ${!isCorporateReg && state.currentTab === 'overall' && projs.length > 0 ? `<select class="sort-select" onclick="event.stopPropagation()" onchange="sortProjects(this.value)" style="font-size:0.68rem;padding:2px 7px;">
+                                <option value="name" ${state.currentSort === 'name' ? 'selected' : ''}>Sort: Name</option>
+                                <option value="dateStarted" ${state.currentSort === 'dateStarted' ? 'selected' : ''}>Sort: Date Started</option>
+                                <option value="dateFinished" ${state.currentSort === 'dateFinished' ? 'selected' : ''}>Sort: Date Finished</option>
+                            </select>` : ''}
+                            <i class="fas fa-chevron-down region-toggle-icon"></i>
+                        </div>
+                    </div>
                 </div>`;
 
                 html += `<div id="region-content-${reg}" class="region-content ${isCollapsed ? 'collapsed' : ''}">`;
@@ -12936,14 +13048,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 // ── Banner for KPM ──
                 if (state.currentTab === 'kpm') {
                     html += `
-                    <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 10px 16px; margin: 12px 20px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <i class="fas fa-file-lines" style="font-size: 1.2rem; color: #fbc02d; flex-shrink:0;"></i>
-                            <div>
-                                <h2 style="margin: 0; font-size: 0.9rem; font-weight: 800; line-height:1.2;">MONTHLY REPORT (KPM&I)</h2>
-                                <p style="margin: 2px 0 0; font-size: 0.72rem; opacity: 0.9;">Monthly submission required for each project</p>
-                                <p style="margin: 1px 0 0; font-size: 0.68rem; opacity: 0.8;"><i class="fas fa-calendar-check"></i> Tracking ${displayProjects.length} project(s) — KPM & Inspection reports</p>
-                            </div>
+                    <div class="tab-info-bar">
+                        <div class="tib-icon"><i class="fas fa-file-lines"></i></div>
+                        <div class="tib-body">
+                            <p class="tib-sub">Monthly submission required for each project</p>
+                            <p class="tib-sub" style="opacity:0.75;"><i class="fas fa-calendar-check"></i> Tracking ${displayProjects.length} project(s) — KPM &amp; Inspection reports</p>
+                        </div>
+                        <div class="tib-badges">
+                            <span class="tib-pill tib-pill-green">${displayProjects.length} PROJECTS</span>
+                            <span class="tib-pill tib-pill-yellow">MONTHLY</span>
                         </div>
                     </div>`;
                 }
@@ -12951,24 +13064,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 // ── Banner for Environmental Monthly Report ──
                 if (state.currentTab === 'env-monthly-report') {
                     html += `
-                    <div style="background: linear-gradient(135deg, #004d1a 0%, #1b6e20 40%, #2e8b30 70%, #43a840 100%); color: white; padding: 14px 20px; margin: 12px 20px 0; border-radius: 10px; box-shadow: 0 3px 12px rgba(0,0,0,0.18); position:relative; overflow:hidden;">
-                        <div style="position:absolute;top:0;right:0;width:160px;height:100%;opacity:0.07;background:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><text y=%221em%22 font-size=%2270%22>🌿</text></svg>') no-repeat right center / contain; pointer-events:none;"></div>
-                        <div style="display: flex; align-items: center; gap: 14px; position:relative; z-index:1;">
-                            <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                <i class="fas fa-leaf" style="font-size: 1.5rem; color: #b9f6ca;"></i>
-                            </div>
-                            <div style="flex:1;">
-                                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                                    <h2 style="margin: 0; font-size: 0.95rem; font-weight: 900; line-height:1.2; letter-spacing:0.3px;">ENVIRONMENTAL MONTHLY REPORT</h2>
-                                    <span style="background:rgba(255,255,255,0.2);font-size:0.62rem;padding:2px 8px;border-radius:10px;font-weight:700;border:1px solid rgba(255,255,255,0.3);">EMR</span>
-                                </div>
-                                <p style="margin: 4px 0 2px; font-size: 0.73rem; opacity: 0.9; display:flex;align-items:center;gap:5px;"><i class="fas fa-calendar-check"></i> Monthly submission required per project — Environmental compliance tracking</p>
-                                <p style="margin: 0; font-size: 0.67rem; opacity: 0.75; display:flex;align-items:center;gap:5px;"><i class="fas fa-recycle"></i> Waste &bull; Water &bull; Air &bull; Noise &bull; Hazardous Materials &mdash; ${displayProjects.length} project(s) tracked</p>
-                            </div>
-                            <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0;">
-                                <div style="background:rgba(76,175,80,0.3);border:1px solid rgba(76,175,80,0.5);border-radius:8px;padding:5px 12px;font-size:0.68rem;font-weight:700;white-space:nowrap;"><i class="fas fa-droplet" style="color:#80cbc4;"></i> Water</div>
-                                <div style="background:rgba(255,235,59,0.2);border:1px solid rgba(255,235,59,0.4);border-radius:8px;padding:5px 12px;font-size:0.68rem;font-weight:700;white-space:nowrap;"><i class="fas fa-wind" style="color:#fff9c4;"></i> Air &amp; Noise</div>
-                            </div>
+                    <div class="tab-info-bar">
+                        <div class="tib-icon"><i class="fas fa-leaf"></i></div>
+                        <div class="tib-body">
+                            <p class="tib-sub">Monthly submission required per project — Environmental compliance tracking</p>
+                            <p class="tib-sub" style="opacity:0.75;"><i class="fas fa-recycle"></i> Waste &bull; Water &bull; Air &bull; Noise &bull; Hazardous Materials</p>
+                        </div>
+                        <div class="tib-badges">
+                            <span class="tib-pill tib-pill-green">${displayProjects.length} PROJECTS</span>
+                            <span class="tib-pill tib-pill-yellow">MONTHLY</span>
                         </div>
                     </div>`;
                 }
@@ -12989,19 +13093,22 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const isCorporateReg2 = reg === 'CORPORATE';
                     const regIcon2 = isCorporateReg2 ? 'fa-building-columns' : 'fa-location-dot';
                     const regLabel2 = isCorporateReg2 ? 'CORPORATE' : reg;
-                    html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)" style="flex-wrap:nowrap;">
-                        <span style="display:flex; align-items:center; gap:8px; font-weight:700; flex-shrink:0;">
-                            <i class="fas ${regIcon2}"></i> ${regLabel2}
-                            ${isCorporateReg2 ? `<span style="background:rgba(255,255,255,0.18);color:white;padding:1px 8px;border-radius:10px;font-size:0.6rem;font-weight:800;">ADMIN ONLY</span>` : ''}
-                            ${!canEditRegion && !isCorporateReg2 ? `<i class="fas fa-lock" style="color: #f57c00;" title="🔒 View Only - This region is locked for you"></i>` : ''}
-                        </span>
-                        <span style="display:flex; align-items:center; gap:8px; margin-left:auto; flex-shrink:0;">
-                            <span class="badge">${projs.length} PROJ</span>
-                            <span class="badge" style="background:#1b5e20;color:var(--safety-yellow);">AVG: ${regAvg}%</span>
-                            ${state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary" style="font-size:0.75rem; padding:4px 10px;">+ ADD</button>` : ''}
-                            ${state.isEditing && !canEditRegion ? `<button disabled style="opacity:0.5; cursor:not-allowed; background:#999; font-size:0.75rem; padding:4px 10px;" class="btn btn-primary">LOCKED</button>` : ''}
-                            <i class="fas fa-chevron-down region-toggle-icon"></i>
-                        </span>
+                    html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)">
+                        <div class="region-banner-inner">
+                            <div class="region-banner-left">
+                                <i class="fas ${regIcon2} region-icon"></i>
+                                <span class="region-name">${regLabel2}</span>
+                                ${isCorporateReg2 ? `<span class="rbadge rbadge-admin">ADMIN ONLY</span>` : ''}
+                                ${!canEditRegion && !isCorporateReg2 ? `<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="🔒 View Only"></i>` : ''}
+                            </div>
+                            <div class="region-banner-right">
+                                <span class="rbadge rbadge-count">${projs.length} PROJ</span>
+                                <span class="rbadge rbadge-avg">AVG ${regAvg}%</span>
+                                ${state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary" style="font-size:0.68rem;padding:3px 10px;line-height:1.4;">+ ADD</button>` : ''}
+                                ${state.isEditing && !canEditRegion ? `<button disabled style="opacity:0.45;cursor:not-allowed;background:#888;font-size:0.68rem;padding:3px 10px;line-height:1.4;" class="btn btn-primary">LOCKED</button>` : ''}
+                                <i class="fas fa-chevron-down region-toggle-icon"></i>
+                            </div>
+                        </div>
                     </div>`;
                     
                     html += `<div id="region-content-${reg}" class="region-content ${isCollapsed ? 'collapsed' : ''}">`;
@@ -13182,14 +13289,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     `;
                 } else {
                     html += `
-                        <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 10px 16px; margin: 12px 20px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <i class="fas fa-solar-panel" style="font-size: 1.2rem; color: #fbc02d; flex-shrink:0;"></i>
-                                <div>
-                                    <h2 style="margin: 0; font-size: 0.9rem; font-weight: 800; line-height:1.2;">DOE REPORTORIAL - RENEWABLE ENERGY PROJECTS</h2>
-                                    <p style="margin: 2px 0 0; font-size: 0.72rem; opacity: 0.9;">Quarterly submission (Due: 20th of the following month after each quarter)</p>
-                                    <p style="margin: 1px 0 0; font-size: 0.68rem; opacity: 0.8;"><i class="fas fa-leaf"></i> Showing ${renewableProjects.length} Renewable Energy project(s)</p>
-                                </div>
+                        <div class="tab-info-bar">
+                            <div class="tib-icon"><i class="fas fa-solar-panel"></i></div>
+                            <div class="tib-body">
+                                <p class="tib-sub">Quarterly submission — Due: 20th of the month after each quarter</p>
+                                <p class="tib-sub" style="opacity:0.75;"><i class="fas fa-leaf"></i> Showing ${renewableProjects.length} Renewable Energy project(s)</p>
+                            </div>
+                            <div class="tib-badges">
+                                <span class="tib-pill tib-pill-green">${renewableProjects.length} PROJECTS</span>
+                                <span class="tib-pill tib-pill-yellow">QUARTERLY</span>
                             </div>
                         </div>
                     `;
@@ -13205,17 +13313,18 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         const isCollapsed = isRegionCollapsed(reg);
                         
                         // Region banner with lock icon
-                        html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" style="flex-wrap:nowrap;" onclick="toggleRegion('${reg}', event)">
-                            <span style="display:flex; align-items:center; gap:8px; font-weight:700; min-width:260px;">
-                                <i class="fas fa-location-dot"></i> ${reg}
-                                ${!canEditRegion ? `<i class="fas fa-lock" style="color: #f57c00;" title="🔒 View Only - This region is locked for you"></i>` : ''}
-                            </span>
-                            <span style="display:flex; align-items:center; gap:8px;">
-                                <span class="badge">${regProjects.length} PROJ</span>
-                            </span>
-                            <span style="margin-left:auto; flex-shrink:0;">
-                                <i class="fas fa-chevron-down region-toggle-icon"></i>
-                            </span>
+                        html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)">
+                            <div class="region-banner-inner">
+                                <div class="region-banner-left">
+                                    <i class="fas fa-location-dot region-icon"></i>
+                                    <span class="region-name">${reg}</span>
+                                    ${!canEditRegion ? `<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="🔒 View Only"></i>` : ''}
+                                </div>
+                                <div class="region-banner-right">
+                                    <span class="rbadge rbadge-count">${regProjects.length} PROJ</span>
+                                    <i class="fas fa-chevron-down region-toggle-icon"></i>
+                                </div>
+                            </div>
                         </div>`;
                         
                         html += `<div id="region-content-${reg}" class="region-content ${isCollapsed ? 'collapsed' : ''}">`;
@@ -13326,18 +13435,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     `;
                 } else {
                     html += `
-                        <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 20px; margin: 20px 20px 0; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <i class="fas fa-id-card" style="font-size: 1.8rem; color: #fbc02d;"></i>
-                                <div>
-                                    <h2 style="margin: 0; font-size: 1.3rem; font-weight: 800;">DOE SAFETY OFFICER PERMIT</h2>
-                                    <p style="margin: 5px 0 0; font-size: 0.85rem; opacity: 0.9;">
-                                        Department Circular No. DC2012-11-0009 (RE Safety, Health and Environment Rules)
-                                    </p>
-                                    <p style="margin: 5px 0 0; font-size: 0.75rem; opacity: 0.8;">
-                                        <i class="fas fa-leaf"></i> Showing ${renewableProjects.length} Renewable Energy project(s)
-                                    </p>
-                                </div>
+                        <div class="tab-info-bar">
+                            <div class="tib-icon"><i class="fas fa-id-card"></i></div>
+                            <div class="tib-body">
+                                <p class="tib-sub">Dept. Circular DC2012-11-0009 — RE Safety, Health and Environment Rules</p>
+                                <p class="tib-sub" style="opacity:0.75;"><i class="fas fa-leaf"></i> Showing ${renewableProjects.length} Renewable Energy project(s)</p>
+                            </div>
+                            <div class="tib-badges">
+                                <span class="tib-pill tib-pill-green">${renewableProjects.length} PROJECTS</span>
+                                <span class="tib-pill tib-pill-yellow">RENEWABLE</span>
                             </div>
                         </div>
                     `;
@@ -13353,17 +13459,18 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         const isCollapsed = isRegionCollapsed(reg);
                         
                         // Region banner with lock icon
-                        html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" style="flex-wrap:nowrap;" onclick="toggleRegion('${reg}', event)">
-                            <span style="display:flex; align-items:center; gap:8px; font-weight:700; min-width:260px;">
-                                <i class="fas fa-location-dot"></i> ${reg}
-                                ${!canEditRegion ? `<i class="fas fa-lock" style="color: #f57c00;" title="🔒 View Only - This region is locked for you"></i>` : ''}
-                            </span>
-                            <span style="display:flex; align-items:center; gap:8px;">
-                                <span class="badge">${regProjects.length} PROJ</span>
-                            </span>
-                            <span style="margin-left:auto; flex-shrink:0;">
-                                <i class="fas fa-chevron-down region-toggle-icon"></i>
-                            </span>
+                        html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)">
+                            <div class="region-banner-inner">
+                                <div class="region-banner-left">
+                                    <i class="fas fa-location-dot region-icon"></i>
+                                    <span class="region-name">${reg}</span>
+                                    ${!canEditRegion ? `<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="🔒 View Only"></i>` : ''}
+                                </div>
+                                <div class="region-banner-right">
+                                    <span class="rbadge rbadge-count">${regProjects.length} PROJ</span>
+                                    <i class="fas fa-chevron-down region-toggle-icon"></i>
+                                </div>
+                            </div>
                         </div>`;
                         
                         html += `<div id="region-content-${reg}" class="region-content ${isCollapsed ? 'collapsed' : ''}">`;
@@ -13586,13 +13693,14 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 
                 // Render Overall Total Table at the TOP - NEW DESIGN
                 html += `
-                <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 10px 16px; margin: 12px 20px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.12);">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-globe" style="font-size: 1.2rem; color: #fbc02d; flex-shrink:0;"></i>
-                        <div>
-                            <h2 style="margin: 0; font-size: 0.9rem; font-weight: 800; line-height:1.2;">OVERALL SUMMARY - ALL REGIONS</h2>
-                            <p style="margin: 2px 0 0; font-size: 0.72rem; opacity: 0.9;">ESH NOV Monitoring consolidated data from all projects</p>
-                        </div>
+                <div class="tab-info-bar">
+                    <div class="tib-icon"><i class="fas fa-globe"></i></div>
+                    <div class="tib-body">
+                        <p class="tib-sub">ESH NOV Monitoring — consolidated data from all projects</p>
+                    </div>
+                    <div class="tib-badges">
+                        <span class="tib-pill tib-pill-green">${displayProjects.length} PROJECTS</span>
+                        <span class="tib-pill tib-pill-yellow">ALL REGIONS</span>
                     </div>
                 </div>
                 
@@ -13649,17 +13757,18 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const canEditRegion = UserAccounts.canEdit(state.currentUser?.email, reg) && UserAccounts.canEditTab(state.currentUser?.email, state.currentTab);
                     const isCollapsed = isRegionCollapsed(reg);
                     
-                    html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" style="margin-top: 30px; flex-wrap:nowrap;" onclick="toggleRegion('${reg}', event)">
-                        <span style="display:flex; align-items:center; gap:8px; font-weight:700; min-width:260px;">
-                            <i class="fas fa-location-dot"></i> ${reg}
-                            ${!canEditRegion ? `<i class="fas fa-lock" style="color: #f57c00;" title="🔒 View Only - This region is locked for you"></i>` : ''}
-                        </span>
-                        <span style="display:flex; align-items:center; gap:8px;">
-                            <span class="badge">${projs.length} PROJ</span>
-                        </span>
-                        <span style="margin-left:auto; flex-shrink:0;">
-                            <i class="fas fa-chevron-down region-toggle-icon"></i>
-                        </span>
+                    html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)">
+                        <div class="region-banner-inner">
+                            <div class="region-banner-left">
+                                <i class="fas fa-location-dot region-icon"></i>
+                                <span class="region-name">${reg}</span>
+                                ${!canEditRegion ? `<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="🔒 View Only"></i>` : ''}
+                            </div>
+                            <div class="region-banner-right">
+                                <span class="rbadge rbadge-count">${projs.length} PROJ</span>
+                                <i class="fas fa-chevron-down region-toggle-icon"></i>
+                            </div>
+                        </div>
                     </div>`;
                     
                     html += `<div id="region-content-${reg}" class="region-content ${isCollapsed ? 'collapsed' : ''}">`;
@@ -13780,6 +13889,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
             }
 
             container.innerHTML = html;
+
             
             // Apply comma formatting to all data-num inputs
             applyNumFmtToInputs();
@@ -14500,20 +14610,9 @@ function openAddPersonnelModal() {
             projectsList = state.projects; // Admin sees all (including CORPORATE)
         }
         
-        // Admin: add Corporate project option if not already via "Corporate Office"
-        if (state.isAdmin) {
-            const hasCorporateProj = projectsList.some(p => p.name === 'Corporate' && p.region === 'CORPORATE');
-            if (!hasCorporateProj) {
-                options += `<option value="Corporate">Corporate (Corporate Region)</option>`;
-            }
-        }
-
         projectsList.forEach(p => {
-            if (p.region === 'CORPORATE') {
-                options += `<option value="${p.name}">${p.name} (Corporate Region)</option>`;
-            } else {
-                options += `<option value="${p.name}">${p.name}</option>`;
-            }
+            if (p.region === 'CORPORATE') return; // Corporate Office covers this
+            options += `<option value="${p.name}">${p.name}</option>`;
         });
     }
     
@@ -14706,20 +14805,9 @@ function openEditPersonnelModal(index) {
             projectsList = state.projects.filter(p => p.region === state.userRegion && p.region !== 'CORPORATE');
         }
 
-        // Admin: ensure Corporate project appears in list
-        if (state.isAdmin) {
-            const hasCorporateProj = projectsList.some(p => p.name === 'Corporate' && p.region === 'CORPORATE');
-            if (!hasCorporateProj) {
-                options += `<option value="Corporate">Corporate (Corporate Region)</option>`;
-            }
-        }
-        
         projectsList.forEach(p => {
-            if (p.region === 'CORPORATE') {
-                options += `<option value="${p.name}">${p.name} (Corporate Region)</option>`;
-            } else {
-                options += `<option value="${p.name}">${p.name}</option>`;
-            }
+            if (p.region === 'CORPORATE') return; // Corporate Office covers this
+            options += `<option value="${p.name}">${p.name}</option>`;
         });
     }
     
@@ -14958,6 +15046,16 @@ window.pToggleProject = function(projKey) {
 
 window.pToggleGroup = function(grpKey) {
     const safeKey = grpKey.replace(/[^a-zA-Z0-9]/g, '_');
+    const body = document.getElementById('p-grp-body-' + safeKey);
+    const chev = document.getElementById('p-grp-chev-' + safeKey);
+    if (!body) return;
+    const isVisible = body.style.display !== 'none';
+    body.style.display = isVisible ? 'none' : '';
+    if (chev) chev.style.transform = isVisible ? 'rotate(-90deg)' : 'rotate(0deg)';
+};
+
+// Safe version: key is already sanitized, no need to re-process
+window.pToggleGroupSafe = function(safeKey) {
     const body = document.getElementById('p-grp-body-' + safeKey);
     const chev = document.getElementById('p-grp-chev-' + safeKey);
     if (!body) return;
@@ -15254,14 +15352,14 @@ function renderPTable() {
         const supProj  = supEntry ? supEntry.current : null;
         const projectNames = Object.keys(projMap).sort((a,b) => a===supProj?-1:b===supProj?1:a.localeCompare(b));
 
-        html += `<div style="background:linear-gradient(90deg,#1b5e20 0%,#2e7d32 60%,#388e3c 100%);cursor:pointer;user-select:none;" onclick="pToggleGroup(${JSON.stringify(region)})">
+        html += `<div style="background:linear-gradient(90deg,#1b5e20 0%,#2e7d32 60%,#388e3c 100%);cursor:pointer;user-select:none;" onclick="pToggleGroupSafe('${grpSafe}')">
             <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;color:white;font-weight:800;font-size:0.75rem;letter-spacing:1px;">
                 <span style="flex:1;">${regionLabel}</span>
                 <span style="background:rgba(255,255,255,0.18);padding:2px 10px;border-radius:10px;font-size:0.62rem;font-weight:700;">${regionCount} personnel</span>
-                <i id="p-grp-chev-${grpSafe}" class="fas fa-chevron-down" style="font-size:0.65rem;opacity:0.8;transition:transform 0.2s;"></i>
+                <i id="p-grp-chev-${grpSafe}" class="fas fa-chevron-down" style="font-size:0.65rem;opacity:0.8;transition:transform 0.2s;transform:rotate(-90deg);"></i>
             </div>
         </div>
-        <div id="p-grp-body-${grpSafe}">
+        <div id="p-grp-body-${grpSafe}" style="display:none;">
         ${projectNames.map(projName => {
             const personnel = projMap[projName].sort((a,b) => projPosRank(a.pos)-projPosRank(b.pos));
             return buildProjectCard(projName, personnel, projOptions, displayIndexRef, false);
@@ -17552,12 +17650,22 @@ async function exportCurrentTabToPDF() {
                 if (region !== prevRegion && data.column.index === 0) {
                     const col = REGION_COLORS_HEX[region];
                     if (col) {
-                        const [rr, gg, bb] = [parseInt(col.header.slice(0,2),16), parseInt(col.header.slice(2,4),16), parseInt(col.header.slice(4,6),16)];
-                        doc.setDrawColor(rr, gg, bb);
-                        doc.setLineWidth(0.6);
-                        doc.line(data.cell.x, data.cell.y, data.cell.x + data.table.width, data.cell.y);
-                        doc.setLineWidth(0.15);
-                        doc.setDrawColor(220, 220, 220);
+                        const x1 = data.cell.x;
+                        const y1 = data.cell.y;
+                        const tableWidth = (data.table && typeof data.table.width === 'number' && data.table.width > 0)
+                            ? data.table.width
+                            : (pageW - M * 2);
+                        const x2 = x1 + tableWidth;
+                        const y2 = y1;
+                        // Guard: only draw if all coordinates are finite numbers
+                        if (isFinite(x1) && isFinite(y1) && isFinite(x2) && isFinite(y2)) {
+                            const [rr, gg, bb] = [parseInt(col.header.slice(0,2),16), parseInt(col.header.slice(2,4),16), parseInt(col.header.slice(4,6),16)];
+                            doc.setDrawColor(rr, gg, bb);
+                            doc.setLineWidth(0.6);
+                            doc.line(x1, y1, x2, y2);
+                            doc.setLineWidth(0.15);
+                            doc.setDrawColor(220, 220, 220);
+                        }
                     }
                 }
             },
@@ -18800,18 +18908,17 @@ function renderOsh2() {
     const REGIONS = ['NCR', 'NORTH LUZON', 'SOUTH LUZON', 'VISAYAS & MINDANAO'];
     const grouped = {};
     REGIONS.forEach(r => grouped[r] = []);
-    grouped['OTHER'] = [];
 
     allProjects.forEach(p => {
         const r = (p.region || '').trim().toUpperCase();
         if (grouped[r] !== undefined) grouped[r].push(p);
-        else grouped['OTHER'].push(p);
+        // CORPORATE and other non-region projects are intentionally excluded
     });
 
     let totalProjects = 0, totalCompliant = 0, totalDeficient = 0, totalNoInput = 0;
     let html = '';
 
-    const REGIONS_TO_SHOW = [...REGIONS, 'OTHER'];
+    const REGIONS_TO_SHOW = [...REGIONS];
 
     REGIONS_TO_SHOW.forEach(region => {
         if (regionFilter !== 'all' && regionFilter.toUpperCase() !== region) return;
@@ -18946,7 +19053,6 @@ function renderOsh2() {
             'NORTH LUZON': '#2e7d32',
             'SOUTH LUZON': '#388e3c',
             'VISAYAS & MINDANAO': '#43a047',
-            'OTHER': '#558b2f'
         };
         const rColor = regionColors[region] || '#2e7d32';
         const canEditRegion = UserAccounts.canEdit(state.currentUser?.email, region);
@@ -19983,12 +20089,12 @@ function renderEshCalendar(tabType) {
 
         html += `
         <div class="esh-region-block">
-            <div class="esh-region-banner" onclick="eshToggleRegion('${regionContentId}')">
+            <div class="esh-region-banner" onclick="eshToggleRegion('${regionContentId}')" style="border-radius:8px;">
                 <i class="fas fa-location-dot"></i> ${region}
                 <span style="background:rgba(255,255,255,0.18);padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;margin-left:8px;">${regProjects.length} PROJECT${regProjects.length!==1?'S':''}</span>
-                <i class="fas fa-chevron-down esh-region-toggle" id="${regionIconId}"></i>
+                <i class="fas fa-chevron-down esh-region-toggle" id="${regionIconId}" style="transform:rotate(-90deg);"></i>
             </div>
-            <div id="${regionContentId}" class="esh-region-content">
+            <div id="${regionContentId}" class="esh-region-content" style="display:none;">
                 <div id="${tableContainerId}"></div>
             </div>
         </div>`;
