@@ -6136,7 +6136,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             
     </main>
 
-    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -11065,6 +11065,9 @@ function closeAllStatusDropdowns() {
 
                 const statusCtx = document.getElementById('statusChart');
                 if (statusCtx) {
+                    // Destroy existing chart instance before creating new one
+                    const existingStatusChart = Chart.getChart(statusCtx);
+                    if (existingStatusChart) existingStatusChart.destroy();
                     // Create gradients for modern look
                     const ctx = statusCtx.getContext('2d');
                     
@@ -11802,7 +11805,6 @@ function closeAllStatusDropdowns() {
                     'kpm': {
                         icon: 'fa-file-lines',
                         iconColor: '#fbc02d',
-                        title: 'MONTHLY REPORT (KPM&I)',
                         sub1: 'Monthly submission required for each project',
                         sub2: `<i class="fas fa-calendar-check"></i> Tracking ${displayProjects.length} project(s) — KPM & Inspection reports`
                     },
@@ -12529,7 +12531,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             </div>
                             <div style="flex:1;">
                                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                                    <h2 style="margin: 0; font-size: 0.95rem; font-weight: 900; line-height:1.2; letter-spacing:0.3px;">ENVIRONMENTAL MONTHLY REPORT</h2>
                                     <span style="background:rgba(255,255,255,0.2);font-size:0.62rem;padding:2px 8px;border-radius:10px;font-weight:700;border:1px solid rgba(255,255,255,0.3);">EMR</span>
                                 </div>
                                 <p style="margin: 4px 0 2px; font-size: 0.73rem; opacity: 0.9; display:flex;align-items:center;gap:5px;"><i class="fas fa-calendar-check"></i> Monthly submission required per project — Environmental compliance tracking</p>
@@ -12756,7 +12757,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <i class="fas fa-solar-panel" style="font-size: 1.2rem; color: #fbc02d; flex-shrink:0;"></i>
                                 <div>
-                                    <h2 style="margin: 0; font-size: 0.9rem; font-weight: 800; line-height:1.2;">DOE REPORTORIAL - RENEWABLE ENERGY PROJECTS</h2>
+                                   
                                     <p style="margin: 2px 0 0; font-size: 0.72rem; opacity: 0.9;">Quarterly submission (Due: 20th of the following month after each quarter)</p>
                                     <p style="margin: 1px 0 0; font-size: 0.68rem; opacity: 0.8;"><i class="fas fa-leaf"></i> Showing ${renewableProjects.length} Renewable Energy project(s)</p>
                                 </div>
