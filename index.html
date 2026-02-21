@@ -11738,7 +11738,7 @@ function closeAllStatusDropdowns() {
             document.getElementById('main-sidebar').classList.remove('hidden');
             document.getElementById('main-content').classList.remove('hidden');
             const _fBtn = document.getElementById('floating-edit-btn');
-            if (_fBtn) _fBtn.style.display = (state.userRole === 'pco') ? 'none' : 'flex';
+            if (_fBtn) _fBtn.style.display = 'flex';
 
             const isPCO = state.userRole === 'pco';
 
