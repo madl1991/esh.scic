@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESH COMPLIANCE DASHBOARD - SCIC</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 
@@ -978,7 +978,7 @@
             flex-wrap: wrap;
         }
 
-        .header-title { font-size: 1.1rem; color: #1b5e20; font-weight: 600; }
+        .header-title { font-family: 'Rajdhani', sans-serif; font-size: 1.15rem; color: #1b5e20; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; }
         .header-controls { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
         .header-controls input, .header-controls select {
             padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.8rem;
@@ -1078,7 +1078,7 @@
         body.dark-mode .ud-header-icon { background: rgba(46,125,50,0.2); }
         .ud-header-icon i { color: #2e7d32; font-size: 0.75rem; }
         body.dark-mode .ud-header-icon i { color: #66bb6a; }
-        .ud-header-text { font-size: 0.82rem; font-weight: 700; color: var(--text-primary); }
+        .ud-header-text { font-family: 'Rajdhani', sans-serif; font-size: 0.88rem; font-weight: 700; color: var(--text-primary); letter-spacing: 0.06em; text-transform: uppercase; }
         .ud-header-sub  { font-size: 0.67rem; color: var(--text-secondary); margin-top: 1px; }
 
         /* Shared item */
@@ -1914,11 +1914,13 @@
         .region-content {
             overflow: hidden;
             opacity: 1;
+            max-height: 9999px;
             border: 1px solid #c8e6c9;
             border-top: none;
             border-radius: 0 0 10px 10px;
             margin: 0 16px 10px;
             padding: 10px 0 4px;
+            transition: max-height 0.35s ease, opacity 0.25s ease, margin 0.25s ease;
         }
 
         .region-content.collapsed {
@@ -1926,6 +1928,7 @@
             opacity: 0;
             border: none;
             margin-bottom: 0;
+            padding: 0;
         }
 
         /* Badge styles inside banners */
@@ -1991,11 +1994,12 @@
         }
         .tab-info-bar .tib-body { flex: 1; min-width: 0; }
         .tab-info-bar .tib-title {
-            font-size: 0.72rem;
-            font-weight: 800;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.92rem;
+            font-weight: 700;
             color: var(--text-primary, #1b2e1c);
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.08em;
             margin: 0 0 2px;
         }
         .tab-info-bar .tib-sub {
@@ -4606,7 +4610,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <option value="SOUTH LUZON">South Luzon</option>
                     <option value="NORTH LUZON">North Luzon</option>
                     <option value="VISAYAS & MINDANAO">Visayas & Mindanao</option>
-    
+                    <option value="CORPORATE">Corporate (Headquarters)</option>
                 </select>
             </div>
             <div id="projectDateFields">
@@ -4887,26 +4891,28 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <label>Project Name *</label>
                 <input type="text" id="editProjectNameInput" placeholder="Enter project name" required>
             </div>
-            <div class="form-group">
-                <label>Date Started *</label>
-                <input type="date" id="editProjectDateStarted" required>
-            </div>
-            <div class="form-group">
-                <label>Date Finished</label>
-                <input type="date" id="editProjectDateFinished">
-                <small style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 5px; display: block;">
-                    <i class="fas fa-info-circle"></i> Adding a finish date will automatically set status to "Finished"
-                </small>
+            <div id="editProjectDateFields">
+                <div class="form-group">
+                    <label>Date Started *</label>
+                    <input type="date" id="editProjectDateStarted" required>
+                </div>
+                <div class="form-group">
+                    <label>Date Finished</label>
+                    <input type="date" id="editProjectDateFinished">
+                    <small style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 5px; display: block;">
+                        <i class="fas fa-info-circle"></i> Adding a finish date will automatically set status to "Finished"
+                    </small>
+                </div>
             </div>
             <div class="form-group">
                 <label>Region *</label>
-                <select id="editProjectRegion" required>
+                <select id="editProjectRegion" required onchange="onEditProjectRegionChange(this.value)">
                     <option value="">Select Region</option>
                     <option value="NCR">NCR</option>
                     <option value="SOUTH LUZON">South Luzon</option>
                     <option value="NORTH LUZON">North Luzon</option>
                     <option value="VISAYAS & MINDANAO">Visayas & Mindanao</option>
-                    <option value="CORPORATE">Corporate</option>
+                    <option value="CORPORATE">Corporate (Headquarters)</option>
                 </select>
             </div>
             
@@ -4990,7 +4996,8 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 </div>
                 <div class="nav-group-items collapsed">
                     <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-triangle-exclamation"></i> Accident/Incident Record</div>
-                    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fas fa-gavel"></i> Regulatory Issued NOV</div>
+                    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fas fa-hard-hat"></i> OSH Regulatory Issued NOV</div>
+                    <div class="nav-item" data-tab="nov-env" onclick="changeTab('nov-env')"><i class="fas fa-leaf"></i> Environmental Issued NOV</div>
                     <div class="nav-item" data-tab="nov-monitoring" onclick="changeTab('nov-monitoring')"><i class="fas fa-chart-gantt"></i> ESH NOV Monitoring</div>
                 </div>
             </div>
@@ -5875,7 +5882,14 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 </div>
 <!-- ==================== END OSH PERSONNEL REQUIREMENT VIEW ==================== -->
 
+<!-- ==================== OSH NOV VIEW ==================== -->
+<div id="osh-nov-view" class="hidden" style="padding:20px;">
+</div>
+
 <!-- ==================== ENVIRONMENTAL MONITORING VIEW ==================== -->
+<div id="nov-env-view" class="hidden" style="padding:20px;">
+</div>
+
 <div id="env-monitoring-view" class="hidden" style="padding:20px;">
 
     <!-- Header Card -->
@@ -7445,13 +7459,13 @@ async function revokeUserAccess(email) {
     'exposures': ["Total Manpower", "Total Exposed Manhour", "Total Exposed Man-hour to date", "No. of Days w/o LTA"],
     'rates': ["LTIR","TRIR","SEVERITY RATE"],
     'medical': ["Medical Treatment","First Aid","LTA","Fatality","High-Potential incident", "Dangerous Occurrences"],
-    'nov': ["OSH Internal Issues", "OSH External Issues", "Environmental Internal Issues", "Environmental External Issues"],
+    'nov': ["OSH Internal Issues", "OSH External Issues"],
     'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "No. of Identified Near-Miss","Drills Conducted", "Training Conducted"],
     'kpm': ["KPM&I"],
     'audit': ["Score Implementation", "Documentation and Compliance"],
     'dole': ["WAIR","RSO", "MOM", "AEDR", "AMR"],
     'dole_annual': ["AEDR", "AMR"],
-    'permits': ["ECC", "CNC", "Certificate of Accreditation (DENR-EMB)", "Certificate of Accreditation (LLDA)", "Company Registration System", "LLDA Clearance", "Permit to Operate", "Discharge Permit", "Hazardous Waste Generator's ID", "Permit to Transport (Haz Waste)", "Permit to Transport (Logs)", "Tree Cutting Permit (STCP or S/PLTP)", "Permit to Cut Coconut Tree", "NWRB Water Permit"],
+    'permits': ["ECC", "CNC", "Certificate of Accreditation (DENR-EMB)", "Certificate of Accreditation (LLDA)", "Company Registration System", "LLDA Clearance", "Transporter Registration Certificate (TRC)", "Treatment Storage & Disposal (TSD)", "Permit to Transport (PTT)", "Permit to Operate (PTO)", "Discharge Permit (DP)", "Hazardous Waste Generator's ID", "Permit to Transport (Haz Waste)", "Permit to Transport (Logs)", "Tree Cutting Permit (STCP or S/PLTP)", "Permit to Cut Coconut Tree", "NWRB Water Permit"],
     'emb': ["SMR (Quarterly) - Submission Date", "SMR (Quarterly) - Reference No.", "CMR (Semi-Annual) - Submission Date", "CMR (Semi-Annual) - Reference No."],
     'cshp': ["CSHP Approval Date"],
     'reg': ["DOLE Certificate of Registration Date"],
@@ -8150,6 +8164,7 @@ function applyNumFmtToInputs() {
                 'emb',           // EMB Reportorial
                 'env-monitoring',// Environmental Monitoring
                 'env-monthly-report', // Monthly Environmental Report
+                'nov-env',            // Environmental NOV
                 'esh-calendar-env',   // ESH Calendar - Environment
             ],
 
@@ -10007,6 +10022,21 @@ function openAdminQuickView() {
             if (savedData) {
                 const data = JSON.parse(savedData);
                 state.projects = data.projects || [];
+                // One-time cleanup: remove blank nov-env rows left from auto-fill
+                state.projects.forEach(p => {
+                    if (p.vals && p.vals['nov-env_violations']) {
+                        p.vals['nov-env_violations'] = p.vals['nov-env_violations'].filter(v =>
+                            v.dateIssued || v.dateReceived || v.issuingBody || v.refNo || v.violationLaw
+                        );
+                    }
+                    // Clean empty nov-env_novs entries
+                    if (p.vals && p.vals['nov-env_novs']) {
+                        p.vals['nov-env_novs'] = p.vals['nov-env_novs'].filter(n =>
+                            n.dateIssued || n.dateReceived || n.issuingBody || n.refNo ||
+                            (n.violations && n.violations.some(v => v.violationLaw))
+                        );
+                    }
+                });
                 state.personnelData = data.personnelData || [];
                 state.incidentRateData = data.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
                 state.oshData = data.oshData || {};
@@ -10087,6 +10117,19 @@ function openAdminQuickView() {
         function onProjectRegionChange(region) {
             const dateFields = document.getElementById('projectDateFields');
             const dateStarted = document.getElementById('projectDateStarted');
+            if (!dateFields) return;
+            if (region === 'CORPORATE') {
+                dateFields.style.display = 'none';
+                dateStarted.removeAttribute('required');
+            } else {
+                dateFields.style.display = '';
+                dateStarted.setAttribute('required', '');
+            }
+        }
+
+        function onEditProjectRegionChange(region) {
+            const dateFields = document.getElementById('editProjectDateFields');
+            const dateStarted = document.getElementById('editProjectDateStarted');
             if (!dateFields) return;
             if (region === 'CORPORATE') {
                 dateFields.style.display = 'none';
@@ -10302,6 +10345,7 @@ function openAdminQuickView() {
             document.getElementById('editProjectRegion').value = project.region;
             document.getElementById('editProjectIsRenewable').checked = project.isRenewable || false;
             document.getElementById('editProjectModalError').innerText = '';
+            onEditProjectRegionChange(project.region); // show/hide date fields based on region
             document.getElementById('editProjectModal').classList.add('show');
         }
 
@@ -10321,24 +10365,25 @@ function openAdminQuickView() {
             errorDiv.innerText = '';
 
             if (!newName) { errorDiv.innerText = '⚠️ Project name is required'; return; }
-            if (!dateStarted) { errorDiv.innerText = '⚠️ Date started is required'; return; }
             if (!newRegion) { errorDiv.innerText = '⚠️ Region is required'; return; }
-            
-            // Validate date finished
-            if (dateFinished) {
-                const finishedDate = new Date(dateFinished);
-                const startDate = new Date(dateStarted);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0); // Reset time to compare dates only
-                
-                if (finishedDate < startDate) {
-                    errorDiv.innerText = '⚠️ Date finished cannot be before date started'; 
-                    return;
-                }
-                
-                if (finishedDate > today) {
-                    errorDiv.innerText = '⚠️ Date finished cannot be in the future'; 
-                    return;
+
+            // CORPORATE HQ has no dates — skip date validation entirely
+            if (newRegion !== 'CORPORATE') {
+                if (!dateStarted) { errorDiv.innerText = '⚠️ Date started is required'; return; }
+                // Validate date finished
+                if (dateFinished) {
+                    const finishedDate = new Date(dateFinished);
+                    const startDate = new Date(dateStarted);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    if (finishedDate < startDate) {
+                        errorDiv.innerText = '⚠️ Date finished cannot be before date started';
+                        return;
+                    }
+                    if (finishedDate > today) {
+                        errorDiv.innerText = '⚠️ Date finished cannot be in the future';
+                        return;
+                    }
                 }
             }
             
@@ -10354,17 +10399,23 @@ function openAdminQuickView() {
             const project = state.projects.find(p => p.name === editingProjectOriginalName);
             if (project) {
                 project.name = newName;
-                project.dateStarted = dateStarted;
-                project.dateFinished = dateFinished;
                 project.region = newRegion;
                 project.isRenewable = isRenewable;
-                
-                // Auto-update status based on dateFinished
-                if (dateFinished) {
-                    project.status = 'finished';
-                } else if (project.status === 'finished') {
-                    // If removing finish date and was finished, set back to on-going
+
+                if (newRegion === 'CORPORATE') {
+                    // HQ has no dates and is always on-going (permanent office)
+                    project.dateStarted = '';
+                    project.dateFinished = '';
                     project.status = 'on-going';
+                } else {
+                    project.dateStarted = dateStarted;
+                    project.dateFinished = dateFinished;
+                    // Auto-update status based on dateFinished
+                    if (dateFinished) {
+                        project.status = 'finished';
+                    } else if (project.status === 'finished') {
+                        project.status = 'on-going';
+                    }
                 }
 
                 // Also update masterProjects immediately
@@ -10734,7 +10785,8 @@ function openAdminQuickView() {
             const titles = {
                 'overall': 'OVERALL DASHBOARD', 'exposures': 'TOTAL EXPOSURES',
                 'rates': 'STATISTICS RATE', 'medical': 'ACCIDENT/ INCIDENT RECORD',
-		'nov': 'REGULATORY ISSUED NOV',
+		'nov': 'OSH REGULATORY ISSUED NOV',
+                'nov-env': 'ENVIRONMENTAL ISSUED NOV',
                 'nov-monitoring': 'ESH NOV MONITORING',
                 'activities': 'ESH ACTIVITIES AND PROGRAMS','kpm': 'KEY PERFORMANCE MEASURES REPORT','reg': 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)','audit': 'INTERNAL ESH AUDIT REPORT',
                 'cshp': 'CONSTRUCTION SAFETY & HEALTH PROGRAM (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL','permits': 'ENVIRONMENTAL PERMITS/LICENSES/CLEARANCE','emb': ["EMB REPORTORIAL"],
@@ -10754,7 +10806,9 @@ function openAdminQuickView() {
             document.getElementById('admin-view').classList.toggle('hidden', t !== 'admin');
             document.getElementById('osh-requirement-view').classList.toggle('hidden', t !== 'osh-requirement');
             document.getElementById('env-monitoring-view').classList.toggle('hidden', t !== 'env-monitoring');
-            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel' || t === 'admin' || t === 'osh-requirement' || t === 'env-monitoring');
+            document.getElementById('nov-env-view').classList.toggle('hidden', t !== 'nov-env');
+            document.getElementById('osh-nov-view').classList.toggle('hidden', t !== 'nov');
+            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel' || t === 'admin' || t === 'osh-requirement' || t === 'env-monitoring' || t === 'nov-env' || t === 'nov');
             
             // ESH Calendar tab visibility
             const eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills'];
@@ -10807,6 +10861,7 @@ function openAdminQuickView() {
             }
             
             if (t === 'env-monitoring') { setTimeout(envInitChart, 100); }
+            if (t === 'nov') { setTimeout(renderOshNovTab, 100); }
             
             if (t === 'personnel') { renderPTable(); }
             if (t === 'osh-requirement') { setTimeout(renderOsh2, 100); }
@@ -11009,6 +11064,65 @@ function updateAuditData(pName, qtr, field, val) {
                 p.vals[key].entries[idx][field] = value;
             }
         }
+        // ==================== GENERIC MULTI-ENTRY PERMITS ====================
+        const MULTI_ENTRY_PERMITS = [
+            'Transporter Registration Certificate (TRC)',
+            'Treatment Storage & Disposal (TSD)',
+            'Permit to Transport (PTT)',
+            'Permit to Operate (PTO)',
+            'Discharge Permit (DP)'
+        ];
+        window.MULTI_ENTRY_PERMITS = MULTI_ENTRY_PERMITS;
+        const MULTI_ENTRY_SHORT = {
+            'Transporter Registration Certificate (TRC)': 'TRC',
+            'Treatment Storage & Disposal (TSD)': 'TSD',
+            'Permit to Transport (PTT)': 'PTT',
+            'Permit to Operate (PTO)': 'PTO',
+            'Discharge Permit (DP)': 'DP'
+        };
+        window.MULTI_ENTRY_SHORT = MULTI_ENTRY_SHORT;
+        function addMultiPermitEntry(pName, permitRow) {
+            const p = state.projects.find(x => x.name === pName);
+            const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p?.region, 'permits');
+            if (!p || !_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+            const key = 'permits_' + permitRow;
+            if (!p.vals[key]) p.vals[key] = {};
+            if (!p.vals[key].entries) {
+                const old = { permitNo: p.vals[key][1] || '', dateIssued: p.vals[key][2] || '', expiryDate: p.vals[key][3] || '' };
+                p.vals[key].entries = (old.permitNo || old.dateIssued || old.expiryDate) ? [old] : [];
+                delete p.vals[key][1]; delete p.vals[key][2]; delete p.vals[key][3];
+            }
+            p.vals[key].entries.push({ permitNo: '', dateIssued: '', expiryDate: '' });
+            saveToFirebase(); render();
+        }
+        window.addMultiPermitEntry = addMultiPermitEntry;
+        function removeMultiPermitEntry(pName, permitRow, idx) {
+            const p = state.projects.find(x => x.name === pName);
+            const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p?.region, 'permits');
+            if (!p || !_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+            const key = 'permits_' + permitRow;
+            if (p.vals[key] && p.vals[key].entries) {
+                p.vals[key].entries.splice(idx, 1);
+                if (p.vals[key].entries.length === 0) p.vals[key].entries = [{ permitNo: '', dateIssued: '', expiryDate: '' }];
+                saveToFirebase(); render();
+            }
+        }
+        window.removeMultiPermitEntry = removeMultiPermitEntry;
+        function updateMultiPermitEntry(pName, permitRow, idx, field, value) {
+            const p = state.projects.find(x => x.name === pName);
+            const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p?.region, 'permits');
+            if (!p || !_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+            const key = 'permits_' + permitRow;
+            if (!p.vals[key]) p.vals[key] = {};
+            if (!p.vals[key].entries) p.vals[key].entries = [{ permitNo: '', dateIssued: '', expiryDate: '' }];
+            if (p.vals[key].entries[idx] !== undefined) {
+                p.vals[key].entries[idx][field] = value;
+                if (typeof markPendingSync === 'function') markPendingSync();
+            }
+        }
+        window.updateMultiPermitEntry = updateMultiPermitEntry;
+        // ==================== END GENERIC MULTI-ENTRY PERMITS ====================
+
         function togglePermitNA(pName, key) {
             const p = state.projects.find(x => x.name === pName);
             if (!p) return;
@@ -11785,9 +11899,9 @@ function closeAllStatusDropdowns() {
 
             // Restore last active tab, fallback to 'overall'
             // Validate the stored tab is a real tab to prevent white screen
-            const _validTabs = ['overall','rates','exposures','medical','nov','nov-monitoring',
+            const _validTabs = ['overall','rates','exposures','medical','nov','nov-env','nov-monitoring',
                 'activities','kpm','dole','emb','doe','doe-permit','env-monthly-report',
-                'permits','env-monitoring','cshp','reg','audit','personnel','osh-requirement',
+                'permits','env-monitoring','cshp','reg','audit','personnel','osh-requirement','nov-env',
                 'esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills'];
             const _storedTab = localStorage.getItem('esh_last_tab') || 'overall';
             let lastTab = _validTabs.includes(_storedTab) ? _storedTab : 'overall';
@@ -12045,10 +12159,398 @@ function closeAllStatusDropdowns() {
         }
         // ==================== END REGION COLLAPSE/EXPAND ====================
 
+
+        // ==================== OSH NOV RENDERING ====================
+        const OSH_NOV_ISSUING_BODY = [
+            'DOLE',
+            'OSHC',
+            'BWC',
+            'Client',
+            'ISO Internal Audit',
+            'ESH Internal Audit'
+        ];
+
+        const OSH_NOV_LAWS = [
+            'RA 11058 — OSH Standards Act',
+            'DO 198-18 — IRR of RA 11058',
+            'PD 442 — Labor Code of the Philippines',
+            'DO 174-17 — Contracting & Subcontracting',
+            'RA 1054 — Emergency Medical Treatment',
+            'RA 6727 — Wage Rationalization Act',
+            'RA 7877 — Anti-Sexual Harassment Act',
+            'RA 9165 — Comprehensive Dangerous Drugs Act',
+            'RA 8291 — GSIS Act',
+            'RA 8282 — Social Security Act',
+            'RA 7875 — National Health Insurance Act (PhilHealth)',
+            'RA 9679 — Home Development Mutual Fund Law (Pag-IBIG)',
+            'RA 10173 — Data Privacy Act',
+            'RA 11313 — Safe Spaces Act (Bawal Bastos Law)',
+            'RA 10911 — Anti-Age Discrimination in Employment Act',
+            'RA 10524 — PWD Employment Act',
+            'RA 9231 — Special Protection of Children Against Child Labor',
+            'RA 6971 — Productivity Incentives Act',
+            'RA 10361 — Domestic Workers Act (Batas Kasambahay)',
+            'Rule 1020 — OSHS General Provisions',
+            'Rule 1030 — Training of Personnel in OSH',
+            'Rule 1040 — Health and Safety Committee',
+            'Rule 1050 — Notification and Keeping of Records',
+            'Rule 1060 — Premises of Establishments',
+            'Rule 1070 — Occupational Health and Environmental Control',
+            'Rule 1080 — Personal Protective Equipment',
+            'Rule 1090 — Hazardous Materials',
+            'Rule 1100 — Gas and Electric Welding and Cutting',
+            'Rule 1140 — Logging Operations',
+            'Rule 1150 — Construction Safety',
+            'Rule 1160 — Explosives',
+            'Rule 1170 — Flammable and Combustible Liquids',
+            'Rule 1200 — Electrical Safety',
+            'Rule 1210 — Machine Guarding',
+            'Rule 1220 — Materials Handling and Storage',
+            'Rule 1230 — Boiler and Pressure Vessel',
+            'Rule 1410 — Construction Safety (COSH)',
+            'Others'
+        ];
+
+        function migrateOshNovData(p) {
+            if (!p.vals) p.vals = {};
+            if (p.vals['osh-nov_novs']) return;
+            if (p.vals['osh-nov_violations'] && p.vals['osh-nov_violations'].length > 0) {
+                p.vals['osh-nov_novs'] = p.vals['osh-nov_violations'].map(v => ({
+                    dateIssued: v.dateIssued || '',
+                    dateReceived: v.dateReceived || '',
+                    issuingBody: v.issuingBody || '',
+                    refNo: v.refNo || '',
+                    violations: [{ violationLaw: v.violationLaw || '', status: v.status || 'Open' }]
+                }));
+                delete p.vals['osh-nov_violations'];
+            } else {
+                p.vals['osh-nov_novs'] = [];
+            }
+        }
+
+        function _oshAutoEditMode() {
+            if (!state.isEditing) {
+                state.isEditing = true;
+                const _fb = document.getElementById('floating-edit-btn');
+                const _fi = document.getElementById('floating-edit-icon');
+                const _ft = document.getElementById('floating-edit-tooltip');
+                if (_fb) { _fb.classList.add('save-mode'); _fb.setAttribute('onclick','saveData()'); }
+                if (_fi) _fi.className = 'fas fa-save';
+                if (_ft) _ft.textContent = 'Click to Save';
+            }
+        }
+
+        function addOshNovEntry(pName) {
+            const p = state.projects.find(x => x.name === pName);
+            if (!p) return;
+            const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p.region, 'nov');
+            if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+            _oshAutoEditMode();
+            migrateOshNovData(p);
+            p.vals['osh-nov_novs'].push({
+                dateIssued: '', dateReceived: '', issuingBody: '', refNo: '',
+                violations: [{ violationLaw: '', status: 'Open' }]
+            });
+            saveToFirebase(); renderOshNovTab();
+        }
+
+        function removeOshNovEntry(pName, nIdx) {
+            const p = state.projects.find(x => x.name === pName);
+            if (!p) return;
+            const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p.region, 'nov');
+            if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+            migrateOshNovData(p);
+            p.vals['osh-nov_novs'].splice(nIdx, 1);
+            saveToFirebase(); renderOshNovTab();
+        }
+
+        function addOshNovViolation(pName, nIdx) {
+            const p = state.projects.find(x => x.name === pName);
+            if (!p) return;
+            const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p.region, 'nov');
+            if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+            _oshAutoEditMode();
+            migrateOshNovData(p);
+            if (!p.vals['osh-nov_novs'][nIdx]) return;
+            p.vals['osh-nov_novs'][nIdx].violations.push({ violationLaw: '', status: 'Open' });
+            saveToFirebase(); renderOshNovTab();
+        }
+
+        function removeOshNovViolation(pName, nIdx, vIdx) {
+            const p = state.projects.find(x => x.name === pName);
+            if (!p) return;
+            const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p.region, 'nov');
+            if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+            migrateOshNovData(p);
+            const nov = p.vals['osh-nov_novs'][nIdx];
+            if (!nov) return;
+            if (nov.violations.length === 1) {
+                p.vals['osh-nov_novs'].splice(nIdx, 1);
+            } else {
+                nov.violations.splice(vIdx, 1);
+            }
+            saveToFirebase(); renderOshNovTab();
+        }
+
+        function updateOshNovNovField(pName, nIdx, field, value) {
+            const p = state.projects.find(x => x.name === pName);
+            if (!p) return;
+            migrateOshNovData(p);
+            if (p.vals['osh-nov_novs'][nIdx]) {
+                p.vals['osh-nov_novs'][nIdx][field] = value;
+                if (typeof markPendingSync === 'function') markPendingSync();
+            }
+        }
+
+        function updateOshNovViolField(pName, nIdx, vIdx, field, value) {
+            const p = state.projects.find(x => x.name === pName);
+            if (!p) return;
+            migrateOshNovData(p);
+            const nov = p.vals['osh-nov_novs'][nIdx];
+            if (nov && nov.violations[vIdx]) {
+                nov.violations[vIdx][field] = value;
+                if (typeof markPendingSync === 'function') markPendingSync();
+            }
+        }
+
+        function toggleOshNovRegion(regionName, event) {
+            if (event && (event.target.tagName === 'BUTTON' || event.target.closest('button'))) return;
+            const banner = document.getElementById('osh-nov-region-banner-' + regionName);
+            const cont   = document.getElementById('osh-nov-region-content-' + regionName);
+            if (!banner || !cont) return;
+            const isNowCollapsed = !cont.classList.contains('collapsed');
+            if (isNowCollapsed) {
+                collapsedRegions.add(regionName);
+                cont.classList.add('collapsed');
+                banner.classList.add('collapsed');
+            } else {
+                collapsedRegions.delete(regionName);
+                cont.classList.remove('collapsed');
+                banner.classList.remove('collapsed');
+            }
+            localStorage.setItem('esh_collapsed_regions', JSON.stringify([...collapsedRegions]));
+        }
+
+        function renderOshNovTab() {
+            const container = document.getElementById('osh-nov-view');
+            if (!container) return;
+
+            const displayProjects = state.projects;
+            let html = '';
+
+            html += `<style>
+                .osh-nov-section { background:var(--bg-card); border-radius:6px; overflow:hidden; border:1px solid var(--border-color); margin-bottom:10px; }
+                .osh-nov-header { background:#2e7d32; padding:7px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+                .osh-nov-proj-name { color:white; font-weight:700; font-size:0.78rem; }
+                .osh-nov-region-badge { background:rgba(255,255,255,0.15); color:#c8e6c9; padding:2px 8px; border-radius:10px; font-size:0.6rem; font-weight:600; }
+                .osh-nov-table { width:100%; border-collapse:collapse; font-size:0.74rem; }
+                .osh-nov-table th { background:#388e3c; color:white; padding:5px 8px; text-align:center; font-size:0.66rem; font-weight:700; text-transform:uppercase; letter-spacing:0.3px; border-bottom:2px solid #fbc02d; }
+                .osh-nov-table td { padding:4px 7px; border-bottom:1px solid rgba(0,0,0,0.05); text-align:center; vertical-align:middle; }
+                .osh-nov-table tbody tr:nth-child(odd) { background:#fff; }
+                .osh-nov-table tbody tr:nth-child(even) { background:#f9fbe7; }
+                .osh-nov-table td.nov-group-first { border-top:2px solid #c8e6c9; }
+                .osh-nov-table td.nov-rowspan { border-right:2px solid #c8e6c9; vertical-align:middle; }
+                .osh-nov-table td input[type=date], .osh-nov-table td input[type=text] { width:100%; padding:3px 5px; border:1px solid #ddd; border-radius:4px; font-size:0.7rem; background:var(--input-bg); color:var(--text-primary); box-sizing:border-box; }
+                .osh-nov-table td input:disabled { background:#f5f5f5; color:#999; border-color:#e0e0e0; cursor:not-allowed; }
+                .osh-nov-table td select { width:100%; padding:3px 5px; border:1px solid #ddd; border-radius:4px; font-size:0.7rem; background:var(--input-bg); color:var(--text-primary); }
+                .osh-nov-table td select:disabled { background:#f5f5f5; color:#999; cursor:not-allowed; }
+                .osh-nov-add-btn { background:#2e7d32; color:white; border:none; border-radius:5px; padding:4px 10px; font-size:0.68rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; }
+                .osh-nov-add-btn:hover { background:#388e3c; }
+                .osh-nov-add-viol-btn { background:transparent; color:#2e7d32; border:1px solid #2e7d32; border-radius:4px; padding:2px 7px; font-size:0.62rem; font-weight:600; cursor:pointer; white-space:nowrap; }
+                .osh-nov-add-viol-btn:hover { background:#e8f5e9; }
+                .osh-nov-del-btn { background:transparent; color:#ef5350; border:1px solid #ef5350; border-radius:4px; padding:2px 6px; font-size:0.62rem; font-weight:600; cursor:pointer; }
+                .osh-nov-del-btn:hover { background:#ef5350; color:white; }
+                .osh-nov-empty { padding:10px; text-align:center; color:#aaa; font-size:0.72rem; font-style:italic; }
+                body.dark-mode .osh-nov-table tbody tr:nth-child(odd) { background:#2d2d2d; }
+                body.dark-mode .osh-nov-table tbody tr:nth-child(even) { background:#1f2e1f; }
+                body.dark-mode .osh-nov-table td.nov-group-first { border-top-color:#4caf50; }
+                body.dark-mode .osh-nov-table td.nov-rowspan { border-right-color:#4caf50; }
+                #osh-nov-view .region-banner { cursor:pointer; user-select:none; }
+                #osh-nov-view .region-content { overflow:hidden; max-height:9999px; transition:max-height 0.35s ease, opacity 0.25s ease, margin 0.25s ease; }
+                #osh-nov-view .region-content.collapsed { max-height:0 !important; opacity:0; border:none; margin-bottom:0; padding:0; }
+                #osh-nov-view .region-banner.collapsed .region-toggle-icon { transform:rotate(-90deg); }
+                #osh-nov-view .region-toggle-icon { transition:transform 0.3s ease; }
+            </style>`;
+
+            html += `<div class="tab-info-bar">
+                <div class="tib-icon"><i class="fas fa-hard-hat"></i></div>
+                <div class="tib-body">
+                    <p class="tib-title">OSH REGULATORY ISSUED NOV</p>
+                    <p class="tib-sub">Notices of Violation issued by OSH regulatory bodies — Each NOV may contain multiple violations. Click "+ Violation" to add rows under a NOV.</p>
+                </div>
+                <div class="tib-badges">
+                    <span class="tib-pill tib-pill-green">${displayProjects.length} PROJECTS</span>
+                </div>
+            </div>`;
+
+            REGIONS.forEach(reg => {
+                const regProjs = displayProjects.filter(p => p.region === reg);
+                if (!regProjs.length) return;
+
+                const canEdit = UserAccounts.canEdit(state.currentUser?.email, reg) && UserAccounts.canEditTab(state.currentUser?.email, 'nov');
+                const isCollapsed = collapsedRegions.has(reg);
+
+                html += `<div id="osh-nov-region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed?'collapsed':''}" onclick="toggleOshNovRegion('${reg}',event)">
+                    <div class="region-banner-inner">
+                        <div class="region-banner-left">
+                            <i class="fas fa-location-dot region-icon"></i>
+                            <span class="region-name">${reg}</span>
+                            ${!canEdit?'<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="View Only"></i>':''}
+                        </div>
+                        <div class="region-banner-right">
+                            <span class="rbadge rbadge-count">${regProjs.length} PROJ</span>
+                            <i class="fas fa-chevron-down region-toggle-icon"></i>
+                        </div>
+                    </div>
+                </div>
+                <div id="osh-nov-region-content-${reg}" class="region-content ${isCollapsed?'collapsed':''}">`;
+
+                regProjs.forEach(p => {
+                    const pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                    migrateOshNovData(p);
+                    const novs = p.vals['osh-nov_novs'] || [];
+
+                    html += `<div class="osh-nov-section">
+                        <div class="osh-nov-header">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span class="osh-nov-proj-name">${p.name}</span>
+                                <span class="osh-nov-region-badge">${p.region}</span>
+                            </div>
+                            ${canEdit ? `<button class="osh-nov-add-btn" onclick="addOshNovEntry('${pnSafe}')"><i class="fas fa-plus"></i> Add NOV</button>` : ''}
+                        </div>
+                        <div style="overflow-x:auto;">
+                        <table class="osh-nov-table">
+                            <thead><tr>
+                                <th style="min-width:40px;">NOV #</th>
+                                <th style="min-width:150px;">Date Issued</th>
+                                <th style="min-width:150px;">Date Received</th>
+                                <th style="min-width:170px;">Issuing Body</th>
+                                <th style="min-width:120px;">Reference No.</th>
+                                <th style="min-width:250px;">Violation Description per DOLE</th>
+                                <th style="min-width:90px;">Status</th>
+                                ${canEdit ? '<th style="min-width:90px;">Action</th>' : ''}
+                            </tr></thead>
+                            <tbody>`;
+
+                    if (novs.length === 0) {
+                        const colCount = canEdit ? 8 : 7;
+                        html += `<tr><td colspan="${colCount}" class="osh-nov-empty"><i class="fas fa-inbox" style="margin-right:6px;"></i>No NOV recorded.${canEdit ? ' Click "+ Add NOV" to add.' : ''}</td></tr>`;
+                    }
+
+                    novs.forEach((nov, nIdx) => {
+                        const dis = !canEdit ? 'disabled' : '';
+                        const rowspan = nov.violations.length;
+
+                        const ibOpts = OSH_NOV_ISSUING_BODY.map(opt =>
+                            `<option value="${opt}" ${nov.issuingBody===opt?'selected':''}>${opt}</option>`
+                        ).join('');
+
+                        nov.violations.forEach((viol, vIdx) => {
+                            const isFirst = vIdx === 0;
+                            const statusClass = viol.status === 'Closed' ? 'status-closed' : 'status-open';
+
+                            const vlOpts = OSH_NOV_LAWS.map(opt =>
+                                `<option value="${opt}" ${viol.violationLaw===opt?'selected':''}>${opt}</option>`
+                            ).join('');
+                            const stOpts = ['Open','Closed'].map(opt =>
+                                `<option value="${opt}" ${viol.status===opt?'selected':''}>${opt}</option>`
+                            ).join('');
+
+                            html += `<tr>`;
+
+                            if (isFirst) {
+                                html += `
+                                <td rowspan="${rowspan}" class="nov-group-first nov-rowspan" style="font-weight:700;color:#388e3c;">${nIdx+1}</td>
+                                <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateIssued||''}" ${dis} oninput="updateOshNovNovField('${pnSafe}',${nIdx},'dateIssued',this.value)"></td>
+                                <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateReceived||''}" ${dis} oninput="updateOshNovNovField('${pnSafe}',${nIdx},'dateReceived',this.value)"></td>
+                                <td rowspan="${rowspan}" class="nov-group-first nov-rowspan">
+                                    ${dis ? `<span style="font-size:0.73rem;">${nov.issuingBody||''}</span>` :
+                                    `<select onchange="updateOshNovNovField('${pnSafe}',${nIdx},'issuingBody',this.value)">
+                                        <option value="">— Select —</option>${ibOpts}
+                                    </select>`}
+                                </td>
+                                <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="text" value="${nov.refNo||''}" ${dis} oninput="updateOshNovNovField('${pnSafe}',${nIdx},'refNo',this.value)"></td>`;
+                            }
+
+                            const firstClass = isFirst ? 'class="nov-group-first"' : '';
+                            html += `
+                                <td ${firstClass}>
+                                    ${dis ? `<span style="font-size:0.73rem;">${viol.violationLaw||''}</span>` :
+                                    `<select onchange="updateOshNovViolField('${pnSafe}',${nIdx},${vIdx},'violationLaw',this.value)">
+                                        <option value="">— Select —</option>${vlOpts}
+                                    </select>`}
+                                </td>
+                                <td ${firstClass}>
+                                    ${dis ? `<span class="${statusClass}">${viol.status||'Open'}</span>` :
+                                    `<select onchange="updateOshNovViolField('${pnSafe}',${nIdx},${vIdx},'status',this.value)" style="width:100%;">
+                                        ${stOpts}
+                                    </select>`}
+                                </td>`;
+
+                            if (canEdit) {
+                                if (isFirst) {
+                                    html += `<td class="nov-group-first nov-rowspan" rowspan="${rowspan}" style="white-space:nowrap;vertical-align:middle;">
+                                        <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+                                            <button class="osh-nov-add-viol-btn" onclick="addOshNovViolation('${pnSafe}',${nIdx})" title="Add violation"><i class="fas fa-plus"></i> Violation</button>
+                                            <button class="osh-nov-del-btn" onclick="removeOshNovEntry('${pnSafe}',${nIdx})" title="Delete NOV"><i class="fas fa-trash"></i> NOV</button>
+                                        </div>
+                                    </td>`;
+                                } else {
+                                    html += `<td style="text-align:center;">
+                                        <button class="osh-nov-del-btn" onclick="removeOshNovViolation('${pnSafe}',${nIdx},${vIdx})" title="Delete violation"><i class="fas fa-times"></i></button>
+                                    </td>`;
+                                }
+                            }
+
+                            html += `</tr>`;
+                        });
+                    });
+
+                    html += `</tbody></table></div></div>`;
+                });
+
+                html += `</div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        window.addOshNovEntry = addOshNovEntry;
+        window.removeOshNovEntry = removeOshNovEntry;
+        window.addOshNovViolation = addOshNovViolation;
+        window.removeOshNovViolation = removeOshNovViolation;
+        window.updateOshNovNovField = updateOshNovNovField;
+        window.updateOshNovViolField = updateOshNovViolField;
+        window.toggleOshNovRegion = toggleOshNovRegion;
+        window.renderOshNovTab = renderOshNovTab;
+        // ==================== END OSH NOV RENDERING ====================
+
+        function toggleNovEnvRegion(regionName, event) {
+            if (event && (event.target.tagName === 'BUTTON' || event.target.closest('button'))) return;
+            const banner = document.getElementById('nov-env-region-banner-' + regionName);
+            const cont   = document.getElementById('nov-env-region-content-' + regionName);
+            if (!banner || !cont) return;
+            const isNowCollapsed = !cont.classList.contains('collapsed');
+            if (isNowCollapsed) {
+                collapsedRegions.add(regionName);
+                cont.classList.add('collapsed');
+                banner.classList.add('collapsed');
+            } else {
+                collapsedRegions.delete(regionName);
+                cont.classList.remove('collapsed');
+                banner.classList.remove('collapsed');
+            }
+            localStorage.setItem('esh_collapsed_regions', JSON.stringify([...collapsedRegions]));
+        }
+        window.toggleNovEnvRegion = toggleNovEnvRegion;
+
+
+
         function render() {
             try {
             const _eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills'];
-            if (state.currentTab === 'settings' || state.currentTab === 'personnel' || state.currentTab === 'admin' || state.currentTab === 'env-monitoring' || state.currentTab === 'osh-requirement' || _eshCalTabs.includes(state.currentTab)) return;
+            const _nonTableTabs = ['settings','personnel','admin','env-monitoring','osh-requirement','nov'];
+            if (_nonTableTabs.includes(state.currentTab) || _eshCalTabs.includes(state.currentTab)) return;
 
             // Show/hide the lock icon on the audit nav tab for non-admins
             const auditNavLock = document.getElementById('audit-nav-lock');
@@ -12171,6 +12673,7 @@ function closeAllStatusDropdowns() {
                 <div class="tab-info-bar">
                     <div class="tib-icon"><i class="fas fa-globe"></i></div>
                     <div class="tib-body">
+                        <p class="tib-title">OSH Regulatory Issued NOV</p>
                         <p class="tib-sub">Consolidated data from all projects across all regions</p>
                     </div>
                     <div class="tib-badges">
@@ -12364,6 +12867,7 @@ function closeAllStatusDropdowns() {
                     <div class="tab-info-bar">
                         <div class="tib-icon"><i class="fas ${b.icon}"></i></div>
                         <div class="tib-body">
+                            <p class="tib-title">${b.title}</p>
                             <p class="tib-sub">${b.sub1}</p>
                             <p class="tib-sub" style="opacity:0.75;">${b.sub2}</p>
                         </div>
@@ -12376,7 +12880,7 @@ function closeAllStatusDropdowns() {
                 REGIONS.forEach(reg => {
                 // ── CORPORATE visibility gate ──
                 // CORPORATE only appears in these 5 tabs; hidden everywhere else.
-                const CORPORATE_ALLOWED_TABS = ['overall', 'rates', 'exposures', 'dole', 'medical', 'nov', 'nov-monitoring'];
+                const CORPORATE_ALLOWED_TABS = ['overall', 'rates', 'exposures', 'dole', 'medical', 'nov', 'nov-env', 'nov-monitoring'];
                 if (reg === 'CORPORATE' && !CORPORATE_ALLOWED_TABS.includes(state.currentTab)) return;
 
                 const projs = displayProjects.filter(p => p.region === reg);
@@ -12390,7 +12894,7 @@ function closeAllStatusDropdowns() {
                 const isCollapsed = isRegionCollapsed(reg);
                 
                 const isCorporateReg = reg === 'CORPORATE';
-                const CORP_DATA_TABS = ['overall', 'rates', 'exposures', 'dole', 'medical', 'nov', 'nov-monitoring'];
+                const CORP_DATA_TABS = ['overall', 'rates', 'exposures', 'dole', 'medical', 'nov', 'nov-env', 'nov-monitoring'];
                 const isCorporateDataTab = isCorporateReg && CORP_DATA_TABS.includes(state.currentTab);
                 const regIcon = isCorporateReg ? 'fa-building-columns' : 'fa-location-dot';
                 const regLabel = isCorporateReg ? 'CORPORATE' : reg;
@@ -12728,7 +13232,349 @@ if (state.currentTab === 'audit') {
                   // ==================== DOE TABS MOVED AFTER GROUPED TABLES ====================
                   // (See after line ~7687 for DOE Reportorial and DOE Safety Officer Permit rendering)
                   
-                  if (state.currentTab === 'nov-monitoring') {
+                  if (state.currentTab === 'nov-env') {
+                // ==================== ENVIRONMENTAL NOV RENDERING ====================
+                const envNovContainer = document.getElementById('nov-env-view');
+                if (!envNovContainer) { container.innerHTML = ''; return; }
+                container.innerHTML = '';
+
+                const ENV_NOV_ISSUING_BODY = [
+                    'ISO Internal Audit',
+                    'ESH Internal Audit',
+                    'Client'
+                ];
+                const ENV_NOV_VIOLATION_LAWS = [
+                    'PD 1586',
+                    'RA 9003',
+                    'RA 8749',
+                    'RA 9275',
+                    'RA 6969',
+                    'RA 9147',
+                    'PD 705',
+                    'RA 11038',
+                    'Internal Policy',
+                    'Others'
+                ];
+
+                const canEditNovEnv = UserAccounts.canEdit(state.currentUser?.email, 'ALL') ||
+                    UserAccounts.canEditTab(state.currentUser?.email, 'nov-env');
+
+                // ── Migrate old flat violations to new NOV structure ──
+                function migrateNovEnvData(p) {
+                    if (!p.vals) p.vals = {};
+                    // Already new format
+                    if (p.vals['nov-env_novs']) return;
+                    // Migrate old flat violations → one NOV per old row
+                    if (p.vals['nov-env_violations'] && p.vals['nov-env_violations'].length > 0) {
+                        p.vals['nov-env_novs'] = p.vals['nov-env_violations'].map(v => ({
+                            dateIssued: v.dateIssued || '',
+                            dateReceived: v.dateReceived || '',
+                            issuingBody: v.issuingBody || '',
+                            refNo: v.refNo || '',
+                            violations: [{ violationLaw: v.violationLaw || '', status: v.status || 'Open' }]
+                        }));
+                        delete p.vals['nov-env_violations'];
+                    } else {
+                        p.vals['nov-env_novs'] = [];
+                    }
+                }
+
+                function getNovEnvNovs(pName) {
+                    const p = state.projects.find(x => x.name === pName);
+                    if (!p) return [];
+                    migrateNovEnvData(p);
+                    return p.vals['nov-env_novs'];
+                }
+
+                function _autoEditMode() {
+                    if (!state.isEditing) {
+                        state.isEditing = true;
+                        const _fb = document.getElementById('floating-edit-btn');
+                        const _fi = document.getElementById('floating-edit-icon');
+                        const _ft = document.getElementById('floating-edit-tooltip');
+                        if (_fb) { _fb.classList.add('save-mode'); _fb.setAttribute('onclick','saveData()'); }
+                        if (_fi) _fi.className = 'fas fa-save';
+                        if (_ft) _ft.textContent = 'Click to Save';
+                    }
+                }
+
+                function addNovEnvNov(pName) {
+                    const p = state.projects.find(x => x.name === pName);
+                    if (!p) return;
+                    const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p.region, 'nov-env');
+                    if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+                    _autoEditMode();
+                    migrateNovEnvData(p);
+                    p.vals['nov-env_novs'].push({
+                        dateIssued: '', dateReceived: '', issuingBody: '', refNo: '',
+                        violations: [{ violationLaw: '', status: 'Open' }]
+                    });
+                    saveToFirebase(); renderNovEnvTab();
+                }
+
+                function removeNovEnvNov(pName, nIdx) {
+                    const p = state.projects.find(x => x.name === pName);
+                    if (!p) return;
+                    const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p.region, 'nov-env');
+                    if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+                    migrateNovEnvData(p);
+                    p.vals['nov-env_novs'].splice(nIdx, 1);
+                    saveToFirebase(); renderNovEnvTab();
+                }
+
+                function addNovEnvViolation(pName, nIdx) {
+                    const p = state.projects.find(x => x.name === pName);
+                    if (!p) return;
+                    const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p.region, 'nov-env');
+                    if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+                    _autoEditMode();
+                    migrateNovEnvData(p);
+                    if (!p.vals['nov-env_novs'][nIdx]) return;
+                    p.vals['nov-env_novs'][nIdx].violations.push({ violationLaw: '', status: 'Open' });
+                    saveToFirebase(); renderNovEnvTab();
+                }
+
+                function removeNovEnvViolation(pName, nIdx, vIdx) {
+                    const p = state.projects.find(x => x.name === pName);
+                    if (!p) return;
+                    const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p.region, 'nov-env');
+                    if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+                    migrateNovEnvData(p);
+                    const nov = p.vals['nov-env_novs'][nIdx];
+                    if (!nov) return;
+                    if (nov.violations.length === 1) {
+                        // Remove the whole NOV if last violation is deleted
+                        p.vals['nov-env_novs'].splice(nIdx, 1);
+                    } else {
+                        nov.violations.splice(vIdx, 1);
+                    }
+                    saveToFirebase(); renderNovEnvTab();
+                }
+
+                function updateNovEnvNovField(pName, nIdx, field, value) {
+                    const p = state.projects.find(x => x.name === pName);
+                    if (!p) return;
+                    migrateNovEnvData(p);
+                    if (p.vals['nov-env_novs'][nIdx]) {
+                        p.vals['nov-env_novs'][nIdx][field] = value;
+                        if (typeof markPendingSync === 'function') markPendingSync();
+                    }
+                }
+
+                function updateNovEnvViolField(pName, nIdx, vIdx, field, value) {
+                    const p = state.projects.find(x => x.name === pName);
+                    if (!p) return;
+                    migrateNovEnvData(p);
+                    const nov = p.vals['nov-env_novs'][nIdx];
+                    if (nov && nov.violations[vIdx]) {
+                        nov.violations[vIdx][field] = value;
+                        if (typeof markPendingSync === 'function') markPendingSync();
+                    }
+                }
+
+                window.addNovEnvNov = addNovEnvNov;
+                window.removeNovEnvNov = removeNovEnvNov;
+                window.addNovEnvViolation = addNovEnvViolation;
+                window.removeNovEnvViolation = removeNovEnvViolation;
+                window.updateNovEnvNovField = updateNovEnvNovField;
+                window.updateNovEnvViolField = updateNovEnvViolField;
+
+                function renderNovEnvTab() {
+                    const isEditing = state.isEditing;
+                    let envHtml = '';
+
+                    envHtml += `<style>
+                        .nov-env-section { background:var(--bg-card); border-radius:6px; overflow:hidden; border:1px solid var(--border-color); margin-bottom:10px; }
+                        .nov-env-header { background:#2e7d32; padding:7px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+                        .nov-env-proj-name { color:white; font-weight:700; font-size:0.78rem; }
+                        .nov-env-region-badge { background:rgba(255,255,255,0.15); color:#c8e6c9; padding:2px 8px; border-radius:10px; font-size:0.6rem; font-weight:600; }
+                        .nov-env-table { width:100%; border-collapse:collapse; font-size:0.74rem; }
+                        .nov-env-table th { background:#388e3c; color:white; padding:5px 8px; text-align:center; font-size:0.66rem; font-weight:700; text-transform:uppercase; letter-spacing:0.3px; border-bottom:2px solid #fbc02d; }
+                        .nov-env-table td { padding:4px 7px; border-bottom:1px solid rgba(0,0,0,0.05); text-align:center; vertical-align:middle; }
+                        .nov-env-table tbody tr:nth-child(odd) { background:#fff; }
+                        .nov-env-table tbody tr:nth-child(even) { background:#f9fbe7; }
+                        .nov-env-table td.nov-group-first { border-top:2px solid #c8e6c9; }
+                        .nov-env-table td.nov-rowspan { border-right:2px solid #c8e6c9; vertical-align:middle; }
+                        .nov-env-table td input[type=date], .nov-env-table td input[type=text] { width:100%; padding:3px 5px; border:1px solid #ddd; border-radius:4px; font-size:0.7rem; background:var(--input-bg); color:var(--text-primary); box-sizing:border-box; }
+                        .nov-env-table td input:disabled { background:#f5f5f5; color:#999; border-color:#e0e0e0; cursor:not-allowed; }
+                        .nov-env-table td select { width:100%; padding:3px 5px; border:1px solid #ddd; border-radius:4px; font-size:0.7rem; background:var(--input-bg); color:var(--text-primary); }
+                        .nov-env-table td select:disabled { background:#f5f5f5; color:#999; cursor:not-allowed; }
+                        .nov-env-add-btn { background:#2e7d32; color:white; border:none; border-radius:5px; padding:4px 10px; font-size:0.68rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; }
+                        .nov-env-add-btn:hover { background:#388e3c; }
+                        .nov-env-add-viol-btn { background:transparent; color:#2e7d32; border:1px solid #2e7d32; border-radius:4px; padding:2px 7px; font-size:0.62rem; font-weight:600; cursor:pointer; white-space:nowrap; }
+                        .nov-env-add-viol-btn:hover { background:#e8f5e9; }
+                        .nov-env-del-btn { background:transparent; color:#ef5350; border:1px solid #ef5350; border-radius:4px; padding:2px 6px; font-size:0.62rem; font-weight:600; cursor:pointer; }
+                        .nov-env-del-btn:hover { background:#ef5350; color:white; }
+                        .nov-env-empty { padding:10px; text-align:center; color:#aaa; font-size:0.72rem; font-style:italic; }
+                        .status-open { background:#ffebee; color:#c62828; border-radius:8px; padding:1px 7px; font-size:0.65rem; font-weight:700; }
+                        .status-closed { background:#e8f5e9; color:#2e7d32; border-radius:8px; padding:1px 7px; font-size:0.65rem; font-weight:700; }
+                        body.dark-mode .nov-env-table tbody tr:nth-child(odd) { background:#2d2d2d; }
+                        body.dark-mode .nov-env-table tbody tr:nth-child(even) { background:#1f2e1f; }
+                        body.dark-mode .nov-env-table td.nov-group-first { border-top-color:#4caf50; }
+                        body.dark-mode .nov-env-table td.nov-rowspan { border-right-color:#4caf50; }
+                        #nov-env-view .region-banner { cursor:pointer; user-select:none; }
+                        #nov-env-view .region-content { overflow:hidden; max-height:9999px; transition:max-height 0.35s ease, opacity 0.25s ease, margin 0.25s ease; }
+                        #nov-env-view .region-content.collapsed { max-height:0 !important; opacity:0; border:none; margin-bottom:0; padding:0; }
+                        #nov-env-view .region-banner.collapsed .region-toggle-icon { transform:rotate(-90deg); }
+                        #nov-env-view .region-toggle-icon { transition:transform 0.3s ease; }
+                    </style>`;
+
+                    // Info bar
+                    envHtml += `<div class="tab-info-bar">
+                        <div class="tib-icon"><i class="fas fa-leaf"></i></div>
+                        <div class="tib-body">
+                            <p class="tib-title">ENVIRONMENTAL ISSUED NOV</p>
+                            <p class="tib-sub">Notices of Violation issued by environmental regulatory bodies — Each NOV may contain multiple violations. Click "+ Add Violation" to add rows under a NOV.</p>
+                        </div>
+                        <div class="tib-badges">
+                            <span class="tib-pill tib-pill-green">${displayProjects.length} PROJECTS</span>
+                        </div>
+                    </div>`;
+
+                    // Render per region
+                    REGIONS.forEach(reg => {
+                        const regProjs = displayProjects.filter(p => p.region === reg);
+                        if (!regProjs.length) return;
+
+                        const canEdit = UserAccounts.canEdit(state.currentUser?.email, reg) && UserAccounts.canEditTab(state.currentUser?.email, 'nov-env');
+                        const isCollapsed = isRegionCollapsed(reg);
+
+                        envHtml += `<div id="nov-env-region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed?'collapsed':''}" onclick="toggleNovEnvRegion('${reg}',event)">
+                            <div class="region-banner-inner">
+                                <div class="region-banner-left">
+                                    <i class="fas fa-location-dot region-icon"></i>
+                                    <span class="region-name">${reg}</span>
+                                    ${!canEdit?'<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="View Only"></i>':''}
+                                </div>
+                                <div class="region-banner-right">
+                                    <span class="rbadge rbadge-count">${regProjs.length} PROJ</span>
+                                    <i class="fas fa-chevron-down region-toggle-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="nov-env-region-content-${reg}" class="region-content ${isCollapsed?'collapsed':''}">`;
+
+                        regProjs.forEach(p => {
+                            const pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                            migrateNovEnvData(p);
+                            const novs = p.vals['nov-env_novs'] || [];
+
+                            envHtml += `<div class="nov-env-section">
+                                <div class="nov-env-header">
+                                    <div style="display:flex;align-items:center;gap:8px;">
+                                        <span class="nov-env-proj-name">${p.name}</span>
+                                        <span class="nov-env-region-badge">${p.region}</span>
+                                    </div>
+                                    ${canEdit ? `<button class="nov-env-add-btn" onclick="addNovEnvNov('${pnSafe}')"><i class="fas fa-plus"></i> Add NOV</button>` : ''}
+                                </div>
+                                <div style="overflow-x:auto;">
+                                <table class="nov-env-table">
+                                    <thead><tr>
+                                        <th style="min-width:20px;width:36px;">NOV #</th>
+                                        <th style="min-width:150px;">Date Issued</th>
+                                        <th style="min-width:150px;">Date Received</th>
+                                        <th style="min-width:170px;">Issuing Body</th>
+                                        <th style="min-width:120px;">Reference No.</th>
+                                        <th style="min-width:230px;">Violation Description per Envi Law</th>
+                                        <th style="min-width:90px;">Status</th>
+                                        ${canEdit ? '<th style="min-width:90px;">Action</th>' : ''}
+                                    </tr></thead>
+                                    <tbody>`;
+
+                            if (novs.length === 0) {
+                                const colCount = canEdit ? 8 : 7;
+                                envHtml += `<tr><td colspan="${colCount}" class="nov-env-empty"><i class="fas fa-inbox" style="margin-right:6px;"></i>No NOV recorded.${canEdit ? ' Click "+ Add NOV" to add.' : ''}</td></tr>`;
+                            }
+
+                            novs.forEach((nov, nIdx) => {
+                                const dis = !canEdit ? 'disabled' : '';
+                                const rowspan = nov.violations.length;
+
+                                const ibOpts = ENV_NOV_ISSUING_BODY.map(opt =>
+                                    `<option value="${opt}" ${nov.issuingBody===opt?'selected':''}>${opt}</option>`
+                                ).join('');
+
+                                nov.violations.forEach((viol, vIdx) => {
+                                    const isFirst = vIdx === 0;
+                                    const statusClass = viol.status === 'Closed' ? 'status-closed' : 'status-open';
+
+                                    const vlOpts = ENV_NOV_VIOLATION_LAWS.map(opt =>
+                                        `<option value="${opt}" ${viol.violationLaw===opt?'selected':''}>${opt}</option>`
+                                    ).join('');
+                                    const stOpts = ['Open','Closed'].map(opt =>
+                                        `<option value="${opt}" ${viol.status===opt?'selected':''}>${opt}</option>`
+                                    ).join('');
+
+                                    envHtml += `<tr>`;
+
+                                    // NOV-level cells — only on first violation row, using rowspan
+                                    if (isFirst) {
+                                        const borderTop = 'class="nov-group-first nov-rowspan"';
+                                        envHtml += `
+                                        <td rowspan="${rowspan}" ${borderTop} style="font-weight:700;color:#388e3c;">${nIdx+1}</td>
+                                        <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateIssued||''}" ${dis} oninput="updateNovEnvNovField('${pnSafe}',${nIdx},'dateIssued',this.value)"></td>
+                                        <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateReceived||''}" ${dis} oninput="updateNovEnvNovField('${pnSafe}',${nIdx},'dateReceived',this.value)"></td>
+                                        <td rowspan="${rowspan}" class="nov-group-first nov-rowspan">
+                                            ${dis ? `<span style="font-size:0.73rem;">${nov.issuingBody||''}</span>` :
+                                            `<select onchange="updateNovEnvNovField('${pnSafe}',${nIdx},'issuingBody',this.value)">
+                                                <option value="">— Select —</option>${ibOpts}
+                                            </select>`}
+                                        </td>
+                                        <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="text" value="${nov.refNo||''}" ${dis} oninput="updateNovEnvNovField('${pnSafe}',${nIdx},'refNo',this.value)"></td>`;
+                                    }
+
+                                    // Violation-level cells
+                                    const firstViolClass = isFirst ? 'class="nov-group-first"' : '';
+                                    envHtml += `
+                                        <td ${firstViolClass}>
+                                            ${dis ? `<span style="font-size:0.73rem;">${viol.violationLaw||''}</span>` :
+                                            `<select onchange="updateNovEnvViolField('${pnSafe}',${nIdx},${vIdx},'violationLaw',this.value)">
+                                                <option value="">— Select —</option>${vlOpts}
+                                            </select>`}
+                                        </td>
+                                        <td ${firstViolClass}>
+                                            ${dis ? `<span class="${statusClass}">${viol.status||'Open'}</span>` :
+                                            `<select onchange="updateNovEnvViolField('${pnSafe}',${nIdx},${vIdx},'status',this.value)" style="width:100%;">
+                                                ${stOpts}
+                                            </select>`}
+                                        </td>`;
+
+                                    if (canEdit) {
+                                        if (isFirst) {
+                                            // First row: add-violation button + delete-NOV button
+                                            envHtml += `<td ${firstViolClass} rowspan="${rowspan}" class="nov-group-first nov-rowspan" style="white-space:nowrap;vertical-align:middle;">
+                                                <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+                                                    <button class="nov-env-add-viol-btn" onclick="addNovEnvViolation('${pnSafe}',${nIdx})" title="Add violation to this NOV"><i class="fas fa-plus"></i> Violation</button>
+                                                    <button class="nov-env-del-btn" onclick="removeNovEnvNov('${pnSafe}',${nIdx})" title="Delete entire NOV"><i class="fas fa-trash"></i> NOV</button>
+                                                </div>
+                                            </td>`;
+                                        }
+                                        if (!isFirst) {
+                                            envHtml += `<td style="text-align:center;">
+                                                <button class="nov-env-del-btn" onclick="removeNovEnvViolation('${pnSafe}',${nIdx},${vIdx})" title="Delete this violation"><i class="fas fa-times"></i></button>
+                                            </td>`;
+                                        }
+                                    }
+
+                                    envHtml += `</tr>`;
+                                });
+                            });
+
+                            envHtml += `</tbody></table></div></div>`;
+                        });
+
+                        envHtml += `</div>`; // close region-content
+                    });
+
+                    envNovContainer.innerHTML = envHtml;
+                }
+
+                renderNovEnvTab();
+                return;
+                // ==================== END ENVIRONMENTAL NOV ====================
+            }
+
+            if (state.currentTab === 'nov-monitoring') {
     // Special rendering for ESH NOV Monitoring - all projects grouped per region
     // Skip individual project rendering - will be done at region level
 }
@@ -12883,6 +13729,43 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             <input type="date" value="${isPermitNA ? '' : (entry.expiryDate ?? '')}" ${naDisabled} oninput="updateEccEntry('${p.name}',${idx},'expiryDate',this.value)" style="width:100%;${isPermitNA ? 'background:#f5f5f5;' : ''}">
                             ${isFirst && inputsEditable && !isPermitNA ? `<button onclick="addEccEntry('${p.name}')" title="Add another ECC entry" style="position:absolute;bottom:-12px;right:4px;z-index:10;background:#2e7d32;color:white;border:none;border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.2);">+ Add ECC</button>` : ''}
                         </td>`;
+                    });
+                } else if (MULTI_ENTRY_PERMITS.includes(row)) {
+                    // --- Multi-entry: TRC, TSD, PTT, PTO, DP ---
+                    const _mpKey = 'permits_' + row;
+                    const _mpRaw = p.vals[_mpKey];
+                    const _mpShort = MULTI_ENTRY_SHORT[row] || row;
+                    let _mpEntries = (_mpRaw && _mpRaw.entries) ? _mpRaw.entries : null;
+                    if (!_mpEntries) {
+                        const _mpOldNo = _mpRaw ? (_mpRaw[1] || '') : '';
+                        const _mpOldIss = _mpRaw ? (_mpRaw[2] || '') : '';
+                        const _mpOldExp = _mpRaw ? (_mpRaw[3] || '') : '';
+                        _mpEntries = (_mpOldNo || _mpOldIss || _mpOldExp)
+                            ? [{ permitNo: _mpOldNo, dateIssued: _mpOldIss, expiryDate: _mpOldExp }]
+                            : [{ permitNo: '', dateIssued: '', expiryDate: '' }];
+                    }
+                    if (_mpEntries.length === 0) _mpEntries = [{ permitNo: '', dateIssued: '', expiryDate: '' }];
+                    _mpEntries.forEach(function(_mpEntry, _mpIdx) {
+                        var _mpIsFirst = _mpIdx === 0;
+                        var _mpPn = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                        var _mpRn = row.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                        if (!_mpIsFirst) {
+                            html += '<tr style="' + rowStyle + '"><td style="width:' + typeColumnWidth + ';min-width:' + typeColumnWidth + ';max-width:' + typeColumnWidth + ';text-align:left;font-weight:700;background:' + (isPermitNA?'#fce4e4':'#e8f5e9') + ';color:' + (isPermitNA?'#b71c1c':'#1b5e20') + ';position:sticky;left:0;z-index:5;white-space:normal;padding:8px 12px;line-height:1.3;vertical-align:middle;">';
+                            html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">';
+                            html += '<span style="flex:1;font-size:0.78rem;color:#555;">' + _mpShort + ' #' + (_mpIdx+1) + '</span>';
+                            if (inputsEditable) html += '<span onclick="removeMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ')" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;border:1.5px solid #ef5350;color:#ef5350;background:transparent;user-select:none;">&#10005; Remove</span>';
+                            html += '</div></td>';
+                        }
+                        var _mpNo  = isPermitNA ? '' : (_mpEntry.permitNo || '');
+                        var _mpIss = isPermitNA ? '' : (_mpEntry.dateIssued || '');
+                        var _mpExp = isPermitNA ? '' : (_mpEntry.expiryDate || '');
+                        var _mpNS  = isPermitNA ? 'background:#f5f5f5;color:#bbb;' : '';
+                        var _mpDS  = isPermitNA ? 'background:#f5f5f5;' : '';
+                        html += '<td style="min-width:200px;padding:8px 12px;"><input type="text" placeholder="' + (isPermitNA?'N/A':'Permit/Accreditation #') + '" value="' + _mpNo + '" ' + naDisabled + ' oninput="updateMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ',\'permitNo\',this.value)" style="width:100%;' + _mpNS + '"></td>';
+                        html += '<td style="min-width:140px;padding:8px 12px;"><input type="date" value="' + _mpIss + '" ' + naDisabled + ' oninput="updateMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ',\'dateIssued\',this.value)" style="width:100%;' + _mpDS + '"></td>';
+                        html += '<td style="min-width:140px;padding:8px 12px;position:relative;"><input type="date" value="' + _mpExp + '" ' + naDisabled + ' oninput="updateMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ',\'expiryDate\',this.value)" style="width:100%;' + _mpDS + '">';
+                        if (_mpIsFirst && inputsEditable && !isPermitNA) html += '<button onclick="addMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\')" style="position:absolute;bottom:-12px;right:4px;z-index:10;background:#1565c0;color:white;border:none;border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.2);">+ Add ' + _mpShort + '</button>';
+                        html += '</td>';
                     });
                 } else {
                     // --- Normal permit row ---
@@ -13093,6 +13976,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     <div class="tab-info-bar">
                         <div class="tib-icon"><i class="fas fa-file-lines"></i></div>
                         <div class="tib-body">
+                            <p class="tib-title">Monthly Report (KPM & Inspection)</p>
                             <p class="tib-sub">Monthly submission required for each project</p>
                             <p class="tib-sub" style="opacity:0.75;"><i class="fas fa-calendar-check"></i> Tracking ${displayProjects.length} project(s) — KPM &amp; Inspection reports</p>
                         </div>
@@ -13109,6 +13993,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     <div class="tab-info-bar">
                         <div class="tib-icon"><i class="fas fa-leaf"></i></div>
                         <div class="tib-body">
+                            <p class="tib-title">Environmental Monthly Report</p>
                             <p class="tib-sub">Monthly submission required per project — Environmental compliance tracking</p>
                             <p class="tib-sub" style="opacity:0.75;"><i class="fas fa-recycle"></i> Waste &bull; Water &bull; Air &bull; Noise &bull; Hazardous Materials</p>
                         </div>
@@ -13334,6 +14219,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         <div class="tab-info-bar">
                             <div class="tib-icon"><i class="fas fa-solar-panel"></i></div>
                             <div class="tib-body">
+                                <p class="tib-title">DOE Reportorial — Renewable Energy Projects</p>
                                 <p class="tib-sub">Quarterly submission — Due: 20th of the month after each quarter</p>
                                 <p class="tib-sub" style="opacity:0.75;"><i class="fas fa-leaf"></i> Showing ${renewableProjects.length} Renewable Energy project(s)</p>
                             </div>
@@ -13480,6 +14366,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         <div class="tab-info-bar">
                             <div class="tib-icon"><i class="fas fa-id-card"></i></div>
                             <div class="tib-body">
+                                <p class="tib-title">DOE Safety Officer Permit</p>
                                 <p class="tib-sub">Dept. Circular DC2012-11-0009 — RE Safety, Health and Environment Rules</p>
                                 <p class="tib-sub" style="opacity:0.75;"><i class="fas fa-leaf"></i> Showing ${renewableProjects.length} Renewable Energy project(s)</p>
                             </div>
@@ -13738,6 +14625,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 <div class="tab-info-bar">
                     <div class="tib-icon"><i class="fas fa-globe"></i></div>
                     <div class="tib-body">
+                        <p class="tib-title">ESH NOV Monitoring</p>
                         <p class="tib-sub">ESH NOV Monitoring — consolidated data from all projects</p>
                     </div>
                     <div class="tib-badges">
@@ -15248,13 +16136,15 @@ function renderPTable() {
     if (state.isAdmin) projOptions += '<option value="Corporate Office">Corporate Office</option>';
     projOptions += '</optgroup>';
     if (state.projects && state.projects.length > 0) {
-        let projectsList = state.projects;
+        let projectsList = state.projects.filter(p => p.region !== 'CORPORATE'); // always exclude CORPORATE region projects — "Corporate Office" hardcoded above handles HQ
         if (!state.isAdmin && state.userRegion) {
-            projectsList = state.projects.filter(p => p.region === state.userRegion && p.region !== 'CORPORATE');
+            projectsList = projectsList.filter(p => p.region === state.userRegion);
         }
-        projOptions += '<optgroup label="Project Sites">';
-        projOptions += projectsList.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-        projOptions += '</optgroup>';
+        if (projectsList.length > 0) {
+            projOptions += '<optgroup label="Project Sites">';
+            projOptions += projectsList.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+            projOptions += '</optgroup>';
+        }
     }
 
     // Raw data with original indices
@@ -17342,7 +18232,8 @@ function getExportData() {
         medical: 'ACCIDENT / INCIDENT RECORD',
         activities: 'ESH ACTIVITIES & PROGRAMS',
         audit: 'INTERNAL ESH AUDIT RESULT',
-        nov: 'REGULATORY ISSUED NOV',
+        nov: 'OSH REGULATORY ISSUED NOV',
+        'nov-env': 'ENVIRONMENTAL ISSUED NOV',
         'nov-monitoring': 'ESH NOV MONITORING',
         rates: 'STATISTICS RATE',
         personnel: 'ESH PERSONNEL MONITORING',
@@ -19819,16 +20710,14 @@ function startEshCalendarSync() {
         // Write merged back to localStorage silently (no Firebase re-push — avoid loop)
         try { localStorage.setItem('esh_calendar_data', JSON.stringify(merged)); } catch(e){}
 
-        // Always re-render ALL visible ESH calendar regions — both for self and remote changes.
-        // This ensures Plan (yellow) cells reflect immediately on ALL accounts including
-        // Superintendents and PCOs when Admin clicks a Plan cell.
+        // Re-render ALL visible ESH tabs/regions — no skip so all accounts see plan changes
         const eshTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills'];
         const tabsToRefresh = (state && eshTabs.includes(state.currentTab)) ? [state.currentTab] : eshTabs;
         tabsToRefresh.forEach(function(tabType) {
             const allProjects = (state && state.projects) ? state.projects : [];
             const regionOrder = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
             regionOrder.forEach(function(region) {
-                const regProjects = allProjects.filter(function(p){ return p.region === region; });
+                const regProjects = allProjects.filter(function(p) { return p.region === region; });
                 if (!regProjects.length) return;
                 const safeRegion = region.replace(/[^a-z0-9]/gi, '_');
                 const contentEl = document.getElementById(tabType + '-' + safeRegion + '-content');
@@ -20065,7 +20954,7 @@ function renderEshCalendar(tabType) {
         box-shadow: 0 4px 14px rgba(0,0,0,0.15);
     }
     .esh-cal-header-icon { font-size: 1.5rem; color: rgba(255,255,255,0.85); }
-    .esh-cal-header-title { font-size: 0.95rem; font-weight: 800; color: white; letter-spacing: 0.5px; }
+    .esh-cal-header-title { font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 700; color: white; letter-spacing: 0.07em; text-transform: uppercase; }
     .esh-cal-header-sub { font-size: 0.65rem; color: rgba(255,255,255,0.7); margin-top: 2px; }
     .esh-cal-legend {
         display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
@@ -20388,22 +21277,6 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
     if (tdEl) {
         tdEl.classList.toggle('esh-planned', nowPlanned);
         tdEl.title = planTitle;
-    }
-
-    // Re-render all currently-visible expanded regions for this tab so all plan cells
-    // reflect consistently (the Firebase onValue listener will handle other accounts)
-    if (state && state.projects) {
-        const regionOrder = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
-        regionOrder.forEach(function(region) {
-            var regProjects = state.projects.filter(function(p){ return p.region === region; });
-            if (!regProjects.length) return;
-            var safeRegion = region.replace(/[^a-z0-9]/gi, '_');
-            var contentEl = document.getElementById(tabType + '-' + safeRegion + '-content');
-            if (contentEl && contentEl.style.display !== 'none') {
-                var projIdx = _eshRegionProjectIdx[eshGetRegionKey(tabType, region)] || 0;
-                try { eshRenderRegionTable(tabType, region, regProjects, projIdx); } catch(e){}
-            }
-        });
     }
 };
 
