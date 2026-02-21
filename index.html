@@ -1223,26 +1223,6 @@
 
 
         /* ========== DEVICE COUNTER & ACTIVE USERS ========== */
-        .device-counter-container,
-        .active-users-container {
-            position: relative;
-            display: inline-block;
-        }
-
-        .device-counter-btn,
-        .active-users-btn {
-            background: none;
-            border: none;
-            color: var(--text-primary);
-            cursor: pointer;
-            padding: 8px 12px;
-            font-size: 1.1rem;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            position: relative;
-        }
 
 
         .counter-badge {
@@ -1364,10 +1344,6 @@
             background: #c62828;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
 
         .dropdown-empty {
             text-align: center;
@@ -2751,10 +2727,6 @@ body.dark-mode .backup-item {
 
 /* Modern Dialog Styles */
 /* ==================== STYLE 5: Success/Error/Warning Dialog ==================== */
-@keyframes scaleIn {
-    from { transform: scale(0.9); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
 
 .modern-dialog-overlay {
     position: fixed;
@@ -4651,7 +4623,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <option value="SOUTH LUZON">South Luzon</option>
                     <option value="NORTH LUZON">North Luzon</option>
                     <option value="VISAYAS & MINDANAO">Visayas & Mindanao</option>
-                    <option value="CORPORATE">Corporate (Headquarters)</option>
+                    <option value="CORPORATE">Corporate</option>
                 </select>
             </div>
             <div id="projectDateFields">
@@ -4953,7 +4925,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <option value="SOUTH LUZON">South Luzon</option>
                     <option value="NORTH LUZON">North Luzon</option>
                     <option value="VISAYAS & MINDANAO">Visayas & Mindanao</option>
-                    <option value="CORPORATE">Corporate (Headquarters)</option>
+                    <option value="CORPORATE">Corporate</option>
                 </select>
             </div>
             
@@ -8372,9 +8344,20 @@ function applyNumFmtToInputs() {
                 );
                 
                 // Initial presence data
+                // ── FIX: Resolve displayName reliably — UserAccounts hardcoded list first,
+                //    then Firestore-loaded name, then email prefix — NEVER 'Unknown User'
+                const resolvedDisplayName = userInfo.displayName && userInfo.displayName !== 'Administrator'
+                    ? userInfo.displayName
+                    : (state.currentUser?.displayName
+                        || localStorage.getItem('esh_displayname_' + userEmail)
+                        || (userInfo.role === 'admin' ? 'ESH Admin' : userEmail.split('@')[0]));
+
+                // Cache the resolved name so Firestore can correct it later
+                this._userEmail = userEmail;
+
                 const presenceData = {
                     status: 'online',
-                    displayName: userInfo.displayName,
+                    displayName: resolvedDisplayName,
                     email: userEmail,
                     role: userInfo.role,
                     region: userInfo.region,
@@ -8480,18 +8463,38 @@ function applyNumFmtToInputs() {
                 events.forEach(event => {
                     document.addEventListener(event, () => {
                         this.lastActivityTime = Date.now();
-                        this.updateStatus('online');
+                        // Only push online status if currently idle (avoid spamming Firebase on every keystroke)
+                        if (this._currentStatus !== 'online') {
+                            this._currentStatus = 'online';
+                            this.updateStatus('online');
+                        }
                     });
                 });
-                
-                // Check for idle status every 30 seconds
-                setInterval(() => {
+
+                // ── HEARTBEAT every 15 seconds ──
+                // Keeps lastSeen fresh so the admin sees accurate "X seconds ago" timestamps.
+                // Also checks for idle and refreshes the Active Users UI clock locally.
+                this._heartbeatInterval = setInterval(async () => {
                     const idleTime = Date.now() - this.lastActivityTime;
-                    
-                    if (idleTime > 5 * 60 * 1000) { // 5 minutes
-                        this.updateStatus('idle');
+                    const newStatus = idleTime > 5 * 60 * 1000 ? 'idle' : 'online';
+
+                    // Push heartbeat to Firebase (updates lastSeen regardless of status)
+                    if (this.myPresenceRef) {
+                        try {
+                            await window.firebase.update(this.myPresenceRef, {
+                                status: newStatus,
+                                lastSeen: Date.now()
+                            });
+                            this._currentStatus = newStatus;
+                        } catch(e) { /* ignore network blips */ }
                     }
-                }, 30000);
+
+                    // Refresh the "X seconds ago" display locally for admin without waiting for Firebase event
+                    if (state.isAdmin && state.isLoggedIn) {
+                        this.updateActiveUsersUI();
+                        this.updateDeviceCounterUI();
+                    }
+                }, 15000);
             },
             
             async updateStatus(status) {
@@ -8534,7 +8537,7 @@ function applyNumFmtToInputs() {
                 
                 const users = Object.entries(state.activeUsers || {});
                 const now = Date.now();
-                const STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes — if lastSeen older than this and not actively pinging, consider offline
+                const STALE_THRESHOLD = 45 * 1000; // 45 seconds — heartbeat runs every 15s so this is safe
                 
                 // Filter: only count as online if status=online AND lastSeen is recent
                 const onlineCount = users.filter(([, data]) => {
@@ -8618,7 +8621,7 @@ function applyNumFmtToInputs() {
                 // Presence is updated instantly on tab close (via cleanup() + onDisconnect).
                 // Devices node can lag slightly on network disconnect, so presence is more reliable.
                 const now = Date.now();
-                const STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes
+                const STALE_THRESHOLD = 45 * 1000; // 45 seconds — heartbeat every 15s
                 const presenceOnline = Object.values(state.activeUsers || {})
                     .filter(u => {
                         if (u.status !== 'online') return false;
@@ -8680,10 +8683,11 @@ function applyNumFmtToInputs() {
                 
                 const seconds = Math.floor((Date.now() - timestamp) / 1000);
                 
-                if (seconds < 60) return 'Just now';
-                if (seconds < 3600) return `${Math.floor(seconds / 60)} mins ago`;
-                if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
-                return `${Math.floor(seconds / 86400)} days ago`;
+                if (seconds < 10) return 'Just now';
+                if (seconds < 60) return `${seconds}s ago`;
+                if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+                if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+                return `${Math.floor(seconds / 86400)}d ago`;
             },
             
             getActivityText(activity) {
@@ -8711,6 +8715,18 @@ function applyNumFmtToInputs() {
                 return icons[action] || 'circle';
             },
             
+            // ── Called after Firestore loads the user's real display name ──
+            // Corrects any "Unknown User" / generic name already written to Firebase presence.
+            async refreshDisplayName(displayName) {
+                if (!this.myPresenceRef || !displayName) return;
+                try {
+                    await window.firebase.update(this.myPresenceRef, { displayName });
+                    console.log('✅ Presence displayName refreshed:', displayName);
+                } catch(e) {
+                    console.warn('⚠️ Could not refresh presence displayName:', e.message);
+                }
+            },
+
             async cleanup() {
                 // Remove presence and device entries completely on logout/tab close
                 // Using remove() is better than status:'offline' — no ghost data left in Firebase
@@ -9222,7 +9238,7 @@ debugCommands.help() - Show this help
         async function clearStalePresenceData() {
             if (!state.isAdmin) return;
 
-            const STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes
+            const STALE_THRESHOLD = 45 * 1000; // 45 seconds — heartbeat every 15s
             const now = Date.now();
             let clearedCount = 0;
 
@@ -10439,12 +10455,15 @@ function openAdminQuickView() {
             // Find and update the project
             const project = state.projects.find(p => p.name === editingProjectOriginalName);
             if (project) {
+                const oldName = editingProjectOriginalName;
+                const nameChanged = newName !== oldName;
+
                 project.name = newName;
                 project.region = newRegion;
                 project.isRenewable = isRenewable;
 
                 if (newRegion === 'CORPORATE') {
-                    // HQ has no dates and is always on-going (permanent office)
+                    // CORPORATE has no dates and is always on-going (permanent office)
                     project.dateStarted = '';
                     project.dateFinished = '';
                     project.status = 'on-going';
@@ -10460,8 +10479,42 @@ function openAdminQuickView() {
                 }
 
                 // Also update masterProjects immediately
-                const mIdx = state.masterProjects.findIndex(p => p.name === editingProjectOriginalName);
+                const mIdx = state.masterProjects.findIndex(p => p.name === oldName);
                 if (mIdx >= 0) state.masterProjects[mIdx] = project;
+
+                // ── FIX: Rename ESH calendar localStorage keys when project name changes ──
+                if (nameChanged) {
+                    try {
+                        const eshData = getEshStorage();
+                        const updatedEshData = {};
+                        let renamedCount = 0;
+                        Object.entries(eshData).forEach(([key, val]) => {
+                            // Keys format: "tabType|ProjectName|ti|mi|field"
+                            const parts = key.split('|');
+                            if (parts.length === 5 && parts[1] === oldName) {
+                                // Rename: replace old project name with new name
+                                const newKey = parts[0] + '|' + newName + '|' + parts[2] + '|' + parts[3] + '|' + parts[4];
+                                updatedEshData[newKey] = val;
+                                renamedCount++;
+                            } else {
+                                updatedEshData[key] = val;
+                            }
+                        });
+                        if (renamedCount > 0) {
+                            setEshStorage(updatedEshData);
+                            console.log(`✅ ESH calendar: renamed ${renamedCount} keys from "${oldName}" → "${newName}"`);
+                        }
+                    } catch(e) {
+                        console.warn('⚠️ Could not rename ESH calendar keys:', e);
+                    }
+
+                    // ── FIX: Update personnel current assignment if they are assigned to renamed project ──
+                    (state.personnelData || []).forEach(person => {
+                        if (person.current === oldName) {
+                            person.current = newName;
+                        }
+                    });
+                }
 
                 sortProjects(state.currentSort);
                 reapplyFilters();
@@ -10836,10 +10889,10 @@ function openAdminQuickView() {
                 'osh-requirement': 'OSH PERSONNEL REQUIREMENT MONITORING',
                 'env-monitoring': 'ENVIRONMENTAL MONITORING',
                 'env-monthly-report': 'ENVIRONMENTAL MONTHLY REPORT',
-                'esh-calendar-env': '2026 ESH CALENDAR — ENVIRONMENT TRAININGS',
-                'esh-calendar-safety': '2026 ESH CALENDAR — SAFETY TRAININGS',
-                'esh-calendar-health': '2026 ESH CALENDAR — HEALTH TRAININGS',
-                'esh-calendar-drills': '2026 ESH CALENDAR — EMERGENCY DRILLS'
+                'esh-calendar-env': `${state.selectedYear} ESH CALENDAR — ENVIRONMENT TRAININGS`,
+                'esh-calendar-safety': `${state.selectedYear} ESH CALENDAR — SAFETY TRAININGS`,
+                'esh-calendar-health': `${state.selectedYear} ESH CALENDAR — HEALTH TRAININGS`,
+                'esh-calendar-drills': `${state.selectedYear} ESH CALENDAR — EMERGENCY DRILLS`
             };
             document.querySelector('.header-title').innerText = titles[t] || t.toUpperCase();
             document.getElementById('settings-view').classList.toggle('hidden', t !== 'settings');
@@ -11561,17 +11614,21 @@ function closeAllStatusDropdowns() {
         }
 
         function renderCharts() {
+            // CORPORATE is a records-only entity — excluded from compliance chart
+            const chartProjects = state.projects.filter(p => p.region !== 'CORPORATE');
+            const chartRegions = REGIONS.filter(r => r !== 'CORPORATE');
             const regionData = {};
-            REGIONS.forEach(r => regionData[r] = [0, 0]);
-            state.projects.forEach(p => {
+            chartRegions.forEach(r => regionData[r] = [0, 0]);
+            chartProjects.forEach(p => {
+                if (!regionData[p.region]) return;
                 const perc = getPerc(p);
                 regionData[p.region][0] += perc;
                 regionData[p.region][1] += 1;
             });
 
-            const regionAvgs = REGIONS.map(r => regionData[r][1] > 0 ? Math.round(regionData[r][0] / regionData[r][1]) : 0);
+            const regionAvgs = chartRegions.map(r => regionData[r][1] > 0 ? Math.round(regionData[r][0] / regionData[r][1]) : 0);
             const statusCounts = { 'on-going': 0, 'work-stoppage': 0, 'finished': 0 };
-            state.projects.forEach(p => statusCounts[p.status]++);
+            chartProjects.forEach(p => statusCounts[p.status] = (statusCounts[p.status] || 0) + 1);
 
             Object.values(state.charts).forEach(chart => { if (chart) chart.destroy(); });
             state.charts = {};
@@ -11618,7 +11675,7 @@ function closeAllStatusDropdowns() {
                     state.charts.region = new Chart(regionCtx, {
                         type: 'bar',
                         data: {
-                            labels: REGIONS,
+                            labels: chartRegions,
                             datasets: [{
                                 label: 'Compliance %',
                                 data: regionAvgs,
@@ -12608,9 +12665,11 @@ function closeAllStatusDropdowns() {
                 html += buildTrendChartHTML('rates');
             }
 
+            // CORPORATE is a records-only entity — exclude from compliance calculations
+            const complianceProjects = state.projects.filter(p => p.region !== 'CORPORATE');
             let grandTotal = 0;
-            state.projects.forEach(p => grandTotal += getPerc(p));
-            const overallAvg = state.projects.length > 0 ? Math.round(grandTotal / state.projects.length) : 0;
+            complianceProjects.forEach(p => grandTotal += getPerc(p));
+            const overallAvg = complianceProjects.length > 0 ? Math.round(grandTotal / complianceProjects.length) : 0;
 
             if (state.currentTab === 'overall') {
                 // Add search and filters inside dashboard
@@ -12648,7 +12707,7 @@ function closeAllStatusDropdowns() {
                 html += `<div id="grand-stats">
                     <div class="stat-card">
                         <div class="stat-label">TOTAL PROJECTS</div>
-                        <div class="stat-value">${state.projects.length}</div>
+                        <div class="stat-value">${complianceProjects.length}</div>
                         <div class="particles-container">
                             <div class="particle particle-green-1"></div>
                             <div class="particle particle-green-2"></div>
@@ -12668,7 +12727,7 @@ function closeAllStatusDropdowns() {
                     </div>
                     <div class="stat-card" style="border-left-color: #1976D2;">
                         <div class="stat-label">ON-GOING</div>
-                        <div class="stat-value">${state.projects.filter(p => p.status === 'on-going').length}</div>
+                        <div class="stat-value">${complianceProjects.filter(p => p.status === 'on-going').length}</div>
                         <div class="particles-container">
                             <div class="particle particle-blue-1"></div>
                             <div class="particle particle-blue-2"></div>
@@ -12678,7 +12737,7 @@ function closeAllStatusDropdowns() {
                     </div>
                     <div class="stat-card" style="border-left-color: #d32f2f;">
                         <div class="stat-label">WORK STOPPAGE</div>
-                        <div class="stat-value">${state.projects.filter(p => p.status === 'work-stoppage').length}</div>
+                        <div class="stat-value">${complianceProjects.filter(p => p.status === 'work-stoppage').length}</div>
                         <div class="particles-container">
                             <div class="particle particle-red-1"></div>
                             <div class="particle particle-red-2"></div>
@@ -12935,7 +12994,7 @@ function closeAllStatusDropdowns() {
                 const isCollapsed = isRegionCollapsed(reg);
                 
                 const isCorporateReg = reg === 'CORPORATE';
-                const CORP_DATA_TABS = ['overall', 'rates', 'exposures', 'dole', 'medical', 'nov', 'nov-env', 'nov-monitoring'];
+                const CORP_DATA_TABS = ['overall', 'rates', 'exposures', 'dole', 'medical', 'nov', 'nov-env', 'nov-monitoring', 'activities', 'esh-calendar-env', 'esh-calendar-safety', 'esh-calendar-health', 'esh-calendar-drills'];
                 const isCorporateDataTab = isCorporateReg && CORP_DATA_TABS.includes(state.currentTab);
                 const regIcon = isCorporateReg ? 'fa-building-columns' : 'fa-location-dot';
                 const regLabel = isCorporateReg ? 'CORPORATE' : reg;
@@ -16173,7 +16232,7 @@ function renderPTable() {
     }
 
     // Build project assignment dropdown options
-    let projOptions = '<optgroup label="Corporate/Head Office">';
+    let projOptions = '<optgroup label="Corporate Office">';
     if (state.isAdmin) projOptions += '<option value="Corporate Office">Corporate Office</option>';
     projOptions += '</optgroup>';
     if (state.projects && state.projects.length > 0) {
@@ -17311,6 +17370,10 @@ async function loadFromFirebase() {
                 localStorage.setItem('esh_displayname_' + userEmail, userData.displayName);
                 const badge = document.getElementById('user-badge');
                 if (badge) badge.innerHTML = `<i class="fas fa-user-circle"></i> ${userData.displayName}`;
+                // ── FIX: Re-push correct name to Firebase presence so "Unknown User" is corrected ──
+                if (typeof PresenceTracker !== 'undefined' && PresenceTracker.myPresenceRef) {
+                    PresenceTracker.refreshDisplayName(userData.displayName);
+                }
             }
             
             // 🚨 MIGRATION: If old structure detected (has projects array at root), migrate to 2026
@@ -20832,24 +20895,25 @@ function isMonthFuture(monthIdx) {
 // Get the max allowed date for a given month (last day of that month, or today if current month)
 function getMaxDateForMonth(monthIdx) {
     const now = new Date();
-    const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const today = now.toISOString().split('T')[0];
     const curMonth = now.getMonth();
     const curYear = now.getFullYear();
-    if (monthIdx === curMonth && curYear === 2026) {
-        return today; // Can only enter up to today in current month
+    const selYear = (state && state.selectedYear) || 2026;
+    if (monthIdx === curMonth && curYear === selYear) {
+        return today;
     }
-    if (monthIdx < curMonth || curYear < 2026) {
-        // Past month: allow any date within that month
-        const lastDay = new Date(2026, monthIdx + 1, 0).getDate();
+    if (selYear < curYear || (selYear === curYear && monthIdx < curMonth)) {
+        const lastDay = new Date(selYear, monthIdx + 1, 0).getDate();
         const mm = String(monthIdx + 1).padStart(2, '0');
-        return `2026-${mm}-${lastDay}`;
+        return selYear + '-' + mm + '-' + String(lastDay).padStart(2, '0');
     }
-    return ''; // Future month: no date allowed
+    return '';
 }
 
 function getMinDateForMonth(monthIdx) {
+    const selYear = (state && state.selectedYear) || 2026;
     const mm = String(monthIdx + 1).padStart(2, '0');
-    return `2026-${mm}-01`;
+    return selYear + '-' + mm + '-01';
 }
 
 // RBAC: Can this user input data for this tabType + region?
@@ -21115,7 +21179,10 @@ function renderEshCalendar(tabType) {
         </div>
     `;
 
-    if (allProjects.length === 0) {
+    const corpProj = allProjects.find(p => p.region === 'CORPORATE');
+    const regularProjects = allProjects.filter(p => p.region !== 'CORPORATE');
+
+    if (regularProjects.length === 0 && !corpProj) {
         html += `<div class="esh-no-projects">
             <i class="fas fa-folder-open" style="font-size:2rem;margin-bottom:10px;opacity:0.3;display:block;"></i>
             <strong>No projects found.</strong><br>
@@ -21123,8 +21190,101 @@ function renderEshCalendar(tabType) {
         </div>`;
     }
 
+    // ── CORPORATE HQ SECTION (always shown first, admin-only editable) ──
+    if (corpProj) {
+        const isDrills = tabType === 'esh-calendar-drills';
+        const trainings = ESH_TRAININGS[tabType] || [];
+        const corpContentId = tabType + '-CORPORATE-content';
+        const corpIconId = tabType + '-CORPORATE-icon';
+
+        // Build N/A table for Corporate
+        let corpTableHtml = `<div style="padding:10px 14px;background:#fffbea;border-bottom:1px solid #ffe082;font-size:0.72rem;color:#7a5c00;">
+            <i class="fas fa-building-columns" style="margin-right:6px;"></i>
+            <strong>CORPORATE — Records Only.</strong>
+            Items marked <span style="background:#e0e0e0;padding:1px 6px;border-radius:4px;font-weight:700;font-size:0.65rem;">N/A</span> are not applicable at the corporate level.
+            Applicable items can be logged by Admin.
+        </div>
+        <div style="overflow-x:auto;"><table class="esh-table"><thead><tr>
+            <th class="esh-th-name" rowspan="2">${isDrills ? 'Emergency Drill' : 'Training / Awareness'}</th>`;
+        ESH_MONTHS.forEach(m => {
+            corpTableHtml += `<th colspan="2" style="text-align:center;border-left:2px solid rgba(255,255,255,0.15);">${m.substring(0,3)}</th>`;
+        });
+        corpTableHtml += `</tr><tr>`;
+        ESH_MONTHS.forEach(() => {
+            corpTableHtml += `<th class="esh-th-plan">Plan</th><th class="esh-th-actual">Actual</th>`;
+        });
+        corpTableHtml += `</tr></thead><tbody>`;
+
+        // N/A items for corporate: these are construction-site specific items not applicable at HQ
+        const corpNAItems_drills = ['Confined Space and Tunnel Emergency'];
+        const corpNAItems_safety = ['Confined Space and/or Tunneling Safety including Gas Test Awareness','Spotter & Flagman Training','Heavy Equipment Safety Training','Safe Operation Procedure (SOP) for Retrieval & Rescue of Equipment/Vehicle Training'];
+        const corpNAItems_env = []; // All env trainings are applicable
+        const corpNAItems_health = []; // All health trainings are applicable
+
+        const naList = isDrills ? corpNAItems_drills : (tabType === 'esh-calendar-safety' ? corpNAItems_safety : (tabType === 'esh-calendar-env' ? corpNAItems_env : corpNAItems_health));
+        const storage = getEshStorage();
+        const canEditCorp = state && state.isAdmin;
+        const itemList = isDrills ? ESH_DRILLS.map(d => d.name) : trainings;
+
+        itemList.forEach((item, ti) => {
+            const isNA = naList.includes(typeof item === 'string' ? item : item.name);
+            const itemLabel = typeof item === 'string' ? item : item.name;
+            const freqLabel = isDrills ? `<span class="esh-freq-badge" style="background:#e0e0e0;color:#555;">${ESH_DRILLS[ti]?.freq||''}</span>` : '';
+            corpTableHtml += `<tr>`;
+            if (isDrills) {
+                corpTableHtml += `<td class="esh-td-name">${itemLabel} ${freqLabel}</td>`;
+            } else {
+                corpTableHtml += `<td class="esh-td-name">${itemLabel}</td>`;
+            }
+            ESH_MONTHS.forEach((m, mi) => {
+                if (isNA) {
+                    corpTableHtml += `<td colspan="2" class="osh-cell-na" style="text-align:center;font-weight:700;font-size:0.65rem;color:#9e9e9e;letter-spacing:1px;">N/A</td>`;
+                } else {
+                    const planKey = getEshKey(tabType, corpProj.name, ti, mi, 'plan');
+                    const actualKey = getEshKey(tabType, corpProj.name, ti, mi, 'actual');
+                    const isPlanned = !!(storage[planKey]);
+                    const actualVal = storage[actualKey] || '';
+                    const isFuture = isMonthFuture(mi);
+                    const overdue = isPlanned && !actualVal && isMonthOverdue(mi);
+                    const done = !!actualVal;
+                    const maxDate = getMaxDateForMonth(mi);
+                    const minDate = getMinDateForMonth(mi);
+                    const planDisabled = !canEditCorp ? 'disabled title="🔒 Admin only"' : '';
+                    const dateDisabled = (!canEditCorp || isFuture) ? `disabled title="${!canEditCorp ? '🔒 Admin only' : '📅 Future month'}"` : '';
+                    let actualClass = 'esh-td-actual';
+                    if (done) actualClass += ' esh-done';
+                    else if (overdue) actualClass += ' esh-overdue';
+                    corpTableHtml += `<td class="esh-td-plan${isPlanned?' esh-planned':''}${!canEditCorp?' esh-plan-locked':''}"
+                        onclick="event.stopPropagation();eshSetPlan('${tabType}','${corpProj.name}',${ti},${mi},null,this)"
+                        title="${!canEditCorp ? '🔒 Admin only' : isPlanned ? 'Click to unschedule' : 'Click to schedule'}"></td>`;
+                    corpTableHtml += `<td class="${actualClass}">
+                        <input type="date" value="${actualVal}" ${dateDisabled}
+                            ${maxDate ? `max="${maxDate}"` : ''} min="${minDate}"
+                            onchange="eshSetActual('${tabType}','${corpProj.name}',${ti},${mi},this.value,this.closest('td'))">
+                    </td>`;
+                }
+            });
+            corpTableHtml += `</tr>`;
+        });
+        corpTableHtml += `</tbody></table></div>`;
+
+        html += `
+        <div class="esh-region-block">
+            <div class="esh-region-banner" onclick="eshToggleRegion('${corpContentId}')"
+                style="border-radius:8px;background:linear-gradient(90deg,#1b5e20 0%,#2e7d32 60%,#388e3c 100%);">
+                <i class="fas fa-building-columns"></i> CORPORATE
+                <span style="background:rgba(255,255,255,0.18);padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;margin-left:8px;">RECORDS ONLY</span>
+                <span style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.8);padding:2px 8px;border-radius:10px;font-size:0.56rem;font-weight:700;border:1px solid rgba(255,255,255,0.2);">NOT COUNTED IN COMPLIANCE</span>
+                <i class="fas fa-chevron-down esh-region-toggle" id="${corpIconId}" style="transform:rotate(-90deg);"></i>
+            </div>
+            <div id="${corpContentId}" class="esh-region-content" style="display:none;">
+                ${corpTableHtml}
+            </div>
+        </div>`;
+    }
+
     regionOrder.forEach(region => {
-        const regProjects = allProjects.filter(p => p.region === region);
+        const regProjects = regularProjects.filter(p => p.region === region);
         if (regProjects.length === 0) return;
         const safeRegion = region.replace(/[^a-z0-9]/gi,'_');
         const regionContentId = tabType + '-' + safeRegion + '-content';
@@ -21148,9 +21308,9 @@ function renderEshCalendar(tabType) {
     html += `</div>`;
     container.innerHTML = html;
 
-    // Now populate each region's table
+    // Now populate each region's table (excluding CORPORATE)
     regionOrder.forEach(region => {
-        const regProjects = allProjects.filter(p => p.region === region);
+        const regProjects = regularProjects.filter(p => p.region === region);
         if (regProjects.length === 0) return;
         const projIdx = _eshRegionProjectIdx[eshGetRegionKey(tabType, region)] || 0;
         eshRenderRegionTable(tabType, region, regProjects, projIdx);
@@ -21340,11 +21500,11 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
             return;
         }
         // Also validate it's within the correct month
-        const expectedYear = 2026;
+        const expectedYear = (state && state.selectedYear) || 2026;
         const expectedMonth = String(mi + 1).padStart(2, '0');
         const expectedPrefix = `${expectedYear}-${expectedMonth}`;
         if (!value.startsWith(expectedPrefix)) {
-            showToast(`⚠️ Ang petsa ay dapat nasa tamang buwan (${ESH_MONTHS[mi]} 2026).`, 'warning', 4000);
+            showToast(`⚠️ Ang petsa ay dapat nasa tamang buwan (${ESH_MONTHS[mi]} ${expectedYear}).`, 'warning', 4000);
             if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
             return;
         }
