@@ -95,27 +95,7 @@
             --input-bg: #3a3a3a;
         }
 
-        /* ==================== APPLE macOS CURSOR STYLE ==================== */
-        * {
-            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='20' viewBox='0 0 16 20'%3E%3Cfilter id='sh' x='-20%25' y='-20%25' width='160%25' height='160%25'%3E%3CfeDropShadow dx='0.5' dy='1' stdDeviation='0.8' flood-color='%23000' flood-opacity='0.4'/%3E%3C/filter%3E%3Cpath d='M2 1 L2 16.5 L5.2 13.3 L7.8 18.8 L9.6 18 L7 12.5 L11.5 12.5 Z' fill='white' stroke='%231a1a1a' stroke-width='0.8' stroke-linejoin='round' filter='url(%23sh)'/%3E%3C/svg%3E") 2 1, default !important;
-        }
 
-        a, button, [onclick], .nav-item, select, label[for],
-        .nav-group-header, .user-badge, input[type="checkbox"],
-        input[type="radio"], input[type="submit"], input[type="button"],
-        [role="button"], .dropdown-item {
-            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='20' viewBox='0 0 16 20'%3E%3Cfilter id='sh' x='-20%25' y='-20%25' width='160%25' height='160%25'%3E%3CfeDropShadow dx='0.5' dy='1' stdDeviation='0.8' flood-color='%23000' flood-opacity='0.4'/%3E%3C/filter%3E%3Cg filter='url(%23sh)'%3E%3Cpath d='M5.5 1.5 C5.5 0.9 6 0.5 6.5 0.5 C7 0.5 7.5 0.9 7.5 1.5 L7.5 8 C7.8 7.5 8.3 7.2 8.9 7.2 C9.5 7.2 10 7.6 10.1 8.2 C10.4 7.7 10.9 7.4 11.5 7.4 C12.1 7.4 12.6 7.8 12.8 8.4 C13.1 8 13.5 7.8 14 7.9 C14.6 8 15 8.5 15 9.1 L15 13.5 C15 16.5 12.8 18.5 10 18.5 L8 18.5 C6.3 18.5 4.8 17.7 3.8 16.4 L1.3 13.2 C0.9 12.7 1 12 1.5 11.6 C2 11.2 2.7 11.3 3.1 11.8 L4.5 13.5 L4.5 1.5 C4.5 0.9 5 0.5 5.5 0.5 Z' fill='white' stroke='%231a1a1a' stroke-width='0.7' stroke-linejoin='round'/%3E%3C/g%3E%3C/svg%3E") 5 1, pointer !important;
-        }
-
-        input[type="text"], input[type="email"], input[type="password"],
-        input[type="number"], input[type="search"], textarea, [contenteditable] {
-            cursor: text !important;
-        }
-
-        [disabled], button:disabled { cursor: not-allowed !important; }
-        [draggable="true"] { cursor: grab !important; }
-        [draggable="true"]:active { cursor: grabbing !important; }
-        /* ==================== END APPLE macOS CURSOR STYLE ==================== */
         #safety-reminder-container {
             position: fixed;
             bottom: -300px;
@@ -4707,6 +4687,8 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                         <option value="Safety Officer III">Safety Officer III</option>
                         <option value="Safety Officer IV">Safety Officer IV</option>
                         <option value="PCO">PCO</option>
+                        <option value="TMO">TMO</option>
+                        <option value="ESH Project DC">ESH Project DC</option>
                         <option value="Project Physician">Project Physician</option>
                         <option value="Project Nurse">Project Nurse</option>
                         <option value="First Aider">First Aider</option>
@@ -4821,6 +4803,8 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                         <option value="Safety Officer III">Safety Officer III</option>
                         <option value="Safety Officer IV">Safety Officer IV</option>
                         <option value="PCO">PCO</option>
+                        <option value="TMO">TMO</option>
+                        <option value="ESH Project DC">ESH Project DC</option>
                         <option value="Project Physician">Project Physician</option>
                         <option value="Project Nurse">Project Nurse</option>
                         <option value="First Aider">First Aider</option>
@@ -5057,13 +5041,13 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <!-- Always visible controls -->
 
                 <!-- EXPORT PDF BUTTON -->
-                <button id="export-pdf-btn" class="year-selector-btn" onclick="exportCurrentTabToPDF()" title="Export to PDF Report">
-                    <i class="fas fa-file-pdf" style="color:#e53935;"></i>
+                <button id="export-pdf-btn" class="year-selector-btn" onclick="exportCurrentTabToPDF()" title="Export to PDF Report" style="padding:4px 6px;">
+                    <i class="fas fa-file-pdf" style="color:#e53935;font-size:1.35rem;"></i>
                 </button>
 
                 <!-- EXPORT EXCEL BUTTON -->
-                <button id="export-excel-btn" class="year-selector-btn" onclick="exportCurrentTabToExcel()" title="Export to Excel">
-                    <i class="fas fa-file-excel" style="color:#1b7e3d;"></i>
+                <button id="export-excel-btn" class="year-selector-btn" onclick="exportCurrentTabToExcel()" title="Export to Excel" style="padding:4px 6px;">
+                    <i class="fas fa-file-excel" style="color:#1b7e3d;font-size:1.35rem;"></i>
                 </button>
                 
                 <!-- DEVICE COUNTER (Admin Only) -->
@@ -6451,11 +6435,21 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
     <script>
 
 // ===== BACKUP & RECOVERY SYSTEM =====
+// ⚠️ SECURITY: Backups are STRICTLY per-account.
+// Each account uses its own isolated localStorage key: esh_backups_<email>
+// No account can ever see, restore, or delete another account's backups.
 let backupManager = {
     backups: [],
     autoSaveInterval: null,
     maxBackups: 10,
     autoSaveFrequency: 300000, // 5 minutes in milliseconds
+
+    // Returns the storage key for the CURRENT logged-in user only
+    _storageKey() {
+        if (!state.currentUser?.email) return null;
+        // Sanitize email for use as key suffix
+        return 'esh_backups_' + state.currentUser.email.replace(/[^a-zA-Z0-9@._-]/g, '_');
+    },
 
     init() {
         this.loadBackupsFromStorage();
@@ -6464,21 +6458,36 @@ let backupManager = {
     },
 
     loadBackupsFromStorage() {
-        const saved = localStorage.getItem('esh_backups');
-        this.backups = saved ? JSON.parse(saved) : [];
+        const key = this._storageKey();
+        if (!key) { this.backups = []; return; }
+        try {
+            const saved = localStorage.getItem(key);
+            // Extra safety: only load backups that belong to the current user
+            const parsed = saved ? JSON.parse(saved) : [];
+            this.backups = parsed.filter(b => b.email === state.currentUser?.email);
+        } catch(e) {
+            this.backups = [];
+        }
     },
 
     saveBackupsToStorage() {
-        localStorage.setItem('esh_backups', JSON.stringify(this.backups));
+        const key = this._storageKey();
+        if (!key) return;
+        // Extra safety: only ever save backups owned by the current user
+        const ownBackups = this.backups.filter(b => b.email === state.currentUser?.email);
+        localStorage.setItem(key, JSON.stringify(ownBackups));
     },
 
     createBackup(manual = false) {
         if (!state.currentUser) return false;
 
+        // Reload from storage first so we have the latest list for this user
+        this.loadBackupsFromStorage();
+
         const backup = {
             id: Date.now(),
             timestamp: new Date().toISOString(),
-            email: state.currentUser.email,
+            email: state.currentUser.email,  // Always tag with owner
             projects: JSON.parse(JSON.stringify(state.projects)),
             manual: manual,
             size: JSON.stringify(state.projects).length
@@ -6486,7 +6495,7 @@ let backupManager = {
 
         this.backups.unshift(backup);
 
-        // Keep only latest backups
+        // Keep only latest 10 backups PER account
         if (this.backups.length > this.maxBackups) {
             this.backups = this.backups.slice(0, this.maxBackups);
         }
@@ -6497,9 +6506,10 @@ let backupManager = {
 
     startAutoSave() {
         this.autoSaveInterval = setInterval(() => {
-            if (state.isLoggedIn) {
+            if (state.isLoggedIn && state.currentUser) {
+                this.loadBackupsFromStorage(); // Always reload for current user first
                 this.createBackup(false);
-                console.log('✅ Auto-backup created');
+                console.log('✅ Auto-backup created for', state.currentUser.email);
             }
         }, this.autoSaveFrequency);
     },
@@ -6511,13 +6521,20 @@ let backupManager = {
     },
 
     getBackupsForUser(email) {
+        // Only return backups for the CURRENT logged-in user — never for anyone else
+        if (!state.currentUser || state.currentUser.email !== email) return [];
+        this.loadBackupsFromStorage();
         return this.backups.filter(b => b.email === email);
     },
 
     restoreBackup(backupId) {
-        const backup = this.backups.find(b => b.id === backupId);
+        if (!state.currentUser) return false;
+        this.loadBackupsFromStorage();
+
+        // OWNERSHIP CHECK: only restore a backup that belongs to the current user
+        const backup = this.backups.find(b => b.id === backupId && b.email === state.currentUser.email);
         if (!backup) {
-            console.error('Backup not found');
+            console.error('Backup not found or does not belong to current user');
             return false;
         }
 
@@ -6529,13 +6546,27 @@ let backupManager = {
     },
 
     deleteBackup(backupId) {
+        if (!state.currentUser) return false;
+        this.loadBackupsFromStorage();
+
+        // OWNERSHIP CHECK: only delete a backup that belongs to the current user
+        const backup = this.backups.find(b => b.id === backupId);
+        if (!backup || backup.email !== state.currentUser.email) {
+            console.error('Cannot delete: backup not found or belongs to another account');
+            return false;
+        }
+
         this.backups = this.backups.filter(b => b.id !== backupId);
         this.saveBackupsToStorage();
         return true;
     },
 
     exportBackup(backupId) {
-        const backup = this.backups.find(b => b.id === backupId);
+        if (!state.currentUser) return false;
+        this.loadBackupsFromStorage();
+
+        // OWNERSHIP CHECK
+        const backup = this.backups.find(b => b.id === backupId && b.email === state.currentUser.email);
         if (!backup) return false;
 
         const dataStr = JSON.stringify(backup, null, 2);
@@ -6543,7 +6574,7 @@ let backupManager = {
         const url = URL.createObjectURL(dataBlob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `esh_backup_${backup.timestamp.split('T')[0]}.json`;
+        link.download = `esh_backup_${backup.timestamp.split('T')[0]}_${state.currentUser.email.split('@')[0]}.json`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -6552,16 +6583,25 @@ let backupManager = {
     },
 
     importBackup(file) {
+        if (!state.currentUser) return Promise.resolve(false);
+        const currentEmail = state.currentUser.email;
+
         return new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
                     const backup = JSON.parse(e.target.result);
                     if (backup.projects && Array.isArray(backup.projects)) {
+                        // OWNERSHIP CHECK: if the backup file has an email tag, it must match current user
+                        if (backup.email && backup.email !== currentEmail) {
+                            console.error('Import rejected: backup belongs to a different account:', backup.email);
+                            resolve('wrong_account');
+                            return;
+                        }
                         state.projects = backup.projects;
                         state.filteredProjects = [...state.projects];
-                        saveUserData(state.currentUser.email);
-                        this.createBackup(true);
+                        saveUserData(currentEmail);
+                        this.createBackup(true); // Create a restore-point backup
                         render();
                         resolve(true);
                     } else {
@@ -6595,6 +6635,8 @@ let backupManager = {
 };
 
 function showBackupRecoveryUI() {
+    // Always reload from the current user's isolated storage key before rendering
+    backupManager.loadBackupsFromStorage();
     const userBackups = backupManager.getBackupsForUser(state.currentUser.email);
     const lastBackup = userBackups[0];
     const lastBackupTime = lastBackup ? backupManager.formatDate(lastBackup.timestamp) : 'Never';
@@ -6706,12 +6748,12 @@ function importBackupFile(input) {
     const file = input.files[0];
     if (!file) return;
 
-    backupManager.importBackup(file).then(success => {
-        if (success) {
+    backupManager.importBackup(file).then(result => {
+        if (result === true) {
             showBackupStatus('✅ Backup imported and restored successfully!', 'success');
-            setTimeout(() => {
-                changeTab('settings');
-            }, 500);
+            setTimeout(() => { changeTab('settings'); }, 500);
+        } else if (result === 'wrong_account') {
+            showBackupStatus('❌ Hindi pwede: Ang backup file na ito ay galing sa ibang account. Pwede ka lang mag-import ng sarili mong backup.', 'error');
         } else {
             showBackupStatus('❌ Invalid backup file format', 'error');
         }
@@ -15789,11 +15831,11 @@ function buildTrendChartHTML(tabType) {
               <!-- Region Filter -->
               <select id="trendRegionFilter" onchange="updateTrendChart('${tabType}')" 
                       style="padding: 6px 12px; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; background: white; color: #1b5e20; cursor: pointer;">
-                <option value="all">All Regions</option>
+                <option value="all">ALL REGIONS</option>
                 <option value="NCR">NCR</option>
-                <option value="LUZON">LUZON</option>
-                <option value="VISAYAS">VISAYAS</option>
-                <option value="MINDANAO">MINDANAO</option>
+                <option value="SOUTH LUZON">SOUTH LUZON</option>
+                <option value="NORTH LUZON">NORTH LUZON</option>
+                <option value="VISAYAS & MINDANAO">VISMIN</option>
               </select>
               
               <!-- Project Filter -->
@@ -16866,6 +16908,9 @@ function setupAuthObserver() {
                 isAdmin: state.isAdmin,
                 deviceId: state.deviceFingerprint
             });
+            
+            // Start ESH Calendar real-time sync so plan changes are visible to all accounts instantly
+            startEshCalendarSync();
             
             console.log('✅ All systems initialized successfully!');
             // ==================== END NEW SYSTEMS ====================
@@ -18149,7 +18194,7 @@ console.log('✅ Safety reminder character loaded!');
 // ==================== AUTOMATIC COLOR CODING FOR REPORTORIAL TABLES ====================
 function updateReportorialColors() {
     // Only apply colors when on the relevant tabs
-    if (!['kpm', 'dole', 'emb', 'doe', 'doe-permit'].includes(state.currentTab)) return;
+    if (!['kpm', 'dole', 'emb', 'doe', 'doe-permit', 'env-monthly-report'].includes(state.currentTab)) return;
     
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth(); // 0-11 (0=January)
@@ -18177,8 +18222,8 @@ function updateReportorialColors() {
                 // Skip header rows
                 if (cells.length === 0) return;
                 
-                // For KPM and DOLE - monthly columns (1-12)
-                if (state.currentTab === 'kpm' || state.currentTab === 'dole') {
+                // For KPM and DOLE and Environmental Monthly Report - monthly columns (1-12)
+                if (state.currentTab === 'kpm' || state.currentTab === 'dole' || state.currentTab === 'env-monthly-report') {
                     // Check if this is a merged cell row (AEDR, AMR) - skip color coding
                     const firstDataCell = cells[1];
                     if (firstDataCell && firstDataCell.getAttribute('colspan') === '12') {
@@ -18584,7 +18629,7 @@ window.refreshReportorialColors = refreshReportorialColors;
 // Also update colors when input values change
 document.addEventListener('input', function(e) {
     if (e.target.tagName === 'INPUT' && e.target.type === 'date') {
-        if (['kpm', 'dole', 'emb', 'doe'].includes(state.currentTab)) {
+        if (['kpm', 'dole', 'emb', 'doe', 'env-monthly-report'].includes(state.currentTab)) {
             setTimeout(updateReportorialColors, 50);
         }
     }
@@ -19730,12 +19775,82 @@ const TAB_COLORS = {
     'esh-calendar-drills': { header:'#2e7d32', light:'#e8f5e9', accent:'#388e3c', icon:'fa-person-running', label:'EMERGENCY DRILLS' },
 };
 
+// ==================== ESH CALENDAR FIREBASE REALTIME SYNC ====================
+// ESH calendar data is stored in Firebase Realtime DB so ALL accounts see the same data instantly.
+// Path: esh-calendar/data  (shared — not per-user)
+
+let _eshCalendarUnsubscribe = null; // holds the onValue unsubscribe fn
+
 function getEshStorage() {
     try { return JSON.parse(localStorage.getItem('esh_calendar_data') || '{}'); } catch(e) { return {}; }
 }
+
 function setEshStorage(data) {
+    // 1. Write to localStorage immediately (instant local render)
     localStorage.setItem('esh_calendar_data', JSON.stringify(data));
+
+    // 2. Push to Firebase Realtime DB (broadcast to all accounts)
+    _eshSaveToFirebase(data);
 }
+
+function _eshSaveToFirebase(data) {
+    try {
+        if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.set) return;
+        _eshLastLocalWrite = Date.now(); // Mark that WE wrote this — suppress self re-render
+        const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
+        window.firebase.set(ref, data).catch(e => console.warn('ESH calendar Firebase save failed:', e));
+    } catch(e) { console.warn('ESH calendar Firebase save error:', e); }
+}
+
+// Call this once after login to start listening for remote changes from other accounts
+let _eshLastLocalWrite = 0; // timestamp of last local write — used to skip self-triggered re-renders
+
+function startEshCalendarSync() {
+    if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.onValue) return;
+    if (_eshCalendarUnsubscribe) { try { _eshCalendarUnsubscribe(); } catch(e){} }
+
+    const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
+    _eshCalendarUnsubscribe = window.firebase.onValue(ref, (snapshot) => {
+        const remoteData = snapshot.val();
+        if (!remoteData || typeof remoteData !== 'object') return;
+
+        // Merge remote into local
+        const local = getEshStorage();
+        const merged = Object.assign({}, local, remoteData);
+
+        // Write merged back to localStorage silently (no Firebase re-push — avoid loop)
+        try { localStorage.setItem('esh_calendar_data', JSON.stringify(merged)); } catch(e){}
+
+        // SKIP re-render if this update was triggered by OUR OWN write (within 2s)
+        // eshSetPlan already does in-place DOM update — no need to re-render
+        const now = Date.now();
+        if (now - _eshLastLocalWrite < 2000) return;
+
+        // This is a REMOTE change from another account — re-render table contents only
+        // WITHOUT calling renderEshCalendar() which rebuilds the full HTML and collapses all regions
+        const eshTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills'];
+        if (state && eshTabs.includes(state.currentTab)) {
+            const tabType = state.currentTab;
+            const allProjects = (state && state.projects) ? state.projects : [];
+            const regionOrder = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
+            regionOrder.forEach(region => {
+                const regProjects = allProjects.filter(p => p.region === region);
+                if (!regProjects.length) return;
+                // Only re-render if the region content is currently VISIBLE (expanded)
+                const safeRegion = region.replace(/[^a-z0-9]/gi, '_');
+                const contentEl = document.getElementById(tabType + '-' + safeRegion + '-content');
+                if (contentEl && contentEl.style.display !== 'none') {
+                    const projIdx = _eshRegionProjectIdx[eshGetRegionKey(tabType, region)] || 0;
+                    try { eshRenderRegionTable(tabType, region, regProjects, projIdx); } catch(e){}
+                }
+            });
+        }
+    }, (err) => { console.warn('ESH calendar sync error:', err); });
+
+    console.log('✅ ESH Calendar real-time sync started');
+}
+window.startEshCalendarSync = startEshCalendarSync;
+// ==================== END ESH CALENDAR FIREBASE REALTIME SYNC ====================
 
 // ── Migrate old per-project plan keys -> new GLOBAL_PLAN keys ──
 // Old: "tabType|ProjectName|ti|mi|plan"  New: "tabType|GLOBAL_PLAN|ti|mi|plan"
@@ -20020,18 +20135,21 @@ function renderEshCalendar(tabType) {
     .esh-table tr:hover td.esh-td-name { background: ${col.light} !important; }
     .esh-td-plan {
         background: rgba(251,192,45,0.08) !important; text-align: center;
-        min-width: 50px;
+        min-width: 50px; cursor: pointer; user-select: none;
+        transition: background 0.15s;
     }
+    .esh-td-plan:hover { background: rgba(251,192,45,0.22) !important; }
     /* FIX: solid yellow fill — readable contrast */
     .esh-td-plan.esh-planned { background: #f9a825 !important; }
-    .esh-td-plan input[type="checkbox"] { accent-color: #f57f17; width: 14px; height: 14px; cursor: pointer; }
+    .esh-td-plan.esh-planned:hover { background: #f57f17 !important; }
+    .esh-td-plan.esh-plan-locked { cursor: not-allowed; opacity: 0.65; }
+    .esh-td-plan.esh-plan-locked:hover { background: rgba(251,192,45,0.08) !important; }
     .esh-td-actual { min-width: 100px; text-align: center; }
     /* FIX: solid fills with full contrast — no rgba transparency */
     .esh-td-actual.esh-done   { background: #2e7d32 !important; }
     .esh-td-actual.esh-overdue { background: #c62828 !important; }
     /* FIX: no red border — fill color is enough */
     .esh-td-actual input[type="date"]:disabled { opacity: 0.4; cursor: not-allowed; background: transparent; }
-    .esh-td-plan input[type="checkbox"]:disabled { opacity: 0.4; cursor: not-allowed; }
     .esh-td-actual input[type="date"] {
         background: transparent; border: none;
         color: var(--text-primary); font-size: 0.66rem;
@@ -20152,9 +20270,10 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                 if (done) { actualClass += ' esh-done'; actualBg = ''; }
                 else if (overdue) { actualClass += ' esh-overdue'; actualBg = ''; }
 
-                html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}">
-                    <input type="checkbox" ${isPlanned?'checked':''} ${planDisabled}
-                        onchange="eshSetPlan('${tabType}','${proj.name}',${ti},${mi},this.checked,this.closest('td'))">
+                html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}${!(state && state.isAdmin)?' esh-plan-locked':''}"
+                    data-tabtype="${tabType}" data-ti="${ti}" data-mi="${mi}"
+                    onclick="event.stopPropagation();eshSetPlan('${tabType}','${proj.name}',${ti},${mi},null,this)"
+                    title="${!(state && state.isAdmin) ? '🔒 Admin lang ang pwedeng mag-set ng Plan/Schedule' : isPlanned ? 'Click para i-unschedule' : 'Click para i-schedule'}">
                 </td>`;
                 html += `<td class="${actualClass}">
                     <input type="date" value="${actualVal}" ${dateDisabled}
@@ -20216,9 +20335,10 @@ function buildDrillsSingleTable(projects, storage, col) {
                 if (done) { actualClass += ' esh-done'; actualBg = ''; }
                 else if (overdue) { actualClass += ' esh-overdue'; actualBg = ''; }
 
-                html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}">
-                    <input type="checkbox" ${isPlanned?'checked':''} ${planDisabled}
-                        onchange="eshSetPlan('esh-calendar-drills','${proj.name}',${di},${mi},this.checked,this.closest('td'))">
+                html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}${!(state && state.isAdmin)?' esh-plan-locked':''}"
+                    data-tabtype="esh-calendar-drills" data-ti="${di}" data-mi="${mi}"
+                    onclick="event.stopPropagation();eshSetPlan('esh-calendar-drills','${proj.name}',${di},${mi},null,this)"
+                    title="${!(state && state.isAdmin) ? '🔒 Admin lang ang pwedeng mag-set ng Plan/Schedule' : isPlanned ? 'Click para i-unschedule' : 'Click para i-schedule'}">
                 </td>`;
                 html += `<td class="${actualClass}">
                     <input type="date" value="${actualVal}" ${dateDisabled}
@@ -20234,11 +20354,10 @@ function buildDrillsSingleTable(projects, storage, col) {
     return html;
 }
 
-window.eshSetPlan = function(tabType, projName, ti, mi, checked, tdEl) {
+window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
     // Plan column: ADMIN ONLY — no superintendent/PCO can set the plan schedule
     if (!(state && state.isAdmin)) {
         showToast('🔒 Admin lang ang pwedeng mag-set ng Plan/Schedule.', 'warning', 3000);
-        if (tdEl) { const cb = tdEl.querySelector('input[type="checkbox"]'); if (cb) cb.checked = !checked; }
         return;
     }
     // RBAC: find the project's region and validate
@@ -20246,24 +20365,33 @@ window.eshSetPlan = function(tabType, projName, ti, mi, checked, tdEl) {
     const proj = allProjects.find(p => p.name === projName);
     if (proj && !eshCanEdit(tabType, proj.region)) {
         showToast('🔒 Read-Only — You cannot edit this region/tab.', 'warning', 3000);
-        if (tdEl) { const cb = tdEl.querySelector('input[type="checkbox"]'); if (cb) cb.checked = !checked; }
         return;
     }
 
-    // Plans use a GLOBAL key — one write covers all projects & regions
+    // Toggle: read current state from storage then flip it
     const storage = getEshStorage();
-    storage[getEshKey(tabType, projName, ti, mi, 'plan')] = checked; // getEshKey uses GLOBAL_PLAN key
+    const key = getEshKey(tabType, projName, ti, mi, 'plan');
+    const wasPlanned = !!(storage[key]);
+    const nowPlanned = !wasPlanned;
+    storage[key] = nowPlanned;
     setEshStorage(storage);
 
-    // Re-render ALL region tables to reflect the global plan change
-    // Use scroll-preserving eshRenderRegionTable (it saves/restores scrollLeft)
-    const regionOrder = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
-    regionOrder.forEach(region => {
-        const regProjects = allProjects.filter(p => p.region === region);
-        if (!regProjects.length) return;
-        const projIdx = _eshRegionProjectIdx[eshGetRegionKey(tabType, region)] || 0;
-        eshRenderRegionTable(tabType, region, regProjects, projIdx);
+    // In-place DOM update: toggle ALL matching plan cells on the page
+    // without re-rendering tables (which resets display:none and collapses regions)
+    const planTitle = nowPlanned ? 'Click para i-unschedule' : 'Click para i-schedule';
+
+    document.querySelectorAll(
+        `.esh-td-plan[data-tabtype="${tabType}"][data-ti="${ti}"][data-mi="${mi}"]`
+    ).forEach(cell => {
+        cell.classList.toggle('esh-planned', nowPlanned);
+        cell.title = planTitle;
     });
+
+    // Also update clicked cell directly (safety fallback)
+    if (tdEl) {
+        tdEl.classList.toggle('esh-planned', nowPlanned);
+        tdEl.title = planTitle;
+    }
 };
 
 window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
