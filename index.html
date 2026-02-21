@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESH COMPLIANCE DASHBOARD - SCIC</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 
@@ -978,7 +978,17 @@
             flex-wrap: wrap;
         }
 
-        .header-title { font-family: 'Rajdhani', sans-serif; font-size: 1.15rem; color: #1b5e20; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; }
+        .header-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #1b5e20 0%, #43a047 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
         .header-controls { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
         .header-controls input, .header-controls select {
             padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.8rem;
@@ -1078,7 +1088,35 @@
         body.dark-mode .ud-header-icon { background: rgba(46,125,50,0.2); }
         .ud-header-icon i { color: #2e7d32; font-size: 0.75rem; }
         body.dark-mode .ud-header-icon i { color: #66bb6a; }
-        .ud-header-text { font-family: 'Rajdhani', sans-serif; font-size: 0.88rem; font-weight: 700; color: var(--text-primary); letter-spacing: 0.06em; text-transform: uppercase; }
+        body.dark-mode .ud-header-text {
+            background: linear-gradient(90deg, #66bb6a 0%, #a5d6a7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        body.dark-mode .header-title {
+            background: linear-gradient(90deg, #66bb6a 0%, #a5d6a7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        body.dark-mode .tab-info-bar .tib-title {
+            background: linear-gradient(90deg, #66bb6a 0%, #a5d6a7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .ud-header-text {
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #1b5e20 0%, #43a047 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
         .ud-header-sub  { font-size: 0.67rem; color: var(--text-secondary); margin-top: 1px; }
 
         /* Shared item */
@@ -1994,12 +2032,15 @@
         }
         .tab-info-bar .tib-body { flex: 1; min-width: 0; }
         .tab-info-bar .tib-title {
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 0.92rem;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.83rem;
             font-weight: 700;
-            color: var(--text-primary, #1b2e1c);
+            letter-spacing: 0.05em;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
+            background: linear-gradient(90deg, #1b5e20 0%, #43a047 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin: 0 0 2px;
         }
         .tab-info-bar .tib-sub {
@@ -4997,7 +5038,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <div class="nav-group-items collapsed">
                     <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-triangle-exclamation"></i> Accident/Incident Record</div>
                     <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fas fa-hard-hat"></i> OSH Regulatory Issued NOV</div>
-                    <div class="nav-item" data-tab="nov-env" onclick="changeTab('nov-env')"><i class="fas fa-leaf"></i> Environmental Issued NOV</div>
+                    <div class="nav-item" data-tab="nov-env" onclick="changeTab('nov-env')"><i class="fas fa-leaf"></i> ENVI REGULATORY ISSUED NOV</div>
                     <div class="nav-item" data-tab="nov-monitoring" onclick="changeTab('nov-monitoring')"><i class="fas fa-chart-gantt"></i> ESH NOV Monitoring</div>
                 </div>
             </div>
@@ -10786,7 +10827,7 @@ function openAdminQuickView() {
                 'overall': 'OVERALL DASHBOARD', 'exposures': 'TOTAL EXPOSURES',
                 'rates': 'STATISTICS RATE', 'medical': 'ACCIDENT/ INCIDENT RECORD',
 		'nov': 'OSH REGULATORY ISSUED NOV',
-                'nov-env': 'ENVIRONMENTAL ISSUED NOV',
+                'nov-env': 'ENVI REGULATORY ISSUED NOV',
                 'nov-monitoring': 'ESH NOV MONITORING',
                 'activities': 'ESH ACTIVITIES AND PROGRAMS','kpm': 'KEY PERFORMANCE MEASURES REPORT','reg': 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)','audit': 'INTERNAL ESH AUDIT REPORT',
                 'cshp': 'CONSTRUCTION SAFETY & HEALTH PROGRAM (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL','permits': 'ENVIRONMENTAL PERMITS/LICENSES/CLEARANCE','emb': ["EMB REPORTORIAL"],
@@ -13423,7 +13464,7 @@ if (state.currentTab === 'audit') {
                     envHtml += `<div class="tab-info-bar">
                         <div class="tib-icon"><i class="fas fa-leaf"></i></div>
                         <div class="tib-body">
-                            <p class="tib-title">ENVIRONMENTAL ISSUED NOV</p>
+                            <p class="tib-title">ENVI REGULATORY ISSUED NOV</p>
                             <p class="tib-sub">Notices of Violation issued by environmental regulatory bodies — Each NOV may contain multiple violations. Click "+ Add Violation" to add rows under a NOV.</p>
                         </div>
                         <div class="tib-badges">
@@ -13976,7 +14017,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     <div class="tab-info-bar">
                         <div class="tib-icon"><i class="fas fa-file-lines"></i></div>
                         <div class="tib-body">
-                            <p class="tib-title">Monthly Report (KPM & Inspection)</p>
+                            <p class="tib-title">Monthly Report (KPM)</p>
                             <p class="tib-sub">Monthly submission required for each project</p>
                             <p class="tib-sub" style="opacity:0.75;"><i class="fas fa-calendar-check"></i> Tracking ${displayProjects.length} project(s) — KPM &amp; Inspection reports</p>
                         </div>
@@ -18233,7 +18274,7 @@ function getExportData() {
         activities: 'ESH ACTIVITIES & PROGRAMS',
         audit: 'INTERNAL ESH AUDIT RESULT',
         nov: 'OSH REGULATORY ISSUED NOV',
-        'nov-env': 'ENVIRONMENTAL ISSUED NOV',
+        'nov-env': 'ENVI REGULATORY ISSUED NOV',
         'nov-monitoring': 'ESH NOV MONITORING',
         rates: 'STATISTICS RATE',
         personnel: 'ESH PERSONNEL MONITORING',
@@ -20954,7 +20995,7 @@ function renderEshCalendar(tabType) {
         box-shadow: 0 4px 14px rgba(0,0,0,0.15);
     }
     .esh-cal-header-icon { font-size: 1.5rem; color: rgba(255,255,255,0.85); }
-    .esh-cal-header-title { font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 700; color: white; letter-spacing: 0.07em; text-transform: uppercase; }
+    .esh-cal-header-title { font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 700; color: white; letter-spacing: 0.05em; text-transform: uppercase; }
     .esh-cal-header-sub { font-size: 0.65rem; color: rgba(255,255,255,0.7); margin-top: 2px; }
     .esh-cal-legend {
         display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
