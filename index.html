@@ -12048,7 +12048,7 @@ function closeAllStatusDropdowns() {
         function render() {
             try {
             const _eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills'];
-            if (state.currentTab === 'settings' || state.currentTab === 'personnel' || state.currentTab === 'admin' || _eshCalTabs.includes(state.currentTab)) return;
+            if (state.currentTab === 'settings' || state.currentTab === 'personnel' || state.currentTab === 'admin' || state.currentTab === 'env-monitoring' || state.currentTab === 'osh-requirement' || _eshCalTabs.includes(state.currentTab)) return;
 
             // Show/hide the lock icon on the audit nav tab for non-admins
             const auditNavLock = document.getElementById('audit-nav-lock');
@@ -16136,12 +16136,10 @@ function getCurrentUserId() {
     return window.firebaseAuth?.currentUser?.uid || 'local-user';
 }
 
-// NEW: Get the UID to read data from (always admin's UID for shared data)
+// Get the UID for the shared data location (always admin's — all users share one dataset)
+// Firestore rules must allow all authenticated SCIC users to write to this path.
 function getDataSourceUserId() {
-    // HARDCODED: Admin's UID from Firebase
     const ADMIN_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
-    
-    // All users read from admin's data location
     return ADMIN_UID;
 }
 
@@ -19821,22 +19819,17 @@ function startEshCalendarSync() {
         // Write merged back to localStorage silently (no Firebase re-push — avoid loop)
         try { localStorage.setItem('esh_calendar_data', JSON.stringify(merged)); } catch(e){}
 
-        // SKIP re-render if this update was triggered by OUR OWN write (within 2s)
-        // eshSetPlan already does in-place DOM update — no need to re-render
-        const now = Date.now();
-        if (now - _eshLastLocalWrite < 2000) return;
-
-        // This is a REMOTE change from another account — re-render table contents only
-        // WITHOUT calling renderEshCalendar() which rebuilds the full HTML and collapses all regions
+        // Always re-render ALL visible ESH calendar regions — both for self and remote changes.
+        // This ensures Plan (yellow) cells reflect immediately on ALL accounts including
+        // Superintendents and PCOs when Admin clicks a Plan cell.
         const eshTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills'];
-        if (state && eshTabs.includes(state.currentTab)) {
-            const tabType = state.currentTab;
+        const tabsToRefresh = (state && eshTabs.includes(state.currentTab)) ? [state.currentTab] : eshTabs;
+        tabsToRefresh.forEach(function(tabType) {
             const allProjects = (state && state.projects) ? state.projects : [];
             const regionOrder = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
-            regionOrder.forEach(region => {
-                const regProjects = allProjects.filter(p => p.region === region);
+            regionOrder.forEach(function(region) {
+                const regProjects = allProjects.filter(function(p){ return p.region === region; });
                 if (!regProjects.length) return;
-                // Only re-render if the region content is currently VISIBLE (expanded)
                 const safeRegion = region.replace(/[^a-z0-9]/gi, '_');
                 const contentEl = document.getElementById(tabType + '-' + safeRegion + '-content');
                 if (contentEl && contentEl.style.display !== 'none') {
@@ -19844,7 +19837,7 @@ function startEshCalendarSync() {
                     try { eshRenderRegionTable(tabType, region, regProjects, projIdx); } catch(e){}
                 }
             });
-        }
+        });
     }, (err) => { console.warn('ESH calendar sync error:', err); });
 
     console.log('✅ ESH Calendar real-time sync started');
@@ -20121,9 +20114,9 @@ function renderEshCalendar(tabType) {
         padding: 4px 5px; vertical-align: middle;
         background: var(--bg-card);
     }
-    .esh-table tr:nth-child(even) td { background: var(--input-bg); }
+    .esh-table tr:nth-child(even) td:not(.esh-td-plan) { background: var(--input-bg); }
     /* FIX: hover must NOT override filled colors — lower specificity via :not() */
-    .esh-table tr:hover td:not(.esh-planned):not(.esh-done):not(.esh-overdue) { background: ${col.light} !important; }
+    .esh-table tr:hover td:not(.esh-planned):not(.esh-done):not(.esh-overdue):not(.esh-td-plan) { background: ${col.light} !important; }
     .esh-table td.esh-td-name {
         font-size: 0.71rem; color: var(--text-primary);
         padding: 6px 10px; min-width: 220px;
@@ -20134,16 +20127,20 @@ function renderEshCalendar(tabType) {
     .esh-table tr:nth-child(even) td.esh-td-name { background: var(--input-bg); }
     .esh-table tr:hover td.esh-td-name { background: ${col.light} !important; }
     .esh-td-plan {
-        background: rgba(251,192,45,0.08) !important; text-align: center;
+        background: #fff3cd !important; text-align: center;
         min-width: 50px; cursor: pointer; user-select: none;
         transition: background 0.15s;
     }
-    .esh-td-plan:hover { background: rgba(251,192,45,0.22) !important; }
-    /* FIX: solid yellow fill — readable contrast */
+    /* Admin hover - slightly deeper yellow */
+    .esh-td-plan:not(.esh-plan-locked):hover { background: #ffe082 !important; }
+    /* Scheduled/planned: solid amber yellow — same for ALL users */
     .esh-td-plan.esh-planned { background: #f9a825 !important; }
-    .esh-td-plan.esh-planned:hover { background: #f57f17 !important; }
-    .esh-td-plan.esh-plan-locked { cursor: not-allowed; opacity: 0.65; }
-    .esh-td-plan.esh-plan-locked:hover { background: rgba(251,192,45,0.08) !important; }
+    .esh-td-plan.esh-planned:hover { background: #f9a825 !important; }
+    /* Locked (non-admin/PCO): same yellow tint, just no pointer — color NEVER changes */
+    .esh-td-plan.esh-plan-locked { cursor: not-allowed !important; }
+    .esh-td-plan.esh-plan-locked:hover { background: #fff3cd !important; }
+    .esh-td-plan.esh-planned.esh-plan-locked { background: #f9a825 !important; }
+    .esh-td-plan.esh-planned.esh-plan-locked:hover { background: #f9a825 !important; }
     .esh-td-actual { min-width: 100px; text-align: center; }
     /* FIX: solid fills with full contrast — no rgba transparency */
     .esh-td-actual.esh-done   { background: #2e7d32 !important; }
@@ -20391,6 +20388,22 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
     if (tdEl) {
         tdEl.classList.toggle('esh-planned', nowPlanned);
         tdEl.title = planTitle;
+    }
+
+    // Re-render all currently-visible expanded regions for this tab so all plan cells
+    // reflect consistently (the Firebase onValue listener will handle other accounts)
+    if (state && state.projects) {
+        const regionOrder = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
+        regionOrder.forEach(function(region) {
+            var regProjects = state.projects.filter(function(p){ return p.region === region; });
+            if (!regProjects.length) return;
+            var safeRegion = region.replace(/[^a-z0-9]/gi, '_');
+            var contentEl = document.getElementById(tabType + '-' + safeRegion + '-content');
+            if (contentEl && contentEl.style.display !== 'none') {
+                var projIdx = _eshRegionProjectIdx[eshGetRegionKey(tabType, region)] || 0;
+                try { eshRenderRegionTable(tabType, region, regProjects, projIdx); } catch(e){}
+            }
+        });
     }
 };
 
