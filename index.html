@@ -1966,7 +1966,7 @@
             display: flex;
             align-items: center;
             gap: 14px;
-            margin: 10px 16px 0;
+            margin: 10px 16px 12px;
             padding: 10px 16px;
             background: var(--bg-card, #fff);
             border: 1px solid #c8e6c9;
@@ -2921,15 +2921,15 @@ body.dark-mode .modern-dialog-btn-cancel {
         /* Previous Year Column */
         td.prev-year {
             font-weight: 700;
-            color: #2e7d32;
+            color: #bf360c;
             min-width: auto;
             width: auto;
-            background: rgba(76, 175, 80, 0.05);
+            background: rgba(230, 81, 0, 0.07);
         }
 
         body.dark-mode td.prev-year {
-            color: #a5d6a7;
-            background: rgba(76, 175, 80, 0.1);
+            color: #ffccbc;
+            background: rgba(230, 81, 0, 0.15);
         }
         
         td.prev-year {
@@ -2942,7 +2942,7 @@ body.dark-mode .modern-dialog-btn-cancel {
         }
         
         th.prev-year {
-            background: #2e7d32;
+            background: #e65100;
             min-width: 90px;
             max-width: 110px;
             width: 100px;
@@ -4575,6 +4575,29 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         </div>
     </div>
 
+    <!-- ==================== LEAVE SITE MODAL ==================== -->
+    <div id="leaveSiteModal" class="modal" style="z-index:99999;">
+        <div class="confirm-modal-content" style="max-width:420px;">
+            <div class="confirm-modal-header">
+                <div class="modal-icon confirm-modal-icon" style="background:linear-gradient(135deg,#c62828,#ef5350);box-shadow:0 5px 20px rgba(198,40,40,0.3);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="confirm-modal-title" style="font-size:1.25rem;">
+                    Leave Site?
+                </div>
+                <div class="confirm-modal-subtitle">Changes you made may not be saved.</div>
+            </div>
+            <div class="confirm-modal-buttons">
+                <button class="btn btn-cancel" onclick="leaveSiteCancel()" style="flex:1;max-width:none;">
+                    <i class="fas fa-arrow-left"></i> Stay
+                </button>
+                <button class="btn btn-proceed" onclick="leaveSiteConfirm()" style="flex:1;max-width:none;background:linear-gradient(135deg,#c62828,#ef5350);">
+                    <i class="fas fa-sign-out-alt"></i> Leave
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== SUCCESS MODAL ==================== -->
     <div id="successModal" class="modal">
         <div class="success-modal-content">
@@ -4678,6 +4701,10 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <button class="modal-close" onclick="closeAddPersonnelModal()">&times;</button>
             </div>
             <div class="modal-subtitle">Add a new ESH team member to the registry</div>
+            <div style="background:#fff3e0;border:1px solid #ffb74d;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:0.72rem;color:#e65100;display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-info-circle"></i>
+                <span>Check <strong>"To Update"</strong> on required fields if info is not yet available. Rows with pending updates will be highlighted in red.</span>
+            </div>
             <div class="form-group">
                 <label>Last Name *</label>
                 <input type="text" id="personnelLastNameInput" placeholder="Enter last name" required style="text-transform: uppercase;">
@@ -4687,7 +4714,10 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <input type="text" id="personnelFirstNameInput" placeholder="Enter first name" required style="text-transform: uppercase;">
             </div>
             <div class="form-group">
-                <label>Middle Name</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">Middle Name</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_middleName" onchange="toggleToUpdateField('personnelMiddleNameInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <input type="text" id="personnelMiddleNameInput" placeholder="Enter middle name" style="text-transform: uppercase;">
             </div>
             <div class="form-group">
@@ -4703,7 +4733,10 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 </select>
             </div>
             <div class="form-group">
-                <label>Position *</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">Position *</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_position" onchange="toggleToUpdateField('personnelPositionInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <select id="personnelPositionInput" required>
                     <option value="">Select Position</option>
                     <optgroup label="Project-Based Positions">
@@ -4723,7 +4756,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <optgroup label="Corporate Positions">
                         <option value="QESH Group Manager">QESH Group Manager</option>
                         <option value="QESH Deputy Manager">QESH Deputy Manager</option>
-                        <option value="ESH Manager for Regulation & Compliance">ESH Manager for Regulation & Compliance</option>
+                        <option value="ESH Manager for Regulation &amp; Compliance">ESH Manager for Regulation &amp; Compliance</option>
                         <option value="ESH Manager for Project Implementation">ESH Manager for Project Implementation</option>
                         <option value="Environmental and Sustainability Head">Environmental and Sustainability Head</option>
                         <option value="Corporate Physician">Corporate Physician</option>
@@ -4736,11 +4769,17 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 </select>
             </div>
             <div class="form-group">
-                <label>ID Number *</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">ID Number *</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_id" onchange="toggleToUpdateField('personnelIdInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <input type="text" id="personnelIdInput" placeholder="Enter ID number" required>
             </div>
             <div class="form-group">
-                <label>Date Hired *</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">Date Hired *</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_hired" onchange="toggleToUpdateField('personnelHiredInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <input type="date" id="personnelHiredInput" required>
             </div>
             <div class="form-group">
@@ -4751,7 +4790,10 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 </select>
             </div>
             <div class="form-group">
-                <label>Age *</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">Age *</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_age" onchange="toggleToUpdateField('personnelAgeInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <input type="number" id="personnelAgeInput" placeholder="Enter age" min="18" max="100" required>
             </div>
             <div class="form-group">
@@ -4763,15 +4805,24 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 </select>
             </div>
             <div class="form-group">
-                <label>Email</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">Email</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_email" onchange="toggleToUpdateField('personnelEmailInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <input type="email" id="personnelEmailInput" placeholder="email@example.com">
             </div>
             <div class="form-group">
-                <label>Contact Number</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">Contact Number</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_contact" onchange="toggleToUpdateField('personnelContactInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <input type="tel" id="personnelContactInput" placeholder="09XX XXX XXXX" oninput="this.value=fmtPhone(this.value)" maxlength="13">
             </div>
             <div class="form-group">
-                <label>Home Address</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">Home Address</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_address" onchange="toggleToUpdateField('personnelAddressInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <textarea id="personnelAddressInput" placeholder="Enter home address" oninput="this.value=titleCase(this.value)"></textarea>
             </div>
             <div class="modal-buttons">
@@ -4793,6 +4844,10 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <button class="modal-close" onclick="closeEditPersonnelModal()">&times;</button>
             </div>
             <div class="modal-subtitle">Update personnel information</div>
+            <div style="background:#fff3e0;border:1px solid #ffb74d;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:0.72rem;color:#e65100;display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-info-circle"></i>
+                <span>Check <strong>"To Update"</strong> on fields not yet available. Red-highlighted rows indicate pending updates.</span>
+            </div>
             <input type="hidden" id="editPersonnelIndex">
             <div class="form-group">
                 <label>Last Name *</label>
@@ -4803,7 +4858,10 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <input type="text" id="editPersonnelFirstNameInput" placeholder="Enter first name" required style="text-transform: uppercase;">
             </div>
             <div class="form-group">
-                <label>Middle Name</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">Middle Name</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_middleName" onchange="toggleToUpdateField('editPersonnelMiddleNameInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <input type="text" id="editPersonnelMiddleNameInput" placeholder="Enter middle name" style="text-transform: uppercase;">
             </div>
             <div class="form-group">
@@ -4819,7 +4877,10 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 </select>
             </div>
             <div class="form-group">
-                <label>Position *</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">Position *</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_position" onchange="toggleToUpdateField('editPersonnelPositionInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <select id="editPersonnelPositionInput" required>
                     <option value="">Select Position</option>
                     <optgroup label="Project-Based Positions">
@@ -4852,11 +4913,17 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 </select>
             </div>
             <div class="form-group">
-                <label>ID Number *</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">ID Number *</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_id" onchange="toggleToUpdateField('editPersonnelIdInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <input type="text" id="editPersonnelIdInput" placeholder="Enter ID number" required>
             </div>
             <div class="form-group">
-                <label>Date Hired *</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">Date Hired *</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_hired" onchange="toggleToUpdateField('editPersonnelHiredInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <input type="date" id="editPersonnelHiredInput" required>
             </div>
             <div class="form-group">
@@ -4867,7 +4934,10 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 </select>
             </div>
             <div class="form-group">
-                <label>Age *</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">Age *</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_age" onchange="toggleToUpdateField('editPersonnelAgeInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <input type="number" id="editPersonnelAgeInput" placeholder="Enter age" min="18" max="100" required>
             </div>
             <div class="form-group">
@@ -4879,15 +4949,24 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 </select>
             </div>
             <div class="form-group">
-                <label>Email</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">Email</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_email" onchange="toggleToUpdateField('editPersonnelEmailInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <input type="email" id="editPersonnelEmailInput" placeholder="email@example.com">
             </div>
             <div class="form-group">
-                <label>Contact Number</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">Contact Number</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_contact" onchange="toggleToUpdateField('editPersonnelContactInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <input type="tel" id="editPersonnelContactInput" placeholder="09XX XXX XXXX" oninput="this.value=fmtPhone(this.value)" maxlength="13">
             </div>
             <div class="form-group">
-                <label>Home Address</label>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin:0;">Home Address</label>
+                    <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_address" onchange="toggleToUpdateField('editPersonnelAddressInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
+                </div>
                 <textarea id="editPersonnelAddressInput" placeholder="Enter home address" oninput="this.value=titleCase(this.value)"></textarea>
             </div>
             <div class="modal-buttons" style="justify-content:space-between;align-items:center;">
@@ -5114,7 +5193,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
     <main id="main-content" class="hidden">
         <header>
-            <h2 class="header-title">OVERALL DASHBOARD</h2>
+            <h2 class="header-title">OVERALL SUMMARY</h2>
             <div class="header-controls">
                 <!-- Search and filters removed from header - moved to dashboard content area -->
                 
@@ -10964,7 +11043,7 @@ function openAdminQuickView() {
                 }
             });
             const titles = {
-                'overall': 'OVERALL DASHBOARD', 'exposures': 'TOTAL EXPOSURES',
+                'overall': 'OVERALL SUMMARY', 'exposures': 'TOTAL EXPOSURES',
                 'rates': 'STATISTICS RATE', 'medical': 'ACCIDENT/ INCIDENT RECORD',
 		'nov': 'OSH REGULATORY ISSUED NOV',
                 'nov-env': 'ENVI REGULATORY ISSUED NOV',
@@ -11189,6 +11268,15 @@ function updateAuditData(pName, qtr, field, val) {
                 const input = event?.target;
                 if (input) input.value = '';
                 return;
+            }
+            
+            // Limit "No. of Days w/o LTA" to max 31 (calendar days) — monthly columns only (mIdx 1-12)
+            // PREVIOUS column (mIdx === 0) is consolidated/exempt — no limit
+            if (key === 'exposures_No. of Days w/o LTA' && mIdx !== 0 && !isNaN(numVal) && numVal > 31) {
+                showToast('⚠️ No. of Days w/o LTA cannot exceed 31 (calendar days basis)', 'warning');
+                const input = event?.target;
+                if (input) input.value = '31';
+                val = '31';
             }
             
             if (p) {
@@ -12237,10 +12325,8 @@ function closeAllStatusDropdowns() {
 
         // Warn user if leaving with pending sync
         window.addEventListener('beforeunload', (e) => {
-            if (_pendingSync) {
-                e.preventDefault();
-                e.returnValue = "You have changes that haven't been synced to the cloud yet. Are you sure you want to leave?";
-            }
+            // Suppressed — custom leave-site modal used instead (see leaveSiteModal)
+            // Only block for truly critical cases (e.g. form mid-submit) — not used here
         });
         
         // Phase 3: Regional Locking - Show locked message
@@ -12860,7 +12946,7 @@ function closeAllStatusDropdowns() {
                 <div class="tab-info-bar">
                     <div class="tib-icon"><i class="fas fa-globe"></i></div>
                     <div class="tib-body">
-                        <p class="tib-title">OSH Regulatory Issued NOV</p>
+                        <p class="tib-title">OVERALL SUMMARY</p>
                         <p class="tib-sub">Consolidated data from all projects across all regions</p>
                     </div>
                     <div class="tib-badges">
@@ -12873,7 +12959,7 @@ function closeAllStatusDropdowns() {
                     <table>
                         <tr>
                             <th style="width:250px; text-align:left; background: #2e7d32; position: sticky; left: 0; z-index: 10;">TYPE</th>
-                            <th class="prev-year${isNov ? ' nov-narrow-th' : ''}" style="background: #388e3c;">PREVIOUS</th>`;
+                            <th class="prev-year${isNov ? ' nov-narrow-th' : ''}" style="background: #e65100;">PREVIOUS</th>`;
                 
                 // Monthly column headers
                 MONTHS.forEach(m => {
@@ -13787,7 +13873,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
     } else {
         // Previous column header
         if (state.currentTab !== 'kpm' && state.currentTab !== 'dole' && state.currentTab !== 'emb' && state.currentTab !== 'permits') {
-            html += `<th class="prev-year${isNov ? ' nov-narrow-th' : ''}" style="background: #388e3c;">PREVIOUS</th>`;
+            html += `<th class="prev-year${isNov ? ' nov-narrow-th' : ''}" style="background: #e65100;">PREVIOUS</th>`;
         }
 
         // Main columns
@@ -14825,7 +14911,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         <thead>
                             <tr>
                                 <th style="min-width: 150px; background: #2e7d32; position: sticky; left: 0; z-index: 10;">TYPE</th>
-                                <th class="prev-year" style="background: #388e3c;">PREVIOUS</th>
+                                <th class="prev-year" style="background: #e65100;">PREVIOUS</th>
                                 <th style="background: #388e3c;">JAN</th><th style="background: #388e3c;">FEB</th><th style="background: #388e3c;">MAR</th><th style="background: #388e3c;">APR</th>
                                 <th style="background: #388e3c;">MAY</th><th style="background: #388e3c;">JUN</th><th style="background: #388e3c;">JUL</th><th style="background: #388e3c;">AUG</th>
                                 <th style="background: #388e3c;">SEP</th><th style="background: #388e3c;">OCT</th><th style="background: #388e3c;">NOV</th><th style="background: #388e3c;">DEC</th>
@@ -15717,7 +15803,34 @@ function addPRow() {
 }
 
 // Add Personnel Modal Functions
+function toggleToUpdateField(fieldId, checked) {
+    const el = document.getElementById(fieldId);
+    if (!el) return;
+    if (checked) {
+        el.disabled = true;
+        el.style.background = '#fff3e0';
+        el.style.borderColor = '#ffb74d';
+        el.style.color = '#e65100';
+        if (el.tagName === 'INPUT') el.placeholder = 'To be updated...';
+        if (el.tagName === 'TEXTAREA') el.placeholder = 'To be updated...';
+        el.value = '';
+    } else {
+        el.disabled = false;
+        el.style.background = '';
+        el.style.borderColor = '';
+        el.style.color = '';
+        if (el.tagName === 'INPUT' && el.type === 'text') el.placeholder = el.getAttribute('data-ph') || '';
+        if (el.tagName === 'TEXTAREA') el.placeholder = el.getAttribute('data-ph') || '';
+    }
+}
+
 function openAddPersonnelModal() {
+    // Reset all "To Update" checkboxes
+    const tuMap = {tu_middleName:'personnelMiddleNameInput',tu_position:'personnelPositionInput',tu_id:'personnelIdInput',tu_hired:'personnelHiredInput',tu_age:'personnelAgeInput',tu_email:'personnelEmailInput',tu_contact:'personnelContactInput',tu_address:'personnelAddressInput'};
+    Object.entries(tuMap).forEach(([cbId, fieldId]) => {
+        const cb = document.getElementById(cbId);
+        if (cb) { cb.checked = false; toggleToUpdateField(fieldId, false); }
+    });
     // Populate assignment dropdown with projects
     const assignmentSelect = document.getElementById('personnelAssignmentInput');
     let options = '<option value="">Select Assignment</option>';
@@ -15773,6 +15886,17 @@ function confirmAddPersonnel() {
     const middleName = document.getElementById('personnelMiddleNameInput').value.trim().toUpperCase();
     const nameExt = document.getElementById('personnelNameExtInput').value;
     
+    // Collect "To Update" flags
+    const toUpdate = [];
+    if (document.getElementById('tu_middleName')?.checked) toUpdate.push('middleName');
+    if (document.getElementById('tu_position')?.checked) toUpdate.push('position');
+    if (document.getElementById('tu_id')?.checked) toUpdate.push('id');
+    if (document.getElementById('tu_hired')?.checked) toUpdate.push('hired');
+    if (document.getElementById('tu_age')?.checked) toUpdate.push('age');
+    if (document.getElementById('tu_email')?.checked) toUpdate.push('email');
+    if (document.getElementById('tu_contact')?.checked) toUpdate.push('contact');
+    if (document.getElementById('tu_address')?.checked) toUpdate.push('address');
+    
     // Build full name: LAST NAME, FIRST NAME MIDDLE NAME EXT
     let fullName = `${lastName}, ${firstName}`;
     if (middleName) {
@@ -15794,7 +15918,7 @@ function confirmAddPersonnel() {
     
     const errorEl = document.getElementById('personnelModalError');
     
-    // Validation
+    // Validation — skip required check if "To Update" is checked
     if (!lastName) {
         errorEl.textContent = '⚠️ Please enter last name';
         return;
@@ -15803,24 +15927,28 @@ function confirmAddPersonnel() {
         errorEl.textContent = '⚠️ Please enter first name';
         return;
     }
-    if (!pos) {
-        errorEl.textContent = '⚠️ Please select position';
+    if (!pos && !toUpdate.includes('position')) {
+        errorEl.textContent = '⚠️ Please select position (or check "To Update")';
         return;
     }
-    if (!id) {
-        errorEl.textContent = '⚠️ Please enter ID number';
+    if (!id && !toUpdate.includes('id')) {
+        errorEl.textContent = '⚠️ Please enter ID number (or check "To Update")';
         return;
     }
-    if (!hired) {
-        errorEl.textContent = '⚠️ Please enter date hired';
+    if (!hired && !toUpdate.includes('hired')) {
+        errorEl.textContent = '⚠️ Please enter date hired (or check "To Update")';
+        return;
+    }
+    if (hired && hired > new Date().toISOString().split('T')[0]) {
+        errorEl.textContent = '⚠️ Date hired cannot be a future date';
         return;
     }
     if (!current) {
         errorEl.textContent = '⚠️ Please select current assignment';
         return;
     }
-    if (!age || age < 18 || age > 100) {
-        errorEl.textContent = '⚠️ Please enter valid age (18-100)';
+    if ((!age || age < 18 || age > 100) && !toUpdate.includes('age')) {
+        errorEl.textContent = '⚠️ Please enter valid age 18-100 (or check "To Update")';
         return;
     }
     if (!gen) {
@@ -15864,7 +15992,8 @@ function confirmAddPersonnel() {
         mail: mail,
         num: num,
         addr: addr,
-        len: len
+        len: len,
+        toUpdate: toUpdate.length > 0 ? toUpdate : undefined
     });
     
     // Save and refresh
@@ -15990,6 +16119,27 @@ function openEditPersonnelModal(index) {
     document.getElementById('editPersonnelContactInput').value = fmtPhone(person.num || '');
     document.getElementById('editPersonnelAddressInput').value = titleCase(person.addr || '');
     document.getElementById('editPersonnelModalError').textContent = '';
+
+    // Restore "To Update" checkbox states from saved data
+    const etuMap = {
+        etu_middleName: { cbId: 'etu_middleName', fieldId: 'editPersonnelMiddleNameInput', key: 'middleName' },
+        etu_position:   { cbId: 'etu_position',   fieldId: 'editPersonnelPositionInput',   key: 'position' },
+        etu_id:         { cbId: 'etu_id',         fieldId: 'editPersonnelIdInput',          key: 'id' },
+        etu_hired:      { cbId: 'etu_hired',       fieldId: 'editPersonnelHiredInput',      key: 'hired' },
+        etu_age:        { cbId: 'etu_age',         fieldId: 'editPersonnelAgeInput',        key: 'age' },
+        etu_email:      { cbId: 'etu_email',       fieldId: 'editPersonnelEmailInput',      key: 'email' },
+        etu_contact:    { cbId: 'etu_contact',     fieldId: 'editPersonnelContactInput',    key: 'contact' },
+        etu_address:    { cbId: 'etu_address',     fieldId: 'editPersonnelAddressInput',    key: 'address' }
+    };
+    const existingToUpdate = Array.isArray(person.toUpdate) ? person.toUpdate : [];
+    Object.values(etuMap).forEach(({ cbId, fieldId, key }) => {
+        const cb = document.getElementById(cbId);
+        const isPending = existingToUpdate.includes(key);
+        if (cb) {
+            cb.checked = isPending;
+            toggleToUpdateField(fieldId, isPending);
+        }
+    });
     
     // Show modal
     document.getElementById('editPersonnelModal').classList.add('show');
@@ -16236,7 +16386,18 @@ function confirmEditPersonnel() {
     const firstName = document.getElementById('editPersonnelFirstNameInput').value.trim().toUpperCase();
     const middleName = document.getElementById('editPersonnelMiddleNameInput').value.trim().toUpperCase();
     const nameExt = document.getElementById('editPersonnelNameExtInput').value;
-    
+
+    // Collect "To Update" flags from edit modal checkboxes
+    const toUpdate = [];
+    if (document.getElementById('etu_middleName')?.checked) toUpdate.push('middleName');
+    if (document.getElementById('etu_position')?.checked)   toUpdate.push('position');
+    if (document.getElementById('etu_id')?.checked)         toUpdate.push('id');
+    if (document.getElementById('etu_hired')?.checked)      toUpdate.push('hired');
+    if (document.getElementById('etu_age')?.checked)        toUpdate.push('age');
+    if (document.getElementById('etu_email')?.checked)      toUpdate.push('email');
+    if (document.getElementById('etu_contact')?.checked)    toUpdate.push('contact');
+    if (document.getElementById('etu_address')?.checked)    toUpdate.push('address');
+
     // Build full name: LAST NAME, FIRST NAME MIDDLE NAME EXT
     let fullName = `${lastName}, ${firstName}`;
     if (middleName) {
@@ -16258,7 +16419,7 @@ function confirmEditPersonnel() {
     
     const errorEl = document.getElementById('editPersonnelModalError');
     
-    // Validation
+    // Validation — skip required check if "To Update" is checked
     if (!lastName) {
         errorEl.textContent = '⚠️ Please enter last name';
         return;
@@ -16267,24 +16428,28 @@ function confirmEditPersonnel() {
         errorEl.textContent = '⚠️ Please enter first name';
         return;
     }
-    if (!pos) {
-        errorEl.textContent = '⚠️ Please select position';
+    if (!pos && !toUpdate.includes('position')) {
+        errorEl.textContent = '⚠️ Please select position (or check "To Update")';
         return;
     }
-    if (!id) {
-        errorEl.textContent = '⚠️ Please enter ID number';
+    if (!id && !toUpdate.includes('id')) {
+        errorEl.textContent = '⚠️ Please enter ID number (or check "To Update")';
         return;
     }
-    if (!hired) {
-        errorEl.textContent = '⚠️ Please enter date hired';
+    if (!hired && !toUpdate.includes('hired')) {
+        errorEl.textContent = '⚠️ Please enter date hired (or check "To Update")';
+        return;
+    }
+    if (hired && hired > new Date().toISOString().split('T')[0]) {
+        errorEl.textContent = '⚠️ Date hired cannot be a future date';
         return;
     }
     if (!current) {
         errorEl.textContent = '⚠️ Please select current assignment';
         return;
     }
-    if (!age || age < 18 || age > 100) {
-        errorEl.textContent = '⚠️ Please enter valid age (18-100)';
+    if ((!age || age < 18 || age > 100) && !toUpdate.includes('age')) {
+        errorEl.textContent = '⚠️ Please enter valid age 18-100 (or check "To Update")';
         return;
     }
     if (!gen) {
@@ -16326,7 +16491,8 @@ function confirmEditPersonnel() {
         mail: mail,
         num: num,
         addr: addr,
-        len: len
+        len: len,
+        toUpdate: toUpdate.length > 0 ? toUpdate : undefined
     };
     
     // Save and refresh
@@ -16446,12 +16612,15 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
         if (p.hired && yearsOfService !== '' && p.len !== yearsOfService.toString()) {
             state.personnelData[origIdx].len = yearsOfService.toString();
         }
-        const rowBg = di % 2 === 0 ? 'background:#ffffff;' : 'background:#f4f6f8;';
+        const hasToUpdate = p.toUpdate && p.toUpdate.length > 0;
+        const rowBg = hasToUpdate ? 'background:#ffebee;' : (di % 2 === 0 ? 'background:#ffffff;' : 'background:#f4f6f8;');
+        const stickyBg = hasToUpdate ? 'background:#ffebee;' : (di%2===1?'background:#f4f6f8;':'background:#ffffff;');
         rows += `
-        <tr id="p-row-${origIdx}" style="${rowBg}">
-            <td style="text-align:left;position:sticky;left:0;z-index:5;${di%2===1?'background:#f4f6f8;':'background:#ffffff;'}white-space:nowrap;padding:6px 10px 6px 12px;">
+        <tr id="p-row-${origIdx}" style="${rowBg}${hasToUpdate ? 'outline:1.5px solid #ef9a9a;' : ''}">
+            <td style="text-align:left;position:sticky;left:0;z-index:5;${stickyBg}white-space:nowrap;padding:6px 10px 6px 12px;">
                 <span class="p-row-num">${di}</span>
-                <div class="p-view-text" style="display:inline-block;white-space:nowrap;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;padding-right:6px;">${(p.name||'').toUpperCase()}</div>
+                <div class="p-view-text" style="display:inline-block;white-space:nowrap;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;padding-right:6px;${hasToUpdate?'color:#c62828;font-weight:800;':''}">${(p.name||'').toUpperCase()}</div>
+                ${hasToUpdate ? `<span style="display:inline-block;font-size:0.58rem;font-weight:800;padding:2px 6px;background:#ef5350;color:white;border-radius:10px;margin-left:4px;vertical-align:middle;letter-spacing:0.5px;" title="Pending fields: ${p.toUpdate.join(', ')}">⚠ TO UPDATE</span>` : ''}
                 <input type="text" value="${(p.name||'').toUpperCase()}" onchange="state.personnelData[${origIdx}].name=this.value.toUpperCase()" style="min-width:190px;text-align:left;text-transform:uppercase;display:none;" disabled>
             </td>
             <td style="width:180px;text-align:center;">
@@ -16631,11 +16800,15 @@ function renderPTable() {
             if (p.hired && yearsOfService !== '' && String(p.len) !== String(yearsOfService)) {
                 state.personnelData[origIdx].len = String(yearsOfService);
             }
+                        const _hasToUpdate = p.toUpdate && p.toUpdate.length > 0;
+            const _rowBg = _hasToUpdate ? 'background:#ffebee;' : (di%2===0?'background:#ffffff;':'background:#f4f6f8;');
+            const _stickyBg = _hasToUpdate ? 'background:#ffebee;' : (di%2===1?'background:#f4f6f8;':'background:#ffffff;');
             _corpRows += `
-            <tr id="p-row-${origIdx}" style="${di%2===0?'background:#ffffff;':'background:#f4f6f8;'}">
-                <td style="text-align:left;position:sticky;left:0;z-index:5;${di%2===1?'background:#f4f6f8;':'background:#ffffff;'}white-space:nowrap;padding:6px 10px 6px 12px;">
+            <tr id="p-row-${origIdx}" style="${_rowBg}${_hasToUpdate ? 'outline:1.5px solid #ef9a9a;' : ''}">
+                <td style="text-align:left;position:sticky;left:0;z-index:5;${_stickyBg}white-space:nowrap;padding:6px 10px 6px 12px;">
                     <span class="p-row-num">${di}</span>
-                    <div class="p-view-text" style="display:inline-block;white-space:nowrap;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;padding-right:6px;">${(p.name||'').toUpperCase()}</div>
+                    <div class="p-view-text" style="display:inline-block;white-space:nowrap;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;padding-right:6px;${_hasToUpdate?'color:#c62828;font-weight:800;':''}">${(p.name||'').toUpperCase()}</div>
+                    ${_hasToUpdate ? `<span style="display:inline-block;font-size:0.58rem;font-weight:800;padding:2px 6px;background:#ef5350;color:white;border-radius:10px;margin-left:4px;vertical-align:middle;letter-spacing:0.5px;" title="Pending fields: ${p.toUpdate.join(', ')}">⚠ TO UPDATE</span>` : ''}
                     <input type="text" value="${(p.name||'').toUpperCase()}" onchange="state.personnelData[${origIdx}].name=this.value.toUpperCase()" style="min-width:190px;text-align:left;text-transform:uppercase;display:none;" disabled>
                 </td>
                 <td style="width:180px;text-align:center;">${posDisplay}</td>
@@ -18347,6 +18520,77 @@ window.addEventListener('beforeunload', () => {
 });
 
 console.log('🔥 Firebase integration loaded - OPTIMIZED: Save button only!');
+
+// ==================== CUSTOM LEAVE SITE MODAL ====================
+(function() {
+    let _leavePendingUrl = null;
+    let _leaveCallback   = null;
+
+    function shouldInterceptLeave() {
+        return typeof _pendingSync !== 'undefined' ? _pendingSync : false;
+    }
+
+    window.leaveSiteCancel = function() {
+        _leavePendingUrl = null;
+        _leaveCallback   = null;
+        const m = document.getElementById('leaveSiteModal');
+        if (m) m.classList.remove('show');
+    };
+
+    window.leaveSiteConfirm = function() {
+        const m = document.getElementById('leaveSiteModal');
+        if (m) m.classList.remove('show');
+        if (_leaveCallback) {
+            const cb = _leaveCallback;
+            _leaveCallback = null;
+            cb();
+        } else if (_leavePendingUrl) {
+            const url = _leavePendingUrl;
+            _leavePendingUrl = null;
+            window.location.href = url;
+        }
+    };
+
+    function showLeaveSiteModal(callback) {
+        _leaveCallback = callback || null;
+        const m = document.getElementById('leaveSiteModal');
+        if (m) m.classList.add('show');
+    }
+
+    // Intercept all <a> clicks that navigate away
+    document.addEventListener('click', function(e) {
+        if (!shouldInterceptLeave()) return;
+        const a = e.target.closest('a[href]');
+        if (!a) return;
+        const href = a.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('javascript')) return;
+        const isSameOrigin = a.hostname === window.location.hostname;
+        if (!isSameOrigin) {
+            e.preventDefault();
+            _leavePendingUrl = a.href;
+            showLeaveSiteModal();
+        }
+    }, true);
+
+    // Override window.location setter-style navigation via beforeunload (custom)
+    // Intercept F5 / Ctrl+R / Ctrl+W only when pending
+    document.addEventListener('keydown', function(e) {
+        if (!shouldInterceptLeave()) return;
+        // F5 or Ctrl+R (refresh)
+        if (e.key === 'F5' || (e.ctrlKey && e.key === 'r') || (e.ctrlKey && e.key === 'R')) {
+            e.preventDefault();
+            showLeaveSiteModal(function() { window.location.reload(); });
+        }
+        // Ctrl+W (close tab) — browsers vary, best-effort
+        if (e.ctrlKey && (e.key === 'w' || e.key === 'W')) {
+            e.preventDefault();
+            showLeaveSiteModal(function() { window.close(); });
+        }
+    });
+
+    // Expose for programmatic use
+    window.showLeaveSiteModal = showLeaveSiteModal;
+})();
 
 // ==================== MOBILE MENU FUNCTIONALITY ====================
 // Absolute fallback: hide loading overlay after 7s no matter what
