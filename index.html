@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESH COMPLIANCE DASHBOARD - SCIC</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;600;700&family=Raleway:wght@300;400;700;800&family=Lato:wght@300;400;700;900&family=Teko:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 
@@ -261,7 +261,7 @@
         #login-overlay {
             position: fixed; 
             inset: 0; 
-            background: linear-gradient(135deg, #0a2e10 0%, #1b5e20 40%, #2e7d32 100%);
+            background: #071a09;
             display: flex; 
             align-items: center; 
             justify-content: center; 
@@ -270,430 +270,416 @@
             overflow: hidden;
         }
 
-        /* Animated background circles */
+        /* Organic blob shapes */
         #login-overlay::before {
             content: '';
             position: absolute;
-            top: -20%;
+            top: -15%;
             right: -10%;
-            width: 600px;
-            height: 600px;
+            width: 550px;
+            height: 550px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(251,192,45,0.15) 0%, transparent 70%);
-            animation: float 20s ease-in-out infinite;
+            background: radial-gradient(ellipse, rgba(27,94,32,0.35) 0%, transparent 65%);
+            pointer-events: none;
         }
 
         #login-overlay::after {
             content: '';
             position: absolute;
-            bottom: -25%;
-            left: -15%;
-            width: 700px;
-            height: 700px;
+            bottom: -15%;
+            left: -10%;
+            width: 400px;
+            height: 400px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
-            animation: float 25s ease-in-out infinite reverse;
+            background: radial-gradient(ellipse, rgba(251,192,45,0.07) 0%, transparent 70%);
+            pointer-events: none;
         }
 
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            25% { transform: translate(-30px, -40px) scale(1.05); }
-            50% { transform: translate(20px, 30px) scale(0.95); }
-            75% { transform: translate(-20px, 20px) scale(1.02); }
+        /* Subtle dot grid overlay */
+        .safety-pattern {
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+            background-size: 28px 28px;
+            pointer-events: none;
         }
 
-        /* Safety & Health Background Icons */
+        /* Thin top gradient bar */
+        .warning-stripe {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #1b5e20 0%, #4caf50 50%, #fbc02d 100%);
+        }
+
+        /* Floating background ESH icons */
         .safety-bg-icons {
             position: absolute;
-            width: 100%;
-            height: 100%;
-            opacity: 0.06;
+            inset: 0;
             overflow: hidden;
+            pointer-events: none;
         }
 
         .safety-icon-float {
             position: absolute;
-            font-size: 80px;
-            color: #ffffff;
-            animation: floatIcon 15s ease-in-out infinite;
+            font-size: 70px;
+            color: rgba(255,255,255,0.035);
+            animation: floatIcon 18s ease-in-out infinite;
         }
 
-        .safety-icon-float:nth-child(1) {
-            top: 10%;
-            left: 8%;
-            animation-delay: 0s;
-            animation-duration: 18s;
-        }
-
-        .safety-icon-float:nth-child(2) {
-            top: 15%;
-            right: 12%;
-            animation-delay: 2s;
-            animation-duration: 22s;
-        }
-
-        .safety-icon-float:nth-child(3) {
-            bottom: 20%;
-            left: 15%;
-            animation-delay: 4s;
-            animation-duration: 20s;
-        }
-
-        .safety-icon-float:nth-child(4) {
-            bottom: 15%;
-            right: 10%;
-            animation-delay: 1s;
-            animation-duration: 19s;
-        }
-
-        .safety-icon-float:nth-child(5) {
-            top: 50%;
-            left: 5%;
-            animation-delay: 3s;
-            animation-duration: 21s;
-        }
-
-        .safety-icon-float:nth-child(6) {
-            top: 45%;
-            right: 8%;
-            animation-delay: 5s;
-            animation-duration: 17s;
-        }
+        .safety-icon-float:nth-child(1) { top: 8%;  left: 6%;   animation-delay: 0s;  animation-duration: 20s; }
+        .safety-icon-float:nth-child(2) { top: 12%; right: 8%;  animation-delay: 3s;  animation-duration: 24s; }
+        .safety-icon-float:nth-child(3) { bottom: 18%; left: 12%; animation-delay: 6s; animation-duration: 22s; }
+        .safety-icon-float:nth-child(4) { bottom: 12%; right: 6%; animation-delay: 1s; animation-duration: 21s; }
+        .safety-icon-float:nth-child(5) { top: 48%; left: 3%;   animation-delay: 4s;  animation-duration: 23s; }
+        .safety-icon-float:nth-child(6) { top: 42%; right: 5%;  animation-delay: 7s;  animation-duration: 19s; }
 
         @keyframes floatIcon {
-            0%, 100% {
-                transform: translateY(0px) rotate(0deg);
-                opacity: 0.06;
-            }
-            25% {
-                transform: translateY(-30px) rotate(5deg);
-                opacity: 0.08;
-            }
-            50% {
-                transform: translateY(-20px) rotate(-5deg);
-                opacity: 0.04;
-            }
-            75% {
-                transform: translateY(-35px) rotate(3deg);
-                opacity: 0.07;
-            }
+            0%, 100% { transform: translateY(0px) rotate(0deg);   opacity: 0.035; }
+            25%       { transform: translateY(-25px) rotate(4deg); opacity: 0.055; }
+            50%       { transform: translateY(-14px) rotate(-4deg);opacity: 0.025; }
+            75%       { transform: translateY(-30px) rotate(2deg); opacity: 0.05; }
         }
 
-        /* Active Users Pulse Animation */
         @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-            50% {
-                opacity: 0.5;
-                transform: scale(1.3);
-            }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.5; transform: scale(1.3); }
         }
 
-        /* Construction/Safety Pattern Overlay */
-        .safety-pattern {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            opacity: 0.04;
-            background-image: 
-                repeating-linear-gradient(
-                    45deg,
-                    transparent,
-                    transparent 10px,
-                    rgba(251, 192, 45, 0.3) 10px,
-                    rgba(251, 192, 45, 0.3) 12px
-                ),
-                repeating-linear-gradient(
-                    -45deg,
-                    transparent,
-                    transparent 10px,
-                    rgba(251, 192, 45, 0.3) 10px,
-                    rgba(251, 192, 45, 0.3) 12px
-                );
-            background-size: 100px 100px;
-            background-position: 0 0, 50px 50px;
-        }
-
-        /* Warning Stripes Accent (bottom) */
-        .warning-stripe {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 8px;
-            background: repeating-linear-gradient(
-                45deg,
-                #fbc02d,
-                #fbc02d 20px,
-                #1b5e20 20px,
-                #1b5e20 40px
-            );
-            opacity: 0.7;
-        }
-
+        /* ── LOGIN CARD ── */
         .login-card {
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(20px);
-            padding: 35px 35px;
-            border-radius: 20px;
-            width: 100%;
-            max-width: 460px;
             position: relative;
             z-index: 1;
-            box-shadow: 
-                0 20px 60px rgba(0, 0, 0, 0.4),
-                0 0 0 1px rgba(255, 255, 255, 0.1) inset,
-                0 -5px 30px rgba(251, 192, 45, 0.2) inset;
-            border-top: 4px solid #fbc02d;
-            color: var(--text-primary);
-            animation: slideUp 0.6s ease-out;
+            width: 100%;
+            max-width: 620px;
+            padding: 48px 48px 40px;
+            animation: slideUp 0.55s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(28px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* Tab entrance animation - Slide from Right */
         @keyframes slideRight {
-            from {
-                opacity: 0;
-                transform: translateX(-50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            from { opacity: 0; transform: translateX(-50px); }
+            to   { opacity: 1; transform: translateX(0); }
         }
 
-        body.dark-mode .login-card {
-            background: rgba(45, 45, 45, 0.95);
+        body.dark-mode .login-card { /* dark mode no extra change needed — already dark */ }
+
+        /* Icon chips row */
+        .login-icon-chips {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 22px;
+            justify-content: center;
         }
 
+        .login-chip {
+            width: 34px; height: 34px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.3);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .login-chip.active {
+            background: rgba(27,94,32,0.35);
+            border-color: rgba(76,175,80,0.35);
+            color: #66bb6a;
+        }
+
+        /* Brand block */
         .login-header {
-            position: relative;
-            margin-bottom: 25px;
+            margin-bottom: 26px;
             text-align: center;
         }
 
-        .login-shield {
-            width: 70px;
-            height: 70px;
-            margin: 0 auto 15px;
-            background: linear-gradient(135deg, #0a2e10 0%, #1b5e20 50%, #2e7d32 100%);
-            border-radius: 50%;
+        .login-shield { display: none; }
+        .login-badge  { display: none; }
+
+        .login-corp-label {
+            font-family: 'Lato', sans-serif;
+            font-size: 0.56rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.28);
+            margin-bottom: 10px;
+            opacity: 0;
+            animation: loginFadeUp 0.5s ease 0.2s forwards;
+        }
+
+        /* ── ESH ANIMATED LETTERS ── */
+        .esh-title {
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        .esh-letter {
             position: relative;
-            box-shadow: 
-                0 10px 30px rgba(27, 94, 32, 0.4),
-                0 0 0 8px rgba(251, 192, 45, 0.1);
-            animation: pulse-glow 3s ease-in-out infinite;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
-
-        @keyframes pulse-glow {
-            0%, 100% {
-                box-shadow: 
-                    0 10px 30px rgba(27, 94, 32, 0.4),
-                    0 0 0 8px rgba(251, 192, 45, 0.1);
-            }
-            50% {
-                box-shadow: 
-                    0 15px 40px rgba(27, 94, 32, 0.6),
-                    0 0 0 12px rgba(251, 192, 45, 0.2);
-            }
+        .esh-char {
+            font-family: 'Raleway', sans-serif;
+            font-size: 3.6rem;
+            font-weight: 900;
+            color: #fff;
+            -webkit-text-fill-color: #fff;
+            line-height: 1;
+            position: relative;
+            z-index: 2;
         }
-
-        .login-shield::before {
-            content: '';
+        /* E — leaf grows from bottom-left */
+        .e-leaf {
             position: absolute;
-            inset: -3px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #fbc02d, transparent, #fbc02d);
-            opacity: 0.4;
-            z-index: -1;
-            animation: rotate 8s linear infinite;
+            bottom: 2px;
+            left: -10px;
+            font-size: 1.1rem;
+            color: #4caf50;
+            opacity: 0;
+            transform: scale(0) rotate(-40deg) translateY(8px);
+            transform-origin: bottom center;
+            animation: eshLeafGrow 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.9s forwards;
+            z-index: 3;
+            filter: drop-shadow(0 0 6px rgba(76,175,80,0.8));
         }
-
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+        @keyframes eshLeafGrow {
+            0%   { opacity:0; transform:scale(0) rotate(-40deg) translateY(8px); }
+            60%  { opacity:1; transform:scale(1.2) rotate(5deg) translateY(-2px); }
+            100% { opacity:1; transform:scale(1) rotate(-10deg) translateY(0); }
         }
-
-        .login-shield i {
-            font-size: 2.5rem;
+        /* S — hard hat drops from top */
+        .s-hat {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px) scale(0);
+            font-size: 1.4rem;
             color: #fbc02d;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            opacity: 0;
+            animation: eshHatDrop 0.6s cubic-bezier(0.34,1.56,0.64,1) 1.4s forwards;
+            z-index: 3;
+            filter: drop-shadow(0 0 6px rgba(251,192,45,0.7));
+        }
+        @keyframes eshHatDrop {
+            0%   { opacity:0; transform:translateX(-50%) translateY(-20px) scale(0); }
+            70%  { opacity:1; transform:translateX(-50%) translateY(4px) scale(1.15); }
+            100% { opacity:1; transform:translateX(-50%) translateY(0px) scale(1); }
+        }
+        /* H — beating heart on top */
+        .h-heart {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%) scale(0);
+            font-size: 1.5rem;
+            color: #ef5350;
+            opacity: 0;
+            animation: eshHeartAppear 0.5s ease 2.0s forwards, eshHeartBeat 1.2s ease-in-out 2.6s infinite;
+            z-index: 10;
+            filter: drop-shadow(0 0 10px rgba(239,83,80,1));
+        }
+        @keyframes eshHeartAppear {
+            0%   { opacity:0; transform:translate(-50%,-50%) scale(0); }
+            60%  { opacity:1; transform:translate(-50%,-50%) scale(1.3); }
+            100% { opacity:1; transform:translate(-50%,-50%) scale(1); }
+        }
+        @keyframes eshHeartBeat {
+            0%,100% { transform:translate(-50%,-50%) scale(1); }
+            15%     { transform:translate(-50%,-50%) scale(1.35); }
+            30%     { transform:translate(-50%,-50%) scale(1); }
+            45%     { transform:translate(-50%,-50%) scale(1.2); }
+            60%     { transform:translate(-50%,-50%) scale(1); }
         }
 
+        /* COMPLIANCE DASHBOARD line */
         .login-title {
-            color: #1b5e20;
-            font-size: 1.35rem;
-            font-weight: 800;
-            letter-spacing: 0.8px;
-            margin: 0 0 10px 0;
-            text-transform: uppercase;
-            background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            white-space: nowrap;
-            text-align: center;
-        }
-
-        .login-subtitle {
-            color: #666;
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin: 0 0 8px 0;
-            letter-spacing: 0.5px;
-            text-align: center;
-        }
-
-        body.dark-mode .login-subtitle {
-            color: #999;
-        }
-
-        .login-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #fbc02d 0%, #f9a825 100%);
-            color: #1b5e20;
-            font-size: 0.7rem;
-            font-weight: 700;
-            padding: 5px 16px;
-            border-radius: 20px;
+            font-family: 'Raleway', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: #fff;
+            -webkit-text-fill-color: #fff;
             letter-spacing: 1px;
-            margin-top: 5px;
-            box-shadow: 0 2px 8px rgba(251, 192, 45, 0.3);
+            white-space: nowrap;
+            opacity: 0;
+            animation: loginFadeUp 0.6s ease 0.4s forwards;
+        }
+        .login-title .c-green {
+            color: #4caf50;
+            -webkit-text-fill-color: #4caf50;
         }
 
-        .login-form {
-            margin-top: 30px;
+        /* Slogan — glow reveal */
+        .login-subtitle {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: 0.88rem;
+            font-weight: 400;
+            color: rgba(251,192,45,0);
+            margin: 10px 0 0 0;
+            letter-spacing: 0.3px;
+            line-height: 1.4;
+            animation: eshGlowReveal 0.6s ease 2.8s forwards, eshGlowPulse 2.5s ease-in-out 3.6s infinite;
         }
+        @keyframes eshGlowReveal {
+            to {
+                color: rgba(251,192,45,0.75);
+                text-shadow: 0 0 20px rgba(251,192,45,0.4), 0 0 40px rgba(251,192,45,0.15);
+            }
+        }
+        @keyframes eshGlowPulse {
+            0%,100% { text-shadow: 0 0 10px rgba(251,192,45,0.25); }
+            50%     { text-shadow: 0 0 25px rgba(251,192,45,0.65), 0 0 50px rgba(251,192,45,0.25); }
+        }
+        @keyframes loginFadeUp {
+            from { opacity:0; transform:translateY(8px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+
+        /* Form */
+        .login-form { margin-top: 26px; max-width: 400px; margin-left: auto; margin-right: auto; }
 
         .login-input-group {
             position: relative;
-            margin-bottom: 20px;
+            margin-bottom: 14px;
+        }
+
+        .login-input-group-label {
+            font-family: 'Lato', sans-serif;
+            font-size: 0.57rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(76,175,80,0.65);
+            margin-bottom: 5px;
         }
 
         .login-input-group i {
             position: absolute;
-            left: 18px;
+            left: 14px;
             top: 50%;
             transform: translateY(-50%);
-            color: #2e7d32;
-            font-size: 1rem;
+            color: rgba(76,175,80,0.5);
+            font-size: 0.82rem;
             z-index: 1;
         }
 
         .login-card input {
             width: 100%;
-            padding: 16px 20px 16px 50px;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            font-size: 0.95rem;
-            background: var(--input-bg);
-            color: var(--text-primary);
-            transition: all 0.3s ease;
+            padding: 12px 14px 12px 38px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 10px;
+            font-size: 0.84rem;
+            font-family: 'Lato', sans-serif;
+            color: #fff;
+            transition: border-color 0.2s, background 0.2s;
             box-sizing: border-box;
         }
 
         .login-card input:focus {
             outline: none;
-            border-color: #2e7d32;
-            box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.1);
+            border-color: rgba(76,175,80,0.5);
+            background: rgba(76,175,80,0.06);
+            box-shadow: none;
         }
 
-        .login-card input::placeholder {
-            color: #999;
-        }
+        .login-card input::placeholder { color: rgba(255,255,255,0.18); }
 
         .login-btn {
             width: 100%;
-            padding: 16px;
-            margin-top: 25px;
+            padding: 13px 16px;
+            margin-top: 8px;
             background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
-            color: white;
+            color: #fff;
             border: none;
-            border-radius: 12px;
-            font-size: 0.95rem;
+            border-radius: 10px;
+            font-family: 'Raleway', sans-serif;
+            font-size: 0.84rem;
             font-weight: 700;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 20px rgba(27, 94, 32, 0.3);
+            box-shadow: 0 6px 20px rgba(27,94,32,0.4);
             position: relative;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .login-btn::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            animation: loginShimmer 2.8s ease-in-out infinite;
         }
 
-
-
-        .login-btn:active {
-            transform: translateY(0);
+        @keyframes loginShimmer {
+            0%   { left: -100%; }
+            100% { left: 200%; }
         }
 
-        .login-btn:disabled {
-            opacity: 0.7;
-            cursor: wait;
-            transform: none;
-        }
+        .login-btn:active  { transform: translateY(1px); }
+        .login-btn:disabled { opacity: 0.65; cursor: wait; transform: none; }
 
+        /* Disclaimer */
         .disclaimer-box {
-            background: linear-gradient(135deg, #fffbea 0%, #fff9e6 100%);
-            border: 2px solid #fbc02d;
-            border-radius: 12px;
-            padding: 16px;
-            margin-top: 30px;
-            font-size: 0.75rem;
-            color: #333;
-            line-height: 1.6;
-            position: relative;
-            overflow: hidden;
-            text-align: justify;
+            margin-top: 18px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 11px 13px;
+            background: rgba(251,192,45,0.06);
+            border: 1px solid rgba(251,192,45,0.12);
+            border-radius: 9px;
+            display: flex;
+            gap: 9px;
+            align-items: flex-start;
+            font-size: 0.62rem;
+            color: rgba(255,255,255,0.28);
+            line-height: 1.55;
         }
 
-        .disclaimer-box::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: #fbc02d;
-        }
+        .disclaimer-box::before { display: none; }
 
-        body.dark-mode .disclaimer-box {
-            background: linear-gradient(135deg, #4a4a2d 0%, #3d3d25 100%);
-            color: #e4e4e4;
+        .disclaimer-box-icon {
+            color: rgba(251,192,45,0.45);
+            font-size: 0.72rem;
+            margin-top: 1px;
+            flex-shrink: 0;
         }
 
         .disclaimer-box strong {
-            color: #1b5e20;
-            font-size: 0.8rem;
+            color: rgba(251,192,45,0.55);
+            font-size: 0.62rem;
         }
 
-        body.dark-mode .disclaimer-box strong {
-            color: #fbc02d;
+        body.dark-mode .disclaimer-box { /* same — already dark */ }
+        body.dark-mode .disclaimer-box strong { color: rgba(251,192,45,0.6); }
+
+
+        /* Pulse-glow kept for other uses */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 10px 30px rgba(27,94,32,0.4), 0 0 0 8px rgba(251,192,45,0.1); }
+            50%       { box-shadow: 0 15px 40px rgba(27,94,32,0.6), 0 0 0 12px rgba(251,192,45,0.2); }
+        }
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
         }
 
         /* ============================================
@@ -711,8 +697,8 @@
             }
 
             .login-card {
-                max-width: 550px;
-                padding: 60px 50px;
+                max-width: 440px;
+                padding: 44px 40px;
             }
 
             .header-title {
@@ -736,18 +722,9 @@
                 overflow-y: auto;
             }
 
-            .login-shield {
-                width: 60px;
-                height: 60px;
-            }
-
-            .login-shield i {
-                font-size: 1.8rem;
-            }
-
             .login-title {
-                font-size: 1rem;
-                margin-bottom: 5px;
+                font-size: 1.1rem;
+                margin-bottom: 4px;
             }
 
             .login-subtitle {
@@ -2064,14 +2041,11 @@
         
         /* Phase 3: Regional Locking - Locked Project Styling */
         .project-locked {
-            opacity: 0.7;
-            background: linear-gradient(135deg, rgba(245, 245, 245, 0.5) 0%, rgba(224, 224, 224, 0.3) 100%) !important;
-            border: 1px dashed #bdbdbd !important;
+            opacity: 0.85;
         }
         
         body.dark-mode .project-locked {
-            background: linear-gradient(135deg, rgba(60, 60, 60, 0.5) 0%, rgba(45, 45, 45, 0.3) 100%) !important;
-            border: 1px dashed #666 !important;
+            opacity: 0.85;
         }
         
         .project-locked .project-checkbox {
@@ -4476,51 +4450,87 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
     <!-- ==================== END LOGIN FLASH SCREEN ==================== -->
 
     <div id="login-overlay" style="display:none;">
-        <!-- Safety Background Elements -->
+        <!-- Floating bg icons -->
         <div class="safety-bg-icons">
+            <i class="fas fa-leaf safety-icon-float"></i>
             <i class="fas fa-hard-hat safety-icon-float"></i>
-            <i class="fas fa-user-shield safety-icon-float"></i>
-            <i class="fas fa-briefcase-medical safety-icon-float"></i>
-            <i class="fas fa-fire-extinguisher safety-icon-float"></i>
-            <i class="fas fa-vest safety-icon-float"></i>
-            <i class="fas fa-triangle-exclamation safety-icon-float"></i>
+            <i class="fas fa-heart-pulse safety-icon-float"></i>
+            <i class="fas fa-solar-panel safety-icon-float"></i>
+            <i class="fas fa-scale-balanced safety-icon-float"></i>
+            <i class="fas fa-seedling safety-icon-float"></i>
         </div>
         <div class="safety-pattern"></div>
         <div class="warning-stripe"></div>
-        
+
         <div class="login-card">
-            <div class="login-header">
-                <div class="login-shield">
-                    <i class="fas fa-shield-halved"></i>
-                </div>
-                <h1 class="login-title">ESH Compliance Dashboard</h1>
-                <p class="login-subtitle">STA. CLARA INTERNATIONAL CORPORATION</p>
-                <div class="login-badge">
-                    <i class="fas fa-users-gear"></i> MANAGER ACCESS PORTAL
-                </div>
+
+            <!-- Industry icon chips -->
+            <div class="login-icon-chips">
+                <div class="login-chip active" title="Environmental"><i class="fas fa-leaf"></i></div>
+                <div class="login-chip active" title="Safety"><i class="fas fa-hard-hat"></i></div>
+                <div class="login-chip active" title="Health"><i class="fas fa-heart-pulse"></i></div>
+                <div class="login-chip" title="Construction"><i class="fas fa-building"></i></div>
+                <div class="login-chip" title="Renewable Energy"><i class="fas fa-solar-panel"></i></div>
+                <div class="login-chip" title="Regulatory"><i class="fas fa-scale-balanced"></i></div>
             </div>
-            
-            <form class="login-form" onsubmit="handleLogin(event)" autocomplete="off">
-                <div class="login-input-group">
-                    <i class="fas fa-envelope"></i>
-                    <input type="email" id="login-user" placeholder="Corporate Email Address" required autocomplete="off">
+
+            <!-- Brand -->
+            <div class="login-header">
+                <div class="login-shield"></div>
+                <div class="login-corp-label">Sta. Clara International Corporation</div>
+
+                <!-- ESH Animated Letters -->
+                <div class="esh-title">
+                    <div class="esh-letter">
+                        <span class="esh-char">E</span>
+                        <i class="fas fa-leaf e-leaf"></i>
+                    </div>
+                    <div class="esh-letter">
+                        <span class="esh-char">S</span>
+                        <i class="fas fa-hard-hat s-hat"></i>
+                    </div>
+                    <div class="esh-letter">
+                        <span class="esh-char">H</span>
+                        <i class="fas fa-heart h-heart"></i>
+                    </div>
                 </div>
-                <div class="login-input-group">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" id="login-pass" placeholder="Password" required autocomplete="off">
-                </div>
-                
-                <button type="submit" class="login-btn" id="login-btn">
-                    <i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM
-                </button>
-            </form>
-            
-            <div id="login-error" class="error-message"></div>
-            
+
+                <h1 class="login-title"><span class="c-green">COMPLIANCE</span> DASHBOARD</h1>
+                <p class="login-subtitle">"Safe to Build, Safe to Last."</p>
+            </div>
+
+            <!-- ── FULL LOGIN VIEW ── -->
+            <div id="login-full-view">
+                <form class="login-form" onsubmit="handleLogin(event)" autocomplete="off">
+                    <div class="login-input-group">
+                        <div class="login-input-group-label">Email Address</div>
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="login-user" placeholder="corporate@scic.com.ph" required autocomplete="off">
+                    </div>
+                    <div class="login-input-group">
+                        <div class="login-input-group-label">Password</div>
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="login-pass" placeholder="••••••••••" required autocomplete="off">
+                    </div>
+
+                    <!-- Remember email -->
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;max-width:400px;margin-left:auto;margin-right:auto;">
+                        <input type="checkbox" id="login-remember" style="width:14px;height:14px;accent-color:#4caf50;cursor:pointer;flex-shrink:0;"
+                            onchange="if(!this.checked){ localStorage.removeItem('esh_remember_email'); document.getElementById('login-user').value=''; }">
+                        <label for="login-remember" style="font-size:0.62rem;color:rgba(255,255,255,0.3);cursor:pointer;letter-spacing:0.5px;user-select:none;">Remember my email on this device</label>
+                    </div>
+
+                    <button type="submit" class="login-btn" id="login-btn">
+                        <i class="fas fa-shield-halved"></i> Access System
+                    </button>
+                </form>
+            </div>
+
+            <div id="login-error" class="error-message" style="margin-top:10px;"></div>
+
             <div class="disclaimer-box">
-                <strong><i class="fas fa-shield-halved"></i> AUTHORIZED ACCESS ONLY</strong><br>
-                This system is exclusively for ESH Department managers and authorized personnel. 
-                For account access, please contact your system administrator.
+                <i class="fas fa-triangle-exclamation disclaimer-box-icon"></i>
+                <span><strong>Authorized Personnel Only.</strong> Access is limited to ESH Department personnel and authorized accounts. For access requests or issues, contact your system administrator.</span>
             </div>
         </div>
     </div>
@@ -4758,7 +4768,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             </div>
             <div class="form-group">
                 <label>Contact Number</label>
-                <input type="tel" id="personnelContactInput" placeholder="0977 172 6246" oninput="this.value=fmtPhone(this.value)" maxlength="13">
+                <input type="tel" id="personnelContactInput" placeholder="09XX XXX XXXX" oninput="this.value=fmtPhone(this.value)" maxlength="13">
             </div>
             <div class="form-group">
                 <label>Home Address</label>
@@ -4874,22 +4884,72 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             </div>
             <div class="form-group">
                 <label>Contact Number</label>
-                <input type="tel" id="editPersonnelContactInput" placeholder="0977 172 6246" oninput="this.value=fmtPhone(this.value)" maxlength="13">
+                <input type="tel" id="editPersonnelContactInput" placeholder="09XX XXX XXXX" oninput="this.value=fmtPhone(this.value)" maxlength="13">
             </div>
             <div class="form-group">
                 <label>Home Address</label>
                 <textarea id="editPersonnelAddressInput" placeholder="Enter home address" oninput="this.value=titleCase(this.value)"></textarea>
             </div>
             <div class="modal-buttons" style="justify-content:space-between;align-items:center;">
-                <button class="btn" id="editPersonnelDeleteBtn" onclick="deletePersonnelFromModal()" style="background:#d32f2f;color:white;border:none;padding:10px 18px;border-radius:8px;font-size:0.8rem;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;transition:background 0.2s;" title="Delete this personnel">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn" id="editPersonnelDeleteBtn" onclick="deletePersonnelFromModal()" style="background:#d32f2f;color:white;border:none;padding:10px 18px;border-radius:8px;font-size:0.8rem;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;transition:background 0.2s;" title="Delete this personnel">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        <button class="btn" id="editPersonnelTransferBtn" onclick="openTransferPersonnelModal()" style="background:#1565c0;color:white;border:none;padding:10px 18px;border-radius:8px;font-size:0.8rem;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;transition:background 0.2s;" title="Transfer to another project">
+                            <i class="fas fa-arrow-right-arrow-left"></i> Transfer
+                        </button>
+                    </div>
+                    <div style="font-size:0.62rem;color:#888;display:flex;align-items:center;gap:5px;padding-left:2px;">
+                        <i class="fas fa-lightbulb" style="color:#fbc02d;font-size:0.6rem;"></i>
+                        Moving to another project? Use <strong style="color:#1565c0;">Transfer</strong>, not Delete.
+                    </div>
+                </div>
                 <div style="display:flex;gap:8px;">
                     <button class="btn btn-secondary" onclick="closeEditPersonnelModal()">Cancel</button>
                     <button class="btn btn-primary" onclick="confirmEditPersonnel()">Save Changes</button>
                 </div>
             </div>
             <div id="editPersonnelModalError" class="error-message"></div>
+        </div>
+    </div>
+
+    <!-- Transfer Personnel Modal -->
+    <div id="transferPersonnelModal" class="modal">
+        <div class="modal-content" style="max-width:440px;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#1565c0,#1976d2);">
+                <span><i class="fas fa-arrow-right-arrow-left" style="margin-right:8px;"></i>Transfer Personnel</span>
+                <button class="modal-close" onclick="closeTransferPersonnelModal()">&times;</button>
+            </div>
+            <div class="modal-subtitle" id="transferPersonnelSubtitle" style="color:#1565c0;font-weight:600;"></div>
+            <div style="display:flex;align-items:flex-start;gap:8px;margin:0 0 4px 0;padding:10px 14px;background:#fff8e1;border-left:4px solid #fbc02d;border-radius:6px;font-size:0.72rem;color:#5d4037;line-height:1.5;">
+                <i class="fas fa-circle-info" style="color:#fbc02d;margin-top:2px;flex-shrink:0;"></i>
+                <span><strong style="color:#e65100;">Note:</strong> If transferring a personnel to another project, <strong>do not use Delete</strong> — use this <strong>Transfer</strong> function instead so their records are preserved.</span>
+            </div>
+            <div class="modal-form-group">
+                <label style="font-weight:700;font-size:0.8rem;color:#333;">Transfer To:</label>
+                <div style="position:relative;margin-top:6px;">
+                    <input type="text" id="transferProjectSearch" placeholder="🔍  Search project..." oninput="filterTransferProjects(this.value)"
+                        style="width:100%;padding:9px 14px;border:1.5px solid #ccc;border-radius:8px;font-size:0.82rem;outline:none;box-sizing:border-box;margin-bottom:8px;transition:border-color 0.2s;"
+                        onfocus="this.style.borderColor='#1976d2'" onblur="this.style.borderColor='#ccc'">
+                </div>
+                <div id="transferProjectList" style="max-height:260px;overflow-y:auto;border:1.5px solid #e0e0e0;border-radius:8px;background:#fafafa;"></div>
+                <div id="transferSelectedDisplay" style="margin-top:10px;display:none;">
+                    <div style="font-size:0.7rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#888;margin-bottom:4px;">Selected:</div>
+                    <div id="transferSelectedName" style="background:#e3f2fd;border:1.5px solid #1976d2;border-radius:8px;padding:8px 12px;font-size:0.82rem;font-weight:600;color:#1565c0;display:flex;align-items:center;gap:8px;">
+                        <i class="fas fa-solar-panel"></i>
+                        <span id="transferSelectedNameText"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-buttons" style="justify-content:flex-end;gap:8px;margin-top:4px;">
+                <button class="btn btn-secondary" onclick="closeTransferPersonnelModal()">Cancel</button>
+                <button class="btn" id="transferPersonnelConfirmBtn" onclick="confirmTransferPersonnel()" disabled
+                    style="background:#1565c0;color:white;border:none;padding:10px 20px;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;opacity:0.5;transition:opacity 0.2s;">
+                    <i class="fas fa-arrow-right-arrow-left"></i> Confirm Transfer
+                </button>
+            </div>
+            <div id="transferPersonnelError" class="error-message"></div>
         </div>
     </div>
 
@@ -9975,6 +10035,31 @@ debugCommands.help() - Show this help
         }
 
         // ===== LOGIN & AUTH =====
+
+        // ── REMEMBER EMAIL (device-local) ──
+        const _REMEMBER_EMAIL_KEY = 'esh_remember_email';
+
+        function rememberEmailLoad() {
+            const saved = localStorage.getItem(_REMEMBER_EMAIL_KEY);
+            if (!saved) return;
+            function _fill() {
+                const emailInput = document.getElementById('login-user');
+                if (emailInput) {
+                    emailInput.value = saved;
+                    emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                const cb = document.getElementById('login-remember');
+                if (cb) cb.checked = true;
+            }
+            _fill();
+            setTimeout(_fill, 200);
+        }
+
+        function rememberEmailSave(email) {
+            if (email) localStorage.setItem(_REMEMBER_EMAIL_KEY, email);
+        }
+        // ── END REMEMBER EMAIL ──
+
         async function handleLogin(event) {
             event.preventDefault();
             const email = document.getElementById('login-user').value.trim();
@@ -10026,6 +10111,8 @@ debugCommands.help() - Show this help
                 state.currentUser = { email: user.email, uid: user.uid };
                 state.isLoggedIn = true;
                 console.log('✅ Firebase login successful:', user.email);
+                // Save remembered email preference
+                rememberEmailSave(user.email);
                 // showUI() will be called by onAuthStateChanged observer
             } catch (error) {
                 console.error('❌ Firebase login error:', error);
@@ -13007,7 +13094,7 @@ function closeAllStatusDropdowns() {
                             ${!canEditRegion && !isCorporateReg ? `<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="🔒 View Only"></i>` : ''}
                         </div>
                         <div class="region-banner-right">
-                            ${(!isCorporateReg || isCorporateDataTab) ? `<span class="rbadge rbadge-count">${projs.length} PROJ</span>` : ''}
+                            ${(!isCorporateReg || isCorporateDataTab) ? (isCorporateReg ? `<span class="rbadge rbadge-count">${projs.length} OFFICE</span>` : `<span class="rbadge rbadge-count">${projs.length} PROJ</span>`) : ''}
                             ${(!isCorporateReg || isCorporateDataTab) && projs.length > 0 ? `<span class="rbadge rbadge-avg">AVG ${regionAvg}%</span>` : ''}
                             ${(!isCorporateReg || isCorporateDataTab) && state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary" style="font-size:0.68rem;padding:3px 10px;line-height:1.4;">+ ADD</button>` : ''}
                             ${(!isCorporateReg || isCorporateDataTab) && state.isEditing && !canEditRegion ? `<button disabled style="opacity:0.45;cursor:not-allowed;background:#888;font-size:0.68rem;padding:3px 10px;line-height:1.4;" class="btn btn-primary">LOCKED</button>` : ''}
@@ -13052,16 +13139,15 @@ function closeAllStatusDropdowns() {
                         </div>
                         <div class="project-info">
                             <div class="project-name">
-                                ${isLocked ? '<i class="fas fa-lock" style="color: #f57c00; margin-right: 6px;" title="View Only - Contact admin to edit"></i>' : ''}
-                                ${p.isRenewable ? '<span style="display: inline-flex; align-items: center; gap: 4px; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; margin-right: 6px;"><i class="fas fa-leaf" style="color: #4caf50;"></i> RE</span>' : ''}
                                 ${p.name}
+                                ${p.isRenewable ? '<span style="display: inline-flex; align-items: center; gap: 4px; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; margin-left: 8px;"><i class="fas fa-leaf" style="color: #4caf50;"></i> RE</span>' : ''}
                             </div>
-                            <div class="project-meta">Safety Compliance • ${p.region || 'No Region'}</div>
+                            <div class="project-meta">${p.region === 'CORPORATE' ? 'Main Office' : 'Safety Compliance'} • ${p.region || 'No Region'}</div>
                         </div>
-                        <div class="project-dates">
+                        ${p.region === 'CORPORATE' ? '' : `<div class="project-dates">
                             <div><span class="date-label">Started:</span> ${p.dateStarted ? formatDateDMY(p.dateStarted) : 'Not set'}</div>
                             <div><span class="date-label">Finished:</span> ${p.dateFinished ? formatDateDMY(p.dateFinished) : 'Ongoing'}</div>
-                        </div>
+                        </div>`}
                         <span class="status-badge ${statusClass}" onclick="${isLocked ? 'showLockedMessage()' : `changeProjectStatus('${p.name}', event)`}">${statusLabel}</span>
                         ${state.isEditing ? `
                             <button ${isLocked ? 'disabled' : ''} onclick="${isLocked ? 'showLockedMessage()' : `openEditProjectModal('${p.name.replace(/'/g, "\\'")}', '${p.region}')`}" style="background:none;border:none;cursor:pointer;color:#555;font-size:1rem;padding:4px 6px;margin-right:2px;opacity:${isLocked ? '0.5' : '1'};" title="${isLocked ? 'View Only - Contact admin to edit' : 'Edit Project Details'}">
@@ -13864,7 +13950,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         html += '<td style="min-width:200px;padding:8px 12px;"><input type="text" placeholder="' + (isPermitNA?'N/A':'Permit/Accreditation #') + '" value="' + _mpNo + '" ' + naDisabled + ' oninput="updateMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ',\'permitNo\',this.value)" style="width:100%;' + _mpNS + '"></td>';
                         html += '<td style="min-width:140px;padding:8px 12px;"><input type="date" value="' + _mpIss + '" ' + naDisabled + ' oninput="updateMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ',\'dateIssued\',this.value)" style="width:100%;' + _mpDS + '"></td>';
                         html += '<td style="min-width:140px;padding:8px 12px;position:relative;"><input type="date" value="' + _mpExp + '" ' + naDisabled + ' oninput="updateMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ',\'expiryDate\',this.value)" style="width:100%;' + _mpDS + '">';
-                        if (_mpIsFirst && inputsEditable && !isPermitNA) html += '<button onclick="addMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\')" style="position:absolute;bottom:-12px;right:4px;z-index:10;background:#1565c0;color:white;border:none;border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.2);">+ Add ' + _mpShort + '</button>';
+                        if (_mpIsFirst && inputsEditable && !isPermitNA) html += '<button onclick="addMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\')" style="position:absolute;bottom:-12px;right:4px;z-index:10;background:#2e7d32;color:white;border:none;border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 2px 6px rgba(46,125,50,0.3);">+ Add ' + _mpShort + '</button>';
                         html += '</td>';
                     });
                 } else {
@@ -15602,13 +15688,22 @@ function calculateYearsOfService(hireDate) {
     let years = today.getFullYear() - hired.getFullYear();
     const monthDiff = today.getMonth() - hired.getMonth();
     
-    // Adjust if birthday hasn't occurred this year yet
+    // Adjust if anniversary hasn't occurred this year yet
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < hired.getDate())) {
         years--;
     }
     
-    // Return 0 if negative (future date)
-    return years < 0 ? 0 : years;
+    // If less than 1 year, return months string (e.g. "11 mos.")
+    if (years < 0) return '0 mos.';
+    if (years === 0) {
+        // Calculate total months difference
+        let months = (today.getFullYear() - hired.getFullYear()) * 12 + (today.getMonth() - hired.getMonth());
+        if (today.getDate() < hired.getDate()) months--;
+        if (months < 0) months = 0;
+        return months + ' mos.';
+    }
+    
+    return years;
 }
 
 function addPRow() {
@@ -15899,26 +15994,234 @@ function openEditPersonnelModal(index) {
     // Show modal
     document.getElementById('editPersonnelModal').classList.add('show');
 
-    // Show/hide delete button based on permissions
+    // Show/hide delete & transfer buttons based on permissions
     const deleteBtn = document.getElementById('editPersonnelDeleteBtn');
-    if (deleteBtn) {
-        let canDelete = true;
-        if (!state.isAdmin) {
-            if (person.current === 'Corporate Office') canDelete = false;
-            const personProject = (state.masterProjects || state.projects || []).find(p => p.name === person.current);
-            if (personProject && personProject.region === 'CORPORATE') canDelete = false;
-            if (state.userRegion) {
-                const userProjects = (state.masterProjects || []).filter(p => p.region === state.userRegion).map(p => p.name);
-                if (!userProjects.includes(person.current)) canDelete = false;
-            }
+    const transferBtn = document.getElementById('editPersonnelTransferBtn');
+    let canDelete = true;
+    let canTransfer = true;
+    if (!state.isAdmin) {
+        if (person.current === 'Corporate Office') { canDelete = false; canTransfer = false; }
+        const personProject = (state.masterProjects || state.projects || []).find(p => p.name === person.current);
+        if (personProject && personProject.region === 'CORPORATE') { canDelete = false; canTransfer = false; }
+        if (state.userRegion) {
+            const userProjects = (state.masterProjects || []).filter(p => p.region === state.userRegion).map(p => p.name);
+            if (!userProjects.includes(person.current)) { canDelete = false; canTransfer = false; }
         }
-        deleteBtn.style.display = canDelete ? '' : 'none';
     }
+    if (deleteBtn) deleteBtn.style.display = canDelete ? '' : 'none';
+    if (transferBtn) transferBtn.style.display = canTransfer ? '' : 'none';
 }
 
 function closeEditPersonnelModal() {
     document.getElementById('editPersonnelModal').classList.remove('show');
 }
+
+// ─── TRANSFER PERSONNEL ────────────────────────────────────────────────
+let _transferSelectedProject = null;
+
+function openTransferPersonnelModal() {
+    const index = parseInt(document.getElementById('editPersonnelIndex').value);
+    const person = state.personnelData[index];
+    if (!person) return;
+
+    _transferSelectedProject = null;
+
+    // Subtitle
+    const subtitle = document.getElementById('transferPersonnelSubtitle');
+    if (subtitle) subtitle.textContent = `Moving: ${person.name}  (currently at ${person.current || 'N/A'})`;
+
+    // Clear UI
+    document.getElementById('transferProjectSearch').value = '';
+    document.getElementById('transferPersonnelError').textContent = '';
+    document.getElementById('transferSelectedDisplay').style.display = 'none';
+    const confirmBtn = document.getElementById('transferPersonnelConfirmBtn');
+    if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.style.opacity = '0.5'; }
+
+    // Build full project list (ALL projects across ALL regions, excluding current assignment)
+    const currentAssignment = person.current || '';
+    const allProjects = [];
+
+    // Corporate Office option (Admin only)
+    if (state.isAdmin && currentAssignment !== 'Corporate Office') {
+        allProjects.push({ name: 'Corporate Office', region: 'CORPORATE' });
+    }
+
+    // All projects from all regions
+    const masterList = state.masterProjects || state.projects || [];
+    masterList.forEach(p => {
+        if (p.name && p.name !== currentAssignment && p.region !== 'CORPORATE') {
+            allProjects.push({ name: p.name, region: p.region || '' });
+        }
+    });
+
+    // Sort by region then name
+    const REGION_ORDER = ['CORPORATE','NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+    allProjects.sort((a, b) => {
+        const ri = r => { const i = REGION_ORDER.indexOf((r||'').toUpperCase()); return i >= 0 ? i : 99; };
+        if (ri(a.region) !== ri(b.region)) return ri(a.region) - ri(b.region);
+        return a.name.localeCompare(b.name);
+    });
+
+    // Store full list for filtering
+    window._transferAllProjects = allProjects;
+    renderTransferProjectList(allProjects);
+
+    // Show modal
+    document.getElementById('transferPersonnelModal').classList.add('show');
+}
+
+function renderTransferProjectList(projects) {
+    const list = document.getElementById('transferProjectList');
+    if (!list) return;
+
+    if (projects.length === 0) {
+        list.innerHTML = `<div style="padding:16px;text-align:center;color:#aaa;font-size:0.78rem;">No matching projects found.</div>`;
+        return;
+    }
+
+    const REGION_COLORS = {
+        'CORPORATE': '#5c35a0',
+        'NCR': '#1565c0',
+        'SOUTH LUZON': '#2e7d32',
+        'NORTH LUZON': '#e65100',
+        'VISAYAS & MINDANAO': '#00838f'
+    };
+
+    let html = '';
+    let lastRegion = null;
+    projects.forEach(p => {
+        const reg = (p.region || '').toUpperCase();
+        if (reg !== lastRegion) {
+            const col = REGION_COLORS[reg] || '#666';
+            html += `<div style="padding:5px 12px;background:${col};color:white;font-size:0.58rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;position:sticky;top:0;z-index:1;">
+                <i class="fas fa-map-marker-alt" style="margin-right:5px;opacity:0.8;"></i>${reg === 'CORPORATE' ? '🏢 CORPORATE' : reg}
+            </div>`;
+            lastRegion = reg;
+        }
+        const isSel = _transferSelectedProject === p.name;
+        html += `<div class="transfer-proj-item" data-project="${p.name.replace(/"/g,'&quot;')}"
+            onclick="selectTransferProject('${p.name.replace(/'/g,"\'")}', this)"
+            style="padding:9px 14px;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:8px;
+                   border-bottom:1px solid #f0f0f0;transition:background 0.15s;
+                   background:${isSel ? '#e3f2fd' : 'transparent'};
+                   color:${isSel ? '#1565c0' : '#333'};font-weight:${isSel ? '700' : '400'};"
+            onmouseenter="if(!this.classList.contains('selected')) this.style.background='#f5f5f5';"
+            onmouseleave="if(!this.classList.contains('selected')) this.style.background='transparent';">
+            <i class="fas ${p.region === 'CORPORATE' ? 'fa-building-columns' : 'fa-solar-panel'}"
+               style="font-size:0.7rem;opacity:0.6;flex-shrink:0;"></i>
+            ${p.name}
+            ${isSel ? '<i class="fas fa-check" style="margin-left:auto;color:#1565c0;font-size:0.7rem;"></i>' : ''}
+        </div>`;
+    });
+    list.innerHTML = html;
+}
+
+function filterTransferProjects(query) {
+    const q = query.trim().toLowerCase();
+    if (!window._transferAllProjects) return;
+    const filtered = q
+        ? window._transferAllProjects.filter(p =>
+            p.name.toLowerCase().includes(q) || (p.region || '').toLowerCase().includes(q))
+        : window._transferAllProjects;
+    renderTransferProjectList(filtered);
+}
+
+function selectTransferProject(projName, el) {
+    _transferSelectedProject = projName;
+
+    // Highlight selected item
+    const list = document.getElementById('transferProjectList');
+    list.querySelectorAll('.transfer-proj-item').forEach(item => {
+        const isThis = item.getAttribute('data-project') === projName;
+        item.style.background = isThis ? '#e3f2fd' : 'transparent';
+        item.style.color = isThis ? '#1565c0' : '#333';
+        item.style.fontWeight = isThis ? '700' : '400';
+    });
+
+    // Show selected display
+    const selDisplay = document.getElementById('transferSelectedDisplay');
+    const selName = document.getElementById('transferSelectedNameText');
+    if (selDisplay) selDisplay.style.display = '';
+    if (selName) selName.textContent = projName;
+
+    // Enable confirm button
+    const confirmBtn = document.getElementById('transferPersonnelConfirmBtn');
+    if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.style.opacity = '1'; }
+}
+
+function closeTransferPersonnelModal() {
+    document.getElementById('transferPersonnelModal').classList.remove('show');
+    _transferSelectedProject = null;
+}
+
+function confirmTransferPersonnel() {
+    if (!_transferSelectedProject) return;
+
+    const index = parseInt(document.getElementById('editPersonnelIndex').value);
+    const person = state.personnelData[index];
+    if (!person) return;
+
+    // RBAC: non-admin can only receive into their own region OR within their region
+    if (!state.isAdmin && state.userRegion) {
+        const targetProj = (state.masterProjects || state.projects || []).find(p => p.name === _transferSelectedProject);
+        if (targetProj && targetProj.region !== state.userRegion) {
+            document.getElementById('transferPersonnelError').textContent =
+                '🔒 You can only transfer personnel within your own region.';
+            return;
+        }
+    }
+
+    const oldAssignment = person.current;
+    state.personnelData[index].current = _transferSelectedProject;
+
+    // Recalculate years of service
+    if (person.hired) {
+        state.personnelData[index].len = String(calculateYearsOfService(person.hired));
+    }
+
+    // Auto-expand the target region group and project card so the person is visible after transfer
+    const masterList = state.masterProjects || state.projects || [];
+    const targetProj = masterList.find(p => p.name === _transferSelectedProject);
+    const targetRegion = targetProj ? (targetProj.region || '').toUpperCase() : '';
+
+    // Determine safeKeys for the target region group and project card
+    const targetRegionSafe = targetRegion.replace(/[^a-zA-Z0-9]/g, '_');
+    const targetProjSafe   = _transferSelectedProject.replace(/[^a-zA-Z0-9]/g, '_');
+
+    // Remove from collapsed sets so they render expanded
+    _pCollapsedGroups.delete(targetRegionSafe);
+    _pCollapsedGroups.delete('CORP_OFFICE'); // in case target is corporate
+    _pCollapsedProjects.delete(targetProjSafe);
+    // Also handle the old project — keep its state as-is (don't force collapse)
+
+    closeTransferPersonnelModal();
+    closeEditPersonnelModal();
+    renderPTable();
+    updatePersonnelSummary();
+    saveUserData(state.currentUser.email);
+
+    // Scroll the newly-placed person into view after render
+    setTimeout(() => {
+        const projBody = document.getElementById('p-proj-body-' + targetProjSafe);
+        if (projBody) {
+            projBody.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 150);
+
+    if (window.showToast) window.showToast(
+        `✅ ${person.name} transferred to ${_transferSelectedProject}`, 'success', 4000
+    );
+
+    // Sync to Firebase
+    if (window.showSyncPill) window.showSyncPill('syncing', 'Saving transfer...');
+    saveToFirebaseWithRetry()
+        .then(s => {
+            if (s) { if (window.markSyncComplete) window.markSyncComplete(); }
+            else   { if (window.markSyncFailed) window.markSyncFailed(); }
+        })
+        .catch(() => { if (window.markSyncFailed) window.markSyncFailed(); });
+}
+// ─── END TRANSFER PERSONNEL ───────────────────────────────────────────
 
 function deletePersonnelFromModal() {
     const index = parseInt(document.getElementById('editPersonnelIndex').value);
@@ -16048,6 +16351,10 @@ function confirmEditPersonnel() {
 // Track collapsed project/group cards
 const _pCollapsedProjects = new Set();
 
+// Track collapsed REGION group banners (NCR, SOUTH LUZON, etc.) in Personnel table
+// Default: all groups start EXPANDED (not in set = expanded)
+const _pCollapsedGroups = new Set();
+
 // Toggle project card by safeKey (used by delegated listener)
 function _pToggleProjectBySafeKey(safeKey) {
     const body = document.getElementById('p-proj-body-' + safeKey);
@@ -16082,6 +16389,9 @@ window.pToggleGroup = function(grpKey) {
     const isVisible = body.style.display !== 'none';
     body.style.display = isVisible ? 'none' : '';
     if (chev) chev.style.transform = isVisible ? 'rotate(-90deg)' : 'rotate(0deg)';
+    // Persist state so re-renders preserve expand/collapse
+    if (isVisible) _pCollapsedGroups.add(safeKey);
+    else _pCollapsedGroups.delete(safeKey);
 };
 
 // Safe version: key is already sanitized, no need to re-process
@@ -16092,6 +16402,9 @@ window.pToggleGroupSafe = function(safeKey) {
     const isVisible = body.style.display !== 'none';
     body.style.display = isVisible ? 'none' : '';
     if (chev) chev.style.transform = isVisible ? 'rotate(-90deg)' : 'rotate(0deg)';
+    // Persist state so re-renders preserve expand/collapse
+    if (isVisible) _pCollapsedGroups.add(safeKey);
+    else _pCollapsedGroups.delete(safeKey);
 };
 
 const P_TABLE_THEAD = `
@@ -16191,7 +16504,7 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
                 <div class="p-view-text" style="white-space:normal;word-break:break-word;font-size:0.72rem;padding:2px 0;">${p.addr||''}</div>
                 <input type="text" value="${p.addr||''}" onchange="state.personnelData[${origIdx}].addr=this.value" style="min-width:185px;text-align:center;display:none;" disabled>
             </td>
-            <td style="width:70px;text-align:center;"><input type="number" value="${yearsOfService!==''?yearsOfService:(p.len||'')}" style="width:50px;text-align:center;background:#f0f0f0;color:#666;font-weight:600;" min="0" max="99" disabled readonly title="Auto-calculated from Date Hired"></td>
+            <td style="width:70px;text-align:center;"><input type="text" value="${yearsOfService!==''?yearsOfService:(p.len||'')}" style="width:55px;text-align:center;background:#f0f0f0;color:#666;font-weight:600;" disabled readonly title="Auto-calculated from Date Hired"></td>
             <td style="width:100px;text-align:center;white-space:nowrap;">
                 <button class="p-edit-btn" id="p-edit-btn-${origIdx}" onclick="openEditPersonnelModal(${origIdx})"><i class="fas fa-edit"></i></button>
             </td>
@@ -16315,8 +16628,8 @@ function renderPTable() {
             const posDisplay  = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>` : '';
             const genDisplay  = p.gen && p.gen !== 'Select' ? `<span class="p-pos-badge ${genderClass}">${p.gen}</span>` : '';
             const yearsOfService = calculateYearsOfService(p.hired);
-            if (p.hired && yearsOfService !== '' && p.len !== yearsOfService.toString()) {
-                state.personnelData[origIdx].len = yearsOfService.toString();
+            if (p.hired && yearsOfService !== '' && String(p.len) !== String(yearsOfService)) {
+                state.personnelData[origIdx].len = String(yearsOfService);
             }
             _corpRows += `
             <tr id="p-row-${origIdx}" style="${di%2===0?'background:#ffffff;':'background:#f4f6f8;'}">
@@ -16346,7 +16659,7 @@ function renderPTable() {
                 <td style="min-width:200px;text-align:left;">
                     <div class="p-view-text" style="white-space:normal;word-break:break-word;font-size:0.72rem;padding:2px 0;">${p.addr||''}</div>
                 </td>
-                <td style="width:70px;text-align:center;"><input type="number" value="${yearsOfService!==''?yearsOfService:(p.len||'')}" style="width:50px;text-align:center;background:#f0f0f0;color:#666;font-weight:600;" min="0" max="99" disabled readonly></td>
+                <td style="width:70px;text-align:center;"><input type="text" value="${yearsOfService!==''?yearsOfService:(p.len||'')}" style="width:55px;text-align:center;background:#f0f0f0;color:#666;font-weight:600;" disabled readonly></td>
                 <td style="width:100px;text-align:center;white-space:nowrap;">
                     <button class="p-edit-btn" id="p-edit-btn-${origIdx}" onclick="openEditPersonnelModal(${origIdx})"><i class="fas fa-edit"></i></button>
                 </td>
@@ -16356,10 +16669,10 @@ function renderPTable() {
         <div style="background:linear-gradient(90deg,#1b5e20 0%,#2e7d32 60%,#388e3c 100%);cursor:pointer;user-select:none;" onclick="pToggleGroup('CORP_OFFICE')">
             <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;color:white;font-weight:800;font-size:0.75rem;letter-spacing:1px;">
                 <span style="flex:1;">🏢 CORPORATE</span>
-                <i id="p-grp-chev-${grpSafe}" class="fas fa-chevron-down" style="font-size:0.65rem;opacity:0.8;transition:transform 0.2s;"></i>
+                <i id="p-grp-chev-${grpSafe}" class="fas fa-chevron-down" style="font-size:0.65rem;opacity:0.8;transition:transform 0.2s;transform:${_pCollapsedGroups.has(grpSafe)?'rotate(-90deg)':'rotate(0deg)'};"></i>
             </div>
         </div>
-        <div id="p-grp-body-${grpSafe}" style="overflow-x:auto;">
+        <div id="p-grp-body-${grpSafe}" style="overflow-x:auto;display:${_pCollapsedGroups.has(grpSafe)?'none':''};">
             <table style="width:max-content;min-width:100%;border-collapse:collapse;font-size:0.72rem;">
                 <thead>${P_TABLE_THEAD}</thead>
                 <tbody>${_corpRows}</tbody>
@@ -16384,14 +16697,15 @@ function renderPTable() {
         const supProj  = supEntry ? supEntry.current : null;
         const projectNames = Object.keys(projMap).sort((a,b) => a===supProj?-1:b===supProj?1:a.localeCompare(b));
 
+        const grpIsCollapsed = _pCollapsedGroups.has(grpSafe);
         html += `<div style="background:linear-gradient(90deg,#1b5e20 0%,#2e7d32 60%,#388e3c 100%);cursor:pointer;user-select:none;" onclick="pToggleGroupSafe('${grpSafe}')">
             <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;color:white;font-weight:800;font-size:0.75rem;letter-spacing:1px;">
                 <span style="flex:1;">${regionLabel}</span>
                 <span style="background:rgba(255,255,255,0.18);padding:2px 10px;border-radius:10px;font-size:0.62rem;font-weight:700;">${regionCount} personnel</span>
-                <i id="p-grp-chev-${grpSafe}" class="fas fa-chevron-down" style="font-size:0.65rem;opacity:0.8;transition:transform 0.2s;transform:rotate(-90deg);"></i>
+                <i id="p-grp-chev-${grpSafe}" class="fas fa-chevron-down" style="font-size:0.65rem;opacity:0.8;transition:transform 0.2s;transform:${grpIsCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'};"></i>
             </div>
         </div>
-        <div id="p-grp-body-${grpSafe}" style="display:none;">
+        <div id="p-grp-body-${grpSafe}" style="display:${grpIsCollapsed ? 'none' : ''};">
         ${projectNames.map(projName => {
             const personnel = projMap[projName].sort((a,b) => projPosRank(a.pos)-projPosRank(b.pos));
             return buildProjectCard(projName, personnel, projOptions, displayIndexRef, false);
@@ -16457,7 +16771,7 @@ function pRowSave(i) {
     if (state.personnelData[i] && state.personnelData[i].hired) {
         const yearsOfService = calculateYearsOfService(state.personnelData[i].hired);
         if (yearsOfService !== '') {
-            state.personnelData[i].len = yearsOfService.toString();
+            state.personnelData[i].len = String(yearsOfService);
         }
     }
     
@@ -17924,7 +18238,10 @@ function setupAuthObserver() {
 
             // Show login overlay
             const loginOverlay = document.getElementById('login-overlay');
-            if (loginOverlay) loginOverlay.style.display = 'flex';
+            if (loginOverlay) {
+                loginOverlay.style.display = 'flex';
+                setTimeout(rememberEmailLoad, 120);
+            }
 
             // Hide main UI
             const sidebar = document.getElementById('main-sidebar');
@@ -17936,7 +18253,7 @@ function setupAuthObserver() {
             const loginBtn = document.getElementById('login-btn');
             if (loginBtn) {
                 loginBtn.disabled = false;
-                loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM';
+                loginBtn.innerHTML = '<i class="fas fa-shield-halved"></i> Access System';
             }
         }
     });
