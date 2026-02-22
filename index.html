@@ -8510,18 +8510,43 @@ function applyNumFmtToInputs() {
                 window.firebase.onValue(this.usersPresenceRef, (snapshot) => {
                     const presenceData = snapshot.val() || {};
                     state.activeUsers = presenceData;
-                    
-                    // FIX: Always update UI when presence data changes (real-time)
-                    // Using 'this' bound via arrow function ensures correct context
+
                     if (state.isAdmin && state.isLoggedIn) {
+                        // Auto-cleanup ghost/stale entries BEFORE rendering UI
+                        this._autoCleanupStale(presenceData);
                         this.updateActiveUsersUI();
-                        // Also sync device badge from presence (more reliable count)
                         this.updateDeviceCounterUI();
                         console.log('🔄 Presence updated:', Object.keys(presenceData).length, 'users in Firebase');
                     }
                 });
+
+                // Periodic cleanup every 60s — catches entries missed by onDisconnect
+                if (this._staleCleanupInterval) clearInterval(this._staleCleanupInterval);
+                this._staleCleanupInterval = setInterval(() => {
+                    if (state.isAdmin && state.isLoggedIn) {
+                        this._autoCleanupStale(state.activeUsers || {});
+                    }
+                }, 60000);
             },
-            
+
+            // Silently remove ghost/stale presence + device entries from Firebase
+            async _autoCleanupStale(presenceData) {
+                const now = Date.now();
+                const STALE_MS = 2 * 60 * 1000; // 2 minutes (heartbeat is every 15s, so very safe)
+                for (const [uid, data] of Object.entries(presenceData)) {
+                    const isTimedOut = !data.lastSeen || (now - data.lastSeen) > STALE_MS;
+                    const isUnknown  = !data.email && !data.displayName;
+                    const isOffline  = data.status === 'offline';
+                    if (isTimedOut || isUnknown || isOffline) {
+                        try {
+                            await window.firebase.remove(window.firebase.dbRef(window.firebaseRealtimeDb, 'presence/' + uid));
+                            await window.firebase.remove(window.firebase.dbRef(window.firebaseRealtimeDb, 'devices/' + uid));
+                            console.log('🧹 Auto-cleaned stale presence: ' + (data.email || data.displayName || uid));
+                        } catch(e) { /* already removed or no permission — ignore */ }
+                    }
+                }
+            },
+
             startDeviceListener() {
                 const allDevicesRef = window.firebase.dbRef(
                     window.firebaseRealtimeDb,
@@ -8621,7 +8646,7 @@ function applyNumFmtToInputs() {
                 
                 const users = Object.entries(state.activeUsers || {});
                 const now = Date.now();
-                const STALE_THRESHOLD = 45 * 1000; // 45 seconds — heartbeat runs every 15s so this is safe
+                const STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes — entries are auto-cleaned after this
                 
                 // Filter: only count as online if status=online AND lastSeen is recent
                 const onlineCount = users.filter(([, data]) => {
@@ -8705,7 +8730,7 @@ function applyNumFmtToInputs() {
                 // Presence is updated instantly on tab close (via cleanup() + onDisconnect).
                 // Devices node can lag slightly on network disconnect, so presence is more reliable.
                 const now = Date.now();
-                const STALE_THRESHOLD = 45 * 1000; // 45 seconds — heartbeat every 15s
+                const STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes — entries are auto-cleaned after this
                 const presenceOnline = Object.values(state.activeUsers || {})
                     .filter(u => {
                         if (u.status !== 'online') return false;
@@ -9523,7 +9548,7 @@ debugCommands.help() - Show this help
         async function clearStalePresenceData() {
             if (!state.isAdmin) return;
 
-            const STALE_THRESHOLD = 45 * 1000; // 45 seconds — heartbeat every 15s
+            const STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes
             const now = Date.now();
             let clearedCount = 0;
 
@@ -15806,10 +15831,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         <div style="font-size:0.5rem;color:#aaa;margin-top:1px;display:flex;align-items:center;justify-content:center;gap:2px;"><i class="fas fa-lock" style="font-size:0.43rem;"></i> auto</div>
                     </td>`;
                 } else if (_isDrillTraining) {
-                    // Show computed previous value as read-only display (no manual input allowed)
-                    html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}" style="text-align:center;background:rgba(46,125,50,0.05);" title="Auto-computed from ESH Calendar & Drills — cannot be edited manually">
-                        <span style="font-size:0.7rem;color:var(--text-primary);font-weight:700;">${prevValFmt || ''}</span>
-                        <i class="fas fa-lock" style="font-size:0.45rem;margin-left:3px;opacity:0.4;vertical-align:middle;"></i>
+                    // Previous column = MANUAL INPUT (only Jan-Dec are auto-computed from ESH Calendar)
+                    html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}">
+                        <input type="text" inputmode="decimal" data-num
+                            value="${prevValFmt}"
+                            ${inputsEditable ? '' : 'disabled'}
+                            oninput="numFmtInput(this, function(v){updateVal('${p.name}','${key}',0,v)})">
                     </td>`;
                 } else {
                     html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}">
@@ -20342,6 +20369,12 @@ function setupAuthObserver() {
                     PresenceTracker.updateDeviceCounterUI();
                     PresenceTracker.updateActiveUsersUI();
                 }, 500);
+                // ── STARTUP CLEANUP: remove ghost entries from previous sessions ──
+                // Runs 3s after login so Firebase listeners are fully ready
+                setTimeout(async () => {
+                    await PresenceTracker._autoCleanupStale(state.activeUsers || {});
+                    console.log('✅ Startup stale presence cleanup done');
+                }, 3000);
             }
             
             // Log login to logbook with IP and location
