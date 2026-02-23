@@ -17958,17 +17958,17 @@ function confirmAddPersonnel() {
     if (!state.personnelData) state.personnelData = [];
     state.personnelData.push({
         name: fullName,
-        pos: pos,
-        id: id,
-        hired: hired,
-        current: current,
-        age: age,
-        gen: gen,
-        mail: mail,
-        num: num,
-        addr: addr,
-        len: len,
-        toUpdate: toUpdate.length > 0 ? toUpdate : undefined
+        pos: pos || '',
+        id: id || '',
+        hired: hired || '',
+        current: current || '',
+        age: age || '',
+        gen: gen || '',
+        mail: mail || '',
+        num: num || '',
+        addr: addr || '',
+        len: len || '',
+        toUpdate: toUpdate.length > 0 ? toUpdate : null
     });
     
     // Save and refresh
@@ -18539,17 +18539,17 @@ function confirmEditPersonnel() {
     // Update personnel
     state.personnelData[index] = {
         name: fullName,
-        pos: pos,
-        id: id,
-        hired: hired,
-        current: current,
-        age: age,
-        gen: gen,
-        mail: mail,
-        num: num,
-        addr: addr,
-        len: len,
-        toUpdate: toUpdate.length > 0 ? toUpdate : undefined
+        pos: pos || '',
+        id: id || '',
+        hired: hired || '',
+        current: current || '',
+        age: age || '',
+        gen: gen || '',
+        mail: mail || '',
+        num: num || '',
+        addr: addr || '',
+        len: len || '',
+        toUpdate: toUpdate.length > 0 ? toUpdate : null
     };
     
     // Save and refresh
@@ -19828,7 +19828,21 @@ async function saveToFirebase() {
             }
             // personnelData is global (year-independent) — always save it to every year doc
             // so switchYear() can always load the full personnel list from any year doc
-            payload.personnelData = state.personnelData || [];
+            // ── CRITICAL: sanitize each personnel record to strip undefined/null fields ──
+            payload.personnelData = (state.personnelData || []).map(p => ({
+                name:     p.name     || '',
+                pos:      p.pos      || '',
+                id:       p.id       || '',
+                hired:    p.hired    || '',
+                current:  p.current  || '',
+                age:      p.age      || '',
+                gen:      p.gen      || '',
+                mail:     p.mail     || '',
+                num:      p.num      || '',
+                addr:     p.addr     || '',
+                len:      p.len      || '',
+                toUpdate: Array.isArray(p.toUpdate) && p.toUpdate.length > 0 ? p.toUpdate : null
+            }));
             return sanitize(payload);
         }
 
