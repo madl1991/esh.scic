@@ -8529,8 +8529,9 @@ function applyNumFmtToInputs() {
                     state.activeUsers = presenceData;
 
                     if (state.isAdmin && state.isLoggedIn) {
-                        // Auto-cleanup ghost/stale entries BEFORE rendering UI
-                        this._autoCleanupStale(presenceData);
+                        // FIX: Removed _autoCleanupStale() from here — calling remove() inside
+                        // onValue creates a death loop: remove → triggers onValue → remove again.
+                        // Cleanup now runs only on a 60s interval below (safe cadence).
                         this.updateActiveUsersUI();
                         this.updateDeviceCounterUI();
                         console.log('🔄 Presence updated:', Object.keys(presenceData).length, 'users in Firebase');
@@ -8549,9 +8550,16 @@ function applyNumFmtToInputs() {
             // Silently remove ghost/stale presence + device entries from Firebase
             async _autoCleanupStale(presenceData) {
                 const now = Date.now();
-                const STALE_MS = 2 * 60 * 1000; // 2 minutes (heartbeat is every 15s, so very safe)
+                // FIX: Increased from 2min → 10min to avoid removing users with slow heartbeats.
+                // Heartbeat is every 15s, so 10 minutes is extremely safe.
+                const STALE_MS = 10 * 60 * 1000;
+                // FIX: Never touch entries seen in the last 5 minutes — they are definitively active.
+                const SAFE_MS  = 5 * 60 * 1000;
                 for (const [uid, data] of Object.entries(presenceData)) {
-                    const isTimedOut = !data.lastSeen || (now - data.lastSeen) > STALE_MS;
+                    const lastSeen = data.lastSeen || 0;
+                    // Hard safety guard: skip anyone seen recently
+                    if ((now - lastSeen) < SAFE_MS) continue;
+                    const isTimedOut = !data.lastSeen || (now - lastSeen) > STALE_MS;
                     const isUnknown  = !data.email && !data.displayName;
                     const isOffline  = data.status === 'offline';
                     if (isTimedOut || isUnknown || isOffline) {
@@ -19770,8 +19778,7 @@ async function saveToFirebase() {
         const saveWithTimeout = (promise, ms = 8000) =>
             Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('Save timeout')), ms))]);
 
-        // FIX: Force token refresh before save so Firestore rules see auth.token.email
-        // Prevents save timeout caused by stale/unvalidated tokens after long sessions
+        // FIX: Force token refresh before save — prevents timeout from stale tokens
         try {
             const cu = window.firebaseAuth?.currentUser;
             if (cu) await cu.getIdToken(true);
@@ -20396,17 +20403,17 @@ function setupAuthObserver() {
                     PresenceTracker.updateActiveUsersUI();
                 }, 500);
                 // ── STARTUP CLEANUP: remove ghost entries from previous sessions ──
-                // FIX: Wait 8s (was 3s) so presence listener fully hydrates before cleanup.
-                // Also skip if no data yet — prevents deleting active users on slow connections.
+                // FIX: Wait 10s (was 3s) so presence listener fully hydrates first.
+                // Also skip entirely if no users loaded yet — avoids deleting active users.
                 setTimeout(async () => {
                     const users = state.activeUsers || {};
                     if (Object.keys(users).length === 0) {
-                        console.log('⏭️ Skipping startup cleanup — presence data not yet loaded');
+                        console.log('⏭️ Skipping startup cleanup — presence not yet loaded');
                         return;
                     }
                     await PresenceTracker._autoCleanupStale(users);
                     console.log('✅ Startup stale presence cleanup done');
-                }, 8000);
+                }, 10000);
             }
             
             // Log login to logbook with IP and location
@@ -24268,4 +24275,3 @@ function dismissLoginFlash() {
     </footer>
 </body>
 </html>
-
