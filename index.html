@@ -8459,8 +8459,25 @@ function applyNumFmtToInputs() {
                     browser: deviceInfo.browser
                 };
                 
-                // Set initial presence
-                await window.firebase.set(this.myPresenceRef, presenceData);
+                // Set initial presence — FIX: retry once with fresh token on permission_denied
+                try {
+                    await window.firebase.set(this.myPresenceRef, presenceData);
+                } catch(e) {
+                    if (e.code === 'PERMISSION_DENIED' || (e.message && e.message.includes('permission_denied'))) {
+                        console.warn('⚠️ Presence write denied — refreshing token and retrying...');
+                        try {
+                            const cu = window.firebaseAuth?.currentUser;
+                            if (cu) await cu.getIdToken(true);
+                            await new Promise(r => setTimeout(r, 500));
+                            await window.firebase.set(this.myPresenceRef, presenceData);
+                            console.log('✅ Presence write succeeded after token refresh');
+                        } catch(e2) {
+                            console.warn('⚠️ Presence write failed after retry — non-critical, continuing:', e2.message);
+                        }
+                    } else {
+                        console.warn('⚠️ Presence init failed (non-critical):', e.message);
+                    }
+                }
                 
                 // Setup disconnect handler — removes entry entirely on abrupt disconnect
                 const disconnectRef = window.firebase.onDisconnect(this.myPresenceRef);
@@ -19753,6 +19770,13 @@ async function saveToFirebase() {
         const saveWithTimeout = (promise, ms = 8000) =>
             Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('Save timeout')), ms))]);
 
+        // FIX: Force token refresh before save so Firestore rules see auth.token.email
+        // Prevents save timeout caused by stale/unvalidated tokens after long sessions
+        try {
+            const cu = window.firebaseAuth?.currentUser;
+            if (cu) await cu.getIdToken(true);
+        } catch(e) { console.warn('⚠️ Pre-save token refresh failed (non-critical):', e.message); }
+
         await saveWithTimeout(window.firebase.setDoc(currentYearRef, buildYearPayload(currentYear, currentYearProjects), { merge: true }));
 
         // Also save user preferences (non-blocking, runs in parallel)
@@ -20357,6 +20381,8 @@ function setupAuthObserver() {
             }
             
             // Initialize presence tracking
+            // FIX: Force token refresh BEFORE presence write so RTDB rules see auth.token.email
+            try { await user.getIdToken(true); } catch(e) { console.warn('⚠️ Token refresh failed:', e.message); }
             await PresenceTracker.initialize(user.uid, user.email);
             console.log('🟢 Presence tracking active');
             
@@ -20370,11 +20396,17 @@ function setupAuthObserver() {
                     PresenceTracker.updateActiveUsersUI();
                 }, 500);
                 // ── STARTUP CLEANUP: remove ghost entries from previous sessions ──
-                // Runs 3s after login so Firebase listeners are fully ready
+                // FIX: Wait 8s (was 3s) so presence listener fully hydrates before cleanup.
+                // Also skip if no data yet — prevents deleting active users on slow connections.
                 setTimeout(async () => {
-                    await PresenceTracker._autoCleanupStale(state.activeUsers || {});
+                    const users = state.activeUsers || {};
+                    if (Object.keys(users).length === 0) {
+                        console.log('⏭️ Skipping startup cleanup — presence data not yet loaded');
+                        return;
+                    }
+                    await PresenceTracker._autoCleanupStale(users);
                     console.log('✅ Startup stale presence cleanup done');
-                }, 3000);
+                }, 8000);
             }
             
             // Log login to logbook with IP and location
@@ -24236,3 +24268,4 @@ function dismissLoginFlash() {
     </footer>
 </body>
 </html>
+
