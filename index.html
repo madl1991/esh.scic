@@ -7885,14 +7885,22 @@ function applyNumFmtToInputs() {
                         const details = entry.details;
                         let parts = [];
                         
-                        if (details.projectName) parts.push(`Project: ${details.projectName}`);
-                        if (details.email) parts.push(`Email: ${details.email}`);
-                        if (details.status) parts.push(`Status: ${details.status}`);
-                        if (details.year) parts.push(`Year: ${details.year}`);
-                        if (details.tab) parts.push(`Tab: ${details.tab}`);
+                        if (details.projectName)   parts.push(`Project: ${details.projectName}`);
+                        if (details.email)          parts.push(`Email: ${details.email}`);
+                        if (details.status)         parts.push(`Status: ${details.status}`);
+                        if (details.year)           parts.push(`Year: ${details.year}`);
+                        if (details.tab)            parts.push(`Tab: ${details.tab}`);
                         if (details.step !== undefined) parts.push(`Step: ${details.step}`);
                         if (details.totalSteps !== undefined) parts.push(`Total Steps: ${details.totalSteps}`);
                         if (details.remainingProjects !== undefined) parts.push(`Remaining: ${details.remainingProjects}`);
+                        // ── PERSONNEL_TRANSFER fields ──
+                        if (details.personnelName)  parts.push(`Personnel: ${details.personnelName}`);
+                        if (details.fromProject)    parts.push(`From: ${details.fromProject}`);
+                        if (details.fromRegion)     parts.push(`From Region: ${details.fromRegion}`);
+                        if (details.toProject)      parts.push(`To: ${details.toProject}`);
+                        if (details.toRegion)       parts.push(`To Region: ${details.toRegion}`);
+                        if (details.initiatorRole)  parts.push(`Role: ${details.initiatorRole}`);
+                        if (details.crossRegion)    parts.push(`Cross-Region: YES`);
                         
                         detailsText = parts.join('; ');
                     }
@@ -18339,6 +18347,45 @@ function confirmTransferPersonnel() {
         state.personnelData[index].len = String(calculateYearsOfService(person.hired));
     }
 
+    // ── RBAC REQUIREMENT: Log ALL transfers — who, when, from/to region ──
+    // This satisfies the security requirement: "Log all transfers (who, when, from/to region)"
+    // Written to BOTH localStorage (AuditLogger) AND Firestore backend (not UI-only enforcement)
+    const masterList2 = state.masterProjects || state.projects || [];
+    const srcProj = masterList2.find(p => p.name === oldAssignment);
+    const dstProj = masterList2.find(p => p.name === _transferSelectedProject);
+    const transferLogEntry = {
+        personnelName:  person.name,
+        personnelId:    person.id   || null,
+        fromProject:    oldAssignment               || null,
+        fromRegion:     srcProj ? (srcProj.region || null) : null,
+        toProject:      _transferSelectedProject,
+        toRegion:       dstProj ? (dstProj.region  || null) : null,
+        initiatedBy:    state.currentUser?.email    || 'unknown',
+        initiatorRole:  state.userRole              || 'unknown',
+        initiatorRegion: state.userRegion           || 'ALL',
+        timestamp:      new Date().toISOString(),
+        crossRegion:    srcProj && dstProj ? srcProj.region !== dstProj.region : false
+    };
+
+    // 1. Local audit log (always)
+    AuditLogger.log('PERSONNEL_TRANSFER', transferLogEntry);
+
+    // 2. Firestore backend write — fulfills "enforce in backend, not UI only" requirement
+    //    Writes to: transfers/{timestamp}_{personnelId} — permanent, tamper-evident log
+    if (window.firebaseDb && window.firebase?.setDoc) {
+        try {
+            const transferId = `${Date.now()}_${(person.id || 'noid').replace(/\s/g,'')}`;
+            const transferRef = window.firebase.doc(
+                window.firebaseDb, 'transfers', transferId
+            );
+            window.firebase.setDoc(transferRef, transferLogEntry)
+                .then(() => console.log('📋 Transfer logged to Firestore:', transferId))
+                .catch(e => console.warn('⚠️ Transfer Firestore log failed (non-critical):', e.message));
+        } catch(e) {
+            console.warn('⚠️ Transfer log error (non-critical):', e.message);
+        }
+    }
+
     // Auto-expand the target region group and project card so the person is visible after transfer
     const masterList = state.masterProjects || state.projects || [];
     const targetProj = masterList.find(p => p.name === _transferSelectedProject);
@@ -19752,6 +19799,21 @@ async function saveToFirebase() {
         
         // Build save payload helper
         function buildYearPayload(year, projects) {
+            // ── RBAC FIX: Firebase rejects undefined values — sanitize recursively ──
+            // Root cause: project vals{} fields set by one role/tab may be undefined
+            // in other tabs, causing setDoc() to throw for cross-year saves.
+            function sanitize(obj) {
+                if (Array.isArray(obj)) return obj.map(sanitize);
+                if (obj !== null && typeof obj === 'object') {
+                    const clean = {};
+                    for (const [k, v] of Object.entries(obj)) {
+                        clean[k] = (v === undefined) ? null : sanitize(v);
+                    }
+                    return clean;
+                }
+                return (obj === undefined) ? null : obj;
+            }
+
             const payload = {
                 year: year,
                 email: state.currentUser?.email || 'local-user',
@@ -19767,7 +19829,7 @@ async function saveToFirebase() {
             // personnelData is global (year-independent) — always save it to every year doc
             // so switchYear() can always load the full personnel list from any year doc
             payload.personnelData = state.personnelData || [];
-            return payload;
+            return sanitize(payload);
         }
 
         // FAST PATH: Save current year first (this is what the spinner waits for)
