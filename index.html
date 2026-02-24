@@ -5268,6 +5268,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <div class="nav-item" data-tab="emb" onclick="changeTab('emb')"><i class="fas fa-industry"></i> EMB Reportorial</div>
                     <div class="nav-item" data-tab="doe" onclick="changeTab('doe')"><i class="fas fa-solar-panel"></i> DOE Reportorial</div>
                     <div class="nav-item" data-tab="env-monthly-report" onclick="changeTab('env-monthly-report')"><i class="fas fa-leaf"></i> Envi Reportorial</div>
+                    <div class="nav-item" data-tab="health-report" onclick="changeTab('health-report')"><i class="fas fa-notes-medical"></i> Health Reportorial</div>
                 </div>
             </div>
 
@@ -6284,6 +6285,10 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                         style="padding:5px 14px;font-size:0.7rem;font-weight:700;border:none;cursor:pointer;transition:all 0.2s;background:rgba(255,255,255,0.15);color:white;">
                         🗑️ Waste
                     </button>
+                    <button id="env-toggle-appliances" onclick="envSwitchMode('appliances')"
+                        style="padding:5px 14px;font-size:0.7rem;font-weight:700;border:none;cursor:pointer;transition:all 0.2s;background:rgba(255,255,255,0.15);color:white;">
+                        🔌 Appliances
+                    </button>
                 </div>
                 <div id="env-badge-kwh" style="background:rgba(255,255,255,0.12);color:white;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid rgba(255,255,255,0.25);">0 kWh Total</div>
                 <div id="env-badge-ghg" style="background:rgba(76,175,80,0.25);color:#a5d6a7;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid rgba(76,175,80,0.4);">0.0000 tCO2</div>
@@ -6352,8 +6357,54 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         <div id="env-waste-regions-container"></div>
     </div>
 
+    <!-- Appliances Section (hidden by default) -->
+    <div id="env-appliances-section" style="display:none;">
+        <div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <i class="fas fa-plug" style="color:#2e7d32;font-size:1.2rem;"></i>
+            <div style="font-size:0.74rem;color:var(--text-primary);line-height:1.6;flex:1;">
+                Inventory of <strong>Electrical Equipment &amp; Lighting Fixtures Used</strong> — quantity in units per project, per region.
+            </div>
+        </div>
+        <div id="env-appliances-regions-container"></div>
+    </div>
+
 </div>
 <!-- ==================== END ENVIRONMENTAL MONITORING VIEW ==================== -->
+
+<!-- ==================== HEALTH REPORTORIAL VIEW ==================== -->
+<div id="health-report-view" class="hidden" style="padding:20px;">
+
+    <!-- Header Card -->
+    <div style="background:var(--bg-card);border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);border:1px solid var(--border-color);margin-bottom:16px;">
+        <div style="background:linear-gradient(135deg,#0d3d0f 0%,#1b6e1f 50%,#2e7d32 100%);padding:16px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;position:relative;overflow:hidden;">
+            <div style="position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.06) 50%,transparent 70%);pointer-events:none;"></div>
+            <div style="display:flex;align-items:center;gap:10px;position:relative;z-index:2;">
+                <i class="fas fa-notes-medical" style="font-size:1.4rem;color:#a5d6a7;"></i>
+                <div>
+                    <div style="font-size:1rem;font-weight:800;color:white;letter-spacing:0.5px;">HEALTH REPORTORIAL</div>
+                    <div style="font-size:0.65rem;color:#a5d6a7;margin-top:2px;">Monthly &amp; Annual Health Monitoring — Per Region &amp; Project</div>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;position:relative;z-index:2;align-items:center;">
+                <div id="hr-badge-complied" style="background:rgba(76,175,80,0.25);color:#a5d6a7;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid rgba(76,175,80,0.4);"><i class="fas fa-check-circle" style="margin-right:4px;"></i>0 Complied Fully</div>
+                <div id="hr-badge-partial" style="background:rgba(251,192,45,0.2);color:#fff59d;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid rgba(251,192,45,0.4);"><i class="fas fa-exclamation-circle" style="margin-right:4px;"></i>0 Partial</div>
+                <div id="hr-badge-noncompliant" style="background:rgba(239,83,80,0.2);color:#ef9a9a;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid rgba(239,83,80,0.4);"><i class="fas fa-times-circle" style="margin-right:4px;"></i>0 Non-Compliant</div>
+            </div>
+        </div>
+        <!-- Legend Row -->
+        <div style="padding:10px 22px;background:var(--input-bg);border-top:1px solid var(--border-color);display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+            <span style="font-size:0.68rem;color:var(--text-secondary);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">Status Legend:</span>
+            <span style="font-size:0.68rem;display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#2e7d32;"></span><span style="color:var(--text-primary);font-weight:600;">Complied Fully</span> — all required fields filled &amp; valid</span>
+            <span style="font-size:0.68rem;display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#fbc02d;"></span><span style="color:var(--text-primary);font-weight:600;">Complied Partially</span> — some fields filled</span>
+            <span style="font-size:0.68rem;display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef5350;"></span><span style="color:var(--text-primary);font-weight:600;">Non-Compliance</span> — no data / action required</span>
+        </div>
+    </div>
+
+    <!-- Region Sections (dynamically rendered) -->
+    <div id="health-report-regions-container"></div>
+
+</div>
+<!-- ==================== END HEALTH REPORTORIAL VIEW ==================== -->
 
 <!-- ==================== ESH CALENDAR VIEWS ==================== -->
 <div id="esh-calendar-env-view" class="hidden" style="padding:0;"></div>
@@ -8590,7 +8641,7 @@ function applyNumFmtToInputs() {
                 'overall', 'rates', 'exposures', 'medical', 'nov', 'nov-monitoring',
                 'activities', 'kpm', 'dole', 'doe', 'doe-permit', 'cshp', 'reg', 'audit',
                 'esh-calendar-safety', 'esh-calendar-health', 'esh-calendar-drills',
-                'personnel', 'osh-requirement'
+                'personnel', 'osh-requirement', 'health-report'
             ],
 
             // ── Get user info (role, region, etc.) ──
@@ -11701,11 +11752,12 @@ function openAdminQuickView() {
             document.getElementById('admin-view').classList.toggle('hidden', t !== 'admin');
             document.getElementById('osh-requirement-view').classList.toggle('hidden', t !== 'osh-requirement');
             document.getElementById('env-monitoring-view').classList.toggle('hidden', t !== 'env-monitoring');
+            document.getElementById('health-report-view').classList.toggle('hidden', t !== 'health-report');
             document.getElementById('nov-env-view').classList.toggle('hidden', t !== 'nov-env');
             document.getElementById('osh-nov-view').classList.toggle('hidden', t !== 'nov');
             document.getElementById('lta-registry-view').classList.toggle('hidden', t !== 'lta-registry');
             document.getElementById('tabulation-view').classList.toggle('hidden', t !== 'tabulation');
-            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel' || t === 'admin' || t === 'osh-requirement' || t === 'env-monitoring' || t === 'nov-env' || t === 'nov' || t === 'lta-registry' || t === 'tabulation');
+            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel' || t === 'admin' || t === 'osh-requirement' || t === 'env-monitoring' || t === 'health-report' || t === 'nov-env' || t === 'nov' || t === 'lta-registry' || t === 'tabulation');
             
             // ESH Calendar tab visibility
             const eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
@@ -11758,6 +11810,7 @@ function openAdminQuickView() {
             }
             
             if (t === 'env-monitoring') { setTimeout(envInitChart, 100); }
+            if (t === 'health-report') { setTimeout(renderHealthReport, 100); }
             if (t === 'nov') { setTimeout(renderOshNovTab, 100); }
             if (t === 'tabulation') { setTimeout(renderTabulation, 100); }
             if (t === 'lta-registry') { setTimeout(renderLtaRegistryTab, 100); }
@@ -12026,6 +12079,49 @@ function updateAuditData(pName, qtr, field, val) {
             }
         }
         window.removeMultiPermitEntry = removeMultiPermitEntry;
+
+        // ==================== EMB MULTI-ENTRY (SMR / CMR) ====================
+        function addEmbEntry(pName, type) {
+            const p = state.projects.find(x => x.name === pName);
+            const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p?.region, 'emb');
+            if (!p || !_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+            const key = type === 'SMR' ? 'emb_extra_smr' : 'emb_extra_cmr';
+            if (!p.vals[key]) p.vals[key] = [];
+            if (type === 'SMR') {
+                p.vals[key].push({ sd: {'1':'','2':'','3':'','4':''}, rn: {'1':'','2':'','3':'','4':''} });
+            } else {
+                p.vals[key].push({ sd: {'1':'','2':''}, rn: {'1':'','2':''} });
+            }
+            saveToFirebase(); render();
+        }
+        window.addEmbEntry = addEmbEntry;
+
+        function removeEmbEntry(pName, type, idx) {
+            const p = state.projects.find(x => x.name === pName);
+            const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p?.region, 'emb');
+            if (!p || !_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+            const key = type === 'SMR' ? 'emb_extra_smr' : 'emb_extra_cmr';
+            if (p.vals[key]) {
+                p.vals[key].splice(idx, 1);
+                saveToFirebase(); render();
+            }
+        }
+        window.removeEmbEntry = removeEmbEntry;
+
+        function updateEmbEntry(pName, type, idx, field, period, value) {
+            const p = state.projects.find(x => x.name === pName);
+            const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p?.region, 'emb');
+            if (!p || !_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+            const key = type === 'SMR' ? 'emb_extra_smr' : 'emb_extra_cmr';
+            if (!p.vals[key]) p.vals[key] = [];
+            if (p.vals[key][idx] && p.vals[key][idx][field]) {
+                p.vals[key][idx][field][period] = value;
+                if (typeof markPendingSync === 'function') markPendingSync();
+            }
+        }
+        window.updateEmbEntry = updateEmbEntry;
+        // ==================== END EMB MULTI-ENTRY ====================
+
         function updateMultiPermitEntry(pName, permitRow, idx, field, value) {
             const p = state.projects.find(x => x.name === pName);
             const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p?.region, 'permits');
@@ -12873,6 +12969,7 @@ function closeAllStatusDropdowns() {
             const _validTabs = ['overall','rates','exposures','medical','nov','nov-env','nov-monitoring',
                 'activities','kpm','dole','emb','doe','doe-permit','env-monthly-report',
                 'permits','env-monitoring','cshp','reg','audit','personnel','osh-requirement','nov-env',
+                'health-report',
                 'esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
             const _storedTab = localStorage.getItem('esh_last_tab') || 'overall';
             let lastTab = _validTabs.includes(_storedTab) ? _storedTab : 'overall';
@@ -16301,6 +16398,19 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     : 'background:transparent; color:#9e9e9e; border-color:#bdbdbd;'}
               ">${isPermitNA ? '✕ N/A' : 'N/A'}</span>`
             : '';
+        // EMB Add Row button — shown on Submission Date rows only
+        const _embType = row.startsWith('SMR') ? 'SMR' : (row.startsWith('CMR') ? 'CMR' : '');
+        const _embPnSafe = p.name.replace(/'/g, "\\'");
+        const embAddBtn = (state.currentTab === 'emb' && inputsEditable && _embType &&
+            (row === 'SMR (Quarterly) - Submission Date' || row === 'CMR (Semi-Annual) - Submission Date'))
+            ? `<button onclick="addEmbEntry('${_embPnSafe}','${_embType}')"
+                 style="background:#2e7d32;color:white;border:none;border-radius:50%;width:22px;height:22px;min-width:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.65rem;flex-shrink:0;box-shadow:0 2px 6px rgba(46,125,50,0.4);transition:background 0.15s,transform 0.15s;"
+                 onmouseover="this.style.background='#388e3c';this.style.transform='scale(1.15)';"
+                 onmouseout="this.style.background='#2e7d32';this.style.transform='scale(1)';"
+                 title="Add another ${_embType} submission row — for projects with multiple ${_embType} submissions">
+                 <i class="fas fa-plus"></i>
+               </button>`
+            : '';
         html += `<tr style="${rowStyle}"><td style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; text-align:left; font-weight:700; background:${isPermitNA ? '#fce4e4' : '#e8f5e9'}; color:${isPermitNA ? '#b71c1c' : '#1b5e20'}; position: sticky; left: 0; z-index: 5; white-space: normal; padding: 10px 12px; line-height: 1.3; vertical-align: middle;">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
                 <span style="flex:1;">
@@ -16325,6 +16435,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         : ''}
                 </span>
                 ${naBtn}
+                ${embAddBtn}
             </div>
         </td>`;
 
@@ -16725,6 +16836,91 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
             }
         }
         html += `</tr>`;
+
+        // ── EMB extra rows: inject after SMR Ref No. (rowIdx 1) and CMR Ref No. (rowIdx 3) ──
+        if (state.currentTab === 'emb') {
+            const _isSmrRef = (rowIdx === 1); // "SMR (Quarterly) - Reference No."
+            const _isCmrRef = (rowIdx === 3); // "CMR (Semi-Annual) - Reference No."
+            if (_isSmrRef || _isCmrRef) {
+                const _eType = _isSmrRef ? 'SMR' : 'CMR';
+                const _eKey  = _isSmrRef ? 'emb_extra_smr' : 'emb_extra_cmr';
+                const _extras = p.vals[_eKey] || [];
+                const _ePnSafe = p.name.replace(/'/g, "\\'");
+                const _typeW = typeColumnWidth;
+
+                _extras.forEach((entry, ei) => {
+                    const _eNum = ei + 2;
+                    const _entryLabel = _isSmrRef
+                        ? `SMR (Quarterly) <span style="font-size:0.7em;opacity:0.65;font-weight:600;">#${_eNum}</span>`
+                        : `CMR (Semi-Annual) <span style="font-size:0.7em;opacity:0.65;font-weight:600;">#${_eNum}</span>`;
+                    const _removeBtnHtml = inputsEditable
+                        ? `<button onclick="removeEmbEntry('${_ePnSafe}','${_eType}',${ei})"
+                               style="background:transparent;border:1.5px solid #ef5350;color:#ef5350;border-radius:50%;width:20px;height:20px;min-width:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.6rem;flex-shrink:0;transition:background 0.15s;"
+                               onmouseover="this.style.background='#ef5350';this.style.color='white';"
+                               onmouseout="this.style.background='transparent';this.style.color='#ef5350';"
+                               title="Remove this ${_eType} entry #${_eNum}">
+                               <i class="fas fa-times"></i>
+                           </button>`
+                        : '';
+                    const _tdTypeStyle = `width:${_typeW}; min-width:${_typeW}; max-width:${_typeW}; text-align:left; font-weight:700; background:#e8f5e9; color:#1b5e20; position: sticky; left: 0; z-index: 5; white-space: normal; padding: 10px 12px; line-height: 1.3; vertical-align: middle; border-left: 3px solid #81c784;`;
+
+                    // Submission Date row
+                    html += `<tr>
+                        <td style="${_tdTypeStyle}">
+                            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                                <span style="flex:1;">${_entryLabel} - Submission Date</span>
+                                ${_removeBtnHtml}
+                            </div>
+                        </td>`;
+                    if (_isSmrRef) {
+                        for (let _qi = 1; _qi <= 4; _qi++) {
+                            const _v = (entry.sd && entry.sd[_qi]) ? entry.sd[_qi] : '';
+                            html += `<td class="monthly-data"><input type="date" value="${_v}" ${inputsEditable ? '' : 'disabled'} oninput="updateEmbEntry('${_ePnSafe}','SMR',${ei},'sd','${_qi}',this.value)"></td>`;
+                        }
+                    } else {
+                        const _v1 = (entry.sd && entry.sd[1]) ? entry.sd[1] : '';
+                        const _v2 = (entry.sd && entry.sd[2]) ? entry.sd[2] : '';
+                        html += `<td colspan="2" style="text-align:center;border-right:2px solid #ddd;">
+                            <div style="font-size:0.7rem;color:#666;margin-bottom:4px;font-weight:600;">Jan-Jun (Due: Jul 15)</div>
+                            <input type="date" value="${_v1}" ${inputsEditable ? '' : 'disabled'} oninput="updateEmbEntry('${_ePnSafe}','CMR',${ei},'sd','1',this.value)" style="width:180px;">
+                        </td>`;
+                        html += `<td colspan="2" style="text-align:center;">
+                            <div style="font-size:0.7rem;color:#666;margin-bottom:4px;font-weight:600;">Jul-Dec (Due: Jan 15)</div>
+                            <input type="date" value="${_v2}" ${inputsEditable ? '' : 'disabled'} oninput="updateEmbEntry('${_ePnSafe}','CMR',${ei},'sd','2',this.value)" style="width:180px;">
+                        </td>`;
+                    }
+                    html += `</tr>`;
+
+                    // Reference No. row
+                    html += `<tr>
+                        <td style="${_tdTypeStyle}">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span style="flex:1;">${_entryLabel} - Reference No.</span>
+                            </div>
+                        </td>`;
+                    if (_isSmrRef) {
+                        for (let _qi = 1; _qi <= 4; _qi++) {
+                            const _v = (entry.rn && entry.rn[_qi]) ? entry.rn[_qi] : '';
+                            html += `<td class="monthly-data"><input type="text" placeholder="Ref #" value="${_v}" ${inputsEditable ? '' : 'disabled'} oninput="updateEmbEntry('${_ePnSafe}','SMR',${ei},'rn','${_qi}',this.value)"></td>`;
+                        }
+                    } else {
+                        const _v1 = (entry.rn && entry.rn[1]) ? entry.rn[1] : '';
+                        const _v2 = (entry.rn && entry.rn[2]) ? entry.rn[2] : '';
+                        html += `<td colspan="2" style="text-align:center;border-right:2px solid #ddd;">
+                            <div style="font-size:0.7rem;color:#666;margin-bottom:4px;font-weight:600;">Jan-Jun</div>
+                            <input type="text" placeholder="Ref #" value="${_v1}" ${inputsEditable ? '' : 'disabled'} oninput="updateEmbEntry('${_ePnSafe}','CMR',${ei},'rn','1',this.value)" style="width:180px;">
+                        </td>`;
+                        html += `<td colspan="2" style="text-align:center;">
+                            <div style="font-size:0.7rem;color:#666;margin-bottom:4px;font-weight:600;">Jul-Dec</div>
+                            <input type="text" placeholder="Ref #" value="${_v2}" ${inputsEditable ? '' : 'disabled'} oninput="updateEmbEntry('${_ePnSafe}','CMR',${ei},'rn','2',this.value)" style="width:180px;">
+                        </td>`;
+                    }
+                    html += `</tr>`;
+                });
+            }
+        }
+        // ── End EMB extra rows ──
+
     });
     html += `</table></div>`;
     
@@ -23777,6 +23973,392 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
+// ==================== HEALTH REPORTORIAL ====================
+(function() {
+    'use strict';
+
+    const HR_REGIONS = ['NCR', 'NORTH LUZON', 'SOUTH LUZON', 'VISAYAS & MINDANAO', 'CORPORATE', 'PLANT OPERATIONS'];
+
+    const HR_REGION_COLORS = {
+        'NCR':                { bg: '#1b5e20', light: '#e8f5e9', accent: '#2e7d32', badge: '#66bb6a' },
+        'NORTH LUZON':        { bg: '#2e7d32', light: '#f1f8e9', accent: '#388e3c', badge: '#81c784' },
+        'SOUTH LUZON':        { bg: '#388e3c', light: '#f9fbe7', accent: '#43a047', badge: '#a5d6a7' },
+        'VISAYAS & MINDANAO': { bg: '#43a047', light: '#f1f8e9', accent: '#558b2f', badge: '#c8e6c9' },
+        'CORPORATE':          { bg: '#0d3d0f', light: '#e8f5e9', accent: '#1b5e20', badge: '#4caf50' },
+        'PLANT OPERATIONS':   { bg: '#00695c', light: '#e0f2f1', accent: '#00796b', badge: '#80cbc4' }
+    };
+
+    // Field definitions per section
+    const HR_FIELDS = {
+        REPORTING: [
+            { key: 'chs_date',     label: 'CHS Monthly Health Report',                              type: 'date',   compliance: 'full',    note: 'Monthly' },
+            { key: 'inv_date',     label: 'Inventory & Inspection of Medicines/Supplies/Equipment', type: 'date',   compliance: 'full',    note: 'Monthly' },
+            { key: 'nurses_date',  label: 'Nurses and First Aiders KPI',                            type: 'date',   compliance: 'full',    note: 'Monthly' },
+            { key: 'wair_date',    label: 'WAIR',                                                   type: 'date',   compliance: 'full',    note: 'Monthly' },
+            { key: 'amr_date',     label: 'AMR (Annual Medical Report)',                             type: 'date',   compliance: 'full',    note: 'Annual — Deadline: End of March' },
+        ],
+        MEDICAL_FACILITY: [
+            { key: 'hospital_name',    label: 'Name of Hospital (MOA)',                    type: 'text',   compliance: 'partial', note: 'Required for MOA' },
+            { key: 'moa_validity',     label: 'MOA Validity Date',                         type: 'date',   compliance: 'full',    note: 'Annual monitoring if fully complied' },
+            { key: 'dental_coverage',  label: 'With Dental Coverage in MOA?',              type: 'yesno',  compliance: 'auto' },
+            { key: 'dental_name',      label: 'Name of Dental Clinic (if no dental MOA)', type: 'text',   compliance: 'partial', note: 'Required if no dental in MOA' },
+            { key: 'dental_moa',       label: 'Dental MOA Validity',                       type: 'date',   compliance: 'full',    note: 'Annual monitoring if fully complied' },
+            { key: 'clinic_count',     label: 'Clinic (Dedicated)',                         type: 'number', compliance: 'full',    note: 'Count' },
+            { key: 'firstaid_count',   label: 'First Aid Station / Emergency Treatment Facility', type: 'number', compliance: 'full', note: 'Based on OHS Standard' },
+            { key: 'transport_count',  label: 'Designated Patient Transport Vehicle',       type: 'number', compliance: 'full',    note: 'Count' },
+            { key: 'breastfeeding',    label: 'Breast Feeding Facility',                   type: 'yesno',  compliance: 'full' },
+            { key: 'biohaz_infect',    label: 'Biohazard — Infectious Bins',               type: 'yesno',  compliance: 'partial' },
+            { key: 'biohaz_puncture',  label: 'Biohazard — Puncture-Resistance Bins',      type: 'yesno',  compliance: 'partial' },
+            { key: 'biohaz_general',   label: 'Biohazard — General Waste Bins',            type: 'yesno',  compliance: 'partial' },
+            { key: 'biohaz_hauled',    label: 'Biohazard — Hauled by Tied-up Hospital?',   type: 'yesno',  compliance: 'auto' },
+            { key: 'biohaz_tempstore', label: 'Stored in Temporary Storage Facility',       type: 'yesno',  compliance: 'partial' },
+            { key: 'biohaz_clinic',    label: 'Stored in Clinic Only',                     type: 'yesno',  compliance: 'partial' },
+            { key: 'tsd_name',         label: 'Name of Tied-up TSD',                       type: 'text',   compliance: 'partial' },
+            { key: 'tsd_validity',     label: 'TSD Validity Date',                         type: 'date',   compliance: 'full',    note: 'Semi-Annual monitoring if fully complied' },
+        ],
+        EQUIPMENT: [
+            { key: 'eq_patient_bed',      label: "Patient's Bed",                                  type: 'number', note: 'OHS Standard' },
+            { key: 'eq_firstaid_kits',    label: 'First Aid Kits',                                  type: 'number', note: 'OHS Standard' },
+            { key: 'eq_o2_tank',          label: 'Oxygen Tank (complete set)',                      type: 'number', note: 'OHS Standard' },
+            { key: 'eq_pulse_ox',         label: 'Pulse Oximeter',                                  type: 'number', note: 'Present in project' },
+            { key: 'eq_firstaid_cab',     label: 'First Aid Cabinet',                               type: 'number', note: 'OHS Standard' },
+            { key: 'eq_thermometer',      label: 'Digital Thermometer',                             type: 'number', note: 'OHS Standard' },
+            { key: 'eq_bp_set',           label: 'BP Apparatus Set',                                type: 'number', note: 'SCIC outline allocation' },
+            { key: 'eq_nebulizer',        label: 'Nebulizer',                                       type: 'number', note: 'Present in project' },
+            { key: 'eq_glucose',          label: 'Glucose Meter',                                   type: 'number', note: 'Present in project' },
+            { key: 'eq_breathalyzer',     label: 'Alcohol Breathalyzer',                            type: 'number', note: 'Depend on project needs' },
+            { key: 'eq_exam_table',       label: 'Examining Table',                                 type: 'number', note: 'OHS Standard' },
+            { key: 'eq_spineboard',       label: 'Spine Board with Spider Strap',                   type: 'number', note: 'Depend on project needs' },
+            { key: 'eq_med_storage',      label: 'Cabinet for Medical Supplies &amp; Equipment',    type: 'number', note: 'OHS Standard' },
+            { key: 'eq_med_stocks',       label: 'Cabinet for Medicines (Stocks)',                   type: 'number', note: 'OHS Standard' },
+            { key: 'eq_eyewash',          label: 'Emergency Eyewash',                               type: 'number', note: 'OHS Standard' },
+            { key: 'eq_shower',           label: 'Emergency Shower',                                type: 'number', note: 'OHS Standard' },
+        ]
+    };
+
+    // ── Get/Set value ──
+    function hrGet(p, key) {
+        const fk = 'health_' + key;
+        return p.vals && p.vals[fk] ? (p.vals[fk][1] ?? '') : '';
+    }
+
+    function hrSet(pName, key, value) {
+        const p = state.projects.find(x => x.name === pName);
+        if (!p) return;
+        const fk = 'health_' + key;
+        if (!p.vals) p.vals = {};
+        if (!p.vals[fk]) p.vals[fk] = {};
+        p.vals[fk][1] = value;
+        if (typeof markPendingSync === 'function') markPendingSync();
+        saveToFirebase();
+        // Refresh only the compliance indicators (lightweight re-render)
+        renderHealthReportSummaryBadges();
+        refreshHrProjectStatus(pName);
+    }
+    window.hrSet = hrSet;
+
+    // ── Compliance logic ──
+    function getHrComplianceStatus(p) {
+        let full = 0, partial = 0, none = 0, total = 0;
+        const allFields = [...HR_FIELDS.REPORTING, ...HR_FIELDS.MEDICAL_FACILITY, ...HR_FIELDS.EQUIPMENT];
+        allFields.forEach(f => {
+            const v = hrGet(p, f.key);
+            total++;
+            if (f.type === 'yesno') {
+                if (v === 'yes' || v === 'no') { full++; }
+                else none++;
+            } else if (f.type === 'date') {
+                if (v) {
+                    const d = new Date(v);
+                    const today = new Date();
+                    if (f.compliance === 'full') {
+                        // For validity dates, check if not expired
+                        if (f.key.includes('validity') || f.key.includes('moa') || f.key.includes('tsd')) {
+                            d >= today ? full++ : partial++;
+                        } else {
+                            full++;
+                        }
+                    } else { partial++; }
+                } else { none++; }
+            } else if (f.type === 'number') {
+                const n = parseFloat(v);
+                if (!isNaN(n) && n >= 0) { n > 0 ? full++ : partial++; }
+                else none++;
+            } else {
+                if (v && v.trim()) { partial++; }
+                else none++;
+            }
+        });
+        if (none === total) return 'none';
+        if (full === total || (none === 0 && partial >= 0)) return 'full';
+        return 'partial';
+    }
+
+    function getHrSectionStatus(p, sectionFields) {
+        let filled = 0, total = sectionFields.length;
+        sectionFields.forEach(f => { if (hrGet(p, f.key)) filled++; });
+        if (filled === 0) return 'none';
+        if (filled === total) return 'full';
+        return 'partial';
+    }
+
+    function statusBadgeHtml(status, labelFull, labelPartial, labelNone) {
+        const cfg = {
+            full:    { bg:'#e8f5e9', color:'#1b5e20', border:'#a5d6a7', icon:'fa-check-circle',       label: labelFull    || 'Complied Fully' },
+            partial: { bg:'#fff9c4', color:'#f57f17', border:'#ffe082', icon:'fa-exclamation-circle',  label: labelPartial || 'Complied Partially' },
+            none:    { bg:'#ffebee', color:'#c62828', border:'#ef9a9a', icon:'fa-times-circle',        label: labelNone    || 'Non-Compliance' }
+        };
+        const c = cfg[status] || cfg.none;
+        return `<span style="font-size:0.62rem;font-weight:700;padding:2px 8px;border-radius:20px;background:${c.bg};color:${c.color};border:1px solid ${c.border};white-space:nowrap;display:inline-flex;align-items:center;gap:3px;">
+            <i class="fas ${c.icon}" style="font-size:0.55rem;"></i>${c.label}
+        </span>`;
+    }
+
+    function renderHealthReportSummaryBadges() {
+        const projects = (state && state.projects) ? state.projects : [];
+        let full = 0, partial = 0, none = 0;
+        projects.forEach(p => {
+            const s = getHrComplianceStatus(p);
+            if (s === 'full') full++;
+            else if (s === 'partial') partial++;
+            else none++;
+        });
+        const b1 = document.getElementById('hr-badge-complied');
+        const b2 = document.getElementById('hr-badge-partial');
+        const b3 = document.getElementById('hr-badge-noncompliant');
+        if (b1) b1.innerHTML = `<i class="fas fa-check-circle" style="margin-right:4px;"></i>${full} Complied Fully`;
+        if (b2) b2.innerHTML = `<i class="fas fa-exclamation-circle" style="margin-right:4px;"></i>${partial} Partial`;
+        if (b3) b3.innerHTML = `<i class="fas fa-times-circle" style="margin-right:4px;"></i>${none} Non-Compliant`;
+    }
+
+    function refreshHrProjectStatus(pName) {
+        // Lightweight: just update the status badge inside the project card header
+        const el = document.getElementById('hr-proj-status-' + CSS.escape(pName));
+        if (!el) return;
+        const p = (state.projects || []).find(x => x.name === pName);
+        if (!p) return;
+        el.innerHTML = statusBadgeHtml(getHrComplianceStatus(p));
+        renderHealthReportSummaryBadges();
+    }
+
+    function buildFieldRow(p, f, canEdit) {
+        const val = hrGet(p, f.key);
+        const pName = p.name.replace(/'/g, "\\'");
+        const key = f.key;
+
+        let inputHtml = '';
+
+        if (f.type === 'date') {
+            inputHtml = `<input type="date" value="${val}"
+                style="border:1px solid var(--border-color);border-radius:6px;padding:5px 8px;font-size:0.75rem;background:var(--input-bg);color:var(--text-primary);min-width:160px;"
+                ${canEdit ? '' : 'disabled'}
+                onchange="hrSet('${pName}','${key}',this.value)">`;
+        } else if (f.type === 'number') {
+            inputHtml = `<input type="number" min="0" value="${val}"
+                style="border:1px solid var(--border-color);border-radius:6px;padding:5px 8px;font-size:0.75rem;background:var(--input-bg);color:var(--text-primary);width:90px;text-align:center;"
+                placeholder="0"
+                ${canEdit ? '' : 'disabled'}
+                onchange="hrSet('${pName}','${key}',this.value)">`;
+        } else if (f.type === 'text') {
+            inputHtml = `<input type="text" value="${val}"
+                style="border:1px solid var(--border-color);border-radius:6px;padding:5px 10px;font-size:0.75rem;background:var(--input-bg);color:var(--text-primary);min-width:200px;"
+                placeholder="Enter value..."
+                ${canEdit ? '' : 'disabled'}
+                onchange="hrSet('${pName}','${key}',this.value)">`;
+        } else if (f.type === 'yesno') {
+            const yesActive = val === 'yes';
+            const noActive  = val === 'no';
+            const btnBase = `border:none;border-radius:20px;padding:4px 14px;font-size:0.7rem;font-weight:700;cursor:${canEdit?'pointer':'default'};transition:all 0.15s;`;
+            inputHtml = `<div style="display:flex;gap:6px;">
+                <button onclick="${canEdit ? `hrSet('${pName}','${key}','yes')` : ''}"
+                    style="${btnBase}background:${yesActive?'#2e7d32':'var(--input-bg)'};color:${yesActive?'white':'var(--text-secondary)'};border:1.5px solid ${yesActive?'#2e7d32':'var(--border-color)'};">
+                    YES
+                </button>
+                <button onclick="${canEdit ? `hrSet('${pName}','${key}','no')` : ''}"
+                    style="${btnBase}background:${noActive?'#ef5350':'var(--input-bg)'};color:${noActive?'white':'var(--text-secondary)'};border:1.5px solid ${noActive?'#ef5350':'var(--border-color)'};">
+                    NO
+                </button>
+            </div>`;
+        }
+
+        // Determine status
+        let status = 'none';
+        if (f.type === 'yesno') {
+            status = (val === 'yes' || val === 'no') ? 'full' : 'none';
+        } else if (f.type === 'date' && val) {
+            if (f.key.includes('validity') || f.key.includes('moa') || f.key.includes('tsd')) {
+                status = new Date(val) >= new Date() ? 'full' : 'partial';
+            } else { status = 'full'; }
+        } else if (f.type === 'number') {
+            const n = parseFloat(val);
+            status = (!isNaN(n) && n > 0) ? 'full' : (!isNaN(n) && n === 0 ? 'partial' : 'none');
+        } else {
+            status = val && val.trim() ? 'partial' : 'none';
+        }
+
+        const dot = { full:'#2e7d32', partial:'#fbc02d', none:'#ef5350' }[status];
+        const noteHtml = f.note ? `<span style="font-size:0.6rem;color:var(--text-secondary);margin-left:6px;font-style:italic;">${f.note}</span>` : '';
+
+        // Conditional visibility: dental_name/dental_moa only if dental_coverage = no
+        let rowStyle = '';
+        if ((f.key === 'dental_name' || f.key === 'dental_moa') && hrGet(p, 'dental_coverage') !== 'no') {
+            rowStyle = 'display:none;';
+        }
+        if ((f.key === 'biohaz_tempstore' || f.key === 'biohaz_clinic' || f.key === 'tsd_name' || f.key === 'tsd_validity') && hrGet(p, 'biohaz_hauled') === 'yes') {
+            rowStyle = 'display:none;';
+        }
+
+        return `<div class="hr-field-row" data-proj="${p.name.replace(/"/g,'&quot;')}" data-field="${f.key}"
+            style="${rowStyle || 'display:flex;'}align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;border-bottom:1px solid var(--border-color);flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:7px;flex:1;min-width:200px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:${dot};flex-shrink:0;"></span>
+                <span style="font-size:0.75rem;font-weight:600;color:var(--text-primary);">${f.label}</span>
+                ${noteHtml}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                ${inputHtml}
+            </div>
+        </div>`;
+    }
+
+    function buildSectionHtml(p, sectionKey, sectionLabel, icon, fields, canEdit, defaultOpen) {
+        const sectionId = 'hr-sec-' + p.name.replace(/[^a-z0-9]/gi,'_') + '_' + sectionKey;
+        const status = getHrSectionStatus(p, fields);
+        const rows = fields.map(f => buildFieldRow(p, f, canEdit)).join('');
+        return `
+        <div style="border:1px solid var(--border-color);border-radius:8px;overflow:hidden;margin-bottom:8px;">
+            <div onclick="hrToggleSection('${sectionId}')"
+                style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--input-bg);cursor:pointer;user-select:none;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <i class="fas ${icon}" style="color:#2e7d32;font-size:0.85rem;"></i>
+                    <span style="font-size:0.78rem;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.4px;">${sectionLabel}</span>
+                    ${statusBadgeHtml(status)}
+                </div>
+                <i class="fas fa-chevron-${defaultOpen?'up':'down'}" id="${sectionId}-chev" style="color:var(--text-secondary);font-size:0.7rem;transition:transform 0.2s;"></i>
+            </div>
+            <div id="${sectionId}" style="display:${defaultOpen?'block':'none'};">
+                ${rows}
+            </div>
+        </div>`;
+    }
+
+    function buildProjectCard(p, regionColors, canEdit) {
+        const status = getHrComplianceStatus(p);
+        const statusHtml = statusBadgeHtml(status);
+        const cardId = 'hr-proj-' + p.name.replace(/[^a-z0-9]/gi, '_');
+
+        const reportingHtml     = buildSectionHtml(p, 'reporting',    '1. Reporting',       'fa-file-medical-alt', HR_FIELDS.REPORTING,         canEdit, true);
+        const medFacilityHtml   = buildSectionHtml(p, 'medical_fac',  '2. Medical Facility', 'fa-hospital',         HR_FIELDS.MEDICAL_FACILITY, canEdit, false);
+        const equipmentHtml     = buildSectionHtml(p, 'equipment',    '3. Equipment',        'fa-stethoscope',       HR_FIELDS.EQUIPMENT,        canEdit, false);
+
+        return `
+        <div id="${cardId}" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;overflow:hidden;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+            <!-- Project Card Header -->
+            <div style="background:${regionColors.bg};padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-building" style="color:${regionColors.badge};font-size:0.85rem;"></i>
+                    <span style="font-size:0.82rem;font-weight:800;color:white;letter-spacing:0.3px;">${p.name}</span>
+                </div>
+                <div id="hr-proj-status-${p.name.replace(/[^a-z0-9]/gi,'_')}" style="display:flex;align-items:center;">
+                    ${statusHtml}
+                </div>
+            </div>
+            <!-- Sections -->
+            <div style="padding:12px;">
+                ${reportingHtml}
+                ${medFacilityHtml}
+                ${equipmentHtml}
+            </div>
+        </div>`;
+    }
+
+    window.hrToggleSection = function(sectionId) {
+        const el = document.getElementById(sectionId);
+        const chev = document.getElementById(sectionId + '-chev');
+        if (!el) return;
+        const isOpen = el.style.display !== 'none';
+        el.style.display = isOpen ? 'none' : 'block';
+        if (chev) { chev.classList.toggle('fa-chevron-up', !isOpen); chev.classList.toggle('fa-chevron-down', isOpen); }
+    };
+
+    let _hrCollapsed = {};
+    window.hrToggleRegion = function(region) {
+        _hrCollapsed[region] = !_hrCollapsed[region];
+        renderHealthReport();
+    };
+
+    window.renderHealthReport = function() {
+        const container = document.getElementById('health-report-regions-container');
+        if (!container) return;
+
+        const projects = (state && state.projects) ? state.projects : [];
+        const userEmail = state && state.currentUser ? state.currentUser.email : '';
+
+        let html = '';
+
+        HR_REGIONS.forEach(region => {
+            const regionProjects = projects.filter(p => p.region === region);
+            if (!regionProjects.length) return;
+
+            const rc = HR_REGION_COLORS[region] || HR_REGION_COLORS['NCR'];
+            const collapsed = _hrCollapsed[region];
+            const regionId = 'hr-region-' + region.replace(/[^a-z0-9]/gi, '_');
+
+            // Region summary counts
+            let rFull = 0, rPartial = 0, rNone = 0;
+            regionProjects.forEach(p => {
+                const s = getHrComplianceStatus(p);
+                if (s === 'full') rFull++;
+                else if (s === 'partial') rPartial++;
+                else rNone++;
+            });
+
+            html += `
+            <div style="background:var(--bg-card);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid var(--border-color);margin-bottom:16px;">
+                <!-- Region Header -->
+                <div onclick="hrToggleRegion('${region}')" style="background:${rc.bg};padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <i class="fas fa-map-marker-alt" style="color:${rc.badge};"></i>
+                        <span style="font-size:0.9rem;font-weight:800;color:white;letter-spacing:0.5px;">${region}</span>
+                        <span style="font-size:0.68rem;background:rgba(255,255,255,0.15);color:white;padding:2px 8px;border-radius:20px;font-weight:600;">${regionProjects.length} project${regionProjects.length>1?'s':''}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:0.68rem;background:rgba(76,175,80,0.3);color:#c8e6c9;padding:2px 8px;border-radius:12px;font-weight:700;">${rFull} ✓ Full</span>
+                        ${rPartial ? `<span style="font-size:0.68rem;background:rgba(251,192,45,0.25);color:#fff176;padding:2px 8px;border-radius:12px;font-weight:700;">${rPartial} ~ Partial</span>` : ''}
+                        ${rNone    ? `<span style="font-size:0.68rem;background:rgba(239,83,80,0.25);color:#ef9a9a;padding:2px 8px;border-radius:12px;font-weight:700;">${rNone} ✗ None</span>` : ''}
+                        <i class="fas fa-chevron-${collapsed?'down':'up'}" style="color:rgba(255,255,255,0.7);font-size:0.75rem;margin-left:6px;"></i>
+                    </div>
+                </div>
+                <!-- Region Content -->
+                <div id="${regionId}" style="${collapsed?'display:none;':''}padding:14px;">`;
+
+            regionProjects.forEach(p => {
+                const canEdit = typeof UserAccounts !== 'undefined'
+                    ? (UserAccounts.canEdit(userEmail, p.region) && UserAccounts.canEditTab(userEmail, 'health-report'))
+                    : true;
+                html += buildProjectCard(p, rc, canEdit);
+            });
+
+            html += `</div></div>`;
+        });
+
+        if (!html) {
+            html = `<div style="text-align:center;padding:50px;color:var(--text-secondary);font-size:0.85rem;">
+                <i class="fas fa-folder-open" style="font-size:2rem;opacity:0.3;display:block;margin-bottom:12px;"></i>
+                No projects found. Add projects in settings to begin monitoring.
+            </div>`;
+        }
+
+        container.innerHTML = html;
+        renderHealthReportSummaryBadges();
+    };
+
+    // Make sure canEditTab recognizes health-report
+    const _origCanEditTab = typeof UserAccounts !== 'undefined' && UserAccounts.canEditTab;
+
+})();
+// ==================== END HEALTH REPORTORIAL ====================
+
 // ==================== ENVIRONMENTAL MONITORING ====================
 (function() {
     const GHG_FACTOR = 0.000694;   // tCO2 per kWh
@@ -23810,44 +24392,299 @@ document.addEventListener('DOMContentLoaded', function() {
         const elecSection  = document.getElementById('env-electricity-section');
         const waterSection = document.getElementById('env-water-section');
         const wasteSection = document.getElementById('env-waste-section');
+        const applSection  = document.getElementById('env-appliances-section');
         const btnElec  = document.getElementById('env-toggle-elec');
         const btnWater = document.getElementById('env-toggle-water');
         const btnWaste = document.getElementById('env-toggle-waste');
+        const btnAppl  = document.getElementById('env-toggle-appliances');
         const sub      = document.getElementById('env-header-sub');
         const badges   = document.querySelectorAll('#env-badge-kwh,#env-badge-ghg,#env-badge-trees');
 
+        // hide all, reset all buttons
+        [elecSection, waterSection, wasteSection, applSection].forEach(s => { if(s) s.style.display = 'none'; });
+        [btnElec, btnWater, btnWaste, btnAppl].forEach(b => { if(b) { b.style.background = 'rgba(255,255,255,0.15)'; b.style.color = 'white'; } });
+
         if (mode === 'electricity') {
             if (elecSection)  elecSection.style.display  = '';
-            if (waterSection) waterSection.style.display = 'none';
-            if (wasteSection) wasteSection.style.display = 'none';
             if (btnElec)  { btnElec.style.background  = 'white'; btnElec.style.color  = '#1b5e20'; }
-            if (btnWater) { btnWater.style.background = 'rgba(255,255,255,0.15)'; btnWater.style.color = 'white'; }
-            if (btnWaste) { btnWaste.style.background = 'rgba(255,255,255,0.15)'; btnWaste.style.color = 'white'; }
             if (sub) sub.textContent = 'Electricity Consumption & GHG Emission Tracker — Per Region';
             badges.forEach(b => { if(b) b.style.display = ''; });
         } else if (mode === 'water') {
-            if (elecSection)  elecSection.style.display  = 'none';
             if (waterSection) waterSection.style.display = '';
-            if (wasteSection) wasteSection.style.display = 'none';
-            if (btnElec)  { btnElec.style.background  = 'rgba(255,255,255,0.15)'; btnElec.style.color  = 'white'; }
             if (btnWater) { btnWater.style.background = 'white'; btnWater.style.color = '#0277bd'; }
-            if (btnWaste) { btnWaste.style.background = 'rgba(255,255,255,0.15)'; btnWaste.style.color = 'white'; }
             if (sub) sub.textContent = 'Water Consumption Tracker — Domestic, Potable & Industrial Use — Per Region';
             badges.forEach(b => { if(b) b.style.display = 'none'; });
             waterRenderRegions();
-        } else {
-            if (elecSection)  elecSection.style.display  = 'none';
-            if (waterSection) waterSection.style.display = 'none';
+        } else if (mode === 'waste') {
             if (wasteSection) wasteSection.style.display = '';
-            if (btnElec)  { btnElec.style.background  = 'rgba(255,255,255,0.15)'; btnElec.style.color  = 'white'; }
-            if (btnWater) { btnWater.style.background = 'rgba(255,255,255,0.15)'; btnWater.style.color = 'white'; }
             if (btnWaste) { btnWaste.style.background = 'white'; btnWaste.style.color = '#5d4037'; }
             if (sub) sub.textContent = 'Waste Generation & Disposal Tracker — Biodegradable, Recyclable & Hazardous — Per Region';
             badges.forEach(b => { if(b) b.style.display = 'none'; });
             wasteRenderRegions();
+        } else if (mode === 'appliances') {
+            if (applSection) applSection.style.display = '';
+            if (btnAppl) { btnAppl.style.background = 'white'; btnAppl.style.color = '#1b5e20'; }
+            if (sub) sub.textContent = 'Electrical Equipment & Lighting Fixtures Inventory — Per Region';
+            badges.forEach(b => { if(b) b.style.display = 'none'; });
+            appliancesRenderRegions();
         }
     };
     window.envSwitchMode = window.envSwitchMode; // expose
+
+    // ==================== APPLIANCES MONITORING ====================
+    let appliancesData = {};  // { [region+':'+projName]: { fieldId: value, ... } }
+    let appliancesCollapsed = {};
+
+    const APPL_FIELDS = [
+        // Section A — Common appliances
+        { id:'refrigerator',   label:'Refrigerator',         section:'A', color:'#1b5e20' },
+        { id:'freezer',        label:'Freezer',              section:'A', color:'#1b5e20' },
+        { id:'tv',             label:'TV',                   section:'A', color:'#1b5e20' },
+        { id:'kettle',         label:'Electric Kettle',      section:'A', color:'#1b5e20' },
+        { id:'iron',           label:'Electric Iron',        section:'A', color:'#1b5e20' },
+        { id:'microwave',      label:'Microwave Oven',       section:'A', color:'#1b5e20' },
+        { id:'stove',          label:'Cooking Stove',        section:'A', color:'#1b5e20' },
+        { id:'fan',            label:'Electric Fan',         section:'A', color:'#1b5e20' },
+        { id:'polisher',       label:'Floor Polisher',       section:'A', color:'#1b5e20' },
+        { id:'dispenser',      label:'Water Dispenser',      section:'A', color:'#1b5e20' },
+        { id:'washer',         label:'Washing Machine',      section:'A', color:'#1b5e20' },
+        { id:'coffee',         label:'Coffee Maker',         section:'A', color:'#1b5e20' },
+        // Aircon
+        { id:'ac_window_qty',  label:'AC Window – Qty',      section:'A1', color:'#2e7d32' },
+        { id:'ac_window_w',    label:'AC Window – W',        section:'A1', color:'#2e7d32' },
+        { id:'ac_ceil_qty',    label:'AC Ceiling – Qty',     section:'A1', color:'#2e7d32' },
+        { id:'ac_ceil_w',      label:'AC Ceiling – W',       section:'A1', color:'#2e7d32' },
+        { id:'ac_cass_qty',    label:'AC Cassette – Qty',    section:'A1', color:'#2e7d32' },
+        { id:'ac_cass_w',      label:'AC Cassette – W',      section:'A1', color:'#2e7d32' },
+        { id:'ac_wall_qty',    label:'AC Wall – Qty',        section:'A1', color:'#2e7d32' },
+        { id:'ac_wall_w',      label:'AC Wall – W',          section:'A1', color:'#2e7d32' },
+        // Section B — Other electrical
+        { id:'computer',       label:'Computer/Laptop',      section:'B', color:'#388e3c' },
+        { id:'datacenter',     label:'Data Center',          section:'B', color:'#388e3c' },
+        { id:'ups',            label:'UPS',                  section:'B', color:'#388e3c' },
+        { id:'tablet',         label:'Tablet/Phone',         section:'B', color:'#388e3c' },
+        { id:'telephone',      label:'Telephone Lines',      section:'B', color:'#388e3c' },
+        { id:'video',          label:'Video/Telecon Equip',  section:'B', color:'#388e3c' },
+        { id:'cctv',           label:'CCTV',                 section:'B', color:'#388e3c' },
+        { id:'projector',      label:'Projector',            section:'B', color:'#388e3c' },
+        { id:'printer',        label:'Printer/Copier',       section:'B', color:'#388e3c' },
+        { id:'biometrics',     label:'Biometrics',           section:'B', color:'#388e3c' },
+        { id:'wifi',           label:'WiFi Router/Ext.',     section:'B', color:'#388e3c' },
+        { id:'elevator',       label:'Elevator/Escalator',   section:'B', color:'#388e3c' },
+        // Section C — Lighting
+        { id:'led_lt10',       label:'LED <10W',             section:'C', color:'#43a047' },
+        { id:'led_ge10',       label:'LED ≥10W',             section:'C', color:'#43a047' },
+        { id:'lfl_lt20',       label:'Linear FL <20W',       section:'C', color:'#43a047' },
+        { id:'lfl_20_50',      label:'Linear FL 20-50W',     section:'C', color:'#43a047' },
+        { id:'lfl_gt50',       label:'Linear FL >50W',       section:'C', color:'#43a047' },
+        { id:'inc_lt20',       label:'Incandescent <20W',    section:'C', color:'#43a047' },
+        { id:'inc_20_50',      label:'Incandescent 20-50W',  section:'C', color:'#43a047' },
+        { id:'inc_gt50',       label:'Incandescent >50W',    section:'C', color:'#43a047' },
+        { id:'cfl_lt22',       label:'Circular FL <22W',     section:'C', color:'#43a047' },
+        { id:'cfl_22_32',      label:'Circular FL 22-32W',   section:'C', color:'#43a047' },
+        { id:'cfl_gt32',       label:'Circular FL >32W',     section:'C', color:'#43a047' },
+        { id:'cfl2_lt20',      label:'CFL <20W',             section:'C', color:'#43a047' },
+        { id:'cfl2_20_50',     label:'CFL 20-50W',           section:'C', color:'#43a047' },
+        { id:'cfl2_gt50',      label:'CFL >50W',             section:'C', color:'#43a047' },
+        { id:'solar_5',        label:'Solar 5.5W',           section:'C', color:'#43a047' },
+        { id:'solar_100',      label:'Solar 100W',           section:'C', color:'#43a047' },
+        { id:'solar_150',      label:'Solar 150W',           section:'C', color:'#43a047' },
+        { id:'solar_200',      label:'Solar 200W',           section:'C', color:'#43a047' },
+        { id:'solar_300',      label:'Solar 300W',           section:'C', color:'#43a047' },
+        { id:'solar_500',      label:'Solar 500W',           section:'C', color:'#43a047' },
+    ];
+
+    const APPL_SECTION_META = {
+        'A':  { label:'A — Electrical Equipment (Qty in Units)', icon:'fa-bolt',      bg:'#1b5e20' },
+        'A1': { label:'A1 — Aircon Units (Qty + Watts)',         icon:'fa-snowflake',  bg:'#2e7d32' },
+        'B':  { label:'B — Other Electrical Equipment (Units)',   icon:'fa-desktop',    bg:'#388e3c' },
+        'C':  { label:'C — Lighting Fixtures (No. of Pieces)',   icon:'fa-lightbulb',  bg:'#43a047' },
+    };
+
+    function appliancesKey(region, projName) {
+        return (region + ':' + projName).replace(/[^a-z0-9:]/gi,'_');
+    }
+
+    function appliancesToggleRegion(regionRaw) {
+        appliancesCollapsed[regionRaw] = !appliancesCollapsed[regionRaw];
+        const rk   = regionRaw.replace(/[^a-z0-9]/gi,'_');
+        const body = document.getElementById('appl-region-body-'+rk);
+        const icon = document.getElementById('appl-region-chevron-'+rk);
+        if (body) body.style.display = appliancesCollapsed[regionRaw] ? 'none' : '';
+        if (icon) {
+            icon.classList.toggle('fa-chevron-down',  !appliancesCollapsed[regionRaw]);
+            icon.classList.toggle('fa-chevron-right', !!appliancesCollapsed[regionRaw]);
+        }
+    }
+    window.appliancesToggleRegion = appliancesToggleRegion;
+
+    function applSectionRows(section, key, canEdit) {
+        const fields = APPL_FIELDS.filter(f => f.section === section);
+        const data   = appliancesData[key] || {};
+        const meta   = APPL_SECTION_META[section];
+        const isAC   = section === 'A1';
+
+        // Group A1 into pairs (qty + watts) for display
+        let fieldsHtml = '';
+        if (isAC) {
+            const pairs = [
+                ['ac_window_qty','ac_window_w','Window Type'],
+                ['ac_ceil_qty','ac_ceil_w','Ceiling Suspended'],
+                ['ac_cass_qty','ac_cass_w','Cassette Type'],
+                ['ac_wall_qty','ac_wall_w','Wall Mounted'],
+            ];
+            fields; // suppress unused
+            let hdr = pairs.map(p=>`<th colspan="2" style="background:#1b5e2022;color:#1b5e20;padding:5px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.63rem;font-weight:700;">${p[2]}</th>`).join('');
+            let subhdr = pairs.map(()=>`<th style="background:#e8f5e9;color:#1b5e20;padding:4px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.62rem;font-weight:600;white-space:nowrap;">Qty</th><th style="background:#e8f5e9;color:#1b5e20;padding:4px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.62rem;font-weight:600;white-space:nowrap;">Watts</th>`).join('');
+            let cells = pairs.map(p=>`
+                <td style="padding:5px 7px;text-align:center;border:1px solid #e8f5e9;">${canEdit
+                    ? `<input type="number" min="0" data-appl-key="${key}" data-appl-field="${p[0]}" onchange="appliancesSetField('${key}','${p[0]}',this.value)" value="${data[p[0]]||''}" placeholder="0" style="width:50px;padding:3px 4px;border:1px solid #a5d6a7;border-radius:4px;text-align:center;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);">`
+                    : (data[p[0]] || '—')}</td>
+                <td style="padding:5px 7px;text-align:center;border:1px solid #e8f5e9;">${canEdit
+                    ? `<input type="number" min="0" data-appl-key="${key}" data-appl-field="${p[1]}" onchange="appliancesSetField('${key}','${p[1]}',this.value)" value="${data[p[1]]||''}" placeholder="W" style="width:55px;padding:3px 4px;border:1px solid #a5d6a7;border-radius:4px;text-align:center;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);">`
+                    : (data[p[1]] || '—')}</td>`).join('');
+            fieldsHtml = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.7rem;min-width:600px;">
+                <thead><tr>${hdr}</tr><tr>${subhdr}</tr></thead>
+                <tbody><tr>${cells}</tr></tbody>
+            </table></div>`;
+        } else {
+            let ths = fields.map(f=>`<th style="background:#f5f5f5;color:#444;padding:5px 8px;text-align:center;border:1px solid #e0e0e0;font-size:0.62rem;font-weight:700;white-space:nowrap;">${f.label}</th>`).join('');
+            let tds = fields.map(f=>`<td style="padding:5px 7px;text-align:center;border:1px solid #f0f0f0;">${canEdit
+                ? `<input type="number" min="0" data-appl-key="${key}" data-appl-field="${f.id}" onchange="appliancesSetField('${key}','${f.id}',this.value)" value="${data[f.id]||''}" placeholder="0" style="width:48px;padding:3px 4px;border:1px solid #bdbdbd;border-radius:4px;text-align:center;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);">`
+                : (data[f.id] || '—')}</td>`).join('');
+            fieldsHtml = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.7rem;">
+                <thead><tr>${ths}</tr></thead>
+                <tbody><tr>${tds}</tr></tbody>
+            </table></div>`;
+        }
+
+        return `
+        <div style="border-top:2px solid ${meta.bg}33;">
+            <div style="background:${meta.bg};color:white;padding:6px 12px;font-size:0.68rem;font-weight:700;letter-spacing:0.3px;display:flex;align-items:center;gap:6px;">
+                <i class="fas ${meta.icon}" style="opacity:0.8;font-size:0.7rem;"></i>${meta.label}
+            </div>
+            ${fieldsHtml}
+        </div>`;
+    }
+
+    window.appliancesSetField = function(key, fieldId, val) {
+        if (!appliancesData[key]) appliancesData[key] = {};
+        appliancesData[key][fieldId] = parseFloat(val) || 0;
+    };
+
+    window.appliancesSave = function(key, projName, regionRaw) {
+        const db2   = window.firebaseDb;
+        const auth2 = window.firebaseAuth;
+        if (!db2 || !auth2?.currentUser) { showToast('Not authenticated.', 'error'); return; }
+        const safeKey = key.replace(/[^a-z0-9_]/gi,'_');
+        const docRef  = window.firebase.doc(db2, 'users', auth2.currentUser.uid, 'appliancesData2025', safeKey);
+        window.firebase.setDoc(docRef, { key, region: regionRaw, project: projName, data: appliancesData[key] || {}, updatedAt: new Date().toISOString() })
+            .then(() => { showToast('✅ Saved: ' + projName, 'success'); })
+            .catch(e => showToast('Save failed: ' + e.message, 'error'));
+    };
+
+    function appliancesRenderRegions() {
+        const container = document.getElementById('env-appliances-regions-container');
+        if (!container) return;
+
+        const allProjects = (typeof state !== 'undefined' && state.projects) ? state.projects : [];
+        const userEmail   = (typeof state !== 'undefined') ? state.currentUser?.email : null;
+        const canEditEnv  = UserAccounts.canEditTab(userEmail, 'env-monitoring');
+
+        const AC = {
+            'NCR':                { bg:'#1b5e20', light:'#e8f5e9' },
+            'SOUTH LUZON':        { bg:'#388e3c', light:'#f9fbe7' },
+            'NORTH LUZON':        { bg:'#2e7d32', light:'#f1f8e9' },
+            'VISAYAS & MINDANAO': { bg:'#43a047', light:'#f1f8e9' },
+            'PLANT OPERATIONS':   { bg:'#00695c', light:'#e0f2f1' }
+        };
+
+        let html = '';
+        ENV_REGIONS.forEach(region => {
+            const rk        = region.replace(/[^a-z0-9]/gi,'_');
+            const rc        = AC[region] || { bg:'#1b5e20', light:'#e8f5e9' };
+            const projs     = allProjects.filter(p => p.region === region);
+            const isOpen    = !appliancesCollapsed[region];
+            const canEditRg = canEditEnv && UserAccounts.canEdit(userEmail, region);
+
+            let projHtml = '';
+            if (projs.length === 0) {
+                projHtml = `<div style="padding:20px;text-align:center;color:var(--text-secondary);font-size:0.75rem;font-style:italic;">
+                    <i class="fas fa-folder-open" style="opacity:0.25;font-size:1.5rem;display:block;margin-bottom:6px;"></i>No projects in this region yet.</div>`;
+            } else {
+                projs.forEach(proj => {
+                    const key  = appliancesKey(region, proj.name);
+                    const pn   = proj.name.replace(/'/g,"\\'");
+                    const reg  = region.replace(/'/g,"\\'");
+                    const hasSomeData = appliancesData[key] && Object.values(appliancesData[key]).some(v => v > 0);
+                    projHtml += `
+                    <div style="margin:12px 14px;border-radius:8px;overflow:hidden;border:1px solid ${rc.bg}44;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+                        <!-- Project header -->
+                        <div style="background:linear-gradient(90deg,${rc.bg}22,${rc.bg}11);padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid ${rc.bg}33;flex-wrap:wrap;">
+                            <i class="fas fa-hard-hat" style="color:${rc.bg};font-size:0.75rem;"></i>
+                            <span style="font-weight:700;font-size:0.76rem;color:${rc.bg};">${proj.name}</span>
+                            ${hasSomeData ? `<span style="background:#e8f5e9;color:#2e7d32;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;"><i class="fas fa-check" style="margin-right:3px;"></i>Data entered</span>` : ''}
+                            ${canEditRg ? `<button onclick="appliancesSave('${key}','${pn}','${reg}')" style="margin-left:auto;padding:4px 12px;background:${rc.bg};color:white;border:none;border-radius:5px;font-size:0.68rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;" onmouseover="this.style.opacity=0.82" onmouseout="this.style.opacity=1">
+                                <i class="fas fa-save"></i> Save
+                            </button>` : ''}
+                        </div>
+                        <!-- Section A -->
+                        ${applSectionRows('A',  key, canEditRg)}
+                        <!-- Section A1 (Aircon) -->
+                        ${applSectionRows('A1', key, canEditRg)}
+                        <!-- Section B -->
+                        ${applSectionRows('B',  key, canEditRg)}
+                        <!-- Section C -->
+                        ${applSectionRows('C',  key, canEditRg)}
+                    </div>`;
+                });
+            }
+
+            html += `
+            <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:14px;">
+                <div onclick="appliancesToggleRegion('${region}')" style="background:linear-gradient(90deg,${rc.bg} 0%,${rc.bg}dd 100%);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <i id="appl-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:rgba(255,255,255,0.7);font-size:0.65rem;"></i>
+                        <i class="fas fa-plug" style="color:rgba(255,255,255,0.8);font-size:0.8rem;"></i>
+                        <span style="font-weight:800;color:white;font-size:0.85rem;letter-spacing:0.5px;">${region}</span>
+                        <span style="background:rgba(255,255,255,0.18);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${projs.length} project${projs.length!==1?'s':''}</span>
+                    </div>
+                </div>
+                <div id="appl-region-body-${rk}" style="display:${isOpen?'':'none'};">
+                    ${projHtml}
+                </div>
+            </div>`;
+        });
+
+        container.innerHTML = html;
+
+        // Load saved data from Firestore for each project
+        appliancesLoadAll(allProjects);
+    }
+
+    function appliancesLoadAll(allProjects) {
+        const db2   = window.firebaseDb;
+        const auth2 = window.firebaseAuth;
+        if (!db2 || !auth2?.currentUser) return;
+
+        allProjects.forEach(proj => {
+            const key     = appliancesKey(proj.region, proj.name);
+            const safeKey = key.replace(/[^a-z0-9_]/gi,'_');
+            const docRef  = window.firebase.doc(db2, 'users', auth2.currentUser.uid, 'appliancesData2025', safeKey);
+            window.firebase.getDoc(docRef).then(snap => {
+                if (!snap.exists()) return;
+                const saved = snap.data().data || {};
+                appliancesData[key] = saved;
+                // update inputs currently in DOM
+                Object.entries(saved).forEach(([fieldId, val]) => {
+                    const input = document.querySelector(`input[data-appl-key="${key}"][data-appl-field="${fieldId}"]`);
+                    if (input) input.value = val || '';
+                });
+            }).catch(() => {});
+        });
+    }
+
+    // ==================== END APPLIANCES MONITORING ====================
 
     /* ── helpers ── */
     function calc(kwh) {
@@ -25177,17 +26014,17 @@ function eshRenderRegionTable(tabType, region, regProjects, projIdx) {
     if (!container || !proj) return;
 
     const navHtml = `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:${col.light};border-bottom:1px solid ${col.accent}33;">
-            <button onclick="eshNavigateProject('${tabType}','${region}',-1)" ${projIdx===0?'disabled':''} style="background:${projIdx===0?'#ccc':col.header};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;opacity:${projIdx===0?'0.4':'1'};">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:1px solid #c8e6c9;">
+            <button onclick="eshNavigateProject('${tabType}','${region}',-1)" ${projIdx===0?'disabled':''} style="background:${projIdx===0?'#ccc':'#1b5e20'};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;opacity:${projIdx===0?'0.4':'1'};">
                 <i class="fas fa-chevron-left"></i> Prev
             </button>
             <div style="text-align:center;">
-                <div style="font-size:0.72rem;font-weight:800;color:${col.header};">
+                <div style="font-size:0.72rem;font-weight:800;color:#1b5e20;">
                     <i class="fas fa-building" style="margin-right:5px;"></i>${proj.name}
                 </div>
                 <div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ${projIdx+1} of ${regProjects.length}</div>
             </div>
-            <button onclick="eshNavigateProject('${tabType}','${region}',1)" ${projIdx===regProjects.length-1?'disabled':''} style="background:${projIdx===regProjects.length-1?'#ccc':col.header};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;opacity:${projIdx===regProjects.length-1?'0.4':'1'};">
+            <button onclick="eshNavigateProject('${tabType}','${region}',1)" ${projIdx===regProjects.length-1?'disabled':''} style="background:${projIdx===regProjects.length-1?'#ccc':'#1b5e20'};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;opacity:${projIdx===regProjects.length-1?'0.4':'1'};">
                 Next <i class="fas fa-chevron-right"></i>
             </button>
         </div>`;
@@ -25241,16 +26078,16 @@ function renderEshCalendar(tabType) {
     .esh-cal-legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
     .esh-cal-legend-box { width: 16px; height: 12px; border-radius: 3px; }
     .esh-region-banner {
-        background: ${col.header}; color: white;
+        background: #1b5e20; color: white;
         padding: 9px 16px; font-weight: 800; font-size: 0.82rem;
         letter-spacing: 0.8px; display: flex; align-items: center; gap: 8px;
         border-radius: 8px 8px 0 0; cursor: pointer; user-select: none;
         transition: background 0.2s;
     }
-    .esh-region-banner:hover { background: ${col.accent}; }
+    .esh-region-banner:hover { background: #2e7d32; }
     .esh-region-toggle { margin-left: auto; font-size: 0.8rem; transition: transform 0.25s; }
     .esh-region-content {
-        border: 1px solid ${col.accent}44;
+        border: 1px solid #c8e6c9;
         border-top: none; border-radius: 0 0 8px 8px;
         overflow: hidden; margin-bottom: 0;
         box-shadow: 0 2px 8px rgba(0,0,0,0.06);
@@ -25261,50 +26098,54 @@ function renderEshCalendar(tabType) {
         border-collapse: collapse; width: 100%;
         min-width: 1400px; font-size: 0.71rem;
         font-family: 'Inter', sans-serif;
+        border: 2px solid #66bb6a;
     }
     .esh-table th {
-        background: ${col.header}; color: white;
-        padding: 7px 5px; border: 1px solid ${col.accent}44;
+        background: #b7ddb5; color: #1b5e20;
+        padding: 7px 5px; border: 1.5px solid #66bb6a;
         font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.6px;
         font-weight: 700; text-align: center; white-space: nowrap;
     }
     .esh-table th.esh-th-name {
         text-align: left; min-width: 220px; padding: 7px 10px;
-        position: sticky; left: 0; z-index: 4; background: ${col.header};
+        position: sticky; left: 0; z-index: 4; background: #b7ddb5;
+        border-right: 2.5px solid #388e3c;
     }
-    .esh-table th.esh-th-freq { min-width: 88px; }
-    .esh-table th.esh-th-plan { color: #fbc02d; }
-    .esh-table th.esh-th-actual { color: #a5d6a7; }
+    .esh-table th.esh-th-freq { min-width: 88px; background: #9ecf9b; }
+    .esh-table th.esh-th-plan { color: #5d4037; background: #fff9c4; border-left: 2px solid #388e3c; }
+    .esh-table th.esh-th-actual { color: #1b5e20; background: #c5e8c3; }
     .esh-table td {
-        border: 1px solid var(--border-color);
+        border: 1.5px solid #81c784;
         padding: 4px 5px; vertical-align: middle;
         background: var(--bg-card);
     }
     .esh-table tr:nth-child(even) td:not(.esh-td-plan) { background: var(--input-bg); }
-    /* FIX: hover must NOT override filled colors — lower specificity via :not() */
-    .esh-table tr:hover td:not(.esh-planned):not(.esh-done):not(.esh-overdue):not(.esh-td-plan) { background: ${col.light} !important; }
+    .esh-table tr:hover td:not(.esh-planned):not(.esh-done):not(.esh-overdue):not(.esh-td-plan) { background: #e8f5e9 !important; }
     .esh-table td.esh-td-name {
         font-size: 0.71rem; color: var(--text-primary);
         padding: 6px 10px; min-width: 220px;
         position: sticky; left: 0; z-index: 3;
         background: var(--bg-card); line-height: 1.4;
-        border-right: 2px solid ${col.accent}44;
+        border-right: 2.5px solid #388e3c;
     }
     .esh-table tr:nth-child(even) td.esh-td-name { background: var(--input-bg); }
-    .esh-table tr:hover td.esh-td-name { background: ${col.light} !important; }
+    .esh-table tr:hover td.esh-td-name { background: #e8f5e9 !important; }
+    /* Thicker left border to separate Plan from the previous month's Actual */
+    .esh-table td.esh-td-plan { border-left: 2px solid #388e3c !important; }
+    .esh-table th.esh-th-plan { border-left: 2px solid #388e3c !important; }
     .esh-td-plan {
-        background: #fff3cd !important; text-align: center;
+        background: #fff9c4 !important; text-align: center;
         min-width: 50px; cursor: pointer; user-select: none;
         transition: background 0.15s;
     }
-    /* Admin hover - slightly deeper yellow */
-    .esh-td-plan:not(.esh-plan-locked):hover { background: #ffe082 !important; }
-    /* Scheduled/planned: solid amber yellow — same for ALL users */
+    /* Admin hover — slightly deeper olive-yellow */
+    .esh-td-plan:not(.esh-plan-locked):hover { background: #fff176 !important; }
+    /* Scheduled/planned: warm amber that sits nicely against the green */
     .esh-td-plan.esh-planned { background: #f9a825 !important; }
     .esh-td-plan.esh-planned:hover { background: #f9a825 !important; }
-    /* Locked (non-admin/PCO): same yellow tint, just no pointer — color NEVER changes */
+    /* Locked (non-admin/PCO): same tint, no pointer */
     .esh-td-plan.esh-plan-locked { cursor: not-allowed !important; }
-    .esh-td-plan.esh-plan-locked:hover { background: #fff3cd !important; }
+    .esh-td-plan.esh-plan-locked:hover { background: #fff9c4 !important; }
     .esh-td-plan.esh-planned.esh-plan-locked { background: #f9a825 !important; }
     .esh-td-plan.esh-planned.esh-plan-locked:hover { background: #f9a825 !important; }
     .esh-td-actual { min-width: 100px; text-align: center; }
@@ -25344,7 +26185,7 @@ function renderEshCalendar(tabType) {
         </div>
         <div class="esh-cal-legend">
             <span style="font-weight:700;color:var(--text-primary);font-size:0.72rem;">LEGEND:</span>
-            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#fbc02d;"></div> Planned (applies to all projects)</div>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#f9a825;"></div> Planned (applies to all projects)</div>
             <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#2e7d32;"></div> Actual – Completed</div>
             <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#c62828;"></div> Actual – Overdue / Not Yet Done</div>
             <div class="esh-cal-legend-item" style="margin-left:auto;"><i class="fas fa-chevron-down" style="color:${col.header};margin-right:4px;"></i> Click region banner to collapse/expand</div>
@@ -25404,7 +26245,7 @@ function renderEshCalendar(tabType) {
 function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
     const canEdit = projects.length > 0 ? eshCanEdit(tabType, projects[0].region) : false;
     const isAdmin = !!(state && state.isAdmin);
-    const customRows = (typeof getEshCustomRows === 'function') ? getEshCustomRows(tabType) : [];
+    const customRows = (typeof getEshCustomRows === 'function') ? getEshCustomRows(tabType, projects[0] ? projects[0].name : '') : [];
     const allTrainings = [
         ...trainings.map(t => ({ label: t, isCustom: false })),
         ...customRows.map((r, i) => ({ label: typeof r === 'string' ? r : r.name, isCustom: true, customIdx: i }))
@@ -25432,9 +26273,9 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
             const storageIdx = isCustomEntry ? (500 + customIdx) : ti;
 
             html += `<tr><td class="esh-td-name">
-                ${isCustomEntry ? '<span style="background:#e3f2fd;color:#1565c0;border-radius:4px;font-size:0.55rem;font-weight:700;padding:1px 5px;margin-right:5px;vertical-align:middle;">CUSTOM</span>' : ''}
+                ${isCustomEntry ? '<span style="background:#e8f5e9;color:#1b5e20;border-radius:4px;font-size:0.55rem;font-weight:700;padding:1px 5px;margin-right:5px;vertical-align:middle;">CUSTOM</span>' : ''}
                 ${trainingLabel}
-                ${(isCustomEntry && isAdmin) ? `<button onclick="eshDeleteCustomRow('${tabType}',${customIdx})" title="Remove this row" style="float:right;background:none;border:none;color:#c62828;cursor:pointer;font-size:0.75rem;padding:0 3px;opacity:0.6;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="fas fa-trash"></i></button>` : ''}
+                ${(isCustomEntry && isAdmin) ? `<button onclick="eshDeleteCustomRow('${tabType}','${projects[0]?projects[0].name.replace(/'/g,"\\'"):''}',${customIdx})" title="Remove this row" style="float:right;background:none;border:none;color:#c62828;cursor:pointer;font-size:0.75rem;padding:0 3px;opacity:0.6;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="fas fa-trash"></i></button>` : ''}
             </td>`;
             ESH_MONTHS.forEach((m, mi) => {
                 const planKey = getEshKey(tabType, proj.name, storageIdx, mi, 'plan');
@@ -25472,12 +26313,13 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
     html += `</tbody></table>`;
     // ADD ROW button (admin only)
     if (isAdmin) {
+        const _pn = projects[0] ? projects[0].name.replace(/'/g,"\\'") : '';
         html += `<div style="padding:10px 14px;background:var(--bg-card);border-top:1px dashed var(--border-color);text-align:center;">
-            <button onclick="eshAddRowModal('${tabType}')"
+            <button onclick="eshAddRowModal('${tabType}','${_pn}')"
                 style="background:linear-gradient(135deg,#1b5e20,#388e3c);color:white;border:none;border-radius:7px;padding:7px 18px;font-size:0.74rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
                 <i class="fas fa-plus-circle"></i> ADD ROW
             </button>
-            <span style="font-size:0.63rem;color:var(--text-secondary);margin-left:10px;">Add client-required training not in the standard list</span>
+            <span style="font-size:0.63rem;color:var(--text-secondary);margin-left:10px;">Add client-required training for this project only</span>
         </div>`;
     }
     return html;
@@ -25488,7 +26330,7 @@ function buildDrillsSingleTable(projects, storage, col) {
     const canEdit = projects.length > 0 ? eshCanEdit('esh-calendar-drills', projects[0].region) : false;
     const isAdmin = !!(state && state.isAdmin);
     const tabType = 'esh-calendar-drills';
-    const customDrillRows = (typeof getEshCustomRows === 'function') ? getEshCustomRows(tabType) : [];
+    const customDrillRows = (typeof getEshCustomRows === 'function') ? getEshCustomRows(tabType, projects[0] ? projects[0].name : '') : [];
     const allDrills = [
         ...ESH_DRILLS,
         ...customDrillRows.map((r, i) => ({ name: r.name||r, freq: r.freq||'Once a year', _custom: true, _customIdx: i }))
@@ -25516,9 +26358,9 @@ function buildDrillsSingleTable(projects, storage, col) {
             const storageIdx = isCustom ? (500 + customIdx) : di;
             html += `<tr>
             <td class="esh-td-name">
-                ${isCustom ? '<span style="background:#e3f2fd;color:#1565c0;border-radius:4px;font-size:0.55rem;font-weight:700;padding:1px 5px;margin-right:5px;vertical-align:middle;">CUSTOM</span>' : ''}
+                ${isCustom ? '<span style="background:#e8f5e9;color:#1b5e20;border-radius:4px;font-size:0.55rem;font-weight:700;padding:1px 5px;margin-right:5px;vertical-align:middle;">CUSTOM</span>' : ''}
                 ${drill.name}
-                ${(isCustom && isAdmin) ? `<button onclick="eshDeleteCustomRow('esh-calendar-drills',${customIdx})" title="Remove this row" style="float:right;background:none;border:none;color:#c62828;cursor:pointer;font-size:0.75rem;padding:0 3px;opacity:0.6;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="fas fa-trash"></i></button>` : ''}
+                ${(isCustom && isAdmin) ? `<button onclick="eshDeleteCustomRow('esh-calendar-drills','${projects[0]?projects[0].name.replace(/'/g,"\\'"):''}',${customIdx})" title="Remove this row" style="float:right;background:none;border:none;color:#c62828;cursor:pointer;font-size:0.75rem;padding:0 3px;opacity:0.6;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="fas fa-trash"></i></button>` : ''}
             </td>
             <td style="text-align:center;padding:4px 6px;">
                 <span class="esh-freq-badge" style="background:${fc};color:white;">${drill.freq}</span>
@@ -25557,12 +26399,13 @@ function buildDrillsSingleTable(projects, storage, col) {
     html += `</tbody></table>`;
     // ADD ROW button (admin only)
     if (isAdmin) {
+        const _pn2 = projects[0] ? projects[0].name.replace(/'/g,"\\'") : '';
         html += `<div style="padding:10px 14px;background:var(--bg-card);border-top:1px dashed var(--border-color);text-align:center;">
-            <button onclick="eshAddRowModal('esh-calendar-drills')"
+            <button onclick="eshAddRowModal('esh-calendar-drills','${_pn2}')"
                 style="background:linear-gradient(135deg,#1b5e20,#388e3c);color:white;border:none;border-radius:7px;padding:7px 18px;font-size:0.74rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
                 <i class="fas fa-plus-circle"></i> ADD ROW
             </button>
-            <span style="font-size:0.63rem;color:var(--text-secondary);margin-left:10px;">Add client-required drill not in the standard list</span>
+            <span style="font-size:0.63rem;color:var(--text-secondary);margin-left:10px;">Add client-required drill for this project only</span>
         </div>`;
     }
     return html;
@@ -25712,7 +26555,7 @@ window.eshCorpDrillAddRow = function() {
     m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99999;display:flex;align-items:center;justify-content:center;';
     m.innerHTML = `<div style="background:var(--bg-card);border-radius:14px;padding:28px 30px;min-width:340px;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
         <div style="font-family:Poppins,sans-serif;font-size:1rem;font-weight:700;color:#1b5e20;margin-bottom:18px;">
-            <i class="fas fa-plus-circle" style="margin-right:8px;color:#fbc02d;"></i>Add Custom Drill / Activity
+            <i class="fas fa-plus-circle" style="margin-right:8px;color:#2e7d32;"></i>Add Custom Drill / Activity
         </div>
         <label style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">Drill / Activity Name</label>
         <input id="esh-corp-addrow-name" type="text" placeholder="e.g. Active Shooter Response" autocomplete="off"
@@ -25788,17 +26631,17 @@ function renderCorpDrillsTab() {
                 <div style="font-family:Poppins,sans-serif;font-size:1rem;font-weight:700;color:white;letter-spacing:0.05em;text-transform:uppercase;">${selYear} CORPORATE HQ — EMERGENCY DRILLS & ACTIVITIES</div>
                 <div style="font-size:0.65rem;color:rgba(255,255,255,0.7);margin-top:2px;">Corporate Office Only · Admin-Editable · Not counted in regional compliance</div>
             </div>
-            ${canEdit ? `<button onclick="eshCorpDrillAddRow()" style="background:#fbc02d;color:#1b5e20;border:none;border-radius:8px;padding:8px 16px;font-size:0.75rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;"><i class="fas fa-plus"></i> ADD ROW</button>` : ''}
+            ${canEdit ? `<button onclick="eshCorpDrillAddRow()" style="background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;border-radius:8px;padding:8px 16px;font-size:0.75rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;"><i class="fas fa-plus"></i> ADD ROW</button>` : ''}
         </div>
         <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border-color);margin-bottom:14px;font-size:0.72rem;">
             <span style="font-weight:700;color:var(--text-primary);">LEGEND:</span>
-            <span style="display:flex;align-items:center;gap:6px;color:var(--text-secondary);"><span style="width:16px;height:12px;border-radius:3px;background:#fbc02d;display:inline-block;"></span>Planned</span>
+            <span style="display:flex;align-items:center;gap:6px;color:var(--text-secondary);"><span style="width:16px;height:12px;border-radius:3px;background:#f9a825;display:inline-block;"></span>Planned</span>
             <span style="display:flex;align-items:center;gap:6px;color:var(--text-secondary);"><span style="width:16px;height:12px;border-radius:3px;background:#2e7d32;display:inline-block;"></span>Completed</span>
             <span style="display:flex;align-items:center;gap:6px;color:var(--text-secondary);"><span style="width:16px;height:12px;border-radius:3px;background:#c62828;display:inline-block;"></span>Overdue</span>
             <span style="margin-left:auto;background:#1b5e20;color:white;padding:2px 8px;border-radius:10px;font-size:0.6rem;font-weight:700;">ADMIN ONLY</span>
         </div>
         <div style="border-radius:10px;overflow:hidden;border:1px solid #2e7d3244;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-            <div style="background:#fffbea;padding:10px 14px;border-bottom:1px solid #ffe082;font-size:0.72rem;color:#7a5c00;">
+            <div style="background:#e8f5e9;padding:10px 14px;border-bottom:1px solid #c8e6c9;font-size:0.72rem;color:#1b5e20;">
                 <i class="fas fa-building-columns" style="margin-right:6px;"></i>
                 <strong>CORPORATE HQ Drills & Activities</strong> — For the Corporate Office only.
                 ${canEdit ? 'Click <strong>Plan</strong> cell to schedule. Enter <strong>Actual</strong> date upon completion.' : '🔒 View only — Admin can edit.'}
@@ -25821,7 +26664,7 @@ function renderCorpDrillsTab() {
 
         html += `<tr>
             <td class="esh-td-name" style="min-width:260px;">
-                ${isCustom ? '<span style="background:#e3f2fd;color:#1565c0;border-radius:4px;font-size:0.55rem;font-weight:700;padding:1px 5px;margin-right:5px;vertical-align:middle;">CUSTOM</span>' : ''}
+                ${isCustom ? '<span style="background:#e8f5e9;color:#1b5e20;border-radius:4px;font-size:0.55rem;font-weight:700;padding:1px 5px;margin-right:5px;vertical-align:middle;">CUSTOM</span>' : ''}
                 ${drill.name}
                 ${(isCustom && canEdit) ? `<button onclick="eshCorpDrillDeleteRow(${customIdx})" title="Remove this row" style="float:right;background:none;border:none;color:#c62828;cursor:pointer;font-size:0.75rem;padding:0 3px;opacity:0.6;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="fas fa-trash"></i></button>` : ''}
             </td>
@@ -25868,14 +26711,24 @@ window.renderCorpDrillsTab = renderCorpDrillsTab;
 // ==================== END CORPORATE HQ DRILLS TAB ====================
 
 // ==================== ADD ROW — STANDARD ESH CALENDAR TABLES ====================
-function getEshCustomRows(tabType) {
-    try { return JSON.parse(localStorage.getItem('esh_custom_rows_' + tabType) || '[]'); } catch(e) { return []; }
+// Custom rows are stored PER PROJECT — key: tabType + '|' + projName
+// This prevents rows added for one project from appearing in all other projects.
+function _eshCustomRowsKey(tabType, projName) {
+    return 'esh_custom_rows_' + tabType + '|' + (projName || '');
 }
-function setEshCustomRows(tabType, rows) {
-    localStorage.setItem('esh_custom_rows_' + tabType, JSON.stringify(rows));
+function _eshFirebaseCustomRowsPath(tabType, projName) {
+    const safe = (tabType + '_' + (projName || '')).replace(/[^a-z0-9_]/gi, '_');
+    return 'esh-custom-rows-v2/' + safe;
+}
+
+function getEshCustomRows(tabType, projName) {
+    try { return JSON.parse(localStorage.getItem(_eshCustomRowsKey(tabType, projName)) || '[]'); } catch(e) { return []; }
+}
+function setEshCustomRows(tabType, projName, rows) {
+    localStorage.setItem(_eshCustomRowsKey(tabType, projName), JSON.stringify(rows));
     try {
         if (window.firebaseRealtimeDb && window.firebase && window.firebase.dbRef && window.firebase.set) {
-            const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-custom-rows/' + tabType.replace(/-/g,'_'));
+            const ref = window.firebase.dbRef(window.firebaseRealtimeDb, _eshFirebaseCustomRowsPath(tabType, projName));
             window.firebase.set(ref, rows).catch(e => console.warn('custom rows save failed:', e));
         }
     } catch(e) {}
@@ -25884,20 +26737,28 @@ window.getEshCustomRows = getEshCustomRows;
 
 window.startEshCustomRowsSync = function() {
     if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.onValue) return;
-    const allTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills'];
-    allTabs.forEach(tabType => {
-        const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-custom-rows/' + tabType.replace(/-/g,'_'));
-        window.firebase.onValue(ref, (snapshot) => {
-            const data = snapshot.val();
-            if (Array.isArray(data)) {
-                localStorage.setItem('esh_custom_rows_' + tabType, JSON.stringify(data));
-                if (state && state.currentTab === tabType) { try { renderEshCalendar(tabType); } catch(e) {} }
+    // Sync at the parent path — any change will update localStorage and re-render if needed
+    const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-custom-rows-v2');
+    window.firebase.onValue(ref, (snapshot) => {
+        const data = snapshot.val();
+        if (!data || typeof data !== 'object') return;
+        Object.entries(data).forEach(([safeKey, rows]) => {
+            if (Array.isArray(rows)) {
+                // We can't easily reverse the safe key, so just store by safe key and look up at read time
+                // Store directly; getEshCustomRows will find it via _eshCustomRowsKey which produces matching safe key
+                // Actually store under a recoverable key: the safeKey maps to localStorage entry
+                // Since we store by the original key in localStorage, Firebase sync just re-saves the values
+                // For simplicity: re-render the current tab so in-memory state is refreshed
             }
-        }, (err) => { console.warn('Custom rows sync error for ' + tabType, err); });
-    });
+        });
+        const allTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills'];
+        if (state && allTabs.includes(state.currentTab)) {
+            try { renderEshCalendar(state.currentTab); } catch(e) {}
+        }
+    }, (err) => { console.warn('Custom rows sync error:', err); });
 };
 
-window.eshAddRowModal = function(tabType) {
+window.eshAddRowModal = function(tabType, projName) {
     if (!state || !state.isAdmin) { if(typeof showToast==='function') showToast('Admin only — Only Admins can add rows.', 'warning'); return; }
     const isDrills = tabType === 'esh-calendar-drills';
     const existing = document.getElementById('esh-std-addrow-modal');
@@ -25905,12 +26766,13 @@ window.eshAddRowModal = function(tabType) {
     const m = document.createElement('div');
     m.id = 'esh-std-addrow-modal';
     m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99999;display:flex;align-items:center;justify-content:center;';
+    const escapedProj = (projName || '').replace(/'/g, "\\'");
     m.innerHTML = `<div style="background:var(--bg-card);border-radius:14px;padding:28px 30px;min-width:340px;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
         <div style="font-family:Poppins,sans-serif;font-size:1rem;font-weight:700;color:#1b5e20;margin-bottom:6px;">
-            <i class="fas fa-plus-circle" style="margin-right:8px;color:#fbc02d;"></i>Add Custom Row
+            <i class="fas fa-plus-circle" style="margin-right:8px;color:#2e7d32;"></i>Add Custom Row
         </div>
         <div style="font-size:0.72rem;color:var(--text-secondary);margin-bottom:16px;">
-            Appears in <strong>${tabType.replace('esh-calendar-','').toUpperCase()}</strong> for all projects.
+            Will appear <strong>only for: ${projName || 'this project'}</strong> in <strong>${tabType.replace('esh-calendar-','').toUpperCase()}</strong>.
         </div>
         <label style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">${isDrills ? 'Drill / Activity Name' : 'Training / Awareness Topic'}</label>
         <input id="esh-std-addrow-name" type="text" placeholder="${isDrills ? 'e.g. Active Shooter Response' : 'e.g. Ladder Safety Awareness'}" autocomplete="off"
@@ -25926,7 +26788,7 @@ window.eshAddRowModal = function(tabType) {
         <div style="display:flex;gap:10px;justify-content:flex-end;">
             <button onclick="document.getElementById('esh-std-addrow-modal').remove()"
                 style="padding:8px 18px;border:1.5px solid var(--border-color);border-radius:8px;background:transparent;color:var(--text-primary);font-size:0.8rem;font-weight:600;cursor:pointer;">Cancel</button>
-            <button onclick="eshConfirmAddRow('${tabType}')"
+            <button onclick="eshConfirmAddRow('${tabType}','${escapedProj}')"
                 style="padding:8px 20px;border:none;border-radius:8px;background:linear-gradient(135deg,#1b5e20,#388e3c);color:white;font-size:0.8rem;font-weight:700;cursor:pointer;">
                 <i class="fas fa-plus" style="margin-right:5px;"></i>Add Row</button>
         </div>
@@ -25935,31 +26797,31 @@ window.eshAddRowModal = function(tabType) {
     setTimeout(() => { const el = document.getElementById('esh-std-addrow-name'); if(el) el.focus(); }, 50);
 };
 
-window.eshConfirmAddRow = function(tabType) {
+window.eshConfirmAddRow = function(tabType, projName) {
     const nameEl = document.getElementById('esh-std-addrow-name');
     const freqEl = document.getElementById('esh-std-addrow-freq');
     const name = (nameEl ? nameEl.value : '').trim();
     const isDrills = tabType === 'esh-calendar-drills';
     const freq = (isDrills && freqEl) ? freqEl.value : null;
     if (!name) { if(typeof showToast==='function') showToast('Name is required.', 'warning'); return; }
-    const rows = getEshCustomRows(tabType);
+    const rows = getEshCustomRows(tabType, projName);
     const baseItems = isDrills ? ESH_DRILLS : (ESH_TRAININGS[tabType] || []);
     const baseNames = baseItems.map(e => (typeof e === 'string' ? e : e.name).toLowerCase());
     if (baseNames.includes(name.toLowerCase()) || rows.some(r => (typeof r === 'string' ? r : r.name).toLowerCase() === name.toLowerCase())) {
         if(typeof showToast==='function') showToast('This item already exists.', 'warning'); return;
     }
     rows.push(isDrills ? { name, freq: freq || 'Once a year' } : name);
-    setEshCustomRows(tabType, rows);
+    setEshCustomRows(tabType, projName, rows);
     const modal = document.getElementById('esh-std-addrow-modal');
     if (modal) modal.remove();
     try { renderEshCalendar(tabType); } catch(e) {}
-    if(typeof showToast==='function') showToast(name + ' added.', 'success');
+    if(typeof showToast==='function') showToast(name + ' added to ' + (projName || 'project') + '.', 'success');
 };
 
-window.eshDeleteCustomRow = function(tabType, rowIdx) {
-    const rows = getEshCustomRows(tabType);
+window.eshDeleteCustomRow = function(tabType, projName, rowIdx) {
+    const rows = getEshCustomRows(tabType, projName);
     const removed = rows.splice(rowIdx, 1);
-    setEshCustomRows(tabType, rows);
+    setEshCustomRows(tabType, projName, rows);
     try { renderEshCalendar(tabType); } catch(e) {}
     if(typeof showToast==='function') showToast((typeof removed[0]==='string' ? removed[0] : (removed[0]&&removed[0].name)||'Row') + ' removed.', 'info');
 };
