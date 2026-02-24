@@ -11946,8 +11946,12 @@ function updateAuditData(pName, qtr, field, val) {
             const _rbacEcc = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p?.region, 'permits');
             if (!p || !_rbacEcc.allowed) { showLockedMessage(_rbacEcc.reason); return; }
             const key = 'permits_ECC';
-            if (p.vals[key]?.entries?.[idx] !== undefined) {
+            // FIX: Initialize entries if missing — prevents silent failure on first input
+            if (!p.vals[key]) p.vals[key] = {};
+            if (!p.vals[key].entries) p.vals[key].entries = [{ permitNo: '', dateIssued: '', expiryDate: '' }];
+            if (p.vals[key].entries[idx] !== undefined) {
                 p.vals[key].entries[idx][field] = value;
+                if (typeof markPendingSync === 'function') markPendingSync(); // FIX: was missing
             }
         }
         // ==================== GENERIC MULTI-ENTRY PERMITS ====================
@@ -16250,11 +16254,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
     SCHEMA[state.currentTab].forEach((row, rowIdx) => {
         const key = `${state.currentTab}_${row}`;
+        // FIX: Safe version of key for use in inline HTML event handlers (escapes apostrophes)
+        const _keySafe = key.replace(/'/g, "\\'");
         
         const isPermitNA = state.currentTab === 'permits' && p.vals[key] && p.vals[key]['na'];
         const rowStyle = isPermitNA ? 'opacity:0.4; background:#f5f5f5;' : '';
         const naBtn = state.currentTab === 'permits'
-            ? `<span onclick="togglePermitNA('${p.name}','${key}')" title="Mark as Not Applicable" style="
+            ? `<span onclick="togglePermitNA('${p.name}','${_keySafe}')" title="Mark as Not Applicable" style="
                 display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
                 font-size:0.63rem; font-weight:700; padding:3px 8px; border-radius:20px; border:1.5px solid;
                 white-space:nowrap; user-select:none; transition: all 0.2s; flex-shrink:0; min-width:38px;
@@ -16448,12 +16454,14 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const dateIssued = p.vals[key] ? (p.vals[key][2] ?? "") : "";
                     const expiryDate = p.vals[key] ? (p.vals[key][3] ?? "") : "";
                     const _isNoExpiry = (window.NO_EXPIRY_PERMITS || []).includes(row);
-                    html += `<td style="min-width: 200px; padding: 8px 12px;"><input type="text" placeholder="${naPlaceholder}" value="${isPermitNA ? '' : permitNo}" ${naDisabled} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 100%;${isPermitNA ? 'background:#f5f5f5;color:#bbb;' : ''}"></td>`;
-                    html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${isPermitNA ? '' : dateIssued}" ${naDisabled} oninput="updateVal('${p.name}','${key}',2,this.value)" style="width: 100%;${isPermitNA ? 'background:#f5f5f5;' : ''}"></td>`;
+                    // FIX: Escape apostrophes in key (e.g. "Hazardous Waste Generator's ID") to prevent inline JS breakage
+                    const _safeKey = key.replace(/'/g, "\\'");
+                    html += `<td style="min-width: 200px; padding: 8px 12px;"><input type="text" placeholder="${naPlaceholder}" value="${isPermitNA ? '' : permitNo}" ${naDisabled} oninput="updateVal('${p.name}','${_safeKey}',1,this.value)" style="width: 100%;${isPermitNA ? 'background:#f5f5f5;color:#bbb;' : ''}"></td>`;
+                    html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${isPermitNA ? '' : dateIssued}" ${naDisabled} oninput="updateVal('${p.name}','${_safeKey}',2,this.value)" style="width: 100%;${isPermitNA ? 'background:#f5f5f5;' : ''}"></td>`;
                     if (_isNoExpiry) {
                         html += `<td style="min-width: 140px; padding: 8px 12px; text-align:center; vertical-align:middle;"><span style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:16px;padding:3px 10px;font-size:0.65rem;font-weight:700;white-space:nowrap;"><i class="fas fa-infinity" style="margin-right:4px;font-size:0.6rem;"></i>Until Project Completion</span></td>`;
                     } else {
-                        html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${isPermitNA ? '' : expiryDate}" ${naDisabled} oninput="updateVal('${p.name}','${key}',3,this.value)" style="width: 100%;${isPermitNA ? 'background:#f5f5f5;' : ''}"></td>`;
+                        html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${isPermitNA ? '' : expiryDate}" ${naDisabled} oninput="updateVal('${p.name}','${_safeKey}',3,this.value)" style="width: 100%;${isPermitNA ? 'background:#f5f5f5;' : ''}"></td>`;
                     }
                 }
             } else if (state.currentTab === 'emb') {
