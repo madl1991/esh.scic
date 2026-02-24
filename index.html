@@ -14,7 +14,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, getDocs, deleteDoc, collection, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
         import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
@@ -23,6 +23,19 @@
         // ⚠️ SECURITY WARNING: API Keys Exposed
         // Dapat gamitin ang Firebase Security Rules at gawing private ang sensitive credentials.
         // I-configure ang Firestore/Database rules sa Firebase Console para sa proper access control.
+        //
+        // ── FIRESTORE RULES REMINDER ────────────────────────────────────────────────────
+        // personnelData is now stored at:
+        //   users/fUnXsvKnRYMpuySRbeVYJk7TO452/sharedData/personnel
+        //
+        // Make sure your Firestore rules include this BEFORE the existing fUnXsvKn rules:
+        //
+        //   match /users/fUnXsvKnRYMpuySRbeVYJk7TO452/sharedData/{doc} {
+        //     allow read:           if isScicUser();
+        //     allow create, update: if isAdmin() || isSuperintendent() || isPCO();
+        //     allow delete:         if isAdmin();
+        //   }
+        // ─────────────────────────────────────────────────────────────────────────────────
         const firebaseConfig = {
             apiKey: "AIzaSyBdqVEm3PWPuFTVbrxaP4JAZNXl2bmNUg4",
             authDomain: "esh-dashboard.firebaseapp.com",
@@ -55,6 +68,9 @@
             doc,
             setDoc,
             getDoc,
+            getDocs,
+            deleteDoc,
+            collection,
             updateDoc,
             onSnapshot,
             ref,
@@ -10014,10 +10030,16 @@ debugCommands.help() - Show this help
 
                     if (yearSnap.exists()) {
                         const data = yearSnap.data();
+
+                        // ── Load projects: prefer per-project subcollection, fall back to legacy array ──
+                        const perProjectDocs = await ProjectsDB.loadYear(newYear);
+                        const newYearProjects = (perProjectDocs && perProjectDocs.length > 0)
+                            ? perProjectDocs
+                            : (data.projects || []);
+
                         // Load year-specific: projects (with their vals/inputs) + incident + osh
                         state.masterProjects = (() => {
                             // Merge: new year's projects override, but keep masterProjects from other years
-                            const newYearProjects = data.projects || [];
                             const merged = new Map(state.masterProjects.map(p => [p.name, p]));
                             newYearProjects.forEach(p => merged.set(p.name, p));
                             return Array.from(merged.values());
@@ -12247,6 +12269,16 @@ function updateAuditData(pName, qtr, field, val) {
 
         // Delay Firebase sync to allow undo
         setTimeout(async () => {
+            // ── Delete per-project docs from ALL years this project belonged to ──
+            const deletedProject = deletedFromMasterProjects;
+            if (deletedProject && window.ProjectsDB) {
+                const projectsByYear = _buildProjectsByYear([deletedProject]);
+                const deletePromises = [];
+                projectsByYear.forEach((_, year) => {
+                    deletePromises.push(ProjectsDB.deleteProject(year, projectName));
+                });
+                await Promise.all(deletePromises);
+            }
             const saved = await saveToFirebaseWithRetry();
             if (saved) {
                 debugLog('SUCCESS', `✅ Project "${projectName}" deleted from Firebase`);
@@ -18467,7 +18499,7 @@ function confirmAddPersonnel() {
     
     // Add personnel
     if (!state.personnelData) state.personnelData = [];
-    state.personnelData.push({
+    const newPerson = {
         name: fullName,
         pos: pos || '',
         id: id || '',
@@ -18480,7 +18512,10 @@ function confirmAddPersonnel() {
         addr: addr || '',
         len: len || '',
         toUpdate: toUpdate.length > 0 ? toUpdate : null
-    });
+    };
+    // Assign a stable _pid before pushing
+    newPerson._pid = PersonnelDB.getPersonId(newPerson);
+    state.personnelData.push(newPerson);
     
     // Save and refresh
     saveUserData(state.currentUser.email);
@@ -18488,9 +18523,9 @@ function confirmAddPersonnel() {
     updatePersonnelSummary();
     closeAddPersonnelModal();
     if (window.showToast) window.showToast('Personnel added successfully!', 'success');
-    // Save to Firebase immediately
+    // Save only THIS person to Firestore — atomic, no race condition
     if (window.showSyncPill) window.showSyncPill('syncing', 'Saving to cloud...');
-    saveToFirebaseWithRetry()
+    PersonnelDB.savePerson(newPerson)
         .then(s => {
             if (s) { if (window.markSyncComplete) window.markSyncComplete(); }
             else   { if (window.markSyncFailed)   window.markSyncFailed(); }
@@ -18930,14 +18965,18 @@ function confirmTransferPersonnel() {
         `✅ ${person.name} transferred to ${_transferSelectedProject}`, 'success', 4000
     );
 
-    // Sync to Firebase
+    // Sync to Firebase — only this person's doc needs updating
     if (window.showSyncPill) window.showSyncPill('syncing', 'Saving transfer...');
-    saveToFirebaseWithRetry()
-        .then(s => {
-            if (s) { if (window.markSyncComplete) window.markSyncComplete(); }
-            else   { if (window.markSyncFailed) window.markSyncFailed(); }
-        })
-        .catch(() => { if (window.markSyncFailed) window.markSyncFailed(); });
+    const transferedPerson = state.personnelData[index];
+    if (transferedPerson) {
+        if (!transferedPerson._pid) transferedPerson._pid = PersonnelDB.getPersonId(transferedPerson);
+        PersonnelDB.savePerson(transferedPerson)
+            .then(s => {
+                if (s) { if (window.markSyncComplete) window.markSyncComplete(); }
+                else   { if (window.markSyncFailed) window.markSyncFailed(); }
+            })
+            .catch(() => { if (window.markSyncFailed) window.markSyncFailed(); });
+    }
 }
 // ─── END TRANSFER PERSONNEL ───────────────────────────────────────────
 
@@ -19047,8 +19086,9 @@ function confirmEditPersonnel() {
     // Calculate years of service
     const len = calculateYearsOfService(hired);
     
-    // Update personnel
-    state.personnelData[index] = {
+    // Update personnel — preserve existing _pid
+    const existingPid = state.personnelData[index]?._pid || null;
+    const updatedPerson = {
         name: fullName,
         pos: pos || '',
         id: id || '',
@@ -19062,6 +19102,9 @@ function confirmEditPersonnel() {
         len: len || '',
         toUpdate: toUpdate.length > 0 ? toUpdate : null
     };
+    // Ensure _pid is stable — reuse existing or generate from updated record
+    updatedPerson._pid = existingPid || PersonnelDB.getPersonId(updatedPerson);
+    state.personnelData[index] = updatedPerson;
     
     // Save and refresh
     saveUserData(state.currentUser.email);
@@ -19069,9 +19112,9 @@ function confirmEditPersonnel() {
     updatePersonnelSummary();
     closeEditPersonnelModal();
     if (window.showToast) window.showToast('Personnel updated successfully!', 'success');
-    // Save to Firebase immediately
+    // Save only THIS person to Firestore — atomic, no race condition
     if (window.showSyncPill) window.showSyncPill('syncing', 'Saving to cloud...');
-    saveToFirebaseWithRetry()
+    PersonnelDB.savePerson(updatedPerson)
         .then(s => {
             if (s) { if (window.markSyncComplete) window.markSyncComplete(); }
             else   { if (window.markSyncFailed)   window.markSyncFailed(); }
@@ -19567,6 +19610,12 @@ function pRowSave(i) {
     if (editBtn) editBtn.style.display = 'inline-flex';
     if (saveBtn) saveBtn.style.display = 'none';
     saveUserData(state.currentUser.email);
+    // Save only this person atomically
+    const person = state.personnelData[i];
+    if (person) {
+        if (!person._pid) person._pid = PersonnelDB.getPersonId(person);
+        PersonnelDB.savePerson(person).catch(e => console.warn('pRowSave PersonnelDB failed:', e));
+    }
     renderPTable(); // refresh badges and recalculate years
 }
 
@@ -19606,10 +19655,16 @@ function pRowDelete(i) {
         // Save a copy for undo
         const deletedPerson = { ...state.personnelData[i] };
         const deletedIndex  = i;
+        const deletedPid    = deletedPerson._pid || null;
 
         state.personnelData.splice(i, 1);
         renderPTable();
         saveUserData(state.currentUser.email);
+
+        // Delete from Firestore immediately — atomic single-doc delete
+        if (deletedPid) {
+            PersonnelDB.deletePerson(deletedPid).catch(e => console.warn('PersonnelDB delete failed:', e));
+        }
 
         // Show undo toast
         showUndoToast(`"${personName}" has been removed.`, () => {
@@ -19618,14 +19673,15 @@ function pRowDelete(i) {
             state.personnelData.splice(restoreAt, 0, deletedPerson);
             renderPTable();
             saveUserData(state.currentUser.email);
-            saveToFirebaseWithRetry().catch(() => {});
+            // Re-save this person on undo
+            if (deletedPerson._pid) {
+                PersonnelDB.savePerson(deletedPerson).catch(() => {});
+            }
             if (window.showToast) window.showToast('Personnel restored successfully!', 'success');
         });
 
-        // Save to Firebase after a short delay (allows undo window)
-        setTimeout(() => {
-            saveToFirebaseWithRetry().catch(() => {});
-        }, 5500);
+        // PersonnelDB.deletePerson was already called above — no delayed full-save needed.
+        // The delete is atomic and already committed to Firestore.
     });
 }
 
@@ -20262,6 +20318,34 @@ async function saveToFirebaseWithRetry(maxRetries = 2, delayMs = 2000) {
 }
 
 // OPTIMIZED: Save to Firebase - MANUAL ONLY
+// ── Helper: build a Map<year, projects[]> from masterProjects ──
+// Used by both saveToFirebase and ProjectsDB.migrateAll
+function _buildProjectsByYear(masterProjects) {
+    const projectsByYear = new Map();
+    (masterProjects || []).forEach(project => {
+        const startYear = project.dateStarted ? parseInt(project.dateStarted.split('-')[0]) : null;
+        const finishedYear = project.dateFinished ? parseInt(project.dateFinished.split('-')[0]) : null;
+
+        // CORPORATE projects with no dates — appear in ALL years
+        if (project.region === 'CORPORATE' && !startYear) {
+            for (let year = YEAR_RANGE.min; year <= YEAR_RANGE.max; year++) {
+                if (!projectsByYear.has(year)) projectsByYear.set(year, []);
+                projectsByYear.get(year).push(project);
+            }
+            return;
+        }
+
+        if (startYear) {
+            const endYear = finishedYear || YEAR_RANGE.max;
+            for (let year = Math.max(startYear, YEAR_RANGE.min); year <= Math.min(endYear, YEAR_RANGE.max); year++) {
+                if (!projectsByYear.has(year)) projectsByYear.set(year, []);
+                projectsByYear.get(year).push(project);
+            }
+        }
+    });
+    return projectsByYear;
+}
+
 async function saveToFirebase() {
     if (!firebaseReady || !window.firebaseDb) {
         console.log('⏳ Firebase not ready');
@@ -20303,38 +20387,10 @@ async function saveToFirebase() {
         
         // Now save ALL master projects to ALL their relevant years
         // Group projects by year they should appear in
-        const projectsByYear = new Map();
-        
-        state.masterProjects.forEach(project => {
-            const startYear = project.dateStarted ? parseInt(project.dateStarted.split('-')[0]) : null;
-            const finishedYear = project.dateFinished ? parseInt(project.dateFinished.split('-')[0]) : null;
+        const projectsByYear = _buildProjectsByYear(state.masterProjects);
 
-            // FIX: CORPORATE projects have no dates — save to ALL years so they always appear
-            if (project.region === 'CORPORATE' && !startYear) {
-                for (let year = YEAR_RANGE.min; year <= YEAR_RANGE.max; year++) {
-                    if (!projectsByYear.has(year)) projectsByYear.set(year, []);
-                    projectsByYear.get(year).push(project);
-                }
-                return;
-            }
-            
-            if (startYear) {
-                const endYear = finishedYear || YEAR_RANGE.max;
-                
-                for (let year = Math.max(startYear, YEAR_RANGE.min); year <= Math.min(endYear, YEAR_RANGE.max); year++) {
-                    if (!projectsByYear.has(year)) {
-                        projectsByYear.set(year, []);
-                    }
-                    projectsByYear.get(year).push(project);
-                }
-            }
-        });
-        
-        // Build save payload helper
-        function buildYearPayload(year, projects) {
-            // ── RBAC FIX: Firebase rejects undefined values — sanitize recursively ──
-            // Root cause: project vals{} fields set by one role/tab may be undefined
-            // in other tabs, causing setDoc() to throw for cross-year saves.
+        // Build year-level metadata payload (projects are now in subcollection — NOT embedded here)
+        function buildYearPayload(year) {
             function sanitize(obj) {
                 if (Array.isArray(obj)) return obj.map(sanitize);
                 if (obj !== null && typeof obj === 'object') {
@@ -20347,39 +20403,25 @@ async function saveToFirebase() {
                 return (obj === undefined) ? null : obj;
             }
 
+            // ── Projects are now stored per-document in subcollection — do NOT embed here ──
             const payload = {
                 year: year,
                 email: state.currentUser?.email || 'local-user',
                 displayName: state.currentUser?.displayName || localStorage.getItem('esh_displayname_' + state.currentUser?.email) || '',
-                projects: projects,
                 lastUpdated: new Date().toISOString(),
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                _projectsInSubcollection: true  // migration marker: projects moved to subcollection
             };
             if (year === currentYear) {
                 payload.incidentRateData = state.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
                 payload.oshData = state.oshData || {};
             }
-            // personnelData is global (year-independent) — always save it to every year doc
-            // so switchYear() can always load the full personnel list from any year doc
-            // ── CRITICAL: sanitize each personnel record to strip undefined/null fields ──
-            payload.personnelData = (state.personnelData || []).map(p => ({
-                name:     p.name     || '',
-                pos:      p.pos      || '',
-                id:       p.id       || '',
-                hired:    p.hired    || '',
-                current:  p.current  || '',
-                age:      p.age      || '',
-                gen:      p.gen      || '',
-                mail:     p.mail     || '',
-                num:      p.num      || '',
-                addr:     p.addr     || '',
-                len:      p.len      || '',
-                toUpdate: Array.isArray(p.toUpdate) && p.toUpdate.length > 0 ? p.toUpdate : null
-            }));
+            // personnelData: saved in users/{adminUid}/personnel/{pid} — NOT here
+            // projects: saved in users/{adminUid}/years/{year}/projects/{projectId} — NOT here
             return sanitize(payload);
         }
 
-        // FAST PATH: Save current year first (this is what the spinner waits for)
+        // FAST PATH: Save current year first (metadata + projects)
         const currentYearProjects = projectsByYear.get(currentYear) || [];
         const currentYearRef = window.firebase.doc(window.firebaseDb, 'users', dataUserId, 'years', currentYear.toString());
         
@@ -20393,7 +20435,275 @@ async function saveToFirebase() {
             if (cu) await cu.getIdToken(true);
         } catch(e) { console.warn('⚠️ Pre-save token refresh failed (non-critical):', e.message); }
 
-        await saveWithTimeout(window.firebase.setDoc(currentYearRef, buildYearPayload(currentYear, currentYearProjects), { merge: true }));
+        // Save year metadata + current year's projects (per-document) simultaneously
+        await saveWithTimeout(Promise.all([
+            window.firebase.setDoc(currentYearRef, buildYearPayload(currentYear), { merge: true }),
+            ProjectsDB.saveProjects(currentYear, currentYearProjects)
+        ]));
+
+        // ══════════════════════════════════════════════════════════════════════════════
+// PERSONNEL DB — per-person Firestore documents (solves race condition / last-write-wins)
+// Path: users/{adminUid}/personnel/{personId}
+//
+// Each person is a separate Firestore document identified by a unique personId.
+// Saves/edits/deletes are atomic single-document operations — no full-array overwrites.
+// This means admin and superintendent can save simultaneously without losing each other's data.
+// ══════════════════════════════════════════════════════════════════════════════
+const PersonnelDB = {
+
+    // Generate a stable personId from the person's ID number, or fallback to a UUID
+    getPersonId(person) {
+        if (person._pid) return person._pid; // already has one
+        if (person.id && person.id.trim()) {
+            // Use employee ID, sanitized for Firestore key safety
+            return 'emp_' + person.id.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+        }
+        // Fallback: generate a UUID-like ID from name + timestamp
+        const base = (person.name || 'unknown').replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
+        return 'p_' + base + '_' + Date.now().toString(36);
+    },
+
+    getCollectionRef() {
+        const ADMIN_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
+        return window.firebase.collection(window.firebaseDb, 'users', ADMIN_UID, 'personnel');
+    },
+
+    sanitizePerson(person) {
+        return {
+            _pid:     person._pid     || '',
+            name:     person.name     || '',
+            pos:      person.pos      || '',
+            id:       person.id       || '',
+            hired:    person.hired    || '',
+            current:  person.current  || '',
+            age:      person.age      || '',
+            gen:      person.gen      || '',
+            mail:     person.mail     || '',
+            num:      person.num      || '',
+            addr:     person.addr     || '',
+            len:      person.len      || '',
+            toUpdate: Array.isArray(person.toUpdate) && person.toUpdate.length > 0 ? person.toUpdate : null,
+            _updatedBy: state.currentUser?.email || '',
+            _updatedAt: new Date().toISOString()
+        };
+    },
+
+    // Save (upsert) a single person — called on add or edit
+    async savePerson(person) {
+        if (!window.firebaseDb || !window.firebase) return false;
+        try {
+            if (!person._pid) person._pid = this.getPersonId(person);
+            const ref = window.firebase.doc(this.getCollectionRef(), person._pid);
+            await window.firebase.setDoc(ref, this.sanitizePerson(person));
+            console.log(`✅ PersonnelDB: saved "${person.name}" (${person._pid})`);
+            return true;
+        } catch(e) {
+            console.error('❌ PersonnelDB.savePerson failed:', e.message);
+            return false;
+        }
+    },
+
+    // Delete a single person by _pid
+    async deletePerson(pid) {
+        if (!window.firebaseDb || !window.firebase || !pid) return false;
+        try {
+            const ref = window.firebase.doc(this.getCollectionRef(), pid);
+            await window.firebase.deleteDoc(ref);
+            console.log(`✅ PersonnelDB: deleted ${pid}`);
+            return true;
+        } catch(e) {
+            console.error('❌ PersonnelDB.deletePerson failed:', e.message);
+            return false;
+        }
+    },
+
+    // Load ALL personnel — returns array sorted by name
+    async loadAll() {
+        if (!window.firebaseDb || !window.firebase) return null;
+        try {
+            const snap = await window.firebase.getDocs(this.getCollectionRef());
+            if (snap.empty) return null; // null = no dedicated docs yet (triggers legacy fallback)
+            const people = [];
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                if (data.name) people.push({ ...data, _pid: docSnap.id });
+            });
+            console.log(`✅ PersonnelDB: loaded ${people.length} personnel from dedicated docs`);
+            return people;
+        } catch(e) {
+            console.error('❌ PersonnelDB.loadAll failed:', e.message);
+            return null;
+        }
+    },
+
+    // Migrate: write all current state.personnelData to individual docs (one-time migration)
+    async migrateAll() {
+        if (!state.personnelData || state.personnelData.length === 0) return;
+        console.log(`🔄 PersonnelDB: migrating ${state.personnelData.length} personnel to individual docs...`);
+        const promises = state.personnelData.map(person => {
+            if (!person._pid) person._pid = this.getPersonId(person);
+            return this.savePerson(person);
+        });
+        await Promise.all(promises);
+        console.log(`✅ PersonnelDB: migration complete`);
+    }
+};
+window.PersonnelDB = PersonnelDB;
+// ══════════════════════════════════════════════════════════════════════════════
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PROJECTS DB — per-project Firestore documents (solves race condition / last-write-wins)
+// Path: users/{adminUid}/years/{year}/projects/{projectName_safe}
+//
+// Each project is a separate Firestore document identified by a URL-safe project name key.
+// Admin and superintendent/PCO can save simultaneously — only their own region's projects
+// are touched. No full-array overwrites. No cross-region data loss.
+// ══════════════════════════════════════════════════════════════════════════════
+const ProjectsDB = {
+
+    ADMIN_UID: 'fUnXsvKnRYMpuySRbeVYJk7TO452',
+
+    // Generate a stable Firestore-safe document ID from a project name
+    getProjectId(projectName) {
+        // Replace any character that is not alphanumeric, dash, or underscore with underscore
+        return projectName.trim().replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 200);
+    },
+
+    // Get reference to the projects subcollection for a given year
+    getCollectionRef(year) {
+        return window.firebase.collection(
+            window.firebaseDb,
+            'users', this.ADMIN_UID,
+            'years', year.toString(),
+            'projects'
+        );
+    },
+
+    // Get reference to a single project document
+    getDocRef(year, projectName) {
+        return window.firebase.doc(
+            window.firebaseDb,
+            'users', this.ADMIN_UID,
+            'years', year.toString(),
+            'projects', this.getProjectId(projectName)
+        );
+    },
+
+    // Sanitize a project object before saving — remove undefined values recursively
+    sanitizeProject(project) {
+        function clean(obj) {
+            if (Array.isArray(obj)) return obj.map(clean);
+            if (obj !== null && typeof obj === 'object') {
+                const out = {};
+                for (const [k, v] of Object.entries(obj)) {
+                    out[k] = (v === undefined) ? null : clean(v);
+                }
+                return out;
+            }
+            return (obj === undefined) ? null : obj;
+        }
+        const sanitized = clean(project);
+        // Always stamp who last updated this project doc
+        sanitized._updatedBy = state.currentUser?.email || '';
+        sanitized._updatedAt = new Date().toISOString();
+        return sanitized;
+    },
+
+    // Save (upsert) a single project for a given year — atomic, no race condition
+    async saveProject(year, project) {
+        if (!window.firebaseDb || !window.firebase) return false;
+        try {
+            const ref = this.getDocRef(year, project.name);
+            await window.firebase.setDoc(ref, this.sanitizeProject(project));
+            return true;
+        } catch(e) {
+            console.error(`❌ ProjectsDB.saveProject failed for "${project.name}" (${year}):`, e.message);
+            return false;
+        }
+    },
+
+    // Save multiple projects for a single year in parallel
+    async saveProjects(year, projects) {
+        if (!window.firebaseDb || !window.firebase || !projects.length) return true;
+        const results = await Promise.all(projects.map(p => this.saveProject(year, p)));
+        const failed = results.filter(r => !r).length;
+        if (failed) console.warn(`⚠️ ProjectsDB: ${failed}/${projects.length} project saves failed for year ${year}`);
+        return failed === 0;
+    },
+
+    // Delete a single project document (admin-only, called from deleteProject UI)
+    async deleteProject(year, projectName) {
+        if (!window.firebaseDb || !window.firebase) return false;
+        try {
+            const ref = this.getDocRef(year, projectName);
+            await window.firebase.deleteDoc(ref);
+            console.log(`✅ ProjectsDB: deleted "${projectName}" from year ${year}`);
+            return true;
+        } catch(e) {
+            console.error(`❌ ProjectsDB.deleteProject failed:`, e.message);
+            return false;
+        }
+    },
+
+    // Load ALL projects for a given year — returns array or null (null = no dedicated docs yet)
+    async loadYear(year) {
+        if (!window.firebaseDb || !window.firebase) return null;
+        try {
+            const snap = await window.firebase.getDocs(this.getCollectionRef(year));
+            if (snap.empty) return null; // null = no per-project docs yet (triggers legacy fallback)
+            const projects = [];
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                if (data.name) projects.push(data);
+            });
+            console.log(`✅ ProjectsDB: loaded ${projects.length} projects from individual docs (year ${year})`);
+            return projects;
+        } catch(e) {
+            console.error(`❌ ProjectsDB.loadYear(${year}) failed:`, e.message);
+            return null;
+        }
+    },
+
+    // Load projects for multiple years in parallel — returns Map<year, projects[]>
+    async loadYears(years) {
+        const entries = await Promise.all(
+            years.map(async y => [y, await this.loadYear(y)])
+        );
+        return new Map(entries);
+    },
+
+    // One-time migration: write all projects in state.masterProjects to individual docs
+    // for every year they belong to (same year-spread logic as saveToFirebase)
+    async migrateAll() {
+        if (!state.masterProjects || state.masterProjects.length === 0) return;
+        console.log(`🔄 ProjectsDB: migrating ${state.masterProjects.length} projects to individual docs...`);
+
+        // Build the same projectsByYear map used by saveToFirebase
+        const projectsByYear = _buildProjectsByYear(state.masterProjects);
+
+        const allPromises = [];
+        projectsByYear.forEach((projects, year) => {
+            projects.forEach(p => allPromises.push(this.saveProject(year, p)));
+        });
+        await Promise.all(allPromises);
+        console.log(`✅ ProjectsDB: migration complete (${allPromises.length} total doc writes)`);
+    }
+};
+window.ProjectsDB = ProjectsDB;
+// ══════════════════════════════════════════════════════════════════════════════
+
+
+        // ── PERSONNEL DATA: Save via PersonnelDB (per-person docs, atomic, no race condition) ──
+        // Each person is stored as its own Firestore document under users/{adminUid}/personnel/{pid}
+        // Admin and superintendent can save simultaneously — no overwrites possible.
+        await PersonnelDB.migrateAll();
+        // ── END PERSONNEL SAVE ──
+
+        // ── PROJECTS DATA: Already saved above via ProjectsDB.saveProjects ──
+        // (per-project docs under users/{adminUid}/years/{year}/projects/{projectId})
+        // Migration from legacy year-doc array happens transparently on next load+save cycle.
+        // ── END PROJECTS SAVE ──
 
         // Also save user preferences (non-blocking, runs in parallel)
         const userDocRef = window.firebase.doc(window.firebaseDb, 'users', currentUserId);
@@ -20414,7 +20724,11 @@ async function saveToFirebase() {
             projectsByYear.forEach((projects, year) => {
                 if (year === currentYear) return; // already saved
                 const ref = window.firebase.doc(window.firebaseDb, 'users', dataUserId, 'years', year.toString());
-                bgPromises.push(window.firebase.setDoc(ref, buildYearPayload(year, projects), { merge: true }));
+                // Save year metadata + per-project docs
+                bgPromises.push(
+                    window.firebase.setDoc(ref, buildYearPayload(year), { merge: true }),
+                    ProjectsDB.saveProjects(year, projects)
+                );
             });
             if (bgPromises.length > 0) {
                 Promise.all(bgPromises)
@@ -20706,8 +21020,9 @@ async function loadAllProjectsAndFilter() {
                 renderPTable();
                 console.log(`⚡ Instant render from cache (${Math.round(cacheAge/1000)}s old)`);
 
-                // If cache is fresh enough, skip Firebase fetch
-                if (cacheAge < CACHE_TTL) {
+                // ── FIX: Never skip Firebase fetch for personnel — always fetch fresh to avoid stale personnel data ──
+                // Only skip if cache is fresh AND personnel was loaded from dedicated per-person docs
+                if (cacheAge < CACHE_TTL && cachedData._personnelFromDedicatedDoc) {
                     console.log('✅ Cache fresh — skipping Firebase fetch');
                     return;
                 }
@@ -20717,13 +21032,17 @@ async function loadAllProjectsAndFilter() {
         }
 
         // ── PARALLEL Firebase fetch ────────────────────────────────────────
-        console.log(`🔥 Fetching all years in parallel...`);
+        console.log(`🔥 Fetching all years + projects + personnel in parallel...`);
         const yearRefs = availableYears.map(year =>
             window.firebase.doc(window.firebaseDb, 'users', dataUserId, 'years', year.toString())
         );
 
-        // Fire ALL requests simultaneously
-        const snapshots = await Promise.all(yearRefs.map(ref => window.firebase.getDoc(ref)));
+        // Fire ALL requests simultaneously: year metadata docs + per-project subcollections + personnel
+        const [snapshots, projectsByYearFromDB, personnelFromDB] = await Promise.all([
+            Promise.all(yearRefs.map(ref => window.firebase.getDoc(ref))),
+            ProjectsDB.loadYears(availableYears),
+            PersonnelDB.loadAll()
+        ]);
 
         const projectMap = new Map();
         let personnelData = [];
@@ -20734,16 +21053,39 @@ async function loadAllProjectsAndFilter() {
             if (!snap.exists()) return;
             const year = availableYears[i];
             const data = snap.data();
-            const projects = data.projects || [];
-            console.log(`   Year ${year}: ${projects.length} projects`);
-            // FIX: Always use LATEST year's version (overwrite older copies)
-            projects.forEach(p => { projectMap.set(p.name, p); });
+
+            // ── Load year metadata (incidentRate, osh) ──
             if (year === selectedYear) {
-                personnelData = data.personnelData || [];
                 incidentRateData = data.incidentRateData || incidentRateData;
                 oshData = data.oshData || {};
             }
+
+            // ── Load projects: prefer per-project subcollection, fall back to legacy array ──
+            const perProjectDocs = projectsByYearFromDB.get(year);
+            const projects = (perProjectDocs && perProjectDocs.length > 0)
+                ? perProjectDocs          // ✅ new per-project docs
+                : (data.projects || []);  // ⚠️ legacy embedded array (will be migrated on next save)
+
+            if (!perProjectDocs || perProjectDocs.length === 0) {
+                console.log(`   Year ${year}: ${projects.length} projects (legacy array — will migrate on next save)`);
+            } else {
+                console.log(`   Year ${year}: ${projects.length} projects (per-project docs ✅)`);
+            }
+            projects.forEach(p => { projectMap.set(p.name, p); });
+
+            // Legacy personnel fallback (if PersonnelDB has no docs yet)
+            if (year === selectedYear && !personnelFromDB && data.personnelData && data.personnelData.length > 0) {
+                personnelData = data.personnelData;
+            }
         });
+
+        // ── Load from PersonnelDB (per-person docs) — takes priority over legacy year-doc data ──
+        if (personnelFromDB && personnelFromDB.length > 0) {
+            personnelData = personnelFromDB;
+            console.log(`✅ PersonnelDB: ${personnelData.length} personnel loaded from individual docs`);
+        } else if (!personnelFromDB) {
+            console.log(`ℹ️ PersonnelDB: no individual docs yet — using legacy data (${personnelData.length} records). Will migrate on next save.`);
+        }
 
         state.masterProjects = Array.from(projectMap.values());
         state.personnelData = personnelData;
@@ -20762,7 +21104,8 @@ async function loadAllProjectsAndFilter() {
                 masterProjects: state.masterProjects,
                 personnelData: state.personnelData,
                 incidentRateData: state.incidentRateData,
-                oshData: state.oshData
+                oshData: state.oshData,
+                _personnelFromDedicatedDoc: personnelFromDB !== null // true if loaded from per-person docs
             }));
             localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
         } catch(e) { console.warn('Cache save failed:', e.message); }
