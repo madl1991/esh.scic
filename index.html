@@ -6983,6 +6983,12 @@ let backupManager = {
                 this.loadBackupsFromStorage(); // Always reload for current user first
                 this.createBackup(false);
                 console.log('✅ Auto-backup created for', state.currentUser.email);
+                // Also push to Firebase so data survives cross-device / cross-browser sessions
+                if (typeof saveToFirebase === 'function' && firebaseReady) {
+                    saveToFirebase()
+                        .then(ok => { if (ok) console.log('☁️ Auto-save to Firebase complete'); })
+                        .catch(e => console.warn('⚠️ Auto-save to Firebase failed:', e.message));
+                }
             }
         }, this.autoSaveFrequency);
     },
@@ -12313,15 +12319,18 @@ function updateAuditData(pName, qtr, field, val) {
         async function deleteProject(projectName) {
     debugLog('INFO', `🗑️ deleteProject() called for: ${projectName}`);
     
-    // Protect the permanent Corporate project from deletion
-    if (projectName === 'Corporate') {
+    // Only non-admins are blocked from deleting permanent entities
+    const _isAdminUser = UserAccounts.isAdmin(state.currentUser?.email);
+
+    // Protect the permanent Corporate project from deletion (non-admins only)
+    if (projectName === 'Corporate' && !_isAdminUser) {
         showToast('🏢 The Corporate project cannot be deleted — it is a permanent entity.', 'warning');
         return;
     }
 
-    // Protect permanent Plant Operations facilities from deletion
+    // Protect permanent Plant Operations facilities from deletion (non-admins only)
     const PERMANENT_PLANTS = ['Pililla Batching Plant and Yard', 'Sta. Clara Railways Pre-Cast Manufacturing Plant'];
-    if (PERMANENT_PLANTS.includes(projectName)) {
+    if (PERMANENT_PLANTS.includes(projectName) && !_isAdminUser) {
         showToast('🏭 Plant facilities cannot be deleted — they are permanent monitoring entities.', 'warning');
         return;
     }
@@ -13369,25 +13378,120 @@ function closeAllStatusDropdowns() {
             'Others'
         ];
 
+        // ══════════════════════════════════════════════════════════════════════
+        // TABLE 6 — SCHEDULED CHARGES (DOLE/OSH Standard)
+        // Used for permanent impairment, amputation, loss of vision/hearing, fatality
+        // ══════════════════════════════════════════════════════════════════════
+        const SCHEDULED_CHARGES = {
+            // ── FINGERS, THUMB ──
+            'Thumb — Distal Phalange':           300,
+            'Thumb — Proximal Phalange':         600,
+            'Thumb — Metacarpal':                900,
+            'Index Finger — Distal Phalange':    100,
+            'Index Finger — Middle Phalange':    200,
+            'Index Finger — Proximal Phalange':  400,
+            'Index Finger — Metacarpal':         600,
+            'Middle Finger — Distal Phalange':   75,
+            'Middle Finger — Middle Phalange':   150,
+            'Middle Finger — Proximal Phalange': 300,
+            'Middle Finger — Metacarpal':        500,
+            'Ring Finger — Distal Phalange':     60,
+            'Ring Finger — Middle Phalange':     120,
+            'Ring Finger — Proximal Phalange':   240,
+            'Ring Finger — Metacarpal':          450,
+            'Little Finger — Distal Phalange':   50,
+            'Little Finger — Middle Phalange':   100,
+            'Little Finger — Proximal Phalange': 200,
+            'Little Finger — Metacarpal':        400,
+            // ── TOE, FOOT, ANKLE ──
+            'Great Toe — Distal Phalange':       150,
+            'Great Toe — Proximal Phalange':     300,
+            'Great Toe — Metatarsal':            600,
+            'Other Toe — Distal Phalange':       35,
+            'Other Toe — Middle Phalange':       75,
+            'Other Toe — Proximal Phalange':     150,
+            'Other Toe — Metatarsal':            350,
+            'Foot at Ankle':                     2400,
+            // ── ARM ──
+            'Arm — Above Elbow (incl. joint)':   4500,
+            'Arm — Above Ankle / Below Elbow':   3600,
+            // ── LEG ──
+            'Leg — Above Knee':                  4500,
+            'Leg — Above Ankle / Below Knee':    300,
+            // ── IMPAIRMENT OF FUNCTION ──
+            'One Eye (Loss of Sight)':           1800,
+            'Both Eyes (Loss of Sight)':         6000,
+            'One Ear (Complete Hearing Loss)':   600,
+            'Both Ears (Complete Hearing Loss)': 3000,
+            'Unrepaired Hernia':                 50,
+            // ── FATALITY ──
+            'Fatality':                          6000,
+        };
+
+        // Grouped for UI display
+        const SCHEDULED_CHARGES_GROUPS = [
+            { group: '🖐 Thumb',         items: ['Thumb — Distal Phalange','Thumb — Proximal Phalange','Thumb — Metacarpal'] },
+            { group: '☝ Index Finger',  items: ['Index Finger — Distal Phalange','Index Finger — Middle Phalange','Index Finger — Proximal Phalange','Index Finger — Metacarpal'] },
+            { group: '🖕 Middle Finger', items: ['Middle Finger — Distal Phalange','Middle Finger — Middle Phalange','Middle Finger — Proximal Phalange','Middle Finger — Metacarpal'] },
+            { group: '💍 Ring Finger',   items: ['Ring Finger — Distal Phalange','Ring Finger — Middle Phalange','Ring Finger — Proximal Phalange','Ring Finger — Metacarpal'] },
+            { group: '🤙 Little Finger', items: ['Little Finger — Distal Phalange','Little Finger — Middle Phalange','Little Finger — Proximal Phalange','Little Finger — Metacarpal'] },
+            { group: '🦶 Great Toe',     items: ['Great Toe — Distal Phalange','Great Toe — Proximal Phalange','Great Toe — Metatarsal'] },
+            { group: '🦶 Other Toe',     items: ['Other Toe — Distal Phalange','Other Toe — Middle Phalange','Other Toe — Proximal Phalange','Other Toe — Metatarsal'] },
+            { group: '🦶 Foot / Ankle',  items: ['Foot at Ankle'] },
+            { group: '💪 Arm',           items: ['Arm — Above Elbow (incl. joint)','Arm — Above Ankle / Below Elbow'] },
+            { group: '🦵 Leg',           items: ['Leg — Above Knee','Leg — Above Ankle / Below Knee'] },
+            { group: '👁 Vision / Hearing', items: ['One Eye (Loss of Sight)','Both Eyes (Loss of Sight)','One Ear (Complete Hearing Loss)','Both Ears (Complete Hearing Loss)','Unrepaired Hernia'] },
+            { group: '☠ Fatality',       items: ['Fatality'] },
+        ];
+
+        // Injury type options — determines which computation to use
+        const LTA_INJURY_TYPES = [
+            { value: 'temporary',  label: 'Temporary / Recoverable',      useScheduled: false, note: 'Use Actual Days Lost (Date of Accident → RTW)' },
+            { value: 'permanent',  label: 'Permanent Impairment',         useScheduled: true,  note: 'Use Scheduled Charges (Table 6)' },
+            { value: 'amputation', label: 'Amputation',                   useScheduled: true,  note: 'Use Scheduled Charges (Table 6) — Required' },
+            { value: 'vision',     label: 'Loss of Vision',               useScheduled: true,  note: 'Use Scheduled Charges (Table 6)' },
+            { value: 'hearing',    label: 'Loss of Hearing',              useScheduled: true,  note: 'Use Scheduled Charges (Table 6)' },
+            { value: 'fatality',   label: 'Fatality',                     useScheduled: true,  note: 'Use Scheduled Charges (Table 6) — 6,000 days' },
+            { value: 'confinement',label: 'Confinement Only (Temporary)', useScheduled: false, note: 'Use Actual Days Lost (Date of Accident → RTW)' },
+        ];
+
         /**
-         * Compute days lost from date after accident to day before RTW (inclusive),
-         * excluding Sundays. Returns integer.
+         * Compute ACTUAL days lost (date after accident to day before RTW, excl. Sundays).
          */
         function computeDaysLost(dateOfAccident, dateRTW) {
             if (!dateOfAccident || !dateRTW) return 0;
             const start = new Date(dateOfAccident);
             const end   = new Date(dateRTW);
             start.setDate(start.getDate() + 1); // day AFTER accident
-            // end is RTW day — not counted (employee already back)
-            // Count from start to end-1 inclusive, excluding Sundays
             if (start >= end) return 0;
             let days = 0;
             const cur = new Date(start);
             while (cur < end) {
-                if (cur.getDay() !== 0) days++; // 0 = Sunday
+                if (cur.getDay() !== 0) days++; // exclude Sundays
                 cur.setDate(cur.getDate() + 1);
             }
             return days;
+        }
+
+        /**
+         * Compute DAYS CHARGED for an entry.
+         * - Temporary / Confinement → Actual Days Lost (date computation)
+         * - Permanent / Amputation / Vision / Hearing / Fatality → Scheduled Charges (Table 6)
+         * Returns { daysCharged: number, method: 'actual'|'scheduled', scheduledItem: string|null }
+         */
+        function computeDaysCharged(entry) {
+            const injuryType = entry.injuryType || 'temporary';
+            const injuryTypeDef = LTA_INJURY_TYPES.find(t => t.value === injuryType);
+            const useScheduled = injuryTypeDef ? injuryTypeDef.useScheduled : false;
+
+            if (useScheduled) {
+                const item = entry.scheduledChargeItem || '';
+                const val  = item ? (SCHEDULED_CHARGES[item] || 0) : 0;
+                return { daysCharged: val, method: 'scheduled', scheduledItem: item };
+            } else {
+                const dl = computeDaysLost(entry.dateOfAccident, entry.dateRTW);
+                return { daysCharged: dl, method: 'actual', scheduledItem: null };
+            }
         }
 
         /**
@@ -13398,16 +13502,16 @@ function closeAllStatusDropdowns() {
             state.projects.forEach(p => {
                 const entries = p.vals['lta-registry_entries'] || [];
                 // Build monthly totals (months 1-12)
-                const monthTotals = new Array(14).fill(0);
                 // index 0 = prev year (skip), 1=JAN…12=DEC, 13=YTD
+                const monthTotals = new Array(14).fill(0);
                 entries.forEach(e => {
                     if (!e.dateOfAccident) return;
-                    const dl = computeDaysLost(e.dateOfAccident, e.dateRTW);
-                    if (dl <= 0) return;
+                    // Use computeDaysCharged: respects Scheduled Charges vs Actual Days Lost
+                    const { daysCharged } = computeDaysCharged(e);
+                    if (daysCharged <= 0) return;
                     const month = new Date(e.dateOfAccident).getMonth() + 1; // 1-12
-                    monthTotals[month] += dl;
+                    monthTotals[month] += daysCharged;
                 });
-                // Only overwrite if there are LTA entries; keep prev year (index 0) as-is
                 const hasEntries = entries.length > 0;
                 if (hasEntries) {
                     if (!p.vals['medical_Days Lost/Charged']) {
@@ -13496,6 +13600,9 @@ function closeAllStatusDropdowns() {
                 correctiveAction: '', responsible: '', timeline: '',
                 followUp1: '', followUp2: '', followUp3: '',
                 dateOfAccident: '', dateRTW: '',
+                // Days Lost / Scheduled Charges
+                injuryType: 'temporary',        // 'temporary'|'permanent'|'amputation'|'vision'|'hearing'|'fatality'|'confinement'
+                scheduledChargeItem: '',        // key from SCHEDULED_CHARGES
                 dateClosed: '', cparNo: '', status: 'Open', remarks: ''
             });
             syncIncidentClassificationsFromRegistry();
@@ -13523,18 +13630,21 @@ function closeAllStatusDropdowns() {
             if (!p.vals['lta-registry_entries'] || !p.vals['lta-registry_entries'][idx]) return;
             p.vals['lta-registry_entries'][idx][field] = value;
             // Re-sync all classifications when date, classification fields change
-            if (field === 'dateOfAccident' || field === 'dateRTW' || field === 'incidentClassification' || field === 'dateReported') {
+            if (field === 'dateOfAccident' || field === 'dateRTW' || field === 'incidentClassification' || field === 'dateReported'
+                || field === 'injuryType' || field === 'scheduledChargeItem') {
                 syncIncidentClassificationsFromRegistry();
                 syncDaysLostFromLtaRegistry();
-                // Update displayed days lost badge
-                const badge = document.getElementById(`lta-dl-${pName.replace(/\s/g,'_')}-${idx}`);
+                // Update displayed days charged badge
+                const badge = document.getElementById(`lta-dl-${pName.replace(/[^a-zA-Z0-9]/g,'_')}-${idx}`);
                 if (badge) {
                     const e = p.vals['lta-registry_entries'][idx];
-                    const dl = computeDaysLost(e.dateOfAccident, e.dateRTW);
-                    badge.textContent = dl;
-                    badge.style.background = dl > 0 ? '#c62828' : '#e8f5e9';
-                    badge.style.color = dl > 0 ? 'white' : '#2e7d32';
+                    const { daysCharged, method } = computeDaysCharged(e);
+                    badge.textContent = daysCharged + (method === 'scheduled' ? ' (SC)' : '');
+                    badge.style.background = daysCharged > 0 ? '#c62828' : '#e8f5e9';
+                    badge.style.color = daysCharged > 0 ? 'white' : '#2e7d32';
                 }
+                // If injuryType changes, re-render to show/hide scheduled charges panel
+                if (field === 'injuryType') { renderLtaRegistryTab(); return; }
             }
             if (typeof markPendingSync === 'function') markPendingSync();
         }
@@ -13647,7 +13757,7 @@ function closeAllStatusDropdowns() {
                     const pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
                     const pId = p.name.replace(/\s/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
                     const entries = p.vals['lta-registry_entries'] || [];
-                    const totalDL = entries.reduce((s,e) => s + computeDaysLost(e.dateOfAccident, e.dateRTW), 0);
+                    const totalDL = entries.reduce((s,e) => s + computeDaysCharged(e).daysCharged, 0);
                     const canEdit = UserAccounts.canEdit(state.currentUser?.email, p.region) && UserAccounts.canEditTab(state.currentUser?.email, 'medical');
                     const dis = canEdit ? '' : 'disabled';
 
@@ -13660,7 +13770,7 @@ function closeAllStatusDropdowns() {
                             <div style="display:flex;align-items:center;gap:8px;">
                                 ${canEdit ? `<button class="lta-add-btn" onclick="event.stopPropagation();addLtaEntry('${pnSafe}')"><i class="fas fa-plus"></i> Add Entry</button>` : ''}
                                 <span style="background:rgba(198,40,40,0.8);color:white;border-radius:10px;padding:2px 8px;font-size:0.62rem;font-weight:700;">${entries.length} entries</span>
-                                <span style="background:rgba(255,160,0,0.8);color:white;border-radius:10px;padding:2px 8px;font-size:0.62rem;font-weight:700;">${totalDL} days lost</span>
+                                <span style="background:rgba(255,160,0,0.8);color:white;border-radius:10px;padding:2px 8px;font-size:0.62rem;font-weight:700;">${totalDL} days charged</span>
                                 <i id="lta-proj-${pId}-icon" class="fas fa-chevron-down" style="color:rgba(255,255,255,0.7);font-size:0.8rem;transition:transform 0.3s;"></i>
                             </div>
                         </div>
@@ -13677,11 +13787,12 @@ function closeAllStatusDropdowns() {
                             <span class="lta-summary-pill" style="background:#ffebee;color:#c62828;">${openCount} Open</span>
                             <span class="lta-summary-pill" style="background:#fff3e0;color:#e65100;">${ongoingCount} Ongoing</span>
                             <span class="lta-summary-pill" style="background:#e8f5e9;color:#2e7d32;">${closedCount} Closed</span>
-                            <span class="lta-summary-pill" style="background:#fff8e1;color:#f57f17;">Total: ${totalDL} Days Lost</span>
+                            <span class="lta-summary-pill" style="background:#fff8e1;color:#f57f17;">Total: ${totalDL} Days Charged</span>
                         </div>`;
 
                         entries.forEach((e, idx) => {
-                            const dl = computeDaysLost(e.dateOfAccident, e.dateRTW);
+                            const { daysCharged: dl, method: dlMethod } = computeDaysCharged(e);
+                            const dlLabel = dlMethod === 'scheduled' ? dl + ' (SC)' : dl + '';
                             const dlBg = dl > 0 ? '#c62828' : '#e8f5e9';
                             const dlColor = dl > 0 ? 'white' : '#2e7d32';
                             const statusColor = e.status === 'Closed' ? '#2e7d32' : e.status === 'Ongoing' ? '#e65100' : '#c62828';
@@ -13700,8 +13811,8 @@ function closeAllStatusDropdowns() {
                                     </div>
                                     <div style="display:flex;align-items:center;gap:8px;">
                                         <div style="text-align:center;">
-                                            <div style="font-size:0.55rem;color:#888;margin-bottom:2px;">DAYS LOST</div>
-                                            <span id="lta-dl-${pId}-${idx}" class="lta-days-badge" style="background:${dlBg};color:${dlColor};">${dl}</span>
+                                            <div style="font-size:0.55rem;color:#888;margin-bottom:2px;">${dlMethod === 'scheduled' ? 'DAYS CHARGED (SC)' : 'DAYS LOST'}</div>
+                                            <span id="lta-dl-${pId}-${idx}" class="lta-days-badge" style="background:${dlBg};color:${dlColor};">${dlLabel}</span>
                                         </div>
                                         <span style="background:${statusBg};color:${statusColor};border-radius:8px;padding:2px 8px;font-size:0.63rem;font-weight:700;">${e.status||'Open'}</span>
                                         ${canEdit ? `<button class="lta-del-btn" onclick="removeLtaEntry('${pnSafe}',${idx})"><i class="fas fa-trash"></i></button>` : ''}
@@ -13825,27 +13936,94 @@ function closeAllStatusDropdowns() {
                                         <textarea ${dis} style="min-height:44px;" oninput="updateLtaField('${pnSafe}',${idx},'followUp3',this.value)">${e.followUp3||''}</textarea>
                                     </div>
 
-                                    <!-- === DAYS LOST COMPUTATION === -->
-                                    <div class="lta-section-label"><i class="fas fa-calendar-xmark" style="margin-right:5px;"></i>Days Lost Computation</div>
+                                    <!-- === DAYS LOST / CHARGED COMPUTATION === -->
+                                    <div class="lta-section-label"><i class="fas fa-calendar-xmark" style="margin-right:5px;"></i>Days Lost / Charged Computation</div>
 
-                                    <div class="lta-field">
-                                        <label>Date of Accident</label>
-                                        <input type="date" value="${e.dateOfAccident||''}" ${dis}
-                                            oninput="updateLtaField('${pnSafe}',${idx},'dateOfAccident',this.value)">
-                                    </div>
-                                    <div class="lta-field">
-                                        <label>Date Return to Work (RTW)</label>
-                                        <input type="date" value="${e.dateRTW||''}" ${dis}
-                                            oninput="updateLtaField('${pnSafe}',${idx},'dateRTW',this.value)">
-                                    </div>
-                                    <div class="lta-computed-dl">
-                                        <i class="fas fa-calculator" style="color:#f57f17;font-size:1rem;"></i>
-                                        <div>
-                                            <div style="font-size:0.62rem;color:#888;font-weight:600;">AUTO-COMPUTED DAYS LOST (excl. Sundays, from day after accident)</div>
-                                            <div style="font-size:0.85rem;font-weight:800;color:${dl>0?'#c62828':'#2e7d32'};">${dl} day${dl!==1?'s':''} lost</div>
-                                            ${dl>0?`<div style="font-size:0.58rem;color:#888;">Attributed to month of accident · Synced to Medical Tab → Days Lost/Charged</div>`:'<div style="font-size:0.58rem;color:#888;">Fill in Date of Accident and Date RTW to compute</div>'}
+                                    <!-- Injury Type Selector -->
+                                    <div class="lta-field lta-field-full">
+                                        <label>⚕ Injury / Case Type <span style="color:#e65100;font-weight:800;">*</span></label>
+                                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:4px;">
+                                            ${LTA_INJURY_TYPES.map(t => {
+                                                const isSelected = (e.injuryType || 'temporary') === t.value;
+                                                const usesSC = t.useScheduled;
+                                                return `<label style="display:flex;align-items:flex-start;gap:7px;padding:7px 10px;border-radius:6px;cursor:${dis?'default':'pointer'};
+                                                    border:1.5px solid ${isSelected ? (usesSC ? '#c62828' : '#2e7d32') : 'var(--border-color)'};
+                                                    background:${isSelected ? (usesSC ? '#fff0f0' : '#f1f8f1') : 'var(--input-bg)'};
+                                                    transition:all 0.15s;">
+                                                    <input type="radio" name="injuryType-${pId}-${idx}" value="${t.value}"
+                                                        ${isSelected ? 'checked' : ''} ${dis}
+                                                        style="margin-top:2px;accent-color:${usesSC ? '#c62828' : '#2e7d32'};"
+                                                        onchange="updateLtaField('${pnSafe}',${idx},'injuryType',this.value)">
+                                                    <div>
+                                                        <div style="font-size:0.72rem;font-weight:700;color:${isSelected ? (usesSC ? '#c62828' : '#1b5e20') : 'var(--text-primary)'};">
+                                                            ${usesSC ? '📋 ' : '🩹 '}${t.label}
+                                                        </div>
+                                                        <div style="font-size:0.6rem;color:var(--text-secondary);margin-top:1px;">${t.note}</div>
+                                                    </div>
+                                                </label>`;
+                                            }).join('')}
                                         </div>
                                     </div>
+
+                                    ${(() => {
+                                        const injuryTypeDef = LTA_INJURY_TYPES.find(t => t.value === (e.injuryType || 'temporary'));
+                                        const useScheduled = injuryTypeDef ? injuryTypeDef.useScheduled : false;
+
+                                        if (useScheduled) {
+                                            // Scheduled Charges selector
+                                            const scOpts = SCHEDULED_CHARGES_GROUPS.map(g =>
+                                                `<optgroup label="${g.group}">${g.items.map(item =>
+                                                    `<option value="${item}" ${e.scheduledChargeItem === item ? 'selected' : ''}>
+                                                        ${item} — ${SCHEDULED_CHARGES[item].toLocaleString()} days
+                                                    </option>`
+                                                ).join('')}</optgroup>`
+                                            ).join('');
+                                            const scVal = e.scheduledChargeItem ? SCHEDULED_CHARGES[e.scheduledChargeItem] : null;
+                                            return `
+                                            <div class="lta-field lta-field-full">
+                                                <label>📋 Scheduled Charge Item (Table 6 — DOLE/OSH Standard)</label>
+                                                <select ${dis} style="font-size:0.75rem;" onchange="updateLtaField('${pnSafe}',${idx},'scheduledChargeItem',this.value)">
+                                                    <option value="">— Select injured part / impairment type —</option>
+                                                    ${scOpts}
+                                                </select>
+                                            </div>
+                                            <div class="lta-computed-dl" style="background:#fff0f0;border-color:#ef9a9a;grid-column:1/-1;">
+                                                <i class="fas fa-table" style="color:#c62828;font-size:1rem;"></i>
+                                                <div>
+                                                    <div style="font-size:0.62rem;color:#888;font-weight:600;">SCHEDULED CHARGES (Table 6) — Days Charged</div>
+                                                    <div style="font-size:0.85rem;font-weight:800;color:${scVal ? '#c62828' : '#888'};">
+                                                        ${scVal ? scVal.toLocaleString() + ' days charged' : '— Select a scheduled charge item above —'}
+                                                    </div>
+                                                    <div style="font-size:0.58rem;color:#888;margin-top:2px;">
+                                                        ${scVal ? `Attributed to month of accident · Synced to Medical Tab → Days Lost/Charged` : 'RTW date not required for scheduled charges'}
+                                                    </div>
+                                                </div>
+                                            </div>`;
+                                        } else {
+                                            // Actual Days Lost (date computation)
+                                            return `
+                                            <div class="lta-field">
+                                                <label>Date of Accident</label>
+                                                <input type="date" value="${e.dateOfAccident||''}" ${dis}
+                                                    oninput="updateLtaField('${pnSafe}',${idx},'dateOfAccident',this.value)">
+                                            </div>
+                                            <div class="lta-field">
+                                                <label>Date Return to Work (RTW)</label>
+                                                <input type="date" value="${e.dateRTW||''}" ${dis}
+                                                    oninput="updateLtaField('${pnSafe}',${idx},'dateRTW',this.value)">
+                                            </div>
+                                            <div class="lta-computed-dl" style="grid-column:1/-1;">
+                                                <i class="fas fa-calculator" style="color:#f57f17;font-size:1rem;"></i>
+                                                <div>
+                                                    <div style="font-size:0.62rem;color:#888;font-weight:600;">AUTO-COMPUTED ACTUAL DAYS LOST (excl. Sundays, from day after accident)</div>
+                                                    <div style="font-size:0.85rem;font-weight:800;color:${dl>0?'#c62828':'#2e7d32'};">${dl} day${dl!==1?'s':''} lost</div>
+                                                    ${dl>0
+                                                        ? '<div style="font-size:0.58rem;color:#888;">Attributed to month of accident · Synced to Medical Tab → Days Lost/Charged</div>'
+                                                        : '<div style="font-size:0.58rem;color:#888;">Fill in Date of Accident and Date RTW to compute</div>'}
+                                                </div>
+                                            </div>`;
+                                        }
+                                    })()}
 
                                     <!-- === CLOSURE === -->
                                     <div class="lta-section-label"><i class="fas fa-circle-check" style="margin-right:5px;"></i>Closure</div>
@@ -20789,15 +20967,20 @@ async function saveToFirebase() {
         const currentYear = state.selectedYear || 2026;
         
         // Update masterProjects with current changes
-        // Remove old versions and add updated versions
-        state.projects.forEach(project => {
-            const index = state.masterProjects.findIndex(p => p.name === project.name);
-            if (index >= 0) {
-                state.masterProjects[index] = project;
-            } else {
-                state.masterProjects.push(project);
-            }
-        });
+        // Only merge if state.projects has actual data (guard against empty-state overwrite)
+        if (state.projects && state.projects.length > 0) {
+            state.projects.forEach(project => {
+                const index = state.masterProjects.findIndex(p => p.name === project.name);
+                if (index >= 0) {
+                    state.masterProjects[index] = project;
+                } else {
+                    state.masterProjects.push(project);
+                }
+            });
+        } else if (state.masterProjects.length === 0) {
+            // Both are empty — nothing to save for projects, but continue to save metadata
+            console.log('ℹ️ saveToFirebase: no projects in state — saving metadata only');
+        }
         
         // Now save ALL master projects to ALL their relevant years
         // Group projects by year they should appear in
@@ -20827,8 +21010,9 @@ async function saveToFirebase() {
                 _projectsInSubcollection: true  // migration marker: projects moved to subcollection
             };
             if (year === currentYear) {
-                payload.incidentRateData = state.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
-                payload.oshData = state.oshData || {};
+                // incidentRateData is computed from project docs on load — no need to persist here
+                // oshData is now stored inside each project doc (atomic saves) — NOT here
+                // Both fields kept as comments to explain intentional omission
             }
             // personnelData: saved in users/{adminUid}/personnel/{pid} — NOT here
             // projects: saved in users/{adminUid}/years/{year}/projects/{projectId} — NOT here
@@ -20980,11 +21164,12 @@ async function loadFromFirebase() {
     }
 
     try {
-        const userId = getCurrentUserId();
+        const userId = getCurrentUserId();       // Personal UID — for preferences only
+        const dataUserId = getDataSourceUserId(); // Shared admin UID — for project/year data
         const userEmail = state.currentUser?.email;
         const year = state.selectedYear || 2026;
         
-        // Load user preferences first
+        // Load user preferences first (from personal UID)
         const userDocRef = window.firebase.doc(window.firebaseDb, 'users', userId);
         const userDocSnap = await window.firebase.getDoc(userDocRef);
         
@@ -21044,8 +21229,8 @@ async function loadFromFirebase() {
             }
         }
         
-        // Load year-specific data
-        const yearDocRef = window.firebase.doc(window.firebaseDb, 'users', userId, 'years', year.toString());
+        // Load year-specific data (from SHARED admin UID — where all project data lives)
+        const yearDocRef = window.firebase.doc(window.firebaseDb, 'users', dataUserId, 'years', year.toString());
         const yearDocSnap = await window.firebase.getDoc(yearDocRef);
         
         // Check localStorage for newer unsaved data for this year
@@ -21054,52 +21239,80 @@ async function loadFromFirebase() {
         const localData = localRaw ? JSON.parse(localRaw) : null;
         const localTimestamp = localData?.lastSaved ? new Date(localData.lastSaved).getTime() : 0;
 
+        // ALWAYS load per-project subcollection docs (the canonical data source since migration)
+        // Run in parallel with personnel load for speed
+        const [perProjectDocs, personnelFromDB] = await Promise.all([
+            ProjectsDB.loadYear(year),
+            PersonnelDB.loadAll()
+        ]);
+
         if (yearDocSnap.exists()) {
             const fbData = yearDocSnap.data();
             const fbTimestamp = fbData.timestamp || 0;
 
-            // Use whichever is newer: localStorage or Firebase
-            if (localTimestamp > fbTimestamp) {
-                console.log(`💾 localStorage is newer for year ${year} — loading from localStorage`);
+            // ── Load year-level metadata (incidentRate, osh) ──
+            state.incidentRateData = fbData.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
+            state.oshData = fbData.oshData || {};
+            state.lastSyncTimestamp = fbTimestamp;
+
+            // ── Load projects: ALWAYS prefer per-project subcollection over legacy embedded array ──
+            if (perProjectDocs && perProjectDocs.length > 0) {
+                console.log(`☁️ Loaded ${perProjectDocs.length} projects from per-project subcollection (year ${year})`);
+                state.projects = perProjectDocs;
+            } else if (fbData.projects && fbData.projects.length > 0) {
+                // Legacy fallback: embedded array in year doc (pre-migration)
+                console.log(`⚠️ Loaded ${fbData.projects.length} projects from legacy year doc array — will migrate on next save`);
+                state.projects = fbData.projects;
+            } else if (localTimestamp > fbTimestamp && localData && localData.projects && localData.projects.length > 0) {
+                // Last resort: localStorage is newer and has data
+                console.log(`💾 localStorage is newer and has data — restoring from localStorage`);
                 state.projects = localData.projects || [];
-                state.personnelData = localData.personnelData || [];
-                state.incidentRateData = localData.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
-                state.oshData = localData.oshData || {};
-                state.lastSyncTimestamp = fbTimestamp;
-                // Push local data up to Firebase so it's in sync
-                await saveToFirebase();
+                state.incidentRateData = localData.incidentRateData || state.incidentRateData;
+                state.oshData = localData.oshData || state.oshData;
+                await saveToFirebase(); // Push up to Firebase
             } else {
-                console.log(`☁️ Firebase is newer for year ${year} — loading from Firebase`);
-                state.projects = fbData.projects || [];
-                state.personnelData = fbData.personnelData || [];
-                state.incidentRateData = fbData.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
-                state.oshData = fbData.oshData || {};
-                state.lastSyncTimestamp = fbTimestamp;
-                // Sync Firebase data down to localStorage
-                saveUserDataLocal(userEmail);
+                state.projects = [];
             }
-            
-            state.filteredProjects = [...state.projects];
-            console.log(`✅ Data loaded for year ${year}. Projects:`, state.projects.length, '| Personnel:', state.personnelData.length);
 
         } else {
             // No Firebase doc for this year — use localStorage if available, else start fresh
-            if (localData) {
+            if (localData && localData.projects && localData.projects.length > 0) {
                 console.log(`📝 No Firebase doc for year ${year} — restoring from localStorage`);
                 state.projects = localData.projects || [];
-                state.personnelData = localData.personnelData || [];
                 state.incidentRateData = localData.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
                 state.oshData = localData.oshData || {};
-                state.filteredProjects = [...state.projects];
                 await saveToFirebase(); // Save to create the year doc
+            } else if (perProjectDocs && perProjectDocs.length > 0) {
+                // Subcollection has docs but no year metadata doc — use subcollection
+                console.log(`📝 No year metadata doc but ${perProjectDocs.length} per-project docs found`);
+                state.projects = perProjectDocs;
             } else {
                 console.log(`📝 No data for year ${year} — starting fresh`);
                 state.projects = [];
-                state.personnelData = [];
                 state.incidentRateData = { recordableCases: 0, lostDays: 0, totalHours: 0 };
                 state.filteredProjects = [];
             }
         }
+
+        // ── Load Personnel: per-person docs take priority ──
+        if (personnelFromDB && personnelFromDB.length > 0) {
+            state.personnelData = personnelFromDB;
+            console.log(`✅ PersonnelDB: ${personnelFromDB.length} personnel loaded`);
+        } else if (localData && localData.personnelData) {
+            state.personnelData = localData.personnelData;
+        }
+
+        // ── Also sync masterProjects so saveToFirebase() has full context ──
+        state.projects.forEach(p => {
+            const idx = state.masterProjects.findIndex(mp => mp.name === p.name);
+            if (idx >= 0) state.masterProjects[idx] = p;
+            else state.masterProjects.push(p);
+        });
+
+        state.filteredProjects = [...state.projects];
+        // Sync to localStorage cache
+        saveUserDataLocal(userEmail);
+        console.log(`✅ Data loaded for year ${year}. Projects: ${state.projects.length} | Personnel: ${state.personnelData.length}`);
 
         // Apply dark mode
         if (state.darkMode) {
@@ -21245,7 +21458,15 @@ async function loadAllProjectsAndFilter() {
         state.masterProjects = Array.from(projectMap.values());
         state.personnelData = personnelData;
         state.incidentRateData = incidentRateData;
-        state.oshData = oshData;
+
+        // ── Rebuild oshData from per-project docs (atomic source of truth) ──
+        // oshData is no longer stored in the year metadata doc — it lives inside each project doc.
+        const rebuiltOshData = {};
+        state.masterProjects.forEach(p => {
+            if (p.oshData) rebuiltOshData[p.name] = p.oshData;
+        });
+        state.oshData = Object.keys(rebuiltOshData).length > 0 ? rebuiltOshData : (oshData || {});
+
         state.projects = filterProjectsByYear(state.masterProjects, selectedYear);
         state.filteredProjects = [...state.projects];
         // FIX: Ensure Corporate always present after loading
@@ -23665,7 +23886,25 @@ function getOshData(projectName) {
 }
 
 function saveOshData() {
-    if (typeof saveToFirebase === 'function') saveToFirebase();
+    // Save each project's oshData into its own project document (atomic, no race condition).
+    // This prevents the shared year metadata doc from being overwritten by simultaneous saves.
+    if (!window.firebaseDb || !firebaseReady || !state.oshData) {
+        if (state.currentUser?.email) saveUserDataLocal(state.currentUser.email);
+        return;
+    }
+    const dataUserId = getDataSourceUserId();
+    const year = state.selectedYear || 2026;
+    Object.entries(state.oshData).forEach(([projectName, oshEntry]) => {
+        const project = (state.masterProjects || state.projects || []).find(p => p.name === projectName);
+        if (!project) return;
+        const projectId = ProjectsDB.getProjectId(project.name);
+        const projectRef = window.firebase.doc(
+            window.firebaseDb, 'users', dataUserId, 'years', year.toString(), 'projects', projectId
+        );
+        // merge: true — only update oshData field, never overwrite other project fields
+        window.firebase.setDoc(projectRef, { oshData: oshEntry }, { merge: true })
+            .catch(e => console.warn('saveOshData failed for "' + projectName + '":', e.message));
+    });
 }
 
 /**
@@ -23988,70 +24227,100 @@ document.addEventListener('DOMContentLoaded', function() {
         'PLANT OPERATIONS':   { bg: '#00695c', light: '#e0f2f1', accent: '#00796b', badge: '#80cbc4' }
     };
 
-    // Field definitions per section
+    const HR_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const HR_MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    // ── REPORTING fields: monthly (Jan-Dec) + AMR (annual) ──
+    const HR_REPORTING_FIELDS = [
+        { key: 'chs',    label: 'CHS Monthly Health Report',                               monthly: true  },
+        { key: 'inv',    label: 'Inventory & Inspection of Medicines/Supplies/Equipment',  monthly: true  },
+        { key: 'nurses', label: 'Nurses and First Aiders KPI',                             monthly: true  },
+        { key: 'wair',   label: 'WAIR',                                                    monthly: true  },
+        { key: 'amr',    label: 'AMR (Annual Medical Report)',                              monthly: false, note: 'Annual — Deadline: End of March' },
+    ];
+
+    // ── Other sections remain flat (not monthly) ──
     const HR_FIELDS = {
-        REPORTING: [
-            { key: 'chs_date',     label: 'CHS Monthly Health Report',                              type: 'date',   compliance: 'full',    note: 'Monthly' },
-            { key: 'inv_date',     label: 'Inventory & Inspection of Medicines/Supplies/Equipment', type: 'date',   compliance: 'full',    note: 'Monthly' },
-            { key: 'nurses_date',  label: 'Nurses and First Aiders KPI',                            type: 'date',   compliance: 'full',    note: 'Monthly' },
-            { key: 'wair_date',    label: 'WAIR',                                                   type: 'date',   compliance: 'full',    note: 'Monthly' },
-            { key: 'amr_date',     label: 'AMR (Annual Medical Report)',                             type: 'date',   compliance: 'full',    note: 'Annual — Deadline: End of March' },
-        ],
         MEDICAL_FACILITY: [
             { key: 'hospital_name',    label: 'Name of Hospital (MOA)',                    type: 'text',   compliance: 'partial', note: 'Required for MOA' },
             { key: 'moa_validity',     label: 'MOA Validity Date',                         type: 'date',   compliance: 'full',    note: 'Annual monitoring if fully complied' },
             { key: 'dental_coverage',  label: 'With Dental Coverage in MOA?',              type: 'yesno',  compliance: 'auto' },
-            { key: 'dental_name',      label: 'Name of Dental Clinic (if no dental MOA)', type: 'text',   compliance: 'partial', note: 'Required if no dental in MOA' },
+            { key: 'dental_name',      label: 'Name of Dental Clinic (if no dental MOA)',  type: 'text',   compliance: 'partial', note: 'Required if no dental in MOA' },
             { key: 'dental_moa',       label: 'Dental MOA Validity',                       type: 'date',   compliance: 'full',    note: 'Annual monitoring if fully complied' },
-            { key: 'clinic_count',     label: 'Clinic (Dedicated)',                         type: 'number', compliance: 'full',    note: 'Count' },
+            { key: 'clinic_count',     label: 'Clinic (Dedicated)',                        type: 'number', compliance: 'full',    note: 'Count' },
             { key: 'firstaid_count',   label: 'First Aid Station / Emergency Treatment Facility', type: 'number', compliance: 'full', note: 'Based on OHS Standard' },
-            { key: 'transport_count',  label: 'Designated Patient Transport Vehicle',       type: 'number', compliance: 'full',    note: 'Count' },
+            { key: 'transport_count',  label: 'Designated Patient Transport Vehicle',      type: 'number', compliance: 'full',    note: 'Count' },
             { key: 'breastfeeding',    label: 'Breast Feeding Facility',                   type: 'yesno',  compliance: 'full' },
             { key: 'biohaz_infect',    label: 'Biohazard — Infectious Bins',               type: 'yesno',  compliance: 'partial' },
             { key: 'biohaz_puncture',  label: 'Biohazard — Puncture-Resistance Bins',      type: 'yesno',  compliance: 'partial' },
             { key: 'biohaz_general',   label: 'Biohazard — General Waste Bins',            type: 'yesno',  compliance: 'partial' },
             { key: 'biohaz_hauled',    label: 'Biohazard — Hauled by Tied-up Hospital?',   type: 'yesno',  compliance: 'auto' },
-            { key: 'biohaz_tempstore', label: 'Stored in Temporary Storage Facility',       type: 'yesno',  compliance: 'partial' },
+            { key: 'biohaz_tempstore', label: 'Stored in Temporary Storage Facility',      type: 'yesno',  compliance: 'partial' },
             { key: 'biohaz_clinic',    label: 'Stored in Clinic Only',                     type: 'yesno',  compliance: 'partial' },
             { key: 'tsd_name',         label: 'Name of Tied-up TSD',                       type: 'text',   compliance: 'partial' },
             { key: 'tsd_validity',     label: 'TSD Validity Date',                         type: 'date',   compliance: 'full',    note: 'Semi-Annual monitoring if fully complied' },
         ],
         EQUIPMENT: [
-            { key: 'eq_patient_bed',      label: "Patient's Bed",                                  type: 'number', note: 'OHS Standard' },
-            { key: 'eq_firstaid_kits',    label: 'First Aid Kits',                                  type: 'number', note: 'OHS Standard' },
-            { key: 'eq_o2_tank',          label: 'Oxygen Tank (complete set)',                      type: 'number', note: 'OHS Standard' },
-            { key: 'eq_pulse_ox',         label: 'Pulse Oximeter',                                  type: 'number', note: 'Present in project' },
-            { key: 'eq_firstaid_cab',     label: 'First Aid Cabinet',                               type: 'number', note: 'OHS Standard' },
-            { key: 'eq_thermometer',      label: 'Digital Thermometer',                             type: 'number', note: 'OHS Standard' },
-            { key: 'eq_bp_set',           label: 'BP Apparatus Set',                                type: 'number', note: 'SCIC outline allocation' },
-            { key: 'eq_nebulizer',        label: 'Nebulizer',                                       type: 'number', note: 'Present in project' },
-            { key: 'eq_glucose',          label: 'Glucose Meter',                                   type: 'number', note: 'Present in project' },
-            { key: 'eq_breathalyzer',     label: 'Alcohol Breathalyzer',                            type: 'number', note: 'Depend on project needs' },
-            { key: 'eq_exam_table',       label: 'Examining Table',                                 type: 'number', note: 'OHS Standard' },
-            { key: 'eq_spineboard',       label: 'Spine Board with Spider Strap',                   type: 'number', note: 'Depend on project needs' },
-            { key: 'eq_med_storage',      label: 'Cabinet for Medical Supplies &amp; Equipment',    type: 'number', note: 'OHS Standard' },
-            { key: 'eq_med_stocks',       label: 'Cabinet for Medicines (Stocks)',                   type: 'number', note: 'OHS Standard' },
-            { key: 'eq_eyewash',          label: 'Emergency Eyewash',                               type: 'number', note: 'OHS Standard' },
-            { key: 'eq_shower',           label: 'Emergency Shower',                                type: 'number', note: 'OHS Standard' },
+            { key: 'eq_patient_bed',   label: "Patient's Bed",                             type: 'number', note: 'OHS Standard' },
+            { key: 'eq_firstaid_kits', label: 'First Aid Kits',                            type: 'number', note: 'OHS Standard' },
+            { key: 'eq_o2_tank',       label: 'Oxygen Tank (complete set)',                type: 'number', note: 'OHS Standard' },
+            { key: 'eq_pulse_ox',      label: 'Pulse Oximeter',                            type: 'number', note: 'Present in project' },
+            { key: 'eq_firstaid_cab',  label: 'First Aid Cabinet',                         type: 'number', note: 'OHS Standard' },
+            { key: 'eq_thermometer',   label: 'Digital Thermometer',                       type: 'number', note: 'OHS Standard' },
+            { key: 'eq_bp_set',        label: 'BP Apparatus Set',                          type: 'number', note: 'SCIC outline allocation' },
+            { key: 'eq_nebulizer',     label: 'Nebulizer',                                 type: 'number', note: 'Present in project' },
+            { key: 'eq_glucose',       label: 'Glucose Meter',                             type: 'number', note: 'Present in project' },
+            { key: 'eq_breathalyzer',  label: 'Alcohol Breathalyzer',                      type: 'number', note: 'Depend on project needs' },
+            { key: 'eq_exam_table',    label: 'Examining Table',                           type: 'number', note: 'OHS Standard' },
+            { key: 'eq_spineboard',    label: 'Spine Board with Spider Strap',             type: 'number', note: 'Depend on project needs' },
+            { key: 'eq_med_storage',   label: 'Cabinet for Medical Supplies &amp; Equipment', type: 'number', note: 'OHS Standard' },
+            { key: 'eq_med_stocks',    label: 'Cabinet for Medicines (Stocks)',             type: 'number', note: 'OHS Standard' },
+            { key: 'eq_eyewash',       label: 'Emergency Eyewash',                         type: 'number', note: 'OHS Standard' },
+            { key: 'eq_shower',        label: 'Emergency Shower',                          type: 'number', note: 'OHS Standard' },
         ]
     };
 
-    // ── Get/Set value ──
+    // ── Get/Set helpers ──
+    // Monthly fields stored as: p.vals['health_chs_Jan'], p.vals['health_chs_Feb'], ...
+    // Flat fields stored as:    p.vals['health_hospital_name'][1]
+    function hrGetMonthly(p, key, monthIdx) {
+        const fk = 'health_' + key + '_' + HR_MONTHS_SHORT[monthIdx];
+        return p.vals && p.vals[fk] ? (p.vals[fk][1] ?? '') : '';
+    }
+
+    function hrSetMonthly(pName, key, monthIdx, value) {
+        const p = (state.masterProjects || state.projects || []).find(x => x.name === pName);
+        if (!p) return;
+        const fk = 'health_' + key + '_' + HR_MONTHS_SHORT[monthIdx];
+        if (!p.vals) p.vals = {};
+        if (!p.vals[fk]) p.vals[fk] = {};
+        p.vals[fk][1] = value;
+        // Also keep state.projects in sync
+        const sp = state.projects.find(x => x.name === pName);
+        if (sp && sp !== p) { if (!sp.vals) sp.vals = {}; if (!sp.vals[fk]) sp.vals[fk] = {}; sp.vals[fk][1] = value; }
+        if (typeof markPendingSync === 'function') markPendingSync();
+        saveToFirebase();
+        renderHealthReportSummaryBadges();
+        refreshHrProjectStatus(pName);
+    }
+    window.hrSetMonthly = hrSetMonthly;
+
     function hrGet(p, key) {
         const fk = 'health_' + key;
         return p.vals && p.vals[fk] ? (p.vals[fk][1] ?? '') : '';
     }
 
     function hrSet(pName, key, value) {
-        const p = state.projects.find(x => x.name === pName);
+        const p = (state.masterProjects || state.projects || []).find(x => x.name === pName);
         if (!p) return;
         const fk = 'health_' + key;
         if (!p.vals) p.vals = {};
         if (!p.vals[fk]) p.vals[fk] = {};
         p.vals[fk][1] = value;
+        const sp = state.projects.find(x => x.name === pName);
+        if (sp && sp !== p) { if (!sp.vals) sp.vals = {}; if (!sp.vals[fk]) sp.vals[fk] = {}; sp.vals[fk][1] = value; }
         if (typeof markPendingSync === 'function') markPendingSync();
         saveToFirebase();
-        // Refresh only the compliance indicators (lightweight re-render)
         renderHealthReportSummaryBadges();
         refreshHrProjectStatus(pName);
     }
@@ -24059,44 +24328,66 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ── Compliance logic ──
     function getHrComplianceStatus(p) {
-        let full = 0, partial = 0, none = 0, total = 0;
-        const allFields = [...HR_FIELDS.REPORTING, ...HR_FIELDS.MEDICAL_FACILITY, ...HR_FIELDS.EQUIPMENT];
-        allFields.forEach(f => {
+        let full = 0, none = 0, total = 0;
+
+        // Monthly reporting fields: count each month as a separate cell
+        HR_REPORTING_FIELDS.forEach(f => {
+            if (f.monthly) {
+                HR_MONTHS_SHORT.forEach((_, mi) => {
+                    total++;
+                    hrGetMonthly(p, f.key, mi) ? full++ : none++;
+                });
+            } else {
+                // Annual (AMR)
+                total++;
+                hrGet(p, f.key) ? full++ : none++;
+            }
+        });
+
+        // Flat fields
+        const allFlat = [...HR_FIELDS.MEDICAL_FACILITY, ...HR_FIELDS.EQUIPMENT];
+        allFlat.forEach(f => {
             const v = hrGet(p, f.key);
             total++;
             if (f.type === 'yesno') {
-                if (v === 'yes' || v === 'no') { full++; }
-                else none++;
+                (v === 'yes' || v === 'no') ? full++ : none++;
             } else if (f.type === 'date') {
                 if (v) {
-                    const d = new Date(v);
-                    const today = new Date();
-                    if (f.compliance === 'full') {
-                        // For validity dates, check if not expired
-                        if (f.key.includes('validity') || f.key.includes('moa') || f.key.includes('tsd')) {
-                            d >= today ? full++ : partial++;
-                        } else {
-                            full++;
-                        }
-                    } else { partial++; }
+                    if (f.key.includes('validity') || f.key.includes('moa') || f.key.includes('tsd')) {
+                        new Date(v) >= new Date() ? full++ : none++;
+                    } else { full++; }
                 } else { none++; }
             } else if (f.type === 'number') {
                 const n = parseFloat(v);
-                if (!isNaN(n) && n >= 0) { n > 0 ? full++ : partial++; }
-                else none++;
+                (!isNaN(n) && n > 0) ? full++ : none++;
             } else {
-                if (v && v.trim()) { partial++; }
-                else none++;
+                (v && v.trim()) ? full++ : none++;
             }
         });
+
         if (none === total) return 'none';
-        if (full === total || (none === 0 && partial >= 0)) return 'full';
+        if (full === total) return 'full';
         return 'partial';
     }
 
     function getHrSectionStatus(p, sectionFields) {
         let filled = 0, total = sectionFields.length;
         sectionFields.forEach(f => { if (hrGet(p, f.key)) filled++; });
+        if (filled === 0) return 'none';
+        if (filled === total) return 'full';
+        return 'partial';
+    }
+
+    function getHrReportingSectionStatus(p) {
+        let filled = 0, total = 0;
+        HR_REPORTING_FIELDS.forEach(f => {
+            if (f.monthly) {
+                HR_MONTHS_SHORT.forEach((_, mi) => { total++; if (hrGetMonthly(p, f.key, mi)) filled++; });
+            } else {
+                total++;
+                if (hrGet(p, f.key)) filled++;
+            }
+        });
         if (filled === 0) return 'none';
         if (filled === total) return 'full';
         return 'partial';
@@ -24132,13 +24423,124 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function refreshHrProjectStatus(pName) {
-        // Lightweight: just update the status badge inside the project card header
         const el = document.getElementById('hr-proj-status-' + CSS.escape(pName));
         if (!el) return;
         const p = (state.projects || []).find(x => x.name === pName);
         if (!p) return;
         el.innerHTML = statusBadgeHtml(getHrComplianceStatus(p));
         renderHealthReportSummaryBadges();
+    }
+
+    // ── Build REPORTING section: table with rows=fields, columns=Jan-Dec ──
+    function buildReportingTable(p, canEdit) {
+        const pName = p.name.replace(/'/g, "\\'");
+        const sectionId = 'hr-sec-' + p.name.replace(/[^a-z0-9]/gi,'_') + '_reporting';
+        const status = getHrReportingSectionStatus(p);
+
+        // Month header row
+        const monthHeaders = HR_MONTHS_SHORT.map((m, i) => {
+            const now = new Date();
+            const isCurrent = i === now.getMonth();
+            return `<th style="min-width:72px;padding:5px 4px;text-align:center;font-size:0.62rem;font-weight:700;
+                color:${isCurrent ? '#1b5e20' : 'var(--text-secondary)'};
+                background:${isCurrent ? '#e8f5e9' : 'var(--input-bg)'};
+                border:1px solid var(--border-color);white-space:nowrap;">
+                ${m}${isCurrent ? ' <span style="color:#2e7d32;">●</span>' : ''}
+            </th>`;
+        }).join('');
+
+        // One row per field
+        const fieldRows = HR_REPORTING_FIELDS.map(f => {
+            if (f.monthly) {
+                const cells = HR_MONTHS_SHORT.map((_, mi) => {
+                    const val = hrGetMonthly(p, f.key, mi);
+                    const hasVal = !!val;
+                    const dot = hasVal ? '#2e7d32' : '#ef5350';
+                    return `<td style="padding:4px 3px;text-align:center;border:1px solid var(--border-color);background:${hasVal ? '#f1f8f1' : 'var(--bg-card)'};">
+                        <input type="date" value="${val}"
+                            style="width:68px;padding:2px 3px;border:1px solid ${hasVal ? '#a5d6a7' : 'var(--border-color)'};
+                            border-radius:4px;font-size:0.62rem;background:var(--input-bg);color:var(--text-primary);
+                            ${!canEdit ? 'pointer-events:none;opacity:0.6;' : ''}"
+                            ${canEdit ? `onchange="hrSetMonthly('${pName}','${f.key}',${mi},this.value)"` : 'disabled'}
+                            title="${HR_MONTHS[mi]}">
+                    </td>`;
+                }).join('');
+                const filledCount = HR_MONTHS_SHORT.filter((_, mi) => hrGetMonthly(p, f.key, mi)).length;
+                const rowStatus = filledCount === 12 ? '✅' : filledCount > 0 ? `${filledCount}/12` : '—';
+                const rowStatusColor = filledCount === 12 ? '#2e7d32' : filledCount > 0 ? '#f57f17' : '#ef5350';
+                return `<tr>
+                    <td style="padding:6px 10px;font-size:0.72rem;font-weight:600;color:var(--text-primary);
+                        border:1px solid var(--border-color);min-width:220px;position:sticky;left:0;z-index:2;
+                        background:var(--bg-card);white-space:nowrap;">
+                        ${f.label}
+                        <div style="font-size:0.6rem;color:var(--text-secondary);font-weight:400;margin-top:1px;">Monthly</div>
+                    </td>
+                    ${cells}
+                    <td style="padding:4px 8px;text-align:center;border:1px solid var(--border-color);
+                        font-size:0.68rem;font-weight:700;color:${rowStatusColor};white-space:nowrap;min-width:44px;">
+                        ${rowStatus}
+                    </td>
+                </tr>`;
+            } else {
+                // Annual (AMR) — single date input spanning all months
+                const val = hrGet(p, f.key);
+                const hasVal = !!val;
+                return `<tr>
+                    <td style="padding:6px 10px;font-size:0.72rem;font-weight:600;color:var(--text-primary);
+                        border:1px solid var(--border-color);min-width:220px;position:sticky;left:0;z-index:2;
+                        background:var(--bg-card);white-space:nowrap;">
+                        ${f.label}
+                        <div style="font-size:0.6rem;color:#e65100;font-weight:400;margin-top:1px;">${f.note || 'Annual'}</div>
+                    </td>
+                    <td colspan="12" style="padding:6px 10px;border:1px solid var(--border-color);background:${hasVal ? '#f1f8f1' : 'var(--bg-card)'};">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <input type="date" value="${val}"
+                                style="padding:4px 8px;border:1px solid ${hasVal ? '#a5d6a7' : 'var(--border-color)'};
+                                border-radius:5px;font-size:0.75rem;background:var(--input-bg);color:var(--text-primary);
+                                ${!canEdit ? 'pointer-events:none;opacity:0.6;' : ''}"
+                                ${canEdit ? `onchange="hrSet('${pName}','${f.key}',this.value)"` : 'disabled'}>
+                            ${hasVal ? `<span style="font-size:0.65rem;color:#2e7d32;font-weight:700;">✅ Submitted</span>` : `<span style="font-size:0.65rem;color:#ef5350;">Not yet submitted</span>`}
+                        </div>
+                    </td>
+                    <td style="padding:4px 8px;text-align:center;border:1px solid var(--border-color);
+                        font-size:0.68rem;font-weight:700;color:${hasVal ? '#2e7d32' : '#ef5350'};">
+                        ${hasVal ? '✅' : '—'}
+                    </td>
+                </tr>`;
+            }
+        }).join('');
+
+        return `
+        <div style="border:1px solid var(--border-color);border-radius:8px;overflow:hidden;margin-bottom:8px;">
+            <div onclick="hrToggleSection('${sectionId}')"
+                style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--input-bg);cursor:pointer;user-select:none;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-file-medical-alt" style="color:#2e7d32;font-size:0.85rem;"></i>
+                    <span style="font-size:0.78rem;font-weight:700;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.4px;">1. Reporting</span>
+                    ${statusBadgeHtml(status)}
+                    <span style="font-size:0.62rem;color:var(--text-secondary);font-style:italic;">— Jan to Dec per report type</span>
+                </div>
+                <i class="fas fa-chevron-up" id="${sectionId}-chev" style="color:var(--text-secondary);font-size:0.7rem;transition:transform 0.2s;"></i>
+            </div>
+            <div id="${sectionId}" style="display:block;overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.7rem;min-width:900px;">
+                    <thead>
+                        <tr>
+                            <th style="padding:6px 10px;text-align:left;font-size:0.65rem;font-weight:700;color:var(--text-secondary);
+                                border:1px solid var(--border-color);background:var(--input-bg);position:sticky;left:0;z-index:3;min-width:220px;">
+                                REPORT TYPE
+                            </th>
+                            ${monthHeaders}
+                            <th style="padding:6px 4px;text-align:center;font-size:0.62rem;font-weight:700;color:var(--text-secondary);
+                                border:1px solid var(--border-color);background:var(--input-bg);white-space:nowrap;min-width:44px;">
+                                STATUS
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>${fieldRows}</tbody>
+                </table>
+            </div>
+        </div>`;
     }
 
     function buildFieldRow(p, f, canEdit) {
@@ -24181,7 +24583,6 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>`;
         }
 
-        // Determine status
         let status = 'none';
         if (f.type === 'yesno') {
             status = (val === 'yes' || val === 'no') ? 'full' : 'none';
@@ -24199,14 +24600,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const dot = { full:'#2e7d32', partial:'#fbc02d', none:'#ef5350' }[status];
         const noteHtml = f.note ? `<span style="font-size:0.6rem;color:var(--text-secondary);margin-left:6px;font-style:italic;">${f.note}</span>` : '';
 
-        // Conditional visibility: dental_name/dental_moa only if dental_coverage = no
         let rowStyle = '';
-        if ((f.key === 'dental_name' || f.key === 'dental_moa') && hrGet(p, 'dental_coverage') !== 'no') {
-            rowStyle = 'display:none;';
-        }
-        if ((f.key === 'biohaz_tempstore' || f.key === 'biohaz_clinic' || f.key === 'tsd_name' || f.key === 'tsd_validity') && hrGet(p, 'biohaz_hauled') === 'yes') {
-            rowStyle = 'display:none;';
-        }
+        if ((f.key === 'dental_name' || f.key === 'dental_moa') && hrGet(p, 'dental_coverage') !== 'no') rowStyle = 'display:none;';
+        if ((f.key === 'biohaz_tempstore' || f.key === 'biohaz_clinic' || f.key === 'tsd_name' || f.key === 'tsd_validity') && hrGet(p, 'biohaz_hauled') === 'yes') rowStyle = 'display:none;';
 
         return `<div class="hr-field-row" data-proj="${p.name.replace(/"/g,'&quot;')}" data-field="${f.key}"
             style="${rowStyle || 'display:flex;'}align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;border-bottom:1px solid var(--border-color);flex-wrap:wrap;">
@@ -24247,13 +24643,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const statusHtml = statusBadgeHtml(status);
         const cardId = 'hr-proj-' + p.name.replace(/[^a-z0-9]/gi, '_');
 
-        const reportingHtml     = buildSectionHtml(p, 'reporting',    '1. Reporting',       'fa-file-medical-alt', HR_FIELDS.REPORTING,         canEdit, true);
-        const medFacilityHtml   = buildSectionHtml(p, 'medical_fac',  '2. Medical Facility', 'fa-hospital',         HR_FIELDS.MEDICAL_FACILITY, canEdit, false);
-        const equipmentHtml     = buildSectionHtml(p, 'equipment',    '3. Equipment',        'fa-stethoscope',       HR_FIELDS.EQUIPMENT,        canEdit, false);
+        const reportingHtml   = buildReportingTable(p, canEdit);
+        const medFacilityHtml = buildSectionHtml(p, 'medical_fac', '2. Medical Facility', 'fa-hospital',    HR_FIELDS.MEDICAL_FACILITY, canEdit, false);
+        const equipmentHtml   = buildSectionHtml(p, 'equipment',   '3. Equipment',        'fa-stethoscope', HR_FIELDS.EQUIPMENT,        canEdit, false);
 
         return `
         <div id="${cardId}" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;overflow:hidden;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-            <!-- Project Card Header -->
             <div style="background:${regionColors.bg};padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
                 <div style="display:flex;align-items:center;gap:8px;">
                     <i class="fas fa-building" style="color:${regionColors.badge};font-size:0.85rem;"></i>
@@ -24263,7 +24658,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${statusHtml}
                 </div>
             </div>
-            <!-- Sections -->
             <div style="padding:12px;">
                 ${reportingHtml}
                 ${medFacilityHtml}
@@ -24291,20 +24685,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById('health-report-regions-container');
         if (!container) return;
 
-        const projects = (state && state.projects) ? state.projects : [];
+        const projects  = (state && state.projects) ? state.projects : [];
         const userEmail = state && state.currentUser ? state.currentUser.email : '';
-
         let html = '';
 
         HR_REGIONS.forEach(region => {
             const regionProjects = projects.filter(p => p.region === region);
             if (!regionProjects.length) return;
 
-            const rc = HR_REGION_COLORS[region] || HR_REGION_COLORS['NCR'];
+            const rc        = HR_REGION_COLORS[region] || HR_REGION_COLORS['NCR'];
             const collapsed = _hrCollapsed[region];
-            const regionId = 'hr-region-' + region.replace(/[^a-z0-9]/gi, '_');
+            const regionId  = 'hr-region-' + region.replace(/[^a-z0-9]/gi, '_');
 
-            // Region summary counts
             let rFull = 0, rPartial = 0, rNone = 0;
             regionProjects.forEach(p => {
                 const s = getHrComplianceStatus(p);
@@ -24315,7 +24707,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             html += `
             <div style="background:var(--bg-card);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid var(--border-color);margin-bottom:16px;">
-                <!-- Region Header -->
                 <div onclick="hrToggleRegion('${region}')" style="background:${rc.bg};padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
                     <div style="display:flex;align-items:center;gap:10px;">
                         <i class="fas fa-map-marker-alt" style="color:${rc.badge};"></i>
@@ -24329,7 +24720,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <i class="fas fa-chevron-${collapsed?'down':'up'}" style="color:rgba(255,255,255,0.7);font-size:0.75rem;margin-left:6px;"></i>
                     </div>
                 </div>
-                <!-- Region Content -->
                 <div id="${regionId}" style="${collapsed?'display:none;':''}padding:14px;">`;
 
             regionProjects.forEach(p => {
@@ -24432,77 +24822,89 @@ document.addEventListener('DOMContentLoaded', function() {
     window.envSwitchMode = window.envSwitchMode; // expose
 
     // ==================== APPLIANCES MONITORING ====================
-    let appliancesData = {};  // { [region+':'+projName]: { fieldId: value, ... } }
+    // appliancesData keyed by: region+':'+projName+':'+month+':'+building
+    // e.g. "NCR:ProjectA:January:Main Building" -> { refrigerator: 2, tv: 1, ... }
+    let appliancesData = {};
     let appliancesCollapsed = {};
+
+    const APPL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
     const APPL_FIELDS = [
         // Section A — Common appliances
-        { id:'refrigerator',   label:'Refrigerator',         section:'A', color:'#1b5e20' },
-        { id:'freezer',        label:'Freezer',              section:'A', color:'#1b5e20' },
-        { id:'tv',             label:'TV',                   section:'A', color:'#1b5e20' },
-        { id:'kettle',         label:'Electric Kettle',      section:'A', color:'#1b5e20' },
-        { id:'iron',           label:'Electric Iron',        section:'A', color:'#1b5e20' },
-        { id:'microwave',      label:'Microwave Oven',       section:'A', color:'#1b5e20' },
-        { id:'stove',          label:'Cooking Stove',        section:'A', color:'#1b5e20' },
-        { id:'fan',            label:'Electric Fan',         section:'A', color:'#1b5e20' },
-        { id:'polisher',       label:'Floor Polisher',       section:'A', color:'#1b5e20' },
-        { id:'dispenser',      label:'Water Dispenser',      section:'A', color:'#1b5e20' },
-        { id:'washer',         label:'Washing Machine',      section:'A', color:'#1b5e20' },
-        { id:'coffee',         label:'Coffee Maker',         section:'A', color:'#1b5e20' },
+        { id:'refrigerator',   label:'Refrigerator',              section:'A', color:'#1b5e20' },
+        { id:'freezer',        label:'Freezer',                   section:'A', color:'#1b5e20' },
+        { id:'tv',             label:'TV',                        section:'A', color:'#1b5e20' },
+        { id:'kettle',         label:'Electric Kettle',           section:'A', color:'#1b5e20' },
+        { id:'iron',           label:'Electric Iron',             section:'A', color:'#1b5e20' },
+        { id:'microwave',      label:'Microwave Oven',            section:'A', color:'#1b5e20' },
+        { id:'stove',          label:'Cooking Stove',             section:'A', color:'#1b5e20' },
+        { id:'fan',            label:'Electric Fan',              section:'A', color:'#1b5e20' },
+        { id:'polisher',       label:'Floor Polisher',            section:'A', color:'#1b5e20' },
+        { id:'dispenser',      label:'Water Dispenser',           section:'A', color:'#1b5e20' },
+        { id:'washer',         label:'Washing Machine',           section:'A', color:'#1b5e20' },
+        { id:'coffee',         label:'Coffee Maker',              section:'A', color:'#1b5e20' },
         // Aircon
-        { id:'ac_window_qty',  label:'AC Window – Qty',      section:'A1', color:'#2e7d32' },
-        { id:'ac_window_w',    label:'AC Window – W',        section:'A1', color:'#2e7d32' },
-        { id:'ac_ceil_qty',    label:'AC Ceiling – Qty',     section:'A1', color:'#2e7d32' },
-        { id:'ac_ceil_w',      label:'AC Ceiling – W',       section:'A1', color:'#2e7d32' },
-        { id:'ac_cass_qty',    label:'AC Cassette – Qty',    section:'A1', color:'#2e7d32' },
-        { id:'ac_cass_w',      label:'AC Cassette – W',      section:'A1', color:'#2e7d32' },
-        { id:'ac_wall_qty',    label:'AC Wall – Qty',        section:'A1', color:'#2e7d32' },
-        { id:'ac_wall_w',      label:'AC Wall – W',          section:'A1', color:'#2e7d32' },
+        { id:'ac_window_qty',  label:'AC Window – Qty',           section:'A1', color:'#2e7d32' },
+        { id:'ac_window_w',    label:'AC Window – W',             section:'A1', color:'#2e7d32' },
+        { id:'ac_ceil_qty',    label:'AC Ceiling – Qty',          section:'A1', color:'#2e7d32' },
+        { id:'ac_ceil_w',      label:'AC Ceiling – W',            section:'A1', color:'#2e7d32' },
+        { id:'ac_cass_qty',    label:'AC Cassette – Qty',         section:'A1', color:'#2e7d32' },
+        { id:'ac_cass_w',      label:'AC Cassette – W',           section:'A1', color:'#2e7d32' },
+        { id:'ac_wall_qty',    label:'AC Wall – Qty',             section:'A1', color:'#2e7d32' },
+        { id:'ac_wall_w',      label:'AC Wall – W',               section:'A1', color:'#2e7d32' },
         // Section B — Other electrical
-        { id:'computer',       label:'Computer/Laptop',      section:'B', color:'#388e3c' },
-        { id:'datacenter',     label:'Data Center',          section:'B', color:'#388e3c' },
-        { id:'ups',            label:'UPS',                  section:'B', color:'#388e3c' },
-        { id:'tablet',         label:'Tablet/Phone',         section:'B', color:'#388e3c' },
-        { id:'telephone',      label:'Telephone Lines',      section:'B', color:'#388e3c' },
-        { id:'video',          label:'Video/Telecon Equip',  section:'B', color:'#388e3c' },
-        { id:'cctv',           label:'CCTV',                 section:'B', color:'#388e3c' },
-        { id:'projector',      label:'Projector',            section:'B', color:'#388e3c' },
-        { id:'printer',        label:'Printer/Copier',       section:'B', color:'#388e3c' },
-        { id:'biometrics',     label:'Biometrics',           section:'B', color:'#388e3c' },
-        { id:'wifi',           label:'WiFi Router/Ext.',     section:'B', color:'#388e3c' },
-        { id:'elevator',       label:'Elevator/Escalator',   section:'B', color:'#388e3c' },
+        { id:'computer',       label:'Computer/Laptop',           section:'B', color:'#388e3c' },
+        { id:'datacenter',     label:'Data Center',               section:'B', color:'#388e3c' },
+        { id:'ups',            label:'UPS',                       section:'B', color:'#388e3c' },
+        { id:'tablet',         label:'Tablet/Phone',              section:'B', color:'#388e3c' },
+        { id:'telephone',      label:'Telephone Lines',           section:'B', color:'#388e3c' },
+        { id:'video',          label:'Video/Telecon Equip',       section:'B', color:'#388e3c' },
+        { id:'cctv',           label:'CCTV',                      section:'B', color:'#388e3c' },
+        { id:'projector',      label:'Projector',                 section:'B', color:'#388e3c' },
+        { id:'printer',        label:'Printer/Copier',            section:'B', color:'#388e3c' },
+        { id:'biometrics',     label:'Biometrics',                section:'B', color:'#388e3c' },
+        { id:'wifi',           label:'WiFi Router/Ext.',          section:'B', color:'#388e3c' },
+        { id:'elevator',       label:'Elevator/Escalator',        section:'B', color:'#388e3c' },
         // Section C — Lighting
-        { id:'led_lt10',       label:'LED <10W',             section:'C', color:'#43a047' },
-        { id:'led_ge10',       label:'LED ≥10W',             section:'C', color:'#43a047' },
-        { id:'lfl_lt20',       label:'Linear FL <20W',       section:'C', color:'#43a047' },
-        { id:'lfl_20_50',      label:'Linear FL 20-50W',     section:'C', color:'#43a047' },
-        { id:'lfl_gt50',       label:'Linear FL >50W',       section:'C', color:'#43a047' },
-        { id:'inc_lt20',       label:'Incandescent <20W',    section:'C', color:'#43a047' },
-        { id:'inc_20_50',      label:'Incandescent 20-50W',  section:'C', color:'#43a047' },
-        { id:'inc_gt50',       label:'Incandescent >50W',    section:'C', color:'#43a047' },
-        { id:'cfl_lt22',       label:'Circular FL <22W',     section:'C', color:'#43a047' },
-        { id:'cfl_22_32',      label:'Circular FL 22-32W',   section:'C', color:'#43a047' },
-        { id:'cfl_gt32',       label:'Circular FL >32W',     section:'C', color:'#43a047' },
-        { id:'cfl2_lt20',      label:'CFL <20W',             section:'C', color:'#43a047' },
-        { id:'cfl2_20_50',     label:'CFL 20-50W',           section:'C', color:'#43a047' },
-        { id:'cfl2_gt50',      label:'CFL >50W',             section:'C', color:'#43a047' },
-        { id:'solar_5',        label:'Solar 5.5W',           section:'C', color:'#43a047' },
-        { id:'solar_100',      label:'Solar 100W',           section:'C', color:'#43a047' },
-        { id:'solar_150',      label:'Solar 150W',           section:'C', color:'#43a047' },
-        { id:'solar_200',      label:'Solar 200W',           section:'C', color:'#43a047' },
-        { id:'solar_300',      label:'Solar 300W',           section:'C', color:'#43a047' },
-        { id:'solar_500',      label:'Solar 500W',           section:'C', color:'#43a047' },
+        { id:'led_lt10',       label:'LED <10W',                  section:'C', color:'#43a047' },
+        { id:'led_ge10',       label:'LED ≥10W',                  section:'C', color:'#43a047' },
+        { id:'lfl_lt20',       label:'Linear FL <20W',            section:'C', color:'#43a047' },
+        { id:'lfl_20_50',      label:'Linear FL 20-50W',          section:'C', color:'#43a047' },
+        { id:'lfl_gt50',       label:'Linear FL >50W',            section:'C', color:'#43a047' },
+        { id:'inc_lt20',       label:'Incandescent <20W',         section:'C', color:'#43a047' },
+        { id:'inc_20_50',      label:'Incandescent 20-50W',       section:'C', color:'#43a047' },
+        { id:'inc_gt50',       label:'Incandescent >50W',         section:'C', color:'#43a047' },
+        { id:'cfl_lt22',       label:'Circular FL <22W',          section:'C', color:'#43a047' },
+        { id:'cfl_22_32',      label:'Circular FL 22-32W',        section:'C', color:'#43a047' },
+        { id:'cfl_gt32',       label:'Circular FL >32W',          section:'C', color:'#43a047' },
+        { id:'cfl2_lt20',      label:'CFL <20W',                  section:'C', color:'#43a047' },
+        { id:'cfl2_20_50',     label:'CFL 20-50W',                section:'C', color:'#43a047' },
+        { id:'cfl2_gt50',      label:'CFL >50W',                  section:'C', color:'#43a047' },
+        { id:'solar_5',        label:'Solar 5.5W',                section:'C', color:'#43a047' },
+        { id:'solar_100',      label:'Solar 100W',                section:'C', color:'#43a047' },
+        { id:'solar_150',      label:'Solar 150W',                section:'C', color:'#43a047' },
+        { id:'solar_200',      label:'Solar 200W',                section:'C', color:'#43a047' },
+        { id:'solar_300',      label:'Solar 300W',                section:'C', color:'#43a047' },
+        { id:'solar_500',      label:'Solar 500W',                section:'C', color:'#43a047' },
     ];
 
     const APPL_SECTION_META = {
         'A':  { label:'A — Electrical Equipment (Qty in Units)', icon:'fa-bolt',      bg:'#1b5e20' },
         'A1': { label:'A1 — Aircon Units (Qty + Watts)',         icon:'fa-snowflake',  bg:'#2e7d32' },
-        'B':  { label:'B — Other Electrical Equipment (Units)',   icon:'fa-desktop',    bg:'#388e3c' },
+        'B':  { label:'B — Other Electrical Equipment (Units)',  icon:'fa-desktop',    bg:'#388e3c' },
         'C':  { label:'C — Lighting Fixtures (No. of Pieces)',   icon:'fa-lightbulb',  bg:'#43a047' },
     };
 
-    function appliancesKey(region, projName) {
-        return (region + ':' + projName).replace(/[^a-z0-9:]/gi,'_');
+    // Key: region:projName:month:building (all normalized)
+    function appliancesKey(region, projName, month, building) {
+        const m = month || 'January';
+        const b = (building || 'Main Building').trim() || 'Main Building';
+        return (region + ':' + projName + ':' + m + ':' + b).replace(/[^a-z0-9:]/gi,'_');
+    }
+
+    // Firestore doc ID: safe version of the key
+    function appliancesDocId(region, projName, month, building) {
+        return appliancesKey(region, projName, month, building).replace(/:/g,'__');
     }
 
     function appliancesToggleRegion(regionRaw) {
@@ -24524,7 +24926,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const meta   = APPL_SECTION_META[section];
         const isAC   = section === 'A1';
 
-        // Group A1 into pairs (qty + watts) for display
         let fieldsHtml = '';
         if (isAC) {
             const pairs = [
@@ -24533,10 +24934,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 ['ac_cass_qty','ac_cass_w','Cassette Type'],
                 ['ac_wall_qty','ac_wall_w','Wall Mounted'],
             ];
-            fields; // suppress unused
-            let hdr = pairs.map(p=>`<th colspan="2" style="background:#1b5e2022;color:#1b5e20;padding:5px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.63rem;font-weight:700;">${p[2]}</th>`).join('');
+            let hdr    = pairs.map(p=>`<th colspan="2" style="background:#1b5e2022;color:#1b5e20;padding:5px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.63rem;font-weight:700;">${p[2]}</th>`).join('');
             let subhdr = pairs.map(()=>`<th style="background:#e8f5e9;color:#1b5e20;padding:4px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.62rem;font-weight:600;white-space:nowrap;">Qty</th><th style="background:#e8f5e9;color:#1b5e20;padding:4px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.62rem;font-weight:600;white-space:nowrap;">Watts</th>`).join('');
-            let cells = pairs.map(p=>`
+            let cells  = pairs.map(p=>`
                 <td style="padding:5px 7px;text-align:center;border:1px solid #e8f5e9;">${canEdit
                     ? `<input type="number" min="0" data-appl-key="${key}" data-appl-field="${p[0]}" onchange="appliancesSetField('${key}','${p[0]}',this.value)" value="${data[p[0]]||''}" placeholder="0" style="width:50px;padding:3px 4px;border:1px solid #a5d6a7;border-radius:4px;text-align:center;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);">`
                     : (data[p[0]] || '—')}</td>
@@ -24572,14 +24972,21 @@ document.addEventListener('DOMContentLoaded', function() {
         appliancesData[key][fieldId] = parseFloat(val) || 0;
     };
 
-    window.appliancesSave = function(key, projName, regionRaw) {
-        const db2   = window.firebaseDb;
-        const auth2 = window.firebaseAuth;
-        if (!db2 || !auth2?.currentUser) { showToast('Not authenticated.', 'error'); return; }
-        const safeKey = key.replace(/[^a-z0-9_]/gi,'_');
-        const docRef  = window.firebase.doc(db2, 'users', auth2.currentUser.uid, 'appliancesData2025', safeKey);
-        window.firebase.setDoc(docRef, { key, region: regionRaw, project: projName, data: appliancesData[key] || {}, updatedAt: new Date().toISOString() })
-            .then(() => { showToast('✅ Saved: ' + projName, 'success'); })
+    // Save to shared admin UID path (same as electricity/water/waste)
+    window.appliancesSave = function(key, projName, regionRaw, month, building) {
+        const db2 = window.firebaseDb;
+        if (!db2 || !window.firebaseAuth?.currentUser) { showToast('Not authenticated.', 'error'); return; }
+        const ADMIN_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
+        const docId  = appliancesDocId(regionRaw, projName, month, building);
+        const docRef = window.firebase.doc(db2, 'users', ADMIN_UID, 'appliancesData', docId);
+        window.firebase.setDoc(docRef, {
+            key, region: regionRaw, project: projName,
+            month: month || 'January',
+            building: building || 'Main Building',
+            data: appliancesData[key] || {},
+            updatedAt: new Date().toISOString()
+        }, { merge: true })
+            .then(() => showToast('Saved: ' + projName + ' / ' + (month||'January') + ' / ' + (building||'Main Building'), 'success'))
             .catch(e => showToast('Save failed: ' + e.message, 'error'));
     };
 
@@ -24612,11 +25019,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 projHtml = `<div style="padding:20px;text-align:center;color:var(--text-secondary);font-size:0.75rem;font-style:italic;">
                     <i class="fas fa-folder-open" style="opacity:0.25;font-size:1.5rem;display:block;margin-bottom:6px;"></i>No projects in this region yet.</div>`;
             } else {
-                projs.forEach(proj => {
-                    const key  = appliancesKey(region, proj.name);
-                    const pn   = proj.name.replace(/'/g,"\\'");
-                    const reg  = region.replace(/'/g,"\\'");
-                    const hasSomeData = appliancesData[key] && Object.values(appliancesData[key]).some(v => v > 0);
+                projs.forEach((proj, pi) => {
+                    const pn  = proj.name.replace(/'/g,"\\'");
+                    const reg = region.replace(/'/g,"\\'");
+                    // Unique IDs for month and building inputs per project
+                    const monthInputId    = 'appl-month-'    + rk + '-' + pi;
+                    const buildingInputId = 'appl-building-' + rk + '-' + pi;
+
+                    // Find all existing entries for this project to show summary
+                    const existingEntries = Object.keys(appliancesData).filter(k => k.startsWith(
+                        (region + ':' + proj.name).replace(/[^a-z0-9:]/gi,'_')
+                    ));
+                    const hasSomeData = existingEntries.some(k => Object.values(appliancesData[k]).some(v => v > 0));
+
+                    // Build a preview key using defaults so sections render immediately
+                    const previewKey = appliancesKey(region, proj.name, 'January', 'Main Building');
+
                     projHtml += `
                     <div style="margin:12px 14px;border-radius:8px;overflow:hidden;border:1px solid ${rc.bg}44;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
                         <!-- Project header -->
@@ -24624,18 +25042,42 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="fas fa-hard-hat" style="color:${rc.bg};font-size:0.75rem;"></i>
                             <span style="font-weight:700;font-size:0.76rem;color:${rc.bg};">${proj.name}</span>
                             ${hasSomeData ? `<span style="background:#e8f5e9;color:#2e7d32;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;"><i class="fas fa-check" style="margin-right:3px;"></i>Data entered</span>` : ''}
-                            ${canEditRg ? `<button onclick="appliancesSave('${key}','${pn}','${reg}')" style="margin-left:auto;padding:4px 12px;background:${rc.bg};color:white;border:none;border-radius:5px;font-size:0.68rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;" onmouseover="this.style.opacity=0.82" onmouseout="this.style.opacity=1">
+                        </div>
+
+                        <!-- Month + Building selectors -->
+                        <div style="padding:8px 14px;background:var(--input-bg);border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <i class="fas fa-calendar-alt" style="color:${rc.bg};font-size:0.75rem;"></i>
+                                <label style="font-size:0.7rem;font-weight:700;color:var(--text-secondary);">MONTH:</label>
+                                <select id="${monthInputId}"
+                                    style="padding:4px 8px;border:1px solid var(--border-color);border-radius:5px;font-size:0.72rem;background:var(--input-bg);color:var(--text-primary);cursor:pointer;"
+                                    onchange="appliancesRefreshSections('${pn}','${reg}','${monthInputId}','${buildingInputId}',${pi},'${rk}')">
+                                    ${APPL_MONTHS.map(m => `<option value="${m}">${m}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <i class="fas fa-building" style="color:${rc.bg};font-size:0.75rem;"></i>
+                                <label style="font-size:0.7rem;font-weight:700;color:var(--text-secondary);">BUILDING / LOCATION:</label>
+                                <input type="text" id="${buildingInputId}" value="Main Building"
+                                    placeholder="e.g. Main Building, Annex, Site Office..."
+                                    style="padding:4px 10px;border:1px solid var(--border-color);border-radius:5px;font-size:0.72rem;background:var(--input-bg);color:var(--text-primary);min-width:180px;"
+                                    oninput="appliancesRefreshSections('${pn}','${reg}','${monthInputId}','${buildingInputId}',${pi},'${rk}')">
+                            </div>
+                            ${canEditRg ? `
+                            <button onclick="appliancesSaveFromInputs('${pn}','${reg}','${monthInputId}','${buildingInputId}')"
+                                style="margin-left:auto;padding:5px 14px;background:${rc.bg};color:white;border:none;border-radius:5px;font-size:0.68rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;"
+                                onmouseover="this.style.opacity=0.82" onmouseout="this.style.opacity=1">
                                 <i class="fas fa-save"></i> Save
                             </button>` : ''}
                         </div>
-                        <!-- Section A -->
-                        ${applSectionRows('A',  key, canEditRg)}
-                        <!-- Section A1 (Aircon) -->
-                        ${applSectionRows('A1', key, canEditRg)}
-                        <!-- Section B -->
-                        ${applSectionRows('B',  key, canEditRg)}
-                        <!-- Section C -->
-                        ${applSectionRows('C',  key, canEditRg)}
+
+                        <!-- Appliance sections — dynamically keyed by month+building -->
+                        <div id="appl-sections-${rk}-${pi}">
+                            ${applSectionRows('A',  previewKey, canEditRg)}
+                            ${applSectionRows('A1', previewKey, canEditRg)}
+                            ${applSectionRows('B',  previewKey, canEditRg)}
+                            ${applSectionRows('C',  previewKey, canEditRg)}
+                        </div>
                     </div>`;
                 });
             }
@@ -24657,30 +25099,54 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         container.innerHTML = html;
-
-        // Load saved data from Firestore for each project
         appliancesLoadAll(allProjects);
     }
 
+    // Called when month or building changes — re-renders sections with new key
+    window.appliancesRefreshSections = function(projName, region, monthInputId, buildingInputId, pi, rk) {
+        const month    = document.getElementById(monthInputId)?.value    || 'January';
+        const building = document.getElementById(buildingInputId)?.value || 'Main Building';
+        const key      = appliancesKey(region, projName, month, building);
+        const userEmail = state?.currentUser?.email;
+        const canEditRg = UserAccounts.canEditTab(userEmail,'env-monitoring') && UserAccounts.canEdit(userEmail, region);
+        const container = document.getElementById('appl-sections-' + rk + '-' + pi);
+        if (!container) return;
+        container.innerHTML =
+            applSectionRows('A',  key, canEditRg) +
+            applSectionRows('A1', key, canEditRg) +
+            applSectionRows('B',  key, canEditRg) +
+            applSectionRows('C',  key, canEditRg);
+    };
+
+    window.appliancesSaveFromInputs = function(projName, region, monthInputId, buildingInputId) {
+        const month    = document.getElementById(monthInputId)?.value    || 'January';
+        const building = document.getElementById(buildingInputId)?.value || 'Main Building';
+        const key      = appliancesKey(region, projName, month, building);
+        window.appliancesSave(key, projName, region, month, building);
+    };
+
     function appliancesLoadAll(allProjects) {
-        const db2   = window.firebaseDb;
-        const auth2 = window.firebaseAuth;
-        if (!db2 || !auth2?.currentUser) return;
+        const db2 = window.firebaseDb;
+        if (!db2 || !window.firebaseAuth?.currentUser) return;
+        const ADMIN_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
 
         allProjects.forEach(proj => {
-            const key     = appliancesKey(proj.region, proj.name);
-            const safeKey = key.replace(/[^a-z0-9_]/gi,'_');
-            const docRef  = window.firebase.doc(db2, 'users', auth2.currentUser.uid, 'appliancesData2025', safeKey);
-            window.firebase.getDoc(docRef).then(snap => {
-                if (!snap.exists()) return;
-                const saved = snap.data().data || {};
-                appliancesData[key] = saved;
-                // update inputs currently in DOM
-                Object.entries(saved).forEach(([fieldId, val]) => {
-                    const input = document.querySelector(`input[data-appl-key="${key}"][data-appl-field="${fieldId}"]`);
-                    if (input) input.value = val || '';
-                });
-            }).catch(() => {});
+            // Load all entries for this project across all months/buildings
+            APPL_MONTHS.forEach(month => {
+                const key    = appliancesKey(proj.region, proj.name, month, 'Main Building');
+                const docId  = appliancesDocId(proj.region, proj.name, month, 'Main Building');
+                const docRef = window.firebase.doc(db2, 'users', ADMIN_UID, 'appliancesData', docId);
+                window.firebase.getDoc(docRef).then(snap => {
+                    if (!snap.exists()) return;
+                    const saved = snap.data().data || {};
+                    appliancesData[key] = saved;
+                    // Update visible inputs if they match current selection
+                    Object.entries(saved).forEach(([fieldId, val]) => {
+                        const input = document.querySelector(`input[data-appl-key="${key}"][data-appl-field="${fieldId}"]`);
+                        if (input) input.value = val || '';
+                    });
+                }).catch(() => {});
+            });
         });
     }
 
