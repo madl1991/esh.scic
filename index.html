@@ -8436,7 +8436,16 @@ function applyNumFmtToInputs() {
                 try {
                     localStorage.setItem('esh_audit_log', JSON.stringify(state.auditLog));
                 } catch (e) {
-                    console.error('Failed to save audit log to localStorage:', e);
+                    if (e && e.name === 'QuotaExceededError') {
+                        // Trim audit log to last 50 entries and retry
+                        try {
+                            if (state.auditLog && state.auditLog.length > 50) state.auditLog = state.auditLog.slice(-50);
+                            localStorage.setItem('esh_audit_log', JSON.stringify(state.auditLog));
+                        } catch(e2) {
+                            try { localStorage.removeItem('esh_audit_log'); } catch(e3){}
+                            console.warn('⚠️ Audit log cleared from localStorage (quota). Firebase has full log.');
+                        }
+                    }
                 }
             },
             
@@ -8715,7 +8724,16 @@ function applyNumFmtToInputs() {
                 try {
                     localStorage.setItem('esh_login_logbook', JSON.stringify(state.loginLogbook));
                 } catch (e) {
-                    console.error('Failed to save logbook to localStorage:', e);
+                    if (e && e.name === 'QuotaExceededError') {
+                        // Trim logbook to last 30 entries and retry
+                        try {
+                            if (state.loginLogbook && state.loginLogbook.length > 30) state.loginLogbook = state.loginLogbook.slice(-30);
+                            localStorage.setItem('esh_login_logbook', JSON.stringify(state.loginLogbook));
+                        } catch(e2) {
+                            try { localStorage.removeItem('esh_login_logbook'); } catch(e3){}
+                            console.warn('⚠️ Login logbook cleared from localStorage (quota). Firebase has full log.');
+                        }
+                    }
                 }
             },
             
@@ -11290,7 +11308,30 @@ function openAdminQuickView() {
                 lastSaved: new Date().toISOString(),
                 timestamp: Date.now()
             };
-            localStorage.setItem(storageKey, JSON.stringify(data));
+            try {
+                localStorage.setItem(storageKey, JSON.stringify(data));
+            } catch(e) {
+                if (e && e.name === 'QuotaExceededError') {
+                    console.warn('⚠️ localStorage quota exceeded for saveUserData — freeing old year caches...');
+                    try {
+                        // Free old year data to make room
+                        const yr = state.selectedYear || 2026;
+                        for (let _i = localStorage.length - 1; _i >= 0; _i--) {
+                            const _k = localStorage.key(_i);
+                            if (_k && _k.startsWith('esh_dashboard_') && !_k.includes('_' + yr + '_')) {
+                                try { localStorage.removeItem(_k); } catch(e3){}
+                            }
+                        }
+                        // Also clear logs
+                        try { localStorage.removeItem('esh_login_logbook'); } catch(e3){}
+                        try { localStorage.removeItem('esh_audit_log'); } catch(e3){}
+                        localStorage.setItem(storageKey, JSON.stringify(data));
+                        console.log('✅ saveUserData succeeded after clearing old year caches');
+                    } catch(e2) {
+                        console.warn('⚠️ saveUserData: localStorage still full — data saved to Firebase only, local cache skipped.');
+                    }
+                }
+            }
         }
 
         function sortProjects(sortBy) {
@@ -12410,6 +12451,7 @@ function updateAuditData(pName, qtr, field, val) {
             }
             // Mark that there are unsaved changes pending cloud sync
             if (typeof markPendingSync === 'function') markPendingSync();
+            if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
             // Live-update the Incident Tabulation panel when relevant data changes
             if (state.currentTab === 'rates') {
                 const panel = document.getElementById('incident-tabulation-panel');
@@ -13967,21 +14009,26 @@ function closeAllStatusDropdowns() {
          * Days are attributed to the month of the accident date.
          */
         function syncDaysLostFromLtaRegistry() {
+            // Only affect the currently selected year — previous years are locked/submitted to DOLE
+            const selectedYear = (state && state.selectedYear) ? parseInt(state.selectedYear) : new Date().getFullYear();
             state.projects.forEach(p => {
                 const entries = p.vals['lta-registry_entries'] || [];
-                // Build monthly totals (months 1-12)
+                // Build monthly totals (months 1-12) — only for entries in selectedYear
                 // index 0 = prev year (skip), 1=JAN…12=DEC, 13=YTD
                 const monthTotals = new Array(14).fill(0);
+                let hasCurrentYearEntries = false;
                 entries.forEach(e => {
                     if (!e.dateOfAccident) return;
+                    const accidentYear = new Date(e.dateOfAccident).getFullYear();
+                    if (accidentYear !== selectedYear) return; // ← skip other years
                     // Use computeDaysCharged: respects Scheduled Charges vs Actual Days Lost
                     const { daysCharged } = computeDaysCharged(e);
                     if (daysCharged <= 0) return;
                     const month = new Date(e.dateOfAccident).getMonth() + 1; // 1-12
                     monthTotals[month] += daysCharged;
+                    hasCurrentYearEntries = true;
                 });
-                const hasEntries = entries.length > 0;
-                if (hasEntries) {
+                if (hasCurrentYearEntries) {
                     if (!p.vals['medical_Days Lost/Charged']) {
                         p.vals['medical_Days Lost/Charged'] = new Array(14).fill('');
                     }
@@ -13989,6 +14036,7 @@ function closeAllStatusDropdowns() {
                         p.vals['medical_Days Lost/Charged'][i] = monthTotals[i] > 0 ? monthTotals[i].toString() : '0';
                     }
                 }
+                // If no entries for this year, do NOT touch the existing monthly data
             });
         }
 
@@ -14015,9 +14063,12 @@ function closeAllStatusDropdowns() {
                 const counts = {};
                 Object.values(classMap).forEach(k => { counts[k] = new Array(14).fill(0); });
 
+                const _syncYear = (state && state.selectedYear) ? parseInt(state.selectedYear) : new Date().getFullYear();
                 entries.forEach(e => {
                     const dateStr = e.dateOfAccident || e.dateReported;
                     if (!dateStr) return;
+                    const accYear = new Date(dateStr).getFullYear();
+                    if (accYear !== _syncYear) return; // ← skip other years
                     const month = new Date(dateStr).getMonth() + 1; // 1–12
                     if (month < 1 || month > 12) return;
                     const medKey = classMap[e.incidentClassification];
@@ -14062,6 +14113,11 @@ function closeAllStatusDropdowns() {
                 aiirNo: '', dateReported: '', locationOfIncident: '',
                 natureOfIncident: '', incidentClassification: 'LTA',
                 incidentMechanism: '',
+                // 5 Contributing Factor sets — each defaults to N/A
+                factor_PEOPLE: 'N/A', factor_EQUIPMENT: 'N/A',
+                factor_MATERIALS: 'N/A', factor_ENVIRONMENT: 'N/A',
+                factor_ORGANIZATIONAL: 'N/A',
+                // Legacy single-factor fields (kept for backward compat, no longer used in UI)
                 factorCategory: '', factorSubItem: '',
                 detailsFacts: '', injuredPersonName: '', natureOfInjury: '',
                 bodyPartsAffected: '', occupation: '', rootCause: '',
@@ -14127,6 +14183,7 @@ function closeAllStatusDropdowns() {
                 if (field === 'injuryType') { renderLtaRegistryTab(); return; }
             }
             if (typeof markPendingSync === 'function') markPendingSync();
+            if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
         }
 
         function toggleLtaProject(id) {
@@ -14341,25 +14398,23 @@ function closeAllStatusDropdowns() {
                                         </select>
                                     </div>
 
-                                    <!-- === CONTRIBUTING FACTOR === -->
-                                    <div class="lta-section-label" style="margin-top:4px;"><i class="fas fa-circle-exclamation" style="margin-right:5px;color:#e65100;"></i>Contributing Factor</div>
+                                    <!-- === CONTRIBUTING FACTORS (5 sets) === -->
+                                    <div class="lta-section-label lta-field-full" style="margin-top:4px;"><i class="fas fa-circle-exclamation" style="margin-right:5px;color:#e65100;"></i>Contributing Factors <span style="font-size:0.6rem;font-weight:400;color:#888;">(Select N/A if not applicable)</span></div>
 
-                                    <div class="lta-field">
-                                        <label>Factor Category</label>
-                                        <select ${dis} onchange="updateLtaField('${pnSafe}',${idx},'factorCategory',this.value);updateLtaField('${pnSafe}',${idx},'factorSubItem','');renderLtaRegistryTab();">
-                                            <option value="">— Select Category —</option>
-                                            ${Object.keys(LTA_FACTOR_CATEGORIES).map(cat => `<option value="${cat}" ${e.factorCategory===cat?'selected':''}>${cat}</option>`).join('')}
-                                        </select>
-                                    </div>
-                                    <div class="lta-field">
-                                        <label>Contributing Factor / Sub-Item</label>
-                                        <select ${dis} onchange="updateLtaField('${pnSafe}',${idx},'factorSubItem',this.value)">
-                                            <option value="">— Select Sub-Item —</option>
-                                            ${e.factorCategory && LTA_FACTOR_CATEGORIES[e.factorCategory]
-                                                ? LTA_FACTOR_CATEGORIES[e.factorCategory].map(sub => `<option value="${sub}" ${e.factorSubItem===sub?'selected':''}>${sub}</option>`).join('')
-                                                : ''}
-                                        </select>
-                                    </div>
+                                    ${['PEOPLE','EQUIPMENT','MATERIALS','ENVIRONMENT','ORGANIZATIONAL'].map(cat => {
+                                        const fKey = 'factor_' + cat;
+                                        const curVal = e[fKey] !== undefined ? e[fKey] : 'N/A';
+                                        const catColor = {PEOPLE:'#1565c0',EQUIPMENT:'#6a1b9a',MATERIALS:'#e65100',ENVIRONMENT:'#2e7d32',ORGANIZATIONAL:'#c62828'}[cat];
+                                        return `<div class="lta-field">
+                                            <label style="color:${catColor};font-weight:800;">
+                                                <i class="fas fa-tag" style="margin-right:3px;"></i>${cat}
+                                            </label>
+                                            <select ${dis} onchange="updateLtaField('${pnSafe}',${idx},'${fKey}',this.value)">
+                                                <option value="N/A" ${curVal==='N/A'?'selected':''}>N/A</option>
+                                                ${(LTA_FACTOR_CATEGORIES[cat]||[]).map(sub => `<option value="${sub}" ${curVal===sub?'selected':''}>${sub}</option>`).join('')}
+                                            </select>
+                                        </div>`;
+                                    }).join('')}
                                     <div class="lta-field lta-field-full">
                                         <label>Details / Facts of Incident</label>
                                         <textarea ${dis} oninput="updateLtaField('${pnSafe}',${idx},'detailsFacts',this.value)">${e.detailsFacts||''}</textarea>
@@ -14737,6 +14792,7 @@ function closeAllStatusDropdowns() {
             if (p.vals[key] && p.vals[key][nIdx]) {
                 p.vals[key][nIdx][field] = value;
                 if (typeof markPendingSync === 'function') markPendingSync();
+                if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
             }
         }
 
@@ -14749,6 +14805,7 @@ function closeAllStatusDropdowns() {
             if (nov && nov.violations[vIdx]) {
                 nov.violations[vIdx][field] = value;
                 if (typeof markPendingSync === 'function') markPendingSync();
+                if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
             }
         }
 
@@ -15636,23 +15693,26 @@ function renderTabulation() {
 
             // Overall OSH NOV Summary Cards
             (() => {
-                let totalIntNov = 0, totalExtNov = 0, openIntNov = 0, openExtNov = 0, closedIntNov = 0, closedExtNov = 0, totalViol = 0;
+                let totalIntNov = 0, totalExtNov = 0, openIntNov = 0, openExtNov = 0, closedIntNov = 0, closedExtNov = 0, totalViol = 0, openViol = 0, closedViol = 0;
                 displayProjects.forEach(p => {
                     migrateOshNovData(p);
                     const intNovs = p.vals['osh-nov_internal_novs'] || [];
                     const extNovs = p.vals['osh-nov_external_novs'] || [];
                     totalIntNov += intNovs.length;
                     totalExtNov += extNovs.length;
-                    // NOV is Closed only if ALL violations are Closed, otherwise Open
+                    // NOV status: Closed = ALL violations are Closed (and has ≥1 violation)
+                    //             Open   = has ≥1 Open violation, OR has no violations yet
                     intNovs.forEach(n => {
                         const viols = n.violations || [];
                         totalViol += viols.length;
+                        viols.forEach(v => { if ((v.status||'Open') === 'Closed') closedViol++; else openViol++; });
                         const allClosed = viols.length > 0 && viols.every(v => (v.status||'Open') === 'Closed');
                         if (allClosed) closedIntNov++; else openIntNov++;
                     });
                     extNovs.forEach(n => {
                         const viols = n.violations || [];
                         totalViol += viols.length;
+                        viols.forEach(v => { if ((v.status||'Open') === 'Closed') closedViol++; else openViol++; });
                         const allClosed = viols.length > 0 && viols.every(v => (v.status||'Open') === 'Closed');
                         if (allClosed) closedExtNov++; else openExtNov++;
                     });
@@ -15675,15 +15735,33 @@ function renderTabulation() {
                     </div>
                     <div style="background:#ffebee;border:1px solid #ef9a9a;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
                         <i class="fas fa-lock-open" style="color:#c62828;font-size:1.2rem;"></i>
-                        <div><div style="font-size:0.58rem;font-weight:700;color:#c62828;text-transform:uppercase;">Open NOV</div><div style="font-size:1.1rem;font-weight:800;color:#c62828;">${openNov}</div></div>
+                        <div>
+                            <div style="font-size:0.58rem;font-weight:700;color:#c62828;text-transform:uppercase;">Open NOV</div>
+                            <div style="font-size:1.1rem;font-weight:800;color:#c62828;">${openNov}</div>
+                            <div style="font-size:0.57rem;color:#888;margin-top:1px;">
+                                <span style="color:#e65100;">${openIntNov} int</span> &bull; <span style="color:#c62828;">${openExtNov} ext</span>
+                            </div>
+                        </div>
                     </div>
                     <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
                         <i class="fas fa-check-circle" style="color:#2e7d32;font-size:1.2rem;"></i>
-                        <div><div style="font-size:0.58rem;font-weight:700;color:#2e7d32;text-transform:uppercase;">Closed NOV</div><div style="font-size:1.1rem;font-weight:800;color:#2e7d32;">${closedNov}</div></div>
+                        <div>
+                            <div style="font-size:0.58rem;font-weight:700;color:#2e7d32;text-transform:uppercase;">Closed NOV</div>
+                            <div style="font-size:1.1rem;font-weight:800;color:#2e7d32;">${closedNov}</div>
+                            <div style="font-size:0.57rem;color:#888;margin-top:1px;">
+                                <span style="color:#e65100;">${closedIntNov} int</span> &bull; <span style="color:#2e7d32;">${closedExtNov} ext</span>
+                            </div>
+                        </div>
                     </div>
                     <div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
                         <i class="fas fa-list" style="color:#6a1b9a;font-size:1.2rem;"></i>
-                        <div><div style="font-size:0.58rem;font-weight:700;color:#6a1b9a;text-transform:uppercase;">Total Violations</div><div style="font-size:1.1rem;font-weight:800;color:#6a1b9a;">${totalViol}</div></div>
+                        <div>
+                            <div style="font-size:0.58rem;font-weight:700;color:#6a1b9a;text-transform:uppercase;">Total Violations</div>
+                            <div style="font-size:1.1rem;font-weight:800;color:#6a1b9a;">${totalViol}</div>
+                            <div style="font-size:0.57rem;color:#888;margin-top:1px;">
+                                <span style="color:#c62828;font-weight:700;">${openViol} open</span> &bull; <span style="color:#2e7d32;font-weight:700;">${closedViol} closed</span>
+                            </div>
+                        </div>
                     </div>
                 </div>`;
             })();
@@ -15740,10 +15818,21 @@ function renderTabulation() {
                         const btnClass = type === 'internal' ? '' : ' external-btn';
                         const colCount = canEdit ? 8 : 7;
 
+                        // Count open/closed for this section
+                        const _secOpenNov = novs.filter(n => {
+                            const vs = n.violations || [];
+                            return vs.length === 0 || vs.some(v => (v.status||'Open') !== 'Closed');
+                        }).length;
+                        const _secClosedNov = novs.filter(n => {
+                            const vs = n.violations || [];
+                            return vs.length > 0 && vs.every(v => (v.status||'Open') === 'Closed');
+                        }).length;
                         html += `<div class="nov-sub-section-header ${hdrClass}" onclick="toggleNovSection('${secId}')">
                             <div style="display:flex;align-items:center;gap:8px;">
                                 <span style="font-size:0.75rem;font-weight:700;">${emoji} ${label}</span>
                                 <span style="background:${type==='internal'?'#ff6d00':'#c62828'};color:white;border-radius:10px;padding:1px 8px;font-size:0.6rem;font-weight:700;">${novs.length} NOV</span>
+                                ${_secOpenNov > 0 ? `<span style="background:#ffebee;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.58rem;font-weight:700;border:1px solid #ef9a9a;">${_secOpenNov} open</span>` : ''}
+                                ${_secClosedNov > 0 ? `<span style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:1px 7px;font-size:0.58rem;font-weight:700;border:1px solid #a5d6a7;">${_secClosedNov} closed</span>` : ''}
                             </div>
                             <div style="display:flex;align-items:center;gap:10px;">
                                 ${canEdit ? `<button class="osh-nov-add-btn${btnClass}" onclick="event.stopPropagation();addOshNovEntry('${pnSafe}','${type}')"><i class="fas fa-plus"></i> Add NOV</button>` : ''}
@@ -16057,16 +16146,17 @@ function renderTabulation() {
                         const mi = i - 1; // 0-based month index for ESH calendar
                         if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
                             const eshStor = getEshStorage();
+                            const _eshYear1 = state.selectedYear || new Date().getFullYear();
                             displayProjects.forEach(p => {
                                 if (row === 'Drills Conducted') {
                                     ESH_DRILLS.forEach((drill, di) => {
-                                        const ak = `esh-calendar-drills|${p.name}|${di}|${mi}|actual`;
+                                        const ak = `${_eshYear1}|esh-calendar-drills|${p.name}|${di}|${mi}|actual`;
                                         if (eshStor[ak]) monthTotal++;
                                     });
                                 } else {
                                     ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
                                         (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
-                                            const ak = `${tt}|${p.name}|${ti}|${mi}|actual`;
+                                            const ak = `${_eshYear1}|${tt}|${p.name}|${ti}|${mi}|actual`;
                                             if (eshStor[ak]) monthTotal++;
                                         });
                                     });
@@ -16126,17 +16216,18 @@ function renderTabulation() {
                             html += `<td class="average-cell" style="font-weight: 800; font-size: 0.7rem;">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
                         } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
                             const eshStor = getEshStorage();
+                            const _eshYear2 = state.selectedYear || new Date().getFullYear();
                             displayProjects.forEach(p => {
                                 for (let mi = 0; mi < 12; mi++) {
                                     if (row === 'Drills Conducted') {
                                         ESH_DRILLS.forEach((drill, di) => {
-                                            const ak = `esh-calendar-drills|${p.name}|${di}|${mi}|actual`;
+                                            const ak = `${_eshYear2}|esh-calendar-drills|${p.name}|${di}|${mi}|actual`;
                                             if (eshStor[ak]) ytdTotal++;
                                         });
                                     } else {
                                         ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
                                             (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
-                                                const ak = `${tt}|${p.name}|${ti}|${mi}|actual`;
+                                                const ak = `${_eshYear2}|${tt}|${p.name}|${ti}|${mi}|actual`;
                                                 if (eshStor[ak]) ytdTotal++;
                                             });
                                         });
@@ -16818,6 +16909,7 @@ if (state.currentTab === 'audit') {
                     if (p.vals[key] && p.vals[key][nIdx]) {
                         p.vals[key][nIdx][field] = value;
                         if (typeof markPendingSync === 'function') markPendingSync();
+                        if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
                     }
                 }
 
@@ -16830,6 +16922,7 @@ if (state.currentTab === 'audit') {
                     if (nov && nov.violations[vIdx]) {
                         nov.violations[vIdx][field] = value;
                         if (typeof markPendingSync === 'function') markPendingSync();
+                        if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
                     }
                 }
 
@@ -17516,15 +17609,16 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     for (let mi = 0; mi < 12; mi++) {
                         let count = 0;
+                        const _eshYear3 = state.selectedYear || new Date().getFullYear();
                         if (row === 'Drills Conducted') {
                             ESH_DRILLS.forEach((drill, di) => {
-                                const ak = `esh-calendar-drills|${projName}|${di}|${mi}|actual`;
+                                const ak = `${_eshYear3}|esh-calendar-drills|${projName}|${di}|${mi}|actual`;
                                 if (eshStor[ak]) count++;
                             });
                         } else {
                             ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
                                 (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
-                                    const ak = `${tt}|${projName}|${ti}|${mi}|actual`;
+                                    const ak = `${_eshYear3}|${tt}|${projName}|${ti}|${mi}|actual`;
                                     if (eshStor[ak]) count++;
                                 });
                             });
@@ -17686,15 +17780,16 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
                     // YTD = total count from ESH Calendar across all months
                     const eshStor = getEshStorage();
+                    const _eshYear4 = state.selectedYear || new Date().getFullYear();
                     for (let mi = 0; mi < 12; mi++) {
                         if (row === 'Drills Conducted') {
                             ESH_DRILLS.forEach((drill, di) => {
-                                if (eshStor[`esh-calendar-drills|${p.name}|${di}|${mi}|actual`]) ytdValue++;
+                                if (eshStor[`${_eshYear4}|esh-calendar-drills|${p.name}|${di}|${mi}|actual`]) ytdValue++;
                             });
                         } else {
                             ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
                                 (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
-                                    if (eshStor[`${tt}|${p.name}|${ti}|${mi}|actual`]) ytdValue++;
+                                    if (eshStor[`${_eshYear4}|${tt}|${p.name}|${ti}|${mi}|actual`]) ytdValue++;
                                 });
                             });
                         }
@@ -17861,20 +17956,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                 // ── Banner for KPM ──
                 if (state.currentTab === 'kpm') {
-                    html += `
-                    <div class="tab-info-bar">
-                        <div class="tib-icon"><i class="fas fa-file-lines"></i></div>
-                        <div class="tib-body">
-                            <p class="tib-title">KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT</p>
-                            <p class="tib-sub">Monthly ESH Consolidated KPM submission — per project (January to December)</p>
-                            <p class="tib-sub" style="opacity:0.75;"><i class="fas fa-calendar-check"></i> Tracking ${displayProjects.length} project(s) &mdash; FM-RNI-04-04 Rev.4 | Eff. Date: 06 Aug 2018</p>
-                        </div>
-                        <div class="tib-badges">
-                            <span class="tib-pill tib-pill-green">${displayProjects.length} PROJECTS</span>
-                            <span class="tib-pill tib-pill-yellow">MONTHLY</span>
-                        </div>
-                    </div>`;
-
                     // ── KPM DATA DEFINITIONS — Exact copy of Excel: FM-RNI-04-04 Rev.4 ──
                     // kpi: [g1%, g2%, g3%, g4%, g5%] — null means cell is blank in Excel (exactly as-is)
                     const KPM_ESH_ROWS = [
@@ -17926,6 +18007,125 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         { key:'esh', label:'ESH', icon:'fa-shield-halved', color:'#1b5e20', rows: KPM_ESH_ROWS },
                     ];
                     const KPM_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                    // ── Build env-monitoring-style header + overall summary ──
+                    (function buildKpmSummary() {
+                        var selYear = state.selectedYear || new Date().getFullYear();
+                        var allRegs = [];
+                        var companyTotal = 0, companyCount = 0;
+
+                        REGIONS.forEach(function(reg) {
+                            if (reg === 'CORPORATE' || reg === 'PLANT OPERATIONS') return;
+                            var projs = displayProjects.filter(function(p){ return p.region === reg; });
+                            if (!projs.length) return;
+                            var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
+                            var activeMo = (window._kpmRegActiveMo && window._kpmRegActiveMo[regKey]) || 'January';
+                            var grand = 0, hasAny = false;
+                            KPM_ESH_ROWS.forEach(function(row) {
+                                var validEPs = projs.map(function(p) {
+                                    var v = p.vals['kpm_v3_' + activeMo + '_' + row.id];
+                                    var n = parseFloat(String(v||'').replace('%','').trim());
+                                    return isNaN(n) ? null : n / 100;
+                                }).filter(function(v){ return v !== null; });
+                                if (validEPs.length) {
+                                    hasAny = true;
+                                    var avgEp = validEPs.reduce(function(s,v){return s+v;},0) / validEPs.length;
+                                    grand += avgEp * row.dw;
+                                }
+                            });
+                            allRegs.push({ reg: reg, projs: projs.length, activeMo: activeMo, grand: hasAny ? grand : null });
+                            if (hasAny) { companyTotal += grand; companyCount++; }
+                        });
+
+                        var companyAvg = companyCount > 0 ? companyTotal / companyCount : null;
+
+                        function pc(v) { return v >= 0.90 ? '#a5d6a7' : v >= 0.85 ? '#fff176' : '#ef9a9a'; }
+                        function tc(v) { return v >= 0.90 ? '#1b5e20' : v >= 0.85 ? '#5d4037' : '#b71c1c'; }
+                        function lbl(v){ return v >= 0.90 ? 'EXCELLENT' : v >= 0.85 ? 'SATISFACTORY' : 'NEEDS IMPROVEMENT'; }
+                        function ico(v){ return v >= 0.90 ? 'fa-circle-check' : v >= 0.85 ? 'fa-circle-minus' : 'fa-circle-xmark'; }
+                        function brc(v){ return v >= 0.90 ? '#4caf50' : v >= 0.85 ? '#fbc02d' : '#e53935'; }
+
+                        var regCards = allRegs.map(function(r) {
+                            var has = r.grand !== null;
+                            var pct = has ? (r.grand*100).toFixed(2)+'%' : '\u2014';
+                            var bg = has ? pc(r.grand) : '#e0e0e0';
+                            var fg = has ? tc(r.grand) : '#888';
+                            return '<div style="flex:1;min-width:150px;max-width:210px;background:'+bg+';border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:3px;border:1.5px solid rgba(0,0,0,0.08);box-shadow:0 2px 8px rgba(0,0,0,0.07);">'
+                                +'<div style="font-size:0.6rem;font-weight:800;color:'+fg+';text-transform:uppercase;letter-spacing:0.5px;opacity:0.8;">'+r.reg+'</div>'
+                                +'<div style="font-size:1.5rem;font-weight:900;color:'+fg+';line-height:1.1;">'+pct+'</div>'
+                                +'<div style="font-size:0.58rem;font-weight:700;color:'+fg+';opacity:0.75;display:flex;align-items:center;gap:4px;">'
+                                +(has?'<i class="fas '+ico(r.grand)+'"></i>':'')+( has?lbl(r.grand):'NO DATA')+'</div>'
+                                +'<div style="font-size:0.57rem;color:'+fg+';opacity:0.6;margin-top:1px;">'+r.projs+' proj &bull; '+r.activeMo+'</div>'
+                                +'</div>';
+                        }).join('');
+
+                        var compPct = companyAvg !== null ? (companyAvg*100).toFixed(2)+'%' : '\u2014';
+                        var compLbl = companyAvg !== null ? lbl(companyAvg) : 'NO DATA';
+                        var compIco = companyAvg !== null ? ico(companyAvg) : 'fa-circle-question';
+                        var compBarW = companyAvg !== null ? Math.min(companyAvg*100,100).toFixed(1) : '0';
+                        var compBarC = companyAvg !== null ? brc(companyAvg) : '#bdbdbd';
+
+                        var barRows = allRegs.map(function(r) {
+                            var has = r.grand !== null;
+                            var pct = has ? r.grand*100 : 0;
+                            var lc = has ? (r.grand >= 0.90 ? '#2e7d32' : r.grand >= 0.85 ? '#e65100' : '#c62828') : '#888';
+                            return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'
+                                +'<div style="font-size:0.63rem;font-weight:700;color:#a5d6a7;min-width:110px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+r.reg+'</div>'
+                                +'<div style="flex:1;background:rgba(255,255,255,0.1);border-radius:4px;height:16px;overflow:hidden;">'
+                                +'<div style="height:100%;width:'+Math.min(pct,100).toFixed(1)+'%;background:'+( has?brc(r.grand):'#bdbdbd')+';border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:4px;">'
+                                +(has?'<span style="font-size:0.57rem;font-weight:800;color:white;">'+pct.toFixed(1)+'%</span>':'')
+                                +'</div></div>'
+                                +'<div style="font-size:0.62rem;font-weight:800;color:'+lc+';min-width:46px;">'+(has?pct.toFixed(2)+'%':'\u2014')+'</div>'
+                                +'</div>';
+                        }).join('');
+
+                        html +=
+                            '<div style="background:linear-gradient(135deg,#0d3d0f 0%,#1b6e1f 50%,#2e7d32 100%);border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.08);margin-bottom:14px;position:relative;">'
+                            +'<div style="position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.04) 50%,transparent 70%);pointer-events:none;"></div>'
+                            // header bar
+                            +'<div style="padding:14px 20px 10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;position:relative;z-index:2;">'
+                            +'<div style="display:flex;align-items:center;gap:10px;">'
+                            +'<i class="fas fa-chart-bar" style="font-size:1.3rem;color:#a5d6a7;"></i>'
+                            +'<div>'
+                            +'<div style="font-size:0.98rem;font-weight:800;color:white;letter-spacing:0.5px;">KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT</div>'
+                            +'<div style="font-size:0.63rem;color:#a5d6a7;margin-top:2px;">Monthly ESH Consolidated KPM \u2014 FM-RNI-04-04 Rev.4 | Eff. Date: 06 Aug 2018</div>'
+                            +'</div></div>'
+                            +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'
+                            +'<div style="background:rgba(255,255,255,0.12);color:white;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid rgba(255,255,255,0.2);"><i class="fas fa-building" style="margin-right:5px;color:#a5d6a7;"></i>'+displayProjects.length+' Projects</div>'
+                            +'<div style="background:'+(companyAvg!==null?pc(companyAvg):'rgba(255,255,255,0.12)')+';color:'+(companyAvg!==null?tc(companyAvg):'white')+';padding:5px 16px;border-radius:20px;font-size:0.7rem;font-weight:800;border:1px solid rgba(255,255,255,0.25);"><i class="fas '+compIco+'" style="margin-right:5px;"></i>Company Avg: '+compPct+'</div>'
+                            +'<div style="background:rgba(76,175,80,0.2);color:#a5d6a7;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid rgba(76,175,80,0.35);">MONTHLY</div>'
+                            +'</div></div>'
+                            // body
+                            +'<div style="padding:0 20px 16px;position:relative;z-index:2;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">'
+                            // region score cards
+                            +'<div style="display:flex;gap:10px;flex-wrap:wrap;flex:1;min-width:280px;">'
+                            +regCards
+                            +'<div style="flex:1;min-width:150px;max-width:210px;background:rgba(255,255,255,0.12);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;border:2px solid rgba(255,255,255,0.3);">'
+                            +'<div style="font-size:0.6rem;font-weight:800;color:#a5d6a7;text-transform:uppercase;letter-spacing:0.5px;">\ud83c\udfe2 COMPANY OVERALL</div>'
+                            +'<div style="font-size:1.5rem;font-weight:900;color:white;line-height:1.1;">'+compPct+'</div>'
+                            +'<div style="font-size:0.58rem;font-weight:700;color:#a5d6a7;display:flex;align-items:center;gap:4px;"><i class="fas '+compIco+'"></i>'+compLbl+'</div>'
+                            +'<div style="font-size:0.57rem;color:#a5d6a7;opacity:0.65;margin-top:1px;">Avg of all regions</div>'
+                            +'</div></div>'
+                            // bar chart
+                            +'<div style="min-width:260px;flex:1;max-width:380px;">'
+                            +'<div style="font-size:0.62rem;font-weight:700;color:#a5d6a7;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;"><i class="fas fa-chart-bar" style="margin-right:5px;"></i>Performance by Region</div>'
+                            +barRows
+                            +'<div style="display:flex;align-items:center;gap:8px;margin-top:4px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.15);">'
+                            +'<div style="font-size:0.63rem;font-weight:800;color:white;min-width:110px;text-align:right;">COMPANY AVG</div>'
+                            +'<div style="flex:1;background:rgba(255,255,255,0.1);border-radius:4px;height:20px;overflow:hidden;">'
+                            +'<div style="height:100%;width:'+compBarW+'%;background:'+compBarC+';border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:4px;">'
+                            +(companyAvg!==null?'<span style="font-size:0.62rem;font-weight:800;color:white;">'+(companyAvg*100).toFixed(1)+'%</span>':'')
+                            +'</div></div>'
+                            +'<div style="font-size:0.65rem;font-weight:900;color:white;min-width:46px;">'+compPct+'</div>'
+                            +'</div></div></div>'
+                            // legend
+                            +'<div style="padding:7px 20px;background:rgba(0,0,0,0.18);display:flex;gap:16px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,0.1);">'
+                            +'<span style="font-size:0.6rem;color:#a5d6a7;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:50%;background:#4caf50;display:inline-block;"></span>\u226590% Excellent</span>'
+                            +'<span style="font-size:0.6rem;color:#a5d6a7;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:50%;background:#fbc02d;display:inline-block;"></span>85\u201389% Satisfactory</span>'
+                            +'<span style="font-size:0.6rem;color:#a5d6a7;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:50%;background:#e53935;display:inline-block;"></span>&lt;85% Needs Improvement</span>'
+                            +'<span style="font-size:0.6rem;color:#a5d6a7;opacity:0.6;margin-left:auto;">Scores reflect each region\'s currently selected month</span>'
+                            +'</div>'
+                            +'</div>';
+                    })();
 
                     // ── Helper: get/set kpm nested data ──
                     function kpmGet(p, month, role, field) {
@@ -17941,6 +18141,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         if (!p.vals[k]) p.vals[k] = {};
                         p.vals[k][field] = val;
                         if (typeof markPendingSync === 'function') markPendingSync();
+                        if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
                     }
                     window.kpmSet = kpmSet;
 
@@ -17950,336 +18151,302 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     window.kpmSetMo = function(pKey, mo) { window._kpmActiveMo[pKey] = mo; render(); };
                     window.kpmSetRole = function(pKey, role) { window._kpmActiveRole[pKey] = role; render(); };
 
-                    // ── In-place EP/Total update — NO full render, no screen jump ──
-                    const _KPM_GRADE_PERC_MAP = [0, 0.75, 0.80, 0.85, 0.90, 0.95]; // index 1-5
-                    window.kpmUpdateEP = function(pKey, rowId, dw) {
-                        const egEl  = document.getElementById('kpm-eg-' + pKey + '-' + rowId);
-                        const epEl  = document.getElementById('kpm-ep-' + pKey + '-' + rowId);
-                        const totEl = document.getElementById('kpm-tot-' + pKey + '-' + rowId);
-                        const totFootEl = document.getElementById('kpm-total-perf-' + pKey);
-                        if (!egEl || !epEl || !totEl) return;
-                        const eg  = parseInt(egEl.value) || 0;
-                        const ep  = eg >= 1 && eg <= 5 ? _KPM_GRADE_PERC_MAP[eg] : 0;
-                        const tot = ep * dw;
-                        // Update EP cell
-                        epEl.textContent = ep > 0 ? (ep * 100).toFixed(0) + '%' : '';
-                        epEl.style.color = ep >= 0.90 ? '#2e7d32' : ep >= 0.85 ? '#e65100' : ep > 0 ? '#c62828' : '#aaa';
-                        // Update Total cell
-                        totEl.textContent = tot > 0 ? (tot * 100).toFixed(2) + '%' : '';
-                        totEl.style.color = ep >= 0.90 ? '#2e7d32' : ep >= 0.85 ? '#e65100' : ep > 0 ? '#c62828' : '#aaa';
-                        // Update EG select color
-                        egEl.style.background = eg >= 4 ? '#e8f5e9' : eg === 3 ? '#fff8e1' : eg >= 1 ? '#ffebee' : '#fff';
-                        // Recompute footer total
-                        if (totFootEl) {
-                            let grandTotal = 0;
-                            document.querySelectorAll('[id^="kpm-tot-' + pKey + '-"]').forEach(el => {
-                                const v = parseFloat(el.textContent);
-                                if (!isNaN(v)) grandTotal += v / 100;
+                    // ── In-place EP update: recalc avg EP → Total % for a row when any project EP changes ──
+                    // Auto-percent helpers: strip % on focus, append % on blur
+                    window.kpmEpFocus = function(inp) {
+                        inp.value = inp.value.replace(/%/g, '').trim();
+                        inp.select();
+                    };
+                    window.kpmEpBlurDS = function(inp) {
+                        var regKey  = inp.dataset.regkey;
+                        var rowId   = inp.dataset.rowid;
+                        var dw      = parseFloat(inp.dataset.dw);
+                        var pnSafe  = inp.dataset.pname;
+                        var activeMo = inp.dataset.activemo;
+                        var raw = inp.value.replace(/%/g, '').trim();
+                        var n = parseFloat(raw);
+                        if (!isNaN(n) && raw !== '') {
+                            inp.value = n + '%';
+                            inp.style.color = (n/100 >= 0.90) ? '#2e7d32' : (n/100 >= 0.85) ? '#e65100' : '#c62828';
+                        } else {
+                            inp.value = raw;
+                            inp.style.color = '#aaa';
+                        }
+                        var pObj = state.projects.find(function(x){ return x.name === pnSafe; });
+                        if (pObj) { pObj.vals['kpm_v3_' + activeMo + '_' + rowId] = inp.value; if(typeof markPendingSync==='function') markPendingSync(); if(typeof saveToFirebaseDebounced==='function') saveToFirebaseDebounced(); }
+                        window.kpmUpdateRowTotals(regKey, rowId, dw);
+                    };
+                    window.kpmAutoPercent = function(inp) {
+                        // live color update only while typing
+                        var raw = inp.value.replace(/%/g, '').trim();
+                        var n = parseFloat(raw);
+                        if (!isNaN(n) && n > 0) {
+                            inp.style.color = (n/100 >= 0.90) ? '#2e7d32' : (n/100 >= 0.85) ? '#e65100' : '#c62828';
+                        } else {
+                            inp.style.color = '#555';
+                        }
+                    };
+                                        window.kpmUpdateRowTotals = function(regKey, rowId, dw) {
+                        var epInputs = document.querySelectorAll('[id^="kpm-ep-input-' + regKey + '-' + rowId + '-"]');
+                        var sum = 0, count = 0;
+                        epInputs.forEach(function(inp) {
+                            var raw = inp.value.replace('%','').trim();
+                            var v = parseFloat(raw);
+                            if (!isNaN(v) && v > 0) { sum += v / 100; count++; }
+                        });
+                        var avgEp = count > 0 ? sum / count : 0;
+                        var total = avgEp * dw;
+                        var avgEl = document.getElementById('kpm-avg-ep-' + regKey + '-' + rowId);
+                        var totEl = document.getElementById('kpm-row-tot-' + regKey + '-' + rowId);
+                        var epColor = avgEp >= 0.90 ? '#2e7d32' : avgEp >= 0.85 ? '#e65100' : avgEp > 0 ? '#c62828' : '#aaa';
+                        if (avgEl) { avgEl.textContent = avgEp > 0 ? (avgEp*100).toFixed(1)+'%' : '\u2014'; avgEl.style.color = epColor; }
+                        if (totEl) { totEl.textContent = total > 0 ? (total*100).toFixed(2)+'%' : '\u2014'; totEl.style.color = epColor; }
+                        var grandTotEl = document.getElementById('kpm-grand-tot-' + regKey);
+                        if (grandTotEl) {
+                            var grand = 0;
+                            document.querySelectorAll('[id^="kpm-row-tot-' + regKey + '-"]').forEach(function(el) {
+                                var v = parseFloat(el.textContent);
+                                if (!isNaN(v)) grand += v / 100;
                             });
-                            totFootEl.textContent = grandTotal > 0 ? (grandTotal * 100).toFixed(2) + '%' : '—';
-                            totFootEl.style.color = grandTotal >= 0.90 ? '#2e7d32' : grandTotal >= 0.85 ? '#e65100' : '#c62828';
+                            var gc = grand >= 0.90 ? '#2e7d32' : grand >= 0.85 ? '#e65100' : '#c62828';
+                            grandTotEl.textContent = grand > 0 ? (grand*100).toFixed(2)+'%' : '\u2014';
+                            grandTotEl.style.color = gc;
                         }
                     };
 
-                    // ── Per project KPM form builder ──
-                    function buildKpmForm(p, canEdit) {
-                        const pKey = p.name.replace(/[^a-zA-Z0-9]/g,'_');
-                        const activeMo   = window._kpmActiveMo[pKey]   || 'January';
-                        const activeRole = window._kpmActiveRole[pKey]  || 'esh';
-                        const roleDef    = KPM_ROLE_DEFS.find(r => r.key === activeRole);
-                        const rows       = roleDef.rows;
-                        const pnSafe     = p.name.replace(/'/g,"\\'");
-                        const curMonthIdx= new Date().getMonth(); // 0-based
+                    // ── Per-REGION KPM consolidated table: all projects as EP columns ──
+                    function buildKpmRegionTable(projs, reg, activeMo, canEdit) {
+                        var rows = KPM_ESH_ROWS;
+                        var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
+                        var totalDW = rows.reduce(function(s,r){return s+r.dw;}, 0);
+                        var grandTotal = 0;
+                        var tableRows = '';
 
-                        // Month tabs — with red/green color coding matching existing reportorial system
-                        const moTabs = KPM_MONTHS.map((mo, idx) => {
-                            const isFuture  = idx > curMonthIdx;
-                            const isPast    = idx < curMonthIdx;
-                            const isActive  = mo === activeMo;
-                            // Check if dateSubmitted is filled for this month (any role)
-                            const hasDateSubmitted = KPM_ROLE_DEFS.some(r => {
-                                const k = `kpm_v2_${mo}_${r.key}`;
-                                return p.vals[k] && p.vals[k]['dateSubmitted'] && p.vals[k]['dateSubmitted'].trim() !== '';
+                        rows.forEach(function(row) {
+                            var projEPs = projs.map(function(p) {
+                                var k = 'kpm_v3_' + activeMo + '_' + row.id;
+                                var val = p.vals[k] !== undefined ? p.vals[k] : '';
+                                var raw = String(val).replace('%','').trim();
+                                var n = parseFloat(raw);
+                                return isNaN(n) ? '' : n / 100;
                             });
-                            // Red = past month with no dateSubmitted; Green = has dateSubmitted; Yellow dot = has other data but no date
-                            const hasOtherData = KPM_ROLE_DEFS.some(r => {
-                                const k = `kpm_v2_${mo}_${r.key}`;
-                                return p.vals[k] && Object.keys(p.vals[k]).length > 0;
-                            });
-                            let tabBg, tabColor, tabBorder, tabOpacity = '';
-                            if (isActive) {
-                                tabBg = '#1b5e20'; tabColor = 'white'; tabBorder = '2px solid #fbc02d';
-                            } else if (isFuture) {
-                                tabBg = 'transparent'; tabColor = '#bbb'; tabBorder = '2px solid transparent'; tabOpacity = 'opacity:0.55;';
-                            } else if (isPast && !hasDateSubmitted) {
-                                // Past month, no date submitted → RED (overdue)
-                                tabBg = '#ffcdd2'; tabColor = '#c62828'; tabBorder = '2px solid #ef9a9a';
-                            } else if (hasDateSubmitted) {
-                                // Submitted → GREEN
-                                tabBg = '#c8e6c9'; tabColor = '#2e7d32'; tabBorder = '2px solid #a5d6a7';
-                            } else {
-                                // Current month, not yet submitted
-                                tabBg = '#fff8e1'; tabColor = '#e65100'; tabBorder = '2px solid #ffe082';
-                            }
-                            const dotIndicator = hasOtherData && !hasDateSubmitted && !isActive && !isFuture
-                                ? '<sup style="color:#fbc02d;font-size:0.5rem;">●</sup>' : '';
-                            const overdueIcon = isPast && !hasDateSubmitted && !isActive
-                                ? '<sup style="color:#c62828;font-size:0.45rem;margin-left:1px;">!</sup>' : '';
-                            return `<button onclick="kpmSetMo('${pKey}','${mo}')" style="padding:4px 10px;font-size:0.67rem;font-weight:700;border:none;border-radius:4px;cursor:pointer;white-space:nowrap;background:${tabBg};color:${tabColor};border-bottom:${tabBorder};${tabOpacity}">${mo.substring(0,3).toUpperCase()}${overdueIcon}${dotIndicator}</button>`;
-                        }).join('');
+                            var validEPs = projEPs.filter(function(v){return v !== '';});
+                            var avgEp = validEPs.length > 0 ? validEPs.reduce(function(s,v){return s+v;},0) / validEPs.length : '';
+                            var rowTotal = avgEp !== '' ? avgEp * row.dw : '';
+                            if (rowTotal !== '') grandTotal += rowTotal;
 
-                        // Role label (single ESH role - no tabs needed)
-                        const roleTabs = `<span style="display:inline-flex;align-items:center;gap:6px;background:#1b5e20;color:white;padding:5px 14px;border-radius:5px;font-size:0.68rem;font-weight:700;">
-                            <i class="fas fa-shield-halved"></i> ESH CONSOLIDATED KPM</span>`;
+                            var dwDisplay = (row.dw * 100).toFixed(0) + '%';
+                            var avgEpDisplay = avgEp !== '' ? (avgEp * 100).toFixed(1) + '%' : '\u2014';
+                            var rowTotalDisplay = rowTotal !== '' ? (rowTotal * 100).toFixed(2) + '%' : '\u2014';
+                            var epColor = avgEp !== '' ? (avgEp >= 0.90 ? '#2e7d32' : avgEp >= 0.85 ? '#e65100' : '#c62828') : '#aaa';
 
-                        // Header fields
-                        const dateSubmitted = kpmGet(p, activeMo, activeRole, 'dateSubmitted');
-                        const periodCovered = kpmGet(p, activeMo, activeRole, 'periodCovered');
-
-                        // Build table rows — exact Excel formula: EP = IF(EG<=1,75%,IF(EG<=2,80%,IF(EG<=3,85%,IF(EG<=4,90%,IF(EG<=5,95%)))))
-                        let tableRows = '';
-                        let totalPerf = 0;
-                        rows.forEach(row => {
-                            const stat    = kpmGet(p, activeMo, activeRole, `stat_${row.id}`);
-                            const eg      = parseInt(kpmGet(p, activeMo, activeRole, `eg_${row.id}`)) || '';
-                            // EP formula: =IF(O<=1,75%,IF(O<=2,80%,IF(O<=3,85%,IF(O<=4,90%,IF(O<=5,95%)))))
-                            const ep      = eg === '' ? '' : eg <= 1 ? 0.75 : eg <= 2 ? 0.80 : eg <= 3 ? 0.85 : eg <= 4 ? 0.90 : 0.95;
-                            const total   = (ep !== '' && row.dw) ? (ep * row.dw) : '';
-                            if (total !== '') totalPerf += total;
-                            const immAct  = kpmGet(p, activeMo, activeRole, `ia_${row.id}`);
-                            const rootC   = kpmGet(p, activeMo, activeRole, `rc_${row.id}`);
-                            const corrAc  = kpmGet(p, activeMo, activeRole, `ca_${row.id}`);
-                            const doImpl  = kpmGet(p, activeMo, activeRole, `doi_${row.id}`);
-                            const status  = kpmGet(p, activeMo, activeRole, `st_${row.id}`);
-                            const showImprov = true; // Always show improvement plan columns
-
-                            // DW display: show as % if it's a decimal (e.g. 0.10 → 10%)
-                            const dwDisplay = (row.dw * 100).toFixed(0) + '%';
-                            // EP display
-                            const epDisplay = ep !== '' ? (ep * 100).toFixed(0) + '%' : '';
-                            // Total display: EP × DW
-                            const totalDisplay = total !== '' ? (total * 100).toFixed(2) + '%' : '';
-                            // Color helpers
-                            const epColor = ep !== '' ? (ep >= 0.90 ? '#2e7d32' : ep >= 0.85 ? '#e65100' : '#c62828') : '#aaa';
-                            const totalColor = total !== '' ? (ep >= 0.90 ? '#2e7d32' : ep >= 0.85 ? '#e65100' : '#c62828') : '#aaa';
-                            // KPI cells — show value from row.kpi or blank (exactly as Excel)
-                            const kpiCells = [0,1,2,3,4].map(i => {
-                                const v = row.kpi ? row.kpi[i] : null;
-                                return `<td style="text-align:center;padding:3px 4px;border-right:1px solid #c8e6c9;font-size:0.7rem;font-weight:600;color:#1a5276;background:#e8f5e9;color:#1b5e20;width:52px;">${v||''}</td>`;
+                            var kpiCells = [0,1,2,3,4].map(function(i) {
+                                var v = row.kpi ? row.kpi[i] : null;
+                                return '<td style="text-align:center;padding:3px 4px;border:1px solid #c8e6c9;font-size:0.68rem;font-weight:600;background:#f0faf0;color:#1b5e20;white-space:nowrap;">' + (v||'') + '</td>';
                             }).join('');
 
-                            tableRows += `<tr style="background:${row.kpm?'#e8f5e9':'#f9fdf9'};border-bottom:1px solid #c8e6c9;">
-                                <td style="text-align:center;font-weight:800;color:#1b5e20;padding:5px 6px;border-right:1px solid #c8e6c9;font-size:0.75rem;width:28px;">${row.kpm}</td>
-                                <td style="padding:5px 7px;border-right:1px solid #c8e6c9;font-size:0.7rem;font-weight:${row.wp?'700':'400'};width:150px;word-wrap:break-word;white-space:normal;">${row.wp}</td>
-                                <td style="padding:5px 7px;border-right:1px solid #c8e6c9;font-size:0.7rem;word-wrap:break-word;white-space:normal;width:140px;">${row.del}</td>
-                                <td style="text-align:center;padding:5px 6px;border-right:1px solid #c8e6c9;font-size:0.75rem;font-weight:700;color:#c62828;width:52px;">${dwDisplay}</td>
-                                <td style="padding:4px 7px;border-right:1px solid #c8e6c9;font-size:0.7rem;word-wrap:break-word;white-space:normal;width:160px;">${row.measure}</td>
-                                ${kpiCells}
-                                <td style="text-align:center;padding:3px 4px;border-right:1px solid #c8e6c9;width:70px;">
-                                    <input type="text" value="${stat}" placeholder="—" ${canEdit?'':'disabled'}
-                                        oninput="kpmSet('${pnSafe}','${activeMo}','${activeRole}','stat_${row.id}',this.value)"
-                                        id="kpm-stat-${pKey}-${row.id}"
-                                        style="width:62px;text-align:center;border:1px solid #b0c8b0;border-radius:3px;padding:3px 2px;font-size:0.72rem;">
-                                </td>
-                                <td style="text-align:center;padding:3px 4px;border-right:1px solid #c8e6c9;width:52px;">
-                                    <select id="kpm-eg-${pKey}-${row.id}" ${canEdit?'':'disabled'}
-                                        onchange="kpmSet('${pnSafe}','${activeMo}','${activeRole}','eg_${row.id}',this.value);kpmUpdateEP('${pKey}','${row.id}',${row.dw});"
-                                        style="width:46px;text-align:center;border:1px solid #b0c8b0;border-radius:3px;padding:2px;font-size:0.72rem;background:${eg<=2&&eg>=1?'#ffebee':eg===3?'#fff8e1':eg>=4?'#e8f5e9':'#fff'};">
-                                        <option value="">—</option>
-                                        ${KPM_GRADE_SCALE.map(g=>`<option value="${g}" ${eg==g?'selected':''}>${g}</option>`).join('')}
-                                    </select>
-                                </td>
-                                <td id="kpm-ep-${pKey}-${row.id}" style="text-align:center;padding:3px 4px;border-right:1px solid #c8e6c9;font-size:0.75rem;font-weight:700;color:${epColor};width:52px;">${epDisplay}</td>
-                                <td id="kpm-tot-${pKey}-${row.id}" style="text-align:center;padding:3px 4px;border-right:1px solid #c8e6c9;font-size:0.75rem;font-weight:700;color:${totalColor};width:65px;">${totalDisplay}</td>
-                                <td style="padding:3px 5px;border-right:1px solid #c8e6c9;width:110px;">
-                                    <textarea ${canEdit?'':'disabled'} placeholder="Immediate Action" rows="2"
-                                        oninput="kpmSet('${pnSafe}','${activeMo}','${activeRole}','ia_${row.id}',this.value)"
-                                        style="width:100%;font-size:0.65rem;border:1px solid #ccc;border-radius:3px;resize:vertical;">${immAct}</textarea>
-                                </td>
-                                <td style="padding:3px 5px;border-right:1px solid #c8e6c9;width:100px;">
-                                    <textarea ${canEdit?'':'disabled'} placeholder="Root Cause" rows="2"
-                                        oninput="kpmSet('${pnSafe}','${activeMo}','${activeRole}','rc_${row.id}',this.value)"
-                                        style="width:100%;font-size:0.65rem;border:1px solid #ccc;border-radius:3px;resize:vertical;">${rootC}</textarea>
-                                </td>
-                                <td style="padding:3px 5px;border-right:1px solid #c8e6c9;width:110px;">
-                                    <textarea ${canEdit?'':'disabled'} placeholder="Corrective Action" rows="2"
-                                        oninput="kpmSet('${pnSafe}','${activeMo}','${activeRole}','ca_${row.id}',this.value)"
-                                        style="width:100%;font-size:0.65rem;border:1px solid #ccc;border-radius:3px;resize:vertical;">${corrAc}</textarea>
-                                </td>
-                                <td style="padding:3px 5px;border-right:1px solid #c8e6c9;width:90px;">
-                                    <input type="date" value="${doImpl}" ${canEdit?'':'disabled'}
-                                        oninput="kpmSet('${pnSafe}','${activeMo}','${activeRole}','doi_${row.id}',this.value)"
-                                        style="width:100%;font-size:0.65rem;border:1px solid #ccc;border-radius:3px;padding:3px;">
-                                </td>
-                                <td style="padding:3px 5px;width:85px;">
-                                    <select ${canEdit?'':'disabled'}
-                                        onchange="kpmSet('${pnSafe}','${activeMo}','${activeRole}','st_${row.id}',this.value)"
-                                        style="width:78px;font-size:0.65rem;border:1px solid #ccc;border-radius:3px;padding:3px;">
-                                        <option value="">—</option>
-                                        <option value="Closed" ${status==='Closed'?'selected':''}>Closed</option>
-                                        <option value="Not Effective" ${status==='Not Effective'?'selected':''}>Not Effective</option>
-                                    </select>
-                                </td>
-                            </tr>`;
+                            var projCells = projs.map(function(p, pi) {
+                                var pk = p.name.replace(/[^a-zA-Z0-9]/g,'_');
+                                var k = 'kpm_v3_' + activeMo + '_' + row.id;
+                                var rawVal = p.vals[k] !== undefined ? p.vals[k] : '';
+                                var pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                                var n = parseFloat(String(rawVal).replace('%',''));
+                                var inputColor = (isNaN(n)||n===0) ? '#555' : n/100 >= 0.90 ? '#2e7d32' : n/100 >= 0.85 ? '#e65100' : '#c62828';
+                                var disAttr = canEdit ? '' : ' disabled';
+                                return '<td style="text-align:center;padding:2px 3px;border:1px solid #c8e6c9;min-width:72px;">'
+                                    + '<input type="text" id="kpm-ep-input-' + regKey + '-' + row.id + '-' + pk + '"'
+                                    + ' value="' + rawVal + '" placeholder=""' + disAttr
+                                    + ' data-regkey="' + regKey + '" data-rowid="' + row.id + '" data-dw="' + row.dw + '" data-pname="' + pnSafe + '" data-activemo="' + activeMo + '"'
+                                    + ' onfocus="window.kpmEpFocus(this)"'
+                                    + ' oninput="window.kpmAutoPercent(this)"'
+                                    + ' onblur="window.kpmEpBlurDS(this)"'
+                                    + ' style="width:62px;text-align:center;border:1px solid #b0c8b0;border-radius:3px;padding:3px 2px;font-size:0.72rem;font-weight:700;color:' + inputColor + ';">'
+                                    + '</td>';                         }).join('');
+
+                            var impKey = 'kpm_v3_imp_' + activeMo + '_' + row.id;
+                            var impProj = projs[0];
+                            var impPnSafe = impProj.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                            var immAct = impProj.vals[impKey + '_ia'] || '';
+                            var rootC  = impProj.vals[impKey + '_rc'] || '';
+                            var corrAc = impProj.vals[impKey + '_ca'] || '';
+                            var doImpl = impProj.vals[impKey + '_doi'] || '';
+                            var status = impProj.vals[impKey + '_st'] || '';
+
+                            tableRows += '<tr style="background:' + (row.kpm ? '#edf7ed' : '#f9fdf9') + ';border-bottom:1px solid #c8e6c9;">'
+                                + '<td style="text-align:center;font-weight:800;color:#1b5e20;padding:3px 2px;border:1px solid #c8e6c9;font-size:0.73rem;width:22px;min-width:22px;max-width:22px;">' + row.kpm + '</td>'
+                                + '<td style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;font-weight:' + (row.wp?'700':'400') + ';min-width:130px;word-wrap:break-word;white-space:normal;max-width:140px;">' + row.wp + '</td>'
+                                + '<td style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;min-width:130px;word-wrap:break-word;white-space:normal;max-width:140px;">' + row.del + '</td>'
+                                + '<td style="text-align:center;padding:4px 5px;border:1px solid #c8e6c9;font-size:0.72rem;font-weight:800;color:#c62828;min-width:46px;">' + dwDisplay + '</td>'
+                                + '<td style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;min-width:150px;word-wrap:break-word;white-space:normal;max-width:160px;">' + row.measure + '</td>'
+                                + kpiCells
+                                + projCells
+                                + '<td id="kpm-avg-ep-' + regKey + '-' + row.id + '" style="text-align:center;padding:4px 5px;border:1px solid #c8e6c9;font-size:0.73rem;font-weight:800;color:' + epColor + ';min-width:60px;">' + avgEpDisplay + '</td>'
+                                + '<td id="kpm-row-tot-' + regKey + '-' + row.id + '" style="text-align:center;padding:4px 5px;border:1px solid #c8e6c9;font-size:0.73rem;font-weight:800;color:' + epColor + ';min-width:68px;">' + rowTotalDisplay + '</td>'
+                                + '<td style="padding:3px 4px;border:1px solid #c8e6c9;min-width:100px;"><textarea ' + (canEdit?'':'disabled') + ' placeholder="Immediate Action" rows="2"'
+                                + ' oninput="(function(v){var p=state.projects.find(function(x){return x.name===\'' + impPnSafe + '\';});if(p){p.vals[\'' + impKey + '_ia\']=v;if(typeof markPendingSync===\'function\')markPendingSync();}})(this.value)"'
+                                + ' style="width:100%;font-size:0.63rem;border:1px solid #ccc;border-radius:3px;resize:vertical;">' + immAct + '</textarea></td>'
+                                + '<td style="padding:3px 4px;border:1px solid #c8e6c9;min-width:90px;"><textarea ' + (canEdit?'':'disabled') + ' placeholder="Root Cause" rows="2"'
+                                + ' oninput="(function(v){var p=state.projects.find(function(x){return x.name===\'' + impPnSafe + '\';});if(p){p.vals[\'' + impKey + '_rc\']=v;if(typeof markPendingSync===\'function\')markPendingSync();}})(this.value)"'
+                                + ' style="width:100%;font-size:0.63rem;border:1px solid #ccc;border-radius:3px;resize:vertical;">' + rootC + '</textarea></td>'
+                                + '<td style="padding:3px 4px;border:1px solid #c8e6c9;min-width:100px;"><textarea ' + (canEdit?'':'disabled') + ' placeholder="Corrective Action" rows="2"'
+                                + ' oninput="(function(v){var p=state.projects.find(function(x){return x.name===\'' + impPnSafe + '\';});if(p){p.vals[\'' + impKey + '_ca\']=v;if(typeof markPendingSync===\'function\')markPendingSync();}})(this.value)"'
+                                + ' style="width:100%;font-size:0.63rem;border:1px solid #ccc;border-radius:3px;resize:vertical;">' + corrAc + '</textarea></td>'
+                                + '<td style="padding:3px 4px;border:1px solid #c8e6c9;min-width:85px;"><input type="date" value="' + doImpl + '" ' + (canEdit?'':'disabled')
+                                + ' oninput="(function(v){var p=state.projects.find(function(x){return x.name===\'' + impPnSafe + '\';});if(p){p.vals[\'' + impKey + '_doi\']=v;if(typeof markPendingSync===\'function\')markPendingSync();}})(this.value)"'
+                                + ' style="width:100%;font-size:0.62rem;border:1px solid #ccc;border-radius:3px;padding:2px;"></td>'
+                                + '<td style="padding:3px 4px;border:1px solid #c8e6c9;min-width:78px;"><select ' + (canEdit?'':'disabled')
+                                + ' onchange="(function(v){var p=state.projects.find(function(x){return x.name===\'' + impPnSafe + '\';});if(p){p.vals[\'' + impKey + '_st\']=v;if(typeof markPendingSync===\'function\')markPendingSync();}})(this.value)"'
+                                + ' style="width:100%;font-size:0.63rem;border:1px solid #ccc;border-radius:3px;padding:2px;">'
+                                + '<option value="">\u2014</option>'
+                                + '<option value="Closed"' + (status==='Closed'?' selected':'') + '>Closed</option>'
+                                + '<option value="Not Effective"' + (status==='Not Effective'?' selected':'') + '>Not Effective</option>'
+                                + '</select></td>'
+                                + '</tr>';
                         });
 
-                        const totalDW   = rows.reduce((s,r) => s+r.dw, 0);
-                        const perfColor = totalPerf >= 0.90 ? '#2e7d32' : totalPerf >= 0.85 ? '#e65100' : '#c62828';
+                        var grandColor = grandTotal >= 0.90 ? '#2e7d32' : grandTotal >= 0.85 ? '#e65100' : '#c62828';
+                        var projHeaderCols = projs.map(function(p) {
+                            return '<th style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);color:#a5d6a7;font-size:0.62rem;font-weight:700;text-align:center;min-width:72px;white-space:normal;word-break:break-word;background:#0d3d0f;">' + p.name + '</th>';
+                        }).join('');
+                        var projGradeRow3Cols = projs.map(function() {
+                            return '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);color:#a5d6a7;font-size:0.6rem;font-style:italic;text-align:center;background:#1b6e1f;">EP (%)</th>';
+                        }).join('');
 
-                        return `
-                        <div style="background:var(--bg-card);border-radius:8px;overflow:hidden;border:1px solid var(--border-color);margin-bottom:6px;">
-                            <!-- Project header -->
-                            <div style="background:linear-gradient(90deg,#1b5e20 0%,#2e7d32 60%,#388e3c 100%);padding:8px 14px;display:flex;align-items:center;gap:10px;">
-                                <i class="fas fa-solar-panel" style="color:#fbc02d;font-size:0.75rem;"></i>
-                                <span style="font-weight:800;color:white;font-size:0.78rem;flex:1;">${p.name}</span>
-                                <span style="background:rgba(255,255,255,0.15);color:#fbc02d;padding:2px 10px;border-radius:10px;font-size:0.62rem;font-weight:700;border:1px solid rgba(251,192,45,0.35);">${p.region}</span>
-                            </div>
-                            <!-- Month tabs -->
-                            <div style="background:#f8f9fa;border-bottom:2px solid #e8f5e9;padding:6px 10px;display:flex;flex-wrap:wrap;gap:3px;align-items:center;">
-                                <span style="font-size:0.65rem;font-weight:700;color:#888;margin-right:6px;white-space:nowrap;">📅 MONTH:</span>
-                                ${moTabs}
-                            </div>
-                            <!-- Role tabs -->
-                            <div style="padding:8px 12px;background:#fafafa;border-bottom:1px solid #e8f5e9;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                                <span style="font-size:0.65rem;font-weight:700;color:#888;margin-right:4px;">👤 ROLE:</span>
-                                ${roleTabs}
-                                <div style="margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                                    <label style="font-size:0.67rem;color:#555;display:flex;align-items:center;gap:5px;white-space:nowrap;">
-                                        <i class="fas fa-calendar-check" style="color:${dateSubmitted?'#2e7d32':'#c62828'};"></i> Date Submitted:
-                                        <input type="date" value="${dateSubmitted}" ${canEdit?'':'disabled'}
-                                            oninput="kpmSet('${pnSafe}','${activeMo}','${activeRole}','dateSubmitted',this.value);this.style.background=this.value?'#c8e6c9':'#ffcdd2';this.style.color=this.value?'#2e7d32':'#c62828';this.style.borderColor=this.value?'#a5d6a7':'#ef9a9a';"
-                                            style="border:1px solid ${dateSubmitted?'#a5d6a7':'#ef9a9a'};border-radius:4px;padding:3px 6px;font-size:0.67rem;background:${dateSubmitted?'#c8e6c9':'#ffcdd2'};color:${dateSubmitted?'#2e7d32':'#c62828'};font-weight:700;">
-                                    </label>
-                                    <label style="font-size:0.67rem;color:#555;display:flex;align-items:center;gap:5px;white-space:nowrap;">
-                                        <i class="fas fa-clock" style="color:#1b5e20;"></i> Period Covered:
-                                        <input type="text" value="${periodCovered}" ${canEdit?'':'disabled'}
-                                            placeholder="e.g. December 2025"
-                                            oninput="kpmSet('${pnSafe}','${activeMo}','${activeRole}','periodCovered',this.value)"
-                                            style="border:1px solid #ccc;border-radius:4px;padding:3px 6px;font-size:0.67rem;width:140px;">
-                                    </label>
-                                </div>
-                            </div>
-                            <!-- KPM Table — exact structure per Excel FM-RNI-04-04 Rev.4 -->
-                            <div style="font-size:0.6rem;color:#888;padding:3px 10px 2px;background:#f5f5f5;border-top:1px solid #e0e0e0;display:flex;align-items:center;gap:4px;">
-                                <i class="fas fa-arrows-left-right" style="color:#2e7d32;"></i> Scroll horizontally to see all columns
-                            </div>
-                            <div style="overflow-x:auto;overflow-y:auto;max-height:500px;cursor:grab;max-width:100%;" onmousedown="this.style.cursor='grabbing'" onmouseup="this.style.cursor='grab'">
-                                <table style="border-collapse:collapse;font-size:0.7rem;table-layout:fixed;width:max-content;min-width:100%;">
-                                    <colgroup>
-                                        <col style="width:28px;">   <!-- # KPM -->
-                                        <col style="width:140px;">  <!-- Work Process -->
-                                        <col style="width:130px;">  <!-- Deliverables -->
-                                        <col style="width:68px;">   <!-- DW -->
-                                        <col style="width:155px;">  <!-- Measure -->
-                                        <col style="width:48px;">   <!-- Grade 1 -->
-                                        <col style="width:48px;">   <!-- Grade 2 -->
-                                        <col style="width:48px;">   <!-- Grade 3 -->
-                                        <col style="width:48px;">   <!-- Grade 4 -->
-                                        <col style="width:48px;">   <!-- Grade 5 -->
-                                        <col style="width:70px;">   <!-- Statistics -->
-                                        <col style="width:72px;">   <!-- EG -->
-                                        <col style="width:72px;">   <!-- EP -->
-                                        <col style="width:90px;">   <!-- Total % -->
-                                        <col style="width:105px;">  <!-- Immediate Action -->
-                                        <col style="width:95px;">   <!-- Root Cause -->
-                                        <col style="width:105px;">  <!-- Corrective Action -->
-                                        <col style="width:110px;">  <!-- Date of Implementation -->
-                                        <col style="width:85px;">   <!-- Status -->
-                                    </colgroup>
-                                    <thead>
-                                        <!-- Row 1: Section group headers — dark green, white text -->
-                                        <tr style="background:#1b5e20;color:#ffffff;font-size:0.68rem;font-weight:800;text-align:center;">
-                                            <th rowspan="3" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;vertical-align:middle;">#</th>
-                                            <th colspan="4" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);letter-spacing:0.3px;">KEY PERFORMANCE MEASURES</th>
-                                            <th colspan="5" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);letter-spacing:0.3px;">KEY PERFORMANCE INDICATORS</th>
-                                            <th colspan="4" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);letter-spacing:0.3px;">ACTUAL PERFORMANCE RATING</th>
-                                            <th colspan="5" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);letter-spacing:0.3px;">IMPROVEMENT PLAN</th>
-                                        </tr>
-                                        <!-- Row 2: Column labels — slightly lighter green, white text -->
-                                        <tr style="background:#2e7d32;color:#ffffff;font-size:0.63rem;font-weight:700;text-align:center;">
-                                            <th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;white-space:normal;color:#ffffff;">Work<br>Process</th>
-                                            <th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;white-space:normal;color:#ffffff;">Deliverables</th>
-                                            <th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;white-space:normal;color:#ffffff;" title="Deliverable Weight">Deliv.<br>Weight<br>(DW)</th>
-                                            <th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;white-space:normal;color:#ffffff;">Measure</th>
-                                            <th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">75%</th>
-                                            <th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">80%</th>
-                                            <th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">85%</th>
-                                            <th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">90%</th>
-                                            <th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">95%</th>
-                                            <th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;white-space:normal;color:#ffffff;">Statistics</th>
-                                            <th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;white-space:normal;color:#ffffff;">Equivalent<br>Grade<br>(EG)</th>
-                                            <th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;white-space:normal;color:#ffffff;">Equivalent<br>Percentage<br>(EP)</th>
-                                            <th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;white-space:normal;color:#ffffff;">Total %<br>Perf.<br><span style="font-size:0.58rem;font-weight:400;opacity:0.85;">(EP×DW)</span></th>
-                                            <th colspan="5" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);font-size:0.58rem;font-weight:400;font-style:italic;opacity:0.85;color:#ffffff;">Note: Accomplish this portion if grade is below 3 and included in issue log</th>
-                                        </tr>
-                                        <!-- Row 3: Grade numbers + improvement plan sub-labels -->
-                                        <tr style="background:#388e3c;color:#ffffff;font-size:0.65rem;font-weight:700;text-align:center;">
-                                            <th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;font-weight:800;">1</th>
-                                            <th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;font-weight:800;">2</th>
-                                            <th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;font-weight:800;">3</th>
-                                            <th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;font-weight:800;">4</th>
-                                            <th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;font-weight:800;">5</th>
-                                            <th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">Immediate Action</th>
-                                            <th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">Root Cause</th>
-                                            <th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">Corrective Action</th>
-                                            <th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">Date of Implementation</th>
-                                            <th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>${tableRows}</tbody>
-                                    <tfoot>
-                                        <tr style="background:#b7ddb5;font-weight:800;border-top:2px solid #2e7d32;">
-                                            <td style="padding:6px 4px;text-align:center;color:#1b5e20;font-size:0.72rem;border:1px solid #c8e6c9;"></td>
-                                            <td colspan="2" style="padding:6px 8px;text-align:left;color:#1b5e20;font-size:0.72rem;font-weight:700;border:1px solid #c8e6c9;"></td>
-                                            <td style="text-align:center;color:#c62828;font-size:0.75rem;font-weight:800;border:1px solid #c8e6c9;">${(totalDW*100).toFixed(0)}%</td>
-                                            <td colspan="9" style="border:1px solid #c8e6c9;"></td>
-                                            <td id="kpm-total-perf-${pKey}" style="text-align:center;font-size:0.8rem;font-weight:800;color:${perfColor};">${totalPerf > 0 ? (totalPerf*100).toFixed(2)+'%' : '—'}</td>
-                                            <td colspan="5"></td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                            <!-- Footer note -->
-                            <div style="padding:6px 14px;background:#e8f5e9;border-top:1px solid #c8e6c9;font-size:0.65rem;color:#2e7d32;font-weight:600;">
-                                <i class="fas fa-info-circle" style="color:#1b5e20;margin-right:4px;"></i>
-                                NOTES: 1) If the KPM or KPI is not applicable, do not delete the cell/row, put "N/A" or c/o "CO or CEY" instead. 2) Attach the corresponding evidences and/or records. &nbsp;|&nbsp; Doc. Code: FM-RNI-04-04 | Rev. No.:4 | Eff. Date: 06 Aug 2018
-                            </div>
-                        </div>`;
+                        // Month tabs
+                        var curMonthIdx = new Date().getMonth();
+                        var selYear = state.selectedYear || new Date().getFullYear();
+                        var curYear = new Date().getFullYear();
+                        var moTabsHtml = KPM_MONTHS.map(function(mo, idx) {
+                            var isFuture = selYear > curYear || (selYear === curYear && idx > curMonthIdx);
+                            var isPast   = selYear < curYear || (selYear === curYear && idx < curMonthIdx);
+                            var isActive = mo === activeMo;
+                            var dateSubmKey = 'kpm_v3_' + mo + '_dateSubmitted';
+                            var dateSubm = (projs[0] && projs[0].vals[dateSubmKey]) || '';
+                            var hasData = rows.some(function(r) { return projs.some(function(p) { return p.vals['kpm_v3_' + mo + '_' + r.id]; }); });
+                            var tabBg, tabColor, tabBorder;
+                            if (isActive) { tabBg='#1b5e20'; tabColor='white'; tabBorder='2px solid #fbc02d'; }
+                            else if (isFuture) { tabBg='transparent'; tabColor='#bbb'; tabBorder='2px solid transparent'; }
+                            else if (isPast && !dateSubm) { tabBg='#ffcdd2'; tabColor='#c62828'; tabBorder='2px solid #ef9a9a'; }
+                            else if (dateSubm) { tabBg='#c8e6c9'; tabColor='#2e7d32'; tabBorder='2px solid #a5d6a7'; }
+                            else { tabBg='#fff8e1'; tabColor='#e65100'; tabBorder='2px solid #ffe082'; }
+                            var overdueIcon = isPast && !dateSubm && !isActive ? '<sup style="color:#c62828;font-size:0.45rem;margin-left:1px;">!</sup>' : '';
+                            var dataIcon = hasData && !isActive ? '<sup style="color:#fbc02d;font-size:0.5rem;">\u25cf</sup>' : '';
+                            return '<button onclick="window._kpmRegActiveMo=window._kpmRegActiveMo||{};window._kpmRegActiveMo[\'' + regKey + '\']=\'' + mo + '\';render();"'
+                                + ' style="padding:4px 10px;font-size:0.67rem;font-weight:700;border:none;border-radius:4px;cursor:pointer;white-space:nowrap;'
+                                + 'background:' + tabBg + ';color:' + tabColor + ';border-bottom:' + tabBorder + ';' + (isFuture?'opacity:0.55;':'') + '">'
+                                + mo.substring(0,3).toUpperCase() + overdueIcon + dataIcon + '</button>';
+                        }).join('');
+
+                        var dateSubmKey0 = 'kpm_v3_' + activeMo + '_dateSubmitted';
+                        var periodKey0   = 'kpm_v3_' + activeMo + '_periodCovered';
+                        var dateSubm0    = (projs[0] && projs[0].vals[dateSubmKey0]) || '';
+                        var periodCov0   = (projs[0] && projs[0].vals[periodKey0])   || '';
+                        var impPnSafe0   = projs[0] ? projs[0].name.replace(/\\/g,'\\\\').replace(/'/g,"\\'") : '';
+
+                        return '<div style="background:var(--bg-card);border-radius:8px;overflow:hidden;border:1px solid var(--border-color);margin-bottom:6px;">'
+                            // Month tabs row
+                            + '<div style="background:#f8f9fa;border-bottom:2px solid #e8f5e9;padding:6px 10px;display:flex;flex-wrap:wrap;gap:3px;align-items:center;">'
+                            + '<span style="font-size:0.65rem;font-weight:700;color:#888;margin-right:6px;white-space:nowrap;">\uD83D\uDCC5 MONTH:</span>'
+                            + moTabsHtml
+                            + '<div style="margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+                            + '<label style="font-size:0.67rem;color:#555;display:flex;align-items:center;gap:5px;white-space:nowrap;">'
+                            + '<i class="fas fa-calendar-check" style="color:' + (dateSubm0?'#2e7d32':'#c62828') + ';"></i> Date Submitted:'
+                            + '<input type="date" value="' + dateSubm0 + '" ' + (canEdit?'':'disabled')
+                            + ' oninput="(function(v){var p=state.projects.find(function(x){return x.name===\'' + impPnSafe0 + '\';});if(p){p.vals[\'' + dateSubmKey0 + '\']=v;if(typeof markPendingSync===\'function\')markPendingSync();}this.style.background=v?\'#c8e6c9\':\'#ffcdd2\';this.style.color=v?\'#2e7d32\':\'#c62828\';})(this.value)"'
+                            + ' style="border:1px solid ' + (dateSubm0?'#a5d6a7':'#ef9a9a') + ';border-radius:4px;padding:3px 6px;font-size:0.67rem;background:' + (dateSubm0?'#c8e6c9':'#ffcdd2') + ';color:' + (dateSubm0?'#2e7d32':'#c62828') + ';font-weight:700;">'
+                            + '</label>'
+                            + '<label style="font-size:0.67rem;color:#555;display:flex;align-items:center;gap:5px;white-space:nowrap;">'
+                            + '<i class="fas fa-clock" style="color:#1b5e20;"></i> Period Covered:'
+                            + '<input type="text" value="' + periodCov0 + '" ' + (canEdit?'':'disabled')
+                            + ' placeholder="e.g. ' + activeMo + ' ' + selYear + '"'
+                            + ' oninput="(function(v){var p=state.projects.find(function(x){return x.name===\'' + impPnSafe0 + '\';});if(p){p.vals[\'' + periodKey0 + '\']=v;if(typeof markPendingSync===\'function\')markPendingSync();}})(this.value)"'
+                            + ' style="border:1px solid #ccc;border-radius:4px;padding:3px 6px;font-size:0.67rem;width:140px;">'
+                            + '</label></div></div>'
+                            // Scroll hint
+                            + '<div style="font-size:0.6rem;color:#888;padding:3px 10px 2px;background:#f5f5f5;border-top:1px solid #e0e0e0;display:flex;align-items:center;gap:4px;">'
+                            + '<i class="fas fa-arrows-left-right" style="color:#2e7d32;"></i> Scroll horizontally to see all project columns</div>'
+                            // Table
+                            + '<div style="overflow-x:auto;overflow-y:auto;max-height:600px;cursor:grab;" onmousedown="this.style.cursor=\'grabbing\'" onmouseup="this.style.cursor=\'grab\'">'
+                            + '<table style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
+                            + '<thead>'
+                            + '<tr style="background:#1b5e20;color:#fff;font-size:0.67rem;font-weight:800;text-align:center;">'
+                            + '<th rowspan="3" style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;width:22px;min-width:22px;max-width:22px;text-align:center;">#</th>'
+                            + '<th colspan="4" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);">KEY PERFORMANCE MEASURES</th>'
+                            + '<th colspan="5" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);">KEY PERFORMANCE INDICATORS</th>'
+                            + '<th colspan="' + projs.length + '" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);background:#0d3d0f;">ACTUAL PERFORMANCE RATING \u2014 EQUIVALENT PERCENTAGE (EP)</th>'
+                            + '<th rowspan="3" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;min-width:60px;white-space:normal;">AVG<br>EP</th>'
+                            + '<th rowspan="3" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;min-width:68px;white-space:normal;">Total %<br>Perf.<br><span style="font-size:0.57rem;font-weight:400;">(Avg EP\u00d7DW)</span></th>'
+                            + '<th colspan="5" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);font-size:0.57rem;font-weight:400;font-style:italic;">Note: Accomplish if grade below 3 and in issue log</th>'
+                            + '</tr>'
+                            + '<tr style="background:#2e7d32;color:#fff;font-size:0.62rem;font-weight:700;text-align:center;">'
+                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;min-width:130px;white-space:normal;">Work Process</th>'
+                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;min-width:130px;white-space:normal;">Deliverables</th>'
+                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;min-width:46px;white-space:normal;">DW</th>'
+                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;min-width:150px;white-space:normal;">Measure</th>'
+                            + '<th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);min-width:40px;">75%</th>'
+                            + '<th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);min-width:40px;">80%</th>'
+                            + '<th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);min-width:40px;">85%</th>'
+                            + '<th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);min-width:40px;">90%</th>'
+                            + '<th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);min-width:40px;">95%</th>'
+                            + projHeaderCols
+                            + '<th colspan="5" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);font-size:0.58rem;font-weight:400;font-style:italic;background:#1b6e1f;">IMPROVEMENT PLAN</th>'
+                            + '</tr>'
+                            + '<tr style="background:#388e3c;color:#fff;font-size:0.63rem;font-weight:700;text-align:center;">'
+                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);">1</th>'
+                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);">2</th>'
+                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);">3</th>'
+                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);">4</th>'
+                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);">5</th>'
+                            + projGradeRow3Cols
+                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);background:#0d3d0f;color:#a5d6a7;">Immediate Action</th>'
+                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);background:#0d3d0f;color:#a5d6a7;">Root Cause</th>'
+                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);background:#0d3d0f;color:#a5d6a7;">Corrective Action</th>'
+                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);background:#0d3d0f;color:#a5d6a7;">Date of Impl.</th>'
+                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);background:#0d3d0f;color:#a5d6a7;">Status</th>'
+                            + '</tr></thead>'
+                            + '<tbody>' + tableRows + '</tbody>'
+                            + '<tfoot><tr style="background:#b7ddb5;font-weight:800;border-top:2px solid #2e7d32;">'
+                            + '<td style="border:1px solid #c8e6c9;padding:3px 2px;width:22px;min-width:22px;max-width:22px;"></td>'
+                            + '<td colspan="2" style="border:1px solid #c8e6c9;padding:6px 8px;font-size:0.7rem;color:#1b5e20;">TOTAL</td>'
+                            + '<td style="text-align:center;color:#c62828;font-size:0.75rem;font-weight:800;border:1px solid #c8e6c9;">' + (totalDW*100).toFixed(0) + '%</td>'
+                            + '<td colspan="' + (5 + projs.length + 1) + '" style="border:1px solid #c8e6c9;"></td>'
+                            + '<td id="kpm-grand-tot-' + regKey + '" style="text-align:center;font-size:0.82rem;font-weight:800;color:' + grandColor + ';border:1px solid #c8e6c9;">' + (grandTotal > 0 ? (grandTotal*100).toFixed(2)+'%' : '\u2014') + '</td>'
+                            + '<td colspan="5" style="border:1px solid #c8e6c9;"></td>'
+                            + '</tr></tfoot></table></div>'
+                            + '<div style="padding:6px 14px;background:#e8f5e9;border-top:1px solid #c8e6c9;font-size:0.65rem;color:#2e7d32;font-weight:600;">'
+                            + '<i class="fas fa-info-circle" style="color:#1b5e20;margin-right:4px;"></i>'
+                            + 'NOTES: 1) Enter EP per project directly as % (e.g. 85%). 2) AVG EP = average of all project EPs per row. 3) Total % = Avg EP \u00d7 DW. \u00a0|\u00a0 Doc. Code: FM-RNI-04-04 | Rev. No.:4 | Eff. Date: 06 Aug 2018'
+                            + '</div></div>';
                     }
 
                     // ── Render per region ──
-                    REGIONS.forEach(reg => {
+                    if (!window._kpmRegActiveMo) window._kpmRegActiveMo = {};
+                    REGIONS.forEach(function(reg) {
                         if (reg === 'CORPORATE' || reg === 'PLANT OPERATIONS') return;
-                        const projs = displayProjects.filter(p => p.region === reg);
+                        var projs = displayProjects.filter(function(p) { return p.region === reg; });
                         if (!projs.length) return;
-                        const canEditReg = UserAccounts.canEdit(state.currentUser?.email, reg) && UserAccounts.canEditTab(state.currentUser?.email, 'kpm');
-                        const isCollapsed = isRegionCollapsed(reg);
+                        var canEditReg = UserAccounts.canEdit(state.currentUser && state.currentUser.email, reg) && UserAccounts.canEditTab(state.currentUser && state.currentUser.email, 'kpm');
+                        var isCollapsed = isRegionCollapsed(reg);
+                        var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
+                        var activeMo = (window._kpmRegActiveMo && window._kpmRegActiveMo[regKey]) || 'January';
 
-                        html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed?'collapsed':''}" onclick="toggleRegion('${reg}',event)">
-                            <div class="region-banner-inner">
-                                <div class="region-banner-left">
-                                    <i class="fas fa-location-dot region-icon"></i>
-                                    <span class="region-name">${reg}</span>
-                                    ${!canEditReg?'<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="View Only"></i>':''}
-                                </div>
-                                <div class="region-banner-right">
-                                    <span class="rbadge rbadge-count">${projs.length} PROJ</span>
-                                    <i class="fas fa-chevron-down region-toggle-icon"></i>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="region-content-${reg}" class="region-content ${isCollapsed?'collapsed':''}">`;
+                        html += '<div id="region-banner-' + reg + '" class="region-banner region-' + reg.toLowerCase() + ' ' + (isCollapsed?'collapsed':'') + '" onclick="toggleRegion(\'' + reg + '\',event)">'
+                            + '<div class="region-banner-inner">'
+                            + '<div class="region-banner-left">'
+                            + '<i class="fas fa-location-dot region-icon"></i>'
+                            + '<span class="region-name">' + reg + '</span>'
+                            + (!canEditReg ? '<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="View Only"></i>' : '')
+                            + '</div>'
+                            + '<div class="region-banner-right">'
+                            + '<span class="rbadge rbadge-count">' + projs.length + ' PROJ</span>'
+                            + '<i class="fas fa-chevron-down region-toggle-icon"></i>'
+                            + '</div></div></div>'
+                            + '<div id="region-content-' + reg + '" class="region-content ' + (isCollapsed?'collapsed':'') + '">';
 
-                        // ── NEXT/PREV NAV ──
-                        const _kpmNk = _tabNavKey('kpm', reg);
-                        let _kpmIdx = Math.min(_tabRegionProjectIdx[_kpmNk] || 0, projs.length - 1);
-                        _tabRegionProjectIdx[_kpmNk] = _kpmIdx;
-                        if (projs.length > 1) html += _tabNavBar('kpm', reg, _kpmIdx, projs.length);
-                        const _kpmProj = projs[_kpmIdx];
-                        // ✅ FIX: KPM inputs require global edit button
-                        html += buildKpmForm(_kpmProj, state.isEditing && canEditReg);
-                        html += `</div>`;
+                        html += buildKpmRegionTable(projs, reg, activeMo, canEditReg);
+                        html += '</div>';
                     });
+
                     container.innerHTML = html;
                     return; // ── KPM rendering done, skip the rest ──
                 }
@@ -22829,7 +22996,28 @@ async function loadAllProjectsAndFilter() {
                 _personnelFromDedicatedDoc: personnelFromDB !== null // true if loaded from per-person docs
             }));
             localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
-        } catch(e) { console.warn('Cache save failed:', e.message); }
+        } catch(e) {
+            if (e && e.name === 'QuotaExceededError') {
+                // Try clearing old year caches then retry
+                try {
+                    const _yr = state.selectedYear || 2026;
+                    for (let _ci = localStorage.length - 1; _ci >= 0; _ci--) {
+                        const _ck = localStorage.key(_ci);
+                        if (_ck && (
+                            (_ck.startsWith('esh_dashboard_') && !_ck.includes('_' + _yr + '_')) ||
+                            _ck === 'esh_login_logbook' || _ck === 'esh_audit_log'
+                        )) { try { localStorage.removeItem(_ck); } catch(e2){} }
+                    }
+                    localStorage.setItem(CACHE_KEY, JSON.stringify({
+                        projects: state.projects, masterProjects: state.masterProjects,
+                        personnelData: state.personnelData, incidentRateData: state.incidentRateData,
+                        oshData: state.oshData, _personnelFromDedicatedDoc: personnelFromDB !== null
+                    }));
+                    localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
+                    console.log('✅ Projects cache saved after freeing old data');
+                } catch(e2) { console.warn('⚠️ Projects cache skipped — localStorage full. Using Firebase.'); }
+            } else { console.warn('Cache save failed:', e.message); }
+        }
 
         // Re-render with fresh data
         render();
@@ -23156,6 +23344,8 @@ function setupAuthObserver() {
             
             // Start ESH Calendar real-time sync so plan changes are visible to all accounts instantly
             startEshCalendarSync();
+            // Start Firestore real-time listener — pushes project data updates to all logged-in accounts
+            setTimeout(startProjectsRealtimeSync, 1500); // slight delay so initial load completes first
             
             console.log('✅ All systems initialized successfully!');
             // ==================== END NEW SYSTEMS ====================
@@ -28248,7 +28438,39 @@ function getEshStorage() {
 
 function setEshStorage(data) {
     // 1. Write to localStorage immediately (instant local render)
-    localStorage.setItem('esh_calendar_data', JSON.stringify(data));
+    const _serialized = JSON.stringify(data);
+    try {
+        localStorage.setItem('esh_calendar_data', _serialized);
+    } catch(e) {
+        if (e && e.name === 'QuotaExceededError') {
+            // localStorage is full — clear old ESH calendar cache then retry once
+            console.warn('⚠️ localStorage quota exceeded — clearing old ESH cache and retrying...');
+            try {
+                // Remove only stale keys — keep current esh_calendar_data + current year data
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    // Clear old year caches and logbook/audit to free space
+                    if (k && (
+                        k.startsWith('esh_dashboard_201') ||
+                        k.startsWith('esh_dashboard_202') && !k.includes('_2026_') && !k.includes('_2027_') ||
+                        k === 'esh_login_logbook' ||
+                        k === 'esh_audit_log' ||
+                        k === 'esh_projects_cache'
+                    )) keysToRemove.push(k);
+                }
+                keysToRemove.forEach(k => { try { localStorage.removeItem(k); } catch(e2){} });
+                // Retry
+                localStorage.setItem('esh_calendar_data', _serialized);
+                console.log('✅ ESH storage saved after clearing old cache (' + keysToRemove.length + ' keys freed)');
+            } catch(e2) {
+                // Still failing — skip localStorage, rely on Firebase only
+                console.warn('⚠️ localStorage still full after cleanup — relying on Firebase sync only. Data is NOT lost.');
+            }
+        } else {
+            console.warn('setEshStorage localStorage error:', e);
+        }
+    }
 
     // 2. Push to Firebase Realtime DB (broadcast to all accounts)
     _eshSaveToFirebase(data);
@@ -28290,6 +28512,98 @@ window.eshFetchAndRender = eshFetchAndRender;
 // Call this once after login to start listening for remote changes from other accounts
 let _eshLastLocalWrite = 0; // timestamp of last local write — used to skip self-triggered re-renders
 
+
+// ── Real-time Firestore listener for project data ──────────────────────────
+// Pushes project updates to ALL logged-in accounts when any account saves.
+// Uses onSnapshot on the current year's projects subcollection.
+let _projectsSnapshotUnsubscribe = null;
+
+function startProjectsRealtimeSync() {
+    if (!window.firebaseDb || !window.firebase || !window.firebase.collection || !window.firebase.onSnapshot) return;
+    if (_projectsSnapshotUnsubscribe) { try { _projectsSnapshotUnsubscribe(); } catch(e){} }
+
+    const dataUserId = getDataSourceUserId();
+    const year = state.selectedYear || new Date().getFullYear();
+    const projColRef = window.firebase.collection(
+        window.firebaseDb, 'users', dataUserId, 'years', year.toString(), 'projects'
+    );
+
+    let _firstSnapshot = true; // skip first snapshot (that's our own data we already have)
+    _projectsSnapshotUnsubscribe = window.firebase.onSnapshot(projColRef, (snapshot) => {
+        if (_firstSnapshot) { _firstSnapshot = false; return; } // skip initial load
+        if (snapshot.empty) return;
+
+        let changed = false;
+        snapshot.docChanges().forEach(change => {
+            if (change.type === 'added' || change.type === 'modified') {
+                const remoteProj = change.doc.data();
+                if (!remoteProj || !remoteProj.name) return;
+
+                // Update masterProjects
+                const masterIdx = state.masterProjects.findIndex(p => p.name === remoteProj.name);
+                if (masterIdx >= 0) {
+                    // Deep-merge vals only — preserve local UI state
+                    const existing = state.masterProjects[masterIdx];
+                    state.masterProjects[masterIdx] = Object.assign({}, existing, remoteProj, {
+                        vals: Object.assign({}, existing.vals || {}, remoteProj.vals || {})
+                    });
+                } else {
+                    state.masterProjects.push(remoteProj);
+                }
+
+                // Update state.projects (current year view)
+                const projIdx = state.projects.findIndex(p => p.name === remoteProj.name);
+                if (projIdx >= 0) {
+                    const existing = state.projects[projIdx];
+                    state.projects[projIdx] = Object.assign({}, existing, remoteProj, {
+                        vals: Object.assign({}, existing.vals || {}, remoteProj.vals || {})
+                    });
+                } else {
+                    // Only add if it belongs to current year
+                    state.projects.push(remoteProj);
+                }
+                changed = true;
+            }
+            if (change.type === 'removed') {
+                const removedName = change.doc.data()?.name;
+                if (removedName) {
+                    state.masterProjects = state.masterProjects.filter(p => p.name !== removedName);
+                    state.projects = state.projects.filter(p => p.name !== removedName);
+                    changed = true;
+                }
+            }
+        });
+
+        if (changed) {
+            console.log('🔄 Real-time project update received — re-rendering...');
+            try { render(); } catch(e) {}
+            try { renderPTable(); } catch(e) {}
+            // Also re-render current tab if it's a data tab
+            const dataTabs = ['nov','nov-env','kpm','activities','exposures','rates','medical','dole','emb','permits',
+                              'env-monitoring','lta-registry','health-report','cshp','reg','audit','env-monthly-report'];
+            if (state.currentTab && dataTabs.includes(state.currentTab)) {
+                try {
+                    if (typeof renderOshNovTab === 'function' && state.currentTab === 'nov') renderOshNovTab();
+                    else if (typeof renderNovEnvTab === 'function' && state.currentTab === 'nov-env') renderNovEnvTab();
+                    else if (typeof renderLtaRegistryTab === 'function' && state.currentTab === 'lta-registry') renderLtaRegistryTab();
+                    else if (typeof renderHealthReportTab === 'function' && state.currentTab === 'health-report') renderHealthReportTab();
+                } catch(e) {}
+            }
+        }
+    }, (err) => {
+        console.warn('⚠️ Projects real-time sync error:', err.message);
+    });
+    console.log('✅ Projects real-time sync started (year ' + year + ')');
+}
+window.startProjectsRealtimeSync = startProjectsRealtimeSync;
+
+// Stop and restart listener when year changes
+const _origChangeYear = window.changeYear;
+window.changeYear = function(yr) {
+    if (typeof _origChangeYear === 'function') _origChangeYear(yr);
+    setTimeout(startProjectsRealtimeSync, 500); // restart listener for new year
+};
+
 function startEshCalendarSync() {
     if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.onValue) return;
     if (_eshCalendarUnsubscribe) { try { _eshCalendarUnsubscribe(); } catch(e){} }
@@ -28304,7 +28618,15 @@ function startEshCalendarSync() {
         const merged = Object.assign({}, local, remoteData);
 
         // Write merged back to localStorage silently (no Firebase re-push — avoid loop)
-        try { localStorage.setItem('esh_calendar_data', JSON.stringify(merged)); } catch(e){}
+        try { localStorage.setItem('esh_calendar_data', JSON.stringify(merged)); } catch(e){
+            if (e && e.name === 'QuotaExceededError') {
+                // Free old year caches then retry
+                try {
+                    ['esh_login_logbook','esh_audit_log','esh_projects_cache'].forEach(k => { try { localStorage.removeItem(k); } catch(e2){} });
+                    localStorage.setItem('esh_calendar_data', JSON.stringify(merged));
+                } catch(e2) { /* still full — Firebase is source of truth */ }
+            }
+        }
 
         // Re-render ALL visible ESH tabs/regions — no skip so all accounts see plan changes
         const eshTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
@@ -28381,6 +28703,36 @@ migrateEshAddYearPrefix();
 
 // Expose to window so other parts of the app (e.g. render()) can access these
 window.getEshStorage = getEshStorage;
+
+// ── Global localStorage health check: run on startup to free space proactively ──
+(function _eshLocalStorageHealthCheck() {
+    try {
+        // Estimate usage
+        let total = 0;
+        for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k) total += (k.length + (localStorage.getItem(k) || '').length) * 2;
+        }
+        const usedKB = Math.round(total / 1024);
+        if (usedKB > 3500) { // over ~3.5MB of 5MB limit
+            console.warn('⚠️ localStorage near quota (' + usedKB + 'KB used) — auto-cleaning old data...');
+            const yr = (window.state && window.state.selectedYear) || new Date().getFullYear();
+            let freed = 0;
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+                const k = localStorage.key(i);
+                if (!k) continue;
+                if (
+                    (k.startsWith('esh_dashboard_') && !k.includes('_' + yr + '_')) ||
+                    k === 'esh_login_logbook' || k === 'esh_audit_log' ||
+                    k.startsWith('esh_projects_cache_')
+                ) {
+                    try { localStorage.removeItem(k); freed++; } catch(e){}
+                }
+            }
+            console.log('✅ Auto-cleaned ' + freed + ' old localStorage keys (' + usedKB + 'KB freed)');
+        }
+    } catch(e) {}
+})();
 window.ESH_DRILLS = ESH_DRILLS;
 window.ESH_TRAININGS = ESH_TRAININGS;
 
@@ -28712,6 +29064,10 @@ function renderEshCalendar(tabType) {
     /* Scheduled/planned: warm amber that sits nicely against the green */
     .esh-td-plan.esh-planned { background: #f9a825 !important; }
     .esh-td-plan.esh-planned:hover { background: #f9a825 !important; }
+    /* Not planned: greyed out actual cell — blocked */
+    .esh-td-actual.esh-not-planned { background: #f0f0f0 !important; cursor: not-allowed; }
+    .esh-td-actual.esh-not-planned input[type="date"] { pointer-events: none; cursor: not-allowed; opacity: 0.35; }
+    .esh-td-actual.esh-not-planned input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
     /* Locked (non-admin/PCO): same tint, no pointer */
     .esh-td-plan.esh-plan-locked { cursor: not-allowed !important; }
     .esh-td-plan.esh-plan-locked:hover { background: #fff9c4 !important; }
@@ -28731,7 +29087,7 @@ function renderEshCalendar(tabType) {
     /* FIX: white text on solid colored fills for maximum readability */
     .esh-td-actual.esh-done   input[type="date"] { color: #fff; font-weight: 700; }
     .esh-td-actual.esh-overdue input[type="date"] { color: #fff; font-weight: 700; }
-    .esh-td-actual input[type="date"]::-webkit-calendar-picker-indicator { filter: opacity(0.5) invert(1); cursor: pointer; }
+    .esh-td-actual input[type="date"]::-webkit-calendar-picker-indicator { filter: opacity(0.8); cursor: pointer; }
     .esh-td-actual.esh-done input[type="date"]::-webkit-calendar-picker-indicator,
     .esh-td-actual.esh-overdue input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.8); }
     .esh-freq-badge {
@@ -28857,12 +29213,21 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                 const maxDate = getMaxDateForMonth(mi);
                 const minDate = getMinDateForMonth(mi);
                 const planDisabled = !isAdmin ? 'disabled title="🔒 Admin only — Cannot set Plan/Schedule"' : '';
-                const dateDisabled = (!canEdit || isFuture) ? `disabled title="${!canEdit ? '🔒 Read-only for your role/region' : '📅 Cannot enter future dates'}"` : '';
+
+                // ── All trainings: no future lock — actual dates can be entered in any month
+                //    (trainings may be advanced or delayed depending on schedule/availability)
+                // ── PLANNED GATE: disabled if no yellow cell, regardless of month
+                const _notPlannedDisabled = !isPlanned ? `disabled title="🔒 Not scheduled — Admin must set this month as planned (yellow) first"` : '';
+                const dateDisabled = !canEdit ? `disabled title="🔒 Read-only for your role/region"` : _notPlannedDisabled;
+                // No min/max — actual date may fall in a different month than planned
+                const effectiveMax = '';
+                const effectiveMin = '';
 
                 let actualClass = 'esh-td-actual';
                 let actualBg = '';
                 if (done) { actualClass += ' esh-done'; actualBg = ''; }
                 else if (overdue) { actualClass += ' esh-overdue'; actualBg = ''; }
+                if (!isPlanned) actualClass += ' esh-not-planned';
 
                 html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}${!isAdmin?' esh-plan-locked':''}"
                     data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}"
@@ -28871,8 +29236,8 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                 </td>`;
                 html += `<td class="${actualClass}">
                     <input type="date" value="${actualVal}" ${dateDisabled}
-                        ${maxDate ? `max="${maxDate}"` : ''} min="${minDate}"
-                        onchange="eshSetActual('${tabType}','${proj.name}',${ti},${mi},this.value,this.closest('td'))">
+                        ${effectiveMax} ${effectiveMin}
+                        onchange="eshSetActual('${tabType}','${proj.name}',${storageIdx},${mi},this.value,this.closest('td'))">
                 </td>`;
             });
             html += `</tr>`;
@@ -28945,11 +29310,18 @@ function buildDrillsSingleTable(projects, storage, col) {
                 const maxDate = getMaxDateForMonth(mi);
                 const minDate = getMinDateForMonth(mi);
                 const planDisabled = !isAdmin ? 'disabled title="🔒 Admin only — Cannot set Plan/Schedule"' : '';
-                const dateDisabled = (!canEdit || isFuture) ? `disabled title="${!canEdit ? '🔒 Read-only for your role/region' : '📅 Cannot enter future dates'}"` : '';
+                // ── RULE: Drills can be conducted in any month (BFP slot availability, rescheduling, etc.)
+                //    Future month lock is removed — allow advance actual date entry for drills.
+                // ── PLANNED GATE: disabled if no yellow cell, regardless of month
+                const _drillNotPlannedDisabled = !isPlanned ? `disabled title="🔒 Not scheduled — Admin must set this month as planned (yellow) first"` : '';
+                const dateDisabled = !canEdit ? `disabled title="🔒 Read-only for your role/region"` : _drillNotPlannedDisabled;
+                // No min/max for drills — the actual date may be in a different month than planned
+                const effectiveMax = '';
                 let actualClass = 'esh-td-actual';
                 let actualBg = '';
                 if (done) { actualClass += ' esh-done'; actualBg = ''; }
                 else if (overdue) { actualClass += ' esh-overdue'; actualBg = ''; }
+                if (!isPlanned) actualClass += ' esh-not-planned';
                 html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}${!isAdmin?' esh-plan-locked':''}"
                     data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}"
                     onclick="event.stopPropagation();eshSetPlan('${tabType}','${proj.name}',${storageIdx},${mi},null,this)"
@@ -28957,7 +29329,7 @@ function buildDrillsSingleTable(projects, storage, col) {
                 </td>`;
                 html += `<td class="${actualClass}">
                     <input type="date" value="${actualVal}" ${dateDisabled}
-                        ${maxDate ? `max="${maxDate}"` : ''} min="${minDate}"
+                        ${effectiveMax}
                         onchange="eshSetActual('${tabType}','${proj.name}',${storageIdx},${mi},this.value,this.closest('td'))">
                 </td>`;
             });
@@ -29002,6 +29374,25 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
     storage[key] = nowPlanned;
     setEshStorage(storage);
 
+    // If unscheduling, clear the actual date and disable the actual cell
+    if (!nowPlanned) {
+        const actualKeyToRemove = getEshKey(tabType, projName, ti, mi, 'actual');
+        if (storage[actualKeyToRemove]) {
+            delete storage[actualKeyToRemove];
+            setEshStorage(storage);
+        }
+        // Always update DOM — disable actual cell regardless of whether date existed
+        document.querySelectorAll(`.esh-td-actual`).forEach(cell => {
+            const planSib = cell.previousElementSibling;
+            if (planSib && planSib.dataset && planSib.dataset.tabtype === tabType
+                && planSib.dataset.ti === String(ti) && planSib.dataset.mi === String(mi)) {
+                const inp = cell.querySelector('input[type="date"]');
+                if (inp) { inp.value = ''; inp.disabled = true; inp.title = '🔒 Not scheduled — Admin must set this month as planned (yellow) first'; inp.style.color = ''; inp.style.fontWeight = ''; }
+                cell.classList.remove('esh-done', 'esh-overdue');
+                cell.classList.add('esh-not-planned');
+            }
+        });
+    }
     // In-place DOM update: toggle ALL matching plan cells on the page
     // without re-rendering tables (which resets display:none and collapses regions)
     const planTitle = nowPlanned ? 'Click to unschedule' : 'Click to schedule';
@@ -29011,6 +29402,29 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
     ).forEach(cell => {
         cell.classList.toggle('esh-planned', nowPlanned);
         cell.title = planTitle;
+        // Toggle the adjacent actual cell's disabled state
+        const actualSib = cell.nextElementSibling;
+        if (actualSib && actualSib.classList.contains('esh-td-actual')) {
+            const inp = actualSib.querySelector('input[type="date"]');
+            if (inp) {
+                if (nowPlanned) {
+                    // Enable if user has edit permission
+                    const _canEditNow = eshCanEdit(tabType, (state && state.projects ? state.projects : []).find(p => p.name === projName)?.region);
+                    if (_canEditNow) {
+                        inp.disabled = false;
+                        inp.title = '';
+                        inp.style.opacity = '';
+                        inp.style.pointerEvents = '';
+                        inp.style.cursor = '';
+                        actualSib.classList.remove('esh-not-planned');
+                    }
+                } else {
+                    inp.disabled = true;
+                    inp.title = '🔒 Not scheduled — Admin must set this month as planned (yellow) first';
+                    actualSib.classList.add('esh-not-planned');
+                }
+            }
+        }
     });
 
     // Also update clicked cell directly (safety fallback)
@@ -29029,21 +29443,26 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
         if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
         return;
     }
-
-    // Validate: cannot enter future dates
+    // PLANNED GATE: only allow actual date if this cell is planned (yellow)
+    // Exception: future months are always allowed (advance scheduling)
+    // Check both: the DOM (primary) and storage (fallback) to avoid stale-data issues
     if (value) {
-        const today = new Date().toISOString().split('T')[0];
-        if (value > today) {
-            showToast("⚠️ Future dates are not allowed. Please enter today's date or a past date.", 'warning', 4000);
+        const _eshStorageCheck = getEshStorage();
+        const _planKey = getEshKey(tabType, projName, ti, mi, 'plan');
+        const _isPlannedInStorage = !!_eshStorageCheck[_planKey];
+        const _isPlannedInDom = tdEl ? !!tdEl.previousElementSibling?.classList.contains('esh-planned') : false;
+        if (!_isPlannedInStorage && !_isPlannedInDom) {
+            showToast('🔒 Not scheduled — Admin must mark this month as planned (yellow) before entering actual date.', 'warning', 4000);
             if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
             return;
         }
-        // Also validate it's within the correct month
+    }
+
+    // All trainings and drills: only validate the year (no month or future restrictions)
+    if (value) {
         const expectedYear = (state && state.selectedYear) || 2026;
-        const expectedMonth = String(mi + 1).padStart(2, '0');
-        const expectedPrefix = `${expectedYear}-${expectedMonth}`;
-        if (!value.startsWith(expectedPrefix)) {
-            showToast(`⚠️ The date must fall within the correct month (${ESH_MONTHS[mi]} ${expectedYear}).`, 'warning', 4000);
+        if (!value.startsWith(String(expectedYear))) {
+            showToast(`⚠️ The date must be within ${expectedYear}.`, 'warning', 4000);
             if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
             return;
         }
@@ -29056,21 +29475,19 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
 
     // Update cell color in-place via CSS classes (no re-render = no scroll reset)
     if (tdEl) {
-        tdEl.classList.remove('esh-done', 'esh-overdue');
+        tdEl.classList.remove('esh-done', 'esh-overdue', 'esh-not-planned');
         tdEl.style.background = ''; // Clear any inline override
+        const inp = tdEl.querySelector('input[type="date"]');
         if (value) {
             tdEl.classList.add('esh-done');
-            const inp = tdEl.querySelector('input[type="date"]');
-            if (inp) { inp.style.color = '#fff'; inp.style.fontWeight = '700'; }
+            if (inp) { inp.style.color = '#fff'; inp.style.fontWeight = '700'; inp.disabled = false; inp.style.opacity = ''; inp.style.pointerEvents = ''; }
         } else {
             const planKey = getEshKey(tabType, projName, ti, mi, 'plan');
             const isPlanned = !!(storage[planKey]);
             if (isPlanned && isMonthOverdue(mi)) {
                 tdEl.classList.add('esh-overdue');
-                const inp = tdEl.querySelector('input[type="date"]');
                 if (inp) { inp.style.color = '#fff'; inp.style.fontWeight = '700'; }
             } else {
-                const inp = tdEl.querySelector('input[type="date"]');
                 if (inp) { inp.style.color = ''; inp.style.fontWeight = ''; }
             }
         }
@@ -29265,8 +29682,8 @@ function renderCorpDrillsTab() {
                 data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}"
                 onclick="event.stopPropagation();eshSetPlan('${tabType}','${projName}',${storageIdx},${mi},null,this)"
                 title="${!canEdit ? '🔒 Admin only' : isPlanned ? 'Click to unschedule' : 'Click to schedule'}"></td>`;
-            html += `<td class="${actualClass}"><input type="date" value="${actualVal}" ${(!canEdit||isFuture) ? 'disabled' : ''}
-                ${maxDate ? `max="${maxDate}"` : ''} min="${minDate}"
+            // ── RULE: Corp drills can be rescheduled — no future month lock
+            html += `<td class="${actualClass}"><input type="date" value="${actualVal}" ${!canEdit ? 'disabled' : ''}
                 onchange="eshSetActual('${tabType}','${projName}',${storageIdx},${mi},this.value,this.closest('td'))"></td>`;
         });
         html += `</tr>`;
