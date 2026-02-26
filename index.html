@@ -12366,15 +12366,19 @@ function updateAuditData(pName, qtr, field, val) {
                 return;
             }
             
-            // Limit "No. of Days w/o LTA" to max 31 (calendar days) — monthly columns only (mIdx 1-12)
+            // Limit "No. of Days w/o LTA" to actual days in that month — monthly columns only (mIdx 1-12)
             // PREVIOUS column (mIdx === 0) is consolidated/exempt — no limit
-            if (key === 'exposures_No. of Days w/o LTA' && mIdx !== 0 && !isNaN(numVal) && numVal > 31) {
-                showToast('⚠️ No. of Days w/o LTA cannot exceed 31 (calendar days basis)', 'warning');
-                const input = event?.target;
-                if (input) input.value = '31';
-                val = '31';
+            // mIdx is 1-based (Jan=1...Dec=12); new Date(year, mIdx, 0).getDate() returns last day of that month
+            if (key === 'exposures_No. of Days w/o LTA' && mIdx !== 0 && !isNaN(numVal)) {
+                const currentYear = new Date().getFullYear();
+                const maxDays = new Date(currentYear, mIdx, 0).getDate();
+                if (numVal > maxDays) {
+                    showToast(`⚠️ No. of Days w/o LTA cannot exceed ${maxDays} days for this month`, 'warning');
+                    const input = event?.target;
+                    if (input) input.value = String(maxDays);
+                    val = String(maxDays);
+                }
             }
-            
             if (p) {
                 if (!p.vals[key]) p.vals[key] = new Array(13).fill("");
                 p.vals[key][mIdx] = val;
