@@ -7110,7 +7110,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             
     </main>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -7699,13 +7699,13 @@ const RBAC_ACCOUNTS = [
     { uid: 'm6opwibuujUCci63nUNb6R6Vwse2', email: 'esh@southpco.com.ph', role: 'pco',            displayName: 'South Luzon PCO',               region: 'SOUTH LUZON',         module_access: ['permits','emb','env-monitoring','env-monthly-report','esh-calendar-env'] },
     { uid: 'TH12T1L0G2UYrP5iSwuWL7aLHp93', email: 'esh@visminpco.com.ph',role: 'pco',           displayName: 'Visayas & Mindanao PCO',         region: 'VISAYAS & MINDANAO',  module_access: ['permits','emb','env-monitoring','env-monthly-report','esh-calendar-env'] },
     // ── New Accounts — UIDs na confirmed sa Firebase Auth Console ──
-    { uid: 'RflE3UOhZJM824EqAkB5KuVA3b2',  email: 'esh@tgm.com.ph',      role: 'manager',       displayName: 'TGM Manager',                   region: 'ALL',                 module_access: [] },
-    { uid: 'u8r8wlDOthb5hAR9HwJ0vSQ2',     email: 'esh@mab.com.ph',      role: 'manager',       displayName: 'MAB Manager',                   region: 'ALL',                 module_access: [] },
-    { uid: '3d8uwAYjNPSCcH9Xbu1fsciuJK13', email: 'esh@lmp.com.ph',      role: 'manager',       displayName: 'LMP Manager',                   region: 'ALL',                 module_access: [] },
-    { uid: 'ljciHhNmmGQnriHwbwgeb8Yi2',    email: 'esh@wda.com.ph',      role: 'sysadmin',      displayName: 'WDA System Admin',              region: 'ALL',                 module_access: [] },
-    { uid: 'WYcn1vEPoRTrq8rbrGBFUB9x2',    email: 'esh@corpdc.com.ph',   role: 'doccontroller', displayName: 'Corporate Document Controller', region: 'ALL',                 module_access: [] },
-    { uid: 'b1uiTykyjhN6OIl11Inmv9e6h252', email: 'esh@cbmganda.com.ph', role: 'envi_head',     displayName: 'Environmental Head',            region: 'ALL',                 module_access: ['permits','emb','env-monitoring','env-monthly-report','nov-env','esh-calendar-env','tabulation','got-monitoring'] },
-    { uid: 'EW3RstAsVwNxMHHCNHdV3zWGMt2',  email: 'esh@health.com.ph',   role: 'corp_nurse',    displayName: 'Corporate Nurse',               region: 'ALL',                 module_access: ['medical','health-report','exposures','lta-registry','esh-calendar-health','personnel','osh-requirement'] },
+    { uid: 'RflE3UOhZJM824EqAkB5KuVA3bu1',  email: 'esh@tgm.com.ph',      role: 'manager',       displayName: 'TGM Manager',                   region: 'ALL',                 module_access: [] },
+    { uid: 'u8r8wlD0thb5hAR9HwJ0vSQZC8u1',     email: 'esh@mab.com.ph',      role: 'manager',       displayName: 'MAB Manager',                   region: 'ALL',                 module_access: [] },
+    { uid: '3d8uwAYjNPSCcH9Xbu1fsCiuJK13', email: 'esh@lmp.com.ph',      role: 'manager',       displayName: 'LMP Manager',                   region: 'ALL',                 module_access: [] },
+    { uid: 'ljciHhNmmGQnriHwbwgeb8Yi1V63',    email: 'esh@wda.com.ph',      role: 'sysadmin',      displayName: 'WDA System Admin',              region: 'ALL',                 module_access: [] },
+    { uid: 'WYcn1vEPoRTrq8rbrGBFUB9x4H03',    email: 'esh@corpdc.com.ph',   role: 'doccontroller', displayName: 'Corporate Document Controller', region: 'ALL',                 module_access: [] },
+    { uid: 'b1uiTykyjhN60Il11Inmv9e6h252', email: 'esh@cbmganda.com.ph', role: 'envi_head',     displayName: 'Environmental Head',            region: 'ALL',                 module_access: ['permits','emb','env-monitoring','env-monthly-report','nov-env','esh-calendar-env','tabulation','got-monitoring'] },
+    { uid: 'EW3RstAsVwNxMHHCNHdV3zWGMtt2',  email: 'esh@health.com.ph',   role: 'corp_nurse',    displayName: 'Corporate Nurse',               region: 'ALL',                 module_access: ['medical','health-report','exposures','lta-registry','esh-calendar-health','personnel','osh-requirement'] },
 ];
 
 async function rbacDeployAll() {
@@ -11134,7 +11134,14 @@ debugCommands.help() - Show this help
                 '@ncrpco.com.ph',
                 '@southpco.com.ph',
                 '@northpco.com.ph',
-                '@visminpco.com.ph'
+                '@visminpco.com.ph',
+                '@tgm.com.ph',
+                '@mab.com.ph',
+                '@lmp.com.ph',
+                '@wda.com.ph',
+                '@corpdc.com.ph',
+                '@cbmganda.com.ph',
+                '@health.com.ph'
             ];
             
             const emailLower = email.toLowerCase();
@@ -29391,8 +29398,6 @@ function dismissLoginFlash() {
 })();
 </script>
 <!-- ==================== END GLOBAL: BLOCK FUTURE DATE INPUTS ==================== -->
-</body>
-</html>
 <!-- ==================== TEAM CHAT SYSTEM ==================== -->
 <script>
 // ── TEAM CHAT GLOBALS ──
@@ -29619,4 +29624,7 @@ function chatInputKeydown(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSendMessage(); }
 }
 
-function
+}
+</script>
+</body>
+</html>
