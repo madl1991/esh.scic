@@ -28256,10 +28256,12 @@ function setEshStorage(data) {
 
 function _eshSaveToFirebase(data) {
     try {
-        if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.set) return;
+        if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.update) return;
         _eshLastLocalWrite = Date.now(); // Mark that WE wrote this — suppress self re-render
         const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
-        window.firebase.set(ref, data).catch(e => console.warn('ESH calendar Firebase save failed:', e));
+        // Use update() instead of set() so we only MERGE our keys into Firebase
+        // without overwriting other users' data (e.g. NCR saving won't erase Vismin's entries)
+        window.firebase.update(ref, data).catch(e => console.warn('ESH calendar Firebase save failed:', e));
     } catch(e) { console.warn('ESH calendar Firebase save error:', e); }
 }
 
