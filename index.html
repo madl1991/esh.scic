@@ -5694,6 +5694,10 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 <!-- ── Global RBAC Banner — shown on ALL tabs for superintendent & PCO ── -->
 <div id="global-rbac-banner" style="display:none;margin:10px 20px 0;"></div>
 
+<!-- ── Persistent Chart Containers (outside dashboard-content to prevent flicker on re-render) ── -->
+<div id="trend-chart-persistent-rates" style="display:none; margin-top: 10px; padding: 0 0px;"></div>
+<div id="trend-chart-persistent-medical" style="display:none; margin-top: 10px; padding: 0 0px;"></div>
+
  <div id="dashboard-content" style="margin-top: 10px;"></div>
 
 
@@ -6227,44 +6231,44 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <div class="rbac-row-cell rbac-status-cell" id="rbac-st-TH12T1L0G2UYrP5iSwuWL7aLHp93" style="text-align:center;">—</div>
 
                     <!-- ── Manager rows (View Only) ── -->
-                    <div class="rbac-row-cell rbac-alt"><i class="fas fa-user-tie" style="color:#37474f;margin-right:6px;font-size:0.65rem;"></i>esh@tgm.com.ph</div>
+                    <div class="rbac-row-cell rbac-alt"><i class="fas fa-user-tie" style="color:#37474f;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="791c0a11390d1e14571a1614570911">[email&#160;protected]</a></div>
                     <div class="rbac-row-cell rbac-alt"><span class="adm-admin-tag" style="background:#37474f;">MANAGER</span></div>
                     <div class="rbac-row-cell rbac-alt" style="color:var(--text-secondary);">ALL (View Only)</div>
-                    <div class="rbac-row-cell rbac-alt rbac-status-cell" id="rbac-st-PENDING_tgm" style="text-align:center;">—</div>
+                    <div class="rbac-row-cell rbac-alt rbac-status-cell" id="rbac-st-RflE3UOhZJM824EqAkB5KuVA3b2" style="text-align:center;">—</div>
 
-                    <div class="rbac-row-cell"><i class="fas fa-user-tie" style="color:#37474f;margin-right:6px;font-size:0.65rem;"></i>esh@mab.com.ph</div>
+                    <div class="rbac-row-cell"><i class="fas fa-user-tie" style="color:#37474f;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="8de8fee5cde0ecefa3eee2e0a3fde5">[email&#160;protected]</a></div>
                     <div class="rbac-row-cell"><span class="adm-admin-tag" style="background:#37474f;">MANAGER</span></div>
                     <div class="rbac-row-cell" style="color:var(--text-secondary);">ALL (View Only)</div>
-                    <div class="rbac-row-cell rbac-status-cell" id="rbac-st-PENDING_mab" style="text-align:center;">—</div>
+                    <div class="rbac-row-cell rbac-status-cell" id="rbac-st-u8r8wlDOthb5hAR9HwJ0vSQ2" style="text-align:center;">—</div>
 
-                    <div class="rbac-row-cell rbac-alt"><i class="fas fa-user-tie" style="color:#37474f;margin-right:6px;font-size:0.65rem;"></i>esh@lmp.com.ph</div>
+                    <div class="rbac-row-cell rbac-alt"><i class="fas fa-user-tie" style="color:#37474f;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="197c6a7159757469377a7674376971">[email&#160;protected]</a></div>
                     <div class="rbac-row-cell rbac-alt"><span class="adm-admin-tag" style="background:#37474f;">MANAGER</span></div>
                     <div class="rbac-row-cell rbac-alt" style="color:var(--text-secondary);">ALL (View Only)</div>
-                    <div class="rbac-row-cell rbac-alt rbac-status-cell" id="rbac-st-PENDING_lmp" style="text-align:center;">—</div>
+                    <div class="rbac-row-cell rbac-alt rbac-status-cell" id="rbac-st-3d8uwAYjNPSCcH9Xbu1fsciuJK13" style="text-align:center;">—</div>
 
                     <!-- ── System Admin ── -->
-                    <div class="rbac-row-cell"><i class="fas fa-server" style="color:#b71c1c;margin-right:6px;font-size:0.65rem;"></i>esh@wda.com.ph</div>
+                    <div class="rbac-row-cell"><i class="fas fa-server" style="color:#b71c1c;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="afcadcc7efd8cbce81ccc0c281dfc7">[email&#160;protected]</a></div>
                     <div class="rbac-row-cell"><span class="adm-admin-tag" style="background:#b71c1c;">SYSADMIN</span></div>
                     <div class="rbac-row-cell" style="color:var(--text-secondary);">ALL</div>
-                    <div class="rbac-row-cell rbac-status-cell" id="rbac-st-PENDING_wda" style="text-align:center;">—</div>
+                    <div class="rbac-row-cell rbac-status-cell" id="rbac-st-ljciHhNmmGQnriHwbwgeb8Yi2" style="text-align:center;">—</div>
 
                     <!-- ── Document Controller ── -->
-                    <div class="rbac-row-cell rbac-alt"><i class="fas fa-folder-open" style="color:#1a237e;margin-right:6px;font-size:0.65rem;"></i>esh@corpdc.com.ph</div>
+                    <div class="rbac-row-cell rbac-alt"><i class="fas fa-folder-open" style="color:#1a237e;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5d382e351d3e322f2d393e733e3230732d35">[email&#160;protected]</a></div>
                     <div class="rbac-row-cell rbac-alt"><span class="adm-admin-tag" style="background:#1a237e;">DOC CONTROLLER</span></div>
                     <div class="rbac-row-cell rbac-alt" style="color:var(--text-secondary);">ALL</div>
-                    <div class="rbac-row-cell rbac-alt rbac-status-cell" id="rbac-st-PENDING_corpdc" style="text-align:center;">—</div>
+                    <div class="rbac-row-cell rbac-alt rbac-status-cell" id="rbac-st-WYcn1vEPoRTrq8rbrGBFUB9x2" style="text-align:center;">—</div>
 
                     <!-- ── Environmental Head ── -->
-                    <div class="rbac-row-cell"><i class="fas fa-tree" style="color:#00695c;margin-right:6px;font-size:0.65rem;"></i>esh@cbmganda.com.ph</div>
+                    <div class="rbac-row-cell"><i class="fas fa-tree" style="color:#00695c;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4c293f240c2f2e212b2d22282d622f2321623c24">[email&#160;protected]</a></div>
                     <div class="rbac-row-cell"><span class="adm-admin-tag" style="background:#00695c;">ENVI HEAD</span></div>
                     <div class="rbac-row-cell" style="color:var(--text-secondary);">ALL (Envi Tabs R/W)</div>
-                    <div class="rbac-row-cell rbac-status-cell" id="rbac-st-PENDING_cbmg" style="text-align:center;">—</div>
+                    <div class="rbac-row-cell rbac-status-cell" id="rbac-st-b1uiTykyjhN6OIl11Inmv9e6h252" style="text-align:center;">—</div>
 
                     <!-- ── Corporate Nurse ── -->
-                    <div class="rbac-row-cell rbac-alt"><i class="fas fa-user-nurse" style="color:#ad1457;margin-right:6px;font-size:0.65rem;"></i>esh@health.com.ph</div>
+                    <div class="rbac-row-cell rbac-alt"><i class="fas fa-user-nurse" style="color:#ad1457;margin-right:6px;font-size:0.65rem;"></i><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="50352338103835313c24387e333f3d7e2038">[email&#160;protected]</a></div>
                     <div class="rbac-row-cell rbac-alt"><span class="adm-admin-tag" style="background:#ad1457;">CORP NURSE</span></div>
                     <div class="rbac-row-cell rbac-alt" style="color:var(--text-secondary);">ALL (Health Tabs R/W)</div>
-                    <div class="rbac-row-cell rbac-alt rbac-status-cell" id="rbac-st-PENDING_health" style="text-align:center;">—</div>
+                    <div class="rbac-row-cell rbac-alt rbac-status-cell" id="rbac-st-EW3RstAsVwNxMHHCNHdV3zWGMt2" style="text-align:center;">—</div>
                 </div>
             </div>
 
@@ -6281,7 +6285,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 </div>
 
 
-<div id="personnel-view" class="hidden" style="padding: 20px;">
+<div id="personnel-view" class="hidden" style="padding: 20px; max-height: calc(100vh - 70px); overflow-y: auto;">
     <div style="background: var(--bg-card); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid var(--border-color);">
 
         <!-- Header Banner -->
@@ -6325,6 +6329,9 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             </div>
         </div>
 
+        <!-- Position Summary Strip (Option B) -->
+        <div id="p-position-summary" style="display:flex;overflow-x:auto;background:var(--bg-card);border-bottom:1px solid var(--border-color);-webkit-overflow-scrolling:touch;"></div>
+
         <!-- Project Cards Container — each project gets its own collapsible card with its own scrollbar -->
         <div id="p-cards-container" style="padding: 0;">
             <div id="p-empty" style="display:none; padding:40px; text-align:center; color:var(--text-secondary);">
@@ -6333,8 +6340,8 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             </div>
         </div>
 
-        <!-- Footer stats -->
-        <div id="p-footer" style="padding:10px 20px; background:var(--border-color); border-top:1px solid var(--border-color); font-size:0.7rem; color:var(--text-secondary); display:flex; gap:20px; flex-wrap:wrap;"></div>
+        <!-- Footer stats (now empty — summary moved to top) -->
+        <div id="p-footer" style="display:none;"></div>
     </div>
 
 </div>
@@ -7103,7 +7110,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             
     </main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -7691,14 +7698,14 @@ const RBAC_ACCOUNTS = [
     { uid: 'vAx6TARdxtfIQsNpNwWLO2YWh622', email: 'esh@northpco.com.ph', role: 'pco',            displayName: 'North Luzon PCO',               region: 'NORTH LUZON',         module_access: ['permits','emb','env-monitoring','env-monthly-report','esh-calendar-env'] },
     { uid: 'm6opwibuujUCci63nUNb6R6Vwse2', email: 'esh@southpco.com.ph', role: 'pco',            displayName: 'South Luzon PCO',               region: 'SOUTH LUZON',         module_access: ['permits','emb','env-monitoring','env-monthly-report','esh-calendar-env'] },
     { uid: 'TH12T1L0G2UYrP5iSwuWL7aLHp93', email: 'esh@visminpco.com.ph',role: 'pco',           displayName: 'Visayas & Mindanao PCO',         region: 'VISAYAS & MINDANAO',  module_access: ['permits','emb','env-monitoring','env-monthly-report','esh-calendar-env'] },
-    // ── New Accounts ──
-    { uid: 'RflE3UOhZJM824EqAkB5KuVA3bu1',     email: 'esh@tgm.com.ph',      role: 'manager',      displayName: 'TGM Manager',                    region: 'ALL',                 module_access: [] },
-    { uid: 'u8r8wlD0thb5hAR9HwJ0vSQZC8u1',     email: 'esh@mab.com.ph',      role: 'manager',      displayName: 'MAB Manager',                    region: 'ALL',                 module_access: [] },
-    { uid: '3d8uwAYjNPSCcH9Xbu1fsCiuJK13',     email: 'esh@lmp.com.ph',      role: 'manager',      displayName: 'LMP Manager',                    region: 'ALL',                 module_access: [] },
-    { uid: 'ljciHhNmmGQnriHwbwgeb8Yi1V63',     email: 'esh@wda.com.ph',      role: 'sysadmin',     displayName: 'WDA System Admin',               region: 'ALL',                 module_access: [] },
-    { uid: 'WYcn1vEPoRTrq8rbrGBFUB9x4H03',  email: 'esh@corpdc.com.ph',   role: 'doccontroller',displayName: 'Corporate Document Controller',  region: 'ALL',                 module_access: [] },
-    { uid: 'b1uiTykyjhN60Il11Inmv9e6h252',   email: 'esh@cbmganda.com.ph', role: 'envi_head',    displayName: 'Environmental Head',             region: 'ALL',                 module_access: ['permits','emb','env-monitoring','env-monthly-report','nov-env','esh-calendar-env','tabulation','got-monitoring'] },
-    { uid: 'EW3RstAsVwNxMHHCNHdV3zWGMtt2',  email: 'esh@health.com.ph',   role: 'corp_nurse',   displayName: 'Corporate Nurse',                region: 'ALL',                 module_access: ['medical','health-report','exposures','lta-registry','esh-calendar-health','personnel','osh-requirement'] },
+    // ── New Accounts — UIDs na confirmed sa Firebase Auth Console ──
+    { uid: 'RflE3UOhZJM824EqAkB5KuVA3b2',  email: 'esh@tgm.com.ph',      role: 'manager',       displayName: 'TGM Manager',                   region: 'ALL',                 module_access: [] },
+    { uid: 'u8r8wlDOthb5hAR9HwJ0vSQ2',     email: 'esh@mab.com.ph',      role: 'manager',       displayName: 'MAB Manager',                   region: 'ALL',                 module_access: [] },
+    { uid: '3d8uwAYjNPSCcH9Xbu1fsciuJK13', email: 'esh@lmp.com.ph',      role: 'manager',       displayName: 'LMP Manager',                   region: 'ALL',                 module_access: [] },
+    { uid: 'ljciHhNmmGQnriHwbwgeb8Yi2',    email: 'esh@wda.com.ph',      role: 'sysadmin',      displayName: 'WDA System Admin',              region: 'ALL',                 module_access: [] },
+    { uid: 'WYcn1vEPoRTrq8rbrGBFUB9x2',    email: 'esh@corpdc.com.ph',   role: 'doccontroller', displayName: 'Corporate Document Controller', region: 'ALL',                 module_access: [] },
+    { uid: 'b1uiTykyjhN6OIl11Inmv9e6h252', email: 'esh@cbmganda.com.ph', role: 'envi_head',     displayName: 'Environmental Head',            region: 'ALL',                 module_access: ['permits','emb','env-monitoring','env-monthly-report','nov-env','esh-calendar-env','tabulation','got-monitoring'] },
+    { uid: 'EW3RstAsVwNxMHHCNHdV3zWGMt2',  email: 'esh@health.com.ph',   role: 'corp_nurse',    displayName: 'Corporate Nurse',               region: 'ALL',                 module_access: ['medical','health-report','exposures','lta-registry','esh-calendar-health','personnel','osh-requirement'] },
 ];
 
 async function rbacDeployAll() {
@@ -7737,25 +7744,19 @@ async function rbacDeployAll() {
     for (const acct of RBAC_ACCOUNTS) {
         setStatus(acct.uid, '<i class="fas fa-spinner fa-spin rbac-spin"></i>');
         try {
-            // For PENDING accounts, look up the UID via Firebase Auth sign-in is not possible client-side.
-            // Instead, we store by email-keyed doc under roles/email:{safe} and also write to roles/{uid} once UID is known.
-            // For new accounts before first login, we write to roles/email_{safeEmail} as a fallback;
-            // on first login the app will migrate the role doc to roles/{uid}.
-            const isPending = acct.uid.startsWith('PENDING_');
-            const docId = isPending ? 'email_' + acct.email.replace(/[^a-zA-Z0-9]/g, '_') : acct.uid;
-            const docRef = window.firebase.doc(window.firebaseDb, 'roles', docId);
+            const docRef = window.firebase.doc(window.firebaseDb, 'roles', acct.uid);
             await window.firebase.setDoc(docRef, {
                 role:          acct.role,
                 displayName:   acct.displayName,
                 region:        acct.region,
                 module_access: acct.module_access,
                 email:         acct.email,
-                pendingUid:    isPending,
+                pendingUid:    false,
                 deployedBy:    state.currentUser?.email || 'admin',
                 deployedAt:    new Date().toISOString()
             });
             setStatus(acct.uid, '<span class="rbac-ok"><i class="fas fa-circle-check"></i> OK</span>');
-            rbacLog(`✓ ${acct.email} → ${acct.role.toUpperCase()} [${acct.region}]${isPending ? ' (pending UID)' : ''}`, 'success');
+            rbacLog(`✓ ${acct.email} → ${acct.role.toUpperCase()} [${acct.region}]`, 'success');
             ok++;
         } catch (err) {
             setStatus(acct.uid, '<span class="rbac-err"><i class="fas fa-circle-xmark"></i> FAIL</span>');
@@ -12132,6 +12133,12 @@ function openAdminQuickView() {
             document.getElementById('tabulation-view').classList.toggle('hidden', t !== 'tabulation');
             document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel' || t === 'admin' || t === 'osh-requirement' || t === 'env-monitoring' || t === 'health-report' || t === 'got-monitoring' || t === 'nov-env' || t === 'nov' || t === 'lta-registry' || t === 'tabulation');
             
+            // Hide persistent chart containers when not on their respective tabs
+            const pcRates = document.getElementById('trend-chart-persistent-rates');
+            const pcMedical = document.getElementById('trend-chart-persistent-medical');
+            if (pcRates)   pcRates.style.display   = (t === 'rates')   ? 'block' : 'none';
+            if (pcMedical) pcMedical.style.display  = (t === 'medical') ? 'block' : 'none';
+            
             // ESH Calendar tab visibility
             const eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
             eshCalTabs.forEach(ct => {
@@ -15046,40 +15053,53 @@ function renderTabulation() {
     if (!container) return;
 
     const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const MONTH_COLORS = ['#1565c0','#283593','#4527a0','#6a1b9a','#880e4f','#b71c1c','#bf360c','#e65100','#f57f17','#558b2f','#1b5e20','#004d40'];
+    const MONTH_COLORS = ['#1b5e20','#2e7d32','#388e3c','#43a047','#2e7d32','#1b5e20','#0d3d0f','#1b5e20','#2e7d32','#388e3c','#43a047','#66bb6a'];
 
-    // Colors
+    // Colors — matched to ENVIRONMENTAL MONITORING palette
     const C = {
         header: '#1b5e20',
         headerLight: '#2e7d32',
+        headerDark: '#0d3d0f',
         accent: '#fbc02d',
+        tblHdrDark: '#b7ddb5',
+        tblHdrLight: '#c5e8c3',
+        tblBorder: '#c8e6c9',
+        rowAlt: '#e8f5e9',
+        rowAlt2: '#f1f8e9',
+        rowWhite: 'white',
+        totalRow: 'linear-gradient(90deg,#e8f5e9,#f1f8e9)',
+        grandHdr: 'linear-gradient(135deg,#0d3d0f 0%,#1b5e20 60%,#2e7d32 100%)',
         fatality: '#b71c1c',
-        lta: '#e53935',
+        lta: '#388e3c',
         firstaid: '#2e7d32',
-        medical: '#1565c0',
-        nearmiss: '#f57c00',
+        medical: '#43a047',
+        nearmiss: '#558b2f',
         env: '#00695c',
-        total: '#37474f',
-        rowAlt: '#f1f8e9',
-        rowAlt2: '#e8f5e9',
-        factorPeople: '#1565c0',
-        factorEquip: '#6a1b9a',
-        factorMat: '#bf360c',
-        factorEnv: '#2e7d32',
-        factorOrg: '#795548',
+        total: '#1b5e20',
+        mechHdr: '#b7ddb5',
+        mechHdrDark: '#9ecf9b',
+        mechTotal: '#1b5e20',
+        factorHdr: '#b7ddb5',
+        factorHdrDark: '#9ecf9b',
+        factorTotal: '#1b5e20',
+        factorPeople: '#1b5e20',
+        factorEquip: '#2e7d32',
+        factorMat: '#388e3c',
+        factorEnv: '#43a047',
+        factorOrg: '#558b2f',
     };
 
     const cellStyle = (bg='', bold=false, center=true, color='') =>
-        `style="padding:6px 8px;border:1px solid #ddd;${bg?'background:'+bg+';':''}${bold?'font-weight:700;':''}${center?'text-align:center;':'text-align:left;'}${color?'color:'+color+';':''}font-size:0.72rem;"`;
+        `style="padding:6px 8px;border:1px solid #c8e6c9;${bg?'background:'+bg+';':''}${bold?'font-weight:700;':''}${center?'text-align:center;':'text-align:left;'}${color?'color:'+color+';':''}font-size:0.72rem;"`;
 
     const stickyFirstCell = (bg='', bold=false, color='', extraStyle='') =>
-        `style="padding:6px 8px;border:1px solid #ddd;${bg?'background:'+bg+';':'background:var(--bg-card);'}${bold?'font-weight:700;':''}text-align:left;${color?'color:'+color+';':''}font-size:0.72rem;position:sticky;left:0;z-index:2;white-space:nowrap;${extraStyle}"`;
+        `style="padding:6px 8px;border:1px solid #c8e6c9;${bg?'background:'+bg+';':'background:var(--bg-card);'}${bold?'font-weight:700;':''}text-align:left;${color?'color:'+color+';':''}font-size:0.72rem;position:sticky;left:0;z-index:2;white-space:nowrap;${extraStyle}"`;
 
-    const headerCell = (txt, span='', rowspan='', bg=C.header, color='white') =>
-        `<th ${span?'colspan="'+span+'"':''} ${rowspan?'rowspan="'+rowspan+'"':''} style="padding:8px 10px;background:${bg};color:${color};font-weight:700;text-align:center;border:1px solid rgba(255,255,255,0.2);font-size:0.72rem;white-space:nowrap;">${txt}</th>`;
+    const headerCell = (txt, span='', rowspan='', bg=C.tblHdrDark, color='#1b5e20') =>
+        `<th ${span?'colspan="'+span+'"':''} ${rowspan?'rowspan="'+rowspan+'"':''} style="padding:8px 10px;background:${bg};color:${color};font-weight:700;text-align:center;border:1px solid #c8e6c9;font-size:0.72rem;white-space:nowrap;">${txt}</th>`;
 
-    const stickyHeaderCell = (txt, span='', rowspan='', bg=C.header, color='white') =>
-        `<th ${span?'colspan="'+span+'"':''} ${rowspan?'rowspan="'+rowspan+'"':''} style="padding:8px 10px;background:${bg};color:${color};font-weight:700;text-align:center;border:1px solid rgba(255,255,255,0.2);font-size:0.72rem;white-space:nowrap;position:sticky;left:0;z-index:3;">${txt}</th>`;
+    const stickyHeaderCell = (txt, span='', rowspan='', bg=C.tblHdrDark, color='#1b5e20') =>
+        `<th ${span?'colspan="'+span+'"':''} ${rowspan?'rowspan="'+rowspan+'"':''} style="padding:8px 10px;background:${bg};color:${color};font-weight:700;text-align:center;border:1px solid #c8e6c9;font-size:0.72rem;white-space:nowrap;position:sticky;left:0;z-index:3;">${txt}</th>`;
 
     function incidentRowColor(name) {
         const n = name.toLowerCase();
@@ -15101,11 +15121,11 @@ function renderTabulation() {
 
         let html = `<table style="width:100%;border-collapse:collapse;margin-bottom:0;">
             <thead><tr>
-                ${stickyHeaderCell('Incident / Accident', '', 2)}
-                ${headerCell('Previous', '', 2, C.headerLight)}
-                ${months.map(m => headerCell(m, '', '', C.headerLight + 'cc')).join('')}
-                ${headerCell('Total', '', 2)}
-                ${hasAccum ? headerCell(accumLabel, '', 2) : ''}
+                ${stickyHeaderCell('Incident / Accident', '', 2, C.tblHdrDark, '#1b5e20')}
+                ${headerCell('Previous', '', 2, C.tblHdrDark, '#1b5e20')}
+                ${months.map(m => headerCell(m, '', '', C.tblHdrLight, '#1b5e20')).join('')}
+                ${headerCell('Total', '', 2, C.tblHdrDark, '#1b5e20')}
+                ${hasAccum ? headerCell(accumLabel, '', 2, C.tblHdrDark, '#1b5e20') : ''}
             </tr></thead><tbody>`;
 
         data.rows.forEach((row, i) => {
@@ -15116,15 +15136,15 @@ function renderTabulation() {
             const accum = hasAccum ? row[row.length - 1] : null;
             const rowColor = incidentRowColor(name);
             const isTotalRow = name === 'Total';
-            const bg = isTotalRow ? C.total : (i % 2 === 0 ? C.rowAlt : 'white');
-            const fc = isTotalRow ? 'white' : (rowColor || '');
+            const bg = isTotalRow ? C.header : (i % 2 === 0 ? C.rowAlt : C.rowWhite);
+            const fc = isTotalRow ? 'white' : (rowColor || '#1b5e20');
 
             html += `<tr>
                 <td ${stickyFirstCell(bg, isTotalRow, fc, `padding-left:${name.startsWith('  ') ? '20px' : '8px'};`)}>${name.trim()}</td>
                 <td ${cellStyle(bg, isTotalRow, true, fc)}>${prev ?? '—'}</td>
                 ${vals.map(v => `<td ${cellStyle(bg, false, true, fc)}>${v !== null && v !== undefined ? v : '—'}</td>`).join('')}
-                <td ${cellStyle(isTotalRow ? C.total : C.accent + '44', true, true, isTotalRow ? 'white' : C.total)}>${total ?? '—'}</td>
-                ${hasAccum ? `<td ${cellStyle(isTotalRow ? C.total : '#e8f5e9', true, true, isTotalRow ? 'white' : C.header)}>${accum ?? '—'}</td>` : ''}
+                <td ${cellStyle(isTotalRow ? C.header : C.tblHdrDark, true, true, isTotalRow ? 'white' : '#1b5e20')}>${total ?? '—'}</td>
+                ${hasAccum ? `<td ${cellStyle(isTotalRow ? C.header : C.rowAlt, true, true, isTotalRow ? 'white' : C.header)}>${accum ?? '—'}</td>` : ''}
             </tr>`;
         });
 
@@ -15135,12 +15155,12 @@ function renderTabulation() {
             const tvals = trow.slice(2, trow.length - (hasAccum ? 2 : 1));
             const ttotal = trow[trow.length - (hasAccum ? 2 : 1)];
             const taccum = hasAccum ? trow[trow.length - 1] : null;
-            html += `<tr style="background:${C.total};">
-                <td ${stickyFirstCell(C.total, true, 'white')}>Total</td>
-                <td ${cellStyle(C.total, true, true, 'white')}>${prev ?? '—'}</td>
-                ${tvals.map(v => `<td ${cellStyle(C.total, true, true, 'white')}>${v !== null && v !== undefined ? v : '—'}</td>`).join('')}
-                <td ${cellStyle('#263238', true, true, C.accent)}>${ttotal ?? '—'}</td>
-                ${hasAccum ? `<td ${cellStyle('#263238', true, true, C.accent)}>${taccum ?? '—'}</td>` : ''}
+            html += `<tr style="background:${C.header};">
+                <td ${stickyFirstCell(C.header, true, 'white')}>Total</td>
+                <td ${cellStyle(C.header, true, true, 'white')}>${prev ?? '—'}</td>
+                ${tvals.map(v => `<td ${cellStyle(C.header, true, true, 'white')}>${v !== null && v !== undefined ? v : '—'}</td>`).join('')}
+                <td ${cellStyle(C.headerDark, true, true, C.accent)}>${ttotal ?? '—'}</td>
+                ${hasAccum ? `<td ${cellStyle(C.headerDark, true, true, C.accent)}>${taccum ?? '—'}</td>` : ''}
             </tr>`;
         }
 
@@ -15151,27 +15171,27 @@ function renderTabulation() {
 
     function renderMechanismTable(data) {
         let html = `<table style="width:100%;border-collapse:collapse;">
-            <thead><tr>
-                ${stickyHeaderCell('Incident Mechanism', '', '', '#4527a0')}
-                ${data.headers.slice(1).map(m => headerCell(m, '', '', '#5e35b1')).join('')}
-                ${headerCell('Total', '', '', '#311b92')}
+            <thead style="position:sticky;top:0;z-index:4;"><tr>
+                ${stickyHeaderCell('Incident Mechanism', '', '', C.tblHdrDark, '#1b5e20')}
+                ${data.headers.slice(1).map(m => headerCell(m, '', '', C.tblHdrLight, '#1b5e20')).join('')}
+                ${headerCell('Total', '', '', C.tblHdrDark, '#1b5e20')}
             </tr></thead><tbody>`;
         data.rows.forEach((row, i) => {
             const name = row[0];
             const vals = row.slice(1);
             const total = vals.reduce((a, b) => a + (b||0), 0);
-            const bg = i % 2 === 0 ? '#f3e5f5' : 'white';
+            const bg = i % 2 === 0 ? C.rowAlt : C.rowWhite;
             html += `<tr>
-                <td ${stickyFirstCell(bg, false, '')}>${name}</td>
-                ${vals.map(v => `<td ${cellStyle(bg, false, true)}>${v || 0}</td>`).join('')}
-                <td ${cellStyle(total > 0 ? '#ede7f6' : bg, total > 0, true, total > 0 ? '#4527a0' : '')}>${total}</td>
+                <td ${stickyFirstCell(bg, false, '#1b5e20')}>${name}</td>
+                ${vals.map(v => `<td ${cellStyle(bg, false, true, '#2e7d32')}>${v || 0}</td>`).join('')}
+                <td ${cellStyle(total > 0 ? C.tblHdrDark : bg, total > 0, true, total > 0 ? '#1b5e20' : '')}>${total}</td>
             </tr>`;
         });
         // Total row
-        html += `<tr style="background:#311b92;">
-            <td ${stickyFirstCell('#311b92', true, 'white')}>TOTAL</td>
-            ${data.total.map(v => `<td ${cellStyle('#311b92', true, true, 'white')}>${v}</td>`).join('')}
-            <td ${cellStyle('#1a0050', true, true, C.accent)}>${data.total.reduce((a,b)=>a+(b||0),0)}</td>
+        html += `<tr style="background:${C.header};">
+            <td ${stickyFirstCell(C.header, true, 'white')}>TOTAL</td>
+            ${data.total.map(v => `<td ${cellStyle(C.header, true, true, 'white')}>${v}</td>`).join('')}
+            <td ${cellStyle(C.headerDark, true, true, C.accent)}>${data.total.reduce((a,b)=>a+(b||0),0)}</td>
         </tr></tbody></table>`;
         return html;
     }
@@ -15180,60 +15200,60 @@ function renderTabulation() {
         const factorColors = { 'PEOPLE': C.factorPeople, 'EQUIPMENT': C.factorEquip, 'MATERIALS': C.factorMat, 'ENVIRONMENT': C.factorEnv, 'ORGANIZATIONAL': C.factorOrg };
         let currentFactor = '', currentColor = C.factorPeople;
         let html = `<table style="width:100%;border-collapse:collapse;">
-            <thead><tr>
-                ${stickyHeaderCell('Category', '', '', '#37474f')}
-                <th style="padding:8px 10px;background:#455a64;color:white;font-weight:700;text-align:center;border:1px solid rgba(255,255,255,0.2);font-size:0.72rem;white-space:nowrap;position:sticky;left:90px;z-index:3;">Contributing Factor</th>
-                ${data.headers.slice(2).map(m => headerCell(m, '', '', '#546e7a')).join('')}
-                ${headerCell('Total', '', '', '#263238')}
+            <thead style="position:sticky;top:0;z-index:4;"><tr>
+                ${stickyHeaderCell('Category', '', '', C.tblHdrDark, '#1b5e20')}
+                <th style="padding:8px 10px;background:${C.tblHdrDark};color:#1b5e20;font-weight:700;text-align:center;border:1px solid #c8e6c9;font-size:0.72rem;white-space:nowrap;position:sticky;left:90px;z-index:5;">Contributing Factor</th>
+                ${data.headers.slice(2).map(m => headerCell(m, '', '', C.tblHdrLight, '#1b5e20')).join('')}
+                ${headerCell('Total', '', '', C.tblHdrDark, '#1b5e20')}
             </tr></thead><tbody>`;
         data.rows.forEach((row, i) => {
             const factor = row[0];
             const subfactor = row[1];
             const vals = row.slice(2);
             const total = vals.reduce((a, b) => a + (b||0), 0);
-            if (factor) { currentFactor = factor; currentColor = factorColors[factor] || '#37474f'; }
-            const bg = i % 2 === 0 ? currentColor + '11' : currentColor + '06';
+            if (factor) { currentFactor = factor; currentColor = factorColors[factor] || C.factorPeople; }
+            const bg = i % 2 === 0 ? C.rowAlt : C.rowWhite;
             const catBg = factor ? currentColor : bg;
             html += `<tr>
-                <td ${stickyFirstCell(catBg, !!factor, factor ? 'white' : currentColor)}>${factor || ''}</td>
-                <td style="padding:6px 8px;border:1px solid #ddd;background:${bg};font-size:0.72rem;text-align:left;position:sticky;left:90px;z-index:2;white-space:nowrap;">${subfactor}</td>
-                ${vals.map(v => `<td ${cellStyle(bg, false, true)}>${v || 0}</td>`).join('')}
-                <td ${cellStyle(total > 0 ? currentColor + '22' : bg, total > 0, true, total > 0 ? currentColor : '')}>${total}</td>
+                <td ${stickyFirstCell(catBg, !!factor, factor ? 'white' : '#1b5e20')}>${factor || ''}</td>
+                <td style="padding:6px 8px;border:1px solid #c8e6c9;background:${bg};font-size:0.72rem;text-align:left;position:sticky;left:90px;z-index:2;white-space:nowrap;color:#1b5e20;">${subfactor}</td>
+                ${vals.map(v => `<td ${cellStyle(bg, false, true, '#2e7d32')}>${v || 0}</td>`).join('')}
+                <td ${cellStyle(total > 0 ? C.tblHdrDark : bg, total > 0, true, total > 0 ? '#1b5e20' : '')}>${total}</td>
             </tr>`;
         });
-        html += `<tr style="background:#263238;">
-            <td ${stickyFirstCell('#263238', true, 'white')}>TOTAL</td>
-            <td style="padding:6px 8px;border:1px solid #555;background:#263238;color:white;font-weight:700;font-size:0.72rem;position:sticky;left:90px;z-index:2;"></td>
-            ${data.total.map(v => `<td ${cellStyle('#263238', true, true, 'white')}>${v}</td>`).join('')}
-            <td ${cellStyle('#1c313a', true, true, C.accent)}>${data.total.reduce((a,b)=>a+(b||0),0)}</td>
+        html += `<tr style="background:${C.header};">
+            <td ${stickyFirstCell(C.header, true, 'white')}>TOTAL</td>
+            <td style="padding:6px 8px;border:1px solid #c8e6c9;background:${C.header};color:white;font-weight:700;font-size:0.72rem;position:sticky;left:90px;z-index:2;"></td>
+            ${data.total.map(v => `<td ${cellStyle(C.header, true, true, 'white')}>${v}</td>`).join('')}
+            <td ${cellStyle(C.headerDark, true, true, C.accent)}>${data.total.reduce((a,b)=>a+(b||0),0)}</td>
         </tr></tbody></table>`;
         return html;
     }
 
     function renderMultiYearTable() {
-        const colors = { 2022:'#bf360c', 2023:'#6a1b9a', 2024:'#1565c0', 2025:'#2e7d32', 2026:'#f57f17' };
+        const colors = { 2022:'#66bb6a', 2023:'#43a047', 2024:'#2e7d32', 2025:'#1b5e20', 2026:'#0d3d0f' };
         let html = `<table style="width:100%;border-collapse:collapse;">
             <thead><tr>
-                ${headerCell('Incident / Accident', '', '', '#37474f')}
-                ${[2022,2023,2024,2025,2026].map(y => headerCell(y, '', '', colors[y])).join('')}
-                ${headerCell('Grand Total', '', '', '#1a237e')}
+                ${headerCell('Incident / Accident', '', '', C.tblHdrDark, '#1b5e20')}
+                ${[2022,2023,2024,2025,2026].map(y => headerCell(y, '', '', colors[y], 'white')).join('')}
+                ${headerCell('Grand Total', '', '', C.tblHdrDark, '#1b5e20')}
             </tr></thead><tbody>`;
         MULTI_YEAR_DATA.rows.forEach((row, i) => {
             const name = row[0];
             const vals = row.slice(1);
             const total = vals.reduce((a,b) => a+(b||0), 0);
             const rowColor = incidentRowColor(name);
-            const bg = i % 2 === 0 ? '#e8eaf6' : 'white';
+            const bg = i % 2 === 0 ? C.rowAlt : C.rowWhite;
             html += `<tr>
-                <td ${cellStyle(bg, false, false, rowColor)}>${name}</td>
-                ${vals.map(v => `<td ${cellStyle(bg, false, true)}>${v ?? 0}</td>`).join('')}
-                <td ${cellStyle('#e8eaf6', true, true, '#1a237e')}>${total}</td>
+                <td ${cellStyle(bg, false, false, rowColor || '#1b5e20')}>${name}</td>
+                ${vals.map(v => `<td ${cellStyle(bg, false, true, '#2e7d32')}>${v ?? 0}</td>`).join('')}
+                <td ${cellStyle(C.tblHdrDark, true, true, '#1b5e20')}>${total}</td>
             </tr>`;
         });
-        html += `<tr style="background:#1a237e;">
-            <td ${cellStyle('#1a237e', true, false, 'white')}>TOTAL</td>
-            ${MULTI_YEAR_DATA.total.map(v => `<td ${cellStyle('#1a237e', true, true, 'white')}>${v}</td>`).join('')}
-            <td ${cellStyle('#0d1556', true, true, C.accent)}>${MULTI_YEAR_DATA.total.reduce((a,b)=>a+b,0)}</td>
+        html += `<tr style="background:${C.header};">
+            <td ${cellStyle(C.header, true, false, 'white')}>TOTAL</td>
+            ${MULTI_YEAR_DATA.total.map(v => `<td ${cellStyle(C.header, true, true, 'white')}>${v}</td>`).join('')}
+            <td ${cellStyle(C.headerDark, true, true, C.accent)}>${MULTI_YEAR_DATA.total.reduce((a,b)=>a+b,0)}</td>
         </tr></tbody></table>`;
         return html;
     }
@@ -15241,8 +15261,8 @@ function renderTabulation() {
     // ── BUILD PAGE — show only the selected year ──
     const year = state.selectedYear || 2026;
     const availableYears = [2022, 2023, 2024, 2025, 2026];
-    const yearColors = { 2022:'#bf360c', 2023:'#6a1b9a', 2024:'#1565c0', 2025:'#2e7d32', 2026:'#e65100' };
-    const yc = yearColors[year] || '#e65100';
+    const yearColors = { 2022:'#66bb6a', 2023:'#43a047', 2024:'#2e7d32', 2025:'#1b5e20', 2026:'#0d3d0f' };
+    const yc = yearColors[year] || '#1b5e20';
 
     // ── AUTO-COMPUTE for 2026 and above ──
     let d;
@@ -15382,23 +15402,25 @@ function renderTabulation() {
             <div style="overflow-x:auto;">${renderSummaryTable(year, d.summary)}</div>`;
     } else if (curTab === 'mechanism' && d.mechanism) {
         tabContent = `
-            <div style="font-weight:700;font-size:0.78rem;color:#4527a0;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+            <div style="font-weight:700;font-size:0.78rem;color:#1b5e20;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
                 <i class="fas fa-gear"></i> Incident Mechanism
+                <span style="margin-left:auto;font-size:0.65rem;color:#888;font-weight:400;"><i class="fas fa-arrows-up-down" style="margin-right:3px;"></i>Scroll to view all rows</span>
             </div>
-            <div style="overflow-x:auto;">${renderMechanismTable(d.mechanism)}</div>`;
+            <div style="overflow-x:auto;overflow-y:auto;max-height:460px;border-radius:6px;border:1px solid #c8e6c9;box-shadow:inset 0 -4px 8px rgba(0,0,0,0.04);">${renderMechanismTable(d.mechanism)}</div>`;
     } else if (curTab === 'factors' && d.factors) {
         tabContent = `
-            <div style="font-weight:700;font-size:0.78rem;color:#37474f;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+            <div style="font-weight:700;font-size:0.78rem;color:#1b5e20;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
                 <i class="fas fa-circle-exclamation"></i> Incident Contributing Factors
+                <span style="margin-left:auto;font-size:0.65rem;color:#888;font-weight:400;"><i class="fas fa-arrows-up-down" style="margin-right:3px;"></i>Scroll to view all rows</span>
             </div>
-            <div style="overflow-x:auto;">${renderFactorsTable(d.factors)}</div>`;
+            <div style="overflow-x:auto;overflow-y:auto;max-height:460px;border-radius:6px;border:1px solid #c8e6c9;box-shadow:inset 0 -4px 8px rgba(0,0,0,0.04);">${renderFactorsTable(d.factors)}</div>`;
     }
 
     let html = `
     <div style="font-family:'Inter',sans-serif;max-width:1400px;margin:0 auto;">
 
-        <!-- Page Header — green gradient matching GOT Monitoring -->
-        <div style="background:linear-gradient(135deg,#1b5e20,#2e7d32);border-radius:12px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <!-- Page Header — ENV MONITORING gradient -->
+        <div style="background:linear-gradient(135deg,#0d3d0f 0%,#1b5e20 60%,#2e7d32 100%);border-radius:12px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
             <div style="width:52px;height:52px;background:rgba(255,255,255,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                 <i class="fas fa-table-list" style="color:#fbc02d;font-size:24px;"></i>
             </div>
@@ -15417,13 +15439,13 @@ function renderTabulation() {
             </div>
         </div>
 
-        <!-- Tab Strip — same style as GOT Monitoring -->
+        <!-- Tab Strip — ENV MONITORING style -->
         ${tabStrip}
 
-        <!-- Tab Content Card — green border matching GOT color palette -->
-        <div style="background:var(--bg-card);border-radius:12px;margin-bottom:20px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);border:1px solid #c8e6c9;">
-            <!-- Section Header Bar — green gradient like GOT -->
-            <div style="background:linear-gradient(135deg,#1b5e20,#2e7d32);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">
+        <!-- Tab Content Card — ENV MONITORING border -->
+        <div style="background:var(--bg-card);border-radius:12px;margin-bottom:20px;overflow:hidden;box-shadow:0 2px 12px rgba(46,125,50,0.08);border:1px solid #c8e6c9;">
+            <!-- Section Header Bar — ENV MONITORING gradient -->
+            <div style="background:linear-gradient(90deg,#1b5e20 0%,#2e7d32dd 100%);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <i class="fas fa-calendar" style="color:rgba(255,255,255,0.7);font-size:1rem;"></i>
                     <div>
@@ -16284,11 +16306,12 @@ if (state.currentTab === 'audit') {
                 font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
                 border-radius: 12px;
                 overflow: hidden;
-                box-shadow: 0 8px 24px rgba(27, 94, 32, 0.15), 0 2px 6px rgba(0, 0, 0, 0.08);
+                box-shadow: 0 2px 12px rgba(46,125,50,0.10), 0 2px 6px rgba(0, 0, 0, 0.06);
                 background: white;
+                border: 1px solid #c8e6c9;
             }
             
-            /* Enhanced Green Header - Option 4 Style */
+            /* ENV MONITORING style header — dark green */
             .audit-table thead th {
                 background: #1b5e20;
                 color: #ffffff;
@@ -16297,51 +16320,52 @@ if (state.currentTab === 'audit') {
                 letter-spacing: 0.8px;
                 font-size: 11px;
                 padding: 16px 8px;
-                border: none;
-                border-bottom: 3px solid var(--safety-yellow);
+                border: 1px solid #c8e6c9;
                 position: relative;
                 text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
             }
             
-            /* Top row headers - Quarter labels */
+            /* Top row headers - Quarter labels — deepest green */
             .audit-table thead tr:first-child th {
+                background: #0d3d0f;
                 font-size: 13px;
                 padding: 18px 8px;
                 font-weight: 800;
                 letter-spacing: 1.2px;
-                background: #1b5e20;
+                border: 1px solid #c8e6c9;
             }
             
-            /* Second row - Score labels */
+            /* Second row - Score labels — mid green */
             .audit-table thead tr:nth-child(2) th {
+                background: #1b5e20;
                 font-size: 12px;
                 padding: 14px 8px;
-                background: #1b5e20;
+                border: 1px solid #c8e6c9;
             }
             
-            /* Column headers with white background */
+            /* Column headers — light green matching ENV table headers */
             .audit-table thead tr:last-child th {
-                background: #f8f9fa;
+                background: #b7ddb5;
                 color: #1b5e20;
                 font-size: 10px;
                 padding: 12px 6px;
+                border: 1px solid #c8e6c9;
                 border-top: 2px solid #2e7d32;
-                font-weight: 600;
+                font-weight: 700;
                 letter-spacing: 0.5px;
             }
             
-            /* Average column styling */
+            /* Average column — slightly darker green */
             .audit-table thead tr:last-child th[style*="background: #808080"],
             .audit-table thead tr:last-child th[style*="background:#808080"] {
-                background: linear-gradient(135deg, #616161 0%, #757575 100%) !important;
-                color: white !important;
+                background: #9ecf9b !important;
+                color: #1b5e20 !important;
                 font-weight: 700;
             }
             
-            /* Body cells - Option 4 striped design */
+            /* Body cells — ENV MONITORING striped design */
             .audit-table td { 
-                border: none;
-                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+                border: 1px solid #c8e6c9;
                 text-align: center; 
                 vertical-align: middle; 
                 padding: 12px 8px;
@@ -16349,50 +16373,47 @@ if (state.currentTab === 'audit') {
                 transition: all 0.2s ease;
             }
             
-            /* Row hover effect - Option 4 style with left border */
+            /* Row hover effect */
             .audit-table tbody tr {
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                border-left: 3px solid transparent;
             }
             
             .audit-table tbody tr:nth-child(odd) {
-                background-color: #ffffff;
+                background-color: #e8f5e9;
             }
             
             .audit-table tbody tr:nth-child(even) {
-                background-color: #f1f8e9;
-            }
-            
-            
-            /* Specific cell styles */
-            .cell-white { 
                 background-color: #ffffff;
             }
             
+            /* Cell styles — ENV palette */
+            .cell-white { 
+                background-color: #ffffff !important;
+            }
+            
             .cell-avg-gray { 
-                background: linear-gradient(135deg, #616161 0%, #757575 100%) !important;
-                color: white !important; 
+                background: #9ecf9b !important;
+                color: #1b5e20 !important; 
                 font-weight: 700;
                 font-size: 14px;
                 letter-spacing: 0.3px;
-                box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
             }
             
             .cell-grand-total { 
-                background: linear-gradient(135deg, #ffd54f 0%, #ffeb3b 100%) !important;
-                color: #1b5e20 !important; 
+                background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 60%, #2e7d32 100%) !important;
+                color: #fbc02d !important; 
                 font-weight: 800;
                 font-size: 16px;
                 letter-spacing: 0.5px;
-                box-shadow: inset 0 2px 6px rgba(251, 192, 45, 0.4);
-                border: 2px solid #fbc02d !important;
+                box-shadow: inset 0 2px 6px rgba(0,0,0,0.2);
+                border: 2px solid #c8e6c9 !important;
             }
             
-            /* Enhanced input styling */
+            /* Input styling — ENV palette */
             .audit-table input { 
                 text-align: center; 
                 width: 52px;
-                border: 2px solid #e0e0e0;
+                border: 2px solid #c8e6c9;
                 border-radius: 6px;
                 font-size: 13px;
                 font-weight: 600;
@@ -16403,19 +16424,18 @@ if (state.currentTab === 'audit') {
                 font-family: 'Inter', sans-serif;
             }
             
-            
             .audit-table input:focus {
                 outline: none;
                 border-color: #2e7d32;
                 background: #ffffff;
-                box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+                box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
             }
             
             .audit-table input:disabled {
-                background: #f5f5f5;
-                color: #757575;
+                background: #f1f8e9;
+                color: #388e3c;
                 cursor: not-allowed;
-                border-color: #e0e0e0;
+                border-color: #c8e6c9;
             }
             
             .audit-table p { 
@@ -16425,25 +16445,25 @@ if (state.currentTab === 'audit') {
                 line-height: 1.4;
             }
             
-            /* Dark mode support for audit table */
+            /* Dark mode */
             body.dark-mode .audit-table {
                 background: #2d2d2d;
+                border-color: #2e7d32;
             }
             
             body.dark-mode .audit-table tbody tr:nth-child(odd) {
-                background-color: #2d2d2d;
-            }
-            
-            body.dark-mode .audit-table tbody tr:nth-child(even) {
                 background-color: #1f2e1f;
             }
             
-            
-            body.dark-mode .audit-table td {
-                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            body.dark-mode .audit-table tbody tr:nth-child(even) {
+                background-color: #2d2d2d;
             }
             
-            /* Responsive design */
+            body.dark-mode .audit-table td {
+                border-bottom: 1px solid rgba(46, 125, 50, 0.2);
+            }
+            
+            /* Responsive */
             @media (max-width: 768px) {
                 .audit-table {
                     font-size: 10px;
@@ -16485,21 +16505,21 @@ if (state.currentTab === 'audit') {
                     <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
                 </tr>
                 <tr>
-                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Implementation</th>
-                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Documentation & Compliance</th>
-                    <th style="background: #808080; color: white; font-size: 10px; font-weight: 700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
+                    <th style="background: #c5e8c3; color: #1b5e20; font-size: 10px; font-weight: 700;">Implementation</th>
+                    <th style="background: #c5e8c3; color: #1b5e20; font-size: 10px; font-weight: 700;">Documentation & Compliance</th>
+                    <th style="background: #9ecf9b; color: #1b5e20; font-size: 10px; font-weight: 700; border-right: 2px solid #c8e6c9;">Average</th>
                     
-                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Implementation</th>
-                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Documentation & Compliance</th>
-                    <th style="background: #808080; color: white; font-size: 10px; font-weight: 700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
+                    <th style="background: #c5e8c3; color: #1b5e20; font-size: 10px; font-weight: 700;">Implementation</th>
+                    <th style="background: #c5e8c3; color: #1b5e20; font-size: 10px; font-weight: 700;">Documentation & Compliance</th>
+                    <th style="background: #9ecf9b; color: #1b5e20; font-size: 10px; font-weight: 700; border-right: 2px solid #c8e6c9;">Average</th>
                     
-                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Implementation</th>
-                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Documentation & Compliance</th>
-                    <th style="background: #808080; color: white; font-size: 10px; font-weight: 700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
+                    <th style="background: #c5e8c3; color: #1b5e20; font-size: 10px; font-weight: 700;">Implementation</th>
+                    <th style="background: #c5e8c3; color: #1b5e20; font-size: 10px; font-weight: 700;">Documentation & Compliance</th>
+                    <th style="background: #9ecf9b; color: #1b5e20; font-size: 10px; font-weight: 700; border-right: 2px solid #c8e6c9;">Average</th>
                     
-                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Implementation</th>
-                    <th style="background: white; color: #1b5e20; font-size: 10px; font-weight: 600;">Documentation & Compliance</th>
-                    <th style="background: #808080; color: white; font-size: 10px; font-weight: 700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
+                    <th style="background: #c5e8c3; color: #1b5e20; font-size: 10px; font-weight: 700;">Implementation</th>
+                    <th style="background: #c5e8c3; color: #1b5e20; font-size: 10px; font-weight: 700;">Documentation & Compliance</th>
+                    <th style="background: #9ecf9b; color: #1b5e20; font-size: 10px; font-weight: 700; border-right: 2px solid #c8e6c9;">Average</th>
                 </tr>
             </thead>
             <tbody>
@@ -18261,16 +18281,16 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     <tr>
                                         <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
                                         <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
-                                        <th style="background:#808080; color:white; font-size:10px; font-weight:700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
+                                        <th style="background:#9ecf9b; color:#1b5e20; font-size:10px; font-weight:700; border-right: 2px solid #c8e6c9;">Average</th>
                                         <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
                                         <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
-                                        <th style="background:#808080; color:white; font-size:10px; font-weight:700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
+                                        <th style="background:#9ecf9b; color:#1b5e20; font-size:10px; font-weight:700; border-right: 2px solid #c8e6c9;">Average</th>
                                         <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
                                         <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
-                                        <th style="background:#808080; color:white; font-size:10px; font-weight:700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
+                                        <th style="background:#9ecf9b; color:#1b5e20; font-size:10px; font-weight:700; border-right: 2px solid #c8e6c9;">Average</th>
                                         <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
                                         <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
-                                        <th style="background:#808080; color:white; font-size:10px; font-weight:700; border-right: 2px solid rgba(255,255,255,0.3);">Average</th>
+                                        <th style="background:#9ecf9b; color:#1b5e20; font-size:10px; font-weight:700; border-right: 2px solid #c8e6c9;">Average</th>
                                     </tr>
                                 </thead>
                                 <tbody>`;
@@ -18972,7 +18992,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
             // Initialize trend chart if on rates or medical tab
             if (state.currentTab === 'rates' || state.currentTab === 'medical') {
                 setTimeout(() => {
-                    populateProjectFilter();
+                    populateProjectFilter(state.currentTab);
                     updateTrendChart(state.currentTab);
                 }, 100);
             }
@@ -20957,34 +20977,106 @@ function renderPTable() {
 }
 
 function updatePersonnelSummary() {
-    const data = state.personnelData || [];
-    const badgesEl = document.getElementById('p-summary-badges');
-    const footerEl = document.getElementById('p-footer');
+    const data      = state.personnelData || [];
+    const badgesEl  = document.getElementById('p-summary-badges');
+    const summaryEl = document.getElementById('p-position-summary');
     if (!badgesEl) return;
 
     const total  = data.length;
     const male   = data.filter(p => p.gen === 'Male').length;
     const female = data.filter(p => p.gen === 'Female').length;
 
+    // Header badges (total / gender)
     badgesEl.innerHTML = `
-        <span style="background:rgba(255,255,255,0.2);color:white;padding:4px 12px;border-radius:20px;font-size:0.68rem;font-weight:700;">
+        <span style="background:rgba(255,255,255,0.2);color:white;padding:4px 12px;border-radius:20px;font-size:0.68rem;font-weight:700;border:1px solid rgba(255,255,255,0.2);">
             <i class="fas fa-users"></i> ${total} Total
         </span>
-        <span style="background:rgba(33,150,243,0.3);color:#bbdefb;padding:4px 12px;border-radius:20px;font-size:0.68rem;font-weight:700;">
+        <span style="background:rgba(33,150,243,0.3);color:#bbdefb;padding:4px 12px;border-radius:20px;font-size:0.68rem;font-weight:700;border:1px solid rgba(33,150,243,0.3);">
             ♂ ${male} Male
         </span>
-        <span style="background:rgba(233,30,99,0.3);color:#f8bbd0;padding:4px 12px;border-radius:20px;font-size:0.68rem;font-weight:700;">
+        <span style="background:rgba(233,30,99,0.3);color:#f8bbd0;padding:4px 12px;border-radius:20px;font-size:0.68rem;font-weight:700;border:1px solid rgba(233,30,99,0.3);">
             ♀ ${female} Female
         </span>`;
 
-    if (footerEl) {
-        const positions = {};
-        data.forEach(p => { if (p.pos && p.pos !== 'Select') positions[p.pos] = (positions[p.pos]||0)+1; });
-        const posStr = Object.entries(positions).map(([k,v]) => `${k}: ${v}`).join(' &nbsp;|&nbsp; ');
-        footerEl.innerHTML = posStr
-            ? `<i class="fas fa-id-badge" style="color:#2e7d32;"></i> &nbsp; ${posStr}`
-            : '';
-    }
+    if (!summaryEl) return;
+
+    const POS_ORDER = [
+        'QESH Group Manager','QESH Deputy Manager',
+        'ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation',
+        'Environmental and Sustainability Head',
+        'Corporate Physician','Corporate Nurse','QESH Corp. DC',
+        'ESH Superintendent','ESH Head',
+        'Safety Officer III','Safety Officer II','Safety Officer I',
+        'PCO','Project Physician','Project Nurse','First Aider',
+        'TMO','ESH Project DC','Others'
+    ];
+    const POS_ICONS = {
+        'QESH Group Manager':'fa-crown','QESH Deputy Manager':'fa-crown',
+        'ESH Manager for Regulation & Compliance':'fa-briefcase',
+        'ESH Manager for Project Implementation':'fa-briefcase',
+        'Environmental and Sustainability Head':'fa-leaf',
+        'Corporate Physician':'fa-user-doctor','Corporate Nurse':'fa-user-nurse',
+        'QESH Corp. DC':'fa-file-shield',
+        'ESH Superintendent':'fa-shield-halved','ESH Head':'fa-shield-halved',
+        'Safety Officer III':'fa-helmet-safety','Safety Officer II':'fa-helmet-safety',
+        'Safety Officer I':'fa-helmet-safety',
+        'PCO':'fa-tree','Project Physician':'fa-user-doctor',
+        'Project Nurse':'fa-user-nurse','First Aider':'fa-kit-medical',
+        'TMO':'fa-walkie-talkie','ESH Project DC':'fa-file-shield','Others':'fa-user'
+    };
+    const POS_COLORS = {
+        'QESH Group Manager':'#7b1fa2','QESH Deputy Manager':'#8e24aa',
+        'ESH Manager for Regulation & Compliance':'#1565c0',
+        'ESH Manager for Project Implementation':'#1976d2',
+        'Environmental and Sustainability Head':'#388e3c',
+        'Corporate Physician':'#0277bd','Corporate Nurse':'#c2185b',
+        'QESH Corp. DC':'#455a64',
+        'ESH Superintendent':'#1b5e20','ESH Head':'#2e7d32',
+        'Safety Officer III':'#f57c00','Safety Officer II':'#fb8c00',
+        'Safety Officer I':'#ffa726',
+        'PCO':'#00695c','Project Physician':'#0288d1',
+        'Project Nurse':'#d81b60','First Aider':'#b71c1c',
+        'TMO':'#37474f','ESH Project DC':'#546e7a','Others':'#78909c'
+    };
+    const POS_LABELS = {
+        'QESH Group Manager':'QESH Grp Mgr','QESH Deputy Manager':'QESH Dep. Mgr',
+        'ESH Manager for Regulation & Compliance':'ESH Mgr (Reg)',
+        'ESH Manager for Project Implementation':'ESH Mgr (Impl)',
+        'Environmental and Sustainability Head':'Env. Head',
+        'Corporate Physician':'Corp. Physician','Corporate Nurse':'Corp. Nurse',
+        'QESH Corp. DC':'QESH Corp DC',
+        'ESH Superintendent':'ESH Supt.','ESH Head':'ESH Head',
+        'Safety Officer III':'SO III','Safety Officer II':'SO II',
+        'Safety Officer I':'SO I',
+        'PCO':'PCO','Project Physician':'Proj. Physician',
+        'Project Nurse':'Proj. Nurse','First Aider':'First Aider',
+        'TMO':'TMO','ESH Project DC':'ESH Proj DC','Others':'Others'
+    };
+
+    const counts = {};
+    data.forEach(p => { if (p.pos && p.pos !== 'Select') counts[p.pos] = (counts[p.pos]||0)+1; });
+
+    if (Object.keys(counts).length === 0) { summaryEl.innerHTML = ''; return; }
+
+    const sorted = [
+        ...POS_ORDER.filter(p => counts[p]),
+        ...Object.keys(counts).filter(p => !POS_ORDER.includes(p)).sort()
+    ];
+
+    const pills = sorted.map(pos => {
+        const cnt   = counts[pos];
+        const icon  = POS_ICONS[pos]  || 'fa-user';
+        const color = POS_COLORS[pos] || '#546e7a';
+        const label = POS_LABELS[pos] || pos;
+        return `<div title="${pos}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 16px;border-right:1px solid var(--border-color);min-width:76px;flex:1;position:relative;gap:2px;cursor:default;transition:background 0.15s;">
+            <i class="fas ${icon}" style="font-size:0.78rem;color:${color};opacity:0.75;"></i>
+            <div style="font-size:1.25rem;font-weight:900;color:${color};line-height:1.1;">${cnt}</div>
+            <div style="font-size:0.56rem;color:var(--text-secondary);font-weight:700;text-align:center;line-height:1.3;white-space:nowrap;">${label}</div>
+            <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:${color};border-radius:2px 2px 0 0;"></div>
+        </div>`;
+    }).join('');
+
+    summaryEl.innerHTML = pills;
 }
 
 function pRowEdit(i) {
@@ -21355,26 +21447,25 @@ function buildIncidentTabulationHTML() {
 // ==================== TREND LINE CHART FUNCTIONS ====================
 
 function buildTrendChartHTML(tabType) {
-    const chartId = `trendChart_${tabType}`;
     const title = tabType === 'rates' ? 'STATISTICS RATE TRENDS' : 'ACCIDENT/INCIDENT TRENDS';
     const icon = tabType === 'rates' ? 'fa-chart-line' : 'fa-chart-area';
-    
-    return `
-    <div id="trend-chart-panel" style="padding: 20px 20px 0 20px;">
+    const persistentId = `trend-chart-persistent-${tabType}`;
+
+    // Build the chart panel HTML into the persistent container (only once)
+    const persistentEl = document.getElementById(persistentId);
+    if (persistentEl && !persistentEl.dataset.initialized) {
+        persistentEl.dataset.initialized = 'true';
+        persistentEl.innerHTML = `
       <div style="background: var(--bg-card); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color); margin-bottom: 20px;">
-        
-        <!-- Chart header with filters -->
         <div style="background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 25%, #2e7d32 50%, #43a047 75%, #66bb6a 100%); color: white; padding: 14px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1); position: relative; overflow: hidden;">
-          <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%); pointer-events: none; z-index: 1;"></div>
+          <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%); pointer-events: none; z-index: 1;"></div>
           <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; position: relative; z-index: 2;">
             <div style="display: flex; align-items: center; gap: 12px;">
               <i class="fas ${icon}" style="font-size: 1.1rem;"></i>
               <span style="font-weight: 700; font-size: 1rem; letter-spacing: 0.5px;">${title}</span>
             </div>
-            
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-              <!-- Region Filter -->
-              <select id="trendRegionFilter" onchange="updateTrendChart('${tabType}')" 
+              <select id="trendRegionFilter_${tabType}" onchange="updateTrendChart('${tabType}')"
                       style="padding: 6px 12px; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; background: white; color: #1b5e20; cursor: pointer;">
                 <option value="all">ALL REGIONS</option>
                 <option value="NCR">NCR</option>
@@ -21382,46 +21473,54 @@ function buildTrendChartHTML(tabType) {
                 <option value="NORTH LUZON">NORTH LUZON</option>
                 <option value="VISAYAS & MINDANAO">VISMIN</option>
               </select>
-              
-              <!-- Project Filter -->
-              <select id="trendProjectFilter" onchange="updateTrendChart('${tabType}')" 
+              <select id="trendProjectFilter_${tabType}" onchange="updateTrendChart('${tabType}')"
                       style="padding: 6px 12px; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; background: white; color: #1b5e20; cursor: pointer;">
                 <option value="all">All Projects</option>
               </select>
             </div>
           </div>
         </div>
-        
-        <!-- Chart canvas -->
         <div style="padding: 20px;">
-          <canvas id="${chartId}" style="max-height: 400px;"></canvas>
+          <canvas id="trendChart_${tabType}" style="max-height: 400px;"></canvas>
         </div>
-        
-      </div>
-    </div>`;
+      </div>`;
+    }
+
+    // Show this persistent container, hide the other one
+    document.getElementById('trend-chart-persistent-rates').style.display  = tabType === 'rates'   ? 'block' : 'none';
+    document.getElementById('trend-chart-persistent-medical').style.display = tabType === 'medical' ? 'block' : 'none';
+
+    // Return an empty anchor div — chart is already in the persistent container above the table
+    return `<div id="trend-chart-anchor-${tabType}" style="display:none;"></div>`;
 }
 
-function populateProjectFilter() {
-    const projectFilter = document.getElementById('trendProjectFilter');
-    if (!projectFilter) return;
-    
-    // Keep the "All Projects" option
-    projectFilter.innerHTML = '<option value="all">All Projects</option>';
-    
-    // Add each project
-    state.projects.forEach(p => {
-        const option = document.createElement('option');
-        option.value = p.name;
-        option.textContent = p.name;
-        projectFilter.appendChild(option);
+function populateProjectFilter(tabType) {
+    const suffix = tabType || '';
+    const ids = suffix ? [`trendProjectFilter_${suffix}`] : ['trendProjectFilter_rates', 'trendProjectFilter_medical'];
+    ids.forEach(id => {
+        const projectFilter = document.getElementById(id);
+        if (!projectFilter) return;
+        projectFilter.innerHTML = '<option value="all">All Projects</option>';
+        state.projects.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.name;
+            option.textContent = p.name;
+            projectFilter.appendChild(option);
+        });
     });
 }
 
 let trendChartInstance = null;
+let _trendChartDebounce = null;
 
 function updateTrendChart(tabType) {
-    const regionFilter = document.getElementById('trendRegionFilter')?.value || 'all';
-    const projectFilter = document.getElementById('trendProjectFilter')?.value || 'all';
+    clearTimeout(_trendChartDebounce);
+    _trendChartDebounce = setTimeout(() => _doUpdateTrendChart(tabType), 80);
+}
+
+function _doUpdateTrendChart(tabType) {
+    const regionFilter = document.getElementById(`trendRegionFilter_${tabType}`)?.value || 'all';
+    const projectFilter = document.getElementById(`trendProjectFilter_${tabType}`)?.value || 'all';
     const chartId = `trendChart_${tabType}`;
     const canvas = document.getElementById(chartId);
     
@@ -21582,6 +21681,7 @@ function updateTrendChart(tabType) {
             datasets: datasetsWithGradients
         },
         options: {
+            animation: false,
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
@@ -21644,7 +21744,7 @@ function updateTrendChart(tabType) {
             }
         }
     });
-}
+}  // end _doUpdateTrendChart
 
 
 
@@ -26539,6 +26639,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // e.g. "NCR:ProjectA:January:Main Building" -> { refrigerator: 2, tv: 1, ... }
     let appliancesData = {};
     let appliancesCollapsed = {};
+    let appliancesNavIdx = {};   // tracks current project index per region
+
+    window.appliancesNavProject = function(region, delta) {
+        const allProjects = (typeof state !== 'undefined' && state.projects) ? state.projects : [];
+        const projs = allProjects.filter(p => p.region === region);
+        if (!projs.length) return;
+        const cur = appliancesNavIdx[region] || 0;
+        appliancesNavIdx[region] = Math.max(0, Math.min(projs.length - 1, cur + delta));
+        appliancesRenderRegions();
+    };
 
     const APPL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -26732,20 +26842,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 projHtml = `<div style="padding:20px;text-align:center;color:var(--text-secondary);font-size:0.75rem;font-style:italic;">
                     <i class="fas fa-folder-open" style="opacity:0.25;font-size:1.5rem;display:block;margin-bottom:6px;"></i>No projects in this region yet.</div>`;
             } else {
-                projs.forEach((proj, pi) => {
+                // Clamp nav index
+                const navIdx = Math.max(0, Math.min(projs.length - 1, appliancesNavIdx[region] || 0));
+                appliancesNavIdx[region] = navIdx;
+                const proj = projs[navIdx];
+                const pi   = navIdx;
+
+                // Nav bar (only if > 1 project)
+                if (projs.length > 1) {
+                    const regEsc = region.replace(/'/g,"\\'");
+                    projHtml += `
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:2px solid #c8e6c9;margin-bottom:2px;">
+                        <button onclick="appliancesNavProject('${regEsc}',-1)" ${navIdx===0?'disabled':''} style="background:${navIdx===0?'#ccc':rc.bg};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${navIdx===0?'not-allowed':'pointer'};opacity:${navIdx===0?'0.4':'1'};">
+                            <i class="fas fa-chevron-left"></i> Prev
+                        </button>
+                        <div style="text-align:center;">
+                            <div style="font-size:0.72rem;font-weight:800;color:#1b5e20;"><i class="fas fa-hard-hat" style="margin-right:5px;"></i>${proj.name}</div>
+                            <div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ${navIdx+1} of ${projs.length}</div>
+                        </div>
+                        <button onclick="appliancesNavProject('${regEsc}',1)" ${navIdx===projs.length-1?'disabled':''} style="background:${navIdx===projs.length-1?'#ccc':rc.bg};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${navIdx===projs.length-1?'not-allowed':'pointer'};opacity:${navIdx===projs.length-1?'0.4':'1'};">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>`;
+                }
+
+                // Build card for the single visible project
+                {
                     const pn  = proj.name.replace(/'/g,"\\'");
                     const reg = region.replace(/'/g,"\\'");
-                    // Unique IDs for month and building inputs per project
                     const monthInputId    = 'appl-month-'    + rk + '-' + pi;
                     const buildingInputId = 'appl-building-' + rk + '-' + pi;
-
-                    // Find all existing entries for this project to show summary
                     const existingEntries = Object.keys(appliancesData).filter(k => k.startsWith(
                         (region + ':' + proj.name).replace(/[^a-z0-9:]/gi,'_')
                     ));
                     const hasSomeData = existingEntries.some(k => Object.values(appliancesData[k]).some(v => v > 0));
-
-                    // Build a preview key using defaults so sections render immediately
                     const previewKey = appliancesKey(region, proj.name, 'January', 'Main Building');
 
                     projHtml += `
@@ -26756,7 +26886,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span style="font-weight:700;font-size:0.76rem;color:${rc.bg};">${proj.name}</span>
                             ${hasSomeData ? `<span style="background:#e8f5e9;color:#2e7d32;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;"><i class="fas fa-check" style="margin-right:3px;"></i>Data entered</span>` : ''}
                         </div>
-
                         <!-- Month + Building selectors -->
                         <div style="padding:8px 14px;background:var(--input-bg);border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                             <div style="display:flex;align-items:center;gap:6px;">
@@ -26783,8 +26912,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <i class="fas fa-save"></i> Save
                             </button>` : ''}
                         </div>
-
-                        <!-- Appliance sections — dynamically keyed by month+building -->
+                        <!-- Appliance sections -->
                         <div id="appl-sections-${rk}-${pi}">
                             ${applSectionRows('A',  previewKey, canEditRg)}
                             ${applSectionRows('A1', previewKey, canEditRg)}
@@ -26792,7 +26920,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             ${applSectionRows('C',  previewKey, canEditRg)}
                         </div>
                     </div>`;
-                });
+                }
             }
 
             html += `
@@ -27592,7 +27720,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         const rk = regionRaw.replace(/[^a-z0-9]/gi,'_');
-        const suffix = pi !== undefined ? `${rk}-${pi}` : rk;
+        const suffix = pi !== undefined ? `${rk}_${pi}` : rk;
         const month = document.getElementById('waste-month-'+suffix)?.value || 'January';
         const loc   = (document.getElementById('waste-loc-'+suffix)?.value || '').trim() || '—';
         const bioGen    = parseFloat(document.getElementById('waste-bio-gen-'+suffix)?.value) || 0;
@@ -27682,162 +27810,176 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>`).join('');
     }
 
+    // Per-region collapsed state for waste regions
+    // (wasteCollapsed declared above at WASTE MONITORING section start)
+
+    function wasteProjectTableHTML(projRows, colors, canEdit) {
+        let t = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.72rem;">
+            <thead>
+                <tr>
+                    <th style="background:${colors.bg};color:white;padding:6px 10px;text-align:center;border:1px solid #ddd;">Month</th>
+                    <th style="background:${colors.bg};color:white;padding:6px 10px;text-align:center;border:1px solid #ddd;">Location</th>
+                    <th style="background:#2e7d32;color:white;padding:6px 8px;text-align:center;border:1px solid #ddd;" colspan="2">Biodegradable (MT)</th>
+                    <th style="background:#1565c0;color:white;padding:6px 8px;text-align:center;border:1px solid #ddd;" colspan="2">Non-Biodegradable (MT)</th>
+                    <th style="background:#e65100;color:white;padding:6px 8px;text-align:center;border:1px solid #ddd;" colspan="2">Recyclable (MT)</th>
+                    <th style="background:#b71c1c;color:white;padding:6px 8px;text-align:center;border:1px solid #ddd;" colspan="2">Hazardous (MT)</th>
+                    <th style="background:#0277bd;color:white;padding:6px 10px;text-align:center;border:1px solid #ddd;">Septage (m³)</th>
+                    <th style="background:#546e7a;color:white;padding:6px 10px;text-align:center;border:1px solid #ddd;">Remarks</th>
+                    ${canEdit ? '<th style="background:#546e7a;color:white;padding:6px 8px;text-align:center;border:1px solid #ddd;"></th>' : ''}
+                </tr>
+                <tr>
+                    <th style="background:#388e3c;color:white;padding:4px 6px;border:1px solid #ddd;"></th>
+                    <th style="background:#388e3c;color:white;padding:4px 6px;border:1px solid #ddd;"></th>
+                    <th style="background:#388e3c;color:#c8e6c9;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Gen</th>
+                    <th style="background:#388e3c;color:#c8e6c9;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Disp</th>
+                    <th style="background:#1976d2;color:#bbdefb;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Gen</th>
+                    <th style="background:#1976d2;color:#bbdefb;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Disp</th>
+                    <th style="background:#f57c00;color:#ffe0b2;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Gen</th>
+                    <th style="background:#f57c00;color:#ffe0b2;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Disp</th>
+                    <th style="background:#c62828;color:#ffcdd2;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Gen</th>
+                    <th style="background:#c62828;color:#ffcdd2;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Disp</th>
+                    <th style="background:#0288d1;color:#b3e5fc;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;"></th>
+                    <th style="background:#607d8b;color:white;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;"></th>
+                    ${canEdit ? '<th style="background:#607d8b;color:white;padding:4px 6px;border:1px solid #ddd;"></th>' : ''}
+                </tr>
+            </thead>
+            <tbody>`;
+        if (!projRows.length) {
+            const colCount = canEdit ? 13 : 12;
+            t += `<tr><td colspan="${colCount}" style="padding:18px;text-align:center;color:var(--text-secondary);font-size:0.72rem;font-style:italic;"><i class="fas fa-trash-alt" style="opacity:0.2;margin-right:5px;"></i>No entries yet${canEdit ? ' — use the form above' : ''}.</td></tr>`;
+        } else {
+            const grouped = {};
+            WASTE_MONTHS.forEach(m => { grouped[m] = []; });
+            projRows.forEach(r => { if (grouped[r.month]) grouped[r.month].push(r); });
+            WASTE_MONTHS.forEach(month => {
+                const mRows = grouped[month];
+                if (!mRows.length) return;
+                mRows.forEach((r, i) => {
+                    t += `<tr style="background:${i%2===0?'var(--bg-card)':'var(--input-bg)'};">
+                        ${i===0 ? `<td rowspan="${mRows.length}" style="padding:6px 10px;text-align:center;font-weight:700;color:${colors.bg};border:1px solid #e0e0e0;vertical-align:middle;white-space:nowrap;">${month}</td>` : ''}
+                        <td style="padding:5px 8px;border:1px solid #e0e0e0;">${r.location}</td>
+                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.bioGen||''}</td>
+                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.bioDisp||''}</td>
+                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.nonbioGen||''}</td>
+                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.nonbioDisp||''}</td>
+                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.recGen||''}</td>
+                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.recDisp||''}</td>
+                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.hazGen||''}</td>
+                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.hazDisp||''}</td>
+                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.septage||''}</td>
+                        <td style="padding:5px 8px;border:1px solid #e0e0e0;">${r.remarks||''}</td>
+                        ${canEdit ? `<td style="padding:4px 6px;text-align:center;border:1px solid #e0e0e0;">
+                            <button onclick="wasteDeleteRow(${r.id})" style="padding:2px 7px;background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;font-size:0.6rem;cursor:pointer;"><i class="fas fa-times"></i></button>
+                        </td>` : ''}
+                    </tr>`;
+                });
+            });
+        }
+        t += `</tbody></table></div>`;
+        return t;
+    }
+
+    function wasteAddFormHTML(region, pi, projName, rk, suffix, colors, canEdit) {
+        if (!canEdit) return '';
+        const pnEsc = projName.replace(/'/g,"\\'");
+        const regEsc = region.replace(/'/g,"\\'");
+        return `<div style="background:${colors.light};border-radius:8px;padding:10px 14px;margin-bottom:12px;border:1px solid ${colors.badge}44;">
+            <div style="font-size:0.68rem;font-weight:700;color:${colors.bg};margin-bottom:8px;text-transform:uppercase;"><i class="fas fa-plus-circle"></i> Add Entry — ${projName}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:var(--text-secondary);">Month</label>
+                    <select id="waste-month-${suffix}" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);">${WASTE_MONTHS.map(m => `<option>${m}</option>`).join('')}</select></div>
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:var(--text-secondary);">Location</label>
+                    <input id="waste-loc-${suffix}" type="text" placeholder="Site/Location" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:110px;"></div>
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#2e7d32;">Bio Gen (MT)</label>
+                    <input id="waste-bio-gen-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:90px;"></div>
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#2e7d32;">Bio Disp (MT)</label>
+                    <input id="waste-bio-disp-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:90px;"></div>
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#1565c0;">Non-Bio Gen (MT)</label>
+                    <input id="waste-nonbio-gen-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:90px;"></div>
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#1565c0;">Non-Bio Disp (MT)</label>
+                    <input id="waste-nonbio-disp-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:90px;"></div>
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#e65100;">Rec Gen (MT)</label>
+                    <input id="waste-rec-gen-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;"></div>
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#e65100;">Rec Disp (MT)</label>
+                    <input id="waste-rec-disp-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;"></div>
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#b71c1c;">Haz Gen (MT)</label>
+                    <input id="waste-haz-gen-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;"></div>
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#b71c1c;">Haz Disp (MT)</label>
+                    <input id="waste-haz-disp-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;"></div>
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#0277bd;">Septage (m³)</label>
+                    <input id="waste-sep-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;"></div>
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:var(--text-secondary);">Remarks</label>
+                    <input id="waste-rem-${suffix}" type="text" placeholder="Optional" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:110px;"></div>
+                <button onclick="wasteAddRow('${regEsc}', ${pi}, '${pnEsc}')" style="padding:5px 14px;background:${colors.bg};color:white;border:none;border-radius:7px;font-size:0.7rem;font-weight:700;cursor:pointer;"><i class="fas fa-plus"></i> Add Row</button>
+            </div>
+        </div>`;
+    }
+
     function wasteRenderRegions() {
         const container = document.getElementById('env-waste-regions-container');
         if (!container) return;
-        const userEmail = (typeof state !== 'undefined') ? state.currentUser?.email : null;
+        const userEmail   = (typeof state !== 'undefined') ? state.currentUser?.email : null;
+        const allProjects = (typeof state !== 'undefined' && state.projects) ? state.projects : [];
         let html = '';
 
         WASTE_REGIONS.forEach(region => {
-            const canEdit = UserAccounts.canEdit(userEmail, region) && UserAccounts.canEditTab(userEmail, 'env-monitoring');
-            const rk = region.replace(/[^a-z0-9]/gi,'_');
-            const rows = wasteData.filter(r => r.region === region);
-            const collapsed = !!wasteCollapsed[region];
-            const colors = REGION_COLORS[region] || { bg:'#2e7d32', light:'#e8f5e9', badge:'#81c784' };
+            const canEdit    = UserAccounts.canEdit(userEmail, region) && UserAccounts.canEditTab(userEmail, 'env-monitoring');
+            const rk         = region.replace(/[^a-z0-9]/gi,'_');
+            const regionRows = wasteData.filter(r => r.region === region);
+            const collapsed  = !!wasteCollapsed[region];
+            const colors     = REGION_COLORS[region] || { bg:'#2e7d32', light:'#e8f5e9', badge:'#81c784' };
+            const projs      = allProjects.filter(p => p.region === region);
 
             html += `<div style="background:var(--bg-card);border-radius:12px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:14px;">
                 <div onclick="wasteToggleRegion('${region}')" style="background:${colors.bg};padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
                     <div style="display:flex;align-items:center;gap:8px;">
                         <i class="fas fa-map-marker-alt" style="color:white;font-size:0.9rem;"></i>
                         <span style="font-weight:700;font-size:0.82rem;color:white;">${region}</span>
-                        <span style="background:rgba(255,255,255,0.2);color:white;padding:2px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;">${rows.length} ENTRIES</span>
+                        <span style="background:rgba(255,255,255,0.2);color:white;padding:2px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;">${projs.length} PROJECT${projs.length!==1?'S':''}</span>
+                        <span style="background:rgba(255,255,255,0.15);color:white;padding:2px 8px;border-radius:10px;font-size:0.62rem;">${regionRows.length} ENTRIES</span>
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;">
                         ${canEdit ? `<button onclick="event.stopPropagation();wasteClearRegion('${region}')" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:2px 8px;font-size:0.62rem;cursor:pointer;"><i class="fas fa-trash"></i> Clear</button>` : ''}
                         <i id="waste-region-chevron-${rk}" class="fas ${collapsed ? 'fa-chevron-right' : 'fa-chevron-down'}" style="color:white;font-size:0.8rem;"></i>
                     </div>
                 </div>
-                <div id="waste-region-body-${rk}" style="display:${collapsed ? 'none' : ''};padding:14px;">`;
+                <div id="waste-region-body-${rk}" style="display:${collapsed ? 'none' : ''};">`;
 
-            // Entry form
-            if (canEdit) {
-                html += `<div style="background:${colors.light};border-radius:8px;padding:10px 14px;margin-bottom:12px;border:1px solid ${colors.badge}44;">
-                    <div style="font-size:0.68rem;font-weight:700;color:${colors.bg};margin-bottom:8px;text-transform:uppercase;"><i class="fas fa-plus-circle"></i> Add Entry</div>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
-                        <div style="display:flex;flex-direction:column;gap:3px;">
-                            <label style="font-size:0.6rem;font-weight:600;color:var(--text-secondary);">Month</label>
-                            <select id="waste-month-${rk}" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);">
-                                ${WASTE_MONTHS.map(m => `<option>${m}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:3px;">
-                            <label style="font-size:0.6rem;font-weight:600;color:var(--text-secondary);">Location</label>
-                            <input id="waste-loc-${rk}" type="text" placeholder="Site/Location" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:110px;">
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:3px;">
-                            <label style="font-size:0.6rem;font-weight:600;color:#2e7d32;">Bio Gen (MT)</label>
-                            <input id="waste-bio-gen-${rk}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:90px;">
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:3px;">
-                            <label style="font-size:0.6rem;font-weight:600;color:#2e7d32;">Bio Disp (MT)</label>
-                            <input id="waste-bio-disp-${rk}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:90px;">
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:3px;">
-                            <label style="font-size:0.6rem;font-weight:600;color:#1565c0;">Non-Bio Gen (MT)</label>
-                            <input id="waste-nonbio-gen-${rk}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:90px;">
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:3px;">
-                            <label style="font-size:0.6rem;font-weight:600;color:#1565c0;">Non-Bio Disp (MT)</label>
-                            <input id="waste-nonbio-disp-${rk}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:90px;">
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:3px;">
-                            <label style="font-size:0.6rem;font-weight:600;color:#e65100;">Rec Gen (MT)</label>
-                            <input id="waste-rec-gen-${rk}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;">
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:3px;">
-                            <label style="font-size:0.6rem;font-weight:600;color:#e65100;">Rec Disp (MT)</label>
-                            <input id="waste-rec-disp-${rk}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;">
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:3px;">
-                            <label style="font-size:0.6rem;font-weight:600;color:#b71c1c;">Haz Gen (MT)</label>
-                            <input id="waste-haz-gen-${rk}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;">
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:3px;">
-                            <label style="font-size:0.6rem;font-weight:600;color:#b71c1c;">Haz Disp (MT)</label>
-                            <input id="waste-haz-disp-${rk}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;">
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:3px;">
-                            <label style="font-size:0.6rem;font-weight:600;color:#0277bd;">Septage (m³)</label>
-                            <input id="waste-sep-${rk}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;">
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:3px;">
-                            <label style="font-size:0.6rem;font-weight:600;color:var(--text-secondary);">Remarks</label>
-                            <input id="waste-rem-${rk}" type="text" placeholder="Optional" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:110px;">
-                        </div>
-                        <button onclick="wasteAddRow('${region}', undefined, '')" style="padding:5px 14px;background:${colors.bg};color:white;border:none;border-radius:7px;font-size:0.7rem;font-weight:700;cursor:pointer;"><i class="fas fa-plus"></i> Add Row</button>
+            if (projs.length === 0) {
+                html += `<div style="padding:18px;text-align:center;color:var(--text-secondary);font-size:0.75rem;font-style:italic;"><i class="fas fa-folder-open" style="opacity:0.25;font-size:1.5rem;display:block;margin-bottom:6px;"></i>No projects in this region.</div>`;
+            } else {
+                // ── NEXT/PREV NAV (same system as electricity/water) ──
+                const _wNk  = _tabNavKey('waste', region);
+                let _wIdx   = Math.min(_tabRegionProjectIdx[_wNk] || 0, projs.length - 1);
+                _tabRegionProjectIdx[_wNk] = _wIdx;
+                html += _tabNavBar('waste', region, _wIdx, projs.length);
+
+                // Show only the current project
+                const proj    = projs[_wIdx];
+                const pi      = _wIdx;
+                const suffix  = rk + '_' + pi;
+                const projRows = wasteData.filter(r => r.region === region && r.project === proj.name);
+                const hasData  = projRows.length > 0;
+
+                html += `<div style="margin:12px 14px;border-radius:8px;overflow:hidden;border:1px solid ${colors.bg}33;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+                    <div style="background:linear-gradient(90deg,${colors.bg}22,${colors.bg}11);padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid ${colors.bg}22;">
+                        <i class="fas fa-hard-hat" style="color:${colors.bg};font-size:0.72rem;"></i>
+                        <span style="font-weight:700;font-size:0.76rem;color:${colors.bg};flex:1;">${proj.name}</span>
+                        ${hasData ? `<span style="background:#e8f5e9;color:#2e7d32;padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;"><i class="fas fa-check" style="margin-right:3px;"></i>${projRows.length} entries</span>` : ''}
+                    </div>
+                    <div style="padding:10px;">
+                        ${wasteAddFormHTML(region, pi, proj.name, rk, suffix, colors, canEdit)}
+                        ${wasteProjectTableHTML(projRows, colors, canEdit)}
                     </div>
                 </div>`;
             }
 
-            // Table
-            html += `<div style="overflow-x:auto;">
-                <table style="width:100%;border-collapse:collapse;font-size:0.72rem;">
-                    <thead>
-                        <tr>
-                            <th style="background:${colors.bg};color:white;padding:6px 10px;text-align:center;border:1px solid #ddd;">Month</th>
-                            <th style="background:${colors.bg};color:white;padding:6px 10px;text-align:center;border:1px solid #ddd;">Location</th>
-                            <th style="background:#2e7d32;color:white;padding:6px 8px;text-align:center;border:1px solid #ddd;" colspan="2">Biodegradable (MT)</th>
-                            <th style="background:#1565c0;color:white;padding:6px 8px;text-align:center;border:1px solid #ddd;" colspan="2">Non-Biodegradable (MT)</th>
-                            <th style="background:#e65100;color:white;padding:6px 8px;text-align:center;border:1px solid #ddd;" colspan="2">Recyclable (MT)</th>
-                            <th style="background:#b71c1c;color:white;padding:6px 8px;text-align:center;border:1px solid #ddd;" colspan="2">Hazardous (MT)</th>
-                            <th style="background:#0277bd;color:white;padding:6px 10px;text-align:center;border:1px solid #ddd;">Septage (m³)</th>
-                            <th style="background:#546e7a;color:white;padding:6px 10px;text-align:center;border:1px solid #ddd;">Remarks</th>
-                            ${canEdit ? '<th style="background:#546e7a;color:white;padding:6px 8px;text-align:center;border:1px solid #ddd;"></th>' : ''}
-                        </tr>
-                        <tr>
-                            <th style="background:#388e3c;color:white;padding:4px 6px;border:1px solid #ddd;"></th>
-                            <th style="background:#388e3c;color:white;padding:4px 6px;border:1px solid #ddd;"></th>
-                            <th style="background:#388e3c;color:#c8e6c9;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Gen</th>
-                            <th style="background:#388e3c;color:#c8e6c9;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Disp</th>
-                            <th style="background:#1976d2;color:#bbdefb;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Gen</th>
-                            <th style="background:#1976d2;color:#bbdefb;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Disp</th>
-                            <th style="background:#f57c00;color:#ffe0b2;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Gen</th>
-                            <th style="background:#f57c00;color:#ffe0b2;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Disp</th>
-                            <th style="background:#c62828;color:#ffcdd2;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Gen</th>
-                            <th style="background:#c62828;color:#ffcdd2;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Disp</th>
-                            <th style="background:#0288d1;color:#b3e5fc;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;"></th>
-                            <th style="background:#607d8b;color:white;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;"></th>
-                            ${canEdit ? '<th style="background:#607d8b;color:white;padding:4px 6px;border:1px solid #ddd;"></th>' : ''}
-                        </tr>
-                    </thead>
-                    <tbody>`;
-
-            if (!rows.length) {
-                const colCount = canEdit ? 13 : 12;
-                html += `<tr><td colspan="${colCount}" style="padding:18px;text-align:center;color:var(--text-secondary);font-size:0.72rem;font-style:italic;"><i class="fas fa-trash-alt" style="opacity:0.2;margin-right:5px;"></i>No entries yet${canEdit ? ' — use the form above' : ''}.</td></tr>`;
-            } else {
-                const grouped = {};
-                WASTE_MONTHS.forEach(m => { grouped[m] = []; });
-                rows.forEach(r => { if (grouped[r.month]) grouped[r.month].push(r); });
-                WASTE_MONTHS.forEach(month => {
-                    const mRows = grouped[month];
-                    if (!mRows.length) return;
-                    mRows.forEach((r, i) => {
-                        html += `<tr style="background:${i%2===0?'var(--bg-card)':'var(--input-bg)'};">
-                            ${i===0 ? `<td rowspan="${mRows.length}" style="padding:6px 10px;text-align:center;font-weight:700;color:${colors.bg};border:1px solid #e0e0e0;vertical-align:middle;white-space:nowrap;">${month}</td>` : ''}
-                            <td style="padding:5px 8px;border:1px solid #e0e0e0;">${r.location}</td>
-                            <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.bioGen||''}</td>
-                            <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.bioDisp||''}</td>
-                            <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.nonbioGen||''}</td>
-                            <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.nonbioDisp||''}</td>
-                            <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.recGen||''}</td>
-                            <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.recDisp||''}</td>
-                            <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.hazGen||''}</td>
-                            <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.hazDisp||''}</td>
-                            <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.septage||''}</td>
-                            <td style="padding:5px 8px;border:1px solid #e0e0e0;">${r.remarks||''}</td>
-                            ${canEdit ? `<td style="padding:4px 6px;text-align:center;border:1px solid #e0e0e0;">
-                                <button onclick="wasteDeleteRow(${r.id})" style="padding:2px 7px;background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;font-size:0.6rem;cursor:pointer;"><i class="fas fa-times"></i></button>
-                            </td>` : ''}
-                        </tr>`;
-                    });
-                });
-            }
-            html += `</tbody></table></div></div></div>`;
+            html += `</div></div>`;
         });
 
         container.innerHTML = html;
     }
+    window.wasteRenderRegions = wasteRenderRegions;
     // ==================== END WASTE MONITORING ====================
 
 })();
@@ -28173,6 +28315,8 @@ function tabNavProject(tabType, region, delta) {
         renderNovEnvTab();
     } else if (tabType === 'env-monitoring' && typeof envRenderRegions === 'function') {
         envRenderRegions();
+    } else if (tabType === 'waste' && typeof wasteRenderRegions === 'function') {
+        wasteRenderRegions();
     } else if (typeof render === 'function') {
         render();
     }
@@ -29471,29 +29615,4 @@ function chatInputKeydown(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSendMessage(); }
 }
 
-function chatInputResize(el) {
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 80) + 'px';
-}
-
-function chatSendTyping() {
-    const rtdb = window.firebaseRealtimeDb;
-    const auth = window.firebaseAuth;
-    if (!rtdb || !auth?.currentUser) return;
-    try {
-        const typRef = window.firebase.dbRef(rtdb, 'chatTyping/' + _chatRoom + '/' + auth.currentUser.uid);
-        window.firebase.set(typRef, { name: state?.displayName || auth.currentUser.email, ts: Date.now() });
-        clearTimeout(_chatTypingTimeout);
-        _chatTypingTimeout = setTimeout(chatClearTyping, 3000);
-    } catch(e) {}
-}
-
-function chatClearTyping() {
-    const rtdb = window.firebaseRealtimeDb;
-    const auth = window.firebaseAuth;
-    if (!rtdb || !auth?.currentUser) return;
-    try {
-        window.firebase.remove(window.firebase.dbRef(rtdb, 'chatTyping/' + _chatRoom + '/' + auth.currentUser.uid));
-    } catch(e) {}
-}
-</script>
+function
