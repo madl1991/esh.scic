@@ -5600,7 +5600,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
                 <!-- TEAM CHAT MESSENGER BUTTON -->
                 <div class="chat-messenger-container" id="chat-messenger-container">
-                    <button class="chat-messenger-btn" onclick="toggleChatPanel()" id="chat-messenger-btn" title="Team Chat">
+                    <button class="chat-messenger-btn" onclick="toggleChatPanel(event)" id="chat-messenger-btn" title="Team Chat">
                         <i class="fas fa-comment-dots"></i>
                         <span class="chat-msg-badge" id="chat-msg-badge" style="display:none;">0</span>
                     </button>
@@ -5614,7 +5614,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                                     <div class="chat-panel-sub" id="chat-panel-sub">General</div>
                                 </div>
                             </div>
-                            <button onclick="toggleChatPanel()" style="background:none;border:none;color:rgba(255,255,255,0.8);cursor:pointer;font-size:1rem;padding:4px;"><i class="fas fa-times"></i></button>
+                            <button onclick="toggleChatPanel(event)" style="background:none;border:none;color:rgba(255,255,255,0.8);cursor:pointer;font-size:1rem;padding:4px;"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="chat-rooms-bar" id="chat-rooms-bar"></div>
                         <div class="chat-messages-panel" id="chat-messages-panel">
@@ -6315,7 +6315,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <input type="text" id="p-filter-value" placeholder="Search personnel..." onkeyup="filterPTable()" style="flex:1; padding:8px 12px; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:0.75rem;">
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
-                <button class="btn btn-primary" onclick="openAddPersonnelModal()" style="padding:8px 16px; display:flex; align-items:center; gap:6px; font-size:0.78rem; border-radius:6px;">
+                <button id="p-add-personnel-btn" class="btn btn-primary" onclick="openAddPersonnelModal()" style="padding:8px 16px; display:flex; align-items:center; gap:6px; font-size:0.78rem; border-radius:6px;">
                     <i class="fas fa-user-plus"></i> Add Personnel
                 </button>
                 <div id="p-global-action" style="display:none; gap:6px;">
@@ -7636,6 +7636,7 @@ async function clearAuditLog() {
 // Fix 1: saveToFirebaseMain — called from settings menu & sync button
 // Was missing entirely — caused "saveToFirebaseMain is not defined" console error
 async function saveToFirebaseMain() {
+    if (state.userRole === 'manager') { showToast('👁️ Manager accounts are view-only. Cannot save data.', 'warning'); return; }
     showToast('☁️ Syncing to cloud...', 'info', 2000);
     const success = await saveToFirebase();
     if (success) {
@@ -7648,6 +7649,7 @@ window.saveToFirebaseMain = saveToFirebaseMain;
 
 // Fix 2: pGlobalEdit & pGlobalSave — called from Personnel "Edit All" / "Save All" buttons
 function pGlobalEdit() {
+    if (state.userRole === 'manager') { showToast('👁️ Manager accounts are view-only.', 'warning'); return; }
     const container = document.getElementById('p-cards-container');
     if (!container) return;
     const rows = container.querySelectorAll('tr[id^="p-row-"]');
@@ -7702,8 +7704,8 @@ const RBAC_ACCOUNTS = [
     { uid: 'RflE3UOhZJM824EqAkB5KuVA3bu1',  email: 'esh@tgm.com.ph',      role: 'manager',       displayName: 'TGM Manager',                   region: 'ALL',                 module_access: [] },
     { uid: 'u8r8wlD0thb5hAR9HwJ0vSQZC8u1',     email: 'esh@mab.com.ph',      role: 'manager',       displayName: 'MAB Manager',                   region: 'ALL',                 module_access: [] },
     { uid: '3d8uwAYjNPSCcH9Xbu1fsCiuJK13', email: 'esh@lmp.com.ph',      role: 'manager',       displayName: 'LMP Manager',                   region: 'ALL',                 module_access: [] },
-    { uid: 'ljciHhNmmGQnriHwbwgeb8Yi1V63',    email: 'esh@wda.com.ph',      role: 'sysadmin',      displayName: 'WDA System Admin',              region: 'ALL',                 module_access: [] },
-    { uid: 'WYcn1vEPoRTrq8rbrGBFUB9x4H03',    email: 'esh@corpdc.com.ph',   role: 'doccontroller', displayName: 'Corporate Document Controller', region: 'ALL',                 module_access: [] },
+    { uid: 'ljciHhNmmGQnriHwbwgeb8Yi1V63',    email: 'esh@wda.com.ph',      role: 'admin',      displayName: 'WDA System Admin',              region: 'ALL',                 module_access: [] },
+    { uid: 'WYcn1vEPoRTrq8rbrGBFUB9x4H03',    email: 'esh@corpdc.com.ph',   role: 'admin', displayName: 'Corporate Document Controller', region: 'ALL',                 module_access: [] },
     { uid: 'b1uiTykyjhN60Il11Inmv9e6h252', email: 'esh@cbmganda.com.ph', role: 'envi_head',     displayName: 'Environmental Head',            region: 'ALL',                 module_access: ['permits','emb','env-monitoring','env-monthly-report','nov-env','esh-calendar-env','tabulation','got-monitoring'] },
     { uid: 'EW3RstAsVwNxMHHCNHdV3zWGMtt2',  email: 'esh@health.com.ph',   role: 'corp_nurse',    displayName: 'Corporate Nurse',               region: 'ALL',                 module_access: ['medical','health-report','exposures','lta-registry','esh-calendar-health','personnel','osh-requirement'] },
 ];
@@ -8792,9 +8794,23 @@ function applyNumFmtToInputs() {
         // ==================== USER ACCOUNT MANAGEMENT SYSTEM ====================
         // ==================== RBAC: ROLE-BASED ACCESS CONTROL ====================
         const UserAccounts = {
-            // ── Hardcoded non-admin accounts (Superintendent & PCO) ──
-            // Admin accounts are any authenticated Firebase users NOT listed here.
+            // ── All known accounts ──
             superintendents: {
+                // ── ADMIN ACCOUNTS ──
+                'esh@scic.com.ph': {
+                    password: '*** (auth via Firebase Auth)',
+                    role: 'admin',
+                    displayName: 'ESH Admin',
+                    region: 'ALL',
+                    color: '#D32F2F'
+                },
+                'esh@staclara.com.ph': {
+                    password: '*** (auth via Firebase Auth)',
+                    role: 'admin',
+                    displayName: 'Sta. Clara Admin',
+                    region: 'ALL',
+                    color: '#D32F2F'
+                },
                 'esh@ncr.com.ph': {
                     password: '*** (auth via Firebase Auth)',
                     role: 'superintendent',
@@ -8879,7 +8895,7 @@ function applyNumFmtToInputs() {
                 // ==================== SYSTEM ADMIN (Full Access) ====================
                 'esh@wda.com.ph': {
                     password: '*** (auth via Firebase Auth)',
-                    role: 'sysadmin',
+                    role: 'admin',
                     displayName: 'WDA System Admin',
                     region: 'ALL',
                     color: '#b71c1c'
@@ -8888,7 +8904,7 @@ function applyNumFmtToInputs() {
                 // ==================== DOCUMENT CONTROLLER (Admin Level) ====================
                 'esh@corpdc.com.ph': {
                     password: '*** (auth via Firebase Auth)',
-                    role: 'doccontroller',
+                    role: 'admin',
                     displayName: 'Corporate Document Controller',
                     region: 'ALL',
                     color: '#1a237e'
@@ -8943,14 +8959,14 @@ function applyNumFmtToInputs() {
             getUserInfo(email) {
                 if (!email) return { role: 'guest', region: null, displayName: 'Guest', color: '#999' };
                 if (this.superintendents[email]) return this.superintendents[email];
-                // Any Firebase-authenticated user not in the list = Admin
-                return { role: 'admin', displayName: 'Administrator', region: 'ALL', color: '#D32F2F' };
+                // Unknown user — deny access
+                return { role: 'guest', displayName: 'Unknown', region: null, color: '#999' };
             },
 
             isAdmin(email) {
                 if (!email) return false;
                 const info = this.getUserInfo(email);
-                return info.role === 'admin' || info.role === 'sysadmin' || info.role === 'doccontroller';
+                return info.role === 'admin';
             },
 
             isSuperintendent(email) {
@@ -8969,8 +8985,8 @@ function applyNumFmtToInputs() {
                 const info = this.getUserInfo(userEmail);
 
                 // Admin / SysAdmin / DocController → full access
-                if (info.role === 'admin' || info.role === 'sysadmin' || info.role === 'doccontroller') {
-                    return { allowed: true, reason: info.role + ': full access' };
+                if (info.role === 'admin') {
+                    return { allowed: true, reason: 'Admin: full access' };
                 }
 
                 // Guest / unauthenticated → deny everything
@@ -11793,6 +11809,7 @@ function openAdminQuickView() {
         }
 
         function toggleEdit() {
+            if (state.userRole === 'manager') { showToast('👁️ Manager accounts are view-only. Cannot enter edit mode.', 'warning'); return; }
             state.isEditing = true;
             
             // Update floating button to SAVE mode
@@ -11964,7 +11981,7 @@ function openAdminQuickView() {
             const tab = state.currentTab;
 
             // Admin / SysAdmin / DocController: no banner needed
-            if (info.role === 'admin' || info.role === 'sysadmin' || info.role === 'doccontroller') { el.style.display = 'none'; el.innerHTML = ''; return; }
+            if (info.role === 'admin') { el.style.display = 'none'; el.innerHTML = ''; return; }
 
             let bannerHtml = '';
 
@@ -12155,9 +12172,9 @@ function openAdminQuickView() {
             const isEshCal = eshCalTabs.includes(t);
             if (isEshCal) {
                 document.getElementById('dashboard-content').classList.add('hidden');
-                try { renderEshCalendar(t); } catch(e) {
-                    console.error('❌ changeTab renderEshCalendar error:', e);
-                }
+                // Force-fetch ESH calendar data from RTDB on every tab open
+                // This ensures managers (and all roles) always see the latest data
+                eshFetchAndRender(t);
             }
             
             // If switching to admin tab, render admin panel
@@ -12215,6 +12232,7 @@ function openAdminQuickView() {
                 changeTab('overall');
                 return;
             }
+            // Manager: personnel tab is allowed (view only)
 
             // Block PCO from accessing OSH requirement tab
             if (t === 'osh-requirement' && state.userRole === 'pco') {
@@ -12227,8 +12245,8 @@ function openAdminQuickView() {
             const pdfBtn = document.getElementById('export-pdf-btn');
             const xlsBtn = document.getElementById('export-excel-btn');
             if (pdfBtn) {
-                // Hide PDF button for non-admins when in personnel tab
-                if (t === 'personnel' && !state.isAdmin) {
+                // Hide PDF button for non-admins (except managers) on personnel tab
+                if (t === 'personnel' && !state.isAdmin && state.userRole !== 'manager') {
                     pdfBtn.style.display = 'none';
                     if (xlsBtn) xlsBtn.style.display = 'none';
                 } else {
@@ -12424,11 +12442,17 @@ function updateAuditData(pName, qtr, field, val) {
             const _rbacEcc = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p?.region, 'permits');
             if (!p || !_rbacEcc.allowed) { showLockedMessage(_rbacEcc.reason); return; }
             const key = 'permits_ECC';
-            if (p.vals[key]?.entries) {
+            if (!p.vals[key]?.entries) return;
+            showDeleteDialog('ECC Entry', `ECC entry #${idx + 1} of ${pName}`).then(confirmed => {
+                if (!confirmed) return;
+                const backup = JSON.parse(JSON.stringify(p.vals[key].entries));
                 p.vals[key].entries.splice(idx, 1);
-                saveToFirebase();
-                render();
-            }
+                saveToFirebase(); render();
+                showUndoToast(`ECC entry #${idx + 1} deleted from ${pName}`, () => {
+                    p.vals[key].entries = backup;
+                    saveToFirebase(); render();
+                });
+            });
         }
 
         function updateEccEntry(pName, idx, field, value) {
@@ -12487,11 +12511,18 @@ function updateAuditData(pName, qtr, field, val) {
             const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p?.region, 'permits');
             if (!p || !_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
             const key = 'permits_' + permitRow;
-            if (p.vals[key] && p.vals[key].entries) {
+            if (!p.vals[key] || !p.vals[key].entries) return;
+            showDeleteDialog('Permit Entry', `${permitRow} entry #${idx + 1} of ${pName}`).then(confirmed => {
+                if (!confirmed) return;
+                const backup = JSON.parse(JSON.stringify(p.vals[key].entries));
                 p.vals[key].entries.splice(idx, 1);
                 if (p.vals[key].entries.length === 0) p.vals[key].entries = [{ permitNo: '', dateIssued: '', expiryDate: '' }];
                 saveToFirebase(); render();
-            }
+                showUndoToast(`${permitRow} entry #${idx + 1} deleted from ${pName}`, () => {
+                    p.vals[key].entries = backup;
+                    saveToFirebase(); render();
+                });
+            });
         }
         window.removeMultiPermitEntry = removeMultiPermitEntry;
 
@@ -12516,10 +12547,17 @@ function updateAuditData(pName, qtr, field, val) {
             const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p?.region, 'emb');
             if (!p || !_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
             const key = type === 'SMR' ? 'emb_extra_smr' : 'emb_extra_cmr';
-            if (p.vals[key]) {
+            if (!p.vals[key]) return;
+            showDeleteDialog('EMB Entry', `${type} entry #${idx + 1} of ${pName}`).then(confirmed => {
+                if (!confirmed) return;
+                const backup = JSON.parse(JSON.stringify(p.vals[key]));
                 p.vals[key].splice(idx, 1);
                 saveToFirebase(); render();
-            }
+                showUndoToast(`${type} entry #${idx + 1} deleted from ${pName}`, () => {
+                    p.vals[key] = backup;
+                    saveToFirebase(); render();
+                });
+            });
         }
         window.removeEmbEntry = removeEmbEntry;
 
@@ -13337,7 +13375,8 @@ function closeAllStatusDropdowns() {
             document.getElementById('main-sidebar').classList.remove('hidden');
             document.getElementById('main-content').classList.remove('hidden');
             const _fBtn = document.getElementById('floating-edit-btn');
-            if (_fBtn) _fBtn.style.display = 'flex';
+            const isManager = state.userRole === 'manager';
+            if (_fBtn) _fBtn.style.display = isManager ? 'none' : 'flex';
 
             const isPCO = state.userRole === 'pco';
 
@@ -13380,6 +13419,21 @@ function closeAllStatusDropdowns() {
             if (auditEl) {
                 auditEl.style.opacity = isPCO ? '0.55' : '';
                 auditEl.style.fontStyle = isPCO ? 'italic' : '';
+            }
+
+            // ── MANAGER: Apply view-only mode ──
+            if (isManager) {
+                const personnelNavItemMgr = document.querySelector('.nav-item[data-tab="personnel"]');
+                if (personnelNavItemMgr) personnelNavItemMgr.style.display = '';
+                document.querySelectorAll('.nav-item').forEach(navEl => {
+                    if (!navEl.querySelector('.mgr-eye-icon')) {
+                        const icon = document.createElement('i');
+                        icon.className = 'fas fa-eye mgr-eye-icon';
+                        icon.style.cssText = 'font-size:0.55rem;margin-left:5px;color:#78909c;vertical-align:middle;opacity:0.7;';
+                        icon.title = 'View Only';
+                        navEl.appendChild(icon);
+                    }
+                });
             }
 
             // Restore last active tab, fallback to 'overall'
@@ -14030,12 +14084,24 @@ function closeAllStatusDropdowns() {
             if (!p) return;
             const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p.region, 'medical');
             if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
-            if (!confirm('Remove this LTA entry? This will also update Days Lost/Charged.')) return;
-            if (p.vals['lta-registry_entries']) p.vals['lta-registry_entries'].splice(idx, 1);
-            syncIncidentClassificationsFromRegistry();
-            syncDaysLostFromLtaRegistry();
-            saveToFirebase();
-            renderLtaRegistryTab();
+            const entry = p.vals['lta-registry_entries']?.[idx];
+            const label = entry?.name || `LTA entry #${idx + 1}`;
+            showDeleteDialog('LTA Entry', `${label} from ${pName}`).then(confirmed => {
+                if (!confirmed) return;
+                const backup = JSON.parse(JSON.stringify(p.vals['lta-registry_entries'] || []));
+                p.vals['lta-registry_entries'].splice(idx, 1);
+                syncIncidentClassificationsFromRegistry();
+                syncDaysLostFromLtaRegistry();
+                saveToFirebase();
+                renderLtaRegistryTab();
+                showUndoToast(`${label} deleted from ${pName}`, () => {
+                    p.vals['lta-registry_entries'] = backup;
+                    syncIncidentClassificationsFromRegistry();
+                    syncDaysLostFromLtaRegistry();
+                    saveToFirebase();
+                    renderLtaRegistryTab();
+                });
+            });
         }
 
         function updateLtaField(pName, idx, field, value) {
@@ -14608,8 +14674,18 @@ function closeAllStatusDropdowns() {
             if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
             migrateOshNovData(p);
             const key = type === 'internal' ? 'osh-nov_internal_novs' : 'osh-nov_external_novs';
-            if (p.vals[key]) p.vals[key].splice(nIdx, 1);
-            saveToFirebase(); renderOshNovTab();
+            if (!p.vals[key]) return;
+            const label = `${type === 'internal' ? 'Internal' : 'External'} NOV #${nIdx + 1}`;
+            showDeleteDialog('OSH NOV', `${label} from ${pName}`).then(confirmed => {
+                if (!confirmed) return;
+                const backup = JSON.parse(JSON.stringify(p.vals[key]));
+                p.vals[key].splice(nIdx, 1);
+                saveToFirebase(); renderOshNovTab();
+                showUndoToast(`${label} deleted from ${pName}`, () => {
+                    p.vals[key] = backup;
+                    saveToFirebase(); renderOshNovTab();
+                });
+            });
         }
 
         function addOshNovViolation(pName, type, nIdx) {
@@ -14634,12 +14710,23 @@ function closeAllStatusDropdowns() {
             const key = type === 'internal' ? 'osh-nov_internal_novs' : 'osh-nov_external_novs';
             const nov = p.vals[key] && p.vals[key][nIdx];
             if (!nov) return;
-            if (nov.violations.length === 1) {
-                p.vals[key].splice(nIdx, 1);
-            } else {
-                nov.violations.splice(vIdx, 1);
-            }
-            saveToFirebase(); renderOshNovTab();
+            const label = nov.violations.length === 1
+                ? `${type === 'internal' ? 'Internal' : 'External'} NOV #${nIdx + 1} (entire NOV)`
+                : `Violation #${vIdx + 1} from NOV #${nIdx + 1}`;
+            showDeleteDialog('OSH NOV Violation', `${label} — ${pName}`).then(confirmed => {
+                if (!confirmed) return;
+                const backup = JSON.parse(JSON.stringify(p.vals[key]));
+                if (nov.violations.length === 1) {
+                    p.vals[key].splice(nIdx, 1);
+                } else {
+                    nov.violations.splice(vIdx, 1);
+                }
+                saveToFirebase(); renderOshNovTab();
+                showUndoToast(`${label} deleted`, () => {
+                    p.vals[key] = backup;
+                    saveToFirebase(); renderOshNovTab();
+                });
+            });
         }
 
         function updateOshNovNovField(pName, type, nIdx, field, value) {
@@ -15540,7 +15627,7 @@ function renderTabulation() {
                 <div class="tib-icon"><i class="fas fa-hard-hat"></i></div>
                 <div class="tib-body">
                     <p class="tib-title">OSH REGULATORY ISSUED NOV</p>
-                    <p class="tib-sub">Notices of Violation — <span style="color:#e65100;font-weight:700;">🔴 Internal</span> (Client/Company) and <span style="color:#c62828;font-weight:700;">🔴 External</span> (Regulatory Bodies). Each NOV may contain multiple violations.</p>
+                    <p class="tib-sub">Notices of Violation — <span style="color:#e65100;font-weight:700;">🔴 Internal NCR</span> (Client/Company) and <span style="color:#c62828;font-weight:700;">🟠 External NOV</span> (Regulatory Bodies). Each NOV may contain multiple violations.</p>
                 </div>
                 <div class="tib-badges">
                     <span class="tib-pill tib-pill-green">${displayProjects.length} PROJECTS</span>
@@ -15549,21 +15636,30 @@ function renderTabulation() {
 
             // Overall OSH NOV Summary Cards
             (() => {
-                let totalIntNov = 0, totalExtNov = 0, openIntNov = 0, openExtNov = 0, totalViol = 0;
+                let totalIntNov = 0, totalExtNov = 0, openIntNov = 0, openExtNov = 0, closedIntNov = 0, closedExtNov = 0, totalViol = 0;
                 displayProjects.forEach(p => {
                     migrateOshNovData(p);
                     const intNovs = p.vals['osh-nov_internal_novs'] || [];
                     const extNovs = p.vals['osh-nov_external_novs'] || [];
                     totalIntNov += intNovs.length;
                     totalExtNov += extNovs.length;
-                    openIntNov += intNovs.filter(n => (n.status||'Open') === 'Open').length;
-                    openExtNov += extNovs.filter(n => (n.status||'Open') === 'Open').length;
-                    intNovs.forEach(n => { totalViol += (n.violations||[]).length; });
-                    extNovs.forEach(n => { totalViol += (n.violations||[]).length; });
+                    // NOV is Closed only if ALL violations are Closed, otherwise Open
+                    intNovs.forEach(n => {
+                        const viols = n.violations || [];
+                        totalViol += viols.length;
+                        const allClosed = viols.length > 0 && viols.every(v => (v.status||'Open') === 'Closed');
+                        if (allClosed) closedIntNov++; else openIntNov++;
+                    });
+                    extNovs.forEach(n => {
+                        const viols = n.violations || [];
+                        totalViol += viols.length;
+                        const allClosed = viols.length > 0 && viols.every(v => (v.status||'Open') === 'Closed');
+                        if (allClosed) closedExtNov++; else openExtNov++;
+                    });
                 });
                 const totalNov = totalIntNov + totalExtNov;
                 const openNov = openIntNov + openExtNov;
-                const closedNov = totalNov - openNov;
+                const closedNov = closedIntNov + closedExtNov;
                 html += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
                     <div style="background:#fff3e0;border:1px solid #ffe0b2;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
                         <i class="fas fa-file-alt" style="color:#e65100;font-size:1.2rem;"></i>
@@ -16597,7 +16693,13 @@ if (state.currentTab === 'audit') {
                     'RA 9147',
                     'PD 705',
                     'RA 11038',
-                    'Internal Policy',
+                    'RA 11285',
+                    'RA 9175',
+                    'RA 7942',
+                    'RA 10593',
+                    'RA 4850',
+                    'DAO 2014-02',
+                    'ECC Condition',
                     'Others'
                 ];
 
@@ -16653,8 +16755,18 @@ if (state.currentTab === 'audit') {
                     if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
                     migrateNovEnvData(p);
                     const key = type === 'internal' ? 'nov-env_internal_novs' : 'nov-env_external_novs';
-                    if (p.vals[key]) p.vals[key].splice(nIdx, 1);
-                    saveToFirebase(); renderNovEnvTab();
+                    if (!p.vals[key]) return;
+                    const label = `${type === 'internal' ? 'NCR (Client/SCIC Audit)' : 'External NOV'} #${nIdx + 1}`;
+                    showDeleteDialog('ENVI NOV', `${label} from ${pName}`).then(confirmed => {
+                        if (!confirmed) return;
+                        const backup = JSON.parse(JSON.stringify(p.vals[key]));
+                        p.vals[key].splice(nIdx, 1);
+                        saveToFirebase(); renderNovEnvTab();
+                        showUndoToast(`${label} deleted from ${pName}`, () => {
+                            p.vals[key] = backup;
+                            saveToFirebase(); renderNovEnvTab();
+                        });
+                    });
                 }
 
                 function addNovEnvViolation(pName, type, nIdx) {
@@ -16679,12 +16791,23 @@ if (state.currentTab === 'audit') {
                     const key = type === 'internal' ? 'nov-env_internal_novs' : 'nov-env_external_novs';
                     const nov = p.vals[key] && p.vals[key][nIdx];
                     if (!nov) return;
-                    if (nov.violations.length === 1) {
-                        p.vals[key].splice(nIdx, 1);
-                    } else {
-                        nov.violations.splice(vIdx, 1);
-                    }
-                    saveToFirebase(); renderNovEnvTab();
+                    const label = nov.violations.length === 1
+                        ? `${type === 'internal' ? 'NCR (Client/SCIC Audit)' : 'External NOV'} #${nIdx + 1} (entire NOV)`
+                        : `Violation #${vIdx + 1} from NOV #${nIdx + 1}`;
+                    showDeleteDialog('ENVI NOV Violation', `${label} — ${pName}`).then(confirmed => {
+                        if (!confirmed) return;
+                        const backup = JSON.parse(JSON.stringify(p.vals[key]));
+                        if (nov.violations.length === 1) {
+                            p.vals[key].splice(nIdx, 1);
+                        } else {
+                            nov.violations.splice(vIdx, 1);
+                        }
+                        saveToFirebase(); renderNovEnvTab();
+                        showUndoToast(`${label} deleted`, () => {
+                            p.vals[key] = backup;
+                            saveToFirebase(); renderNovEnvTab();
+                        });
+                    });
                 }
 
                 function updateNovEnvNovField(pName, type, nIdx, field, value) {
@@ -16776,7 +16899,7 @@ if (state.currentTab === 'audit') {
                         <div class="tib-icon"><i class="fas fa-leaf"></i></div>
                         <div class="tib-body">
                             <p class="tib-title">ENVI REGULATORY ISSUED NOV</p>
-                            <p class="tib-sub">Notices of Violation — <span style="color:#e65100;font-weight:700;">🔴 Internal</span> (Client/Company) and <span style="color:#c62828;font-weight:700;">🔴 External</span> (Regulatory Bodies). Each NOV may contain multiple violations.</p>
+                            <p class="tib-sub">Notices of Violation — <span style="color:#e65100;font-weight:700;">🔴 NCR (Client/SCIC Audit)</span> and <span style="color:#c62828;font-weight:700;">🟠 External NOV</span> (Regulatory Bodies). Each NOV may contain multiple violations.</p>
                         </div>
                         <div class="tib-badges">
                             <span class="tib-pill tib-pill-green">${displayProjects.length} PROJECTS</span>
@@ -16785,21 +16908,29 @@ if (state.currentTab === 'audit') {
 
                     // Overall ENVI NOV Summary Cards
                     (() => {
-                        let totalIntNov = 0, totalExtNov = 0, openIntNov = 0, openExtNov = 0, totalViol = 0;
+                        let totalIntNov = 0, totalExtNov = 0, openIntNov = 0, openExtNov = 0, closedIntNov = 0, closedExtNov = 0, totalViol = 0;
                         displayProjects.forEach(p => {
                             migrateNovEnvData(p);
                             const intNovs = p.vals['nov-env_internal_novs'] || [];
                             const extNovs = p.vals['nov-env_external_novs'] || [];
                             totalIntNov += intNovs.length;
                             totalExtNov += extNovs.length;
-                            openIntNov += intNovs.filter(n => (n.status||'Open') === 'Open').length;
-                            openExtNov += extNovs.filter(n => (n.status||'Open') === 'Open').length;
-                            intNovs.forEach(n => { totalViol += (n.violations||[]).length; });
-                            extNovs.forEach(n => { totalViol += (n.violations||[]).length; });
+                            intNovs.forEach(n => {
+                                const viols = n.violations || [];
+                                totalViol += viols.length;
+                                const allClosed = viols.length > 0 && viols.every(v => (v.status||'Open') === 'Closed');
+                                if (allClosed) closedIntNov++; else openIntNov++;
+                            });
+                            extNovs.forEach(n => {
+                                const viols = n.violations || [];
+                                totalViol += viols.length;
+                                const allClosed = viols.length > 0 && viols.every(v => (v.status||'Open') === 'Closed');
+                                if (allClosed) closedExtNov++; else openExtNov++;
+                            });
                         });
                         const totalNov = totalIntNov + totalExtNov;
                         const openNov = openIntNov + openExtNov;
-                        const closedNov = totalNov - openNov;
+                        const closedNov = closedIntNov + closedExtNov;
                         envHtml += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
                             <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
                                 <i class="fas fa-file-alt" style="color:#2e7d32;font-size:1.2rem;"></i>
@@ -16807,7 +16938,7 @@ if (state.currentTab === 'audit') {
                             </div>
                             <div style="background:#fff3e0;border:1px solid #ffe0b2;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
                                 <i class="fas fa-exclamation-triangle" style="color:#e65100;font-size:1.2rem;"></i>
-                                <div><div style="font-size:0.58rem;font-weight:700;color:#e65100;text-transform:uppercase;">Internal NOV</div><div style="font-size:1.1rem;font-weight:800;color:#e65100;">${totalIntNov}</div></div>
+                                <div><div style="font-size:0.58rem;font-weight:700;color:#e65100;text-transform:uppercase;">NCR</div><div style="font-size:1.1rem;font-weight:800;color:#e65100;">${totalIntNov}</div></div>
                             </div>
                             <div style="background:#fce4ec;border:1px solid #f48fb1;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
                                 <i class="fas fa-building" style="color:#c62828;font-size:1.2rem;"></i>
@@ -16949,11 +17080,14 @@ if (state.currentTab === 'audit') {
                                                     <option value="">— Select —</option>${vlOpts}
                                                 </select>`}
                                             </td>
-                                            <td ${firstViolClass}>
-                                                ${dis ? `<span class="${statusClass}">${viol.status||'Open'}</span>` :
-                                                `<select onchange="updateNovEnvViolField('${pnSafe}','${type}',${nIdx},${vIdx},'status',this.value)" style="width:100%;">
-                                                    ${stOpts}
-                                                </select>`}
+                                            <td ${firstViolClass} style="text-align:center;">
+                                                ${dis
+                                                    ? `<span class="${statusClass}">${viol.status||'Open'}</span>`
+                                                    : `<button
+                                                        onclick="updateNovEnvViolField('${pnSafe}','${type}',${nIdx},${vIdx},'status','${(viol.status||'Open')==='Open'?'Closed':'Open'}');saveToFirebase();renderNovEnvTab();"
+                                                        style="border:none;cursor:pointer;border-radius:12px;padding:3px 12px;font-size:0.65rem;font-weight:700;letter-spacing:0.3px;min-width:72px;background:${(viol.status||'Open')==='Closed'?'#e8f5e9':'#ffebee'};color:${(viol.status||'Open')==='Closed'?'#2e7d32':'#c62828'};border:1px solid ${(viol.status||'Open')==='Closed'?'#a5d6a7':'#ef9a9a'};"
+                                                      >${(viol.status||'Open')==='Closed'?'✔ Closed':'● Open'}</button>`
+                                                }
                                             </td>`;
 
                                         if (canEdit) {
@@ -16977,7 +17111,7 @@ if (state.currentTab === 'audit') {
                                 envHtml += `</tbody></table></div></div>`;
                             }
 
-                            renderEnvNovSection('internal', 'INTERNAL NOV', '🔴', 'internal-hdr', ENV_NOV_INTERNAL_BODIES, ENV_NOV_VIOLATION_LAWS);
+                            renderEnvNovSection('internal', 'NCR (Client/SCIC Audit)', '🔴', 'internal-hdr', ENV_NOV_INTERNAL_BODIES, ENV_NOV_VIOLATION_LAWS);
                             renderEnvNovSection('external', 'EXTERNAL NOV', '🟠', 'external-hdr', ENV_NOV_EXTERNAL_BODIES, ENV_NOV_VIOLATION_LAWS);
 
                             envHtml += `</div>`; // close nov-env-section
@@ -18067,11 +18201,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                             <th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;white-space:normal;color:#ffffff;">Deliverables</th>
                                             <th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;white-space:normal;color:#ffffff;" title="Deliverable Weight">Deliv.<br>Weight<br>(DW)</th>
                                             <th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;white-space:normal;color:#ffffff;">Measure</th>
-                                            <th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">0.75</th>
-                                            <th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">0.80</th>
-                                            <th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">0.85</th>
-                                            <th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">0.90</th>
-                                            <th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">0.95</th>
+                                            <th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">75%</th>
+                                            <th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">80%</th>
+                                            <th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">85%</th>
+                                            <th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">90%</th>
+                                            <th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);color:#ffffff;">95%</th>
                                             <th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;white-space:normal;color:#ffffff;">Statistics</th>
                                             <th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;white-space:normal;color:#ffffff;">Equivalent<br>Grade<br>(EG)</th>
                                             <th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;white-space:normal;color:#ffffff;">Equivalent<br>Percentage<br>(EP)</th>
@@ -19729,6 +19863,7 @@ function toggleToUpdateField(fieldId, checked) {
 }
 
 function openAddPersonnelModal() {
+    if (state.userRole === 'manager') { showToast('👁️ Manager accounts are view-only.', 'warning'); return; }
     // Reset all "To Update" checkboxes
     const tuMap = {tu_middleName:'personnelMiddleNameInput',tu_position:'personnelPositionInput',tu_id:'personnelIdInput',tu_hired:'personnelHiredInput',tu_age:'personnelAgeInput',tu_email:'personnelEmailInput',tu_contact:'personnelContactInput',tu_address:'personnelAddressInput'};
     Object.entries(tuMap).forEach(([cbId, fieldId]) => {
@@ -19923,6 +20058,7 @@ function confirmAddPersonnel() {
 
 // Edit Personnel Modal Functions
 function openEditPersonnelModal(index) {
+    if (state.userRole === 'manager') { showToast('👁️ Manager accounts are view-only.', 'warning'); return; }
     const person = state.personnelData[index];
     if (!person) return;
     
@@ -20716,6 +20852,10 @@ function personnelEditBtn(origIdx, personRegion) {
         }
         return `<button class="p-edit-btn" id="p-edit-btn-${origIdx}" onclick="openEditPersonnelModal(${origIdx})"><i class="fas fa-edit"></i></button>`;
     }
+    // Manager: view only
+    if (state.userRole === 'manager') {
+        return `<span title="View Only — Manager Account" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:6px;background:#eceff1;border:1px solid #90a4ae;cursor:default;"><i class="fas fa-eye" style="color:#546e7a;font-size:0.75rem;"></i></span>`;
+    }
     // PCO: no edit on personnel (tab is blocked anyway)
     return `<span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:6px;background:#fce4ec;border:1px solid #f48fb1;cursor:default;" title="View Only">
         <i class="fas fa-lock" style="color:#e91e63;font-size:0.75rem;"></i>
@@ -20747,7 +20887,10 @@ function renderPTable() {
     if (!container) return;
 
     // Show global Edit All / Save All action bar — Admin only
-    // Superintendents use per-row edit (row-level RBAC), not global Edit All
+    // Managers: view only — hide all edit/add buttons
+    const isManagerUser = state.userRole === 'manager';
+    const pAddBtn = document.getElementById('p-add-personnel-btn');
+    if (pAddBtn) pAddBtn.style.display = isManagerUser ? 'none' : '';
     const pGlobalAction = document.getElementById('p-global-action');
     if (pGlobalAction) {
         if (state.isAdmin) {
@@ -20782,9 +20925,11 @@ function renderPTable() {
 
     // Regional filtering:
     // - Admin: sees ALL personnel across all regions
+    // - Manager: sees ALL personnel (view-only boss access, region: ALL)
     // - Superintendent: sees ONLY personnel in their assigned region
     // - PCO: sees only their own region (no personnel tab access anyway, but guard it)
-    if (!state.isAdmin) {
+    const _isManagerRole = state.userRole === 'manager';
+    if (!state.isAdmin && !_isManagerRole) {
         const userRegion = state.userRegion || '';
         if (userRegion) {
             const userProjects = (state.masterProjects || [])
@@ -22869,7 +23014,7 @@ function setupAuthObserver() {
             state.userRole = userInfo.role;
             state.userRegion = userInfo.region;
             state.userColor = userInfo.color;
-            state.isAdmin = userInfo.role === 'admin' || userInfo.role === 'sysadmin' || userInfo.role === 'doccontroller';
+            state.isAdmin = userInfo.role === 'admin';
             
             console.log(`🎭 Role: ${state.userRole} | Region: ${state.userRegion}`);
             
@@ -28118,6 +28263,28 @@ function _eshSaveToFirebase(data) {
     } catch(e) { console.warn('ESH calendar Firebase save error:', e); }
 }
 
+// ── Force-fetch ESH calendar data from RTDB then render (for all roles including managers) ──
+function eshFetchAndRender(tabType) {
+    // Always render immediately from localStorage so something shows fast
+    try { renderEshCalendar(tabType); } catch(e) { console.error('❌ renderEshCalendar error:', e); }
+
+    // Then fetch fresh from RTDB — this guarantees managers and all non-admin roles see latest data
+    if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.onValue) return;
+    try {
+        const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
+        window.firebase.onValue(ref, function(snapshot) {
+            const remoteData = snapshot.val();
+            if (!remoteData || typeof remoteData !== 'object') return;
+            const local = getEshStorage();
+            const merged = Object.assign({}, local, remoteData);
+            try { localStorage.setItem('esh_calendar_data', JSON.stringify(merged)); } catch(e) {}
+            // Re-render with fresh merged data
+            try { renderEshCalendar(tabType); } catch(e) {}
+        }, { onlyOnce: true }); // one-time fetch — the persistent sync handles live updates
+    } catch(e) { console.warn('eshFetchAndRender error:', e); }
+}
+window.eshFetchAndRender = eshFetchAndRender;
+
 // Call this once after login to start listening for remote changes from other accounts
 let _eshLastLocalWrite = 0; // timestamp of last local write — used to skip self-triggered re-renders
 
@@ -29000,10 +29167,19 @@ window.eshCorpDrillConfirmAddRow = function() {
 
 window.eshCorpDrillDeleteRow = function(idx) {
     const rows = getCorpDrillCustomRows();
-    const removed = rows.splice(idx, 1);
-    setCorpDrillCustomRows(rows);
-    renderCorpDrillsTab();
-    if(typeof showToast==='function') showToast((removed[0] && removed[0].name ? removed[0].name : 'Row') + ' removed.', 'info');
+    const item = rows[idx];
+    const label = (item && item.name) ? item.name : `Row #${idx + 1}`;
+    showDeleteDialog('Corporate Drill Row', label).then(confirmed => {
+        if (!confirmed) return;
+        const backup = JSON.parse(JSON.stringify(rows));
+        rows.splice(idx, 1);
+        setCorpDrillCustomRows(rows);
+        renderCorpDrillsTab();
+        showUndoToast(`"${label}" removed from Corporate Drills`, () => {
+            setCorpDrillCustomRows(backup);
+            renderCorpDrillsTab();
+        });
+    });
 };
 
 function renderCorpDrillsTab() {
@@ -29220,10 +29396,19 @@ window.eshConfirmAddRow = function(tabType, projName) {
 
 window.eshDeleteCustomRow = function(tabType, projName, rowIdx) {
     const rows = getEshCustomRows(tabType, projName);
-    const removed = rows.splice(rowIdx, 1);
-    setEshCustomRows(tabType, projName, rows);
-    try { renderEshCalendar(tabType); } catch(e) {}
-    if(typeof showToast==='function') showToast((typeof removed[0]==='string' ? removed[0] : (removed[0]&&removed[0].name)||'Row') + ' removed.', 'info');
+    const item = rows[rowIdx];
+    const label = typeof item === 'string' ? item : (item && item.name) ? item.name : `Row #${rowIdx + 1}`;
+    showDeleteDialog('ESH Calendar Row', `"${label}" from ${projName || tabType}`).then(confirmed => {
+        if (!confirmed) return;
+        const backup = JSON.parse(JSON.stringify(rows));
+        rows.splice(rowIdx, 1);
+        setEshCustomRows(tabType, projName, rows);
+        try { renderEshCalendar(tabType); } catch(e) {}
+        showUndoToast(`"${label}" removed from ${projName || tabType}`, () => {
+            setEshCustomRows(tabType, projName, backup);
+            try { renderEshCalendar(tabType); } catch(e) {}
+        });
+    });
 };
 // ==================== END ADD ROW ====================
 
@@ -29418,7 +29603,8 @@ const CHAT_ROOMS = [
     { id: 'corporate',   label: '🏢 Corporate' },
 ];
 
-function toggleChatPanel() {
+function toggleChatPanel(e) {
+    if (e) e.stopPropagation();
     const panel = document.getElementById('chat-panel');
     if (!panel) return;
     _chatPanelOpen = !_chatPanelOpen;
@@ -29624,7 +29810,47 @@ function chatInputKeydown(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSendMessage(); }
 }
 
+function chatInputResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function chatSendTyping() {
+    const rtdb = window.firebaseRealtimeDb;
+    const auth = window.firebaseAuth;
+    if (!rtdb || !auth?.currentUser) return;
+    try {
+        const uid = auth.currentUser.uid;
+        const typRef = window.firebase.dbRef(rtdb, 'chatTyping/' + _chatRoom + '/' + uid);
+        window.firebase.set(typRef, { name: window.state?.displayName || auth.currentUser.email, ts: Date.now() });
+        clearTimeout(_chatTypingTimeout);
+        _chatTypingTimeout = setTimeout(() => chatClearTyping(), 3000);
+    } catch(e) { /* silent */ }
+}
+
+function chatClearTyping() {
+    const rtdb = window.firebaseRealtimeDb;
+    const auth = window.firebaseAuth;
+    clearTimeout(_chatTypingTimeout);
+    if (!rtdb || !auth?.currentUser) return;
+    try {
+        const uid = auth.currentUser.uid;
+        const typRef = window.firebase.dbRef(rtdb, 'chatTyping/' + _chatRoom + '/' + uid);
+        window.firebase.remove(typRef);
+    } catch(e) { /* silent */ }
 }
 </script>
+<!-- ==================== SAFETY REMINDER CHARACTER ==================== -->
+<div id="safety-reminder-container">
+    <div class="reminder-bubble">
+        <div class="reminder-header">
+            <span class="reminder-icon" id="reminder-icon">👀</span>
+            <span class="reminder-title" id="reminder-title">Health Reminder</span>
+            <button class="reminder-dismiss" onclick="dismissReminder()" title="Dismiss">✕</button>
+        </div>
+        <div class="reminder-text" id="reminder-text">Take care of your health!</div>
+    </div>
+</div>
+<!-- ==================== END SAFETY REMINDER CHARACTER ==================== -->
 </body>
 </html>
