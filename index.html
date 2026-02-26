@@ -7111,6 +7111,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
     </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -12711,9 +12712,8 @@ function updateAuditData(pName, qtr, field, val) {
                     throw new Error('Firebase Storage not initialized');
                 }
 
-                // Use current user's UID for storage path so Firebase Storage rules allow the write.
-                // The download URL is saved in Firestore (shared admin location) so all users can access it.
-                const STORAGE_UID = window.firebaseAuth?.currentUser?.uid || 'fUnXsvKnRYMpuySRbeVYJk7TO452';
+                // Always use admin UID for storage path so all users (any role/region) can access uploaded PDFs.
+                const STORAGE_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
                 const timestamp = Date.now();
                 const fileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_'); // Sanitize filename
                 const storagePath = `compliance-pdfs/${STORAGE_UID}/${projectName.replace(/[^a-zA-Z0-9]/g,'_')}_${pdfKey}_${timestamp}_${fileName}`;
@@ -18891,7 +18891,26 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         
                         regProjects.forEach(p => {
                             const permitNumber = p.vals[key] ? (p.vals[key][1] ?? "") : "";
-                            const validUntil = p.vals[key] ? (p.vals[key][2] ?? "") : "";
+                            const rawValidUntil = p.vals[key] ? (p.vals[key][2] ?? "") : "";
+
+                            // Normalize any stored date to YYYY-MM-DD (handles "02/10/2025", "10/02/2025", etc.)
+                            const normalizeDate = (s) => {
+                                if (!s) return "";
+                                // Already YYYY-MM-DD
+                                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+                                // MM/DD/YYYY or DD/MM/YYYY → treat as MM/DD/YYYY (PH gov docs)
+                                const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+                                if (m) return `${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
+                                return "";
+                            };
+                            const validUntil = normalizeDate(rawValidUntil);
+
+                            // If stored value was malformed, silently correct it in state so next save fixes Firestore
+                            if (validUntil !== rawValidUntil && p.vals[key]) {
+                                p.vals[key][2] = validUntil;
+                                if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
+                            }
+
                             const hasPdf = p.vals[key] && p.vals[key][3];
                             
                             let pdfCell = '';
@@ -18939,7 +18958,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 <td><input type="text" placeholder="e.g., HOEMD-2025-486" value="${permitNumber}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
                                     oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 100%;"></td>
                                 <td><input type="date" value="${validUntil}" data-allow-future ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
-                                    oninput="updateVal('${p.name}','${key}',2,this.value)" style="width: 100%;"></td>
+                                    onchange="updateVal('${p.name}','${key}',2,this.value)" style="width: 100%;"></td>
                                 <td style="text-align: center;">${pdfCell}</td>
                             </tr>`;
                         });
@@ -22306,7 +22325,13 @@ const ProjectsDB = {
 
     sanitizeProject(project) {
         function clean(obj) {
-            if (Array.isArray(obj)) return obj.map(clean);
+            if (Array.isArray(obj)) {
+                // Convert sparse arrays to dense — replace holes/undefined with null
+                const dense = Array.from({ length: obj.length }, (_, i) =>
+                    obj[i] === undefined ? null : clean(obj[i])
+                );
+                return dense;
+            }
             if (obj !== null && typeof obj === 'object') {
                 const out = {};
                 for (const [k, v] of Object.entries(obj)) {
@@ -22496,7 +22521,11 @@ async function saveToFirebase() {
         // Build year-level metadata payload (projects are now in subcollection — NOT embedded here)
         function buildYearPayload(year) {
             function sanitize(obj) {
-                if (Array.isArray(obj)) return obj.map(sanitize);
+                if (Array.isArray(obj)) {
+                    return Array.from({ length: obj.length }, (_, i) =>
+                        obj[i] === undefined ? null : sanitize(obj[i])
+                    );
+                }
                 if (obj !== null && typeof obj === 'object') {
                     const clean = {};
                     for (const [k, v] of Object.entries(obj)) {
@@ -22592,8 +22621,9 @@ async function saveToFirebase() {
         showToast('Failed to save: ' + error.message, 'error');
         return false;
     } finally {
-        // ✅ FIX: Always release lock, even on error or timeout
-        _isSaving = false;
+        // Keep lock for 5s — covers background saves of all years (32 projects × 9 years)
+        // so their echo snapshots don't trigger unwanted re-renders
+        setTimeout(() => { _isSaving = false; }, 5000);
     }
 }
 
@@ -25038,64 +25068,9 @@ render = function() {
     if (typeof updateNotifications === 'function') {
         updateNotifications();
     }
-    checkExpiredPermits(); // Check for expired DOE permits
 };
 
-// Check for expired DOE Safety Officer Permits and show notification
-function checkExpiredPermits() {
-    if (state.currentTab !== 'doe-permit') return;
-    
-    const renewableProjects = state.projects.filter(p => p.isRenewable === true);
-    const key = 'doe-permit_DOE Safety Officer Permit';
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const expiredPermits = [];
-    const expiringSoon = [];
-    
-    renewableProjects.forEach(p => {
-        const validUntil = p.vals[key] ? (p.vals[key][2] ?? "") : "";
-        
-        if (validUntil) {
-            const expiryDate = new Date(validUntil);
-            expiryDate.setHours(0, 0, 0, 0);
-            
-            if (expiryDate < today) {
-                expiredPermits.push({
-                    project: p.name,
-                    expiryDate: validUntil
-                });
-            } else {
-                const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
-                if (daysUntilExpiry <= 30) {
-                    expiringSoon.push({
-                        project: p.name,
-                        expiryDate: validUntil,
-                        daysLeft: daysUntilExpiry
-                    });
-                }
-            }
-        }
-    });
-    
-    // Show notifications for expired permits
-    if (expiredPermits.length > 0) {
-        const message = expiredPermits.length === 1
-            ? `⚠️ DOE Safety Officer Permit for "${expiredPermits[0].project}" has EXPIRED!`
-            : `⚠️ ${expiredPermits.length} DOE Safety Officer Permits have EXPIRED!`;
-        
-        showToast(message, 'error');
-    }
-    
-    // Show notification for expiring soon
-    if (expiringSoon.length > 0) {
-        const message = expiringSoon.length === 1
-            ? `⏰ DOE Safety Officer Permit for "${expiringSoon[0].project}" expires in ${expiringSoon[0].daysLeft} day(s)`
-            : `⏰ ${expiringSoon.length} DOE Safety Officer Permits expiring within 30 days`;
-        
-        showToast(message, 'warning');
-    }
-}
+// checkExpiredPermits removed — toast notifications for expired DOE permits were disabled (too noisy)
 
 // Run color update when page loads
 document.addEventListener('DOMContentLoaded', function() {
@@ -25152,7 +25127,7 @@ async function uploadDoePdf(projectName, quarter) {
         try {
             showToast(`📤 Uploading PDF for Q${quarter}...`, 'info');
             
-            const STORAGE_UID = window.firebaseAuth?.currentUser?.uid || 'fUnXsvKnRYMpuySRbeVYJk7TO452'; // Use current user's UID for Storage rule compliance
+            const STORAGE_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452'; // Always admin UID so all users can access
             const year = state.selectedYear;
             const fileName = `${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_Q${quarter}_${Date.now()}.pdf`;
             const storagePath = `doe-reports/${STORAGE_UID}/${year}/${fileName}`;
@@ -25228,12 +25203,106 @@ async function deleteDoePdf(projectName, quarter) {
 }
 
 // DOE Safety Officer Permit PDF Functions
+// ── PDF text extractor using pdf.js ──────────────────────────────────────────
+async function extractTextFromPdf(file) {
+    try {
+        if (typeof pdfjsLib === 'undefined') return null;
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            fullText += content.items.map(item => item.str).join(' ') + '\n';
+        }
+        return fullText;
+    } catch(e) {
+        console.warn('PDF text extraction failed:', e.message);
+        return null;
+    }
+}
+
+// ── Parse permit number and valid-until date from extracted PDF text ──────────
+function parseDoePermitFromText(text) {
+    if (!text) return { permitNumber: '', validUntil: '' };
+    const t = text.replace(/\s+/g, ' ');
+
+    // ── Permit Number ─────────────────────────────────────────────────────────
+    // Matches patterns like: HOEMD-2025-486, HOEMD-SO-2024-001, STO-2025-1234, etc.
+    let permitNumber = '';
+    const permitPatterns = [
+        /(?:permit\s*(?:number|no\.?|#)[:\s]*)([\w\-]+)/i,
+        /\b([A-Z]{2,8}-(?:SO-?)?\d{4}-\d{2,6})\b/,
+        /\b([A-Z]{2,8}-\d{4}-\d{2,6})\b/,
+    ];
+    for (const rx of permitPatterns) {
+        const m = t.match(rx);
+        if (m) { permitNumber = m[1].trim(); break; }
+    }
+
+    // ── Valid Until / Expiry Date ─────────────────────────────────────────────
+    // Matches: "valid until", "validity", "expiry", "expires", "valid thru", "valid through"
+    // then a date in various formats: MM/DD/YYYY, DD Month YYYY, Month DD YYYY, YYYY-MM-DD
+    let validUntil = '';
+    const dateLabel = /(?:valid\s*(?:until|thru|through)|validity|expir(?:y|es|ation)(?:\s*date)?)[:\s]*([\w\/\-,. ]{5,30})/i;
+    const dlMatch = t.match(dateLabel);
+    const rawDate = dlMatch ? dlMatch[1].trim() : '';
+
+    const parseDate = (str) => {
+        if (!str) return '';
+        // Try direct Date parse
+        const months = { january:1,february:2,march:3,april:4,may:5,june:6,
+                         july:7,august:8,september:9,october:10,november:11,december:12,
+                         jan:1,feb:2,mar:3,apr:4,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+
+        // YYYY-MM-DD
+        let m = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+
+        // MM/DD/YYYY or DD/MM/YYYY — use MM/DD/YYYY (US format common in PH gov docs)
+        m = str.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+        if (m) return `${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
+
+        // DD Month YYYY or Month DD YYYY
+        m = str.match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})/i);
+        if (m) {
+            const mo = months[m[2].toLowerCase()];
+            if (mo) return `${m[3]}-${String(mo).padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+        }
+        m = str.match(/([a-z]+)\s+(\d{1,2})[,\s]+(\d{4})/i);
+        if (m) {
+            const mo = months[m[1].toLowerCase()];
+            if (mo) return `${m[3]}-${String(mo).padStart(2,'0')}-${m[2].padStart(2,'0')}`;
+        }
+        return '';
+    };
+
+    validUntil = parseDate(rawDate);
+
+    // Fallback: scan whole text for any date near "valid" keyword
+    if (!validUntil) {
+        const allDates = [...t.matchAll(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/g)];
+        if (allDates.length > 0) {
+            // Prefer the last date found (often the expiry, not the issued date)
+            const last = allDates[allDates.length - 1];
+            validUntil = `${last[3]}-${last[1].padStart(2,'0')}-${last[2].padStart(2,'0')}`;
+        }
+    }
+
+    return { permitNumber, validUntil };
+}
+
 async function uploadDoePermitPdf(projectName) {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'application/pdf';
+    input.style.display = 'none';
+    document.body.appendChild(input);
     
     input.onchange = async (e) => {
+        document.body.removeChild(input);
         const file = e.target.files[0];
         if (!file) return;
         
@@ -25242,16 +25311,26 @@ async function uploadDoePermitPdf(projectName) {
             return;
         }
         
-        // Limit to 500KB — 1 page stamped file only
+        // Limit to 500KB
         if (file.size > 500 * 1024) {
-            showToast('⚠️ File size must be less than 500KB. Please upload the STAMPED FILE PAGE only (1 page), hindi ang buong file.', 'warning');
+            showToast('⚠️ File size must be less than 500KB.', 'warning');
             return;
         }
         
         try {
-            showToast('📤 Uploading DOE Safety Officer Permit...', 'info');
+            showToast('📄 Reading PDF...', 'info', 2500);
+
+            // ── Step 1: Extract text and auto-parse fields ────────────────────
+            const pdfText = await extractTextFromPdf(file);
+            const parsed = parseDoePermitFromText(pdfText);
+            console.log('📋 Extracted from PDF:', parsed);
+
+            showToast('📤 Uploading DOE Safety Officer Permit...', 'info', 3000);
             
-            const STORAGE_UID = window.firebaseAuth?.currentUser?.uid || 'fUnXsvKnRYMpuySRbeVYJk7TO452'; // Use current user's UID for Storage rule compliance
+            // ── Step 2: Upload to Firebase Storage ───────────────────────────
+            // Always use admin UID for storage path so ALL users (any role) can access the PDF.
+            // Using currentUser UID would make the file inaccessible to other accounts.
+            const STORAGE_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
             const year = state.selectedYear;
             const fileName = `${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_DOE_Permit_${Date.now()}.pdf`;
             const storagePath = `doe-permits/${STORAGE_UID}/${year}/${fileName}`;
@@ -25260,19 +25339,42 @@ async function uploadDoePermitPdf(projectName) {
             await window.firebase.uploadBytes(storageRef, file);
             const downloadURL = await window.firebase.getDownloadURL(storageRef);
             
+            // ── Step 3: Save URL + auto-filled fields to project ─────────────
             const project = state.projects.find(p => p.name === projectName);
             if (project) {
                 const key = 'doe-permit_DOE Safety Officer Permit';
                 if (!project.vals[key]) project.vals[key] = {};
                 
-                // Store PDF URL in index 3
+                // PDF reference
                 project.vals[key][3] = downloadURL;
                 project.vals[key].pdfFileName = file.name;
                 project.vals[key].pdfStoragePath = storagePath;
+
+                // Auto-fill permit number (index 1) if currently empty
+                const hadPermitNo   = !!(project.vals[key][1]);
+                const hadValidUntil = !!(project.vals[key][2]);
+
+                if (parsed.permitNumber && !hadPermitNo) {
+                    project.vals[key][1] = parsed.permitNumber;
+                }
+                if (parsed.validUntil && !hadValidUntil) {
+                    project.vals[key][2] = parsed.validUntil;
+                }
                 
                 await saveToFirebase();
                 render();
-                showToast('✅ DOE Safety Officer Permit PDF uploaded', 'success');
+
+                // Friendly result message
+                const autoMsg = [
+                    (parsed.permitNumber && !hadPermitNo) ? `Permit No: ${parsed.permitNumber}` : '',
+                    (parsed.validUntil   && !hadValidUntil) ? `Valid Until: ${parsed.validUntil}` : ''
+                ].filter(Boolean).join(' · ');
+
+                if (autoMsg) {
+                    showToast(`✅ PDF uploaded — Auto-filled: ${autoMsg}`, 'success', 5000);
+                } else {
+                    showToast('✅ PDF uploaded. Fields not auto-detected — please fill in manually.', 'success', 4000);
+                }
             }
         } catch (error) {
             console.error('Error uploading PDF:', error);
@@ -25291,10 +25393,11 @@ async function viewDoePermitPdf(projectName) {
         showToast('⚠️ No PDF file found', 'warning');
         return;
     }
-    
+
+    // Just open the URL — Firebase Storage URLs are authenticated via token in the URL itself.
+    // No HEAD check needed (causes CORS error when running from file://)
     window.open(project.vals[key][3], '_blank');
 }
-
 async function deleteDoePermitPdf(projectName) {
     const confirmed = await showModernDialog(
         '🔄 Replace PDF',
@@ -25315,8 +25418,13 @@ async function deleteDoePermitPdf(projectName) {
         
         const storagePath = project.vals[key].pdfStoragePath;
         if (storagePath) {
-            const storageRef = window.firebase.ref(window.firebaseStorage, storagePath);
-            await window.firebase.deleteObject(storageRef);
+            try {
+                const storageRef = window.firebase.ref(window.firebaseStorage, storagePath);
+                await window.firebase.deleteObject(storageRef);
+            } catch (storageErr) {
+                // File already gone from storage — that's fine, just clear the reference
+                console.warn('Storage file already missing (safe to ignore):', storageErr.message);
+            }
         }
         
         delete project.vals[key][3];
@@ -25325,7 +25433,7 @@ async function deleteDoePermitPdf(projectName) {
         
         await saveToFirebase();
         render();
-        showToast('✅ PDF deleted. You can now upload a new one.', 'success');
+        showToast('✅ PDF cleared. You can now upload a new one.', 'success');
     } catch (error) {
         console.error('Error deleting PDF:', error);
         showToast('❌ Failed to delete PDF: ' + error.message, 'error');
@@ -28533,6 +28641,33 @@ function startProjectsRealtimeSync() {
         if (_firstSnapshot) { _firstSnapshot = false; return; } // skip initial load
         if (snapshot.empty) return;
 
+        // Skip snapshot updates triggered by our own in-progress save (prevents race condition
+        // where remote data overwrites local changes before debounced save completes)
+        if (window._isSaving) return;
+
+        // Helper: deep-merge vals so individual permit sub-keys (e.g. [2]=validUntil, [3]=pdfUrl)
+        // are merged at the property level — not replaced wholesale at the key level
+        function deepMergeVals(localVals, remoteVals) {
+            const merged = Object.assign({}, localVals || {});
+            Object.keys(remoteVals || {}).forEach(k => {
+                const rv = remoteVals[k];
+                const lv = merged[k];
+                if (rv && typeof rv === 'object' && !Array.isArray(rv) &&
+                    lv && typeof lv === 'object' && !Array.isArray(lv)) {
+                    // Merge sub-properties (e.g. doe-permit key with pdfFileName, pdfStoragePath etc.)
+                    merged[k] = Object.assign({}, lv, rv);
+                } else if (Array.isArray(rv) && Array.isArray(lv)) {
+                    // Merge arrays index-by-index, keeping local non-empty values
+                    const result = rv.slice();
+                    lv.forEach((v, i) => { if (v !== '' && v !== null && v !== undefined) result[i] = v; });
+                    merged[k] = result;
+                } else {
+                    merged[k] = rv;
+                }
+            });
+            return merged;
+        }
+
         let changed = false;
         snapshot.docChanges().forEach(change => {
             if (change.type === 'added' || change.type === 'modified') {
@@ -28542,10 +28677,9 @@ function startProjectsRealtimeSync() {
                 // Update masterProjects
                 const masterIdx = state.masterProjects.findIndex(p => p.name === remoteProj.name);
                 if (masterIdx >= 0) {
-                    // Deep-merge vals only — preserve local UI state
                     const existing = state.masterProjects[masterIdx];
                     state.masterProjects[masterIdx] = Object.assign({}, existing, remoteProj, {
-                        vals: Object.assign({}, existing.vals || {}, remoteProj.vals || {})
+                        vals: deepMergeVals(existing.vals, remoteProj.vals)
                     });
                 } else {
                     state.masterProjects.push(remoteProj);
@@ -28556,7 +28690,7 @@ function startProjectsRealtimeSync() {
                 if (projIdx >= 0) {
                     const existing = state.projects[projIdx];
                     state.projects[projIdx] = Object.assign({}, existing, remoteProj, {
-                        vals: Object.assign({}, existing.vals || {}, remoteProj.vals || {})
+                        vals: deepMergeVals(existing.vals, remoteProj.vals)
                     });
                 } else {
                     // Only add if it belongs to current year
@@ -28575,20 +28709,25 @@ function startProjectsRealtimeSync() {
         });
 
         if (changed) {
-            console.log('🔄 Real-time project update received — re-rendering...');
-            try { render(); } catch(e) {}
-            try { renderPTable(); } catch(e) {}
-            // Also re-render current tab if it's a data tab
-            const dataTabs = ['nov','nov-env','kpm','activities','exposures','rates','medical','dole','emb','permits',
-                              'env-monitoring','lta-registry','health-report','cshp','reg','audit','env-monthly-report'];
-            if (state.currentTab && dataTabs.includes(state.currentTab)) {
-                try {
-                    if (typeof renderOshNovTab === 'function' && state.currentTab === 'nov') renderOshNovTab();
-                    else if (typeof renderNovEnvTab === 'function' && state.currentTab === 'nov-env') renderNovEnvTab();
-                    else if (typeof renderLtaRegistryTab === 'function' && state.currentTab === 'lta-registry') renderLtaRegistryTab();
-                    else if (typeof renderHealthReportTab === 'function' && state.currentTab === 'health-report') renderHealthReportTab();
-                } catch(e) {}
-            }
+            // Debounce re-render — batch all rapid snapshot events into a single render
+            clearTimeout(window._snapshotRenderTimer);
+            window._snapshotRenderTimer = setTimeout(() => {
+                // Skip if a save just finished (our own echo)
+                if (window._isSaving) return;
+                console.log('🔄 Real-time project update received — re-rendering...');
+                try { render(); } catch(e) {}
+                try { renderPTable(); } catch(e) {}
+                const dataTabs = ['nov','nov-env','kpm','activities','exposures','rates','medical','dole','emb','permits',
+                                  'env-monitoring','lta-registry','health-report','cshp','reg','audit','env-monthly-report'];
+                if (state.currentTab && dataTabs.includes(state.currentTab)) {
+                    try {
+                        if (typeof renderOshNovTab === 'function' && state.currentTab === 'nov') renderOshNovTab();
+                        else if (typeof renderNovEnvTab === 'function' && state.currentTab === 'nov-env') renderNovEnvTab();
+                        else if (typeof renderLtaRegistryTab === 'function' && state.currentTab === 'lta-registry') renderLtaRegistryTab();
+                        else if (typeof renderHealthReportTab === 'function' && state.currentTab === 'health-report') renderHealthReportTab();
+                    } catch(e) {}
+                }
+            }, 800); // wait 800ms for burst of snapshot events to settle before rendering once
         }
     }, (err) => {
         console.warn('⚠️ Projects real-time sync error:', err.message);
