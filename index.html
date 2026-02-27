@@ -1075,14 +1075,13 @@
         }
         
         .nav-group-items {
-            max-height: 1000px;
             overflow: hidden;
-            transition: max-height 0.3s ease-out, opacity 0.3s;
+            transition: height 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease;
             opacity: 1;
         }
         
         .nav-group-items.collapsed {
-            max-height: 0;
+            height: 0 !important;
             opacity: 0;
         }
         
@@ -1091,6 +1090,42 @@
             font-size: 0.72rem;
         }
         
+        /* ── COLLAPSIBLE SIDEBAR ── */
+        aside {
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-x: hidden;
+        }
+
+        aside.sidebar-collapsed {
+            width: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+
+        /* Toggle button wrapper inside sidebar */
+        .sidebar-toggle-wrap {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 6px;
+        }
+
+        .sidebar-toggle-btn {
+            width: 28px; height: 28px;
+            background: rgba(255,255,255,0.12);
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: rgba(255,255,255,0.8);
+            font-size: 12px;
+            transition: background 0.18s;
+            flex-shrink: 0;
+        }
+        .sidebar-toggle-btn:hover {
+            background: rgba(255,255,255,0.22);
+            color: #fff;
+        }
+
         main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-body); }
         
         header {
@@ -1990,14 +2025,14 @@
         }
 
         .region-banner {
-            background: linear-gradient(90deg, #1b5e20 0%, #2e7d32 60%, #388e3c 100%);
+            background: linear-gradient(90deg, #1b5e20 0%, #1b5e20dd 100%);
             border-radius: 10px 10px 0 0;
             cursor: pointer;
-            transition: background 0.2s, box-shadow 0.2s;
+            transition: filter 0.2s, box-shadow 0.2s;
             margin: 10px 16px 0;
             position: relative;
             border: none;
-            box-shadow: 0 2px 8px rgba(27,94,32,0.18);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
             user-select: none;
             padding: 0;
             display: flex;
@@ -2008,28 +2043,56 @@
             overflow: hidden;
         }
 
-        .region-banner:hover {
-            background: linear-gradient(90deg, #155217 0%, #256427 60%, #2e7d32 100%);
-            box-shadow: 0 4px 14px rgba(27,94,32,0.28);
+        /* ── Per-region unique gradient colors ── exact from BANNER_COMPARISON_PREVIEW.html */
+
+        /* NCR #1b5e20 */
+        .region-banner.region-ncr,
+        .region-banner[id*="-NCR"],
+        .region-banner[id*="_NCR"],
+        #p-grp-banner-NCR {
+            background: linear-gradient(90deg, #1b5e20 0%, #1b5e20dd 100%);
+        }
+        /* NORTH LUZON #2e7d32 */
+        .region-banner.region-north-luzon,
+        .region-banner[id*="NORTH LUZON"],
+        .region-banner[id*="NORTH_LUZON"],
+        #p-grp-banner-NORTH_LUZON {
+            background: linear-gradient(90deg, #2e7d32 0%, #2e7d32dd 100%);
+        }
+        /* SOUTH LUZON #388e3c */
+        .region-banner.region-south-luzon,
+        .region-banner[id*="SOUTH LUZON"],
+        .region-banner[id*="SOUTH_LUZON"],
+        #p-grp-banner-SOUTH_LUZON {
+            background: linear-gradient(90deg, #388e3c 0%, #388e3cdd 100%);
+        }
+        /* VISAYAS & MINDANAO #43a047 */
+        .region-banner.region-visayas---mindanao,
+        .region-banner[id*="VISAYAS"],
+        #p-grp-banner-VISAYAS___MINDANAO {
+            background: linear-gradient(90deg, #43a047 0%, #43a047dd 100%);
+        }
+        /* PLANT OPERATIONS #00695c */
+        .region-banner.region-plant-operations,
+        .region-banner[id*="PLANT"],
+        #p-grp-banner-PLANT_OPERATIONS {
+            background: linear-gradient(90deg, #00695c 0%, #00695cdd 100%);
+        }
+        /* CORPORATE #004d40 */
+        .region-banner.region-corporate,
+        .region-banner[id*="CORPORATE"],
+        #p-grp-banner-CORPORATE {
+            background: linear-gradient(90deg, #004d40 0%, #00695cdd 100%);
         }
 
-        /* Left accent stripe */
-        .region-banner::before {
-            content: '';
-            display: block;
-            width: 5px;
-            flex-shrink: 0;
-            background: #fbc02d;
-            border-radius: 10px 0 0 0;
+        .region-banner:hover {
+            filter: brightness(1.12);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.28);
         }
 
         .region-banner.collapsed {
             border-radius: 10px;
             margin-bottom: 2px;
-        }
-
-        .region-banner.collapsed::before {
-            border-radius: 10px 0 0 10px;
         }
 
         .region-banner-inner {
@@ -2126,8 +2189,9 @@
         }
 
         .region-banner .rbadge-avg {
-            background: #fbc02d;
-            color: #1b5e20;
+            background: rgba(255,255,255,0.22);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.35);
         }
 
         .region-banner .rbadge-admin {
@@ -2139,8 +2203,9 @@
 
         /* Glass effect for AVG badge (legacy compat) */
         .region-banner .badge[style*="background:#1b5e20"] {
-            background: #fbc02d !important;
-            color: #1b5e20 !important;
+            background: rgba(255,255,255,0.22) !important;
+            color: #fff !important;
+            border: 1px solid rgba(255,255,255,0.35) !important;
             padding: 2px 8px;
             border-radius: 20px;
             font-size: 0.6rem;
@@ -2957,6 +3022,46 @@ body.dark-mode .modern-dialog-btn-cancel {
             font-weight: 600;
         }
         
+        /* ── ENV-MONITORING style table (Compliance & Audit sections) ──
+           Mirrors the light-green header palette used in Environmental Monitoring.
+           Any update to ENV Monitoring colors should be reflected here. */
+        .env-tbl { border-collapse: collapse; width: 100%; font-size: 0.7rem; }
+        .env-tbl th {
+            background: #b7ddb5;
+            color: #1b5e20;
+            font-weight: 700;
+            padding: 8px 10px;
+            border: 1px solid #c8e6c9;
+            border-bottom: none;
+            white-space: nowrap;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .env-tbl th.env-th-dark  { background: #9ecf9b; }
+        .env-tbl th.env-th-left  { text-align: left; padding-left: 12px; }
+        .env-tbl th.env-th-sticky {
+            position: sticky; left: 0; z-index: 10;
+            background: #9ecf9b;
+        }
+        .env-tbl td {
+            border: 1px solid #c8e6c9;
+            padding: 8px 10px;
+            vertical-align: middle;
+        }
+        .env-tbl tbody tr:nth-child(odd)  { background: #f1f8e9; }
+        .env-tbl tbody tr:nth-child(even) { background: #ffffff; }
+        .env-tbl tfoot tr { background: #e8f5e9; }
+        .env-tbl tfoot td { border: 1px solid #c8e6c9; font-weight: 700; color: #1b5e20; }
+        body.dark-mode .env-tbl th         { background: #1f4020; color: #a5d6a7; border-color: #2e7d32; }
+        body.dark-mode .env-tbl th.env-th-dark  { background: #163518; }
+        body.dark-mode .env-tbl th.env-th-sticky { background: #163518; }
+        body.dark-mode .env-tbl td         { border-color: rgba(46,125,50,0.25); }
+        body.dark-mode .env-tbl tbody tr:nth-child(odd)  { background: #1f2e1f; }
+        body.dark-mode .env-tbl tbody tr:nth-child(even) { background: #2d2d2d; }
+        body.dark-mode .env-tbl tfoot tr   { background: #1b3a1f; }
+        body.dark-mode .env-tbl tfoot td   { border-color: rgba(46,125,50,0.25); color: #a5d6a7; }
+
         /* Striped rows - white and very light green */
         tbody tr {
             transition: all 0.2s ease;
@@ -4591,6 +4696,174 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 @keyframes chatMsgIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
 </style>
+
+<!-- ==================== ESH CALENDAR SHARED STYLES ====================
+     Placed in <head> so they are available immediately on first load,
+     regardless of which tab is active. Previously these were injected
+     via innerHTML on every render, causing a flash/miss on first paint. -->
+<style id="esh-cal-styles">
+/* ── Shared layout wrapper ── */
+.esh-cal-wrap { padding: 16px 20px; }
+
+/* ── Header block — gradient is applied via inline style per-tab ── */
+.esh-cal-header {
+    border-radius: 10px; padding: 14px 20px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+}
+.esh-cal-header-icon { font-size: 1.5rem; color: rgba(255,255,255,0.85); }
+.esh-cal-header-title { font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 700; color: white; letter-spacing: 0.05em; text-transform: uppercase; }
+.esh-cal-header-sub { font-size: 0.65rem; color: rgba(255,255,255,0.7); margin-top: 2px; }
+
+/* ── Legend strip ── */
+.esh-cal-legend {
+    display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+    padding: 10px 16px; background: var(--bg-card); border-radius: 8px;
+    border: 1px solid var(--border-color); margin-bottom: 14px; font-size: 0.72rem;
+}
+.esh-cal-legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+.esh-cal-legend-box { width: 16px; height: 12px; border-radius: 3px; }
+
+/* ── Region accordion ── */
+.esh-region-banner {
+    background: linear-gradient(90deg, #1b5e20 0%, #1b5e20dd 100%); color: white;
+    padding: 9px 16px; font-weight: 800; font-size: 0.82rem;
+    letter-spacing: 0.8px; display: flex; align-items: center; gap: 8px;
+    border-radius: 8px 8px 0 0; cursor: pointer; user-select: none;
+    transition: filter 0.2s;
+}
+.esh-region-banner:hover { filter: brightness(1.12); }
+.esh-region-banner.r-ncr        { background: linear-gradient(90deg, #1b5e20 0%, #1b5e20dd 100%); }
+.esh-region-banner.r-northluzon { background: linear-gradient(90deg, #2e7d32 0%, #2e7d32dd 100%); }
+.esh-region-banner.r-southluzon { background: linear-gradient(90deg, #388e3c 0%, #388e3cdd 100%); }
+.esh-region-banner.r-vismin     { background: linear-gradient(90deg, #43a047 0%, #43a047dd 100%); }
+.esh-region-banner.r-plantops   { background: linear-gradient(90deg, #00695c 0%, #00695cdd 100%); }
+.esh-region-toggle { margin-left: auto; font-size: 0.8rem; transition: transform 0.25s; }
+.esh-region-content {
+    border: 1px solid #c8e6c9;
+    border-top: none; border-radius: 0 0 8px 8px;
+    overflow: hidden; margin-bottom: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.esh-region-block { margin-bottom: 14px; }
+
+/* ── Main data table ── */
+.esh-table {
+    border-collapse: collapse; width: 100%;
+    min-width: 1400px; font-size: 0.71rem;
+    font-family: 'Inter', sans-serif;
+    border: 2px solid #66bb6a;
+}
+.esh-table th {
+    background: #b7ddb5; color: #1b5e20;
+    padding: 7px 5px; border: 1.5px solid #66bb6a;
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.6px;
+    font-weight: 700; text-align: center; white-space: nowrap;
+}
+.esh-table th.esh-th-name {
+    text-align: left; min-width: 220px; padding: 7px 10px;
+    position: sticky; left: 0; z-index: 4; background: #b7ddb5;
+    border-right: 2.5px solid #388e3c;
+}
+.esh-table th.esh-th-freq { min-width: 88px; background: #9ecf9b; }
+.esh-table th.esh-th-plan { color: #5d4037; background: #fff9c4; border-left: 2px solid #388e3c; }
+.esh-table th.esh-th-actual { color: #1b5e20; background: #c5e8c3; }
+.esh-table td {
+    border: 1.5px solid #81c784;
+    padding: 4px 5px; vertical-align: middle;
+    background: var(--bg-card);
+}
+.esh-table tr:nth-child(even) td:not(.esh-td-plan) { background: var(--input-bg); }
+.esh-table tr:hover td:not(.esh-planned):not(.esh-done):not(.esh-overdue):not(.esh-td-plan) { background: #e8f5e9 !important; }
+.esh-table td.esh-td-name {
+    font-size: 0.71rem; color: var(--text-primary);
+    padding: 6px 10px; min-width: 220px;
+    position: sticky; left: 0; z-index: 3;
+    background: var(--bg-card); line-height: 1.4;
+    border-right: 2.5px solid #388e3c;
+}
+.esh-table tr:nth-child(even) td.esh-td-name { background: var(--input-bg); }
+.esh-table tr:hover td.esh-td-name { background: #e8f5e9 !important; }
+/* Thicker left border to separate Plan from the previous month's Actual */
+.esh-table td.esh-td-plan { border-left: 2px solid #388e3c !important; }
+.esh-table th.esh-th-plan { border-left: 2px solid #388e3c !important; }
+
+/* ── Plan cell ── */
+.esh-td-plan {
+    background: #fff9c4; text-align: center;
+    min-width: 50px; cursor: pointer; user-select: none;
+    transition: background 0.15s;
+}
+.esh-td-plan:not(.esh-plan-locked):hover { background: #fff176; }
+/* Scheduled/planned: color is set per-frequency via inline style — CSS is a fallback */
+.esh-td-plan.esh-planned { background: #fff9c4; }
+.esh-td-plan.esh-planned:hover { filter: brightness(0.93); }
+/* Locked (non-admin): same tint, no pointer */
+.esh-td-plan.esh-plan-locked { cursor: not-allowed !important; }
+.esh-td-plan.esh-plan-locked:hover { background: #fff9c4; }
+.esh-td-plan.esh-planned.esh-plan-locked { opacity: 0.9; }
+.esh-td-plan.esh-planned.esh-plan-locked:hover { filter: brightness(0.93); }
+
+/* ── Actual cell ── */
+.esh-td-actual { min-width: 100px; text-align: center; }
+.esh-td-actual.esh-not-planned { background: #f0f0f0 !important; cursor: not-allowed; }
+.esh-td-actual.esh-not-planned input[type="date"] { pointer-events: none; cursor: not-allowed; opacity: 0.35; }
+.esh-td-actual.esh-not-planned input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
+.esh-td-actual.esh-done   { background: #2e7d32 !important; }
+.esh-td-actual.esh-overdue { background: #c62828 !important; }
+.esh-td-actual input[type="date"]:disabled { opacity: 0.4; cursor: not-allowed; background: transparent; }
+.esh-td-actual input[type="date"] {
+    background: transparent; border: none;
+    color: var(--text-primary); font-size: 0.66rem;
+    width: 100%; padding: 2px; font-family: monospace;
+}
+.esh-td-actual.esh-done   input[type="date"] { color: #fff; font-weight: 700; }
+.esh-td-actual.esh-overdue input[type="date"] { color: #fff; font-weight: 700; }
+.esh-td-actual input[type="date"]::-webkit-calendar-picker-indicator { filter: opacity(0.8); cursor: pointer; }
+.esh-td-actual.esh-done input[type="date"]::-webkit-calendar-picker-indicator,
+.esh-td-actual.esh-overdue input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.8); }
+
+/* ── Frequency badge ── */
+.esh-freq-badge {
+    display: inline-block; padding: 2px 7px; border-radius: 10px;
+    font-size: 0.61rem; font-weight: 700; white-space: nowrap;
+}
+
+/* ── Empty state ── */
+.esh-no-projects {
+    padding: 36px 20px; text-align: center; color: var(--text-secondary);
+    background: var(--bg-card); border-radius: 8px;
+    border: 1px dashed var(--border-color); margin-bottom: 16px;
+}
+
+/* ── Drill N/A cell ── */
+.esh-td-na {
+    background: #c8c8c8 !important;
+    text-align: center; cursor: pointer;
+    vertical-align: middle; border: 1.5px solid #bbb !important;
+}
+.esh-td-na.esh-na-active { background: #a0a0a0 !important; }
+.esh-td-na-label { font-size: 0.6rem; font-weight: 700; }
+
+/* ── Drill row pastel row backgrounds ── */
+.esh-table tr.drill-row-quarterly td:not(.esh-td-plan):not(.esh-td-actual):not(.esh-td-na) { background: #e6faea; }
+.esh-table tr.drill-row-twice    td:not(.esh-td-plan):not(.esh-td-actual):not(.esh-td-na) { background: #fffde0; }
+.esh-table tr.drill-row-once     td:not(.esh-td-plan):not(.esh-td-actual):not(.esh-td-na) { background: #ddeeff; }
+
+/* ── Corporate HQ Drills tab header bar ── */
+.corp-drills-table-header-bar {
+    background: #e8f5e9; padding: 10px 14px; border-bottom: 1px solid #c8e6c9;
+    font-size: 0.72rem; color: #1b5e20;
+    border-radius: 8px 8px 0 0;
+}
+.corp-drills-table-outer {
+    border-radius: 8px; overflow: hidden;
+    border: 1px solid #c8e6c9; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    margin-bottom: 14px;
+}
+</style>
+<!-- ==================== END ESH CALENDAR SHARED STYLES ==================== -->
+
 </head>
 <body>
 
@@ -5373,7 +5646,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         </div>
     </div>
 
-    <aside id="main-sidebar" class="hidden">
+    <aside id="main-sidebar" class="hidden sidebar-collapsed">
         <div class="sidebar-header">
             <div style="font-size: 1.4rem; font-weight: 900; line-height: 1.1; margin-top: 5px;">ESH <span style="color:var(--safety-yellow)">COMPLIANCE</span><br>DASHBOARD</div>
             <div id="live-date" style="font-size:0.58rem;font-weight:500;color:rgba(255,255,255,0.45);letter-spacing:0.3px;margin-top:6px;"></div>
@@ -5387,7 +5660,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         <nav style="flex-grow: 1; padding-top: 10px;">
             <!-- DASHBOARD & ANALYTICS -->
             <div class="nav-group">
-                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)">
+                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)" data-tip="Dashboard & Analytics">
                     <span><i class="fas fa-chart-bar" style="margin-right: 6px;"></i> Dashboard & Analytics</span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
@@ -5399,7 +5672,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
             <!-- MONITORING -->
             <div class="nav-group">
-                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)">
+                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)" data-tip="Monitoring">
                     <span><i class="fas fa-eye" style="margin-right: 6px;"></i> Monitoring</span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
@@ -5413,7 +5686,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
             <!-- REPORTORIAL -->
             <div class="nav-group">
-                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)">
+                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)" data-tip="Reportorial">
                     <span><i class="fas fa-file-alt" style="margin-right: 6px;"></i> Reportorial</span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
@@ -5430,7 +5703,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
             <!-- SAFETY RECORDS -->
             <div class="nav-group">
-                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)">
+                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)" data-tip="Safety Records">
                     <span><i class="fas fa-triangle-exclamation" style="margin-right: 6px;"></i> Safety Records</span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
@@ -5446,7 +5719,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
             <!-- COMPLIANCE & AUDIT -->
             <div class="nav-group">
-                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)">
+                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)" data-tip="Compliance & Audit">
                     <span><i class="fa-solid fa-magnifying-glass-chart" style="margin-right: 6px;"></i> Compliance & Audit</span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
@@ -5463,7 +5736,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
             <!-- ESH CALENDAR & DRILLS -->
             <div class="nav-group">
-                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)">
+                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)" data-tip="ESH Calendar & Drills">
                     <span><i class="fas fa-calendar-check" style="margin-right: 6px;"></i> ESH Calendar & Drills</span>
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
@@ -5521,7 +5794,24 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
     <main id="main-content" class="hidden">
         <header>
-            <h2 class="header-title">OVERALL SUMMARY</h2>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <button id="hamburger-btn" onclick="toggleSidebar()" title="Toggle Menu" style="
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 5px;
+                    padding: 6px;
+                    border-radius: 6px;
+                    transition: background 0.2s;
+                " onmouseover="this.style.background='rgba(27,94,32,0.08)'" onmouseout="this.style.background='none'">
+                    <span style="display:block;width:22px;height:2.5px;background:#1b5e20;border-radius:2px;transition:all 0.3s;"></span>
+                    <span style="display:block;width:22px;height:2.5px;background:#1b5e20;border-radius:2px;transition:all 0.3s;"></span>
+                    <span style="display:block;width:22px;height:2.5px;background:#1b5e20;border-radius:2px;transition:all 0.3s;"></span>
+                </button>
+                <h2 class="header-title">OVERALL SUMMARY</h2>
+            </div>
             <div class="header-controls">
                 <!-- Search and filters removed from header - moved to dashboard content area -->
                 
@@ -6575,7 +6865,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 <!-- ==================== END ENVIRONMENTAL MONITORING VIEW ==================== -->
 
 <!-- ==================== GOT MONITORING VIEW ==================== -->
-<div id="got-monitoring-view" class="hidden" style="padding:20px;">
+<div id="got-monitoring-view" class="hidden" style="padding:10px 0 0 0;">
     <div id="got-monitoring-container"></div>
 </div>
 <!-- ==================== END GOT MONITORING VIEW ==================== -->
@@ -7121,6 +7411,14 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 var _TAB_NAV_TABS = ['exposures','activities','medical','nov','nov-env','rates','dole','emb','permits','env-monitoring','lta-registry','health-report','kpm'];
 var _tabRegionProjectIdx = {};
 function _tabNavKey(t, r) { return t + '|' + r; }
+
+// ── EARLY DECLARATION: getDrillStorageIdx — defined again later in ESH Calendar section,
+// but declared here early so render() can access it regardless of scope chain ──
+function getDrillStorageIdx(drill, arrayIdx) {
+    if (drill._custom) return 500 + (drill._customIdx || 0);
+    return arrayIdx; // simple numeric index — stable as long as ESH_DRILLS order is fixed
+}
+window.getDrillStorageIdx = getDrillStorageIdx;
 
 
 // ⚠️ SECURITY: Backups are STRICTLY per-account.
@@ -11974,22 +12272,31 @@ function openAdminQuickView() {
         function toggleNavGroup(header) {
             const items = header.nextElementSibling;
             const isCollapsed = items.classList.contains('collapsed');
-            
+
             if (isCollapsed) {
-                // Expand
+                // Expand — set exact height first, then auto after transition
                 items.classList.remove('collapsed');
                 header.classList.remove('collapsed');
+                items.style.height = items.scrollHeight + 'px';
+                items.addEventListener('transitionend', function handler() {
+                    items.style.height = 'auto';
+                    items.removeEventListener('transitionend', handler);
+                });
             } else {
-                // Collapse
-                items.classList.add('collapsed');
-                header.classList.add('collapsed');
+                // Collapse — lock height first, then animate to 0
+                items.style.height = items.scrollHeight + 'px';
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        items.classList.add('collapsed');
+                        header.classList.add('collapsed');
+                    });
+                });
             }
-            
+
             // Save state to localStorage
-            // Store true if expanded, false if collapsed
             const groupName = header.querySelector('span').textContent.trim();
             const navGroupStates = JSON.parse(localStorage.getItem('navGroupStates') || '{}');
-            const newState = !items.classList.contains('collapsed'); // true if expanded, false if collapsed
+            const newState = isCollapsed; // will be expanded
             navGroupStates[groupName] = newState;
             localStorage.setItem('navGroupStates', JSON.stringify(navGroupStates));
         }
@@ -12007,6 +12314,8 @@ function openAdminQuickView() {
                     const items = header.nextElementSibling;
                     items.classList.remove('collapsed');
                     header.classList.remove('collapsed');
+                    // Set auto height directly (no animation on restore)
+                    items.style.height = 'auto';
                 }
             });
         }
@@ -15970,7 +16279,11 @@ function renderTabulation() {
             try {
             const _eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
             const _nonTableTabs = ['settings','personnel','admin','env-monitoring','osh-requirement','nov','got-monitoring'];
-            if (_nonTableTabs.includes(state.currentTab) || _eshCalTabs.includes(state.currentTab)) return;
+            if (_nonTableTabs.includes(state.currentTab) || _eshCalTabs.includes(state.currentTab)) {
+                // Re-render GOT monitoring when edit mode changes
+                if (state.currentTab === 'got-monitoring' && window.renderGotMonitoring) { window.renderGotMonitoring(); }
+                return;
+            }
 
             // Show/hide the lock icon on the audit nav tab for non-admins
             const auditNavLock = document.getElementById('audit-nav-lock');
@@ -16111,18 +16424,18 @@ function renderTabulation() {
                 </div>
                 
                 <div class="table-container" style="margin: 0 20px 20px;">
-                    <table>
+                    <table class="env-tbl">
                         <tr>
-                            <th style="width:250px; text-align:left; background: #2e7d32; position: sticky; left: 0; z-index: 10;">TYPE</th>
-                            <th class="prev-year${isNov ? ' nov-narrow-th' : ''}" style="background: #e65100;">PREVIOUS</th>`;
+                            <th class="env-th-left env-th-sticky env-th-dark" style="width:250px;">TYPE</th>
+                            <th class="prev-year${isNov ? ' nov-narrow-th' : ''}" style="background:#e65100;color:white;">PREVIOUS</th>`;
                 
                 // Monthly column headers
                 MONTHS.forEach(m => {
-                    html += `<th${isNov ? ' class="nov-narrow-th"' : ''} style="background: #388e3c;">${m}</th>`;
+                    html += `<th${isNov ? ' class="nov-narrow-th"' : ''}>${m}</th>`;
                 });
                 
                 if (hasYTD) {
-                    html += `<th class="ytd-header" style="background: #f9a825;">RUNNING YTD</th>`;
+                    html += `<th class="ytd-header" style="background:#f9a825;color:#1b5e20;font-weight:800;">RUNNING YTD</th>`;
                 }
                 
                 html += `</tr>`;
@@ -16150,7 +16463,10 @@ function renderTabulation() {
                             displayProjects.forEach(p => {
                                 if (row === 'Drills Conducted') {
                                     ESH_DRILLS.forEach((drill, di) => {
-                                        const ak = `${_eshYear1}|esh-calendar-drills|${p.name}|${di}|${mi}|actual`;
+                                        const _dsi1 = getDrillStorageIdx(drill, di);
+                                        const _ny1 = (state&&state.selectedYear)||2026; const naCellKey1 = `${_ny1}|esh-calendar-drills|${p.name}|${_dsi1}|${mi}|na`;
+                                        if (eshStor[naCellKey1]) return; // skip N/A cells
+                                        const ak = `${_eshYear1}|esh-calendar-drills|${p.name}|${_dsi1}|${mi}|actual`;
                                         if (eshStor[ak]) monthTotal++;
                                     });
                                 } else {
@@ -16221,7 +16537,10 @@ function renderTabulation() {
                                 for (let mi = 0; mi < 12; mi++) {
                                     if (row === 'Drills Conducted') {
                                         ESH_DRILLS.forEach((drill, di) => {
-                                            const ak = `${_eshYear2}|esh-calendar-drills|${p.name}|${di}|${mi}|actual`;
+                                            const _dsi2 = getDrillStorageIdx(drill, di);
+                                            const _ny2 = (state&&state.selectedYear)||2026; const naCellKey2 = `${_ny2}|esh-calendar-drills|${p.name}|${_dsi2}|${mi}|na`;
+                                            if (eshStor[naCellKey2]) return; // skip N/A cells
+                                            const ak = `${_eshYear2}|esh-calendar-drills|${p.name}|${_dsi2}|${mi}|actual`;
                                             if (eshStor[ak]) ytdTotal++;
                                         });
                                     } else {
@@ -16395,8 +16714,7 @@ function renderTabulation() {
                 const isCorporateDataTab = isCorporateReg && CORP_DATA_TABS.includes(state.currentTab);
                 const regIcon = isCorporateReg ? 'fa-building-columns' : (isPlantReg ? 'fa-industry' : 'fa-location-dot');
                 const regLabel = reg;
-                const specialBannerStyle = (isCorporateReg || isPlantReg) ? 'style="background:linear-gradient(90deg,#004d40 0%,#00695c 60%,#00796b 100%);"' : '';
-                html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)" ${specialBannerStyle}>
+                html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)">
                     <div class="region-banner-inner">
                         <div class="region-banner-left">
                             <i class="fas ${regIcon} region-icon"></i>
@@ -16491,7 +16809,7 @@ function renderTabulation() {
 if (state.currentTab === 'audit') {
     // Admin-only lock banner for non-admin users
     if (!state.isAdmin) {
-        html += `<div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#fff3e0,#ffe0b2);border:1.5px solid #fb8c00;border-radius:10px;padding:12px 18px;margin-bottom:14px;font-size:0.85rem;color:#e65100;font-weight:600;"><i class='fas fa-lock' style='font-size:1.1rem;'></i><span>This tab is <strong>view-only</strong>. Only Admins can input data in the Internal ESH Audit Report.</span></div>`;
+        html += `<div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border:1.5px solid #2e7d32;border-radius:10px;padding:12px 18px;margin-bottom:14px;font-size:0.85rem;color:#1b5e20;font-weight:600;"><i class='fas fa-lock' style='font-size:1.1rem;color:#2e7d32;'></i><span>This tab is <strong>view-only</strong>. Only Admins can input data in the Internal ESH Audit Report.</span></div>`;
     }
     html += `<div class="table-container">
         <style>
@@ -16509,10 +16827,10 @@ if (state.currentTab === 'audit') {
                 border: 1px solid #c8e6c9;
             }
             
-            /* ENV MONITORING style header — dark green */
+            /* ENV MONITORING style header — light green (aligned to Environmental Monitoring) */
             .audit-table thead th {
-                background: #1b5e20;
-                color: #ffffff;
+                background: #b7ddb5;
+                color: #1b5e20;
                 font-weight: 700;
                 text-transform: uppercase;
                 letter-spacing: 0.8px;
@@ -16520,12 +16838,11 @@ if (state.currentTab === 'audit') {
                 padding: 16px 8px;
                 border: 1px solid #c8e6c9;
                 position: relative;
-                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
             }
             
-            /* Top row headers - Quarter labels — deepest green */
+            /* Top row headers - Quarter labels — darker light-green */
             .audit-table thead tr:first-child th {
-                background: #0d3d0f;
+                background: #9ecf9b;
                 font-size: 13px;
                 padding: 18px 8px;
                 font-weight: 800;
@@ -16533,22 +16850,22 @@ if (state.currentTab === 'audit') {
                 border: 1px solid #c8e6c9;
             }
             
-            /* Second row - Score labels — mid green */
+            /* Second row - Score labels — standard light-green */
             .audit-table thead tr:nth-child(2) th {
-                background: #1b5e20;
+                background: #b7ddb5;
                 font-size: 12px;
                 padding: 14px 8px;
                 border: 1px solid #c8e6c9;
             }
             
-            /* Column headers — light green matching ENV table headers */
+            /* Column headers — lightest green matching ENV table sub-headers */
             .audit-table thead tr:last-child th {
-                background: #b7ddb5;
+                background: #c5e8c3;
                 color: #1b5e20;
                 font-size: 10px;
                 padding: 12px 6px;
                 border: 1px solid #c8e6c9;
-                border-top: 2px solid #2e7d32;
+                border-top: 2px solid #a5d6a7;
                 font-weight: 700;
                 letter-spacing: 0.5px;
             }
@@ -16690,17 +17007,17 @@ if (state.currentTab === 'audit') {
         <table class="audit-table">
             <thead>
                 <tr>
-                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q1 (JAN-MAR)</th>
-                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q2 (APR-JUN)</th>
-                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q3 (JUL-SEP)</th>
-                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q4 (OCT-DEC)</th>
+                    <th colspan="3" style="border-right: 2px solid #a5d6a7;">Q1 (JAN-MAR)</th>
+                    <th colspan="3" style="border-right: 2px solid #a5d6a7;">Q2 (APR-JUN)</th>
+                    <th colspan="3" style="border-right: 2px solid #a5d6a7;">Q3 (JUL-SEP)</th>
+                    <th colspan="3" style="border-right: 2px solid #a5d6a7;">Q4 (OCT-DEC)</th>
                     <th rowspan="3" class="cell-grand-total" style="border-left: 3px solid #fbc02d; vertical-align: middle; line-height: 1.3;">GRAND<br>TOTAL<br>AVERAGE</th>
                 </tr>
                 <tr>
-                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
-                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
-                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
-                    <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
+                    <th colspan="3" style="border-right: 2px solid #a5d6a7;">Quarterly Score</th>
+                    <th colspan="3" style="border-right: 2px solid #a5d6a7;">Quarterly Score</th>
+                    <th colspan="3" style="border-right: 2px solid #a5d6a7;">Quarterly Score</th>
+                    <th colspan="3" style="border-right: 2px solid #a5d6a7;">Quarterly Score</th>
                 </tr>
                 <tr>
                     <th style="background: #c5e8c3; color: #1b5e20; font-size: 10px; font-weight: 700;">Implementation</th>
@@ -17241,35 +17558,37 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
         typeColumnWidth = '220px';
     }
 
-    html += `<div class="table-container"><table>`;
-    html += `<tr><th style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; text-align:left; background: #2e7d32; position: sticky; left: 0; z-index: 10; white-space: normal; padding: 10px 12px; line-height: 1.3; vertical-align: middle;">TYPE</th>`;
+    // All reportorial/monitoring tabs get the ENV Monitoring light-green header palette
+    const _isEnvStyleTab = true; // apply to all tabs in this renderer
+    html += `<div class="table-container"><table class="env-tbl">`;
+    html += `<tr><th class="env-th-left env-th-sticky env-th-dark" style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; white-space: normal; padding: 10px 12px; line-height: 1.3; vertical-align: middle;">TYPE</th>`;
 
     if (isCshp) {
         const headerText = (state.currentTab === 'cshp') ? "DATE APPROVED" : "DATE REGISTERED";
-        html += `<th style="background: #388e3c;">${headerText}</th>`;
+        html += `<th>${headerText}</th>`;
     } else {
         // Previous column header
         if (state.currentTab !== 'kpm' && state.currentTab !== 'dole' && state.currentTab !== 'emb' && state.currentTab !== 'permits') {
-            html += `<th class="prev-year${isNov ? ' nov-narrow-th' : ''}" style="background: #e65100;">PREVIOUS</th>`;
+            html += `<th class="prev-year${isNov ? ' nov-narrow-th' : ''}" style="background:#e65100;color:white;">PREVIOUS</th>`;
         }
 
         // Main columns
         if (state.currentTab === 'emb') {
-            html += `<th style="background: #388e3c;">Q1 (JAN-MAR)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Apr 15</small></th>`;
-            html += `<th style="background: #388e3c;">Q2 (APR-JUN)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Jul 15</small></th>`;
-            html += `<th style="background: #388e3c;">Q3 (JUL-SEP)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Oct 15</small></th>`;
-            html += `<th style="background: #388e3c;">Q4 (OCT-DEC)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Jan 15</small></th>`;
+            html += `<th class="env-th-dark">Q1 (JAN-MAR)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Apr 15</small></th>`;
+            html += `<th class="env-th-dark">Q2 (APR-JUN)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Jul 15</small></th>`;
+            html += `<th class="env-th-dark">Q3 (JUL-SEP)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Oct 15</small></th>`;
+            html += `<th class="env-th-dark">Q4 (OCT-DEC)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Jan 15</small></th>`;
         } else if (state.currentTab === 'permits') {
-            html += `<th style="background: #388e3c; min-width: 200px; white-space: normal; padding: 10px 12px;">PERMIT NO. / ACCREDITATION NO.</th>`;
-            html += `<th style="background: #388e3c; min-width: 140px; white-space: nowrap;">DATE ISSUED</th>`;
-            html += `<th style="background: #388e3c; min-width: 140px; white-space: nowrap;">EXPIRY DATE</th>`;
+            html += `<th style="min-width: 200px; white-space: normal; padding: 10px 12px;">PERMIT NO. / ACCREDITATION NO.</th>`;
+            html += `<th style="min-width: 140px; white-space: nowrap;">DATE ISSUED</th>`;
+            html += `<th style="min-width: 140px; white-space: nowrap;">EXPIRY DATE</th>`;
         } else {
             const isDole = state.currentTab === 'dole';
-            MONTHS.forEach(m => html += `<th${isNov ? ' class="nov-narrow-th"' : (isDole ? ' class="dole-narrow-th"' : '')} style="background: #388e3c;">${m}</th>`);
+            MONTHS.forEach(m => html += `<th${isNov ? ' class="nov-narrow-th"' : (isDole ? ' class="dole-narrow-th"' : '')}>${m}</th>`);
         }
 
         if (hasYTD) {
-            html += `<th class="ytd-header" style="background: #f9a825;">RUNNING YTD</th>`;
+            html += `<th class="ytd-header" style="background:#f9a825;color:#1b5e20;font-weight:800;">RUNNING YTD</th>`;
         }
     }
 
@@ -17612,7 +17931,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         const _eshYear3 = state.selectedYear || new Date().getFullYear();
                         if (row === 'Drills Conducted') {
                             ESH_DRILLS.forEach((drill, di) => {
-                                const ak = `${_eshYear3}|esh-calendar-drills|${projName}|${di}|${mi}|actual`;
+                                const _dsi3 = getDrillStorageIdx(drill, di);
+                                const _ny3 = (state&&state.selectedYear)||2026; const naCellKey3 = `${_ny3}|esh-calendar-drills|${projName}|${_dsi3}|${mi}|na`;
+                                if (eshStor[naCellKey3]) return; // skip N/A cells
+                                const ak = `${_eshYear3}|esh-calendar-drills|${projName}|${_dsi3}|${mi}|actual`;
                                 if (eshStor[ak]) count++;
                             });
                         } else {
@@ -17784,7 +18106,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     for (let mi = 0; mi < 12; mi++) {
                         if (row === 'Drills Conducted') {
                             ESH_DRILLS.forEach((drill, di) => {
-                                if (eshStor[`${_eshYear4}|esh-calendar-drills|${p.name}|${di}|${mi}|actual`]) ytdValue++;
+                                const _dsi4 = getDrillStorageIdx(drill, di);
+                                const _ny4 = (state&&state.selectedYear)||2026; const naCellKey4 = `${_ny4}|esh-calendar-drills|${p.name}|${_dsi4}|${mi}|na`;
+                                if (eshStor[naCellKey4]) return; // skip N/A cells
+                                if (eshStor[`${_eshYear4}|esh-calendar-drills|${p.name}|${_dsi4}|${mi}|actual`]) ytdValue++;
                             });
                         } else {
                             ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
@@ -18038,23 +18363,25 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         var companyAvg = companyCount > 0 ? companyTotal / companyCount : null;
 
-                        function pc(v) { return v >= 0.90 ? '#a5d6a7' : v >= 0.85 ? '#fff176' : '#ef9a9a'; }
-                        function tc(v) { return v >= 0.90 ? '#1b5e20' : v >= 0.85 ? '#5d4037' : '#b71c1c'; }
+                        function pc(v) { return v >= 0.90 ? '#e8f5e9' : v >= 0.85 ? '#fff8e1' : '#ffebee'; }
+                        function tc(v) { return v >= 0.90 ? '#1b5e20' : v >= 0.85 ? '#7a5c00' : '#c62828'; }
                         function lbl(v){ return v >= 0.90 ? 'EXCELLENT' : v >= 0.85 ? 'SATISFACTORY' : 'NEEDS IMPROVEMENT'; }
                         function ico(v){ return v >= 0.90 ? 'fa-circle-check' : v >= 0.85 ? 'fa-circle-minus' : 'fa-circle-xmark'; }
                         function brc(v){ return v >= 0.90 ? '#4caf50' : v >= 0.85 ? '#fbc02d' : '#e53935'; }
+                        function bdc(v){ return v >= 0.90 ? '#a5d6a7' : v >= 0.85 ? '#ffe082' : '#ef9a9a'; }
 
                         var regCards = allRegs.map(function(r) {
                             var has = r.grand !== null;
                             var pct = has ? (r.grand*100).toFixed(2)+'%' : '\u2014';
-                            var bg = has ? pc(r.grand) : '#e0e0e0';
-                            var fg = has ? tc(r.grand) : '#888';
-                            return '<div style="flex:1;min-width:150px;max-width:210px;background:'+bg+';border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:3px;border:1.5px solid rgba(0,0,0,0.08);box-shadow:0 2px 8px rgba(0,0,0,0.07);">'
-                                +'<div style="font-size:0.6rem;font-weight:800;color:'+fg+';text-transform:uppercase;letter-spacing:0.5px;opacity:0.8;">'+r.reg+'</div>'
-                                +'<div style="font-size:1.5rem;font-weight:900;color:'+fg+';line-height:1.1;">'+pct+'</div>'
-                                +'<div style="font-size:0.58rem;font-weight:700;color:'+fg+';opacity:0.75;display:flex;align-items:center;gap:4px;">'
-                                +(has?'<i class="fas '+ico(r.grand)+'"></i>':'')+( has?lbl(r.grand):'NO DATA')+'</div>'
-                                +'<div style="font-size:0.57rem;color:'+fg+';opacity:0.6;margin-top:1px;">'+r.projs+' proj &bull; '+r.activeMo+'</div>'
+                            var bg = has ? pc(r.grand) : '#f5f5f5';
+                            var fg = has ? tc(r.grand) : '#999';
+                            var bd = has ? bdc(r.grand) : '#e0e0e0';
+                            return '<div style="flex:1;min-width:150px;max-width:210px;background:'+bg+';border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:3px;border:1.5px solid '+bd+';box-shadow:0 2px 8px rgba(0,0,0,0.06);">'
+                                +'<div style="font-size:0.6rem;font-weight:800;color:'+fg+';text-transform:uppercase;letter-spacing:0.5px;opacity:0.85;">'+r.reg+'</div>'
+                                +'<div style="font-size:1.5rem;font-weight:900;color:'+(has?'#1b5e20':'#bdbdbd')+';line-height:1.1;">'+pct+'</div>'
+                                +'<div style="font-size:0.58rem;font-weight:700;color:'+fg+';opacity:0.9;display:flex;align-items:center;gap:4px;">'
+                                +(has?'<i class="fas '+ico(r.grand)+'"></i>':'')+(has?lbl(r.grand):'NO DATA')+'</div>'
+                                +'<div style="font-size:0.57rem;color:#888;margin-top:1px;">'+r.projs+' proj &bull; '+r.activeMo+'</div>'
                                 +'</div>';
                         }).join('');
 
@@ -18069,8 +18396,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var pct = has ? r.grand*100 : 0;
                             var lc = has ? (r.grand >= 0.90 ? '#2e7d32' : r.grand >= 0.85 ? '#e65100' : '#c62828') : '#888';
                             return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'
-                                +'<div style="font-size:0.63rem;font-weight:700;color:#a5d6a7;min-width:110px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+r.reg+'</div>'
-                                +'<div style="flex:1;background:rgba(255,255,255,0.1);border-radius:4px;height:16px;overflow:hidden;">'
+                                +'<div style="font-size:0.63rem;font-weight:700;color:#1b5e20;min-width:110px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+r.reg+'</div>'
+                                +'<div style="flex:1;background:rgba(0,0,0,0.06);border-radius:4px;height:16px;overflow:hidden;">'
                                 +'<div style="height:100%;width:'+Math.min(pct,100).toFixed(1)+'%;background:'+( has?brc(r.grand):'#bdbdbd')+';border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:4px;">'
                                 +(has?'<span style="font-size:0.57rem;font-weight:800;color:white;">'+pct.toFixed(1)+'%</span>':'')
                                 +'</div></div>'
@@ -18079,50 +18406,51 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         }).join('');
 
                         html +=
-                            '<div style="background:linear-gradient(135deg,#0d3d0f 0%,#1b6e1f 50%,#2e7d32 100%);border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.08);margin-bottom:14px;position:relative;">'
-                            +'<div style="position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.04) 50%,transparent 70%);pointer-events:none;"></div>'
+                            '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #2e7d32;margin:0 16px 14px;position:relative;">'
                             // header bar
-                            +'<div style="padding:14px 20px 10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;position:relative;z-index:2;">'
+                            +'<div style="padding:13px 20px 10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;background:#f1f8e9;border-bottom:1px solid #c8e6c9;">'
                             +'<div style="display:flex;align-items:center;gap:10px;">'
-                            +'<i class="fas fa-chart-bar" style="font-size:1.3rem;color:#a5d6a7;"></i>'
+                            +'<div style="width:38px;height:38px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
+                            +'<i class="fas fa-chart-bar" style="font-size:1.1rem;color:#2e7d32;"></i>'
+                            +'</div>'
                             +'<div>'
-                            +'<div style="font-size:0.98rem;font-weight:800;color:white;letter-spacing:0.5px;">KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT</div>'
-                            +'<div style="font-size:0.63rem;color:#a5d6a7;margin-top:2px;">Monthly ESH Consolidated KPM \u2014 FM-RNI-04-04 Rev.4 | Eff. Date: 06 Aug 2018</div>'
+                            +'<div style="font-family:Poppins,sans-serif;font-size:0.96rem;font-weight:800;background:linear-gradient(90deg,#1b5e20 0%,#43a047 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:0.04em;text-transform:uppercase;">KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT</div>'
+                            +'<div style="font-size:0.63rem;color:#388e3c;margin-top:2px;font-weight:500;">Monthly ESH Consolidated KPM \u2014 FM-RNI-04-04 Rev.4 | Eff. Date: 06 Aug 2018</div>'
                             +'</div></div>'
                             +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'
-                            +'<div style="background:rgba(255,255,255,0.12);color:white;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid rgba(255,255,255,0.2);"><i class="fas fa-building" style="margin-right:5px;color:#a5d6a7;"></i>'+displayProjects.length+' Projects</div>'
-                            +'<div style="background:'+(companyAvg!==null?pc(companyAvg):'rgba(255,255,255,0.12)')+';color:'+(companyAvg!==null?tc(companyAvg):'white')+';padding:5px 16px;border-radius:20px;font-size:0.7rem;font-weight:800;border:1px solid rgba(255,255,255,0.25);"><i class="fas '+compIco+'" style="margin-right:5px;"></i>Company Avg: '+compPct+'</div>'
-                            +'<div style="background:rgba(76,175,80,0.2);color:#a5d6a7;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid rgba(76,175,80,0.35);">MONTHLY</div>'
+                            +'<div style="background:#e8f5e9;color:#1b5e20;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid #a5d6a7;"><i class="fas fa-building" style="margin-right:5px;color:#2e7d32;"></i>'+displayProjects.length+' Projects</div>'
+                            +'<div style="background:'+(companyAvg!==null?pc(companyAvg):'#f5f5f5')+';color:'+(companyAvg!==null?tc(companyAvg):'#999')+';padding:5px 16px;border-radius:20px;font-size:0.7rem;font-weight:800;border:1px solid '+(companyAvg!==null?bdc(companyAvg):'#e0e0e0')+';"><i class="fas '+compIco+'" style="margin-right:5px;"></i>Company Avg: '+compPct+'</div>'
+                            +'<div style="background:#e8f5e9;color:#1b5e20;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid #a5d6a7;">MONTHLY</div>'
                             +'</div></div>'
                             // body
-                            +'<div style="padding:0 20px 16px;position:relative;z-index:2;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">'
+                            +'<div style="padding:14px 20px 16px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">'
                             // region score cards
                             +'<div style="display:flex;gap:10px;flex-wrap:wrap;flex:1;min-width:280px;">'
                             +regCards
-                            +'<div style="flex:1;min-width:150px;max-width:210px;background:rgba(255,255,255,0.12);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;border:2px solid rgba(255,255,255,0.3);">'
-                            +'<div style="font-size:0.6rem;font-weight:800;color:#a5d6a7;text-transform:uppercase;letter-spacing:0.5px;">\ud83c\udfe2 COMPANY OVERALL</div>'
-                            +'<div style="font-size:1.5rem;font-weight:900;color:white;line-height:1.1;">'+compPct+'</div>'
-                            +'<div style="font-size:0.58rem;font-weight:700;color:#a5d6a7;display:flex;align-items:center;gap:4px;"><i class="fas '+compIco+'"></i>'+compLbl+'</div>'
-                            +'<div style="font-size:0.57rem;color:#a5d6a7;opacity:0.65;margin-top:1px;">Avg of all regions</div>'
+                            +'<div style="flex:1;min-width:150px;max-width:210px;background:#e8f5e9;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;border:2px solid #a5d6a7;box-shadow:0 2px 6px rgba(27,94,32,0.1);">'
+                            +'<div style="font-size:0.6rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.5px;">\ud83c\udfe2 COMPANY OVERALL</div>'
+                            +'<div style="font-size:1.5rem;font-weight:900;color:#1b5e20;line-height:1.1;">'+compPct+'</div>'
+                            +'<div style="font-size:0.58rem;font-weight:700;color:#2e7d32;display:flex;align-items:center;gap:4px;"><i class="fas '+compIco+'"></i>'+compLbl+'</div>'
+                            +'<div style="font-size:0.57rem;color:#555;margin-top:1px;">Avg of all regions</div>'
                             +'</div></div>'
                             // bar chart
                             +'<div style="min-width:260px;flex:1;max-width:380px;">'
-                            +'<div style="font-size:0.62rem;font-weight:700;color:#a5d6a7;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;"><i class="fas fa-chart-bar" style="margin-right:5px;"></i>Performance by Region</div>'
+                            +'<div style="font-size:0.62rem;font-weight:700;color:#1b5e20;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;"><i class="fas fa-chart-bar" style="margin-right:5px;"></i>Performance by Region</div>'
                             +barRows
-                            +'<div style="display:flex;align-items:center;gap:8px;margin-top:4px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.15);">'
-                            +'<div style="font-size:0.63rem;font-weight:800;color:white;min-width:110px;text-align:right;">COMPANY AVG</div>'
-                            +'<div style="flex:1;background:rgba(255,255,255,0.1);border-radius:4px;height:20px;overflow:hidden;">'
+                            +'<div style="display:flex;align-items:center;gap:8px;margin-top:4px;padding-top:6px;border-top:1px solid #c8e6c9;">'
+                            +'<div style="font-size:0.63rem;font-weight:800;color:#1b5e20;min-width:110px;text-align:right;">COMPANY AVG</div>'
+                            +'<div style="flex:1;background:rgba(0,0,0,0.06);border-radius:4px;height:20px;overflow:hidden;">'
                             +'<div style="height:100%;width:'+compBarW+'%;background:'+compBarC+';border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:4px;">'
                             +(companyAvg!==null?'<span style="font-size:0.62rem;font-weight:800;color:white;">'+(companyAvg*100).toFixed(1)+'%</span>':'')
                             +'</div></div>'
-                            +'<div style="font-size:0.65rem;font-weight:900;color:white;min-width:46px;">'+compPct+'</div>'
+                            +'<div style="font-size:0.65rem;font-weight:900;color:#1b5e20;min-width:46px;">'+compPct+'</div>'
                             +'</div></div></div>'
                             // legend
-                            +'<div style="padding:7px 20px;background:rgba(0,0,0,0.18);display:flex;gap:16px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,0.1);">'
-                            +'<span style="font-size:0.6rem;color:#a5d6a7;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:50%;background:#4caf50;display:inline-block;"></span>\u226590% Excellent</span>'
-                            +'<span style="font-size:0.6rem;color:#a5d6a7;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:50%;background:#fbc02d;display:inline-block;"></span>85\u201389% Satisfactory</span>'
-                            +'<span style="font-size:0.6rem;color:#a5d6a7;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:50%;background:#e53935;display:inline-block;"></span>&lt;85% Needs Improvement</span>'
-                            +'<span style="font-size:0.6rem;color:#a5d6a7;opacity:0.6;margin-left:auto;">Scores reflect each region\'s currently selected month</span>'
+                            +'<div style="padding:7px 20px;background:#f1f8e9;display:flex;gap:16px;flex-wrap:wrap;border-top:1px solid #c8e6c9;">'
+                            +'<span style="font-size:0.6rem;color:#2e7d32;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:50%;background:#4caf50;display:inline-block;"></span>\u226590% Excellent</span>'
+                            +'<span style="font-size:0.6rem;color:#7a5c00;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:50%;background:#fbc02d;display:inline-block;"></span>85\u201389% Satisfactory</span>'
+                            +'<span style="font-size:0.6rem;color:#c62828;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:50%;background:#e53935;display:inline-block;"></span>&lt;85% Needs Improvement</span>'
+                            +'<span style="font-size:0.6rem;color:#388e3c;opacity:0.75;margin-left:auto;">Scores reflect each region\'s currently selected month</span>'
                             +'</div>'
                             +'</div>';
                     })();
@@ -18306,10 +18634,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         var grandColor = grandTotal >= 0.90 ? '#2e7d32' : grandTotal >= 0.85 ? '#e65100' : '#c62828';
                         var projHeaderCols = projs.map(function(p) {
-                            return '<th style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);color:#a5d6a7;font-size:0.62rem;font-weight:700;text-align:center;min-width:72px;white-space:normal;word-break:break-word;background:#0d3d0f;">' + p.name + '</th>';
+                            return '<th style="padding:5px 4px;border:1px solid #c8e6c9;color:#1b5e20;font-size:0.62rem;font-weight:700;text-align:center;min-width:72px;white-space:normal;word-break:break-word;background:#b7ddb5;">' + p.name + '</th>';
                         }).join('');
                         var projGradeRow3Cols = projs.map(function() {
-                            return '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);color:#a5d6a7;font-size:0.6rem;font-style:italic;text-align:center;background:#1b6e1f;">EP (%)</th>';
+                            return '<th style="padding:4px 2px;border:1px solid #c8e6c9;color:#1b5e20;font-size:0.6rem;font-style:italic;text-align:center;background:#c5e8c3;">EP (%)</th>';
                         }).join('');
 
                         // Month tabs
@@ -18369,40 +18697,40 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<div style="overflow-x:auto;overflow-y:auto;max-height:600px;cursor:grab;" onmousedown="this.style.cursor=\'grabbing\'" onmouseup="this.style.cursor=\'grab\'">'
                             + '<table style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
                             + '<thead>'
-                            + '<tr style="background:#1b5e20;color:#fff;font-size:0.67rem;font-weight:800;text-align:center;">'
-                            + '<th rowspan="3" style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;width:22px;min-width:22px;max-width:22px;text-align:center;">#</th>'
-                            + '<th colspan="4" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);">KEY PERFORMANCE MEASURES</th>'
-                            + '<th colspan="5" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);">KEY PERFORMANCE INDICATORS</th>'
-                            + '<th colspan="' + projs.length + '" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);background:#0d3d0f;">ACTUAL PERFORMANCE RATING \u2014 EQUIVALENT PERCENTAGE (EP)</th>'
-                            + '<th rowspan="3" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;min-width:60px;white-space:normal;">AVG<br>EP</th>'
-                            + '<th rowspan="3" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;min-width:68px;white-space:normal;">Total %<br>Perf.<br><span style="font-size:0.57rem;font-weight:400;">(Avg EP\u00d7DW)</span></th>'
-                            + '<th colspan="5" style="padding:6px 4px;border:1px solid rgba(255,255,255,0.25);font-size:0.57rem;font-weight:400;font-style:italic;">Note: Accomplish if grade below 3 and in issue log</th>'
+                            + '<tr style="background:#9ecf9b;color:#1b5e20;font-size:0.67rem;font-weight:800;text-align:center;">'
+                            + '<th rowspan="3" style="padding:4px 2px;border:1px solid #c8e6c9;vertical-align:middle;width:22px;min-width:22px;max-width:22px;text-align:center;">#</th>'
+                            + '<th colspan="4" style="padding:6px 4px;border:1px solid #c8e6c9;">KEY PERFORMANCE MEASURES</th>'
+                            + '<th colspan="5" style="padding:6px 4px;border:1px solid #c8e6c9;">KEY PERFORMANCE INDICATORS</th>'
+                            + '<th colspan="' + projs.length + '" style="padding:6px 4px;border:1px solid #c8e6c9;background:#b7ddb5;">ACTUAL PERFORMANCE RATING \u2014 EQUIVALENT PERCENTAGE (EP)</th>'
+                            + '<th rowspan="3" style="padding:6px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:60px;white-space:normal;">AVG<br>EP</th>'
+                            + '<th rowspan="3" style="padding:6px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:68px;white-space:normal;">Total %<br>Perf.<br><span style="font-size:0.57rem;font-weight:400;">(Avg EP\u00d7DW)</span></th>'
+                            + '<th colspan="5" style="padding:6px 4px;border:1px solid #c8e6c9;font-size:0.57rem;font-weight:400;font-style:italic;">Note: Accomplish if grade below 3 and in issue log</th>'
                             + '</tr>'
-                            + '<tr style="background:#2e7d32;color:#fff;font-size:0.62rem;font-weight:700;text-align:center;">'
-                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;min-width:130px;white-space:normal;">Work Process</th>'
-                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;min-width:130px;white-space:normal;">Deliverables</th>'
-                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;min-width:46px;white-space:normal;">DW</th>'
-                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);vertical-align:middle;min-width:150px;white-space:normal;">Measure</th>'
-                            + '<th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);min-width:40px;">75%</th>'
-                            + '<th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);min-width:40px;">80%</th>'
-                            + '<th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);min-width:40px;">85%</th>'
-                            + '<th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);min-width:40px;">90%</th>'
-                            + '<th style="padding:5px 2px;border:1px solid rgba(255,255,255,0.25);min-width:40px;">95%</th>'
+                            + '<tr style="background:#b7ddb5;color:#1b5e20;font-size:0.62rem;font-weight:700;text-align:center;">'
+                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:130px;white-space:normal;">Work Process</th>'
+                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:130px;white-space:normal;">Deliverables</th>'
+                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:46px;white-space:normal;">DW</th>'
+                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:150px;white-space:normal;">Measure</th>'
+                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">75%</th>'
+                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">80%</th>'
+                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">85%</th>'
+                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">90%</th>'
+                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">95%</th>'
                             + projHeaderCols
-                            + '<th colspan="5" style="padding:5px 4px;border:1px solid rgba(255,255,255,0.25);font-size:0.58rem;font-weight:400;font-style:italic;background:#1b6e1f;">IMPROVEMENT PLAN</th>'
+                            + '<th colspan="5" style="padding:5px 4px;border:1px solid #c8e6c9;font-size:0.58rem;font-weight:400;font-style:italic;background:#9ecf9b;color:#1b5e20;">IMPROVEMENT PLAN</th>'
                             + '</tr>'
-                            + '<tr style="background:#388e3c;color:#fff;font-size:0.63rem;font-weight:700;text-align:center;">'
-                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);">1</th>'
-                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);">2</th>'
-                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);">3</th>'
-                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);">4</th>'
-                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);">5</th>'
+                            + '<tr style="background:#c5e8c3;color:#1b5e20;font-size:0.63rem;font-weight:700;text-align:center;">'
+                            + '<th style="padding:4px 2px;border:1px solid #c8e6c9;">1</th>'
+                            + '<th style="padding:4px 2px;border:1px solid #c8e6c9;">2</th>'
+                            + '<th style="padding:4px 2px;border:1px solid #c8e6c9;">3</th>'
+                            + '<th style="padding:4px 2px;border:1px solid #c8e6c9;">4</th>'
+                            + '<th style="padding:4px 2px;border:1px solid #c8e6c9;">5</th>'
                             + projGradeRow3Cols
-                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);background:#0d3d0f;color:#a5d6a7;">Immediate Action</th>'
-                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);background:#0d3d0f;color:#a5d6a7;">Root Cause</th>'
-                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);background:#0d3d0f;color:#a5d6a7;">Corrective Action</th>'
-                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);background:#0d3d0f;color:#a5d6a7;">Date of Impl.</th>'
-                            + '<th style="padding:4px 2px;border:1px solid rgba(255,255,255,0.25);background:#0d3d0f;color:#a5d6a7;">Status</th>'
+                            + '<th style="padding:4px 2px;border:1px solid #c8e6c9;background:#b7ddb5;color:#1b5e20;">Immediate Action</th>'
+                            + '<th style="padding:4px 2px;border:1px solid #c8e6c9;background:#b7ddb5;color:#1b5e20;">Root Cause</th>'
+                            + '<th style="padding:4px 2px;border:1px solid #c8e6c9;background:#b7ddb5;color:#1b5e20;">Corrective Action</th>'
+                            + '<th style="padding:4px 2px;border:1px solid #c8e6c9;background:#b7ddb5;color:#1b5e20;">Date of Impl.</th>'
+                            + '<th style="padding:4px 2px;border:1px solid #c8e6c9;background:#b7ddb5;color:#1b5e20;">Status</th>'
                             + '</tr></thead>'
                             + '<tbody>' + tableRows + '</tbody>'
                             + '<tfoot><tr style="background:#b7ddb5;font-weight:800;border-top:2px solid #2e7d32;">'
@@ -18425,7 +18753,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         if (reg === 'CORPORATE' || reg === 'PLANT OPERATIONS') return;
                         var projs = displayProjects.filter(function(p) { return p.region === reg; });
                         if (!projs.length) return;
-                        var canEditReg = UserAccounts.canEdit(state.currentUser && state.currentUser.email, reg) && UserAccounts.canEditTab(state.currentUser && state.currentUser.email, 'kpm');
+                        var canEditReg = state.isEditing && UserAccounts.canEdit(state.currentUser && state.currentUser.email, reg) && UserAccounts.canEditTab(state.currentUser && state.currentUser.email, 'kpm');
                         var isCollapsed = isRegionCollapsed(reg);
                         var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
                         var activeMo = (window._kpmRegActiveMo && window._kpmRegActiveMo[regKey]) || 'January';
@@ -18435,7 +18763,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<div class="region-banner-left">'
                             + '<i class="fas fa-location-dot region-icon"></i>'
                             + '<span class="region-name">' + reg + '</span>'
-                            + (!canEditReg ? '<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="View Only"></i>' : '')
+                            + (!state.isEditing ? '<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="Press ✏️ Edit button to enable input"></i>' : (!canEditReg ? '<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="View Only"></i>' : ''))
                             + '</div>'
                             + '<div class="region-banner-right">'
                             + '<span class="rbadge rbadge-count">' + projs.length + ' PROJ</span>'
@@ -18511,11 +18839,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         const schemaRow  = SCHEMA[state.currentTab][0];
                         const key        = `${state.currentTab}_${schemaRow}`;
 
-                        html += `<div class="table-container"><table>
+                        html += `<div class="table-container"><table class="env-tbl">
                             <tr>
-                                <th style="width:250px;text-align:left; position: sticky; left: 0; z-index: 10; background: #2e7d32;">PROJECT NAME</th>
-                                <th style="width:150px;">${headerText}</th>
-                                <th style="width:350px;">PDF DOCUMENT</th>
+                                <th class="env-th-left env-th-sticky env-th-dark" style="width:250px;">PROJECT NAME</th>
+                                <th>${headerText}</th>
+                                <th>PDF DOCUMENT</th>
                             </tr>`;
 
                         projs.forEach(p => {
@@ -18574,35 +18902,35 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     // ── AUDIT ──
                     } else if (isAudit) {
                         html += `<div class="table-container">
-                            <table class="audit-table">
+                            <table class="audit-table env-tbl">
                                 <thead>
                                     <tr>
-                                        <th rowspan="3" style="text-align:left; min-width:200px; padding-left: 12px; border-right: 2px solid rgba(255,255,255,0.3); position: sticky; left: 0; z-index: 10; background: #2e7d32;">PROJECT NAME</th>
-                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q1 (JAN-MAR)</th>
-                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q2 (APR-JUN)</th>
-                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q3 (JUL-SEP)</th>
-                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Q4 (OCT-DEC)</th>
+                                        <th rowspan="3" class="env-th-left env-th-sticky env-th-dark" style="min-width:200px; padding-left: 12px; border-right: 2px solid rgba(27,94,32,0.2);">PROJECT NAME</th>
+                                        <th colspan="3" style="border-right: 2px solid rgba(27,94,32,0.2);">Q1 (JAN-MAR)</th>
+                                        <th colspan="3" style="border-right: 2px solid rgba(27,94,32,0.2);">Q2 (APR-JUN)</th>
+                                        <th colspan="3" style="border-right: 2px solid rgba(27,94,32,0.2);">Q3 (JUL-SEP)</th>
+                                        <th colspan="3" style="border-right: 2px solid rgba(27,94,32,0.2);">Q4 (OCT-DEC)</th>
                                         <th rowspan="3" class="cell-grand-total" style="border-left: 3px solid #fbc02d; vertical-align: middle; line-height: 1.3;">GRAND<br>TOTAL<br>AVERAGE</th>
                                     </tr>
                                     <tr>
-                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
-                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
-                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
-                                        <th colspan="3" style="border-right: 2px solid rgba(255,255,255,0.3);">Quarterly Score</th>
+                                        <th colspan="3" class="env-th-dark" style="border-right: 2px solid rgba(27,94,32,0.2);">Quarterly Score</th>
+                                        <th colspan="3" class="env-th-dark" style="border-right: 2px solid rgba(27,94,32,0.2);">Quarterly Score</th>
+                                        <th colspan="3" class="env-th-dark" style="border-right: 2px solid rgba(27,94,32,0.2);">Quarterly Score</th>
+                                        <th colspan="3" class="env-th-dark" style="border-right: 2px solid rgba(27,94,32,0.2);">Quarterly Score</th>
                                     </tr>
                                     <tr>
-                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
-                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
-                                        <th style="background:#9ecf9b; color:#1b5e20; font-size:10px; font-weight:700; border-right: 2px solid #c8e6c9;">Average</th>
-                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
-                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
-                                        <th style="background:#9ecf9b; color:#1b5e20; font-size:10px; font-weight:700; border-right: 2px solid #c8e6c9;">Average</th>
-                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
-                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
-                                        <th style="background:#9ecf9b; color:#1b5e20; font-size:10px; font-weight:700; border-right: 2px solid #c8e6c9;">Average</th>
-                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
-                                        <th style="background:white; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
-                                        <th style="background:#9ecf9b; color:#1b5e20; font-size:10px; font-weight:700; border-right: 2px solid #c8e6c9;">Average</th>
+                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
+                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
+                                        <th style="border-right: 2px solid #c8e6c9;">Average</th>
+                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
+                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
+                                        <th style="border-right: 2px solid #c8e6c9;">Average</th>
+                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
+                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
+                                        <th style="border-right: 2px solid #c8e6c9;">Average</th>
+                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
+                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
+                                        <th style="border-right: 2px solid #c8e6c9;">Average</th>
                                     </tr>
                                 </thead>
                                 <tbody>`;
@@ -18632,8 +18960,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     // ── KPM (Monthly Report) or Environmental Monthly Report ──
                     } else {
                         const schemaKey = state.currentTab === 'env-monthly-report' ? 'env-monthly-report' : 'kpm';
-                        html += `<div class="table-container"><table>
-                            <tr><th style="width:220px;text-align:left; position: sticky; left: 0; z-index: 10; background: #2e7d32;">PROJECT NAME</th>`;
+                        html += `<div class="table-container"><table class="env-tbl">
+                            <tr><th class="env-th-left env-th-sticky env-th-dark" style="width:220px;">PROJECT NAME</th>`;
                         MONTHS.forEach(m => html += `<th style="width:100px;min-width:100px;max-width:100px;">${m}</th>`);
                         html += `</tr>`;
 
@@ -18727,9 +19055,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         
                         html += `
                         <div class="table-container">
-                            <table>
+                            <table class="env-tbl">
                                 <tr>
-                                    <th style="width: 280px; text-align: left;">PROJECT NAME</th>
+                                    <th class="env-th-left env-th-sticky env-th-dark" style="width: 280px;">PROJECT NAME</th>
                                     <th>Q1 (JAN-MAR)<br><small style="font-weight: 400; font-size: 0.65rem;">Due: Apr 20</small></th>
                                     <th>Q2 (APR-JUN)<br><small style="font-weight: 400; font-size: 0.65rem;">Due: Jul 20</small></th>
                                     <th>Q3 (JUL-SEP)<br><small style="font-weight: 400; font-size: 0.65rem;">Due: Oct 20</small></th>
@@ -18880,12 +19208,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         
                         html += `
                         <div class="table-container">
-                            <table>
+                            <table class="env-tbl">
                                 <tr>
-                                    <th style="width: 280px; text-align: left;">PROJECT NAME</th>
-                                    <th style="width: 200px;">SAFETY OFFICER PERMIT NUMBER</th>
-                                    <th style="width: 150px;">VALID UNTIL</th>
-                                    <th style="width: 200px;">PDF FILE</th>
+                                    <th class="env-th-left env-th-sticky env-th-dark" style="width: 280px;">PROJECT NAME</th>
+                                    <th>SAFETY OFFICER PERMIT NUMBER</th>
+                                    <th>VALID UNTIL</th>
+                                    <th>PDF FILE</th>
                                 </tr>
                         `;
                         
@@ -18986,16 +19314,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         font-family: Arial, sans-serif;
                         border: none;
                     }
-                    /* Option 4: Dark green header with yellow accent */
+                    /* ENV MONITORING style header — light green */
                     .nov-monitoring-table th {
-                        background-color: #1b5e20;
-                        color: #ffffff;
+                        background-color: #b7ddb5;
+                        color: #1b5e20;
                         font-weight: bold;
                         text-transform: uppercase;
                         font-size: 10px;
                         padding: 8px 4px;
-                        border: none;
-                        border-bottom: 3px solid var(--safety-yellow);
+                        border: 1px solid #c8e6c9;
                         text-align: center;
                     }
                     /* Striped rows */
@@ -19011,8 +19338,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     }
                     /* Hover effect with left border accent */
                     .nov-monitoring-table td {
-                        border: none;
-                        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+                        border: 1px solid #c8e6c9;
                         text-align: center;
                         vertical-align: middle;
                         padding: 4px;
@@ -19055,6 +19381,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         font-weight: 700;
                     }
                     /* Dark mode support for NOV monitoring table */
+                    body.dark-mode .nov-monitoring-table th {
+                        background: #1f4020;
+                        color: #a5d6a7;
+                        border-color: #2e7d32;
+                    }
                     body.dark-mode .nov-monitoring-table tbody tr:nth-child(odd) {
                         background: #2d2d2d;
                     }
@@ -19062,7 +19393,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         background: #1f2e1f;
                     }
                     body.dark-mode .nov-monitoring-table td {
-                        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                        border-color: rgba(46,125,50,0.25);
                     }
                     body.dark-mode .nov-monitoring-table td.total-col {
                         background: #4a4a1f !important;
@@ -19131,15 +19462,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     <table class="nov-monitoring-table">
                         <thead>
                             <tr>
-                                <th style="min-width: 150px; background: #2e7d32; position: sticky; left: 0; z-index: 10;">TYPE</th>
-                                <th class="prev-year" style="background: #e65100;">PREVIOUS</th>
-                                <th style="background: #388e3c;">JAN</th><th style="background: #388e3c;">FEB</th><th style="background: #388e3c;">MAR</th><th style="background: #388e3c;">APR</th>
-                                <th style="background: #388e3c;">MAY</th><th style="background: #388e3c;">JUN</th><th style="background: #388e3c;">JUL</th><th style="background: #388e3c;">AUG</th>
-                                <th style="background: #388e3c;">SEP</th><th style="background: #388e3c;">OCT</th><th style="background: #388e3c;">NOV</th><th style="background: #388e3c;">DEC</th>
-                                <th style="background: #66bb6a;">OPEN</th>
-                                <th style="background: #ffa726;">PENDING</th>
-                                <th style="background: #42a5f5;">CLOSED</th>
-                                <th style="background: #f9a825;">TOTAL</th>
+                                <th class="env-th-sticky env-th-dark" style="min-width: 150px; text-align:left;">TYPE</th>
+                                <th class="prev-year" style="background:#e65100;color:white;">PREVIOUS</th>
+                                <th>JAN</th><th>FEB</th><th>MAR</th><th>APR</th>
+                                <th>MAY</th><th>JUN</th><th>JUL</th><th>AUG</th>
+                                <th>SEP</th><th>OCT</th><th>NOV</th><th>DEC</th>
+                                <th style="background:#66bb6a;color:#1b5e20;">OPEN</th>
+                                <th style="background:#ffa726;color:#1b5e20;">PENDING</th>
+                                <th style="background:#42a5f5;color:#1b5e20;">CLOSED</th>
+                                <th style="background:#f9a825;color:#1b5e20;font-weight:800;">TOTAL</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -19200,15 +19531,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         <table class="nov-monitoring-table">
                             <thead>
                                 <tr>
-                                    <th style="min-width: 150px; position: sticky; left: 0; z-index: 10; background: #2e7d32;">PROJECT NAME</th>
-                                    <th class="prev-year">PREVIOUS</th>
+                                    <th class="env-th-sticky env-th-dark" style="min-width: 150px; text-align:left;">PROJECT NAME</th>
+                                    <th class="prev-year" style="background:#e65100;color:white;">PREVIOUS</th>
                                     <th>JAN</th><th>FEB</th><th>MAR</th><th>APR</th>
                                     <th>MAY</th><th>JUN</th><th>JUL</th><th>AUG</th>
                                     <th>SEP</th><th>OCT</th><th>NOV</th><th>DEC</th>
-                                    <th style="background: #66bb6a;">OPEN</th>
-                                    <th style="background: #ffa726;">PENDING</th>
-                                    <th style="background: #42a5f5;">CLOSED</th>
-                                    <th style="background: #fbc02d;">TOTAL</th>
+                                    <th style="background:#66bb6a;color:#1b5e20;">OPEN</th>
+                                    <th style="background:#ffa726;color:#1b5e20;">PENDING</th>
+                                    <th style="background:#42a5f5;color:#1b5e20;">CLOSED</th>
+                                    <th style="background:#fbc02d;color:#1b5e20;font-weight:800;">TOTAL</th>
                                 </tr>
                             </thead>
                             <tbody>`;
@@ -19315,6 +19646,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
             }
 
             container.innerHTML = html;
+        setTimeout(applyRegionBannerColors, 0);
 
             
             // Apply comma formatting to all data-num inputs
@@ -19327,6 +19659,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     updateTrendChart(state.currentTab);
                 }, 100);
             }
+            applyRegionBannerColors();
             } catch(renderErr) {
                 console.error('❌ render() crashed:', renderErr);
                 const _rc = document.getElementById('dashboard-content');
@@ -23406,7 +23739,7 @@ function setupAuthObserver() {
             // Hide main UI
             const sidebar = document.getElementById('main-sidebar');
             const content = document.getElementById('main-content');
-            if (sidebar) sidebar.classList.add('hidden');
+            if (sidebar) { sidebar.classList.add('hidden'); sidebar.classList.add('sidebar-collapsed'); }
             if (content) content.classList.add('hidden');
 
             // Reset login button state if it got stuck
@@ -25736,18 +26069,18 @@ function renderOsh2() {
 
             <!-- Region table -->
             <div id="osh2-region-${region.replace(/[^a-z0-9]/gi,'_')}" style="overflow-x:auto;">
-                <table style="width:100%;border-collapse:collapse;font-size:0.72rem;">
+                <table class="env-tbl" style="width:100%;font-size:0.72rem;">
                     <thead>
-                        <tr style="background:linear-gradient(90deg,${rColor} 0%,${rColor}cc 100%);">
-                            <th style="padding:9px 10px;text-align:left;font-weight:700;color:white;font-size:0.68rem;white-space:nowrap;position:sticky;left:0;background:${rColor};">PROJECT</th>
-                            <th style="padding:9px 6px;text-align:center;font-weight:700;color:white;font-size:0.68rem;white-space:nowrap;">MANPOWER<br><span style="font-weight:400;opacity:0.85;">(Input)</span></th>
-                            <th style="padding:9px 6px;text-align:center;font-weight:700;color:white;font-size:0.68rem;white-space:nowrap;">FIRST AIDER<br><span style="font-weight:400;opacity:0.85;">Req / Act</span></th>
-                            <th style="padding:9px 6px;text-align:center;font-weight:700;color:white;font-size:0.68rem;white-space:nowrap;">SAFETY OFFICER<br><span style="font-weight:400;opacity:0.85;">Req / Act</span></th>
-                            <th style="padding:9px 6px;text-align:center;font-weight:700;color:white;font-size:0.68rem;white-space:nowrap;">OH NURSE<br><span style="font-weight:400;opacity:0.85;">Req / Act</span></th>
-                            <th style="padding:9px 6px;text-align:center;font-weight:700;color:white;font-size:0.68rem;white-space:nowrap;">OH DENTIST<br><span style="font-weight:400;opacity:0.85;">Req / Act</span></th>
-                            <th style="padding:9px 6px;text-align:center;font-weight:700;color:white;font-size:0.68rem;white-space:nowrap;">OH PHYSICIAN<br><span style="font-weight:400;opacity:0.85;">Req / Act</span></th>
-                            <th style="padding:9px 6px;text-align:center;font-weight:700;color:white;font-size:0.68rem;white-space:nowrap;">STATUS</th>
-                            <th style="padding:9px 6px;text-align:left;font-weight:700;color:white;font-size:0.68rem;white-space:nowrap;min-width:150px;">ASSIGNED ESH PERSONNEL<br><span style="font-weight:400;opacity:0.85;font-size:0.6rem;">(from registry)</span></th>
+                        <tr>
+                            <th class="env-th-left env-th-sticky env-th-dark" style="white-space:nowrap;">PROJECT</th>
+                            <th style="white-space:nowrap;">MANPOWER<br><span style="font-weight:400;opacity:0.75;">(Input)</span></th>
+                            <th style="white-space:nowrap;">FIRST AIDER<br><span style="font-weight:400;opacity:0.75;">Req / Act</span></th>
+                            <th style="white-space:nowrap;">SAFETY OFFICER<br><span style="font-weight:400;opacity:0.75;">Req / Act</span></th>
+                            <th style="white-space:nowrap;">OH NURSE<br><span style="font-weight:400;opacity:0.75;">Req / Act</span></th>
+                            <th style="white-space:nowrap;">OH DENTIST<br><span style="font-weight:400;opacity:0.75;">Req / Act</span></th>
+                            <th style="white-space:nowrap;">OH PHYSICIAN<br><span style="font-weight:400;opacity:0.75;">Req / Act</span></th>
+                            <th style="white-space:nowrap;">STATUS</th>
+                            <th style="text-align:left;white-space:nowrap;min-width:150px;">ASSIGNED ESH PERSONNEL<br><span style="font-weight:400;opacity:0.75;font-size:0.6rem;">(from registry)</span></th>
                         </tr>
                     </thead>
                     <tbody>${regionRows}</tbody>
@@ -26466,12 +26799,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.gotToggleRegion = function (reg, event) {
         if (event && event.target && (event.target.tagName === 'BUTTON' || (event.target.closest && event.target.closest('button')))) return;
-        var banner  = document.getElementById('got-rbanner-' + reg);
-        var content = document.getElementById('got-rcontent-' + reg);
-        if (!banner || !content) return;
+        var content  = document.getElementById('got-rcontent-' + reg);
+        var safeReg  = reg.replace(/[^a-zA-Z0-9]/g, '_');
+        var chevron  = document.getElementById('got-chevron-' + safeReg);
+        if (!content) return;
         _gotCollapsed[reg] = !_gotCollapsed[reg];
-        if (_gotCollapsed[reg]) { banner.classList.add('collapsed'); content.classList.add('collapsed'); }
-        else { banner.classList.remove('collapsed'); content.classList.remove('collapsed'); }
+        if (_gotCollapsed[reg]) {
+            content.style.display = 'none';
+            if (chevron) { chevron.classList.remove('fa-chevron-down'); chevron.classList.add('fa-chevron-right'); }
+        } else {
+            content.style.display = '';
+            if (chevron) { chevron.classList.remove('fa-chevron-right'); chevron.classList.add('fa-chevron-down'); }
+        }
     };
 
     // Navigate Prev/Next project inside a region — only re-renders the inner table, not the full page
@@ -26493,7 +26832,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         var proj        = projs[projIdx];
         var userEmail   = state.currentUser ? state.currentUser.email : '';
-        var canEditReg  = UserAccounts.canEdit(userEmail, reg) && UserAccounts.canEditTab(userEmail, 'got-monitoring');
+        var canEditReg  = state.isEditing && UserAccounts.canEdit(userEmail, reg) && UserAccounts.canEditTab(userEmail, 'got-monitoring');
         var curMonth    = new Date().getMonth() + 1;
         var projAvg     = gotGoalProjectAvg2(proj);
         var pSafe       = escQ(proj.name);
@@ -26508,7 +26847,7 @@ document.addEventListener('DOMContentLoaded', function() {
         h += proj.name + '</div>';
         h += '<div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ' + (projIdx + 1) + ' of ' + projs.length;
         if (projAvg !== null) h += ' &nbsp;·&nbsp; <span style="color:' + avgClr(projAvg) + ';font-weight:700;">' + fmtAvg(projAvg) + '</span>';
-        if (!canEditReg) h += ' &nbsp;<i class="fas fa-lock" style="color:#fbc02d;font-size:0.6rem;" title="View Only"></i>';
+        if (!canEditReg) h += ' &nbsp;<i class="fas fa-lock" style="color:#fbc02d;font-size:0.6rem;" title="Press the Edit button (✏️) to enable input"></i>';
         h += '</div></div>';
         h += '<button onclick="gotNavigateProject(\'' + escQ(reg) + '\',1)" ' + (projIdx === projs.length - 1 ? 'disabled' : '') + ' style="background:' + (projIdx === projs.length - 1 ? '#ccc' : '#1b5e20') + ';color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:' + (projIdx === projs.length - 1 ? 'not-allowed' : 'pointer') + ';opacity:' + (projIdx === projs.length - 1 ? '0.4' : '1') + ';">';
         h += 'Next <i class="fas fa-chevron-right"></i></button>';
@@ -26923,36 +27262,54 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!projs.length) return;
 
             var isCollapsed = !!_gotCollapsed[reg];
-            var canEditReg  = UserAccounts.canEdit(userEmail, reg) && UserAccounts.canEditTab(userEmail, 'got-monitoring');
+            var canEditReg  = state.isEditing && UserAccounts.canEdit(userEmail, reg) && UserAccounts.canEditTab(userEmail, 'got-monitoring');
             var regAll      = gotOverallAvg(projs);
-            var regSlug     = reg.replace(/[^a-zA-Z0-9]/g,'-');
             var isCorp      = (reg === 'CORPORATE');
             var isPlant     = (reg === 'PLANT OPERATIONS');
-            var regIcon     = isCorp ? 'fa-building-columns' : (isPlant ? 'fa-industry' : 'fa-location-dot');
-            var specialStyle = (isCorp || isPlant) ? ' style="background:linear-gradient(90deg,#004d40,#00695c,#00796b);"' : '';
+            var regIcon     = isCorp ? 'fa-building-columns' : (isPlant ? 'fa-industry' : 'fa-map-marker-alt');
             var countLabel  = isCorp
                 ? projs.length + ' OFFICE'
                 : (isPlant ? projs.length + ' PLANT' + (projs.length !== 1 ? 'S' : '') : projs.length + ' PROJECT' + (projs.length !== 1 ? 'S' : ''));
 
-            // Region Banner
-            h += '<div id="got-rbanner-' + reg + '" class="region-banner region-' + regSlug.toLowerCase() + ' ' + (isCollapsed ? 'collapsed' : '') + '" onclick="gotToggleRegion(\'' + escQ(reg) + '\',event)"' + specialStyle + '>';
-            h += '<div class="region-banner-inner"><div class="region-banner-left">';
-            h += '<i class="fas ' + regIcon + ' region-icon"></i><span class="region-name">' + reg + '</span>';
-            if (isCorp)  h += '<span class="rbadge rbadge-admin">ADMIN ONLY</span>';
-            if (isPlant) h += '<span class="rbadge" style="background:rgba(255,255,255,0.2);color:white;font-size:0.55rem;padding:2px 8px;border-radius:10px;font-weight:700;">&#127981; MONITORING ONLY</span>';
-            if (!canEditReg && !isCorp && !isPlant) h += '<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="View Only"></i>';
-            h += '</div><div class="region-banner-right">';
-            h += '<span class="rbadge rbadge-count">' + countLabel + '</span>';
-            if (regAll !== null && !isPlant) h += '<span class="rbadge rbadge-avg">AVG ' + fmtAvg(regAll) + '</span>';
-            if (state.isEditing && canEditReg && !isCorp && !isPlant) h += '<button onclick="event.stopPropagation();openAddProjectModal(\'' + escQ(reg) + '\')" class="btn btn-primary" style="font-size:0.68rem;padding:3px 10px;line-height:1.4;">+ ADD</button>';
-            h += '<i class="fas fa-chevron-down region-toggle-icon"></i>';
-            h += '</div></div></div>';
-
-            // Region Content — just a container div; table is injected by gotRenderRegionProjTable
+            // Per-region color (matching env-monitoring REGION_COLORS)
+            var REG_CLR = {
+                'CORPORATE':           '#004d40',
+                'PLANT OPERATIONS':    '#00695c',
+                'NCR':                 '#1b5e20',
+                'NORTH LUZON':         '#2e7d32',
+                'SOUTH LUZON':         '#388e3c',
+                'VISAYAS & MINDANAO':  '#43a047'
+            };
+            var bgColor = REG_CLR[reg] || '#2e7d32';
+            var chevronId = 'got-chevron-' + reg.replace(/[^a-zA-Z0-9]/g, '_');
             var safeReg = reg.replace(/[^a-zA-Z0-9]/g, '_');
-            h += '<div id="got-rcontent-' + reg + '" class="region-content ' + (isCollapsed ? 'collapsed' : '') + '">';
-            h += '<div id="got-regproj-' + safeReg + '" style="border:1px solid #c8e6c9;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;margin:0 0 4px;"></div>';
+
+            // Region wrapper card — same pattern as env-monitoring
+            h += '<div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:0 16px 14px;">';
+
+            // Region Header banner — inline styles like env-monitoring, no CSS class dependency
+            h += '<div id="got-rbanner-' + reg + '" onclick="gotToggleRegion(\'' + escQ(reg) + '\',event)" style="background:linear-gradient(90deg,' + bgColor + ' 0%,' + bgColor + 'dd 100%);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">';
+            h += '<div style="display:flex;align-items:center;gap:10px;">';
+            h += '<i id="' + chevronId + '" class="fas ' + (isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down') + '" style="color:rgba(255,255,255,0.7);font-size:0.75rem;"></i>';
+            h += '<i class="fas ' + regIcon + '" style="color:rgba(255,255,255,0.85);font-size:0.9rem;"></i>';
+            h += '<span style="font-weight:800;color:white;font-size:0.9rem;letter-spacing:0.05em;text-transform:uppercase;">' + reg + '</span>';
+            if (isCorp)  h += '<span style="background:rgba(255,255,255,0.18);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">ADMIN ONLY</span>';
+            if (isPlant) h += '<span style="background:rgba(255,255,255,0.18);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">&#127981; MONITORING ONLY</span>';
+            if (!state.isEditing) h += '<span style="background:rgba(0,0,0,0.20);color:rgba(255,255,255,0.8);padding:2px 10px;border-radius:12px;font-size:0.63rem;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-lock" style="font-size:0.6rem;"></i> Press ✏️ to Edit</span>';
             h += '</div>';
+            h += '<div style="display:flex;gap:8px;align-items:center;">';
+            h += '<span style="background:rgba(255,255,255,0.18);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">' + countLabel + '</span>';
+            if (regAll !== null && !isPlant) h += '<span style="background:rgba(255,255,255,0.22);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">AVG ' + fmtAvg(regAll) + '</span>';
+            if (canEditReg && !isCorp && !isPlant) h += '<button onclick="event.stopPropagation();openAddProjectModal(\'' + escQ(reg) + '\')" style="background:rgba(255,255,255,0.22);color:white;border:1px solid rgba(255,255,255,0.4);border-radius:6px;padding:3px 10px;font-size:0.68rem;font-weight:700;cursor:pointer;">+ ADD</button>';
+            h += '</div>';
+            h += '</div>'; // end header
+
+            // Collapsible content
+            h += '<div id="got-rcontent-' + reg + '" style="' + (isCollapsed ? 'display:none;' : '') + '">';
+            h += '<div id="got-regproj-' + safeReg + '" style="border-top:1px solid #c8e6c9;"></div>';
+            h += '</div>';
+
+            h += '</div>'; // end card
         });
 
         if (!allProjects.length) {
@@ -28507,21 +28864,21 @@ const ESH_TRAININGS = {
 
 const ESH_DRILLS = [
     { name:'Earthquake', freq:'Quarterly' },
-    { name:'Fire', freq:'Quarterly' },
+    { name:'Fire', freq:'Twice a year' },
     { name:'Chemical and Oil Spillage', freq:'Twice a year' },
-    { name:'Serious Injury', freq:'Once a year' },
-    { name:'Death Cause by Accident', freq:'Once a year' },
-    { name:'Death by Natural Cases', freq:'Once a year' },
+    { name:'Serious Injury', freq:'Twice a year' },
+    { name:'Death Caused by Accident', freq:'Twice a year' },
+    { name:'Death by Natural Causes', freq:'Twice a year' },
     { name:'Medical Emergency', freq:'Twice a year' },
+    { name:'Confined Space and Tunnel Emergency', freq:'Twice a year' },
     { name:'Explosion', freq:'Once a year' },
     { name:'Bomb Threat', freq:'Once a year' },
-    { name:'Un-exploded Ordnance', freq:'Once a year' },
-    { name:'Weather Disturbance (Typhoons, Heavy Rains, Strong Winds and Flooding)', freq:'Quarterly' },
-    { name:'Weather Emergency (Lightning)', freq:'Quarterly' },
-    { name:'Confined Space and Tunnel Emergency', freq:'Twice a year' },
+    { name:'Unexploded Ordnance', freq:'Once a year' },
+    { name:'Weather Disturbance (Typhoons, Heavy Rains, Strong Winds, Flooding)', freq:'Once a year' },
+    { name:'Weather Emergency (Lightning)', freq:'Once a year' },
     { name:'Volcanic Eruption', freq:'Once a year' },
-    { name:'Tsunami/Storm Surge', freq:'Once a year' },
-    { name:'In case of active shooting', freq:'Once a year' },
+    { name:'Tsunami / Storm Surge', freq:'Once a year' },
+    { name:'Active Shooting Incident', freq:'Once a year' },
     { name:'Riot', freq:'Once a year' },
     { name:'Workplace Violence', freq:'Once a year' },
     { name:'Labor Strike', freq:'Once a year' },
@@ -28883,8 +29240,17 @@ function getEshKey(tabType, projName, trainIdx, monthIdx, field) {
         return `${year}|${tabType}|GLOBAL_PLAN|${trainIdx}|${monthIdx}|plan`;
     }
     // Actuals are per-project (each project records its own completion date)
+    // trainIdx is already a stable string key (e.g. 'DRILL:Earthquake') for drills,
+    // or a numeric index for trainings — both work fine as a string in the key
     return `${year}|${tabType}|${projName}|${trainIdx}|${monthIdx}|${field}`;
 }
+
+// Drill storage index — numeric (matches existing saved data in Firebase/localStorage)
+function getDrillStorageIdx(drill, arrayIdx) {
+    if (drill._custom) return 500 + (drill._customIdx || 0);
+    return arrayIdx; // simple numeric index — stable as long as ESH_DRILLS order is fixed
+}
+window.getDrillStorageIdx = getDrillStorageIdx; // expose globally for render() access
 
 function isMonthOverdue(monthIdx) {
     // monthIdx is 0-based (0=Jan). Month is overdue if it ENDED before today.
@@ -29111,6 +29477,13 @@ function eshRenderRegionTable(tabType, region, regProjects, projIdx) {
 window.eshRenderRegionTable = eshRenderRegionTable;
 
 function renderEshCalendar(tabType) {
+    // ── Corporate Drills: delegate to its own dedicated renderer ──
+    if (tabType === 'esh-calendar-corp-drills') {
+        try { if (typeof renderCorpDrillsTab === 'function') renderCorpDrillsTab(); } catch(err) {
+            console.error('❌ renderCorpDrillsTab crashed:', err);
+        }
+        return;
+    }
     const viewId = tabType + '-view';
     const container = document.getElementById(viewId);
     if (!container) return;
@@ -29119,139 +29492,27 @@ function renderEshCalendar(tabType) {
     const regionOrder = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
     const allProjects = (state && state.projects) ? state.projects : [];
 
-    let html = `<style>
-    .esh-cal-wrap { padding: 16px 20px; }
-    .esh-cal-header {
-        background: linear-gradient(135deg, ${col.header} 0%, ${col.accent} 100%);
-        border-radius: 10px; padding: 14px 20px; margin-bottom: 14px;
-        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.15);
-    }
-    .esh-cal-header-icon { font-size: 1.5rem; color: rgba(255,255,255,0.85); }
-    .esh-cal-header-title { font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 700; color: white; letter-spacing: 0.05em; text-transform: uppercase; }
-    .esh-cal-header-sub { font-size: 0.65rem; color: rgba(255,255,255,0.7); margin-top: 2px; }
-    .esh-cal-legend {
-        display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
-        padding: 10px 16px; background: var(--bg-card); border-radius: 8px;
-        border: 1px solid var(--border-color); margin-bottom: 14px; font-size: 0.72rem;
-    }
-    .esh-cal-legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
-    .esh-cal-legend-box { width: 16px; height: 12px; border-radius: 3px; }
-    .esh-region-banner {
-        background: #1b5e20; color: white;
-        padding: 9px 16px; font-weight: 800; font-size: 0.82rem;
-        letter-spacing: 0.8px; display: flex; align-items: center; gap: 8px;
-        border-radius: 8px 8px 0 0; cursor: pointer; user-select: none;
-        transition: background 0.2s;
-    }
-    .esh-region-banner:hover { background: #2e7d32; }
-    .esh-region-toggle { margin-left: auto; font-size: 0.8rem; transition: transform 0.25s; }
-    .esh-region-content {
-        border: 1px solid #c8e6c9;
-        border-top: none; border-radius: 0 0 8px 8px;
-        overflow: hidden; margin-bottom: 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-    /* FIX: spacing between region blocks (banner + content together) */
-    .esh-region-block { margin-bottom: 14px; }
-    .esh-table {
-        border-collapse: collapse; width: 100%;
-        min-width: 1400px; font-size: 0.71rem;
-        font-family: 'Inter', sans-serif;
-        border: 2px solid #66bb6a;
-    }
-    .esh-table th {
-        background: #b7ddb5; color: #1b5e20;
-        padding: 7px 5px; border: 1.5px solid #66bb6a;
-        font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.6px;
-        font-weight: 700; text-align: center; white-space: nowrap;
-    }
-    .esh-table th.esh-th-name {
-        text-align: left; min-width: 220px; padding: 7px 10px;
-        position: sticky; left: 0; z-index: 4; background: #b7ddb5;
-        border-right: 2.5px solid #388e3c;
-    }
-    .esh-table th.esh-th-freq { min-width: 88px; background: #9ecf9b; }
-    .esh-table th.esh-th-plan { color: #5d4037; background: #fff9c4; border-left: 2px solid #388e3c; }
-    .esh-table th.esh-th-actual { color: #1b5e20; background: #c5e8c3; }
-    .esh-table td {
-        border: 1.5px solid #81c784;
-        padding: 4px 5px; vertical-align: middle;
-        background: var(--bg-card);
-    }
-    .esh-table tr:nth-child(even) td:not(.esh-td-plan) { background: var(--input-bg); }
-    .esh-table tr:hover td:not(.esh-planned):not(.esh-done):not(.esh-overdue):not(.esh-td-plan) { background: #e8f5e9 !important; }
-    .esh-table td.esh-td-name {
-        font-size: 0.71rem; color: var(--text-primary);
-        padding: 6px 10px; min-width: 220px;
-        position: sticky; left: 0; z-index: 3;
-        background: var(--bg-card); line-height: 1.4;
-        border-right: 2.5px solid #388e3c;
-    }
-    .esh-table tr:nth-child(even) td.esh-td-name { background: var(--input-bg); }
-    .esh-table tr:hover td.esh-td-name { background: #e8f5e9 !important; }
-    /* Thicker left border to separate Plan from the previous month's Actual */
-    .esh-table td.esh-td-plan { border-left: 2px solid #388e3c !important; }
-    .esh-table th.esh-th-plan { border-left: 2px solid #388e3c !important; }
-    .esh-td-plan {
-        background: #fff9c4 !important; text-align: center;
-        min-width: 50px; cursor: pointer; user-select: none;
-        transition: background 0.15s;
-    }
-    /* Admin hover — slightly deeper olive-yellow */
-    .esh-td-plan:not(.esh-plan-locked):hover { background: #fff176 !important; }
-    /* Scheduled/planned: warm amber that sits nicely against the green */
-    .esh-td-plan.esh-planned { background: #f9a825 !important; }
-    .esh-td-plan.esh-planned:hover { background: #f9a825 !important; }
-    /* Not planned: greyed out actual cell — blocked */
-    .esh-td-actual.esh-not-planned { background: #f0f0f0 !important; cursor: not-allowed; }
-    .esh-td-actual.esh-not-planned input[type="date"] { pointer-events: none; cursor: not-allowed; opacity: 0.35; }
-    .esh-td-actual.esh-not-planned input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
-    /* Locked (non-admin/PCO): same tint, no pointer */
-    .esh-td-plan.esh-plan-locked { cursor: not-allowed !important; }
-    .esh-td-plan.esh-plan-locked:hover { background: #fff9c4 !important; }
-    .esh-td-plan.esh-planned.esh-plan-locked { background: #f9a825 !important; }
-    .esh-td-plan.esh-planned.esh-plan-locked:hover { background: #f9a825 !important; }
-    .esh-td-actual { min-width: 100px; text-align: center; }
-    /* FIX: solid fills with full contrast — no rgba transparency */
-    .esh-td-actual.esh-done   { background: #2e7d32 !important; }
-    .esh-td-actual.esh-overdue { background: #c62828 !important; }
-    /* FIX: no red border — fill color is enough */
-    .esh-td-actual input[type="date"]:disabled { opacity: 0.4; cursor: not-allowed; background: transparent; }
-    .esh-td-actual input[type="date"] {
-        background: transparent; border: none;
-        color: var(--text-primary); font-size: 0.66rem;
-        width: 100%; padding: 2px; font-family: monospace;
-    }
-    /* FIX: white text on solid colored fills for maximum readability */
-    .esh-td-actual.esh-done   input[type="date"] { color: #fff; font-weight: 700; }
-    .esh-td-actual.esh-overdue input[type="date"] { color: #fff; font-weight: 700; }
-    .esh-td-actual input[type="date"]::-webkit-calendar-picker-indicator { filter: opacity(0.8); cursor: pointer; }
-    .esh-td-actual.esh-done input[type="date"]::-webkit-calendar-picker-indicator,
-    .esh-td-actual.esh-overdue input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.8); }
-    .esh-freq-badge {
-        display: inline-block; padding: 2px 7px; border-radius: 10px;
-        font-size: 0.61rem; font-weight: 700; white-space: nowrap;
-    }
-    .esh-no-projects {
-        padding: 36px 20px; text-align: center; color: var(--text-secondary);
-        background: var(--bg-card); border-radius: 8px;
-        border: 1px dashed var(--border-color); margin-bottom: 16px;
-    }
-    </style>
-    <div class="esh-cal-wrap">
-        <div class="esh-cal-header">
+    // Styles are now in <head> (id="esh-cal-styles") — no inline injection needed.
+    // Only the per-tab gradient is applied inline on the header element below.
+    let html = `<div class="esh-cal-wrap">
+        <div class="esh-cal-header" style="background:linear-gradient(135deg,${col.header} 0%,${col.accent} 100%);">
             <i class="fas ${col.icon} esh-cal-header-icon"></i>
             <div>
                 <div class="esh-cal-header-title">${(state && state.selectedYear) || new Date().getFullYear()} ESH CALENDAR — ${col.label}</div>
-                <div class="esh-cal-header-sub">Per Region · Per Project · Plan = Yellow ✓ | Actual = Date Input (Green=Done, Red=Overdue) · Plan applies to ALL projects</div>
+                <div class="esh-cal-header-sub">Per Region · Per Project · Row & Plan color = Frequency (Green=Quarterly, Yellow=Twice/yr, Blue=Once/yr) | Actual = Date (Green=Done, Red=Overdue) | N/A = Grey (excluded from compliance)</div>
             </div>
         </div>
-        <div class="esh-cal-legend">
-            <span style="font-weight:700;color:var(--text-primary);font-size:0.72rem;">LEGEND:</span>
-            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#f9a825;"></div> Planned (applies to all projects)</div>
-            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#2e7d32;"></div> Actual – Completed</div>
-            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#c62828;"></div> Actual – Overdue / Not Yet Done</div>
+        <div class="esh-cal-legend" style="flex-wrap:wrap;gap:10px 18px;">
+            <span style="font-weight:700;color:var(--text-primary);font-size:0.72rem;">FREQUENCY:</span>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#b3d9f7;border:1px solid #7ab8e8;"></div> Once a Year (Pastel Blue)</div>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#fff9b0;border:1px solid #e0d44a;"></div> Twice a Year (Pastel Yellow)</div>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#b8f0c0;border:1px solid #6bc97a;"></div> Quarterly (Pastel Green)</div>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#c8c8c8;border:1px solid #999;"></div> N/A – Not Applicable (Grey)</div>
+            <div style="width:1px;background:#ddd;align-self:stretch;"></div>
+            <span style="font-weight:700;color:var(--text-primary);font-size:0.72rem;">STATUS:</span>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#f9a825;"></div> Planned</div>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#2e7d32;"></div> Completed</div>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#c62828;"></div> Overdue</div>
             <div class="esh-cal-legend-item" style="margin-left:auto;"><i class="fas fa-chevron-down" style="color:${col.header};margin-right:4px;"></i> Click region banner to collapse/expand</div>
         </div>
     `;
@@ -29281,9 +29542,10 @@ function renderEshCalendar(tabType) {
         const tableContainerId = tabType + '-' + safeRegion + '-table';
         const projIdx = _eshRegionProjectIdx[eshGetRegionKey(tabType, region)] || 0;
 
+        const _eshRegionClass = {'NCR':'r-ncr','NORTH LUZON':'r-northluzon','SOUTH LUZON':'r-southluzon','VISAYAS & MINDANAO':'r-vismin','PLANT OPERATIONS':'r-plantops'}[region] || '';
         html += `
         <div class="esh-region-block">
-            <div class="esh-region-banner" onclick="eshToggleRegion('${regionContentId}')" style="border-radius:8px;">
+            <div class="esh-region-banner ${_eshRegionClass}" onclick="eshToggleRegion('${regionContentId}')" style="border-radius:8px;">
                 <i class="fas fa-location-dot"></i> ${region}
                 <span style="background:rgba(255,255,255,0.18);padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;margin-left:8px;">${regProjects.length} PROJECT${regProjects.length!==1?'S':''}</span>
                 <i class="fas fa-chevron-down esh-region-toggle" id="${regionIconId}" style="transform:rotate(-90deg);"></i>
@@ -29296,6 +29558,7 @@ function renderEshCalendar(tabType) {
 
     html += `</div>`;
     container.innerHTML = html;
+    setTimeout(applyRegionBannerColors, 0);
 
     // Now populate each region's table (excluding CORPORATE)
     regionOrder.forEach(region => {
@@ -29355,9 +29618,8 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
 
                 // ── All trainings: no future lock — actual dates can be entered in any month
                 //    (trainings may be advanced or delayed depending on schedule/availability)
-                // ── PLANNED GATE: disabled if no yellow cell, regardless of month
-                const _notPlannedDisabled = !isPlanned ? `disabled title="🔒 Not scheduled — Admin must set this month as planned (yellow) first"` : '';
-                const dateDisabled = !canEdit ? `disabled title="🔒 Read-only for your role/region"` : _notPlannedDisabled;
+                // Planned Gate removed: canEdit users can always enter actual dates
+                const dateDisabled = !canEdit ? `disabled title="🔒 Read-only for your role/region"` : '';
                 // No min/max — actual date may fall in a different month than planned
                 const effectiveMax = '';
                 const effectiveMin = '';
@@ -29366,7 +29628,7 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                 let actualBg = '';
                 if (done) { actualClass += ' esh-done'; actualBg = ''; }
                 else if (overdue) { actualClass += ' esh-overdue'; actualBg = ''; }
-                if (!isPlanned) actualClass += ' esh-not-planned';
+                // esh-not-planned visual cue removed — actual date always editable for canEdit roles
 
                 html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}${!isAdmin?' esh-plan-locked':''}"
                     data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}"
@@ -29399,7 +29661,12 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
 }
 
 function buildDrillsSingleTable(projects, storage, col) {
-    const freqColors = { 'Once a year':'#bf360c','Twice a year':'#6a1b9a','Quarterly':'#1b5e20','Monthly':'#0d47a1','As needed':'#4e342e' };
+    // Pastel colors per frequency (row highlight + badge)
+    const freqPastel = {
+        'Once a year':   { bg:'#ddeeff', badge:'#7ab8e8', text:'#1a4f7a', label:'Once a Year' },
+        'Twice a year':  { bg:'#fffde0', badge:'#e0c800', text:'#665c00', label:'Twice a Year' },
+        'Quarterly':     { bg:'#e6faea', badge:'#6bc97a', text:'#1a5c28', label:'Quarterly'   },
+    };
     const canEdit = projects.length > 0 ? eshCanEdit('esh-calendar-drills', projects[0].region) : false;
     const isAdmin = !!(state && state.isAdmin);
     const tabType = 'esh-calendar-drills';
@@ -29415,61 +29682,104 @@ function buildDrillsSingleTable(projects, storage, col) {
                 <th class="esh-th-name" rowspan="2">Emergency Drill Type</th>
                 <th class="esh-th-freq" rowspan="2" style="text-align:center;">Frequency</th>`;
     ESH_MONTHS.forEach(m => {
-        html += `<th colspan="2" style="text-align:center;border-left:2px solid rgba(255,255,255,0.15);">${m.substring(0,3)}</th>`;
+        html += `<th colspan="3" style="text-align:center;border-left:2px solid rgba(255,255,255,0.15);">${m.substring(0,3)}</th>`;
     });
     html += `</tr><tr>`;
     ESH_MONTHS.forEach(() => {
-        html += `<th class="esh-th-plan">Plan</th><th class="esh-th-actual">Actual</th>`;
+        html += `<th class="esh-th-plan">Plan</th><th class="esh-th-actual">Actual</th><th style="background:#c0c0c0;color:#333;font-size:0.58rem;font-weight:700;min-width:34px;">N/A</th>`;
     });
     html += `</tr></thead><tbody>`;
 
     projects.forEach(proj => {
         allDrills.forEach((drill, di) => {
-            const fc = freqColors[drill.freq] || '#555';
+            const fp = freqPastel[drill.freq] || { bg:'#f5f5f5', badge:'#999', text:'#333', label: drill.freq };
             const isCustom = !!drill._custom;
             const customIdx = (isCustom && drill._customIdx !== undefined) ? drill._customIdx : null;
-            const storageIdx = isCustom ? (500 + customIdx) : di;
-            html += `<tr>
-            <td class="esh-td-name">
+            const storageIdx = getDrillStorageIdx(drill, di);
+
+            // Check if entire drill row is marked N/A for this project
+            const _naRowYear = (state && state.selectedYear) || 2026;
+            const naRowKey = `${_naRowYear}|${tabType}|${proj.name}|${storageIdx}|na_row`;
+            const isNaRow = !!(storage[naRowKey]);
+
+            const rowStyle = isNaRow
+                ? 'background:#e8e8e8 !important;opacity:0.75;'
+                : `background:${fp.bg};`;
+
+            html += `<tr style="${rowStyle}">
+            <td class="esh-td-name" style="background:${isNaRow ? '#e0e0e0' : fp.bg};">
                 ${isCustom ? '<span style="background:#e8f5e9;color:#1b5e20;border-radius:4px;font-size:0.55rem;font-weight:700;padding:1px 5px;margin-right:5px;vertical-align:middle;">CUSTOM</span>' : ''}
                 ${drill.name}
                 ${(isCustom && isAdmin) ? `<button onclick="eshDeleteCustomRow('esh-calendar-drills','${projects[0]?projects[0].name.replace(/'/g,"\\'"):''}',${customIdx})" title="Remove this row" style="float:right;background:none;border:none;color:#c62828;cursor:pointer;font-size:0.75rem;padding:0 3px;opacity:0.6;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="fas fa-trash"></i></button>` : ''}
             </td>
-            <td style="text-align:center;padding:4px 6px;">
-                <span class="esh-freq-badge" style="background:${fc};color:white;">${drill.freq}</span>
+            <td style="text-align:center;padding:4px 6px;background:${isNaRow ? '#e0e0e0' : fp.bg};">
+                <span class="esh-freq-badge" style="background:${isNaRow ? '#aaa' : fp.badge};color:white;">${isNaRow ? 'N/A' : fp.label}</span>
             </td>`;
+
             ESH_MONTHS.forEach((m, mi) => {
+                // Per-cell N/A key
+                const _naYear = (state && state.selectedYear) || 2026;
+                const naCellKey = `${_naYear}|${tabType}|${proj.name}|${storageIdx}|${mi}|na`;
+                const isNaCell = isNaRow || !!(storage[naCellKey]);
+
                 const planKey = getEshKey(tabType, proj.name, storageIdx, mi, 'plan');
                 const actualKey = getEshKey(tabType, proj.name, storageIdx, mi, 'actual');
-                const isPlanned = !!(storage[planKey]);
-                const actualVal = storage[actualKey] || '';
-                const isFuture = isMonthFuture(mi);
-                const overdue = isPlanned && !actualVal && isMonthOverdue(mi);
-                const done = !!actualVal;
-                const maxDate = getMaxDateForMonth(mi);
-                const minDate = getMinDateForMonth(mi);
-                const planDisabled = !isAdmin ? 'disabled title="🔒 Admin only — Cannot set Plan/Schedule"' : '';
-                // ── RULE: Drills can be conducted in any month (BFP slot availability, rescheduling, etc.)
-                //    Future month lock is removed — allow advance actual date entry for drills.
-                // ── PLANNED GATE: disabled if no yellow cell, regardless of month
-                const _drillNotPlannedDisabled = !isPlanned ? `disabled title="🔒 Not scheduled — Admin must set this month as planned (yellow) first"` : '';
-                const dateDisabled = !canEdit ? `disabled title="🔒 Read-only for your role/region"` : _drillNotPlannedDisabled;
-                // No min/max for drills — the actual date may be in a different month than planned
-                const effectiveMax = '';
+                const isPlanned = !isNaCell && !!(storage[planKey]);
+                const actualVal = !isNaCell ? (storage[actualKey] || '') : '';
+                const overdue = !isNaCell && isPlanned && !actualVal && isMonthOverdue(mi);
+                const done = !isNaCell && !!actualVal;
+
+                // Plan cell
+                let planCellStyle = isNaCell
+                    ? 'background:#c8c8c8 !important;cursor:not-allowed;'
+                    : '';
+                let planClass = `esh-td-plan${isPlanned?' esh-planned':''}${(!isAdmin||isNaCell)?' esh-plan-locked':''}`;
+                const planOnClick = (!isAdmin || isNaCell)
+                    ? ''
+                    : `onclick="event.stopPropagation();eshSetPlan('${tabType}','${proj.name}',${storageIdx},${mi},null,this)"`;
+                const planTitle = isNaCell ? 'N/A – not applicable' : (!isAdmin ? '🔒 Admin only' : isPlanned ? 'Click to unschedule' : 'Click to schedule');
+
+                // Store freq on plan cell so eshSetPlan can apply the right pastel color
+                const planFreqColor = {
+                    'Quarterly':    '#43a047',
+                    'Twice a year': '#fdd835',
+                    'Once a year':  '#42a5f5',
+                }[drill.freq] || '#fff9c4';
+                const plannedBg = isPlanned ? planFreqColor : '';
+                html += `<td class="${planClass}" data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}" data-freq="${drill.freq}"
+                    ${planOnClick} title="${planTitle}" style="${planCellStyle}${isPlanned && !isNaCell ? 'background:'+planFreqColor+' !important;' : ''}"></td>`;
+
+                // Actual cell
                 let actualClass = 'esh-td-actual';
-                let actualBg = '';
-                if (done) { actualClass += ' esh-done'; actualBg = ''; }
-                else if (overdue) { actualClass += ' esh-overdue'; actualBg = ''; }
-                if (!isPlanned) actualClass += ' esh-not-planned';
-                html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}${!isAdmin?' esh-plan-locked':''}"
-                    data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}"
-                    onclick="event.stopPropagation();eshSetPlan('${tabType}','${proj.name}',${storageIdx},${mi},null,this)"
-                    title="${!isAdmin ? '🔒 Admin only — Cannot set Plan/Schedule' : isPlanned ? 'Click to unschedule' : 'Click to schedule'}">
+                let actualStyle = '';
+                if (isNaCell) {
+                    actualStyle = 'background:#c8c8c8 !important;';
+                } else if (done) { actualClass += ' esh-done'; }
+                else if (overdue) { actualClass += ' esh-overdue'; }
+                // esh-not-planned visual cue kept only for N/A — not for unscheduled cells
+                // (actual date input is now always enabled for canEdit roles)
+
+                // Planned Gate removed: canEdit users can always enter actual dates
+                // N/A cells remain disabled; read-only roles remain disabled
+                const dateDisabled = isNaCell
+                    ? `disabled title="N/A – not applicable for this project"`
+                    : (!canEdit ? `disabled title="🔒 Read-only for your role/region"` : '');
+
+                html += `<td class="${actualClass}" style="${actualStyle}">
+                    ${isNaCell ? '<span style="color:#888;font-size:0.65rem;font-weight:700;">N/A</span>' :
+                    `<input type="date" value="${actualVal}" ${dateDisabled}
+                        onchange="eshSetActual('${tabType}','${proj.name}',${storageIdx},${mi},this.value,this.closest('td'))">`}
                 </td>`;
-                html += `<td class="${actualClass}">
-                    <input type="date" value="${actualVal}" ${dateDisabled}
-                        ${effectiveMax}
-                        onchange="eshSetActual('${tabType}','${proj.name}',${storageIdx},${mi},this.value,this.closest('td'))">
+
+                // N/A toggle cell (per cell, per project, admin-only)
+                const naToggleTitle = !isAdmin
+                    ? '🔒 Admin only – cannot set N/A'
+                    : (isNaCell ? 'Click to remove N/A — restore this drill cell' : 'Click to mark as N/A (not applicable for this project)');
+                const naOnClick = isAdmin
+                    ? `onclick="eshToggleDrillNA(event,'${tabType}','${proj.name}',${storageIdx},${mi})"`
+                    : '';
+                html += `<td ${naOnClick} title="${naToggleTitle}" style="background:${isNaCell?'#a0a0a0':'#e0e0e0'};text-align:center;cursor:${isAdmin?'pointer':'not-allowed'};vertical-align:middle;border:1.5px solid #bbb;min-width:34px;padding:2px;">
+                    <span style="font-size:0.6rem;font-weight:700;color:${isNaCell?'#fff':'#888'};">${isNaCell?'✓N/A':'N/A'}</span>
                 </td>`;
             });
             html += `</tr>`;
@@ -29491,13 +29801,114 @@ function buildDrillsSingleTable(projects, storage, col) {
     return html;
 }
 
+// ==================== DRILL N/A TOGGLE (per-cell, per-project) — DIRECT DOM UPDATE ====================
+window.eshToggleDrillNA = function(e, tabType, projName, ti, mi) {
+    e.stopPropagation();
+    if (!(state && state.isAdmin)) {
+        showToast('🔒 Admin only — Cannot set N/A.', 'warning', 3000);
+        return;
+    }
+
+    const storage = getEshStorage();
+    const _naToggleYear = (state && state.selectedYear) || 2026;
+    const naCellKey = `${_naToggleYear}|${tabType}|${projName}|${ti}|${mi}|na`;
+    const wasNA = !!(storage[naCellKey]);
+    const nowNA = !wasNA;
+
+    // Freq → pastel plan color map
+    const _drillPlanColors = {
+        'Quarterly':    '#43a047',
+        'Twice a year': '#fdd835',
+        'Once a year':  '#42a5f5',
+    };
+
+    if (nowNA) {
+        storage[naCellKey] = true;
+        // Also clear plan + actual for this cell
+        const planKey = getEshKey(tabType, projName, ti, mi, 'plan');
+        const actualKey = getEshKey(tabType, projName, ti, mi, 'actual');
+        delete storage[planKey];
+        delete storage[actualKey];
+        showToast('✅ Marked as N/A — excluded from compliance.', 'success', 2500);
+    } else {
+        delete storage[naCellKey];
+        showToast('↩️ N/A removed — drill cell restored.', 'info', 2500);
+    }
+    setEshStorage(storage);
+
+    // ── Direct DOM update — NO full re-render (avoids collapsing the region panel) ──
+    // The N/A button clicked is e.currentTarget; its parent TR has the plan/actual siblings
+    const naTd = e.currentTarget || e.target.closest('td');
+    if (!naTd) return;
+
+    // Walk the TR to find the plan+actual cells for this month
+    // Structure: ...name td, freq td, then per month: [plan td][actual td][na td] × 12
+    // We need to find the plan and actual cells that sit just before this na cell
+    const planTd   = naTd.previousElementSibling;   // actual td
+    const actualTd = planTd ? planTd.previousElementSibling : null; // plan td
+    // Swap: table order is plan | actual | na
+    const realPlanTd   = actualTd;  // plan comes first
+    const realActualTd = planTd;    // actual is second
+
+    const greyBg = '#c8c8c8';
+    const naTextColor = nowNA ? '#fff' : '#888';
+    const naLabel = nowNA ? '✓ N/A' : 'N/A';
+    const naBg = nowNA ? '#9e9e9e' : '#e0e0e0';
+    const naBorder = nowNA ? '#757575' : '#aaa';
+
+    // Update N/A button cell itself
+    naTd.style.background = naBg;
+    naTd.style.borderColor = naBorder;
+    naTd.title = nowNA ? 'Click to remove N/A — restore this drill cell' : 'Click to mark as N/A (not applicable for this project)';
+    const naSpan = naTd.querySelector('span');
+    if (naSpan) { naSpan.textContent = naLabel; naSpan.style.color = naTextColor; }
+
+    // Update Plan cell
+    if (realPlanTd) {
+        if (nowNA) {
+            realPlanTd.style.background = greyBg;
+            realPlanTd.style.cursor = 'not-allowed';
+            realPlanTd.classList.remove('esh-planned');
+            realPlanTd.onclick = null;
+            realPlanTd.title = 'N/A – not applicable';
+        } else {
+            realPlanTd.style.background = '';
+            realPlanTd.style.cursor = '';
+            realPlanTd.title = 'Click to schedule';
+            // Re-attach click handler
+            const freq = realPlanTd.dataset.freq || '';
+            realPlanTd.onclick = function(ev) {
+                ev.stopPropagation();
+                eshSetPlan(tabType, projName, ti, mi, null, this);
+            };
+        }
+    }
+
+    // Update Actual cell
+    if (realActualTd) {
+        const inp = realActualTd.querySelector('input[type="date"]');
+        if (nowNA) {
+            realActualTd.style.background = greyBg;
+            realActualTd.classList.remove('esh-done','esh-overdue','esh-not-planned');
+            realActualTd.innerHTML = '<span style="color:#888;font-size:0.65rem;font-weight:700;">N/A</span>';
+        } else {
+            realActualTd.style.background = '';
+            realActualTd.classList.add('esh-not-planned');
+            realActualTd.innerHTML = `<input type="date" value="" disabled
+                title="🔒 Not scheduled — Admin must set this month as planned (yellow) first"
+                onchange="eshSetActual('${tabType}','${projName}',${ti},${mi},this.value,this.closest('td'))">`;
+        }
+    }
+};
+// ==================== END DRILL N/A TOGGLE ====================
+
+
 window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
-    // Plan column: ADMIN ONLY — no superintendent/PCO can set the plan schedule
+    // Plan column: ADMIN ONLY
     if (!(state && state.isAdmin)) {
         showToast('🔒 Admin only — Cannot set Plan/Schedule.', 'warning', 3000);
         return;
     }
-    // RBAC: find the project's region and validate
     const allProjects = (state && state.projects) ? state.projects : [];
     const proj = allProjects.find(p => p.name === projName);
     if (proj && !eshCanEdit(tabType, proj.region)) {
@@ -29505,73 +29916,145 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
         return;
     }
 
-    // Toggle: read current state from storage then flip it
     const storage = getEshStorage();
     const key = getEshKey(tabType, projName, ti, mi, 'plan');
     const wasPlanned = !!(storage[key]);
     const nowPlanned = !wasPlanned;
-    storage[key] = nowPlanned;
-    setEshStorage(storage);
 
-    // If unscheduling, clear the actual date and disable the actual cell
-    if (!nowPlanned) {
-        const actualKeyToRemove = getEshKey(tabType, projName, ti, mi, 'actual');
-        if (storage[actualKeyToRemove]) {
-            delete storage[actualKeyToRemove];
-            setEshStorage(storage);
-        }
-        // Always update DOM — disable actual cell regardless of whether date existed
-        document.querySelectorAll(`.esh-td-actual`).forEach(cell => {
-            const planSib = cell.previousElementSibling;
-            if (planSib && planSib.dataset && planSib.dataset.tabtype === tabType
-                && planSib.dataset.ti === String(ti) && planSib.dataset.mi === String(mi)) {
-                const inp = cell.querySelector('input[type="date"]');
-                if (inp) { inp.value = ''; inp.disabled = true; inp.title = '🔒 Not scheduled — Admin must set this month as planned (yellow) first'; inp.style.color = ''; inp.style.fontWeight = ''; }
-                cell.classList.remove('esh-done', 'esh-overdue');
-                cell.classList.add('esh-not-planned');
-            }
-        });
-    }
-    // In-place DOM update: toggle ALL matching plan cells on the page
-    // without re-rendering tables (which resets display:none and collapses regions)
+    // ── STEP 1: Update DOM IMMEDIATELY (instant visual feedback, no delay) ──
     const planTitle = nowPlanned ? 'Click to unschedule' : 'Click to schedule';
+    const _drillPlanColors = {
+        'Quarterly':    '#43a047',
+        'Twice a year': '#fdd835',
+        'Once a year':  '#42a5f5',
+    };
 
+    // Update the clicked cell right away
+    if (tdEl) {
+        tdEl.classList.toggle('esh-planned', nowPlanned);
+        tdEl.title = planTitle;
+        if (tabType === 'esh-calendar-drills') {
+            const freq = tdEl.dataset.freq || '';
+            tdEl.style.background = nowPlanned ? (_drillPlanColors[freq] || '#43a047') : '';
+        } else {
+            tdEl.style.background = nowPlanned ? '#f9a825' : '';
+        }
+    }
+
+    // Update all other matching plan cells (other projects with same plan)
     document.querySelectorAll(
         `.esh-td-plan[data-tabtype="${tabType}"][data-ti="${ti}"][data-mi="${mi}"]`
     ).forEach(cell => {
+        if (cell === tdEl) return; // already handled above
         cell.classList.toggle('esh-planned', nowPlanned);
         cell.title = planTitle;
-        // Toggle the adjacent actual cell's disabled state
+        if (tabType === 'esh-calendar-drills') {
+            const freq = cell.dataset.freq || '';
+            cell.style.background = nowPlanned ? (_drillPlanColors[freq] || '#43a047') : '';
+        } else {
+            cell.style.background = nowPlanned ? '#f9a825' : '';
+        }
+        // Toggle adjacent actual cell
         const actualSib = cell.nextElementSibling;
         if (actualSib && actualSib.classList.contains('esh-td-actual')) {
             const inp = actualSib.querySelector('input[type="date"]');
             if (inp) {
                 if (nowPlanned) {
-                    // Enable if user has edit permission
-                    const _canEditNow = eshCanEdit(tabType, (state && state.projects ? state.projects : []).find(p => p.name === projName)?.region);
-                    if (_canEditNow) {
-                        inp.disabled = false;
-                        inp.title = '';
-                        inp.style.opacity = '';
-                        inp.style.pointerEvents = '';
-                        inp.style.cursor = '';
-                        actualSib.classList.remove('esh-not-planned');
-                    }
+                    const _canEdit = eshCanEdit(tabType, (state.projects||[]).find(p=>p.name===projName)?.region);
+                    if (_canEdit) { inp.disabled = false; inp.title = ''; inp.style.opacity = ''; actualSib.classList.remove('esh-not-planned'); }
                 } else {
-                    inp.disabled = true;
-                    inp.title = '🔒 Not scheduled — Admin must set this month as planned (yellow) first';
-                    actualSib.classList.add('esh-not-planned');
+                    inp.disabled = true; actualSib.classList.add('esh-not-planned');
                 }
             }
         }
     });
 
-    // Also update clicked cell directly (safety fallback)
+    // Also toggle adjacent actual for the clicked cell
+    if (tdEl) {
+        const actualSib = tdEl.nextElementSibling;
+        if (actualSib && actualSib.classList.contains('esh-td-actual')) {
+            const inp = actualSib.querySelector('input[type="date"]');
+            if (inp) {
+                if (nowPlanned) {
+                    const _canEdit = eshCanEdit(tabType, proj?.region);
+                    if (_canEdit) { inp.disabled = false; inp.title = ''; inp.style.opacity = ''; actualSib.classList.remove('esh-not-planned'); }
+                } else {
+                    inp.value = ''; inp.disabled = true; actualSib.classList.remove('esh-done','esh-overdue'); actualSib.classList.add('esh-not-planned');
+                }
+            }
+        }
+    }
+
+    // ── STEP 2: Save to storage + Firebase in background (no UI delay) ──
+    storage[key] = nowPlanned;
+    if (!nowPlanned) {
+        const actualKeyToRemove = getEshKey(tabType, projName, ti, mi, 'actual');
+        delete storage[actualKeyToRemove];
+    }
+    setEshStorage(storage); // localStorage is sync-instant; Firebase write is async background
+};
+
+// ==================== CORP DRILLS — COLOR-AWARE PLAN TOGGLE ====================
+window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drillColor) {
+    if (!(state && state.isAdmin)) {
+        showToast('🔒 Admin only — Cannot set Plan/Schedule.', 'warning', 3000);
+        return;
+    }
+    const allProjects = (state && state.projects) ? state.projects : [];
+    const proj = allProjects.find(p => p.name === projName);
+    if (proj && !eshCanEdit(tabType, proj.region)) {
+        showToast('🔒 Read-Only — You cannot edit this region/tab.', 'warning', 3000);
+        return;
+    }
+
+    const storage = getEshStorage();
+    const key = getEshKey(tabType, projName, ti, mi, 'plan');
+    const wasPlanned = !!(storage[key]);
+    const nowPlanned = !wasPlanned;
+
+    // ── STEP 1: DOM update FIRST — instant color, no Firebase delay ──
+    const planTitle = nowPlanned ? 'Click to unschedule' : 'Click to schedule';
+    const cellColor = drillColor || (tdEl && tdEl.dataset.drillcolor) || '#43a047';
+
     if (tdEl) {
         tdEl.classList.toggle('esh-planned', nowPlanned);
         tdEl.title = planTitle;
+        tdEl.style.background = nowPlanned ? cellColor : '';
+        // Toggle adjacent actual cell
+        const actualSib = tdEl.nextElementSibling;
+        if (actualSib && actualSib.classList.contains('esh-td-actual')) {
+            const inp = actualSib.querySelector('input[type="date"]');
+            if (inp) {
+                if (nowPlanned) {
+                    inp.disabled = false; inp.title = ''; inp.style.opacity = '';
+                    actualSib.classList.remove('esh-not-planned');
+                } else {
+                    inp.value = ''; inp.disabled = true;
+                    actualSib.classList.remove('esh-done','esh-overdue');
+                    actualSib.classList.add('esh-not-planned');
+                }
+            }
+        }
     }
+
+    // Update any other matching cells (e.g. if table re-rendered)
+    document.querySelectorAll(`.esh-td-plan[data-tabtype="${tabType}"][data-ti="${ti}"][data-mi="${mi}"]`).forEach(cell => {
+        if (cell === tdEl) return;
+        cell.classList.toggle('esh-planned', nowPlanned);
+        cell.title = planTitle;
+        const c = drillColor || cell.dataset.drillcolor || '#43a047';
+        cell.style.background = nowPlanned ? c : '';
+    });
+
+    // ── STEP 2: Save to storage + Firebase in background ──
+    storage[key] = nowPlanned;
+    if (!nowPlanned) {
+        const actualKeyToRemove = getEshKey(tabType, projName, ti, mi, 'actual');
+        delete storage[actualKeyToRemove];
+    }
+    setEshStorage(storage);
 };
+// ==================== END CORP DRILLS PLAN TOGGLE ====================
 
 window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
     // RBAC: find the project's region and validate
@@ -29582,20 +30065,9 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
         if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
         return;
     }
-    // PLANNED GATE: only allow actual date if this cell is planned (yellow)
-    // Exception: future months are always allowed (advance scheduling)
-    // Check both: the DOM (primary) and storage (fallback) to avoid stale-data issues
-    if (value) {
-        const _eshStorageCheck = getEshStorage();
-        const _planKey = getEshKey(tabType, projName, ti, mi, 'plan');
-        const _isPlannedInStorage = !!_eshStorageCheck[_planKey];
-        const _isPlannedInDom = tdEl ? !!tdEl.previousElementSibling?.classList.contains('esh-planned') : false;
-        if (!_isPlannedInStorage && !_isPlannedInDom) {
-            showToast('🔒 Not scheduled — Admin must mark this month as planned (yellow) before entering actual date.', 'warning', 4000);
-            if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
-            return;
-        }
-    }
+    // PLANNED GATE REMOVED: Superintendent/PCO can enter actual dates freely.
+    // Plan (yellow) cells are for Admin scheduling/monitoring only — they do NOT block reporting.
+    // The date input field is always enabled for roles with eshCanEdit() access.
 
     // All trainings and drills: only validate the year (no month or future restrictions)
     if (value) {
@@ -29621,9 +30093,8 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
             tdEl.classList.add('esh-done');
             if (inp) { inp.style.color = '#fff'; inp.style.fontWeight = '700'; inp.disabled = false; inp.style.opacity = ''; inp.style.pointerEvents = ''; }
         } else {
-            const planKey = getEshKey(tabType, projName, ti, mi, 'plan');
-            const isPlanned = !!(storage[planKey]);
-            if (isPlanned && isMonthOverdue(mi)) {
+            // Date cleared — show overdue if month has passed (plan not required)
+            if (isMonthOverdue(mi)) {
                 tdEl.classList.add('esh-overdue');
                 if (inp) { inp.style.color = '#fff'; inp.style.fontWeight = '700'; }
             } else {
@@ -29637,14 +30108,14 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
 // Corporate-specific drills (from the Sta. Clara Emergency Response drills matrix)
 
 const CORP_DRILLS = [
-    { name:'Earthquake', freq:'Quarterly' },
-    { name:'Fire', freq:'Quarterly' },
-    { name:'Death Cause by Accident', freq:'Once a year' },
-    { name:'Death by Natural Cases', freq:'Once a year' },
-    { name:'Medical Emergency', freq:'Twice a year' },
-    { name:'Explosion', freq:'Once a year' },
-    { name:'Bomb Threat', freq:'Once a year' },
-    { name:'Weather Disturbance (Typhoons, Heavy Rains, Strong Winds and Flooding)', freq:'Quarterly' },
+    { name:'Earthquake',                                                              freq:'Quarterly',    color:'#43a047' },
+    { name:'Fire',                                                                    freq:'Twice a year', color:'#fdd835' },
+    { name:'Death Caused by Accident',                                                freq:'Once a year',  color:'#42a5f5' },
+    { name:'Death by Natural Causes',                                                 freq:'Once a year',  color:'#42a5f5' },
+    { name:'Medical Emergency',                                                       freq:'Once a year',  color:'#42a5f5' },
+    { name:'Explosion',                                                               freq:'Once a year',  color:'#42a5f5' },
+    { name:'Bomb Threat',                                                             freq:'Once a year',  color:'#42a5f5' },
+    { name:'Weather Disturbance (Typhoons, Heavy Rains, Strong Winds, Flooding)',    freq:'Once a year',  color:'#42a5f5' },
 ];
 window.CORP_DRILLS = CORP_DRILLS;
 
@@ -29748,7 +30219,7 @@ function renderCorpDrillsTab() {
     const corpProj = state && state.projects ? state.projects.find(p => p.region === 'CORPORATE') : null;
     const canEdit = !!(state && state.isAdmin);
     const storage = getEshStorage();
-    const freqColors = { 'Once a year':'#bf360c','Twice a year':'#6a1b9a','Quarterly':'#1b5e20','Monthly':'#0d47a1','As needed':'#4e342e' };
+    const freqColors = { 'Once a year':'#42a5f5','Twice a year':'#fdd835','Quarterly':'#43a047','Monthly':'#0d47a1','As needed':'#4e342e' };
     const customRows = getCorpDrillCustomRows();
     const allDrills = [
         ...CORP_DRILLS,
@@ -29758,26 +30229,32 @@ function renderCorpDrillsTab() {
     const selYear = (state && state.selectedYear) || new Date().getFullYear();
     const tabType = 'esh-calendar-corp-drills';
 
-    let html = `<div style="padding:16px 20px;">
-        <div style="background:linear-gradient(135deg,#1b5e20 0%,#2e7d32 60%,#388e3c 100%);border-radius:10px;padding:14px 20px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 4px 14px rgba(0,0,0,0.15);">
-            <i class="fas fa-building-columns" style="font-size:1.5rem;color:rgba(255,255,255,0.85);"></i>
+    // ── Styles are in <head id="esh-cal-styles"> — no inline style injection needed. ──
+    // Only the per-tab gradient is applied as an inline style on the header element.
+    let html = `<div class="esh-cal-wrap">
+        <div class="esh-cal-header" style="background:linear-gradient(135deg,#1b5e20 0%,#388e3c 100%);">
+            <i class="fas fa-building-columns esh-cal-header-icon"></i>
             <div style="flex:1;">
-                <div style="font-family:Poppins,sans-serif;font-size:1rem;font-weight:700;color:white;letter-spacing:0.05em;text-transform:uppercase;">${selYear} CORPORATE HQ — EMERGENCY DRILLS & ACTIVITIES</div>
-                <div style="font-size:0.65rem;color:rgba(255,255,255,0.7);margin-top:2px;">Corporate Office Only · Admin-Editable · Not counted in regional compliance</div>
+                <div class="esh-cal-header-title">${selYear} ESH CALENDAR — CORPORATE HQ DRILLS</div>
+                <div class="esh-cal-header-sub">Corporate Office Only · Admin-Editable · Not counted in regional compliance · Plan color = Frequency | Actual = Date (Green=Done, Red=Overdue)</div>
             </div>
-            ${canEdit ? `<button onclick="eshCorpDrillAddRow()" style="background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;border-radius:8px;padding:8px 16px;font-size:0.75rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;"><i class="fas fa-plus"></i> ADD ROW</button>` : ''}
+
         </div>
-        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border-color);margin-bottom:14px;font-size:0.72rem;">
-            <span style="font-weight:700;color:var(--text-primary);">LEGEND:</span>
-            <span style="display:flex;align-items:center;gap:6px;color:var(--text-secondary);"><span style="width:16px;height:12px;border-radius:3px;background:#f9a825;display:inline-block;"></span>Planned</span>
-            <span style="display:flex;align-items:center;gap:6px;color:var(--text-secondary);"><span style="width:16px;height:12px;border-radius:3px;background:#2e7d32;display:inline-block;"></span>Completed</span>
-            <span style="display:flex;align-items:center;gap:6px;color:var(--text-secondary);"><span style="width:16px;height:12px;border-radius:3px;background:#c62828;display:inline-block;"></span>Overdue</span>
-            <span style="margin-left:auto;background:#1b5e20;color:white;padding:2px 8px;border-radius:10px;font-size:0.6rem;font-weight:700;">ADMIN ONLY</span>
+        <div class="esh-cal-legend" style="flex-wrap:wrap;gap:10px 18px;">
+            <span style="font-weight:700;color:var(--text-primary);font-size:0.72rem;">FREQUENCY:</span>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#43a047;"></div>Quarterly — Earthquake</div>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#fdd835;border:1px solid #c8a800;"></div>Twice a Year — Fire</div>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#42a5f5;"></div>Once a Year — Death / Medical / Explosion / Bomb / Weather</div>
+            <div style="width:1px;background:#ddd;align-self:stretch;"></div>
+            <span style="font-weight:700;color:var(--text-primary);font-size:0.72rem;">STATUS:</span>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#2e7d32;"></div>Completed</div>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#c62828;"></div>Overdue</div>
+            <div class="esh-cal-legend-item" style="margin-left:auto;"><span style="background:#1b5e20;color:white;padding:2px 8px;border-radius:10px;font-size:0.6rem;font-weight:700;">ADMIN ONLY</span></div>
         </div>
-        <div style="border-radius:10px;overflow:hidden;border:1px solid #2e7d3244;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-            <div style="background:#e8f5e9;padding:10px 14px;border-bottom:1px solid #c8e6c9;font-size:0.72rem;color:#1b5e20;">
+        <div class="corp-drills-table-outer">
+            <div class="corp-drills-table-header-bar">
                 <i class="fas fa-building-columns" style="margin-right:6px;"></i>
-                <strong>CORPORATE HQ Drills & Activities</strong> — For the Corporate Office only.
+                <strong>CORPORATE HQ Drills &amp; Activities</strong> — For the Corporate Office only.
                 ${canEdit ? 'Click <strong>Plan</strong> cell to schedule. Enter <strong>Actual</strong> date upon completion.' : '🔒 View only — Admin can edit.'}
             </div>
             <div style="overflow-x:auto;"><table class="esh-table">
@@ -29792,36 +30269,40 @@ function renderCorpDrillsTab() {
 
     allDrills.forEach((drill, di) => {
         const fc = freqColors[drill.freq] || '#555';
+        const drillColor = drill.color || fc;
         const isCustom = !!drill._custom;
         const customIdx = (isCustom && drill._customIdx !== undefined) ? drill._customIdx : null;
         const storageIdx = isCustom ? (1000 + customIdx) : di;
 
         html += `<tr>
-            <td class="esh-td-name" style="min-width:260px;">
+            <td class="esh-td-name" style="min-width:260px;border-left:4px solid ${drillColor};">
                 ${isCustom ? '<span style="background:#e8f5e9;color:#1b5e20;border-radius:4px;font-size:0.55rem;font-weight:700;padding:1px 5px;margin-right:5px;vertical-align:middle;">CUSTOM</span>' : ''}
                 ${drill.name}
                 ${(isCustom && canEdit) ? `<button onclick="eshCorpDrillDeleteRow(${customIdx})" title="Remove this row" style="float:right;background:none;border:none;color:#c62828;cursor:pointer;font-size:0.75rem;padding:0 3px;opacity:0.6;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="fas fa-trash"></i></button>` : ''}
             </td>
-            <td style="text-align:center;padding:4px 6px;"><span class="esh-freq-badge" style="background:${fc};color:white;">${drill.freq}</span></td>`;
+            <td style="text-align:center;padding:4px 6px;"><span class="esh-freq-badge" style="background:${drillColor};color:white;">${drill.freq}</span></td>`;
 
         ESH_MONTHS.forEach((m, mi) => {
             const planKey = getEshKey(tabType, projName, storageIdx, mi, 'plan');
             const actualKey = getEshKey(tabType, projName, storageIdx, mi, 'actual');
             const isPlanned = !!(storage[planKey]);
             const actualVal = storage[actualKey] || '';
-            const isFuture = isMonthFuture(mi);
             const overdue = isPlanned && !actualVal && isMonthOverdue(mi);
             const done = !!actualVal;
-            const maxDate = getMaxDateForMonth(mi);
-            const minDate = getMinDateForMonth(mi);
             let actualClass = 'esh-td-actual';
             if (done) actualClass += ' esh-done';
             else if (overdue) actualClass += ' esh-overdue';
+
+            // ── FIX: Apply plan cell color DIRECTLY via inline style at render time.
+            //    This makes the color persistent on refresh — no requestAnimationFrame needed.
+            const planBgStyle = isPlanned ? `background:${drillColor} !important;` : '';
+
             html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}${!canEdit?' esh-plan-locked':''}"
+                style="${planBgStyle}"
                 data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}"
-                onclick="event.stopPropagation();eshSetPlan('${tabType}','${projName}',${storageIdx},${mi},null,this)"
+                data-drillcolor="${drillColor}"
+                onclick="event.stopPropagation();eshCorpSetPlan('${tabType}','${projName}',${storageIdx},${mi},null,this,'${drillColor}')"
                 title="${!canEdit ? '🔒 Admin only' : isPlanned ? 'Click to unschedule' : 'Click to schedule'}"></td>`;
-            // ── RULE: Corp drills can be rescheduled — no future month lock
             html += `<td class="${actualClass}"><input type="date" value="${actualVal}" ${!canEdit ? 'disabled' : ''}
                 onchange="eshSetActual('${tabType}','${projName}',${storageIdx},${mi},this.value,this.closest('td'))"></td>`;
         });
@@ -29831,11 +30312,11 @@ function renderCorpDrillsTab() {
     html += `</tbody></table></div></div>`;
 
     if (canEdit) {
-        html += `<div style="margin-top:14px;text-align:center;">
-            <button onclick="eshCorpDrillAddRow()" style="background:linear-gradient(135deg,#1b5e20,#388e3c);color:white;border:none;border-radius:8px;padding:10px 24px;font-size:0.8rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 3px 10px rgba(0,0,0,0.15);">
-                <i class="fas fa-plus-circle"></i> Add Custom Drill / Training Row
+        html += `<div style="padding:10px 14px;background:var(--bg-card);border-top:1px dashed var(--border-color);text-align:center;">
+            <button onclick="eshCorpDrillAddRow()" style="background:linear-gradient(135deg,#1b5e20,#388e3c);color:white;border:none;border-radius:7px;padding:7px 18px;font-size:0.74rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                <i class="fas fa-plus-circle"></i> ADD ROW
             </button>
-            <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:6px;">Add client-required drills or additional trainings not in the standard list</div>
+            <span style="font-size:0.63rem;color:var(--text-secondary);margin-left:10px;">Add client-required drills or additional trainings not in the standard list</span>
         </div>`;
     }
     html += `</div>`;
@@ -30397,6 +30878,56 @@ function chatClearTyping() {
         window.firebase.remove(typRef);
     } catch(e) { /* silent */ }
 }
+
+// ── COLLAPSIBLE SIDEBAR ──
+function toggleSidebar() {
+    const sidebar = document.getElementById('main-sidebar');
+    sidebar.classList.toggle('sidebar-collapsed');
+}
+
+// ── REGION BANNER COLOR APPLIER ──
+// Ensures every .region-banner gets the correct per-region gradient,
+// covering all ID/class patterns (p-grp-banner, got-rbanner, etc.)
+// ── REGION BANNER COLOR APPLIER ── exact colors from BANNER_COMPARISON_PREVIEW.html
+const _REGION_BANNER_COLORS = {
+    'NCR':                  'linear-gradient(90deg, #1b5e20 0%, #1b5e20dd 100%)',
+    'NORTH LUZON':          'linear-gradient(90deg, #2e7d32 0%, #2e7d32dd 100%)',
+    'SOUTH LUZON':          'linear-gradient(90deg, #388e3c 0%, #388e3cdd 100%)',
+    'VISAYAS & MINDANAO':   'linear-gradient(90deg, #43a047 0%, #43a047dd 100%)',
+    'PLANT OPERATIONS':     'linear-gradient(90deg, #00695c 0%, #00695cdd 100%)',
+    'CORPORATE':            'linear-gradient(90deg, #004d40 0%, #00695cdd 100%)',
+};
+function applyRegionBannerColors() {
+    document.querySelectorAll('.region-banner, .esh-region-banner').forEach(el => {
+        const id = (el.id || '').toUpperCase();
+        for (const [region, gradient] of Object.entries(_REGION_BANNER_COLORS)) {
+            const regionUp = region.toUpperCase();
+            const regionUnder = regionUp.replace(/[^A-Z0-9]/g, '_');
+            const regionDash  = regionUp.replace(/[^A-Z0-9]/g, '-');
+            if (id.includes(regionUp) || id.includes(regionUnder) || id.includes(regionDash)) {
+                el.style.setProperty('background', gradient, 'important');
+                return;
+            }
+        }
+        // fallback: match by class name slug e.g. r-ncr r-northluzon r-vismin r-plantops
+        const cls = el.className || '';
+        const clsMap = {
+            'r-ncr':        'linear-gradient(90deg, #1b5e20 0%, #1b5e20dd 100%)',
+            'r-northluzon': 'linear-gradient(90deg, #2e7d32 0%, #2e7d32dd 100%)',
+            'r-southluzon': 'linear-gradient(90deg, #388e3c 0%, #388e3cdd 100%)',
+            'r-vismin':     'linear-gradient(90deg, #43a047 0%, #43a047dd 100%)',
+            'r-plantops':   'linear-gradient(90deg, #00695c 0%, #00695cdd 100%)',
+        };
+        for (const [c, g] of Object.entries(clsMap)) {
+            if (cls.includes(c)) {
+                el.style.setProperty('background', g, 'important');
+                return;
+            }
+        }
+    });
+}
+// Run after every DOM change (catches all dynamic renders)
+new MutationObserver(applyRegionBannerColors).observe(document.body, { childList: true, subtree: true });
 </script>
 <!-- ==================== SAFETY REMINDER CHARACTER ==================== -->
 <div id="safety-reminder-container">
