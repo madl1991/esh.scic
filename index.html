@@ -12943,12 +12943,40 @@ function updateAuditData(pName, qtr, field, val) {
             }
             // Mark that there are unsaved changes pending cloud sync
             if (typeof markPendingSync === 'function') markPendingSync();
-            if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
+            // For CSHP and REG tabs, save immediately (not debounced) because the date is the
+            // only field — no rapid successive keystrokes to batch, and we want it persisted
+            // before any potential PDF upload that could race with the debounce timer.
+            if (state.currentTab === 'cshp' || state.currentTab === 'reg' || state.currentTab === 'doe-permit') {
+                if (typeof saveUserData === 'function') saveUserData(state.currentUser?.email);
+                if (typeof saveToFirebase === 'function') saveToFirebase().catch(() => {});
+            } else if (typeof saveToFirebaseDebounced === 'function') {
+                saveToFirebaseDebounced();
+            }
             // Live-update the Incident Tabulation panel when relevant data changes
             if (state.currentTab === 'rates') {
                 const panel = document.getElementById('incident-tabulation-panel');
                 if (panel) {
                     panel.outerHTML = buildIncidentTabulationHTML();
+                }
+            }
+            // Re-render so computed columns (totals, averages, %) update immediately
+            // without requiring a page refresh. We preserve focus so typing is uninterrupted.
+            // SKIP re-render for date-only tabs (cshp, reg, doe-permit) — their date inputs are standalone,
+            // no computed columns to update, and re-rendering resets the date picker mid-selection.
+            const _skipRenderTabs = ['cshp', 'reg', 'doe-permit'];
+            if (!_skipRenderTabs.includes(state.currentTab)) {
+                const _activeEl = document.activeElement;
+                const _activeSelStart = (_activeEl && _activeEl.selectionStart !== undefined) ? _activeEl.selectionStart : null;
+                const _activeSelEnd = (_activeEl && _activeEl.selectionEnd !== undefined) ? _activeEl.selectionEnd : null;
+                if (_activeEl) _activeEl.setAttribute('data-focus-restore', 'true');
+                render();
+                const _restoreEl = document.querySelector('[data-focus-restore="true"]');
+                if (_restoreEl) {
+                    _restoreEl.removeAttribute('data-focus-restore');
+                    _restoreEl.focus();
+                    if (_activeSelStart !== null && _restoreEl.setSelectionRange) {
+                        try { _restoreEl.setSelectionRange(_activeSelStart, _activeSelEnd); } catch(e) {}
+                    }
                 }
             }
         }
@@ -13229,6 +13257,11 @@ function updateAuditData(pName, qtr, field, val) {
                 };
                 
                 // Save to localStorage and Firebase Firestore
+                // FIX: Cancel any pending debounced save so it doesn't get skipped
+                // by the _isSaving lock during saveToFirebase() below.
+                // The date input from CSHP (or any other field edited just before PDF upload)
+                // is already in state.projects — so saving here includes it.
+                if (typeof _saveDebounceTimer !== 'undefined') clearTimeout(_saveDebounceTimer);
                 saveUserData(state.currentUser.email);
                 await saveToFirebase();
                 
@@ -18970,40 +19003,45 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             const v = p.vals[key] ? (p.vals[key][1] ?? "") : "";
                             const pdfKey = `${key}_pdf`;
                             const pdfData = p.vals[pdfKey] ? p.vals[pdfKey][1] : null;
-                            
+                            const _pnSafe = p.name.replace(/'/g, "\\\\'");
+                            const _pkSafe = pdfKey.replace(/'/g, "\\\\'");
+
                             let pdfCell = '';
                             if (pdfData) {
-                                // PDF exists - show view, replace, and delete buttons
+                                // PDF exists — show View + (if editing) Replace and Delete buttons
                                 pdfCell = `
-                                    <div class="pdf-upload-container">
-                                        <a href="${pdfData.url}" target="_blank" class="pdf-view-btn" title="View PDF">
+                                    <span class="pdf-file-info">
+                                        <button class="pdf-view-btn" onclick="window.open('${pdfData.url}','_blank')" title="View PDF">
                                             <i class="fas fa-file-pdf"></i> View
-                                        </a>
-                                        <span class="pdf-filename" title="${pdfData.name}">${pdfData.name}</span>
+                                        </button>
                                         ${state.isEditing && canEditRegion ? `
-                                            <input type="file" id="pdf_${p.name}_${state.currentTab}" accept=".pdf" 
-                                                style="display:none;" onchange="uploadPDF(this, '${p.name}','${pdfKey}', true)">
-                                            <button class="pdf-replace-btn" onclick="document.getElementById('pdf_${p.name}_${state.currentTab}').click()" title="Replace PDF">
-                                                <i class="fas fa-sync-alt"></i>
+                                            <input type="file" id="pdf_${p.name}_${state.currentTab}" accept=".pdf"
+                                                style="display:none;" onchange="uploadPDF(this,'${_pnSafe}','${_pkSafe}',true)">
+                                            <button class="pdf-delete-btn" onclick="document.getElementById('pdf_${p.name}_${state.currentTab}').click()" title="Replace PDF">
+                                                <i class="fas fa-sync-alt"></i> Replace
                                             </button>
-                                            <button class="pdf-delete-btn" onclick="deletePDF('${p.name}','${pdfKey}')" title="Delete PDF">
+                                            <button class="pdf-delete-btn" onclick="deletePDF('${_pnSafe}','${_pkSafe}')" title="Delete PDF" style="background:#ef5350;">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         ` : ''}
-                                    </div>`;
+                                    </span>`;
                             } else {
-                                // No PDF - show upload button
-                                pdfCell = (state.isEditing && canEditRegion) ? `
-                                    <div class="pdf-upload-container">
-                                        <input type="file" id="pdf_${p.name}_${state.currentTab}" accept=".pdf" 
-                                            style="display:none;" onchange="uploadPDF(this, '${p.name}','${pdfKey}', false)">
-                                        <button class="pdf-upload-btn" onclick="document.getElementById('pdf_${p.name}_${state.currentTab}').click()">
-                                            <i class="fas fa-upload"></i> Upload PDF
-                                        </button>
-                                        <div style="font-size:10px;color:#e65100;margin-top:3px;font-style:italic;">
-                                            📄 Stamped file page only<br>(1 page, max 500KB)
-                                        </div>
-                                    </div>` : '<span style="color: #999; font-style: italic;">No document</span>';
+                                // No PDF
+                                if (state.isEditing && canEditRegion) {
+                                    pdfCell = `
+                                        <div>
+                                            <input type="file" id="pdf_${p.name}_${state.currentTab}" accept=".pdf"
+                                                style="display:none;" onchange="uploadPDF(this,'${_pnSafe}','${_pkSafe}',false)">
+                                            <button class="pdf-upload-btn" onclick="document.getElementById('pdf_${p.name}_${state.currentTab}').click()">
+                                                <i class="fas fa-upload"></i> Upload
+                                            </button>
+                                            <div style="font-size:10px;color:#e65100;margin-top:3px;font-style:italic;">
+                                                📄 Stamped file page only<br>(1 page, max 500KB)
+                                            </div>
+                                        </div>`;
+                                } else {
+                                    pdfCell = '<span style="color: var(--text-secondary); font-size: 0.75rem;">No PDF</span>';
+                                }
                             }
                             
                             html += `<tr>
@@ -23042,9 +23080,13 @@ async function saveToFirebase() {
         return false; // view-only role — silent skip, no console noise
     }
 
-    // ✅ FIX: Concurrency lock — if a save is already in progress, skip (don't stack)
+    // ✅ FIX: Concurrency lock — if a save is already in progress, queue a retry instead of dropping data
     if (_isSaving) {
-        console.log('⏭️ saveToFirebase: skipped — save already in progress');
+        console.log('⏭️ saveToFirebase: save in progress — queuing retry in 1.5s');
+        clearTimeout(window._saveRetryTimer);
+        window._saveRetryTimer = setTimeout(() => {
+            if (!window._isSaving) saveToFirebase().catch(() => {});
+        }, 1500);
         return false;
     }
     // ✅ FIX: Suppress saves during initial data load to prevent double-save at login
@@ -26032,7 +26074,13 @@ async function uploadDoePermitPdf(projectName) {
                 if (parsed.validUntil && !hadValidUntil) {
                     project.vals[key][2] = parsed.validUntil;
                 }
-                
+
+                // FIX: Cancel any pending debounced save so it doesn't get dropped
+                // by the _isSaving lock. All current state (including any date/permit number
+                // typed just before this upload) is already in state.projects, so one
+                // saveToFirebase() call here saves everything together.
+                if (typeof _saveDebounceTimer !== 'undefined') clearTimeout(_saveDebounceTimer);
+                saveUserData(state.currentUser?.email);
                 await saveToFirebase();
                 render();
 
@@ -30055,14 +30103,248 @@ function renderEshCalendar(tabType) {
 
     // Styles are now in <head> (id="esh-cal-styles") — no inline injection needed.
     // Only the per-tab gradient is applied inline on the header element below.
-    let html = `<div class="esh-cal-wrap">
-        <div class="esh-cal-header" style="background:linear-gradient(135deg,${col.header} 0%,${col.accent} 100%);">
-            <i class="fas ${col.icon} esh-cal-header-icon"></i>
+
+    // ── OVERDUE SUMMARY (KPM-style) ──────────────────────────────────────────────
+    (function _injectEshSummaryStyles() {
+        if (document.getElementById('esh-summary-styles')) return;
+        const s = document.createElement('style');
+        s.id = 'esh-summary-styles';
+        s.textContent = `
+        .esh-sum-wrap {
+            background: #ffffff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(27,94,32,0.10);
+            border: 1px solid #c8e6c9;
+            border-left: 5px solid #1b5e20;
+            margin: 0 0 14px;
+            font-family: 'Inter', sans-serif;
+        }
+        .esh-sum-kpm-hdr {
+            padding: 11px 18px 9px;
+            background: #f1f8e9;
+            border-bottom: 1px solid #c8e6c9;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .esh-sum-kpm-hdr i.sum-icon { font-size: 1rem; color: #2e7d32; flex-shrink: 0; }
+        .esh-sum-kpm-hdr .sum-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem; font-weight: 800;
+            color: #1b5e20; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .esh-sum-kpm-hdr .sum-sub { font-size: 0.6rem; color: #388e3c; font-weight: 500; margin-top: 1px; }
+        .esh-sum-kpm-hdr .sum-total-pill {
+            margin-left: auto;
+            background: #1b5e20; color: #fff;
+            border-radius: 6px; padding: 5px 14px; text-align: center; flex-shrink: 0;
+        }
+        .esh-sum-kpm-hdr .sum-total-pill .snum { font-size: 1.1rem; font-weight: 900; line-height: 1; }
+        .esh-sum-kpm-hdr .sum-total-pill .slbl { font-size: 0.48rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85; }
+        /* all-clear variant */
+        .esh-sum-allclear {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(27,94,32,0.10);
+            border: 1px solid #c8e6c9;
+            border-left: 5px solid #43a047;
+            padding: 12px 18px;
+            display: flex; align-items: center; gap: 12px;
+            margin: 0 0 14px;
+            font-family: 'Inter', sans-serif;
+        }
+        .esh-sum-allclear i { color: #2e7d32; font-size: 1.2rem; flex-shrink: 0; }
+        .esh-sum-allclear .ac-txt {
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.82rem; font-weight: 800; color: #1b5e20;
+        }
+        .esh-sum-allclear .ac-sub { font-size: 0.62rem; color: #388e3c; margin-top: 2px; }
+        /* region accordion row */
+        .esh-sum-rgn-hdr {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 18px; cursor: pointer;
+            background: #f9fdf9; border-bottom: 1px solid #c8e6c9;
+            user-select: none; transition: background 0.15s;
+        }
+        .esh-sum-rgn-hdr:hover { background: #e8f5e9; }
+        .esh-sum-rgn-hdr .rgn-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+        .esh-sum-rgn-hdr .rgn-name {
+            font-size: 0.72rem; font-weight: 700; flex: 1;
+            color: #1b5e20; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .esh-sum-rgn-hdr .rgn-badge {
+            background: #ffcdd2; color: #c62828;
+            border: 1px solid #ef9a9a;
+            font-size: 0.62rem; font-weight: 800;
+            border-radius: 12px; padding: 2px 9px; white-space: nowrap;
+        }
+        .esh-sum-rgn-hdr .rgn-chevron { color: #9ecf9b; font-size: 0.65rem; transition: transform 0.2s; flex-shrink: 0; }
+        .esh-sum-rgn-hdr.open .rgn-chevron { transform: rotate(180deg); }
+        /* project table inside accordion */
+        .esh-sum-tbl-wrap { display: none; border-bottom: 1px solid #c8e6c9; }
+        .esh-sum-tbl-wrap.open { display: block; }
+        .esh-sum-tbl { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
+        .esh-sum-tbl thead tr { background: #9ecf9b; }
+        .esh-sum-tbl thead th {
+            padding: 5px 12px; text-align: left;
+            font-weight: 800; color: #ffffff;
+            font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.5px;
+            border: 1px solid #c8e6c9;
+        }
+        .esh-sum-tbl tbody tr { border-bottom: 1px solid #c8e6c9; background: #f0faf0; }
+        .esh-sum-tbl tbody tr:nth-child(even) { background: #ffffff; }
+        .esh-sum-tbl tbody tr:last-child { border-bottom: none; }
+        .esh-sum-tbl tbody tr:hover { background: #e8f5e9; }
+        .esh-sum-tbl tbody td { padding: 7px 12px; vertical-align: middle; border: 1px solid #c8e6c9; }
+        .esh-sum-tbl .td-proj { font-weight: 600; color: #1b5e20; }
+        .esh-sum-tbl .td-num { font-weight: 800; color: #c62828; text-align: center; }
+        .esh-sum-tbl .td-bar { width: 90px; }
+        .esh-sum-tbl .bar-bg { background: #ffcdd2; border-radius: 4px; height: 6px; overflow: hidden; }
+        .esh-sum-tbl .bar-fill { background: #c62828; border-radius: 4px; height: 6px; }
+        .esh-sum-tbl .td-tag {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: #fff3f3; border: 1px solid #ef9a9a;
+            border-radius: 12px; padding: 2px 8px;
+            color: #c62828; font-size: 0.62rem; font-weight: 600; white-space: nowrap;
+        }
+        .esh-sum-footer {
+            padding: 6px 18px; background: #f9fdf9;
+            font-size: 0.59rem; color: #1b5e20; font-weight: 600;
+            border-top: 1px solid #c8e6c9;
+            display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+        }
+        `;
+        document.head.appendChild(s);
+    })();
+
+    // — compute overdue data —
+    const _ss = getEshStorage();
+    const _ssYear = (state && state.selectedYear) || new Date().getFullYear();
+    const _ssNow = new Date();
+    const _ssCurMonth = _ssNow.getMonth();
+    const _ssCurYear  = _ssNow.getFullYear();
+    const _ssIsDrills = (tabType === 'esh-calendar-drills');
+    const _ssTrainings = ESH_TRAININGS[tabType] || [];
+    const _ssDrills    = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
+    const _ssAllProjs  = (state && state.projects)
+        ? state.projects.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS')
+        : [];
+
+    function _ssMonthOverdue(mi) {
+        return (_ssYear < _ssCurYear) || (_ssYear === _ssCurYear && mi < _ssCurMonth);
+    }
+
+    const _ssRegionMap = {};
+    _ssAllProjs.forEach(proj => {
+        let oc = 0, tp = 0;
+        if (_ssIsDrills) {
+            _ssDrills.forEach((drill, di) => {
+                for (let mi = 0; mi < 12; mi++) {
+                    const pk = `${_ssYear}|esh-calendar-drills|GLOBAL_PLAN|${di}|${mi}|plan`;
+                    if (!_ss[pk] || !_ssMonthOverdue(mi)) continue;
+                    tp++;
+                    const ak = `${_ssYear}|esh-calendar-drills|${proj.name}|${di}|${mi}|actual`;
+                    if (!_ss[ak]) oc++;
+                }
+            });
+        } else {
+            _ssTrainings.forEach((t, ti) => {
+                for (let mi = 0; mi < 12; mi++) {
+                    const pk = `${_ssYear}|${tabType}|GLOBAL_PLAN|${ti}|${mi}|plan`;
+                    if (!_ss[pk] || !_ssMonthOverdue(mi)) continue;
+                    tp++;
+                    const ak = `${_ssYear}|${tabType}|${proj.name}|${ti}|${mi}|actual`;
+                    if (!_ss[ak]) oc++;
+                }
+            });
+        }
+        if (oc > 0) {
+            if (!_ssRegionMap[proj.region]) _ssRegionMap[proj.region] = [];
+            _ssRegionMap[proj.region].push({ name: proj.name, overdueCount: oc, totalPlanned: tp });
+        }
+    });
+
+    const _ssRegionOrder  = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+    const _ssRegionColors = { 'NCR':'#1565c0','SOUTH LUZON':'#2e7d32','NORTH LUZON':'#e65100','VISAYAS & MINDANAO':'#6a1b9a' };
+    const _ssTotalProjs   = Object.values(_ssRegionMap).reduce((s,a) => s + a.length, 0);
+    const _ssTypeLabel    = _ssIsDrills ? 'drills' : 'trainings';
+    const _ssDateStr      = _ssNow.toLocaleDateString('en-PH', { month:'long', day:'numeric', year:'numeric' });
+
+    let _ssHtml = '';
+    if (_ssTotalProjs === 0) {
+        _ssHtml = `<div class="esh-sum-allclear">
+            <i class="fas fa-circle-check"></i>
             <div>
-                <div class="esh-cal-header-title">${(state && state.selectedYear) || new Date().getFullYear()} ESH CALENDAR — ${col.label}</div>
-                <div class="esh-cal-header-sub">Per Region · Per Project · Row & Plan color = Frequency (Green=Quarterly, Yellow=Twice/yr, Blue=Once/yr) | Actual = Date (Green=Done, Red=Overdue) | N/A = Grey (excluded from compliance)</div>
+                <div class="ac-txt">✅ All Clear — No Overdue ${col.label} Found</div>
+                <div class="ac-sub">All planned ${_ssTypeLabel} up to this month have been completed, or none are scheduled yet.</div>
             </div>
-        </div>
+        </div>`;
+    } else {
+        let _ssAccordion = '';
+        _ssRegionOrder.forEach((rgn, ri) => {
+            const projs = _ssRegionMap[rgn];
+            if (!projs || !projs.length) return;
+            const rcolor  = _ssRegionColors[rgn] || '#1b5e20';
+            const rId     = 'esh-sum-rgn-' + tabType.replace(/[^a-z0-9]/gi,'_') + '-' + ri;
+            projs.sort((a,b) => b.overdueCount - a.overdueCount);
+            const maxOc   = projs[0].overdueCount;
+            const rgnTotal = projs.reduce((s,p) => s + p.overdueCount, 0);
+
+            const rows = projs.map(p => `<tr>
+                <td class="td-proj">${p.name}</td>
+                <td class="td-num">${p.overdueCount}</td>
+                <td class="td-bar">
+                    <div class="bar-bg"><div class="bar-fill" style="width:${Math.max(8, Math.round(p.overdueCount / maxOc * 100))}%;"></div></div>
+                </td>
+                <td><span class="td-tag"><i class="fas fa-circle-exclamation" style="font-size:0.55rem;"></i> Action Needed</span></td>
+            </tr>`).join('');
+
+            _ssAccordion += `
+            <div class="esh-sum-rgn-hdr" id="${rId}-hdr" onclick="(function(){
+                var h=document.getElementById('${rId}-hdr');
+                var b=document.getElementById('${rId}-body');
+                var open=b.classList.toggle('open');
+                h.classList.toggle('open',open);
+            })()">
+                <div class="rgn-dot" style="background:${rcolor};"></div>
+                <div class="rgn-name"><i class="fas fa-location-dot" style="margin-right:5px;color:${rcolor};font-size:0.6rem;"></i>${rgn}</div>
+                <div class="rgn-badge">${projs.length} project${projs.length !== 1 ? 's' : ''} &nbsp;·&nbsp; ${rgnTotal} overdue</div>
+                <i class="fas fa-chevron-down rgn-chevron"></i>
+            </div>
+            <div class="esh-sum-tbl-wrap" id="${rId}-body">
+                <table class="esh-sum-tbl">
+                    <thead><tr>
+                        <th>Project Name</th>
+                        <th style="text-align:center;min-width:60px;">Overdue</th>
+                        <th style="min-width:90px;">Load</th>
+                        <th>Status</th>
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>`;
+        });
+
+        _ssHtml = `<div class="esh-sum-wrap">
+            <div class="esh-sum-kpm-hdr">
+                <i class="fas fa-triangle-exclamation sum-icon"></i>
+                <div>
+                    <div class="sum-title">⚠ Overdue Summary — ${_ssYear} ESH Calendar: ${col.label}</div>
+                    <div class="sum-sub">Scheduled ${_ssTypeLabel} with no recorded completion as of ${_ssDateStr} · Click a region to expand</div>
+                </div>
+                <div class="sum-total-pill">
+                    <div class="snum">${_ssTotalProjs}</div>
+                    <div class="slbl">Projects</div>
+                </div>
+            </div>
+            ${_ssAccordion}
+            <div class="esh-sum-footer">
+                <span style="display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#ffcdd2;display:inline-block;"></span>Only planned ${_ssTypeLabel} without a recorded actual date are counted as overdue.</span>
+            </div>
+        </div>`;
+    }
+    // ── END OVERDUE SUMMARY ──────────────────────────────────────────────────────
+
+    let html = `<div class="esh-cal-wrap">
+        ${_ssHtml}
         <div class="esh-cal-legend" style="flex-wrap:wrap;gap:10px 18px;">
             <span style="font-weight:700;color:var(--text-primary);font-size:0.72rem;">FREQUENCY:</span>
             <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#b3d9f7;border:1px solid #7ab8e8;"></div> Once a Year (Pastel Blue)</div>
