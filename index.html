@@ -23501,6 +23501,7 @@ async function loadFromFirebase() {
         // Update UI
         render();
         renderPTable();
+        if (state.currentTab === 'osh-requirement') { renderOsh2(); }
         
     } catch (error) {
         console.error('❌ Error loading from Firebase:', error);
@@ -23529,6 +23530,7 @@ function loadFromLocalStorage() {
         ensureCorporateProject(); ensurePlantProjects();
         render();
         renderPTable();
+        if (state.currentTab === 'osh-requirement') { renderOsh2(); }
     }
 }
 
@@ -23576,6 +23578,7 @@ async function loadAllProjectsAndFilter() {
 
                 render();
                 renderPTable();
+                if (state.currentTab === 'osh-requirement') { renderOsh2(); }
                 console.log(`⚡ Instant render from cache (${Math.round(cacheAge/1000)}s old)`);
 
                 // ── FIX: Only use cache for instant visual render — ALWAYS fetch Firebase after ──
@@ -23757,6 +23760,7 @@ async function loadAllProjectsAndFilter() {
         // Re-render with fresh data
         render();
         renderPTable();
+        if (state.currentTab === 'osh-requirement') { renderOsh2(); }
         console.log(`✅ UI updated with fresh Firebase data`);
 
     } catch (error) {
@@ -26295,10 +26299,13 @@ function renderOsh2() {
     const container = document.getElementById('osh2-regions-container');
     if (!container) return;
 
-    // ── LOADING STATE: Show spinner if personnel data is not yet available ──
-    const personnelReady = state.personnelData && state.personnelData.length > 0;
-    const projectsReady  = state.projects && state.projects.length > 0;
-    if (!personnelReady || !projectsReady) {
+    // ── LOADING STATE: Show spinner ONLY if projects haven't loaded yet ──
+    // FIX: Removed personnelData.length > 0 check — personnelData can be [] if no OSH staff
+    // are registered yet, and the table (Manpower, First Aider, etc.) comes from state.oshData
+    // and state.projects — not from personnelData. Blocking on personnelData caused the table
+    // to never render (or take 1.2s+ per retry) even when all the real data was already loaded.
+    const projectsReady = state.projects && state.projects.length > 0;
+    if (!projectsReady) {
         const alreadySpinning = container.querySelector('.osh2-loading-spinner');
         if (!alreadySpinning) {
             container.innerHTML = `
@@ -26339,7 +26346,7 @@ function renderOsh2() {
                 @keyframes osh2-bounce { 0%,80%,100% { transform:scale(0.6);opacity:0.4; } 40% { transform:scale(1);opacity:1; } }
             </style>`;
         }
-        setTimeout(renderOsh2, 1200);
+        setTimeout(renderOsh2, 300);
         return;
     }
     // ── END LOADING STATE ──
