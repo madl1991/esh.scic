@@ -2025,14 +2025,14 @@
         }
 
         .region-banner {
-            background: linear-gradient(90deg, #1b5e20 0%, #1b5e20dd 100%);
+            background: linear-gradient(135deg, #1b5e20 0%, #143d16 100%);
             border-radius: 10px 10px 0 0;
             cursor: pointer;
-            transition: filter 0.2s, box-shadow 0.2s;
+            transition: filter 0.18s, box-shadow 0.18s;
             margin: 10px 16px 0;
             position: relative;
             border: none;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.22);
             user-select: none;
             padding: 0;
             display: flex;
@@ -2043,46 +2043,82 @@
             overflow: hidden;
         }
 
-        /* ── Per-region unique gradient colors ── exact from BANNER_COMPARISON_PREVIEW.html */
+        /* ── Per-region unique gradient colors ── */
 
-        /* NCR #1b5e20 */
+        /* NCR — deep forest green */
         .region-banner.region-ncr,
         .region-banner[id*="-NCR"],
         .region-banner[id*="_NCR"],
         #p-grp-banner-NCR {
-            background: linear-gradient(90deg, #1b5e20 0%, #1b5e20dd 100%);
+            background: linear-gradient(135deg, #1b5e20 0%, #0d3311 100%);
         }
-        /* NORTH LUZON #2e7d32 */
+        /* NORTH LUZON — medium green */
         .region-banner.region-north-luzon,
         .region-banner[id*="NORTH LUZON"],
         .region-banner[id*="NORTH_LUZON"],
         #p-grp-banner-NORTH_LUZON {
-            background: linear-gradient(90deg, #2e7d32 0%, #2e7d32dd 100%);
+            background: linear-gradient(135deg, #2e7d32 0%, #1b5020 100%);
         }
-        /* SOUTH LUZON #388e3c */
+        /* SOUTH LUZON — brighter green */
         .region-banner.region-south-luzon,
         .region-banner[id*="SOUTH LUZON"],
         .region-banner[id*="SOUTH_LUZON"],
         #p-grp-banner-SOUTH_LUZON {
-            background: linear-gradient(90deg, #388e3c 0%, #388e3cdd 100%);
+            background: linear-gradient(135deg, #388e3c 0%, #1f5e23 100%);
         }
-        /* VISAYAS & MINDANAO #43a047 */
+        /* VISAYAS & MINDANAO — lighter green */
         .region-banner.region-visayas---mindanao,
         .region-banner[id*="VISAYAS"],
         #p-grp-banner-VISAYAS___MINDANAO {
-            background: linear-gradient(90deg, #43a047 0%, #43a047dd 100%);
+            background: linear-gradient(135deg, #43a047 0%, #2a6b2e 100%);
         }
-        /* PLANT OPERATIONS #00695c */
+        /* PLANT OPERATIONS — white */
         .region-banner.region-plant-operations,
         .region-banner[id*="PLANT"],
         #p-grp-banner-PLANT_OPERATIONS {
-            background: linear-gradient(90deg, #00695c 0%, #00695cdd 100%);
+            background: #ffffff !important;
+            color: #1b5e20 !important;
+            border: 1.5px solid #c8e6c9;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10);
         }
-        /* CORPORATE #004d40 */
+        .region-banner.region-plant-operations .region-icon,
+        .region-banner[id*="PLANT"] .region-icon,
+        #p-grp-banner-PLANT_OPERATIONS .region-icon { color: #1b5e20 !important; filter: none; }
+        .region-banner.region-plant-operations .region-name,
+        .region-banner[id*="PLANT"] .region-name,
+        #p-grp-banner-PLANT_OPERATIONS .region-name { color: #1b5e20 !important; text-shadow: none; }
+        .region-banner.region-plant-operations .region-toggle-icon,
+        .region-banner[id*="PLANT"] .region-toggle-icon,
+        #p-grp-banner-PLANT_OPERATIONS .region-toggle-icon { color: #2e7d32 !important; }
+        .region-banner.region-plant-operations .rbadge,
+        .region-banner[id*="PLANT"] .rbadge,
+        #p-grp-banner-PLANT_OPERATIONS .rbadge {
+            background: #e8f5e9 !important; color: #1b5e20 !important;
+            border: 1px solid #a5d6a7 !important;
+        }
+        /* CORPORATE — white */
         .region-banner.region-corporate,
         .region-banner[id*="CORPORATE"],
         #p-grp-banner-CORPORATE {
-            background: linear-gradient(90deg, #004d40 0%, #00695cdd 100%);
+            background: #ffffff !important;
+            color: #1b5e20 !important;
+            border: 1.5px solid #c8e6c9;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+        }
+        .region-banner.region-corporate .region-icon,
+        .region-banner[id*="CORPORATE"] .region-icon,
+        #p-grp-banner-CORPORATE .region-icon { color: #1b5e20 !important; filter: none; }
+        .region-banner.region-corporate .region-name,
+        .region-banner[id*="CORPORATE"] .region-name,
+        #p-grp-banner-CORPORATE .region-name { color: #1b5e20 !important; text-shadow: none; }
+        .region-banner.region-corporate .region-toggle-icon,
+        .region-banner[id*="CORPORATE"] .region-toggle-icon,
+        #p-grp-banner-CORPORATE .region-toggle-icon { color: #2e7d32 !important; }
+        .region-banner.region-corporate .rbadge,
+        .region-banner[id*="CORPORATE"] .rbadge,
+        #p-grp-banner-CORPORATE .rbadge {
+            background: #e8f5e9 !important; color: #1b5e20 !important;
+            border: 1px solid #a5d6a7 !important;
         }
 
         .region-banner:hover {
@@ -2100,7 +2136,7 @@
             align-items: center;
             justify-content: space-between;
             flex: 1;
-            padding: 10px 16px;
+            padding: 11px 18px;
             gap: 12px;
             min-width: 0;
         }
@@ -2114,19 +2150,22 @@
         }
 
         .region-banner-left .region-icon {
-            font-size: 0.78rem;
-            opacity: 0.85;
+            font-size: 0.85rem;
+            opacity: 1;
             flex-shrink: 0;
+            color: rgba(255,255,255,0.9);
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
         }
 
         .region-banner-left .region-name {
-            font-size: 0.82rem;
+            font-size: 0.85rem;
             font-weight: 800;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.06em;
             text-transform: uppercase;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.25);
         }
 
         .region-banner-right {
@@ -2138,12 +2177,13 @@
         }
 
         .region-toggle-icon {
-            transition: transform 0.25s ease;
-            font-size: 0.75rem;
-            opacity: 0.8;
-            width: 16px;
+            transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+            font-size: 0.78rem;
+            opacity: 0.9;
+            width: 18px;
             text-align: center;
             flex-shrink: 0;
+            color: rgba(255,255,255,0.85);
         }
 
         .region-banner.collapsed .region-toggle-icon {
@@ -2176,29 +2216,30 @@
             align-items: center;
             font-size: 0.6rem;
             font-weight: 800;
-            letter-spacing: 0.03em;
-            padding: 2px 8px;
+            letter-spacing: 0.05em;
+            padding: 3px 10px;
             border-radius: 20px;
             white-space: nowrap;
+            backdrop-filter: blur(4px);
         }
 
         .region-banner .rbadge-count {
-            background: rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.18);
             color: #fff;
-            border: 1px solid rgba(255,255,255,0.25);
+            border: 1px solid rgba(255,255,255,0.30);
         }
 
         .region-banner .rbadge-avg {
-            background: rgba(255,255,255,0.22);
+            background: rgba(255,255,255,0.25);
             color: #fff;
-            border: 1px solid rgba(255,255,255,0.35);
+            border: 1px solid rgba(255,255,255,0.40);
         }
 
         .region-banner .rbadge-admin {
-            background: rgba(255,255,255,0.12);
-            color: rgba(255,255,255,0.88);
-            border: 1px solid rgba(255,255,255,0.2);
-            font-size: 0.56rem;
+            background: rgba(255,255,255,0.14);
+            color: rgba(255,255,255,0.90);
+            border: 1px solid rgba(255,255,255,0.22);
+            font-size: 0.57rem;
         }
 
         /* Glass effect for AVG badge (legacy compat) */
@@ -4726,18 +4767,21 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
 /* ── Region accordion ── */
 .esh-region-banner {
-    background: linear-gradient(90deg, #1b5e20 0%, #1b5e20dd 100%); color: white;
-    padding: 9px 16px; font-weight: 800; font-size: 0.82rem;
-    letter-spacing: 0.8px; display: flex; align-items: center; gap: 8px;
+    background: linear-gradient(135deg, #1b5e20 0%, #0d3311 100%); color: white;
+    padding: 10px 18px; font-weight: 800; font-size: 0.84rem;
+    letter-spacing: 0.06em; display: flex; align-items: center; gap: 10px;
     border-radius: 8px 8px 0 0; cursor: pointer; user-select: none;
-    transition: filter 0.2s;
+    transition: filter 0.18s; box-shadow: 0 3px 10px rgba(0,0,0,0.22);
 }
 .esh-region-banner:hover { filter: brightness(1.12); }
-.esh-region-banner.r-ncr        { background: linear-gradient(90deg, #1b5e20 0%, #1b5e20dd 100%); }
-.esh-region-banner.r-northluzon { background: linear-gradient(90deg, #2e7d32 0%, #2e7d32dd 100%); }
-.esh-region-banner.r-southluzon { background: linear-gradient(90deg, #388e3c 0%, #388e3cdd 100%); }
-.esh-region-banner.r-vismin     { background: linear-gradient(90deg, #43a047 0%, #43a047dd 100%); }
-.esh-region-banner.r-plantops   { background: linear-gradient(90deg, #00695c 0%, #00695cdd 100%); }
+.esh-region-banner.r-ncr        { background: linear-gradient(135deg, #1b5e20 0%, #0d3311 100%); }
+.esh-region-banner.r-northluzon { background: linear-gradient(135deg, #2e7d32 0%, #1b5020 100%); }
+.esh-region-banner.r-southluzon { background: linear-gradient(135deg, #388e3c 0%, #1f5e23 100%); }
+.esh-region-banner.r-vismin     { background: linear-gradient(135deg, #43a047 0%, #2a6b2e 100%); }
+.esh-region-banner.r-plantops   {
+    background: #ffffff !important; color: #1b5e20 !important;
+    border: 1.5px solid #c8e6c9; box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
 .esh-region-toggle { margin-left: auto; font-size: 0.8rem; transition: transform 0.25s; }
 .esh-region-content {
     border: 1px solid #c8e6c9;
@@ -8568,6 +8612,7 @@ function applyNumFmtToInputs() {
             selectedYear: new Date().getFullYear(), // Default year - current year
             projects: [], // Currently displayed projects (filtered by year)
             masterProjects: [], // ALL projects from ALL years (loaded once)
+            yearProjectCache: new Map(), // ISOLATED year-keyed project store: Map<year, projects[]>
             personnelData: [],
             incidentRateData: { recordableCases: 0, lostDays: 0, totalHours: 0 },
             filteredProjects: [],
@@ -10145,8 +10190,8 @@ function applyNumFmtToInputs() {
                 { name: 'Test3', dateStarted: '2026-01-01', dateFinished: null, status: 'on-going' }
             ];
             
-            // Test for different years
-            [2020, 2024, 2025, 2026, 2027].forEach(year => {
+            // Test for different years (2026+ only — pre-2026 years are not in availableYears)
+            [2026, 2027, 2028].forEach(year => {
                 const filtered = filterProjectsByYear(testProjects, year);
                 debugLog('DATA', `Year ${year}:`, filtered.map(p => p.name));
             });
@@ -10262,11 +10307,11 @@ debugCommands.help() - Show this help
         }
 
         // ===== YEAR SELECTOR FUNCTIONS =====
-        const YEAR_RANGE = { min: 2019, max: Math.max(2027, new Date().getFullYear()) }; // Year range, max auto-extends to current year
+        const YEAR_RANGE = { min: 2026, max: Math.max(2027, new Date().getFullYear()) }; // Year range starts at 2026 (pre-2026 years are archived/hardcoded elsewhere)
         let availableYears = [];
 
         function initializeYears() {
-            // Generate default years from 2019 to 2027
+            // Generate years from 2026 onwards — pre-2026 data is static/archived
             availableYears = [];
             for (let year = YEAR_RANGE.min; year <= YEAR_RANGE.max; year++) {
                 availableYears.push(year);
@@ -10694,7 +10739,14 @@ debugCommands.help() - Show this help
             const oldYear = state.selectedYear;
 
             // ── STEP 1: Save current year data before switching ──
-            // (silently save so we don't lose anything)
+            // First, sync any unsaved edits in state.projects → old year cache
+            if (!state.yearProjectCache) state.yearProjectCache = new Map();
+            if (state.projects && state.projects.length > 0) {
+                const existingCache = state.yearProjectCache.get(oldYear) || [];
+                const cacheMap = new Map(existingCache.map(p => [p.name, p]));
+                state.projects.forEach(p => cacheMap.set(p.name, p));
+                state.yearProjectCache.set(oldYear, Array.from(cacheMap.values()));
+            }
             try {
                 if (window.firebaseReady && window.firebaseDb && state.currentUser) {
                     await saveToFirebase();
@@ -10720,6 +10772,9 @@ debugCommands.help() - Show this help
 
             let yearLoaded = false;
 
+            // ── INITIALIZE year cache if needed ──
+            if (!state.yearProjectCache) state.yearProjectCache = new Map();
+
             if (window.firebaseReady && window.firebaseDb) {
                 try {
                     const dataUserId = getDataSourceUserId();
@@ -10729,35 +10784,74 @@ debugCommands.help() - Show this help
                     if (yearSnap.exists()) {
                         const data = yearSnap.data();
 
-                        // ── Load projects: prefer per-project subcollection, fall back to legacy array ──
+                        // ── Load projects for the NEW YEAR only — no cross-year merge ──
                         const perProjectDocs = await ProjectsDB.loadYear(newYear);
                         const newYearProjects = (perProjectDocs && perProjectDocs.length > 0)
                             ? perProjectDocs
                             : (data.projects || []);
 
-                        // Load year-specific: projects (with their vals/inputs) + incident + osh
-                        state.masterProjects = (() => {
-                            // Merge: new year's projects override, but keep masterProjects from other years
-                            const merged = new Map(state.masterProjects.map(p => [p.name, p]));
-                            newYearProjects.forEach(p => merged.set(p.name, p));
-                            return Array.from(merged.values());
-                        })();
+                        // Store in isolated year cache (deep clone prevents shared references)
+                        state.yearProjectCache.set(newYear, newYearProjects.map(p => JSON.parse(JSON.stringify(p))));
+
                         state.incidentRateData = data.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
                         state.oshData = data.oshData || {};
-                        // Use personnel from this year's doc if it has more entries (most up-to-date)
                         const docPersonnel = data.personnelData || [];
                         if (docPersonnel.length >= preservedPersonnel.length) {
                             preservedPersonnel.splice(0, preservedPersonnel.length, ...docPersonnel);
                         }
                         yearLoaded = true;
-                        debugLog('SUCCESS', `✅ Year ${newYear} data loaded from Firebase`);
+                        debugLog('SUCCESS', `✅ Year ${newYear} data loaded from Firebase (isolated cache)`);
                     } else {
-                        // No data for this year yet — projects show (filtered from master) but inputs blank
-                        debugLog('INFO', `📝 No Firebase data for year ${newYear} — fresh slate for inputs`);
+                        // ── NEW YEAR: No Firebase data yet ──
+                        debugLog('INFO', `📝 No Firebase data for year ${newYear}`);
                         state.incidentRateData = { recordableCases: 0, lostDays: 0, totalHours: 0 };
                         state.oshData = {};
-                        // Clear vals on all projects (blank inputs for new year)
-                        state.masterProjects = state.masterProjects.map(p => ({ ...p, vals: {} }));
+
+                        if (newYear > oldYear) {
+                            // ── CARRY-FORWARD LOGIC (forward only: older → newer year) ──
+                            // Copy the old year's RUNNING YTD → new year's PREVIOUS column.
+                            // Only carry forward projects that are NOT completed in the old year.
+                            debugLog('INFO', `📋 Applying carry-forward from ${oldYear} → ${newYear}`);
+                            const oldYearProjects = state.yearProjectCache.get(oldYear) || [];
+                            const carriedProjects = oldYearProjects
+                                .filter(p => {
+                                    // Skip completed projects — they do not carry forward
+                                    const isCompleted = (p.status || '').toUpperCase() === 'COMPLETED'
+                                        || (p.dateFinished && parseInt(p.dateFinished.split('-')[0]) <= oldYear);
+                                    return !isCompleted;
+                                })
+                                .map(p => {
+                                    // Deep clone — do NOT share references between years
+                                    const carried = JSON.parse(JSON.stringify(p));
+                                    // For each vals array: sum months 1–12 as YTD → set as PREVIOUS (index 0)
+                                    // Then clear monthly values (fresh accumulation for new year)
+                                    if (carried.vals) {
+                                        Object.keys(carried.vals).forEach(key => {
+                                            const arr = carried.vals[key];
+                                            if (Array.isArray(arr) && arr.length >= 13) {
+                                                let ytd = 0, hasAny = false;
+                                                for (let i = 1; i <= 12; i++) {
+                                                    const v = parseFloat(arr[i]);
+                                                    if (!isNaN(v) && v !== 0) { ytd += v; hasAny = true; }
+                                                }
+                                                const newArr = new Array(14).fill(null);
+                                                newArr[0] = hasAny ? ytd : (arr[0] || null); // PREVIOUS = old YTD
+                                                // indices 1–12: null (fresh monthly accumulation)
+                                                // index 13 (RUNNING YTD): computed dynamically, leave null
+                                                carried.vals[key] = newArr;
+                                            }
+                                        });
+                                    }
+                                    carried.oshData = {}; // fresh osh for new year
+                                    return carried;
+                                });
+                            state.yearProjectCache.set(newYear, carriedProjects);
+                        } else {
+                            // Going to a PAST year with no data — blank slate, no carry-forward
+                            // (Pre-2026 years should not exist in availableYears, this is a safety fallback)
+                            debugLog('INFO', `📋 Past year ${newYear} has no data — blank slate (no carry-forward)`);
+                            state.yearProjectCache.set(newYear, []);
+                        }
                         yearLoaded = true;
                     }
                 } catch(e) {
@@ -10772,30 +10866,85 @@ debugCommands.help() - Show this help
                 if (localRaw) {
                     try {
                         const localData = JSON.parse(localRaw);
-                        const newYearProjects = localData.projects || [];
-                        const merged = new Map(state.masterProjects.map(p => [p.name, p]));
-                        newYearProjects.forEach(p => merged.set(p.name, p));
-                        state.masterProjects = Array.from(merged.values());
+                        const newYearProjects = (localData.projects || []).map(p => JSON.parse(JSON.stringify(p)));
+                        state.yearProjectCache.set(newYear, newYearProjects);
                         state.incidentRateData = localData.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 };
                         state.oshData = localData.oshData || {};
-                        debugLog('INFO', `💾 Year ${newYear} loaded from localStorage fallback`);
+                        debugLog('INFO', `💾 Year ${newYear} loaded from localStorage fallback (isolated)`);
                     } catch(e) {
+                        state.yearProjectCache.set(newYear, []);
                         state.incidentRateData = { recordableCases: 0, lostDays: 0, totalHours: 0 };
                         state.oshData = {};
-                        state.masterProjects = state.masterProjects.map(p => ({ ...p, vals: {} }));
                     }
                 } else {
-                    // Truly fresh year — blank everything
+                    // Truly fresh year — only carry-forward if going to a NEWER year
                     state.incidentRateData = { recordableCases: 0, lostDays: 0, totalHours: 0 };
                     state.oshData = {};
-                    state.masterProjects = state.masterProjects.map(p => ({ ...p, vals: {} }));
+                    if (newYear > oldYear) {
+                        const oldYearProjects = state.yearProjectCache.get(oldYear) || [];
+                        const carriedOffline = oldYearProjects
+                            .filter(p => {
+                                const isCompleted = (p.status || '').toUpperCase() === 'COMPLETED'
+                                    || (p.dateFinished && parseInt(p.dateFinished.split('-')[0]) <= oldYear);
+                                return !isCompleted;
+                            })
+                            .map(p => {
+                                const carried = JSON.parse(JSON.stringify(p));
+                                if (carried.vals) {
+                                    Object.keys(carried.vals).forEach(key => {
+                                        const arr = carried.vals[key];
+                                        if (Array.isArray(arr) && arr.length >= 13) {
+                                            let ytd = 0, hasAny = false;
+                                            for (let i = 1; i <= 12; i++) {
+                                                const v = parseFloat(arr[i]);
+                                                if (!isNaN(v) && v !== 0) { ytd += v; hasAny = true; }
+                                            }
+                                            const newArr = new Array(14).fill(null);
+                                            newArr[0] = hasAny ? ytd : (arr[0] || null);
+                                            carried.vals[key] = newArr;
+                                        }
+                                    });
+                                }
+                                carried.oshData = {};
+                                return carried;
+                            });
+                        state.yearProjectCache.set(newYear, carriedOffline);
+                    } else {
+                        // Going to older year with no data — blank (safety fallback, should not happen post-2026)
+                        state.yearProjectCache.set(newYear, []);
+                    }
                 }
             }
 
             // ── STEP 6: Restore personnel (always global, never reset) ──
             state.personnelData = preservedPersonnel;
 
-            // ── STEP 7: Filter projects for the new year ──
+            // ── STEP 7: Rebuild masterProjects from year-keyed cache (ISOLATED — no cross-year bleed) ──
+            // masterProjects = project shells from all years (identity/dates only) + full data from newYear
+            const newYearCachedProjects = state.yearProjectCache.get(newYear) || [];
+            const shellMap = new Map();
+            // First pass: collect project shells (identity only) from all cached years
+            state.yearProjectCache.forEach((projects, yr) => {
+                projects.forEach(p => {
+                    if (!shellMap.has(p.name)) {
+                        shellMap.set(p.name, {
+                            name: p.name,
+                            region: p.region,
+                            dateStarted: p.dateStarted,
+                            dateFinished: p.dateFinished,
+                            status: p.status,
+                            vals: {},
+                            oshData: {}
+                        });
+                    }
+                });
+            });
+            // Second pass: overlay the selected year's full data
+            newYearCachedProjects.forEach(p => {
+                shellMap.set(p.name, p); // full project data (vals, oshData, etc.) for current year
+            });
+            state.masterProjects = Array.from(shellMap.values());
+
             state.projects = filterProjectsByYear(state.masterProjects, newYear);
             ensureCorporateProject(); ensurePlantProjects();
             state.filteredProjects = [...state.projects];
@@ -15146,265 +15295,23 @@ function closeAllStatusDropdowns() {
 
 
 // ==================== TABULATION TAB ====================
-const TABULATION_DATA = {
-    // ── Section 1: Incident / Accident Summary per Year ──
-    // Columns: Previous, Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec, Total, Accumulated/Running
-    2022: {
-        summary: {
-            headers: ['Incident / Accident', 'Previous', 'July', 'August', 'September', 'October', 'November', 'December', 'Total', 'Running'],
-            rows: [
-                ['Fatality',                     0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['LTA',                          2,  0,  0,  1,  0,  0,  0,  1,  3],
-                ['Restricted Work Accident',     1,  1,  0,  0,  0,  8,  3, 12, 13],
-                ['First Aid',                   36, 12,  7,  7, 11,  7,  5, 49, 85],
-                ['Medical Treatment',           23,  6,  1,  7,  9,  5,  9, 37, 60],
-                ['Property Damage',             76, 19,  7,  9,  8,  1,  1, 45,121],
-                ['Near Miss',                   13,  5,  2,  0,  1,  0,  0,  8, 21],
-                ['Security Incident',           13,  2,  0,  0,  0,  0,  0,  2, 15],
-                ['COVID Violation',              0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Environmental Accident',      12,  0,  0,  1,  0,  0,  0,  1, 13],
-            ],
-            total: [176, 45, 17, 25, 29, 21, 18, 155, 331],
-            note: 'Data covers July–December 2022 only (first year of recording)'
-        },
-        mechanism: null,
-        factors: null,
-        yearlyTotal: 169
-    },
-    2023: {
-        summary: {
-            headers: ['Incident / Accident', 'Previous', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Total', 'Running'],
-            rows: [
-                ['Fatality',                        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['LTA',                             3,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  1,  4],
-                ['Restricted Work Accident',       13,  0,  0,  0,  0,  1,  1,  0,  0,  0,  0,  1,  0,  3, 16],
-                ['First Aid',                      85,  4,  0,  4,  0,  2,  6,  4,  4,  1,  8,  9, 12, 54,139],
-                ['Medical Treatment',              60,  0,  1,  1,  1,  0,  1,  0,  2,  0,  2,  4,  0, 12, 72],
-                ['Property Damage',               121,  8,  9, 11,  4, 12,  7, 10,  2,  2,  5,  2,  2, 74,195],
-                ['Near Miss',                      21,  2,  1,  1,  1,  6,  5,  8,  0,  8,  2,  5,  2, 41, 62],
-                ['Security Incident',              15,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  1, 16],
-                ['COVID Violation',                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['External Environmental Incident', 13,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 13],
-                ['Internal Environmental Incident',  0,  0,  0,  0,  1,  0,  3,  4,  4,  2,  0,  0,  1, 15, 15],
-            ],
-            total: [331, 14, 11, 22,  8, 21, 23, 26, 12, 13, 17, 22, 17, 201, 532],
-            yearlyTotal: 123
-        },
-        mechanism: null,
-        factors: null,
-        yearlyTotal: 123
-    },
-    2024: {
-        summary: {
-            headers: ['Incident / Accident', 'Previous', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Total'],
-            rows: [
-                ['Fatality',                        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['LTA',                             1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['First Aid',                      54,  4,  5,  8,  3,  0,  2,  7,  1,  4,  5,  1,  2, 42],
-                ['Medical Treatment',              12,  1,  0,  1,  0,  1,  0,  0,  1,  1,  1,  1,  0,  7],
-                ['Property Damage',                74,  5,  6,  2,  0,  1,  2,  1,  0,  3,  3,  4,  1, 28],
-                ['Near Miss',                      41,  3,  0,  0,  0,  0,  2,  0,  0,  0,  0,  0,  0,  5],
-                ['External Environmental Incident',  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  5,  0,  0,  5],
-                ['Internal Environmental Incident', 15,  0,  0,  0,  0,  0,  2,  0,  0,  0,  0,  0,  0,  2],
-            ],
-            total: [197, 13, 11, 11,  3,  2,  8,  8,  2,  8, 14,  6,  3, 89],
-            yearlyTotal: 61
-        },
-        mechanism: null,
-        factors: null,
-        yearlyTotal: 61
-    },
-    2025: {
-        summary: {
-            headers: ['Incident / Accident', 'Previous', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Total'],
-            rows: [
-                ['Fatality',                        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['LTA',                             0,  0,  0,  0,  0,  0,  0,  0,  2,  1,  1,  1,  1,  6],
-                ['First Aid',                      30,  7,  2, 10,  5,  7, 11,  7,  6,  6,  5,  6,  5, 77],
-                ['Medical Treatment',               8,  1,  2,  0,  0,  0,  0,  2,  1,  3,  4,  1,  5, 19],
-                ['Near Miss',                       8,  0,  0,  2,  0,  1,  1,  1,  2,  0,  1,  6,  0, 14],
-                ['External Environmental Incident',  5,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  4],
-                ['Internal Environmental Incident',  2,  0,  0,  0,  0,  0,  0,  0,  1,  0,  1,  0,  0,  2],
-            ],
-            total: [53, 12,  4, 12,  5,  8, 12, 10, 12, 10, 12, 14, 11, 122],
-            yearlyTotal: 122
-        },
-        mechanism: {
-            headers: ['Mechanism', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            rows: [
-                ['Struck-By',                   2,  2,  6,  1,  6,  3,  6,  4,  1,  3,  2,  4],
-                ['Struck Against',              2,  1,  1,  2,  1,  4,  3,  2,  1,  1,  1,  3],
-                ['Caught-In',                   1,  0,  1,  0,  0,  0,  0,  1,  0,  0,  0,  0],
-                ['Caught-On',                   0,  0,  0,  0,  0,  0,  0,  1,  0,  1,  0,  0],
-                ['Electric Shock',              0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Contact With',                0,  0,  0,  0,  0,  0,  0,  1,  0,  1,  0,  0],
-                ['Caught in Between',           0,  0,  0,  1,  0,  1,  0,  0,  2,  1,  3,  2],
-                ['Caught By',                   0,  0,  0,  0,  0,  1,  0,  0,  1,  0,  0,  0],
-                ['Fall to Surface',             0,  1,  1,  0,  0,  1,  0,  1,  1,  1,  2,  0],
-                ['Fall to Below',               3,  0,  0,  1,  0,  2,  1,  0,  1,  0,  0,  0],
-                ['Arc Flashes',                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Burns',                       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Manual Handling',             0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Overexertion',                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Chemical Burns',              0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Inhalation of Toxic Fumes',   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Skin Irritation',             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Fire and Explosions',         0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1],
-                ['Heat Stress',                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Cold Exposure',               0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Hearing Loss',                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Vehicular Accident',          0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Health Concern',              0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Animal/Insect Bite',          0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Environmental Accident',      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Near Miss',                   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Others',                      4,  0,  2,  0,  1,  0,  0,  2,  3,  4,  6,  1],
-            ],
-            total: [12,  4, 12,  5,  8, 12, 10, 12, 10, 12, 14, 11]
-        },
-        factors: {
-            headers: ['Factor', 'Sub-Factor', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            rows: [
-                ['PEOPLE',        'Lack of Awareness or Training',      3,  0,  4,  2,  3,  2,  4,  3,  2,  3,  2,  0],
-                ['',              'Fatigue and Stress',                  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Negligence or Complacency',           1,  0,  2,  0,  0,  2,  0,  1,  0,  1,  2,  0],
-                ['',              'Ignoring Safety Procedures',          2,  0,  2,  1,  0,  0,  0,  1,  2,  2,  2,  0],
-                ['',              'Distractions',                        1,  1,  0,  0,  1,  0,  0,  0,  2,  0,  0,  0],
-                ['',              'Poor Communication',                  0,  0,  0,  1,  0,  1,  0,  2,  0,  1,  0,  0],
-                ['',              'Improper Use of Equipment',           0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  2,  0],
-                ['',              'Risk-Taking Behavior',                1,  0,  1,  0,  0,  0,  2,  1,  1,  2,  4,  0],
-                ['EQUIPMENT',     'Faulty Equipment',                    1,  0,  0,  0,  2,  0,  0,  0,  1,  1,  0,  0],
-                ['',              'Improper Use of Tools',               0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0],
-                ['',              'Lack of Maintenance',                 0,  0,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0],
-                ['',              'Failure to Use PPE',                  1,  1,  2,  0,  2,  2,  2,  2,  1,  0,  0,  0],
-                ['',              'Uncalibrated/Outdated Equipment',     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['MATERIALS',     'Flammable or Toxic Substances',       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Improper Storage',                    0,  0,  0,  1,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Defective Materials',                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Spills and Leaks',                    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['ENVIRONMENT',   'Poor Housekeeping',                   1,  1,  0,  0,  0,  1,  0,  0,  0,  0,  0,  0],
-                ['',              'Defective Equipment',                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Hazardous Substances',                0,  0,  0,  0,  0,  1,  0,  0,  1,  0,  0,  0],
-                ['',              'Weather Conditions',                  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  2,  0],
-                ['',              'Inadequate Ventilation',              0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Inadequate Lighting',                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Excessive Noise',                     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Excessive Vibration',                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Congested Work Areas',                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['ORGANIZATIONAL','Lack of Safety Training',             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Poor Supervision',                    0,  1,  0,  0,  0,  2,  1,  0,  0,  0,  1,  0],
-                ['',              'Inadequate Risk Assessments',         0,  0,  0,  0,  0,  0,  2,  0,  0,  0,  0,  0],
-                ['',              'Pressure to Meet Deadlines',          0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Lack of Proper PPE',                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Failure to Maintain Equipment',       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-            ],
-            total: [12,  4, 12,  5,  8, 12, 11, 11, 10, 11, 15,  0]
-        },
-        yearlyTotal: 122
-    },
-    2026: {
-        summary: {
-            headers: ['Incident / Accident', 'Previous', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Total', 'Accumulated'],
-            rows: [
-                ['Fatality',                        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['LTA',                             0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1],
-                ['First Aid',                     107,  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  4,111],
-                ['Medical Treatment',              27,  3,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  3, 30],
-                ['Near Miss',                      22,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1, 23],
-                ['External Environmental Incident',  9,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  9],
-                ['Internal Environmental Incident',  4,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  4],
-            ],
-            total: [169, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 178],
-            yearlyTotal: 9
-        },
-        mechanism: {
-            headers: ['Mechanism', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            rows: [
-                ['Struck-By',                   3,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Struck Against',              2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Caught-In',                   1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Caught-On',                   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Electric Shock',              0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Contact With',                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Caught in Between',           1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Caught By',                   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Fall to Surface',             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Fall to Below',               0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Arc Flashes',                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Burns',                       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Manual Handling',             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Overexertion',                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Chemical Burns',              0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Inhalation of Toxic Fumes',   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Skin Irritation',             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Fire and Explosions',         0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Heat Stress',                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Cold Exposure',               0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Hearing Loss',                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Vehicular Accident',          1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Health Concern',              0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Animal/Insect Bite',          0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Environmental Accident',      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Near Miss',                   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['Others',                      1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-            ],
-            total: [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        },
-        factors: {
-            headers: ['Factor', 'Sub-Factor', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            rows: [
-                ['PEOPLE',        'Lack of Awareness or Training',      3,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Fatigue and Stress',                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Negligence or Complacency',           1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Ignoring Safety Procedures',          0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Distractions',                        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Poor Communication',                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Improper Use of Equipment',           0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Risk-Taking Behavior',                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['EQUIPMENT',     'Faulty Equipment',                    1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Improper Use of Tools',               0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Lack of Maintenance',                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Failure to Use PPE',                  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Uncalibrated/Outdated Equipment',     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['MATERIALS',     'Flammable or Toxic Substances',       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Improper Storage',                    1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Defective Materials',                 1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Spills and Leaks',                    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['ENVIRONMENT',   'Poor Housekeeping',                   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Defective Equipment',                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Hazardous Substances',                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Weather Conditions',                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Inadequate Ventilation',              0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Inadequate Lighting',                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Excessive Noise',                     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Excessive Vibration',                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Congested Work Areas',                0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['ORGANIZATIONAL','Lack of Safety Training',             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Poor Supervision',                    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Inadequate Risk Assessments',         0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Pressure to Meet Deadlines',          0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Lack of Proper PPE',                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-                ['',              'Failure to Maintain Equipment',       0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
-            ],
-            total: [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        },
-        yearlyTotal: 9
-    }
-};
+// Pre-2026 TABULATION_DATA removed — dashboard starts from 2026.
+// All 2026+ tabulation data is computed dynamically from live project records.
+const TABULATION_DATA = {}; // kept as empty object for any legacy references
 
-// Multi-year comparison table data (from Tabulation 2025 sheet rows 158-168)
+// Multi-year comparison table — starts from 2026 (pre-2026 years are archived/static)
 const MULTI_YEAR_DATA = {
-    headers: ['Incident / Accident', '2022', '2023', '2024', '2025', '2026'],
+    headers: ['Incident / Accident', '2026'],
     rows: [
-        ['Fatality',                       0,   0,   0,   0,   0],
-        ['LTA',                            3,   1,   0,   6,   1],
-        ['First Aid',                     85,  54,  42,  77,   4],
-        ['Medical Treatment',             60,  12,   7,  19,   3],
-        ['Near Miss',                     21,  41,   5,  14,   1],
-        ['External Environmental Incident', 0,   0,   5,   4,   0],
-        ['Internal Environmental Incident', 0,  15,   2,   2,   0],
+        ['Fatality',                        0],
+        ['LTA',                             1],
+        ['First Aid',                       4],
+        ['Medical Treatment',               3],
+        ['Near Miss',                       1],
+        ['External Environmental Incident', 0],
+        ['Internal Environmental Incident', 0],
     ],
-    total: [169, 123, 61, 122, 9]
+    total: [9]
 };
 
 // ── Auto-compute Mechanism table from LTA Registry entries ──
@@ -15578,7 +15485,7 @@ function renderTabulation() {
     }
 
     function renderSummaryTable(year, data) {
-        const isCompact = [2022, 2023, 2024].includes(year);
+        const isCompact = false; // All years from 2026+ use full 12-month layout
         const months = data.headers.slice(2, data.headers.length - (data.headers.includes('Accumulated') || data.headers.includes('Running') ? 2 : 1));
         const hasAccum = data.headers.includes('Accumulated') || data.headers.includes('Running');
         const accumLabel = data.headers.includes('Accumulated') ? 'Accumulated' : 'Running';
@@ -15695,11 +15602,15 @@ function renderTabulation() {
     }
 
     function renderMultiYearTable() {
-        const colors = { 2022:'#66bb6a', 2023:'#43a047', 2024:'#2e7d32', 2025:'#1b5e20', 2026:'#0d3d0f' };
+        // Dynamic multi-year table — shows all available years from 2026 onwards
+        const multiYears = (typeof availableYears !== 'undefined' ? availableYears : [2026]).filter(y => y >= 2026);
+        const greenShades = ['#1b5e20','#2e7d32','#388e3c','#43a047','#66bb6a','#81c784','#a5d6a7'];
+        const colors = {};
+        multiYears.forEach((y, i) => { colors[y] = greenShades[i] || '#1b5e20'; });
         let html = `<table style="width:100%;border-collapse:collapse;">
             <thead><tr>
                 ${headerCell('Incident / Accident', '', '', C.tblHdrDark, '#1b5e20')}
-                ${[2022,2023,2024,2025,2026].map(y => headerCell(y, '', '', colors[y], 'white')).join('')}
+                ${multiYears.map(y => headerCell(y, '', '', colors[y], 'white')).join('')}
                 ${headerCell('Grand Total', '', '', C.tblHdrDark, '#1b5e20')}
             </tr></thead><tbody>`;
         MULTI_YEAR_DATA.rows.forEach((row, i) => {
@@ -15724,8 +15635,9 @@ function renderTabulation() {
 
     // ── BUILD PAGE — show only the selected year ──
     const year = state.selectedYear || 2026;
-    const availableYears = [2022, 2023, 2024, 2025, 2026];
-    const yearColors = { 2022:'#66bb6a', 2023:'#43a047', 2024:'#2e7d32', 2025:'#1b5e20', 2026:'#0d3d0f' };
+    // Pre-2026 years are archived static data. From 2026 onwards, all data is live/dynamic.
+    const availableYears = [2026, 2027, 2028, 2029, 2030];
+    const yearColors = { 2026:'#1b5e20', 2027:'#2e7d32', 2028:'#388e3c', 2029:'#43a047', 2030:'#66bb6a' };
     const yc = yearColors[year] || '#1b5e20';
 
     // ── AUTO-COMPUTE for 2026 and above ──
@@ -15836,7 +15748,14 @@ function renderTabulation() {
             isAutoComputed: true,
         };
     } else {
-        d = TABULATION_DATA[year] || TABULATION_DATA[2025];
+        // Year < 2026 — pre-2026 data is archived static data (shown in a separate archived view if needed)
+        // For the live dashboard, only 2026+ is supported. Default to blank structure.
+        d = {
+            summary: { headers: ['Incident / Accident', 'Previous', 'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Total'], rows: [], total: [] },
+            mechanism: null,
+            factors: null,
+            yearlyTotal: 0
+        };
     }
 
     // ── Build tab strip (same style as GOT monitoring) ──
@@ -18476,8 +18395,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     // ── State: which month/role is active per project ──
                     if (!window._kpmActiveMo) window._kpmActiveMo = {};
                     if (!window._kpmActiveRole) window._kpmActiveRole = {};
-                    window.kpmSetMo = function(pKey, mo) { window._kpmActiveMo[pKey] = mo; render(); };
-                    window.kpmSetRole = function(pKey, role) { window._kpmActiveRole[pKey] = role; render(); };
+                    window.kpmSetMo = function(pKey, mo) {
+                        window._kpmActiveMo[pKey] = mo;
+                        // In-place refresh — avoid full render() to prevent wiping active inputs
+                        if (typeof window.kpmRefreshProject === 'function') { window.kpmRefreshProject(pKey); } else { render(); }
+                    };
+                    window.kpmSetRole = function(pKey, role) {
+                        window._kpmActiveRole[pKey] = role;
+                        if (typeof window.kpmRefreshProject === 'function') { window.kpmRefreshProject(pKey); } else { render(); }
+                    };
 
                     // ── In-place EP update: recalc avg EP → Total % for a row when any project EP changes ──
                     // Auto-percent helpers: strip % on focus, append % on blur
@@ -18501,7 +18427,14 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             inp.style.color = '#aaa';
                         }
                         var pObj = state.projects.find(function(x){ return x.name === pnSafe; });
-                        if (pObj) { pObj.vals['kpm_v3_' + activeMo + '_' + rowId] = inp.value; if(typeof markPendingSync==='function') markPendingSync(); if(typeof saveToFirebaseDebounced==='function') saveToFirebaseDebounced(); }
+                        if (pObj) {
+                            // ── RBAC guard: reject write if user lacks edit permission ──
+                            var _rbacEp = UserAccounts.checkPermission(state.currentUser && state.currentUser.email, 'edit', pObj.region, 'kpm');
+                            if (!_rbacEp.allowed) { showLockedMessage(_rbacEp.reason); return; }
+                            pObj.vals['kpm_v3_' + activeMo + '_' + rowId] = inp.value;
+                            if(typeof markPendingSync==='function') markPendingSync();
+                            if(typeof saveToFirebaseDebounced==='function') saveToFirebaseDebounced();
+                        }
                         window.kpmUpdateRowTotals(regKey, rowId, dw);
                     };
                     window.kpmAutoPercent = function(inp) {
@@ -18544,6 +18477,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     // ── Per-REGION KPM consolidated table: all projects as EP columns ──
                     function buildKpmRegionTable(projs, reg, activeMo, canEdit) {
+                        window._buildKpmRegionTable = buildKpmRegionTable; // expose for in-place refresh
                         var rows = KPM_ESH_ROWS;
                         var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
                         var totalDW = rows.reduce(function(s,r){return s+r.dw;}, 0);
@@ -18659,7 +18593,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             else { tabBg='#fff8e1'; tabColor='#e65100'; tabBorder='2px solid #ffe082'; }
                             var overdueIcon = isPast && !dateSubm && !isActive ? '<sup style="color:#c62828;font-size:0.45rem;margin-left:1px;">!</sup>' : '';
                             var dataIcon = hasData && !isActive ? '<sup style="color:#fbc02d;font-size:0.5rem;">\u25cf</sup>' : '';
-                            return '<button onclick="window._kpmRegActiveMo=window._kpmRegActiveMo||{};window._kpmRegActiveMo[\'' + regKey + '\']=\'' + mo + '\';render();"'
+                            return '<button onclick="window._kpmRegActiveMo=window._kpmRegActiveMo||{};window._kpmRegActiveMo[\'' + regKey + '\']=\'' + mo + '\';(typeof window.kpmRefreshRegion===\'function\'?window.kpmRefreshRegion(\'' + regKey + '\'):render());"'
                                 + ' style="padding:4px 10px;font-size:0.67rem;font-weight:700;border:none;border-radius:4px;cursor:pointer;white-space:nowrap;'
                                 + 'background:' + tabBg + ';color:' + tabColor + ';border-bottom:' + tabBorder + ';' + (isFuture?'opacity:0.55;':'') + '">'
                                 + mo.substring(0,3).toUpperCase() + overdueIcon + dataIcon + '</button>';
@@ -18776,6 +18710,26 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     });
 
                     container.innerHTML = html;
+
+                    // ── In-place KPM region refresh — swap only the table content, not the whole page ──
+                    // Called when user switches months in the KPM tab to avoid full render() and data loss.
+                    window.kpmRefreshRegion = function(regKey) {
+                        var REGIONS_LOCAL = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO','CORPORATE','PLANT OPERATIONS'];
+                        var reg = REGIONS_LOCAL.find(function(r){ return r.replace(/[^a-zA-Z0-9]/g,'_') === regKey; });
+                        if (!reg) return;
+                        var projs = (state.filteredProjects || state.projects).filter(function(p){ return p.region === reg; });
+                        if (!projs.length) return;
+                        var canEditReg = state.isEditing && UserAccounts.canEdit(state.currentUser && state.currentUser.email, reg) && UserAccounts.canEditTab(state.currentUser && state.currentUser.email, 'kpm');
+                        var activeMo = (window._kpmRegActiveMo && window._kpmRegActiveMo[regKey]) || 'January';
+                        var contentEl = document.getElementById('region-content-' + reg);
+                        if (!contentEl) return;
+                        var buildFn = window._buildKpmRegionTable;
+                        if (typeof buildFn === 'function') {
+                            contentEl.innerHTML = buildFn(projs, reg, activeMo, canEditReg);
+                        }
+                    };
+                    window.kpmRefreshProject = window.kpmRefreshRegion; // alias
+
                     return; // ── KPM rendering done, skip the rest ──
                 }
 
@@ -22506,6 +22460,12 @@ async function saveToFirebaseWithRetry(maxRetries = 2, delayMs = 3000) {
         // ✅ FIX: Release the save lock before retry so the next attempt is not blocked
         _isSaving = false;
 
+        // ✅ FIX: Keep echo suppression active during retry delay to prevent Firebase
+        // echo snapshots from overwriting local state between retry attempts.
+        // Without this, the 3s retry window allowed echoes to corrupt state.projects,
+        // causing a re-render that made newly-entered data appear to "disappear" after save.
+        window._isSavingEcho = true;
+
         const success = await saveToFirebase();
         if (success) return true;
         if (attempt < maxRetries) {
@@ -22513,6 +22473,8 @@ async function saveToFirebaseWithRetry(maxRetries = 2, delayMs = 3000) {
             await new Promise(r => setTimeout(r, delayMs));
         }
     }
+    // All retries failed — release echo suppression after short delay
+    setTimeout(() => { window._isSavingEcho = false; }, 2000);
     return false;
 }
 
@@ -22783,11 +22745,19 @@ function _buildProjectsByYear(masterProjects) {
 // ── Save concurrency lock — prevents double/parallel saves ──
 let _isSaving = false;
 let _saveDebounceTimer = null;
+// ── Echo suppression flag — set after save completes to block the Firebase echo snapshot ──
+window._isSavingEcho = false;
 
 // Debounced wrapper: collapses rapid-fire calls into a single save after 400ms idle
 function saveToFirebaseDebounced() {
     clearTimeout(_saveDebounceTimer);
-    _saveDebounceTimer = setTimeout(() => saveToFirebase(), 400);
+    // Mark echo suppression immediately so any rapid snapshot during debounce window is blocked
+    window._isSavingEcho = true;
+    _saveDebounceTimer = setTimeout(() => {
+        saveToFirebase().catch(() => {}).finally(() => {
+            // _isSavingEcho is also reset in saveToFirebase's finally block (6s after save)
+        });
+    }, 400);
 }
 window.saveToFirebaseDebounced = saveToFirebaseDebounced;
 
@@ -22795,6 +22765,14 @@ async function saveToFirebase() {
     if (!firebaseReady || !window.firebaseDb) {
         console.log('⏳ Firebase not ready');
         return false;
+    }
+
+    // ✅ RBAC HARD GUARD: Manager and other view-only roles cannot write to Firebase.
+    // Returning early here prevents cascading "Missing or insufficient permissions" errors
+    // from Firestore, which also eliminates console spam and unnecessary network calls.
+    const _earlyUserInfo = UserAccounts.getUserInfo(state.currentUser?.email);
+    if (_earlyUserInfo.role === 'manager' || _earlyUserInfo.role === 'guest') {
+        return false; // view-only role — silent skip, no console noise
     }
 
     // ✅ FIX: Concurrency lock — if a save is already in progress, skip (don't stack)
@@ -22819,9 +22797,7 @@ async function saveToFirebase() {
         // Check if this user can write to the current tab at all
         const tabCheck = UserAccounts.checkPermission(currentEmail, 'edit', userInfo.region, state.currentTab);
         if (!tabCheck.allowed) {
-            console.warn('⚠️ RBAC: Save skipped — user cannot edit tab:', state.currentTab, tabCheck.reason);
-            // Don't block the save entirely — just skip silently (read-only tabs trigger auto-saves on preference changes)
-            // Only block if the user is actively trying to save data (not preference-only saves)
+            // Silent — view-only roles are already blocked at the top of this function
         }
     }
     // ── END RBAC PRE-SAVE VALIDATION ──
@@ -22831,9 +22807,20 @@ async function saveToFirebase() {
         const currentUserId = getCurrentUserId(); // Current user's UID for preferences
         const currentYear = state.selectedYear || 2026;
         
-        // Update masterProjects with current changes
-        // Only merge if state.projects has actual data (guard against empty-state overwrite)
+        // ── UPDATE CURRENT YEAR'S CACHE with latest state.projects data ──
+        // state.projects = projects currently displayed (filtered for currentYear)
+        // Sync any edits back into the year cache before saving.
+        if (!state.yearProjectCache) state.yearProjectCache = new Map();
         if (state.projects && state.projects.length > 0) {
+            // Build updated cache for current year: start from existing cache, overlay state.projects edits
+            const existingCache = state.yearProjectCache.get(currentYear) || [];
+            const cacheMap = new Map(existingCache.map(p => [p.name, p]));
+            state.projects.forEach(project => {
+                cacheMap.set(project.name, project); // apply latest edits
+            });
+            state.yearProjectCache.set(currentYear, Array.from(cacheMap.values()));
+
+            // Also keep masterProjects in sync (shells + current year full data)
             state.projects.forEach(project => {
                 const index = state.masterProjects.findIndex(p => p.name === project.name);
                 if (index >= 0) {
@@ -22843,13 +22830,30 @@ async function saveToFirebase() {
                 }
             });
         } else if (state.masterProjects.length === 0) {
-            // Both are empty — nothing to save for projects, but continue to save metadata
             console.log('ℹ️ saveToFirebase: no projects in state — saving metadata only');
         }
-        
-        // Now save ALL master projects to ALL their relevant years
-        // Group projects by year they should appear in
-        const projectsByYear = _buildProjectsByYear(state.masterProjects);
+
+        // ── SAVE CURRENT YEAR ONLY from the year-keyed cache ──
+        // We NEVER re-save other years' data — each year is an isolated dataset.
+        // This prevents the bug where switching years caused other years to be overwritten.
+        const _allCurrentYearProjects = state.yearProjectCache.get(currentYear) || [];
+
+        // ── RBAC PROJECT FILTER: Only save projects this user has write permission for ──
+        // Superintendents and PCOs can only write to their own region.
+        // Admins (region === 'ALL') can write to everything.
+        // Without this filter, Firestore security rules reject writes to other regions,
+        // causing 25/35 "Missing or insufficient permissions" errors in the console.
+        const currentYearProjects = (() => {
+            if (!userInfo || userInfo.role === 'admin' || userInfo.region === 'ALL') {
+                return _allCurrentYearProjects; // admins save everything
+            }
+            const allowedRegion = userInfo.region; // e.g. 'VISAYAS & MINDANAO'
+            const filtered = _allCurrentYearProjects.filter(p => p.region === allowedRegion);
+            if (filtered.length < _allCurrentYearProjects.length) {
+                console.log(`🔒 RBAC: Saving only ${filtered.length}/${_allCurrentYearProjects.length} projects (region: ${allowedRegion}) — others are read-only for this role.`);
+            }
+            return filtered;
+        })();
 
         // Build year-level metadata payload (projects are now in subcollection — NOT embedded here)
         function buildYearPayload(year) {
@@ -22878,18 +22882,14 @@ async function saveToFirebase() {
                 timestamp: Date.now(),
                 _projectsInSubcollection: true  // migration marker: projects moved to subcollection
             };
-            if (year === currentYear) {
-                // incidentRateData is computed from project docs on load — no need to persist here
-                // oshData is now stored inside each project doc (atomic saves) — NOT here
-                // Both fields kept as comments to explain intentional omission
-            }
+            // incidentRateData / oshData: stored inside each project doc — NOT here
             // personnelData: saved in users/{adminUid}/personnel/{pid} — NOT here
             // projects: saved in users/{adminUid}/years/{year}/projects/{projectId} — NOT here
             return sanitize(payload);
         }
 
-        // FAST PATH: Save current year first (metadata + projects)
-        const currentYearProjects = projectsByYear.get(currentYear) || [];
+        // FAST PATH: Save current year only (metadata + projects)
+        // ⚠️ We intentionally do NOT save other years — each year is isolated to prevent cross-year bleed.
         const currentYearRef = window.firebase.doc(window.firebaseDb, 'users', dataUserId, 'years', currentYear.toString());
         
         // Add 15-second timeout so spinner never hangs forever (was 8s — too short for slow connections)
@@ -22926,26 +22926,15 @@ async function saveToFirebase() {
         }, { merge: true }).catch(e => console.warn('Preferences save failed:', e));
 
         state.lastSyncTimestamp = Date.now();
-        console.log(`✅ Current year (${currentYear}) saved to Firebase:`, new Date().toLocaleTimeString());
+        console.log(`✅ Current year (${currentYear}) saved to Firebase (isolated — other years untouched):`, new Date().toLocaleTimeString());
 
-        // BACKGROUND: Save other years silently after spinner is done (non-blocking)
-        setTimeout(() => {
-            const bgPromises = [];
-            projectsByYear.forEach((projects, year) => {
-                if (year === currentYear) return; // already saved
-                const ref = window.firebase.doc(window.firebaseDb, 'users', dataUserId, 'years', year.toString());
-                // Save year metadata + per-project docs
-                bgPromises.push(
-                    window.firebase.setDoc(ref, buildYearPayload(year), { merge: true }),
-                    ProjectsDB.saveProjects(year, projects)
-                );
-            });
-            if (bgPromises.length > 0) {
-                Promise.all(bgPromises)
-                    .then(() => console.log(`☁️ Background save complete for ${bgPromises.length} other year(s)`))
-                    .catch(e => console.warn('Background year save failed:', e));
-            }
-        }, 500);
+        // ── BACKGROUND SAVES: Intentionally removed ──
+        // Previously, this section re-saved ALL years' project data in the background.
+        // This caused cross-year data bleed: when state.masterProjects was a shared flat array,
+        // saving "all years" would overwrite isolated year docs with merged/stale data.
+        // Each year is now saved ONLY when it is the active selectedYear. Historical years
+        // are read-only after switching away — their Firebase docs are never touched again
+        // unless you explicitly switch back to that year and make changes.
 
         return true;
         
@@ -22956,7 +22945,8 @@ async function saveToFirebase() {
     } finally {
         // Keep lock for 5s — covers background saves of all years (32 projects × 9 years)
         // so their echo snapshots don't trigger unwanted re-renders
-        setTimeout(() => { _isSaving = false; }, 5000);
+        window._isSavingEcho = true; // suppress echo snapshots for 6s after save
+        setTimeout(() => { _isSaving = false; window._isSavingEcho = false; }, 6000);
     }
 }
 
@@ -23259,6 +23249,20 @@ async function loadAllProjectsAndFilter() {
                 state.oshData = cachedData.oshData || {};
                 state.projects = filterProjectsByYear(state.masterProjects, selectedYear);
                 state.filteredProjects = [...state.projects];
+
+                // Seed yearProjectCache from localStorage cache if available
+                // This prevents cross-year bleed on instant render by partitioning projects per year
+                if (!state.yearProjectCache) state.yearProjectCache = new Map();
+                if (cachedData.yearProjectCache && typeof cachedData.yearProjectCache === 'object') {
+                    // Restore structured year cache (saved in new format)
+                    Object.entries(cachedData.yearProjectCache).forEach(([yr, projects]) => {
+                        state.yearProjectCache.set(parseInt(yr), (projects || []).map(p => JSON.parse(JSON.stringify(p))));
+                    });
+                } else {
+                    // Legacy flat cache: seed selectedYear cache from masterProjects (best effort)
+                    state.yearProjectCache.set(selectedYear, state.projects.map(p => JSON.parse(JSON.stringify(p))));
+                }
+
                 render();
                 renderPTable();
                 console.log(`⚡ Instant render from cache (${Math.round(cacheAge/1000)}s old)`);
@@ -23287,7 +23291,11 @@ async function loadAllProjectsAndFilter() {
             PersonnelDB.loadAll()
         ]);
 
-        const projectMap = new Map();
+        // ── YEAR-KEYED PROJECT CACHE (Fix: each year has its own isolated project array) ──
+        // state.yearProjectCache = Map<year, projects[]>
+        // This prevents cross-year data bleeding. Projects are NEVER merged by name across years.
+        if (!state.yearProjectCache) state.yearProjectCache = new Map();
+
         let personnelData = [];
         let incidentRateData = { recordableCases: 0, lostDays: 0, totalHours: 0 };
         let oshData = {};
@@ -23314,7 +23322,10 @@ async function loadAllProjectsAndFilter() {
             } else {
                 console.log(`   Year ${year}: ${projects.length} projects (per-project docs ✅)`);
             }
-            projects.forEach(p => { projectMap.set(p.name, p); });
+
+            // ── ISOLATED YEAR CACHE: store this year's projects separately ──
+            // Deep clone to prevent any reference sharing between year caches
+            state.yearProjectCache.set(year, projects.map(p => JSON.parse(JSON.stringify(p))));
 
             // Legacy personnel fallback (if PersonnelDB has no docs yet)
             if (year === selectedYear && !personnelFromDB && data.personnelData && data.personnelData.length > 0) {
@@ -23330,14 +23341,45 @@ async function loadAllProjectsAndFilter() {
             console.log(`ℹ️ PersonnelDB: no individual docs yet — using legacy data (${personnelData.length} records). Will migrate on next save.`);
         }
 
-        state.masterProjects = Array.from(projectMap.values());
+        // ── BUILD masterProjects from SELECTED YEAR ONLY (no cross-year bleed) ──
+        // masterProjects now = current year's projects (project identity/dates) merged with
+        // projects from OTHER years that have NO data for this year yet (for filtering)
+        // We keep a flat deduped list of project shells for filterProjectsByYear, but
+        // vals/inputs come exclusively from the selectedYear cache.
+        const selectedYearProjects = state.yearProjectCache.get(selectedYear) || [];
+
+        // Collect project shells (name + dates only) from all years for filter purposes
+        const projectShellMap = new Map();
+        availableYears.forEach(year => {
+            (state.yearProjectCache.get(year) || []).forEach(p => {
+                if (!projectShellMap.has(p.name)) {
+                    // Store only identity fields (no vals) as shell
+                    projectShellMap.set(p.name, {
+                        name: p.name,
+                        region: p.region,
+                        dateStarted: p.dateStarted,
+                        dateFinished: p.dateFinished,
+                        status: p.status,
+                        vals: {},
+                        oshData: {}
+                    });
+                }
+            });
+        });
+
+        // Overlay selectedYear actual data on top of the shells
+        selectedYearProjects.forEach(p => {
+            projectShellMap.set(p.name, p); // full data for current year
+        });
+
+        state.masterProjects = Array.from(projectShellMap.values());
         state.personnelData = personnelData;
         state.incidentRateData = incidentRateData;
 
         // ── Rebuild oshData from per-project docs (atomic source of truth) ──
         // oshData is no longer stored in the year metadata doc — it lives inside each project doc.
         const rebuiltOshData = {};
-        state.masterProjects.forEach(p => {
+        selectedYearProjects.forEach(p => {
             if (p.oshData) rebuiltOshData[p.name] = p.oshData;
         });
         state.oshData = Object.keys(rebuiltOshData).length > 0 ? rebuiltOshData : (oshData || {});
@@ -23349,13 +23391,21 @@ async function loadAllProjectsAndFilter() {
 
         console.log(`✅ Loaded ${state.masterProjects.length} projects`);
 
-        // Save to cache
+        // Save to cache (include yearProjectCache for isolated year data on instant render)
         try {
+            // Convert Map to plain object for JSON serialization
+            const yearCacheObj = {};
+            if (state.yearProjectCache) {
+                state.yearProjectCache.forEach((projects, yr) => {
+                    yearCacheObj[yr] = projects;
+                });
+            }
             localStorage.setItem(CACHE_KEY, JSON.stringify({
                 masterProjects: state.masterProjects,
                 personnelData: state.personnelData,
                 incidentRateData: state.incidentRateData,
                 oshData: state.oshData,
+                yearProjectCache: yearCacheObj,
                 _personnelFromDedicatedDoc: personnelFromDB !== null // true if loaded from per-person docs
             }));
             localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
@@ -23709,6 +23759,15 @@ function setupAuthObserver() {
             startEshCalendarSync();
             // Start Firestore real-time listener — pushes project data updates to all logged-in accounts
             setTimeout(startProjectsRealtimeSync, 1500); // slight delay so initial load completes first
+
+            // ✅ FIX: If the last active tab was an ESH Calendar tab, re-render it now that
+            // projects are fully loaded. showUI() called changeTab() before loadAllProjectsAndFilter()
+            // completed, so renderEshCalendar() ran with an empty state.projects → blank table.
+            // Re-triggering it here ensures the table renders with actual project data.
+            const _eshCalTabTypes = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
+            if (_eshCalTabTypes.includes(state.currentTab)) {
+                try { eshFetchAndRender(state.currentTab); } catch(e) {}
+            }
             
             console.log('✅ All systems initialized successfully!');
             // ==================== END NEW SYSTEMS ====================
@@ -25848,11 +25907,28 @@ function saveOshData() {
         if (state.currentUser?.email) saveUserDataLocal(state.currentUser.email);
         return;
     }
+
+    // ── RBAC REGION FILTER: Only save oshData for projects the current user owns ──
+    // Superintendents/PCOs are restricted to their assigned region.
+    // Admins (region === 'ALL') can write to all projects.
+    const _oshUserInfo = UserAccounts.getUserInfo(state.currentUser?.email);
+    const _oshAllowedRegion = (_oshUserInfo.role === 'admin' || _oshUserInfo.region === 'ALL')
+        ? null  // null = no region filter = save all
+        : _oshUserInfo.region;
+
     const dataUserId = getDataSourceUserId();
     const year = state.selectedYear || 2026;
+    let _oshSkipped = 0;
     Object.entries(state.oshData).forEach(([projectName, oshEntry]) => {
         const project = (state.masterProjects || state.projects || []).find(p => p.name === projectName);
         if (!project) return;
+
+        // Skip projects outside the user's assigned region
+        if (_oshAllowedRegion && project.region !== _oshAllowedRegion) {
+            _oshSkipped++;
+            return;
+        }
+
         const projectId = ProjectsDB.getProjectId(project.name);
         const projectRef = window.firebase.doc(
             window.firebaseDb, 'users', dataUserId, 'years', year.toString(), 'projects', projectId
@@ -25861,6 +25937,9 @@ function saveOshData() {
         window.firebase.setDoc(projectRef, { oshData: oshEntry }, { merge: true })
             .catch(e => console.warn('saveOshData failed for "' + projectName + '":', e.message));
     });
+    if (_oshSkipped > 0) {
+        console.log(`🔒 saveOshData RBAC: skipped ${_oshSkipped} projects outside assigned region (${_oshAllowedRegion}) — read-only for this role.`);
+    }
 }
 
 /**
@@ -25955,7 +26034,7 @@ function renderOsh2() {
             const safeN = (proj.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
             // Region access control: Superintendents can only edit their own region
-            const canEditThisRegion = UserAccounts.canEdit(state.currentUser?.email, region);
+            const canEditThisRegion = state.isEditing && UserAccounts.canEdit(state.currentUser?.email, region);
 
             // Cell builder
             function makeCell(cat, reqCount, actCount, label) {
@@ -26046,7 +26125,7 @@ function renderOsh2() {
             'VISAYAS & MINDANAO': '#43a047',
         };
         const rColor = regionColors[region] || '#2e7d32';
-        const canEditRegion = UserAccounts.canEdit(state.currentUser?.email, region);
+        const canEditRegion = state.isEditing && UserAccounts.canEdit(state.currentUser?.email, region);
 
         html += `
         <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:16px;">
@@ -26806,10 +26885,10 @@ document.addEventListener('DOMContentLoaded', function() {
         _gotCollapsed[reg] = !_gotCollapsed[reg];
         if (_gotCollapsed[reg]) {
             content.style.display = 'none';
-            if (chevron) { chevron.classList.remove('fa-chevron-down'); chevron.classList.add('fa-chevron-right'); }
+            if (chevron) { chevron.style.transform = 'rotate(-90deg)'; }
         } else {
             content.style.display = '';
-            if (chevron) { chevron.classList.remove('fa-chevron-right'); chevron.classList.add('fa-chevron-down'); }
+            if (chevron) { chevron.style.transform = ''; }
         }
     };
 
@@ -27271,16 +27350,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 ? projs.length + ' OFFICE'
                 : (isPlant ? projs.length + ' PLANT' + (projs.length !== 1 ? 'S' : '') : projs.length + ' PROJECT' + (projs.length !== 1 ? 'S' : ''));
 
-            // Per-region color (matching env-monitoring REGION_COLORS)
+            // Per-region color (matching banner system)
             var REG_CLR = {
-                'CORPORATE':           '#004d40',
-                'PLANT OPERATIONS':    '#00695c',
-                'NCR':                 '#1b5e20',
-                'NORTH LUZON':         '#2e7d32',
-                'SOUTH LUZON':         '#388e3c',
-                'VISAYAS & MINDANAO':  '#43a047'
+                'CORPORATE':           { a: '#ffffff', b: '#ffffff', white: true },
+                'PLANT OPERATIONS':    { a: '#ffffff', b: '#ffffff', white: true },
+                'NCR':                 { a: '#1b5e20', b: '#0d3311' },
+                'NORTH LUZON':         { a: '#2e7d32', b: '#1b5020' },
+                'SOUTH LUZON':         { a: '#388e3c', b: '#1f5e23' },
+                'VISAYAS & MINDANAO':  { a: '#43a047', b: '#2a6b2e' }
             };
-            var bgColor = REG_CLR[reg] || '#2e7d32';
+            var _rc = REG_CLR[reg] || { a: '#2e7d32', b: '#1b5020' };
+            var bgColor = _rc.a; // kept for badge colour compatibility
             var chevronId = 'got-chevron-' + reg.replace(/[^a-zA-Z0-9]/g, '_');
             var safeReg = reg.replace(/[^a-zA-Z0-9]/g, '_');
 
@@ -27288,18 +27368,21 @@ document.addEventListener('DOMContentLoaded', function() {
             h += '<div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:0 16px 14px;">';
 
             // Region Header banner — inline styles like env-monitoring, no CSS class dependency
-            h += '<div id="got-rbanner-' + reg + '" onclick="gotToggleRegion(\'' + escQ(reg) + '\',event)" style="background:linear-gradient(90deg,' + bgColor + ' 0%,' + bgColor + 'dd 100%);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">';
+            var _gotBannerBg = _rc.white
+                ? 'background:#ffffff;color:#1b5e20;border:1.5px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.10);'
+                : 'background:linear-gradient(135deg,' + _rc.a + ' 0%,' + _rc.b + ' 100%);box-shadow:0 3px 10px rgba(0,0,0,0.22);';
+            h += '<div id="got-rbanner-' + reg + '" onclick="gotToggleRegion(\'' + escQ(reg) + '\',event)" style="' + _gotBannerBg + 'padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">';
             h += '<div style="display:flex;align-items:center;gap:10px;">';
-            h += '<i id="' + chevronId + '" class="fas ' + (isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down') + '" style="color:rgba(255,255,255,0.7);font-size:0.75rem;"></i>';
-            h += '<i class="fas ' + regIcon + '" style="color:rgba(255,255,255,0.85);font-size:0.9rem;"></i>';
-            h += '<span style="font-weight:800;color:white;font-size:0.9rem;letter-spacing:0.05em;text-transform:uppercase;">' + reg + '</span>';
-            if (isCorp)  h += '<span style="background:rgba(255,255,255,0.18);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">ADMIN ONLY</span>';
-            if (isPlant) h += '<span style="background:rgba(255,255,255,0.18);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">&#127981; MONITORING ONLY</span>';
+            h += '<i id="' + chevronId + '" class="fas fa-chevron-down" style="color:' + (_rc.white?'#2e7d32':'rgba(255,255,255,0.85)') + ';font-size:0.78rem;transition:transform 0.25s cubic-bezier(0.4,0,0.2,1);' + (isCollapsed ? 'transform:rotate(-90deg);' : '') + '"></i>';
+            h += '<i class="fas ' + regIcon + '" style="color:' + (_rc.white?'#1b5e20':'rgba(255,255,255,0.85)') + ';font-size:0.9rem;"></i>';
+            h += '<span style="font-weight:800;color:' + (_rc.white?'#1b5e20':'white') + ';font-size:0.9rem;letter-spacing:0.05em;text-transform:uppercase;">' + reg + '</span>';
+            if (isCorp)  h += '<span style="background:' + (_rc.white?'#e8f5e9':'rgba(255,255,255,0.18)') + ';color:' + (_rc.white?'#1b5e20':'white') + ';border:1px solid ' + (_rc.white?'#a5d6a7':'transparent') + ';padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">ADMIN ONLY</span>';
+            if (isPlant) h += '<span style="background:' + (_rc.white?'#e8f5e9':'rgba(255,255,255,0.18)') + ';color:' + (_rc.white?'#1b5e20':'white') + ';border:1px solid ' + (_rc.white?'#a5d6a7':'transparent') + ';padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">&#127981; MONITORING ONLY</span>';
             if (!state.isEditing) h += '<span style="background:rgba(0,0,0,0.20);color:rgba(255,255,255,0.8);padding:2px 10px;border-radius:12px;font-size:0.63rem;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-lock" style="font-size:0.6rem;"></i> Press ✏️ to Edit</span>';
             h += '</div>';
             h += '<div style="display:flex;gap:8px;align-items:center;">';
-            h += '<span style="background:rgba(255,255,255,0.18);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">' + countLabel + '</span>';
-            if (regAll !== null && !isPlant) h += '<span style="background:rgba(255,255,255,0.22);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">AVG ' + fmtAvg(regAll) + '</span>';
+            h += '<span style="background:' + (_rc.white?'#e8f5e9':'rgba(255,255,255,0.18)') + ';color:' + (_rc.white?'#1b5e20':'white') + ';border:1px solid ' + (_rc.white?'#a5d6a7':'transparent') + ';padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">' + countLabel + '</span>';
+            if (regAll !== null && !isPlant) h += '<span style="background:' + (_rc.white?'#e8f5e9':'rgba(255,255,255,0.22)') + ';color:' + (_rc.white?'#1b5e20':'white') + ';border:1px solid ' + (_rc.white?'#a5d6a7':'transparent') + ';padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">AVG ' + fmtAvg(regAll) + '</span>';
             if (canEditReg && !isCorp && !isPlant) h += '<button onclick="event.stopPropagation();openAddProjectModal(\'' + escQ(reg) + '\')" style="background:rgba(255,255,255,0.22);color:white;border:1px solid rgba(255,255,255,0.4);border-radius:6px;padding:3px 10px;font-size:0.68rem;font-weight:700;cursor:pointer;">+ ADD</button>';
             h += '</div>';
             h += '</div>'; // end header
@@ -27386,7 +27469,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'NORTH LUZON':          { bg: '#2e7d32', light: '#f1f8e9', badge: '#81c784' },
         'SOUTH LUZON':          { bg: '#388e3c', light: '#f9fbe7', badge: '#a5d6a7' },
         'VISAYAS & MINDANAO':   { bg: '#43a047', light: '#f1f8e9', badge: '#c8e6c9' },
-        'PLANT OPERATIONS':     { bg: '#00695c', light: '#e0f2f1', badge: '#80cbc4' }
+        'PLANT OPERATIONS':     { bg: '#00695c', light: '#e0f2f1', badge: '#80cbc4', white: true }
     };
     const PIE_COLORS = ['#1b5e20','#2e7d32','#558b2f','#43a047','#00695c'];
 
@@ -27637,7 +27720,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'SOUTH LUZON':        { bg:'#388e3c', light:'#f9fbe7' },
             'NORTH LUZON':        { bg:'#2e7d32', light:'#f1f8e9' },
             'VISAYAS & MINDANAO': { bg:'#43a047', light:'#f1f8e9' },
-            'PLANT OPERATIONS':   { bg:'#00695c', light:'#e0f2f1' }
+            'PLANT OPERATIONS':   { bg:'#00695c', light:'#e0f2f1', white:true }
         };
 
         let html = '';
@@ -27646,7 +27729,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const rc        = AC[region] || { bg:'#1b5e20', light:'#e8f5e9' };
             const projs     = allProjects.filter(p => p.region === region);
             const isOpen    = !appliancesCollapsed[region];
-            const canEditRg = canEditEnv && UserAccounts.canEdit(userEmail, region);
+            const canEditRg = state.isEditing && canEditEnv && UserAccounts.canEdit(userEmail, region);
 
             let projHtml = '';
             if (projs.length === 0) {
@@ -27736,12 +27819,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             html += `
             <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:14px;">
-                <div onclick="appliancesToggleRegion('${region}')" style="background:linear-gradient(90deg,${rc.bg} 0%,${rc.bg}dd 100%);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
+                <div onclick="appliancesToggleRegion('${region}')" style="${rc.white?'background:#ffffff;border-bottom:1.5px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.10);':'background:linear-gradient(90deg,'+rc.bg+' 0%,'+rc.bg+'dd 100%);'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <i id="appl-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:rgba(255,255,255,0.7);font-size:0.65rem;"></i>
-                        <i class="fas fa-plug" style="color:rgba(255,255,255,0.8);font-size:0.8rem;"></i>
-                        <span style="font-weight:800;color:white;font-size:0.85rem;letter-spacing:0.5px;">${region}</span>
-                        <span style="background:rgba(255,255,255,0.18);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${projs.length} project${projs.length!==1?'s':''}</span>
+                        <i id="appl-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:${rc.white?'#2e7d32':'rgba(255,255,255,0.7)'};font-size:0.65rem;"></i>
+                        <i class="fas fa-plug" style="color:${rc.white?'#1b5e20':'rgba(255,255,255,0.8)'};font-size:0.8rem;"></i>
+                        <span style="font-weight:800;color:${rc.white?'#1b5e20':'white'};font-size:0.85rem;letter-spacing:0.5px;">${region}</span>
+                        <span style="background:${rc.white?'#e8f5e9':'rgba(255,255,255,0.18)'};color:${rc.white?'#1b5e20':'white'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${projs.length} project${projs.length!==1?'s':''}</span>
                     </div>
                 </div>
                 <div id="appl-region-body-${rk}" style="display:${isOpen?'':'none'};">
@@ -27760,7 +27843,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const building = document.getElementById(buildingInputId)?.value || 'Main Building';
         const key      = appliancesKey(region, projName, month, building);
         const userEmail = state?.currentUser?.email;
-        const canEditRg = UserAccounts.canEditTab(userEmail,'env-monitoring') && UserAccounts.canEdit(userEmail, region);
+        const canEditRg = state.isEditing && UserAccounts.canEditTab(userEmail,'env-monitoring') && UserAccounts.canEdit(userEmail, region);
         const container = document.getElementById('appl-sections-' + rk + '-' + pi);
         if (!container) return;
         container.innerHTML =
@@ -27914,7 +27997,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const projs            = allProjects.filter(p => p.region === region);
             const regionRows       = envData.filter(r => r.region === region);
             const isOpen           = !envCollapsed[region];
-            const canEditRegionEnv = canEditEnv && UserAccounts.canEdit(userEmail, region);
+            const canEditRegionEnv = state.isEditing && canEditEnv && UserAccounts.canEdit(userEmail, region);
 
             // Region totals
             const rKwh   = regionRows.reduce((s,r)=>s+r.kwh,0);
@@ -28063,17 +28146,17 @@ document.addEventListener('DOMContentLoaded', function() {
             <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:14px;">
 
                 <!-- Region Header -->
-                <div onclick="envToggleRegion('${region}')" style="background:linear-gradient(90deg,${rc.bg} 0%,${rc.bg}dd 100%);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
+                <div onclick="envToggleRegion('${region}')" style="${rc.white?'background:#ffffff;border-bottom:1.5px solid #c8e6c9;':'background:linear-gradient(90deg,'+rc.bg+' 0%,'+rc.bg+'dd 100%);'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;box-shadow:${rc.white?'0 2px 8px rgba(0,0,0,0.10)':'none'};">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <i id="env-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:rgba(255,255,255,0.7);font-size:0.65rem;"></i>
-                        <i class="fas fa-map-marker-alt" style="color:rgba(255,255,255,0.8);font-size:0.8rem;"></i>
-                        <span style="font-weight:800;color:white;font-size:0.85rem;letter-spacing:0.5px;">${region}</span>
-                        <span style="background:rgba(255,255,255,0.18);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${projs.length} project${projs.length!==1?'s':''}</span>
-                        ${!canEditRegionEnv ? `<span style="background:rgba(0,0,0,0.25);color:rgba(255,255,255,0.75);padding:2px 10px;border-radius:12px;font-size:0.63rem;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-lock" style="font-size:0.55rem;"></i> View Only</span>` : ''}
+                        <i id="env-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:${rc.white?'#2e7d32':'rgba(255,255,255,0.7)'};font-size:0.65rem;"></i>
+                        <i class="fas fa-map-marker-alt" style="color:${rc.white?'#1b5e20':'rgba(255,255,255,0.8)'};font-size:0.8rem;"></i>
+                        <span style="font-weight:800;color:${rc.white?'#1b5e20':'white'};font-size:0.85rem;letter-spacing:0.5px;">${region}</span>
+                        <span style="background:${rc.white?'#e8f5e9':'rgba(255,255,255,0.18)'};color:${rc.white?'#1b5e20':'white'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${projs.length} project${projs.length!==1?'s':''}</span>
+                        ${!canEditRegionEnv ? `<span style="background:${rc.white?'rgba(0,0,0,0.06)':'rgba(0,0,0,0.25)'};color:${rc.white?'#555':'rgba(255,255,255,0.75)'};padding:2px 10px;border-radius:12px;font-size:0.63rem;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-lock" style="font-size:0.55rem;"></i> View Only</span>` : ''}
                     </div>
                     <div style="display:flex;gap:6px;align-items:center;">
-                        ${rKwh>0?`<span style="background:rgba(255,255,255,0.2);color:white;padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rKwh.toLocaleString()} kWh</span>`:''}
-                        ${rGhg>0?`<span style="background:rgba(100,255,100,0.2);color:#c8f7c5;padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rGhg.toFixed(4)} tCO2</span>`:''}
+                        ${rKwh>0?`<span style="background:${rc.white?'#e8f5e9':'rgba(255,255,255,0.2)'};color:${rc.white?'#1b5e20':'white'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rKwh.toLocaleString()} kWh</span>`:''}
+                        ${rGhg>0?`<span style="background:${rc.white?'#e8f5e9':'rgba(100,255,100,0.2)'};color:${rc.white?'#2e7d32':'#c8f7c5'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rGhg.toFixed(4)} tCO2</span>`:''}
                     </div>
                 </div>
 
@@ -28309,7 +28392,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'SOUTH LUZON':        { bg:'#0277bd', light:'#e1f5fe' },
             'NORTH LUZON':        { bg:'#0288d1', light:'#e1f5fe' },
             'VISAYAS & MINDANAO': { bg:'#039be5', light:'#e1f5fe' },
-            'PLANT OPERATIONS':   { bg:'#00695c', light:'#e0f2f1' }
+            'PLANT OPERATIONS':   { bg:'#00695c', light:'#e0f2f1', white:true }
         };
 
         let html = '';
@@ -28319,7 +28402,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const projs            = allProjects.filter(p => p.region === region);
             const regionRows       = waterData.filter(r => r.region === region);
             const isOpen           = !waterCollapsed[region];
-            const canEditReg       = canEditEnv && UserAccounts.canEdit(userEmail, region);
+            const canEditReg       = state.isEditing && canEditEnv && UserAccounts.canEdit(userEmail, region);
 
             // Region totals
             const rDomM3  = regionRows.reduce((s,r)=>s+r.domM3,0);
@@ -28458,16 +28541,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
             html += `
             <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:14px;">
-                <div onclick="waterToggleRegion('${region}')" style="background:linear-gradient(90deg,${rc.bg} 0%,${rc.bg}dd 100%);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
+                <div onclick="waterToggleRegion('${region}')" style="${rc.white?'background:#ffffff;border-bottom:1.5px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.10);':'background:linear-gradient(90deg,'+rc.bg+' 0%,'+rc.bg+'dd 100%);'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <i id="wtr-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:rgba(255,255,255,0.7);font-size:0.65rem;"></i>
-                        <i class="fas fa-droplet" style="color:rgba(255,255,255,0.8);font-size:0.8rem;"></i>
-                        <span style="font-weight:800;color:white;font-size:0.85rem;letter-spacing:0.5px;">${region}</span>
-                        <span style="background:rgba(255,255,255,0.18);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${projs.length} project${projs.length!==1?'s':''}</span>
+                        <i id="wtr-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:${rc.white?'#2e7d32':'rgba(255,255,255,0.7)'};font-size:0.65rem;"></i>
+                        <i class="fas fa-droplet" style="color:${rc.white?'#1b5e20':'rgba(255,255,255,0.8)'};font-size:0.8rem;"></i>
+                        <span style="font-weight:800;color:${rc.white?'#1b5e20':'white'};font-size:0.85rem;letter-spacing:0.5px;">${region}</span>
+                        <span style="background:${rc.white?'#e8f5e9':'rgba(255,255,255,0.18)'};color:${rc.white?'#1b5e20':'white'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${projs.length} project${projs.length!==1?'s':''}</span>
                     </div>
                     <div style="display:flex;gap:6px;align-items:center;">
-                        ${rDomM3>0?`<span style="background:rgba(255,255,255,0.2);color:white;padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rDomM3.toLocaleString()} m³ Dom</span>`:''}
-                        ${rIndM3>0?`<span style="background:rgba(255,255,255,0.15);color:white;padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rIndM3.toLocaleString()} m³ Ind</span>`:''}
+                        ${rDomM3>0?`<span style="background:${rc.white?'#e8f5e9':'rgba(255,255,255,0.2)'};color:${rc.white?'#1b5e20':'white'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rDomM3.toLocaleString()} m³ Dom</span>`:''}
+                        ${rIndM3>0?`<span style="background:${rc.white?'#f1f8e9':'rgba(255,255,255,0.15)'};color:${rc.white?'#388e3c':'white'};border:${rc.white?'1px solid #c8e6c9':'none'};padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rIndM3.toLocaleString()} m³ Ind</span>`:''}
                     </div>
                 </div>
                 <div id="wtr-region-body-${rk}" style="display:${isOpen?'':'none'};">
@@ -28734,7 +28817,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let html = '';
 
         WASTE_REGIONS.forEach(region => {
-            const canEdit    = UserAccounts.canEdit(userEmail, region) && UserAccounts.canEditTab(userEmail, 'env-monitoring');
+            const canEdit    = state.isEditing && UserAccounts.canEdit(userEmail, region) && UserAccounts.canEditTab(userEmail, 'env-monitoring');
             const rk         = region.replace(/[^a-z0-9]/gi,'_');
             const regionRows = wasteData.filter(r => r.region === region);
             const collapsed  = !!wasteCollapsed[region];
@@ -28742,16 +28825,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const projs      = allProjects.filter(p => p.region === region);
 
             html += `<div style="background:var(--bg-card);border-radius:12px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:14px;">
-                <div onclick="wasteToggleRegion('${region}')" style="background:${colors.bg};padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
+                <div onclick="wasteToggleRegion('${region}')" style="${colors.white?'background:#ffffff;border-bottom:1.5px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.10);':'background:'+colors.bg+';'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <i class="fas fa-map-marker-alt" style="color:white;font-size:0.9rem;"></i>
-                        <span style="font-weight:700;font-size:0.82rem;color:white;">${region}</span>
-                        <span style="background:rgba(255,255,255,0.2);color:white;padding:2px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;">${projs.length} PROJECT${projs.length!==1?'S':''}</span>
-                        <span style="background:rgba(255,255,255,0.15);color:white;padding:2px 8px;border-radius:10px;font-size:0.62rem;">${regionRows.length} ENTRIES</span>
+                        <i class="fas fa-map-marker-alt" style="color:${colors.white?'#1b5e20':'white'};font-size:0.9rem;"></i>
+                        <span style="font-weight:700;font-size:0.82rem;color:${colors.white?'#1b5e20':'white'};">${region}</span>
+                        <span style="background:${colors.white?'#e8f5e9':'rgba(255,255,255,0.2)'};color:${colors.white?'#1b5e20':'white'};border:${colors.white?'1px solid #a5d6a7':'none'};padding:2px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;">${projs.length} PROJECT${projs.length!==1?'S':''}</span>
+                        <span style="background:${colors.white?'#f1f8e9':'rgba(255,255,255,0.15)'};color:${colors.white?'#388e3c':'white'};border:${colors.white?'1px solid #c8e6c9':'none'};padding:2px 8px;border-radius:10px;font-size:0.62rem;">${regionRows.length} ENTRIES</span>
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;">
-                        ${canEdit ? `<button onclick="event.stopPropagation();wasteClearRegion('${region}')" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:2px 8px;font-size:0.62rem;cursor:pointer;"><i class="fas fa-trash"></i> Clear</button>` : ''}
-                        <i id="waste-region-chevron-${rk}" class="fas ${collapsed ? 'fa-chevron-right' : 'fa-chevron-down'}" style="color:white;font-size:0.8rem;"></i>
+                        ${canEdit ? `<button onclick="event.stopPropagation();wasteClearRegion('${region}')" style="background:${colors.white?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.15)'};color:${colors.white?'#1b5e20':'white'};border:1px solid ${colors.white?'#a5d6a7':'rgba(255,255,255,0.3)'};border-radius:6px;padding:2px 8px;font-size:0.62rem;cursor:pointer;"><i class="fas fa-trash"></i> Clear</button>` : ''}
+                        <i id="waste-region-chevron-${rk}" class="fas ${collapsed ? 'fa-chevron-right' : 'fa-chevron-down'}" style="color:${colors.white?'#2e7d32':'white'};font-size:0.8rem;"></i>
                     </div>
                 </div>
                 <div id="waste-region-body-${rk}" style="display:${collapsed ? 'none' : ''};">`;
@@ -29071,6 +29154,26 @@ function startProjectsRealtimeSync() {
             window._snapshotRenderTimer = setTimeout(() => {
                 // Skip if a save just finished (our own echo)
                 if (window._isSaving) return;
+                // Skip if the echo arrived right after our own save completes (extended guard)
+                if (window._isSavingEcho) return;
+                // ── CRITICAL: Never re-render while the user is actively typing in any input ──
+                // This prevents snapshot echoes from wiping in-progress data entry.
+                const ae = document.activeElement;
+                const userIsTyping = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable);
+                if (userIsTyping) {
+                    // Reschedule — try again after the user finishes typing
+                    clearTimeout(window._snapshotRenderTimer);
+                    window._snapshotRenderTimer = setTimeout(() => {
+                        if (window._isSaving || window._isSavingEcho) return;
+                        const ae2 = document.activeElement;
+                        const stillTyping = ae2 && (ae2.tagName === 'INPUT' || ae2.tagName === 'TEXTAREA' || ae2.isContentEditable);
+                        if (stillTyping) return; // give up until next snapshot cycle
+                        console.log('🔄 Real-time project update received (deferred) — re-rendering...');
+                        try { render(); } catch(e) {}
+                        try { renderPTable(); } catch(e) {}
+                    }, 1500);
+                    return;
+                }
                 console.log('🔄 Real-time project update received — re-rendering...');
                 try { render(); } catch(e) {}
                 try { renderPTable(); } catch(e) {}
@@ -30890,12 +30993,12 @@ function toggleSidebar() {
 // covering all ID/class patterns (p-grp-banner, got-rbanner, etc.)
 // ── REGION BANNER COLOR APPLIER ── exact colors from BANNER_COMPARISON_PREVIEW.html
 const _REGION_BANNER_COLORS = {
-    'NCR':                  'linear-gradient(90deg, #1b5e20 0%, #1b5e20dd 100%)',
-    'NORTH LUZON':          'linear-gradient(90deg, #2e7d32 0%, #2e7d32dd 100%)',
-    'SOUTH LUZON':          'linear-gradient(90deg, #388e3c 0%, #388e3cdd 100%)',
-    'VISAYAS & MINDANAO':   'linear-gradient(90deg, #43a047 0%, #43a047dd 100%)',
-    'PLANT OPERATIONS':     'linear-gradient(90deg, #00695c 0%, #00695cdd 100%)',
-    'CORPORATE':            'linear-gradient(90deg, #004d40 0%, #00695cdd 100%)',
+    'NCR':                  'linear-gradient(135deg, #1b5e20 0%, #0d3311 100%)',
+    'NORTH LUZON':          'linear-gradient(135deg, #2e7d32 0%, #1b5020 100%)',
+    'SOUTH LUZON':          'linear-gradient(135deg, #388e3c 0%, #1f5e23 100%)',
+    'VISAYAS & MINDANAO':   'linear-gradient(135deg, #43a047 0%, #2a6b2e 100%)',
+    'PLANT OPERATIONS':     '#ffffff',
+    'CORPORATE':            '#ffffff',
 };
 function applyRegionBannerColors() {
     document.querySelectorAll('.region-banner, .esh-region-banner').forEach(el => {
@@ -30905,6 +31008,8 @@ function applyRegionBannerColors() {
             const regionUnder = regionUp.replace(/[^A-Z0-9]/g, '_');
             const regionDash  = regionUp.replace(/[^A-Z0-9]/g, '-');
             if (id.includes(regionUp) || id.includes(regionUnder) || id.includes(regionDash)) {
+                // White banners: CSS !important handles it — don't override with JS
+                if (gradient === '#ffffff') return;
                 el.style.setProperty('background', gradient, 'important');
                 return;
             }
@@ -30912,14 +31017,15 @@ function applyRegionBannerColors() {
         // fallback: match by class name slug e.g. r-ncr r-northluzon r-vismin r-plantops
         const cls = el.className || '';
         const clsMap = {
-            'r-ncr':        'linear-gradient(90deg, #1b5e20 0%, #1b5e20dd 100%)',
-            'r-northluzon': 'linear-gradient(90deg, #2e7d32 0%, #2e7d32dd 100%)',
-            'r-southluzon': 'linear-gradient(90deg, #388e3c 0%, #388e3cdd 100%)',
-            'r-vismin':     'linear-gradient(90deg, #43a047 0%, #43a047dd 100%)',
-            'r-plantops':   'linear-gradient(90deg, #00695c 0%, #00695cdd 100%)',
+            'r-ncr':        'linear-gradient(135deg, #1b5e20 0%, #0d3311 100%)',
+            'r-northluzon': 'linear-gradient(135deg, #2e7d32 0%, #1b5020 100%)',
+            'r-southluzon': 'linear-gradient(135deg, #388e3c 0%, #1f5e23 100%)',
+            'r-vismin':     'linear-gradient(135deg, #43a047 0%, #2a6b2e 100%)',
+            'r-plantops':   '#ffffff',
         };
         for (const [c, g] of Object.entries(clsMap)) {
             if (cls.includes(c)) {
+                if (g === '#ffffff') return; // white banner — CSS handles it
                 el.style.setProperty('background', g, 'important');
                 return;
             }
