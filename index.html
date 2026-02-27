@@ -9359,9 +9359,20 @@ function applyNumFmtToInputs() {
                     return { allowed: false, reason: '403: Manager accounts are view-only.' };
                 }
 
-                // DELETE is admin-only
+                // ── DELETE: Admin can delete anything; Superintendent can delete within their own region ──
                 if (action === 'delete') {
-                    return { allowed: false, reason: '403: Only Admins can delete records' };
+                    // Superintendent: allow delete only for their own region, never Corporate
+                    if (info.role === 'superintendent') {
+                        if (!projectRegion || projectRegion === 'CORPORATE') {
+                            return { allowed: false, reason: '403: Corporate or unassigned projects can only be deleted by Admins.' };
+                        }
+                        if (info.region !== projectRegion) {
+                            return { allowed: false, reason: `403: You can only delete projects in ${info.region}. This project belongs to ${projectRegion}.` };
+                        }
+                        return { allowed: true, reason: 'Superintendent: region-scoped delete' };
+                    }
+                    // All other non-admin roles: deny delete
+                    return { allowed: false, reason: '403: Only Admins and Superintendents can delete projects.' };
                 }
 
                 // ── Corporate region is Admin-only ──
@@ -13303,26 +13314,41 @@ function updateAuditData(pName, qtr, field, val) {
 
         state.projects       = state.projects.filter(p => p.name !== projectName);
         state.masterProjects = state.masterProjects.filter(p => p.name !== projectName);
+
+        // ── FIX: Invalidate shared localStorage cache IMMEDIATELY ──
+        // Without this, a page refresh within 60 seconds restores the deleted project
+        // from the stale cache (esh_projects_cache_{uid}) before Firestore is consulted.
+        // Clearing the cache forces loadAllProjectsAndFilter() to fetch fresh from Firestore.
+        try {
+            const _delCacheUid = getDataSourceUserId();
+            localStorage.removeItem(`esh_projects_cache_${_delCacheUid}`);
+            localStorage.removeItem(`esh_projects_cache_ts_${_delCacheUid}`);
+        } catch(e) {}
+        // Also clear the per-user year cache so saveUserData doesn't re-add it
+        try {
+            const _delYear = state.selectedYear || 2026;
+            const _delKey = `esh_dashboard_${_delYear}_${state.currentUser?.email}`;
+            const _delRaw = localStorage.getItem(_delKey);
+            if (_delRaw) {
+                const _delData = JSON.parse(_delRaw);
+                if (_delData.projects) {
+                    _delData.projects = _delData.projects.filter(p => p.name !== projectName);
+                    localStorage.setItem(_delKey, JSON.stringify(_delData));
+                }
+            }
+        } catch(e) {}
+
         reapplyFilters();
         saveUserData(state.currentUser.email);
         render();
 
-        // Show undo toast — Firebase save is delayed to allow undo
-        showUndoToast(`"${projectName}" has been deleted.`, () => {
-            // Restore project
-            if (deletedFromProjects) state.projects.push(deletedFromProjects);
-            if (deletedFromMasterProjects) state.masterProjects.push(deletedFromMasterProjects);
-            reapplyFilters();
-            saveUserData(state.currentUser.email);
-            saveToFirebaseWithRetry().catch(() => {});
-            render();
-            showToast(`Project "${projectName}" restored!`, 'success');
-        });
-
-        // Delay Firebase sync to allow undo
-        setTimeout(async () => {
-            // ── Delete per-project docs from ALL years this project belonged to ──
-            const deletedProject = deletedFromMasterProjects;
+        // ── FIX: Delete from Firestore IMMEDIATELY — before the undo window ──
+        // Previously this was inside a setTimeout(5500) which meant the delete never
+        // executed if the user refreshed or logged out during the undo window.
+        // Now we delete first; if the user clicks Undo we re-save the project.
+        const deletedProject = deletedFromMasterProjects;
+        let firestoreDeleteDone = false;
+        (async () => {
             if (deletedProject && window.ProjectsDB) {
                 const projectsByYear = _buildProjectsByYear([deletedProject]);
                 const deletePromises = [];
@@ -13332,6 +13358,7 @@ function updateAuditData(pName, qtr, field, val) {
                 await Promise.all(deletePromises);
             }
             const saved = await saveToFirebaseWithRetry();
+            firestoreDeleteDone = true;
             if (saved) {
                 debugLog('SUCCESS', `✅ Project "${projectName}" deleted from Firebase`);
                 AuditLogger.log('PROJECT_DELETED', {
@@ -13342,7 +13369,26 @@ function updateAuditData(pName, qtr, field, val) {
             } else {
                 showToast('Deleted locally — failed to sync to cloud.', 'warning');
             }
-        }, 5500);
+        })();
+
+        // Show undo toast — if user clicks Undo, restore project locally AND re-save to Firebase
+        showUndoToast(`"${projectName}" has been deleted.`, async () => {
+            // Restore local state
+            if (deletedFromProjects) state.projects.push(deletedFromProjects);
+            if (deletedFromMasterProjects) state.masterProjects.push(deletedFromMasterProjects);
+            reapplyFilters();
+            saveUserData(state.currentUser.email);
+            render();
+            // Re-create in Firestore (reverse the delete)
+            if (deletedFromMasterProjects && window.ProjectsDB) {
+                const projectsByYear = _buildProjectsByYear([deletedFromMasterProjects]);
+                projectsByYear.forEach((_, year) => {
+                    ProjectsDB.saveProject(year, deletedFromMasterProjects).catch(() => {});
+                });
+            }
+            saveToFirebaseWithRetry().catch(() => {});
+            showToast(`Project "${projectName}" restored!`, 'success');
+        });
     } else {
         debugLog('INFO', 'Delete cancelled by user');
     }
@@ -13422,33 +13468,52 @@ function closeAllStatusDropdowns() {
     document.querySelectorAll('.status-dropdown').forEach(d => d.remove());
 }
 
+// ── Work-Stoppage visibility helpers ─────────────────────────────────────────
+// isProjectOnStoppage(p):
+//   Returns true when a project is CURRENTLY under work stoppage with no resume date set.
+//   Such projects must be hidden from all report/data tabs and excluded from all scores.
+//   They remain visible only in the Overall Summary tab (status badge + management actions).
+function isProjectOnStoppage(p) {
+    return !!(p.workStoppageDate && !p.workResumeDate);
+}
+
+// getReportProjects():
+//   Returns state.filteredProjects with work-stopped projects removed.
+//   Use this instead of state.projects / state.filteredProjects in every report/data tab.
+//   The Overall Summary tab uses state.filteredProjects directly (stopped projects stay visible there).
+function getReportProjects() {
+    return (state.filteredProjects || state.projects || []).filter(p => !isProjectOnStoppage(p));
+}
+
+// isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear):
+//   Returns true when a given month should be disabled for a resumed project.
+//   Months strictly BEFORE the resume month are grayed out (data is kept but locked).
+//   This is the single authoritative implementation — replaces the two duplicates in render().
+function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
+    if (!p.workStoppageDate) return false;
+    const selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
+    const stopD  = new Date(p.workStoppageDate);
+    const absStop = stopD.getFullYear() * 12 + (stopD.getMonth() + 1);
+    const absMo   = selY * 12 + monthIdx1Based;
+    if (absMo < absStop) return false; // before stoppage — normal
+    if (p.workResumeDate) {
+        const resD   = new Date(p.workResumeDate);
+        const absRes = resD.getFullYear() * 12 + (resD.getMonth() + 1);
+        return absMo < absRes; // blacklisted = stopped but before resume
+    }
+    return true; // still stopped — all months from stoppage onward are blacklisted
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
         function getPerc(proj) {
             // ── WORK STOPPAGE: project currently stopped (no resume yet) → exclude entirely ──
             if (proj.workStoppageDate && !proj.workResumeDate) return null; // exclude from avg
 
             // Helper: is this month (1-based) within the work stoppage blackout window?
-            // Blackout = from the month of workStoppageDate UP TO (but not including) workResumeDate month.
-            // If workResumeDate is set: only months from that month onwards are counted.
+            // Delegates to the shared isMonthBlacklistedForProject() helper.
             const selectedYear = (state && state.selectedYear) || new Date().getFullYear();
             function isMonthBlacklisted(monthIdx1Based) {
-                if (!proj.workStoppageDate) return false;
-                const stopDate = new Date(proj.workStoppageDate);
-                const stopYear = stopDate.getFullYear();
-                const stopMonth = stopDate.getMonth() + 1; // 1-based
-                // Convert to absolute month number for easy comparison
-                const absMonth = selectedYear * 12 + monthIdx1Based;
-                const absStop = stopYear * 12 + stopMonth;
-                if (proj.workResumeDate) {
-                    const resDate = new Date(proj.workResumeDate);
-                    const resYear = resDate.getFullYear();
-                    const resMonth = resDate.getMonth() + 1;
-                    const absRes = resYear * 12 + resMonth;
-                    // Blacklisted = months from stoppage month UP TO (not including) resume month
-                    return absMonth >= absStop && absMonth < absRes;
-                } else {
-                    // Still stopped: all months from stoppage onwards are blacklisted
-                    return absMonth >= absStop;
-                }
+                return isMonthBlacklistedForProject(proj, monthIdx1Based, selectedYear);
             }
 
             let total = 0, filled = 0;
@@ -14656,7 +14721,8 @@ function closeAllStatusDropdowns() {
         function renderLtaRegistryTab() {
             const container = document.getElementById('lta-registry-view');
             if (!container) return;
-            const displayProjects = state.projects;
+            // Exclude work-stopped projects — they are hidden from all report tabs
+            const displayProjects = getReportProjects();
             const REGIONS_LTA = ["CORPORATE", "NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
 
             let totalEntries = 0;
@@ -15643,7 +15709,8 @@ function renderTabulation() {
     // ── AUTO-COMPUTE for 2026 and above ──
     let d;
     if (year >= 2026) {
-        const projects = state.projects || [];
+        // Exclude work-stopped projects — they are hidden from all report tabs
+        const projects = getReportProjects();
         const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
         // Helper: get month index (1–12) from a date string like "2026-02-15"
@@ -15856,7 +15923,8 @@ function renderTabulation() {
         function renderOshNovTab() {
             const container = document.getElementById('osh-nov-view');
             if (!container) return;
-            const displayProjects = state.projects;
+            // Exclude work-stopped projects — hidden from all report tabs
+            const displayProjects = getReportProjects();
             let html = '';
 
             html += `<style>
@@ -16219,8 +16287,11 @@ function renderTabulation() {
                 html += buildTrendChartHTML('rates');
             }
 
-            // CORPORATE is a records-only entity — exclude from compliance calculations
-            const complianceProjects = state.projects.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS');
+            // CORPORATE and PLANT OPERATIONS are records-only entities — exclude from compliance calculations
+            // Also exclude work-stopped projects — they do not contribute to scores while stopped
+            const complianceProjects = state.projects.filter(p =>
+                p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS' && !isProjectOnStoppage(p)
+            );
             let grandTotal = 0, grandCount = 0;
             complianceProjects.forEach(p => {
                 const perc = getPerc(p);
@@ -16264,7 +16335,7 @@ function renderTabulation() {
                 html += `<div id="grand-stats">
                     <div class="stat-card">
                         <div class="stat-label">TOTAL PROJECTS</div>
-                        <div class="stat-value">${complianceProjects.length}</div>
+                        <div class="stat-value">${state.projects.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS').length}</div>
                         <div class="particles-container">
                             <div class="particle particle-green-1"></div>
                             <div class="particle particle-green-2"></div>
@@ -16294,7 +16365,7 @@ function renderTabulation() {
                     </div>
                     <div class="stat-card" style="border-left-color: #d32f2f;">
                         <div class="stat-label">WORK STOPPAGE</div>
-                        <div class="stat-value">${complianceProjects.filter(p => p.status === 'work-stoppage').length}</div>
+                        <div class="stat-value">${state.projects.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS' && p.status === 'work-stoppage').length}</div>
                         <div class="particles-container">
                             <div class="particle particle-red-1"></div>
                             <div class="particle particle-red-2"></div>
@@ -16312,7 +16383,10 @@ function renderTabulation() {
             }
 
             // Always use filteredProjects (it will equal projects when no filters active)
-            const displayProjects = state.filteredProjects;
+            // For report/data tabs: exclude work-stopped projects (they show only in Overall Summary)
+            const displayProjects = state.currentTab === 'overall'
+                ? state.filteredProjects
+                : getReportProjects();
 
             // Add trend chart for medical tab
             if (state.currentTab === 'medical') {
@@ -16683,7 +16757,7 @@ function renderTabulation() {
 
                 _navProjs.forEach(p => {
                     const perc = getPerc(p);
-                    const isWorkStopped = (p.workStoppageDate && !p.workResumeDate);
+                    const isWorkStopped = isProjectOnStoppage(p);
                     const percDisplay = perc !== null ? perc : '—';
                     const percDeg = perc !== null ? perc * 3.6 : 0;
                     const statusClass = p.status === 'on-going' ? 'status-ongoing' : p.status === 'work-stoppage' ? 'status-stoppage' : 'status-finished';
@@ -16695,6 +16769,9 @@ function renderTabulation() {
                     // Audit tab is admin-only for editing
                     const isAuditAdminLocked = state.currentTab === 'audit' && !state.isAdmin;
                     const inputsEditable = state.isEditing && canEdit && !isAuditAdminLocked; // For table inputs
+                    // Delete permission is separate — superintendents can delete within their region even if the current tab is locked for them
+                    const canDelete = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p.region, state.currentTab).allowed;
+                    const isDeleteLocked = !canDelete;
 
                     html += `<div class="project-row ${isLocked ? 'project-locked' : ''}">
                         ${state.isEditing ? `<input type="checkbox" class="project-checkbox" ${p.selected ? 'checked' : ''} ${isLocked ? 'disabled' : ''} onchange="toggleProjectSelect('${p.name}')">` : ''}
@@ -16721,7 +16798,7 @@ function renderTabulation() {
                             <button ${isLocked ? 'disabled' : ''} onclick="${isLocked ? 'showLockedMessage()' : `openEditProjectModal('${p.name.replace(/'/g, "\\'")}', '${p.region}')`}" style="background:none;border:none;cursor:pointer;color:#555;font-size:1rem;padding:4px 6px;margin-right:2px;opacity:${isLocked ? '0.5' : '1'};" title="${isLocked ? 'View Only - Contact admin to edit' : 'Edit Project Details'}">
                                 <i class="fas fa-pen"></i>
                             </button>
-                            <button ${isLocked ? 'disabled' : ''} onclick="${isLocked ? 'showLockedMessage()' : `deleteProject('${p.name}')`}" style="background:none;border:none;cursor:pointer;color:#d32f2f;font-size:1rem;padding:4px 6px;opacity:${isLocked ? '0.5' : '1'};" title="${isLocked ? 'View Only - Contact admin to edit' : 'Delete Project'}"><i class="fas fa-trash"></i></button>
+                            <button ${isDeleteLocked ? 'disabled' : ''} onclick="${isDeleteLocked ? 'showLockedMessage()' : `deleteProject('${p.name}')`}" style="background:none;border:none;cursor:pointer;color:#d32f2f;font-size:1rem;padding:4px 6px;opacity:${isDeleteLocked ? '0.5' : '1'};" title="${isDeleteLocked ? 'View Only - Contact admin to delete' : 'Delete Project'}"><i class="fas fa-trash"></i></button>
                         ` : ''}
                     </div>`;
 
@@ -17171,7 +17248,8 @@ if (state.currentTab === 'audit') {
 
                 function renderNovEnvTab() {
                     let envHtml = '';
-                    const displayProjects = state.projects;
+                    // Exclude work-stopped projects — hidden from all report tabs
+                    const displayProjects = getReportProjects();
                     const envNovContainer = document.getElementById('nov-env-view');
                     if (!envNovContainer) return;
 
@@ -17946,22 +18024,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         }
                     // Normal monthly columns
                     } else {
-                    // ── Work-stoppage blackout helper ──────────────────────────────────────
+                    // ── Work-stoppage blackout helper — delegates to shared isMonthBlacklistedForProject() ──
                     function _isMoBlacklisted(monthIdx1Based) {
-                        if (!p.workStoppageDate) return false;
-                        const selY = state.selectedYear || new Date().getFullYear();
-                        const stopD = new Date(p.workStoppageDate);
-                        const absStop = stopD.getFullYear() * 12 + (stopD.getMonth() + 1);
-                        const absMo   = selY * 12 + monthIdx1Based;
-                        if (absMo < absStop) return false;
-                        if (p.workResumeDate) {
-                            const resD = new Date(p.workResumeDate);
-                            const absRes = resD.getFullYear() * 12 + (resD.getMonth() + 1);
-                            return absMo < absRes;
-                        }
-                        return true; // still stopped
+                        return isMonthBlacklistedForProject(p, monthIdx1Based, state.selectedYear || new Date().getFullYear());
                     }
-                    // ──────────────────────────────────────────────────────────────────────
                     for (let i = 1; i <= 12; i++) {
                         const v = p.vals[key] ? (p.vals[key][i] ?? "") : "";
                         const vFmt = (!isDateType && v !== '') ? fmtNum(v) : v;
@@ -22642,11 +22708,104 @@ const ProjectsDB = {
         return sanitized;
     },
 
+    // ── Role-scoped field mapping ──────────────────────────────────────────────────────────────
+    // Each role "owns" specific top-level fields and specific vals key prefixes inside the project doc.
+    // When saving, non-admin roles only write the fields they are responsible for.
+    // Admin writes the full document (setDoc, no merge) — they own everything.
+    //
+    // vals keys are prefixed by tab, e.g.:
+    //   'permits-*', 'emb-*', 'env-monitoring-*', 'env-monthly-report-*', 'nov-env-*'  → PCO / EnviHead
+    //   'medical-*', 'health-report-*', 'exposures-*', 'lta-registry-*'                → CorpNurse
+    //   everything else (nov-*, kpm-*, activities-*, rates-*, dole-*, cshp-*, reg-*, audit-*)
+    //                                                                                   → Superintendent
+    //
+    // Top-level fields owned by each role:
+    //   Superintendent:  name, region, status, dateStarted, dateFinished, isRenewable, auditData,
+    //                    doePdfFiles (safety PDF storage), workStoppageDate, workResumeDate
+    //   PCO / EnviHead:  (env vals only — no top-level field ownership beyond _updatedBy/_updatedAt)
+    //   CorpNurse:       (health vals only)
+    //
+    // _updatedBy and _updatedAt are always written by whoever saves last (intentional — audit trail).
+    // ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    _ENV_VALS_PREFIXES: ['permits', 'emb', 'env-monitoring', 'env-monthly-report', 'nov-env', 'doe', 'doe-permit', 'ecc', 'pcab', 'zoning'],
+    _HEALTH_VALS_PREFIXES: ['medical', 'health-report', 'exposures', 'lta-registry', 'osh-requirement', 'cshp'],
+
+    _isEnvValsKey(k)    { return this._ENV_VALS_PREFIXES.some(p => k === p || k.startsWith(p + '-') || k.startsWith(p + '_')); },
+    _isHealthValsKey(k) { return this._HEALTH_VALS_PREFIXES.some(p => k === p || k.startsWith(p + '-') || k.startsWith(p + '_')); },
+
+    // Build a Firestore updateDoc payload containing only the fields this user's role owns.
+    // Returns null if the role is admin (caller uses setDoc instead).
+    _buildScopedPayload(project, userRole) {
+        if (userRole === 'admin') return null; // admin: caller will use full setDoc
+
+        const sanitized = this.sanitizeProject(project); // full clean copy
+        const payload = {
+            _updatedBy: sanitized._updatedBy,
+            _updatedAt: sanitized._updatedAt
+        };
+
+        if (userRole === 'superintendent') {
+            // Owns structural/safety fields and all non-env, non-health vals keys
+            const SUPER_TOP_FIELDS = ['name','region','status','dateStarted','dateFinished','isRenewable',
+                                      'auditData','doePdfFiles','workStoppageDate','workResumeDate'];
+            SUPER_TOP_FIELDS.forEach(f => { if (f in sanitized) payload[f] = sanitized[f]; });
+            // vals: only non-env, non-health prefixes
+            if (sanitized.vals) {
+                Object.keys(sanitized.vals).forEach(k => {
+                    if (!this._isEnvValsKey(k) && !this._isHealthValsKey(k)) {
+                        payload[`vals.${k}`] = sanitized.vals[k];
+                    }
+                });
+            }
+        } else if (userRole === 'pco' || userRole === 'envi_head') {
+            // Owns only env vals keys
+            if (sanitized.vals) {
+                Object.keys(sanitized.vals).forEach(k => {
+                    if (this._isEnvValsKey(k)) payload[`vals.${k}`] = sanitized.vals[k];
+                });
+            }
+        } else if (userRole === 'corp_nurse') {
+            // Owns only health vals keys
+            if (sanitized.vals) {
+                Object.keys(sanitized.vals).forEach(k => {
+                    if (this._isHealthValsKey(k)) payload[`vals.${k}`] = sanitized.vals[k];
+                });
+            }
+        }
+        return payload;
+    },
+
     async saveProject(year, project) {
         if (!window.firebaseDb || !window.firebase) return false;
         try {
             const ref = this.getDocRef(year, project.name);
-            await window.firebase.setDoc(ref, this.sanitizeProject(project));
+            const userInfo = typeof UserAccounts !== 'undefined'
+                ? UserAccounts.getUserInfo(state?.currentUser?.email)
+                : { role: 'admin' };
+            const role = userInfo?.role || 'admin';
+
+            if (role === 'admin') {
+                // Admin: full document replacement (owns everything)
+                await window.firebase.setDoc(ref, this.sanitizeProject(project));
+            } else {
+                // Non-admin: field-scoped updateDoc — only write fields this role owns.
+                // This eliminates last-write-wins across roles: Superintendent saving safety
+                // fields never touches PCO's env fields, and vice versa.
+                const payload = this._buildScopedPayload(project, role);
+                if (payload && Object.keys(payload).length > 2) { // >2 = has real fields beyond timestamps
+                    // updateDoc requires the doc to already exist; use setDoc+merge as fallback
+                    try {
+                        await window.firebase.updateDoc(ref, payload);
+                    } catch(notFound) {
+                        // Doc doesn't exist yet (new project) — fall back to setDoc with merge
+                        await window.firebase.setDoc(ref, this.sanitizeProject(project), { merge: true });
+                    }
+                } else {
+                    // No owned fields to write (e.g. role has no vals for this project) — skip
+                    console.log(`ℹ️ ProjectsDB: no owned fields to write for role "${role}" on "${project.name}" — skipped`);
+                }
+            }
             return true;
         } catch(e) {
             console.error(`❌ ProjectsDB.saveProject failed for "${project.name}" (${year}):`, e.message);
@@ -22943,10 +23102,12 @@ async function saveToFirebase() {
         showToast('Failed to save: ' + error.message, 'error');
         return false;
     } finally {
-        // Keep lock for 5s — covers background saves of all years (32 projects × 9 years)
-        // so their echo snapshots don't trigger unwanted re-renders
-        window._isSavingEcho = true; // suppress echo snapshots for 6s after save
-        setTimeout(() => { _isSaving = false; window._isSavingEcho = false; }, 6000);
+        // Echo suppression: 2s is enough to filter our own Firestore echo back.
+        // The old 6s window was too wide — it silently dropped real changes from other
+        // users who saved during that window. Queued pending snapshots (Fix 3) handle
+        // any snapshots that arrive while _isSaving is true, so 2s is safe here.
+        window._isSavingEcho = true;
+        setTimeout(() => { _isSaving = false; window._isSavingEcho = false; }, 2000);
     }
 }
 
@@ -23267,12 +23428,21 @@ async function loadAllProjectsAndFilter() {
                 renderPTable();
                 console.log(`⚡ Instant render from cache (${Math.round(cacheAge/1000)}s old)`);
 
-                // ── FIX: Never skip Firebase fetch for personnel — always fetch fresh to avoid stale personnel data ──
-                // Only skip if cache is fresh AND personnel was loaded from dedicated per-person docs
-                if (cacheAge < CACHE_TTL && cachedData._personnelFromDedicatedDoc) {
-                    console.log('✅ Cache fresh — skipping Firebase fetch');
+                // ── FIX: Only use cache for instant visual render — ALWAYS fetch Firebase after ──
+                // The old logic returned early if cache was < 60s old, which meant a page refresh
+                // after a project delete showed the deleted project from cache for up to 60 seconds.
+                // Now the cache is only used for the instant visual render (good UX), but we NEVER
+                // skip the Firebase fetch. The Firebase fetch will overwrite state with fresh data.
+                // Exception: skip only if cache is extremely fresh (< 5s) AND the tab just loaded —
+                // this covers accidental double-loads during initial mount, not user refreshes.
+                const _sessionLoadKey = `esh_session_loaded_${getDataSourceUserId()}`;
+                const _alreadyLoaded = sessionStorage.getItem(_sessionLoadKey);
+                if (cacheAge < 5000 && _alreadyLoaded && cachedData._personnelFromDedicatedDoc) {
+                    console.log('✅ Cache < 5s and session already loaded — skipping duplicate fetch');
                     return;
                 }
+                // For all other cases: use cache for instant render (already done above) then
+                // fall through to Firebase fetch below to get authoritative fresh data.
             } catch(e) {
                 console.warn('Cache parse error, loading fresh');
             }
@@ -23409,6 +23579,8 @@ async function loadAllProjectsAndFilter() {
                 _personnelFromDedicatedDoc: personnelFromDB !== null // true if loaded from per-person docs
             }));
             localStorage.setItem(CACHE_TS_KEY, Date.now().toString());
+            // Mark session as loaded — prevents a duplicate Firebase fetch within 5s (e.g. tab flicker)
+            try { sessionStorage.setItem(`esh_session_loaded_${getDataSourceUserId()}`, '1'); } catch(e) {}
         } catch(e) {
             if (e && e.name === 'QuotaExceededError') {
                 // Try clearing old year caches then retry
@@ -25970,9 +26142,7 @@ function renderOsh2() {
     const regionFilter = (document.getElementById('osh2-region-filter') || {}).value || 'all';
     const statusFilter = (document.getElementById('osh2-status-filter') || {}).value || 'all';
 
-    const allProjects = state.filteredProjects && state.filteredProjects.length
-        ? state.filteredProjects
-        : (state.projects || []);
+    const allProjects = getReportProjects(); // exclude work-stopped projects from OSH requirement tab
 
     // Group by region
     const REGIONS = ['NCR', 'NORTH LUZON', 'SOUTH LUZON', 'VISAYAS & MINDANAO'];
@@ -26033,8 +26203,19 @@ function renderOsh2() {
             // Build personnel names tooltip for each project
             const safeN = (proj.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
-            // Region access control: Superintendents can only edit their own region
-            const canEditThisRegion = state.isEditing && UserAccounts.canEdit(state.currentUser?.email, region);
+            // Region access control for OSH Requirement Manpower input.
+            // This tab has its own dedicated view (outside dashboard-content) with auto-save on change,
+            // so it does NOT require the global state.isEditing toggle — like GOT cell saves.
+            // Admin: always editable (full access).
+            // Superintendent: editable for their own region only.
+            // CorpNurse: editable for all regions (osh-requirement is in NURSE_EDITABLE_TABS).
+            // All other roles: read-only.
+            const _oshUserInfo = UserAccounts.getUserInfo(state.currentUser?.email);
+            const canEditThisRegion = (
+                _oshUserInfo.role === 'admin'
+                || (_oshUserInfo.role === 'superintendent' && _oshUserInfo.region === region)
+                || (_oshUserInfo.role === 'corp_nurse')
+            );
 
             // Cell builder
             function makeCell(cat, reqCount, actCount, label) {
@@ -26789,7 +26970,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById('health-report-regions-container');
         if (!container) return;
 
-        const projects  = (state && state.projects) ? state.projects : [];
+        // Exclude work-stopped projects — they are hidden from all report tabs
+        const projects  = getReportProjects();
         const userEmail = state && state.currentUser ? state.currentUser.email : '';
         let html = '';
 
@@ -27413,7 +27595,8 @@ document.addEventListener('DOMContentLoaded', function() {
     window.renderGotMonitoring = function() {
         var container = document.getElementById('got-monitoring-container');
         if (!container) return;
-        var allProjects = (state && state.projects) ? state.projects : [];
+        // Exclude work-stopped projects — they are hidden from all report tabs
+        var allProjects = getReportProjects();
         // GOT monitoring uses gotSaveCell (auto-save) — no global edit toggle required.
         // Access is controlled per-region via canEditReg (UserAccounts.canEdit).
         var canEdit   = true;
@@ -29065,6 +29248,8 @@ let _eshLastLocalWrite = 0; // timestamp of last local write — used to skip se
 // Pushes project updates to ALL logged-in accounts when any account saves.
 // Uses onSnapshot on the current year's projects subcollection.
 let _projectsSnapshotUnsubscribe = null;
+// Pending snapshot events queued while a local save is in progress
+let _pendingSnapshotChanges = [];
 
 function startProjectsRealtimeSync() {
     if (!window.firebaseDb || !window.firebase || !window.firebase.collection || !window.firebase.onSnapshot) return;
@@ -29076,14 +29261,19 @@ function startProjectsRealtimeSync() {
         window.firebaseDb, 'users', dataUserId, 'years', year.toString(), 'projects'
     );
 
-    let _firstSnapshot = true; // skip first snapshot (that's our own data we already have)
-    _projectsSnapshotUnsubscribe = window.firebase.onSnapshot(projColRef, (snapshot) => {
-        if (_firstSnapshot) { _firstSnapshot = false; return; } // skip initial load
-        if (snapshot.empty) return;
+    // ── FIX 1: Replace the blanket _firstSnapshot skip with timestamp-based deduplication ──
+    // Record the timestamp at which the listener is registered.  Any incoming doc whose
+    // _updatedAt is BEFORE this moment was already processed by loadAllProjectsAndFilter()
+    // and can be skipped.  Docs updated AFTER this moment are from other users and must be applied.
+    const listenerStartTime = new Date().toISOString();
+    let _firstSnapshotProcessed = false;
 
-        // Skip snapshot updates triggered by our own in-progress save (prevents race condition
-        // where remote data overwrites local changes before debounced save completes)
-        if (window._isSaving) return;
+    _projectsSnapshotUnsubscribe = window.firebase.onSnapshot(projColRef, (snapshot) => {
+        // ── FIX 2: snapshot.empty should NOT cause an early return ──
+        // When the last project in a year is deleted, Firestore fires a snapshot with
+        // snapshot.empty = true AND docChanges() containing {type:'removed'} entries.
+        // The old early-return discarded these events, leaving deleted projects in the UI.
+        // We now proceed to process docChanges() regardless of snapshot.empty.
 
         // Helper: deep-merge vals so individual permit sub-keys (e.g. [2]=validUntil, [3]=pdfUrl)
         // are merged at the property level — not replaced wholesale at the key level
@@ -29094,10 +29284,8 @@ function startProjectsRealtimeSync() {
                 const lv = merged[k];
                 if (rv && typeof rv === 'object' && !Array.isArray(rv) &&
                     lv && typeof lv === 'object' && !Array.isArray(lv)) {
-                    // Merge sub-properties (e.g. doe-permit key with pdfFileName, pdfStoragePath etc.)
                     merged[k] = Object.assign({}, lv, rv);
                 } else if (Array.isArray(rv) && Array.isArray(lv)) {
-                    // Merge arrays index-by-index, keeping local non-empty values
                     const result = rv.slice();
                     lv.forEach((v, i) => { if (v !== '' && v !== null && v !== undefined) result[i] = v; });
                     merged[k] = result;
@@ -29108,99 +29296,165 @@ function startProjectsRealtimeSync() {
             return merged;
         }
 
-        let changed = false;
+        // Collect changes to apply (filtering out our own already-loaded data on first snapshot)
+        const changesToApply = [];
         snapshot.docChanges().forEach(change => {
-            if (change.type === 'added' || change.type === 'modified') {
-                const remoteProj = change.doc.data();
-                if (!remoteProj || !remoteProj.name) return;
-
-                // Update masterProjects
-                const masterIdx = state.masterProjects.findIndex(p => p.name === remoteProj.name);
-                if (masterIdx >= 0) {
-                    const existing = state.masterProjects[masterIdx];
-                    state.masterProjects[masterIdx] = Object.assign({}, existing, remoteProj, {
-                        vals: deepMergeVals(existing.vals, remoteProj.vals)
-                    });
-                } else {
-                    state.masterProjects.push(remoteProj);
+            if (!_firstSnapshotProcessed) {
+                // On the very first snapshot: only include docs updated AFTER the listener started.
+                // Docs predating listenerStartTime are already in state from loadAllProjectsAndFilter().
+                if (change.type === 'added' || change.type === 'modified') {
+                    const docTime = change.doc.data()?._updatedAt || '';
+                    if (docTime <= listenerStartTime) return; // already loaded — skip
                 }
+                // 'removed' changes on first snapshot are always real — include them
+            }
+            changesToApply.push(change);
+        });
+        if (!_firstSnapshotProcessed) _firstSnapshotProcessed = true;
 
-                // Update state.projects (current year view)
-                const projIdx = state.projects.findIndex(p => p.name === remoteProj.name);
-                if (projIdx >= 0) {
-                    const existing = state.projects[projIdx];
-                    state.projects[projIdx] = Object.assign({}, existing, remoteProj, {
-                        vals: deepMergeVals(existing.vals, remoteProj.vals)
-                    });
-                } else {
-                    // Only add if it belongs to current year
-                    state.projects.push(remoteProj);
+        if (changesToApply.length === 0) return;
+
+        // ── FIX 3: Queue events instead of dropping them when a local save is in progress ──
+        // Previously all snapshot events were silently discarded while _isSaving = true,
+        // meaning a concurrent save from another user was permanently lost for this session.
+        // Now we queue pending events and flush them after the save completes.
+        if (window._isSaving) {
+            _pendingSnapshotChanges.push(...changesToApply);
+            clearTimeout(window._pendingSnapshotFlushTimer);
+            window._pendingSnapshotFlushTimer = setTimeout(() => {
+                if (!window._isSaving && _pendingSnapshotChanges.length > 0) {
+                    const queued = _pendingSnapshotChanges.splice(0);
+                    applySnapshotChanges(queued, deepMergeVals);
                 }
+            }, 3000);
+            return;
+        }
+
+        applySnapshotChanges(changesToApply, deepMergeVals);
+    }, (err) => {
+        console.warn('\u26a0\ufe0f Projects real-time sync error:', err.message);
+    });
+    console.log('\u2705 Projects real-time sync started (year ' + year + ')');
+}
+
+// Separated so it can be called from both the live snapshot callback and the pending-flush path
+function applySnapshotChanges(changes, deepMergeVals) {
+    let changed = false;
+    changes.forEach(change => {
+        if (change.type === 'added' || change.type === 'modified') {
+            const remoteProj = change.doc.data();
+            if (!remoteProj || !remoteProj.name) return;
+
+            const masterIdx = state.masterProjects.findIndex(p => p.name === remoteProj.name);
+            if (masterIdx >= 0) {
+                const existing = state.masterProjects[masterIdx];
+                state.masterProjects[masterIdx] = Object.assign({}, existing, remoteProj, {
+                    vals: deepMergeVals(existing.vals, remoteProj.vals)
+                });
+            } else {
+                state.masterProjects.push(remoteProj);
+            }
+
+            const projIdx = state.projects.findIndex(p => p.name === remoteProj.name);
+            if (projIdx >= 0) {
+                const existing = state.projects[projIdx];
+                state.projects[projIdx] = Object.assign({}, existing, remoteProj, {
+                    vals: deepMergeVals(existing.vals, remoteProj.vals)
+                });
+            } else {
+                state.projects.push(remoteProj);
+            }
+            changed = true;
+        }
+        if (change.type === 'removed') {
+            const removedName = change.doc.data()?.name;
+            if (removedName) {
+                state.masterProjects = state.masterProjects.filter(p => p.name !== removedName);
+                state.projects = state.projects.filter(p => p.name !== removedName);
                 changed = true;
             }
-            if (change.type === 'removed') {
-                const removedName = change.doc.data()?.name;
-                if (removedName) {
-                    state.masterProjects = state.masterProjects.filter(p => p.name !== removedName);
-                    state.projects = state.projects.filter(p => p.name !== removedName);
-                    changed = true;
-                }
-            }
-        });
-
-        if (changed) {
-            // Debounce re-render — batch all rapid snapshot events into a single render
-            clearTimeout(window._snapshotRenderTimer);
-            window._snapshotRenderTimer = setTimeout(() => {
-                // Skip if a save just finished (our own echo)
-                if (window._isSaving) return;
-                // Skip if the echo arrived right after our own save completes (extended guard)
-                if (window._isSavingEcho) return;
-                // ── CRITICAL: Never re-render while the user is actively typing in any input ──
-                // This prevents snapshot echoes from wiping in-progress data entry.
-                const ae = document.activeElement;
-                const userIsTyping = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable);
-                if (userIsTyping) {
-                    // Reschedule — try again after the user finishes typing
-                    clearTimeout(window._snapshotRenderTimer);
-                    window._snapshotRenderTimer = setTimeout(() => {
-                        if (window._isSaving || window._isSavingEcho) return;
-                        const ae2 = document.activeElement;
-                        const stillTyping = ae2 && (ae2.tagName === 'INPUT' || ae2.tagName === 'TEXTAREA' || ae2.isContentEditable);
-                        if (stillTyping) return; // give up until next snapshot cycle
-                        console.log('🔄 Real-time project update received (deferred) — re-rendering...');
-                        try { render(); } catch(e) {}
-                        try { renderPTable(); } catch(e) {}
-                    }, 1500);
-                    return;
-                }
-                console.log('🔄 Real-time project update received — re-rendering...');
-                try { render(); } catch(e) {}
-                try { renderPTable(); } catch(e) {}
-                const dataTabs = ['nov','nov-env','kpm','activities','exposures','rates','medical','dole','emb','permits',
-                                  'env-monitoring','lta-registry','health-report','cshp','reg','audit','env-monthly-report'];
-                if (state.currentTab && dataTabs.includes(state.currentTab)) {
-                    try {
-                        if (typeof renderOshNovTab === 'function' && state.currentTab === 'nov') renderOshNovTab();
-                        else if (typeof renderNovEnvTab === 'function' && state.currentTab === 'nov-env') renderNovEnvTab();
-                        else if (typeof renderLtaRegistryTab === 'function' && state.currentTab === 'lta-registry') renderLtaRegistryTab();
-                        else if (typeof renderHealthReportTab === 'function' && state.currentTab === 'health-report') renderHealthReportTab();
-                    } catch(e) {}
-                }
-            }, 800); // wait 800ms for burst of snapshot events to settle before rendering once
         }
-    }, (err) => {
-        console.warn('⚠️ Projects real-time sync error:', err.message);
     });
-    console.log('✅ Projects real-time sync started (year ' + year + ')');
+
+    if (changed) {
+        clearTimeout(window._snapshotRenderTimer);
+        window._snapshotRenderTimer = setTimeout(() => {
+            if (window._isSaving) return;
+            if (window._isSavingEcho) return;
+            const ae = document.activeElement;
+            const userIsTyping = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable);
+            if (userIsTyping) {
+                clearTimeout(window._snapshotRenderTimer);
+                window._snapshotRenderTimer = setTimeout(() => {
+                    if (window._isSaving || window._isSavingEcho) return;
+                    const ae2 = document.activeElement;
+                    const stillTyping = ae2 && (ae2.tagName === 'INPUT' || ae2.tagName === 'TEXTAREA' || ae2.isContentEditable);
+                    if (stillTyping) return;
+                    console.log('\ud83d\udd04 Real-time project update received (deferred) — re-rendering...');
+                    try { render(); } catch(e) {}
+                    try { renderPTable(); } catch(e) {}
+                }, 1500);
+                return;
+            }
+            console.log('\ud83d\udd04 Real-time project update received — re-rendering...');
+            try { render(); } catch(e) {}
+            try { renderPTable(); } catch(e) {}
+            const dataTabs = ['nov','nov-env','kpm','activities','exposures','rates','medical','dole','emb','permits',
+                              'env-monitoring','lta-registry','health-report','cshp','reg','audit','env-monthly-report'];
+            if (state.currentTab && dataTabs.includes(state.currentTab)) {
+                try {
+                    if (typeof renderOshNovTab === 'function' && state.currentTab === 'nov') renderOshNovTab();
+                    else if (typeof renderNovEnvTab === 'function' && state.currentTab === 'nov-env') renderNovEnvTab();
+                    else if (typeof renderLtaRegistryTab === 'function' && state.currentTab === 'lta-registry') renderLtaRegistryTab();
+                    else if (typeof renderHealthReportTab === 'function' && state.currentTab === 'health-report') renderHealthReportTab();
+                } catch(e) {}
+            }
+        }, 800);
+    }
 }
+
 window.startProjectsRealtimeSync = startProjectsRealtimeSync;
 
 // Stop and restart listener when year changes
 const _origChangeYear = window.changeYear;
 window.changeYear = function(yr) {
     if (typeof _origChangeYear === 'function') _origChangeYear(yr);
-    setTimeout(startProjectsRealtimeSync, 500); // restart listener for new year
+    // ── FIX 4: After restarting the listener for the new year, do a one-time getDocs() fetch ──
+    // There is a brief gap between the old listener being torn down and the new one registering.
+    // Any project change that arrived during that gap would be permanently missed by the snapshot.
+    // The fetch below ensures the new year's data is always up-to-date immediately after the switch.
+    setTimeout(async () => {
+        startProjectsRealtimeSync(); // restart listener first
+        try {
+            const dataUserId = getDataSourceUserId();
+            const year = state.selectedYear || new Date().getFullYear();
+            const projColRef = window.firebase.collection(
+                window.firebaseDb, 'users', dataUserId, 'years', year.toString(), 'projects'
+            );
+            const snap = await window.firebase.getDocs(projColRef);
+            if (!snap.empty) {
+                snap.forEach(docSnap => {
+                    const remoteProj = docSnap.data();
+                    if (!remoteProj || !remoteProj.name) return;
+                    const masterIdx = state.masterProjects.findIndex(p => p.name === remoteProj.name);
+                    if (masterIdx >= 0) {
+                        state.masterProjects[masterIdx] = Object.assign({}, state.masterProjects[masterIdx], remoteProj);
+                    } else {
+                        state.masterProjects.push(remoteProj);
+                    }
+                    const projIdx = state.projects.findIndex(p => p.name === remoteProj.name);
+                    if (projIdx >= 0) {
+                        state.projects[projIdx] = Object.assign({}, state.projects[projIdx], remoteProj);
+                    } else {
+                        state.projects.push(remoteProj);
+                    }
+                });
+                console.log(`✅ Year-switch catch-up fetch complete for year ${year}`);
+            }
+        } catch(e) {
+            console.warn('⚠️ Year-switch catch-up fetch failed (non-critical):', e.message);
+        }
+    }, 500);
 };
 
 function startEshCalendarSync() {
