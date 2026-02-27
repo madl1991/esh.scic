@@ -5735,7 +5735,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
                 <div class="nav-group-items collapsed">
-                    <div class="nav-item" data-tab="kpm" onclick="changeTab('kpm')"><i class="fas fa-file-lines"></i> Monthly Report</div>
+                    <div class="nav-item" data-tab="kpm" onclick="changeTab('kpm')"><i class="fas fa-file-lines"></i> KPM</div>
                     <div class="nav-item" data-tab="dole" onclick="changeTab('dole')"><i class="fas fa-file-contract"></i> DOLE Reportorial</div>
                     <div class="nav-item" data-tab="emb" onclick="changeTab('emb')"><i class="fas fa-industry"></i> EMB Reportorial</div>
                     <div class="nav-item" data-tab="doe" onclick="changeTab('doe')"><i class="fas fa-solar-panel"></i> DOE Reportorial</div>
@@ -6917,6 +6917,26 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 <!-- ==================== HEALTH REPORTORIAL VIEW ==================== -->
 <div id="health-report-view" class="hidden" style="padding:20px;">
 
+    <!-- ⚠️ FOR REVISION BANNER -->
+    <div style="position:relative;z-index:10;background:repeating-linear-gradient(45deg,#b71c1c,#b71c1c 12px,#d32f2f 12px,#d32f2f 24px);border-radius:12px;padding:18px 24px;margin-bottom:16px;box-shadow:0 4px 20px rgba(183,28,28,0.35);display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div style="background:#fff;border-radius:8px;padding:6px 14px;display:flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+            <i class="fas fa-triangle-exclamation" style="font-size:1.4rem;color:#b71c1c;"></i>
+            <span style="font-family:Poppins,sans-serif;font-size:1.05rem;font-weight:900;color:#b71c1c;letter-spacing:0.06em;text-transform:uppercase;">FOR REVISION</span>
+        </div>
+        <div style="flex:1;min-width:200px;">
+            <div style="font-size:0.78rem;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.4);">This section is currently under revision and temporarily locked.</div>
+            <div style="font-size:0.65rem;color:rgba(255,255,255,0.85);margin-top:3px;">Content and data entry are disabled until revisions are complete. Please contact the administrator for updates.</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.5);border-radius:8px;padding:6px 16px;">
+            <span style="font-size:0.7rem;font-weight:800;color:#fff;letter-spacing:0.08em;">🔒 LOCKED</span>
+        </div>
+    </div>
+
+    <!-- FROZEN WRAPPER: pointer-events disabled, dimmed -->
+    <div style="position:relative;pointer-events:none;user-select:none;opacity:0.55;filter:grayscale(30%);">
+    <!-- Transparent click-blocker overlay -->
+    <div style="position:absolute;inset:0;z-index:9;cursor:not-allowed;"></div>
+
     <!-- Header Card -->
     <div style="background:var(--bg-card);border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);border:1px solid var(--border-color);margin-bottom:16px;">
         <div style="background:linear-gradient(135deg,#0d3d0f 0%,#1b6e1f 50%,#2e7d32 100%);padding:16px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;position:relative;overflow:hidden;">
@@ -6945,6 +6965,8 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
     <!-- Region Sections (dynamically rendered) -->
     <div id="health-report-regions-container"></div>
+
+    </div><!-- end frozen wrapper -->
 
 </div>
 <!-- ==================== END HEALTH REPORTORIAL VIEW ==================== -->
@@ -11036,7 +11058,7 @@ debugCommands.help() - Show this help
                     }
                 });
                 if (hasKpmOverdue) {
-                    overdueTabs.push({ name: 'Monthly Report', tab: 'kpm' });
+                    overdueTabs.push({ name: 'KPM', tab: 'kpm' });
                 }
 
                 // Check Environmental Monthly Report (monthly)
@@ -11286,7 +11308,7 @@ debugCommands.help() - Show this help
         
         function getTabLabel(tabName) {
             const labels = {
-                'kpm': 'Monthly Report',
+                'kpm': 'KPM',
                 'dole': 'DOLE Reportorial',
                 'emb': 'EMB Reportorial',
                 'env-monthly-report': 'Environmental Monthly Report'
@@ -11303,7 +11325,7 @@ debugCommands.help() - Show this help
             
             // Show toast
             const tabLabels = {
-                'kpm': 'Monthly Report',
+                'kpm': 'KPM',
                 'dole': 'DOLE Reportorial',
                 'emb': 'EMB Reportorial',
                 'env-monthly-report': 'Environmental Monthly Report'
@@ -13315,6 +13337,16 @@ function updateAuditData(pName, qtr, field, val) {
         state.projects       = state.projects.filter(p => p.name !== projectName);
         state.masterProjects = state.masterProjects.filter(p => p.name !== projectName);
 
+        // ── FIX: Remove deleted project from yearProjectCache IMMEDIATELY ──
+        // Without this, saveToFirebaseWithRetry() (called after the Firestore delete)
+        // rebuilds the save payload from yearProjectCache — which still has the deleted
+        // project — and re-saves it back to Firestore, resurrecting it on next refresh.
+        if (state.yearProjectCache) {
+            state.yearProjectCache.forEach((cachedProjects, yr) => {
+                state.yearProjectCache.set(yr, cachedProjects.filter(p => p.name !== projectName));
+            });
+        }
+
         // ── FIX: Invalidate shared localStorage cache IMMEDIATELY ──
         // Without this, a page refresh within 60 seconds restores the deleted project
         // from the stale cache (esh_projects_cache_{uid}) before Firestore is consulted.
@@ -13350,11 +13382,22 @@ function updateAuditData(pName, qtr, field, val) {
         let firestoreDeleteDone = false;
         (async () => {
             if (deletedProject && window.ProjectsDB) {
-                const projectsByYear = _buildProjectsByYear([deletedProject]);
+                // ── FIX: Use full historical year range for delete ──
+                // _buildProjectsByYear() only covers YEAR_RANGE.min (2026) onwards.
+                // Projects that started before 2026 also have Firestore docs in earlier
+                // years (e.g. 2022, 2023) that would NOT be deleted by the old code.
+                // We compute the real start/end year from the project's dates so every
+                // Firestore doc for this project — across ALL years — is deleted.
+                const _startYear = deletedProject.dateStarted
+                    ? parseInt(deletedProject.dateStarted.split('-')[0])
+                    : 2020; // fallback: earliest possible project year in the system
+                const _endYear = deletedProject.dateFinished
+                    ? parseInt(deletedProject.dateFinished.split('-')[0])
+                    : new Date().getFullYear(); // ongoing project: delete up to current year
                 const deletePromises = [];
-                projectsByYear.forEach((_, year) => {
-                    deletePromises.push(ProjectsDB.deleteProject(year, projectName));
-                });
+                for (let yr = _startYear; yr <= _endYear; yr++) {
+                    deletePromises.push(ProjectsDB.deleteProject(yr, projectName));
+                }
                 await Promise.all(deletePromises);
             }
             const saved = await saveToFirebaseWithRetry();
@@ -18320,19 +18363,19 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     // ── Build env-monitoring-style header + overall summary ──
                     (function buildKpmSummary() {
                         var selYear = state.selectedYear || new Date().getFullYear();
-                        var allRegs = [];
-                        var companyTotal = 0, companyCount = 0;
 
-                        REGIONS.forEach(function(reg) {
-                            if (reg === 'CORPORATE' || reg === 'PLANT OPERATIONS') return;
+                        var moList = KPM_MONTHS;
+                        var moShort = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+                        var targetRegs = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+                        var currentMoIdx = new Date().getMonth();
+
+                        function getRegMonthScore(reg, mo) {
                             var projs = displayProjects.filter(function(p){ return p.region === reg; });
-                            if (!projs.length) return;
-                            var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
-                            var activeMo = (window._kpmRegActiveMo && window._kpmRegActiveMo[regKey]) || 'January';
+                            if (!projs.length) return null;
                             var grand = 0, hasAny = false;
                             KPM_ESH_ROWS.forEach(function(row) {
                                 var validEPs = projs.map(function(p) {
-                                    var v = p.vals['kpm_v3_' + activeMo + '_' + row.id];
+                                    var v = p.vals['kpm_v3_' + mo + '_' + row.id];
                                     var n = parseFloat(String(v||'').replace('%','').trim());
                                     return isNaN(n) ? null : n / 100;
                                 }).filter(function(v){ return v !== null; });
@@ -18342,102 +18385,118 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     grand += avgEp * row.dw;
                                 }
                             });
-                            allRegs.push({ reg: reg, projs: projs.length, activeMo: activeMo, grand: hasAny ? grand : null });
-                            if (hasAny) { companyTotal += grand; companyCount++; }
+                            return hasAny ? grand : null;
+                        }
+
+                        function cellBg(v){ return v >= 0.90 ? '#e8f5e9' : v >= 0.85 ? '#fff8e1' : '#ffebee'; }
+                        function cellFg(v){ return v >= 0.90 ? '#1b5e20' : v >= 0.85 ? '#7a5c00' : '#c62828'; }
+
+                        var regData = targetRegs.map(function(reg){
+                            return moList.map(function(mo){ return getRegMonthScore(reg, mo); });
                         });
 
-                        var companyAvg = companyCount > 0 ? companyTotal / companyCount : null;
+                        var regAvg = regData.map(function(row){
+                            var vals = row.filter(function(v){ return v !== null; });
+                            return vals.length ? vals.reduce(function(s,v){return s+v;},0)/vals.length : null;
+                        });
 
-                        function pc(v) { return v >= 0.90 ? '#e8f5e9' : v >= 0.85 ? '#fff8e1' : '#ffebee'; }
-                        function tc(v) { return v >= 0.90 ? '#1b5e20' : v >= 0.85 ? '#7a5c00' : '#c62828'; }
-                        function lbl(v){ return v >= 0.90 ? 'EXCELLENT' : v >= 0.85 ? 'SATISFACTORY' : 'NEEDS IMPROVEMENT'; }
-                        function ico(v){ return v >= 0.90 ? 'fa-circle-check' : v >= 0.85 ? 'fa-circle-minus' : 'fa-circle-xmark'; }
-                        function brc(v){ return v >= 0.90 ? '#4caf50' : v >= 0.85 ? '#fbc02d' : '#e53935'; }
-                        function bdc(v){ return v >= 0.90 ? '#a5d6a7' : v >= 0.85 ? '#ffe082' : '#ef9a9a'; }
+                        var moAvg = moList.map(function(mo, mi){
+                            var vals = regData.map(function(rd){ return rd[mi]; }).filter(function(v){ return v!==null; });
+                            return vals.length ? vals.reduce(function(s,v){return s+v;},0)/vals.length : null;
+                        });
 
-                        var regCards = allRegs.map(function(r) {
-                            var has = r.grand !== null;
-                            var pct = has ? (r.grand*100).toFixed(2)+'%' : '\u2014';
-                            var bg = has ? pc(r.grand) : '#f5f5f5';
-                            var fg = has ? tc(r.grand) : '#999';
-                            var bd = has ? bdc(r.grand) : '#e0e0e0';
-                            return '<div style="flex:1;min-width:150px;max-width:210px;background:'+bg+';border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:3px;border:1.5px solid '+bd+';box-shadow:0 2px 8px rgba(0,0,0,0.06);">'
-                                +'<div style="font-size:0.6rem;font-weight:800;color:'+fg+';text-transform:uppercase;letter-spacing:0.5px;opacity:0.85;">'+r.reg+'</div>'
-                                +'<div style="font-size:1.5rem;font-weight:900;color:'+(has?'#1b5e20':'#bdbdbd')+';line-height:1.1;">'+pct+'</div>'
-                                +'<div style="font-size:0.58rem;font-weight:700;color:'+fg+';opacity:0.9;display:flex;align-items:center;gap:4px;">'
-                                +(has?'<i class="fas '+ico(r.grand)+'"></i>':'')+(has?lbl(r.grand):'NO DATA')+'</div>'
-                                +'<div style="font-size:0.57rem;color:#888;margin-top:1px;">'+r.projs+' proj &bull; '+r.activeMo+'</div>'
-                                +'</div>';
+                        var allVals = regAvg.filter(function(v){ return v !== null; });
+                        var overallAvg = allVals.length ? allVals.reduce(function(s,v){return s+v;},0)/allVals.length : null;
+
+                        // Recommendations
+                        var recLines = [];
+                        targetRegs.forEach(function(reg, ri){
+                            var avg = regAvg[ri];
+                            if (avg !== null) {
+                                if (avg < 0.85) recLines.push('<li><strong>' + reg + '</strong>: Score of ' + (avg*100).toFixed(1) + '% is below target. Recommend immediate review of ESH program implementation and corrective action plan.</li>');
+                                else if (avg < 0.90) recLines.push('<li><strong>' + reg + '</strong>: Score of ' + (avg*100).toFixed(1) + '% is satisfactory but has room for improvement. Focus on consistency and closing compliance gaps.</li>');
+                                else recLines.push('<li><strong>' + reg + '</strong>: Score of ' + (avg*100).toFixed(1) + '% is excellent. Sustain performance and share best practices with other regions.</li>');
+                            }
+                        });
+                        var minMoScore = null, minMoName = '';
+                        moAvg.forEach(function(s, mi){ if (s !== null && (minMoScore === null || s < minMoScore)){ minMoScore = s; minMoName = moShort[mi]; }});
+                        if (minMoScore !== null && minMoScore < 0.90) {
+                            recLines.push('<li><i class="fas fa-calendar-xmark" style="color:#c62828;margin-right:4px;"></i><strong>' + minMoName + '</strong> had the lowest company average (' + (minMoScore*100).toFixed(1) + '%). Investigate root causes and strengthen monitoring during similar periods.</li>');
+                        }
+
+                        // Table header
+                        var thCells = '<th style="min-width:110px;text-align:left;background:#1b5e20;color:#fff;font-size:0.62rem;padding:7px 10px;border:1px solid #388e3c;position:sticky;left:0;z-index:3;">REGION</th>';
+                        moShort.forEach(function(m, mi){
+                            var isLive = mi <= currentMoIdx;
+                            thCells += '<th style="min-width:46px;text-align:center;background:' + (isLive ? '#1b5e20' : '#388e3c') + ';color:#fff;font-size:0.6rem;padding:6px 4px;border:1px solid #388e3c;opacity:' + (isLive ? '1' : '0.65') + ';">' + m + '</th>';
+                        });
+                        thCells += '<th style="min-width:60px;text-align:center;background:#0d3311;color:#ffd54f;font-size:0.62rem;padding:7px 6px;border:1px solid #0d3311;">AVG</th>';
+
+                        // Region rows
+                        var bodyRows = targetRegs.map(function(reg, ri){
+                            var cells = '<td style="text-align:left;font-weight:700;font-size:0.62rem;color:#1b5e20;background:#f1f8e9;padding:6px 10px;border:1px solid #c8e6c9;white-space:nowrap;position:sticky;left:0;z-index:2;box-shadow:2px 0 4px rgba(0,0,0,0.06);">' + reg + '</td>';
+                            regData[ri].forEach(function(v, mi){
+                                var isFut = mi > currentMoIdx;
+                                if (v === null) {
+                                    cells += '<td style="text-align:center;font-size:0.6rem;color:#bdbdbd;background:' + (isFut ? '#f9f9f9' : '#fff8f8') + ';padding:5px 3px;border:1px solid #c8e6c9;opacity:' + (isFut ? '0.5' : '1') + ';">—</td>';
+                                } else {
+                                    cells += '<td style="text-align:center;font-size:0.63rem;font-weight:700;color:' + cellFg(v) + ';background:' + cellBg(v) + ';padding:5px 3px;border:1px solid #c8e6c9;">' + (v*100).toFixed(1) + '%</td>';
+                                }
+                            });
+                            var av = regAvg[ri];
+                            cells += '<td style="text-align:center;font-weight:900;font-size:0.66rem;color:' + (av!==null?cellFg(av):'#bdbdbd') + ';background:' + (av!==null?cellBg(av):'#f5f5f5') + ';padding:6px 5px;border:2px solid #a5d6a7;">' + (av!==null?(av*100).toFixed(1)+'%':'—') + '</td>';
+                            return '<tr>' + cells + '</tr>';
                         }).join('');
 
-                        var compPct = companyAvg !== null ? (companyAvg*100).toFixed(2)+'%' : '\u2014';
-                        var compLbl = companyAvg !== null ? lbl(companyAvg) : 'NO DATA';
-                        var compIco = companyAvg !== null ? ico(companyAvg) : 'fa-circle-question';
-                        var compBarW = companyAvg !== null ? Math.min(companyAvg*100,100).toFixed(1) : '0';
-                        var compBarC = companyAvg !== null ? brc(companyAvg) : '#bdbdbd';
+                        // Company avg row
+                        var compRow = '<td style="text-align:left;font-weight:800;font-size:0.62rem;color:#fff;background:#1b5e20;padding:7px 10px;border:1px solid #388e3c;position:sticky;left:0;z-index:2;box-shadow:2px 0 4px rgba(0,0,0,0.1);">🏢 COMPANY AVG</td>';
+                        moAvg.forEach(function(v, mi){
+                            var isFut = mi > currentMoIdx;
+                            if (v === null) {
+                                compRow += '<td style="text-align:center;font-size:0.6rem;color:#bdbdbd;background:' + (isFut ? '#e8f5e9' : '#f1f8e9') + ';padding:5px 3px;border:1px solid #388e3c;opacity:' + (isFut ? '0.5' : '1') + ';">—</td>';
+                            } else {
+                                var bg = v >= 0.90 ? '#c8e6c9' : v >= 0.85 ? '#fff9c4' : '#ffcdd2';
+                                var fg = v >= 0.90 ? '#1b5e20' : v >= 0.85 ? '#7a5c00' : '#b71c1c';
+                                compRow += '<td style="text-align:center;font-size:0.65rem;font-weight:800;color:' + fg + ';background:' + bg + ';padding:5px 3px;border:1px solid #388e3c;">' + (v*100).toFixed(1) + '%</td>';
+                            }
+                        });
+                        var oav = overallAvg;
+                        compRow += '<td style="text-align:center;font-weight:900;font-size:0.7rem;color:#ffd54f;background:#0d3311;padding:7px 5px;border:2px solid #0d3311;">' + (oav!==null?(oav*100).toFixed(1)+'%':'—') + '</td>';
 
-                        var barRows = allRegs.map(function(r) {
-                            var has = r.grand !== null;
-                            var pct = has ? r.grand*100 : 0;
-                            var lc = has ? (r.grand >= 0.90 ? '#2e7d32' : r.grand >= 0.85 ? '#e65100' : '#c62828') : '#888';
-                            return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'
-                                +'<div style="font-size:0.63rem;font-weight:700;color:#1b5e20;min-width:110px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+r.reg+'</div>'
-                                +'<div style="flex:1;background:rgba(0,0,0,0.06);border-radius:4px;height:16px;overflow:hidden;">'
-                                +'<div style="height:100%;width:'+Math.min(pct,100).toFixed(1)+'%;background:'+( has?brc(r.grand):'#bdbdbd')+';border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:4px;">'
-                                +(has?'<span style="font-size:0.57rem;font-weight:800;color:white;">'+pct.toFixed(1)+'%</span>':'')
-                                +'</div></div>'
-                                +'<div style="font-size:0.62rem;font-weight:800;color:'+lc+';min-width:46px;">'+(has?pct.toFixed(2)+'%':'\u2014')+'</div>'
-                                +'</div>';
-                        }).join('');
+                        var recsHtml = recLines.length
+                            ? '<ul style="margin:0;padding-left:18px;font-size:0.62rem;color:#333;line-height:1.7;">' + recLines.join('') + '</ul>'
+                            : '<p style="font-size:0.62rem;color:#888;margin:0;">No data available yet to generate recommendations.</p>';
 
                         html +=
-                            '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #2e7d32;margin:0 16px 14px;position:relative;">'
-                            // header bar
-                            +'<div style="padding:13px 20px 10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;background:#f1f8e9;border-bottom:1px solid #c8e6c9;">'
-                            +'<div style="display:flex;align-items:center;gap:10px;">'
-                            +'<div style="width:38px;height:38px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
-                            +'<i class="fas fa-chart-bar" style="font-size:1.1rem;color:#2e7d32;"></i>'
-                            +'</div>'
-                            +'<div>'
-                            +'<div style="font-family:Poppins,sans-serif;font-size:0.96rem;font-weight:800;background:linear-gradient(90deg,#1b5e20 0%,#43a047 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:0.04em;text-transform:uppercase;">KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT</div>'
-                            +'<div style="font-size:0.63rem;color:#388e3c;margin-top:2px;font-weight:500;">Monthly ESH Consolidated KPM \u2014 FM-RNI-04-04 Rev.4 | Eff. Date: 06 Aug 2018</div>'
-                            +'</div></div>'
-                            +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'
-                            +'<div style="background:#e8f5e9;color:#1b5e20;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid #a5d6a7;"><i class="fas fa-building" style="margin-right:5px;color:#2e7d32;"></i>'+displayProjects.length+' Projects</div>'
-                            +'<div style="background:'+(companyAvg!==null?pc(companyAvg):'#f5f5f5')+';color:'+(companyAvg!==null?tc(companyAvg):'#999')+';padding:5px 16px;border-radius:20px;font-size:0.7rem;font-weight:800;border:1px solid '+(companyAvg!==null?bdc(companyAvg):'#e0e0e0')+';"><i class="fas '+compIco+'" style="margin-right:5px;"></i>Company Avg: '+compPct+'</div>'
-                            +'<div style="background:#e8f5e9;color:#1b5e20;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid #a5d6a7;">MONTHLY</div>'
-                            +'</div></div>'
-                            // body
-                            +'<div style="padding:14px 20px 16px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">'
-                            // region score cards
-                            +'<div style="display:flex;gap:10px;flex-wrap:wrap;flex:1;min-width:280px;">'
-                            +regCards
-                            +'<div style="flex:1;min-width:150px;max-width:210px;background:#e8f5e9;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;border:2px solid #a5d6a7;box-shadow:0 2px 6px rgba(27,94,32,0.1);">'
-                            +'<div style="font-size:0.6rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.5px;">\ud83c\udfe2 COMPANY OVERALL</div>'
-                            +'<div style="font-size:1.5rem;font-weight:900;color:#1b5e20;line-height:1.1;">'+compPct+'</div>'
-                            +'<div style="font-size:0.58rem;font-weight:700;color:#2e7d32;display:flex;align-items:center;gap:4px;"><i class="fas '+compIco+'"></i>'+compLbl+'</div>'
-                            +'<div style="font-size:0.57rem;color:#555;margin-top:1px;">Avg of all regions</div>'
-                            +'</div></div>'
-                            // bar chart
-                            +'<div style="min-width:260px;flex:1;max-width:380px;">'
-                            +'<div style="font-size:0.62rem;font-weight:700;color:#1b5e20;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;"><i class="fas fa-chart-bar" style="margin-right:5px;"></i>Performance by Region</div>'
-                            +barRows
-                            +'<div style="display:flex;align-items:center;gap:8px;margin-top:4px;padding-top:6px;border-top:1px solid #c8e6c9;">'
-                            +'<div style="font-size:0.63rem;font-weight:800;color:#1b5e20;min-width:110px;text-align:right;">COMPANY AVG</div>'
-                            +'<div style="flex:1;background:rgba(0,0,0,0.06);border-radius:4px;height:20px;overflow:hidden;">'
-                            +'<div style="height:100%;width:'+compBarW+'%;background:'+compBarC+';border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:4px;">'
-                            +(companyAvg!==null?'<span style="font-size:0.62rem;font-weight:800;color:white;">'+(companyAvg*100).toFixed(1)+'%</span>':'')
-                            +'</div></div>'
-                            +'<div style="font-size:0.65rem;font-weight:900;color:#1b5e20;min-width:46px;">'+compPct+'</div>'
-                            +'</div></div></div>'
-                            // legend
-                            +'<div style="padding:7px 20px;background:#f1f8e9;display:flex;gap:16px;flex-wrap:wrap;border-top:1px solid #c8e6c9;">'
-                            +'<span style="font-size:0.6rem;color:#2e7d32;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:50%;background:#4caf50;display:inline-block;"></span>\u226590% Excellent</span>'
-                            +'<span style="font-size:0.6rem;color:#7a5c00;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:50%;background:#fbc02d;display:inline-block;"></span>85\u201389% Satisfactory</span>'
-                            +'<span style="font-size:0.6rem;color:#c62828;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:50%;background:#e53935;display:inline-block;"></span>&lt;85% Needs Improvement</span>'
-                            +'<span style="font-size:0.6rem;color:#388e3c;opacity:0.75;margin-left:auto;">Scores reflect each region\'s currently selected month</span>'
-                            +'</div>'
-                            +'</div>';
+                            // Monthly table card
+                            '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">'
+                            + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+                            + '<i class="fas fa-table" style="font-size:1rem;color:#2e7d32;"></i>'
+                            + '<div>'
+                            + '<div style="font-family:Poppins,sans-serif;font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">📊 KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT</div>'
+                            + '<div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Monthly ESH Consolidated KPM — FM-RNI-04-04 Rev.4 | Eff. Date: 06 Aug 2018 &bull; Overall weighted % per region per month &bull; Year: ' + selYear + '</div>'
+                            + '</div></div>'
+                            + '<div style="overflow-x:auto;padding:14px 16px 10px;position:relative;">'
+                            + '<table style="border-collapse:collapse;width:100%;min-width:620px;">'
+                            + '<thead><tr>' + thCells + '</tr></thead>'
+                            + '<tbody>' + bodyRows + '<tr style="border-top:2px solid #388e3c;">' + compRow + '</tr></tbody>'
+                            + '</table></div>'
+                            + '<div style="padding:6px 18px;background:#f9fdf9;border-top:1px solid #c8e6c9;display:flex;gap:14px;flex-wrap:wrap;">'
+                            + '<span style="font-size:0.59rem;color:#1b5e20;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#c8e6c9;display:inline-block;"></span>≥90% Excellent</span>'
+                            + '<span style="font-size:0.59rem;color:#7a5c00;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#fff9c4;display:inline-block;"></span>85–89% Satisfactory</span>'
+                            + '<span style="font-size:0.59rem;color:#c62828;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#ffcdd2;display:inline-block;"></span>&lt;85% Needs Improvement</span>'
+                            + '<span style="font-size:0.59rem;color:#888;margin-left:auto;">— = no data entered for that month</span>'
+                            + '</div>'
+                            + '</div>'
+                            // Recommendations card
+                            + '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.08);border:1px solid #c8e6c9;border-left:5px solid #43a047;margin:0 16px 14px;">'
+                            + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:8px;">'
+                            + '<i class="fas fa-lightbulb" style="font-size:1rem;color:#f9a825;"></i>'
+                            + '<div style="font-family:Poppins,sans-serif;font-size:0.82rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">💡 Recommendations based on YTD Performance</div>'
+                            + '</div>'
+                            + '<div style="padding:12px 20px 14px;">'
+                            + recsHtml
+                            + '</div></div>';
                     })();
 
                     // ── Helper: get/set kpm nested data ──
@@ -18570,7 +18629,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                             var kpiCells = [0,1,2,3,4].map(function(i) {
                                 var v = row.kpi ? row.kpi[i] : null;
-                                return '<td style="text-align:center;padding:3px 4px;border:1px solid #c8e6c9;font-size:0.68rem;font-weight:600;background:#f0faf0;color:#1b5e20;white-space:nowrap;">' + (v||'') + '</td>';
+                                return '<td class="kpm-cc-' + regKey + '" style="text-align:center;padding:3px 4px;border:1px solid #c8e6c9;font-size:0.68rem;font-weight:600;background:#f0faf0;color:#1b5e20;white-space:nowrap;">' + (v||'') + '</td>';
                             }).join('');
 
                             var projCells = projs.map(function(p, pi) {
@@ -18602,10 +18661,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                             tableRows += '<tr style="background:' + (row.kpm ? '#edf7ed' : '#f9fdf9') + ';border-bottom:1px solid #c8e6c9;">'
                                 + '<td style="text-align:center;font-weight:800;color:#1b5e20;padding:3px 2px;border:1px solid #c8e6c9;font-size:0.73rem;width:22px;min-width:22px;max-width:22px;">' + row.kpm + '</td>'
-                                + '<td style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;font-weight:' + (row.wp?'700':'400') + ';min-width:130px;word-wrap:break-word;white-space:normal;max-width:140px;">' + row.wp + '</td>'
-                                + '<td style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;min-width:130px;word-wrap:break-word;white-space:normal;max-width:140px;">' + row.del + '</td>'
-                                + '<td style="text-align:center;padding:4px 5px;border:1px solid #c8e6c9;font-size:0.72rem;font-weight:800;color:#c62828;min-width:46px;">' + dwDisplay + '</td>'
-                                + '<td style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;min-width:150px;word-wrap:break-word;white-space:normal;max-width:160px;">' + row.measure + '</td>'
+                                + '<td class="kpm-cc-' + regKey + '" style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;font-weight:' + (row.wp?'700':'400') + ';min-width:130px;word-wrap:break-word;white-space:normal;max-width:140px;">' + row.wp + '</td>'
+                                + '<td class="kpm-cc-' + regKey + '" style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;min-width:130px;word-wrap:break-word;white-space:normal;max-width:140px;">' + row.del + '</td>'
+                                + '<td class="kpm-cc-' + regKey + '" style="text-align:center;padding:4px 5px;border:1px solid #c8e6c9;font-size:0.72rem;font-weight:800;color:#c62828;min-width:46px;">' + dwDisplay + '</td>'
+                                + '<td class="kpm-cc-' + regKey + '" style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;min-width:150px;word-wrap:break-word;white-space:normal;max-width:160px;">' + row.measure + '</td>'
                                 + kpiCells
                                 + projCells
                                 + '<td id="kpm-avg-ep-' + regKey + '-' + row.id + '" style="text-align:center;padding:4px 5px;border:1px solid #c8e6c9;font-size:0.73rem;font-weight:800;color:' + epColor + ';min-width:60px;">' + avgEpDisplay + '</td>'
@@ -18691,40 +18750,43 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + ' style="border:1px solid #ccc;border-radius:4px;padding:3px 6px;font-size:0.67rem;width:140px;">'
                             + '</label></div></div>'
                             // Scroll hint
-                            + '<div style="font-size:0.6rem;color:#888;padding:3px 10px 2px;background:#f5f5f5;border-top:1px solid #e0e0e0;display:flex;align-items:center;gap:4px;">'
-                            + '<i class="fas fa-arrows-left-right" style="color:#2e7d32;"></i> Scroll horizontally to see all project columns</div>'
+                            + '<div style="font-size:0.6rem;color:#888;padding:3px 10px 2px;background:#f5f5f5;border-top:1px solid #e0e0e0;display:flex;align-items:center;gap:6px;">'
+                            + '<i class="fas fa-arrows-left-right" style="color:#2e7d32;"></i> Scroll horizontally to see all project columns'
+                            + '<button id="kpm-col-tog-' + regKey + '" onclick="event.stopPropagation();window.kpmToggleCols(\''+ regKey +'\')" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;background:#fff3cd;color:#7a5c00;border:1.5px solid #fbc02d;border-radius:5px;padding:3px 10px;font-size:0.6rem;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;">'
+                            + '<i id="kpm-col-tog-icon-' + regKey + '" class="fas fa-eye-slash" style="font-size:0.58rem;"></i>&nbsp;KPM &amp; KPI Columns</button>'
+                            + '</div>'
                             // Table
                             + '<div style="overflow-x:auto;overflow-y:auto;max-height:600px;cursor:grab;" onmousedown="this.style.cursor=\'grabbing\'" onmouseup="this.style.cursor=\'grab\'">'
                             + '<table style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
                             + '<thead>'
                             + '<tr style="background:#9ecf9b;color:#1b5e20;font-size:0.67rem;font-weight:800;text-align:center;">'
                             + '<th rowspan="3" style="padding:4px 2px;border:1px solid #c8e6c9;vertical-align:middle;width:22px;min-width:22px;max-width:22px;text-align:center;">#</th>'
-                            + '<th colspan="4" style="padding:6px 4px;border:1px solid #c8e6c9;">KEY PERFORMANCE MEASURES</th>'
-                            + '<th colspan="5" style="padding:6px 4px;border:1px solid #c8e6c9;">KEY PERFORMANCE INDICATORS</th>'
-                            + '<th colspan="' + projs.length + '" style="padding:6px 4px;border:1px solid #c8e6c9;background:#b7ddb5;">ACTUAL PERFORMANCE RATING \u2014 EQUIVALENT PERCENTAGE (EP)</th>'
+                            + '<th colspan="4" class="kpm-cc-' + regKey + '" style="padding:6px 4px;border:1px solid #c8e6c9;">KEY PERFORMANCE MEASURES</th>'
+                            + '<th colspan="5" class="kpm-cc-' + regKey + '" style="padding:6px 4px;border:1px solid #c8e6c9;">KEY PERFORMANCE INDICATORS</th>'
+                            + '<th colspan="' + projs.length + '" style="padding:6px 4px;border:1px solid #c8e6c9;background:#1b5e20;color:#ffffff;font-weight:800;">ACTUAL PERFORMANCE RATING \u2014 EQUIVALENT PERCENTAGE (EP)</th>'
                             + '<th rowspan="3" style="padding:6px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:60px;white-space:normal;">AVG<br>EP</th>'
                             + '<th rowspan="3" style="padding:6px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:68px;white-space:normal;">Total %<br>Perf.<br><span style="font-size:0.57rem;font-weight:400;">(Avg EP\u00d7DW)</span></th>'
                             + '<th colspan="5" style="padding:6px 4px;border:1px solid #c8e6c9;font-size:0.57rem;font-weight:400;font-style:italic;">Note: Accomplish if grade below 3 and in issue log</th>'
                             + '</tr>'
                             + '<tr style="background:#b7ddb5;color:#1b5e20;font-size:0.62rem;font-weight:700;text-align:center;">'
-                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:130px;white-space:normal;">Work Process</th>'
-                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:130px;white-space:normal;">Deliverables</th>'
-                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:46px;white-space:normal;">DW</th>'
-                            + '<th rowspan="2" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:150px;white-space:normal;">Measure</th>'
-                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">75%</th>'
-                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">80%</th>'
-                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">85%</th>'
-                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">90%</th>'
-                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">95%</th>'
+                            + '<th rowspan="2" class="kpm-cc-' + regKey + '" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:130px;white-space:normal;">Work Process</th>'
+                            + '<th rowspan="2" class="kpm-cc-' + regKey + '" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:130px;white-space:normal;">Deliverables</th>'
+                            + '<th rowspan="2" class="kpm-cc-' + regKey + '" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:46px;white-space:normal;">DW</th>'
+                            + '<th rowspan="2" class="kpm-cc-' + regKey + '" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:150px;white-space:normal;">Measure</th>'
+                            + '<th class="kpm-cc-' + regKey + '" style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">75%</th>'
+                            + '<th class="kpm-cc-' + regKey + '" style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">80%</th>'
+                            + '<th class="kpm-cc-' + regKey + '" style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">85%</th>'
+                            + '<th class="kpm-cc-' + regKey + '" style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">90%</th>'
+                            + '<th class="kpm-cc-' + regKey + '" style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">95%</th>'
                             + projHeaderCols
                             + '<th colspan="5" style="padding:5px 4px;border:1px solid #c8e6c9;font-size:0.58rem;font-weight:400;font-style:italic;background:#9ecf9b;color:#1b5e20;">IMPROVEMENT PLAN</th>'
                             + '</tr>'
                             + '<tr style="background:#c5e8c3;color:#1b5e20;font-size:0.63rem;font-weight:700;text-align:center;">'
-                            + '<th style="padding:4px 2px;border:1px solid #c8e6c9;">1</th>'
-                            + '<th style="padding:4px 2px;border:1px solid #c8e6c9;">2</th>'
-                            + '<th style="padding:4px 2px;border:1px solid #c8e6c9;">3</th>'
-                            + '<th style="padding:4px 2px;border:1px solid #c8e6c9;">4</th>'
-                            + '<th style="padding:4px 2px;border:1px solid #c8e6c9;">5</th>'
+                            + '<th class="kpm-cc-' + regKey + '" style="padding:4px 2px;border:1px solid #c8e6c9;">1</th>'
+                            + '<th class="kpm-cc-' + regKey + '" style="padding:4px 2px;border:1px solid #c8e6c9;">2</th>'
+                            + '<th class="kpm-cc-' + regKey + '" style="padding:4px 2px;border:1px solid #c8e6c9;">3</th>'
+                            + '<th class="kpm-cc-' + regKey + '" style="padding:4px 2px;border:1px solid #c8e6c9;">4</th>'
+                            + '<th class="kpm-cc-' + regKey + '" style="padding:4px 2px;border:1px solid #c8e6c9;">5</th>'
                             + projGradeRow3Cols
                             + '<th style="padding:4px 2px;border:1px solid #c8e6c9;background:#b7ddb5;color:#1b5e20;">Immediate Action</th>'
                             + '<th style="padding:4px 2px;border:1px solid #c8e6c9;background:#b7ddb5;color:#1b5e20;">Root Cause</th>'
@@ -18735,9 +18797,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<tbody>' + tableRows + '</tbody>'
                             + '<tfoot><tr style="background:#b7ddb5;font-weight:800;border-top:2px solid #2e7d32;">'
                             + '<td style="border:1px solid #c8e6c9;padding:3px 2px;width:22px;min-width:22px;max-width:22px;"></td>'
-                            + '<td colspan="2" style="border:1px solid #c8e6c9;padding:6px 8px;font-size:0.7rem;color:#1b5e20;">TOTAL</td>'
-                            + '<td style="text-align:center;color:#c62828;font-size:0.75rem;font-weight:800;border:1px solid #c8e6c9;">' + (totalDW*100).toFixed(0) + '%</td>'
-                            + '<td colspan="' + (5 + projs.length + 1) + '" style="border:1px solid #c8e6c9;"></td>'
+                            + '<td colspan="2" class="kpm-cc-' + regKey + '" style="border:1px solid #c8e6c9;padding:6px 8px;font-size:0.7rem;color:#1b5e20;">TOTAL</td>'
+                            + '<td class="kpm-cc-' + regKey + '" style="text-align:center;color:#c62828;font-size:0.75rem;font-weight:800;border:1px solid #c8e6c9;">' + (totalDW*100).toFixed(0) + '%</td>'
+                            + '<td colspan="' + (5 + projs.length + 1) + '" id="kpm-foot-sp-' + regKey + '" class="kpm-cc-' + regKey + '" style="border:1px solid #c8e6c9;"></td>'
                             + '<td id="kpm-grand-tot-' + regKey + '" style="text-align:center;font-size:0.82rem;font-weight:800;color:' + grandColor + ';border:1px solid #c8e6c9;">' + (grandTotal > 0 ? (grandTotal*100).toFixed(2)+'%' : '\u2014') + '</td>'
                             + '<td colspan="5" style="border:1px solid #c8e6c9;"></td>'
                             + '</tr></tfoot></table></div>'
@@ -18795,6 +18857,44 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         }
                     };
                     window.kpmRefreshProject = window.kpmRefreshRegion; // alias
+
+                    // ── KPM Column Toggle: hide/show KPM & KPI columns together ──
+                    window._kpmColHidden = window._kpmColHidden || {};
+                    window.kpmToggleCols = function(regKey) {
+                        var hidden = window._kpmColHidden[regKey] = !window._kpmColHidden[regKey];
+                        // Toggle all marked cells
+                        document.querySelectorAll('.kpm-cc-' + regKey).forEach(function(el) {
+                            el.style.display = hidden ? 'none' : '';
+                        });
+                        // Adjust colspan of the row-1 group headers (#, EP, AVG EP, Total, ImpPlan stay)
+                        // Row 1 has: th#(rowspan3), th KPM colspan4, th KPI colspan5, th EP colspan=N, th AVG(rowspan3), th Total(rowspan3), th Note colspan5
+                        // When hidden, KPM(4) + KPI(5) = 9 cols disappear; row 1 EP header stays
+                        // The footer spacer had colspan = 5+projs+1; when hidden it becomes projs+1
+                        var sp = document.getElementById('kpm-foot-sp-' + regKey);
+                        if (sp) {
+                            var cur = parseInt(sp.getAttribute('colspan') || sp.colSpan || 1);
+                            // 9 cols (4 KPM + 5 KPI) are toggled
+                            sp.setAttribute('colspan', hidden ? Math.max(1, cur - 9) : cur + 9);
+                        }
+                        // Update button icon & label
+                        var btn = document.getElementById('kpm-col-tog-' + regKey);
+                        var icon = document.getElementById('kpm-col-tog-icon-' + regKey);
+                        if (btn) {
+                            if (hidden) {
+                                btn.style.background = '#1b5e20';
+                                btn.style.color = 'white';
+                                btn.style.borderColor = '#1b5e20';
+                                if (icon) { icon.className = 'fas fa-eye'; }
+                                btn.childNodes[btn.childNodes.length - 1].textContent = '\u00a0KPM & KPI Columns';
+                            } else {
+                                btn.style.background = '#fff3cd';
+                                btn.style.color = '#7a5c00';
+                                btn.style.borderColor = '#fbc02d';
+                                if (icon) { icon.className = 'fas fa-eye-slash'; }
+                                btn.childNodes[btn.childNodes.length - 1].textContent = '\u00a0KPM & KPI Columns';
+                            }
+                        }
+                    };
 
                     return; // ── KPM rendering done, skip the rest ──
                 }
@@ -19099,8 +19199,16 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 const val = p.vals[key] ? (p.vals[key][q] ?? '') : '';
                                 const hasPdf = p.doePdfFiles && p.doePdfFiles[`Q${q}`];
                                 const _doeFutureQ = _doeThisYear && q > _doeNowQ;
-                                const _doeCellBg = !_doeThisYear ? '' : (_doeFutureQ ? 'background:#f5f5f5;opacity:0.65;' : val ? 'background:#e8f5e9;' : 'background:#ffebee;');
-                                const _doeInputStyle = (_doeThisYear && !_doeFutureQ) ? `border:1.5px solid ${val?'#a5d6a7':'#ef9a9a'};border-radius:4px;padding:3px 4px;background:${val?'#f1fff1':'#fff5f5'};color:${val?'#2e7d32':'#c62828'};width:140px;` : 'width:140px;';
+                                // Due dates: Q1=Apr 20, Q2=Jul 20, Q3=Oct 20, Q4=Jan 20 (next year)
+                                const _doeDueDates = { 1: [3,20], 2: [6,20], 3: [9,20], 4: [0,20] }; // [month0based, day]
+                                const _doeNow2 = new Date();
+                                const _doeDueArr = _doeDueDates[q];
+                                const _doeDueDate = q === 4
+                                    ? new Date(_doeSelYr + 1, _doeDueArr[0], _doeDueArr[1])
+                                    : new Date(_doeSelYr, _doeDueArr[0], _doeDueArr[1]);
+                                const _doeIsPastDue = _doeThisYear && !_doeFutureQ && _doeNow2 > _doeDueDate;
+                                const _doeCellBg = !_doeThisYear ? '' : (_doeFutureQ ? 'background:#f5f5f5;opacity:0.65;' : val ? 'background:#e8f5e9;' : _doeIsPastDue ? 'background:#ffebee;' : 'background:#fff8e1;');
+                                const _doeInputStyle = (_doeThisYear && !_doeFutureQ) ? `border:1.5px solid ${val?'#a5d6a7':_doeIsPastDue?'#ef9a9a':'#ffe082'};border-radius:4px;padding:3px 4px;background:${val?'#f1fff1':_doeIsPastDue?'#fff5f5':'#fffde7'};color:${val?'#2e7d32':_doeIsPastDue?'#c62828':'#7a5c00'};width:140px;` : 'width:140px;';
                                 
                                 html += `<td style="${_doeCellBg}">
                                     <input type="date" 
@@ -27076,7 +27184,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Navigate Prev/Next project inside a region — only re-renders the inner table, not the full page
     window.gotNavigateProject = function(reg, delta) {
-        var allProjects = (state && state.projects) ? state.projects : [];
+        // Use getReportProjects() to exclude work-stopped projects — same list used by renderTab3
+        var allProjects = (typeof getReportProjects === 'function') ? getReportProjects() : ((state && state.projects) ? state.projects : []);
         var projs = allProjects.filter(function(p){ return p.region === reg; });
         if (!projs.length) return;
         var cur = _gotRegionProjIdx[reg] || 0;
@@ -27472,47 +27581,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderTab3(allProjects, userEmail, canEdit) {
         var h = '';
 
-        // ── Overall Summary (compact) ─────────────────────────────────────────
-        var overallAvg = gotOverallAvg(allProjects);
-        h += '<div style="margin:0 16px 16px;border-radius:8px;overflow:hidden;border:2px solid #2e7d32;box-shadow:0 2px 8px rgba(46,125,50,0.10);">';
-        h += '<div style="background:linear-gradient(135deg,#0d3d0f,#1b5e20,#2e7d32);padding:9px 14px;display:flex;align-items:center;gap:10px;">';
-        h += '<i class="fas fa-globe" style="color:#a5d6a7;"></i>';
-        h += '<span style="font-weight:800;color:white;font-size:0.8rem;">OVERALL COMPLIANCE SUMMARY</span>';
-        h += '<span style="margin-left:auto;background:rgba(255,255,255,0.15);color:white;padding:2px 8px;border-radius:8px;font-size:0.62rem;">' + allProjects.length + ' Projects</span>';
-        h += '<span style="background:' + avgClr(overallAvg) + ';color:white;padding:2px 10px;border-radius:8px;font-size:0.68rem;font-weight:800;">' + fmtAvg(overallAvg) + ' OVERALL</span>';
-        h += '</div>';
-        h += '<div style="overflow-x:auto;">';
-        h += '<table class="got-tbl" style="width:100%;">';
-        h += '<thead><tr>';
-        h += '<th class="got-th-dark" style="width:55px;text-align:center;white-space:nowrap;">ID</th>';
-        h += '<th class="got-th-dark got-th-left">GOAL</th>';
-        h += '<th class="got-th-dark" style="width:120px;white-space:nowrap;">% COMPLIANCE</th>';
-        h += '</tr></thead><tbody>';
-        var prevCatS = '';
-        COMPLIANCE_GOALS.forEach(function(g) {
-            var gCat   = g.id.startsWith('E') ? 'ENVIRONMENTAL' : 'OCCUPATIONAL HEALTH & SAFETY';
-            var cColor = gCat === 'ENVIRONMENTAL' ? '#2e7d32' : '#e65100';
-            var cBg    = gCat === 'ENVIRONMENTAL' ? '#e8f5e9' : '#fff3e0';
-            if (gCat !== prevCatS) {
-                prevCatS = gCat;
-                h += '<tr style="background:' + cBg + ';">'
-                   + '<td colspan="3" style="font-weight:800;font-size:0.67rem;color:' + cColor + ';padding:4px 10px;">'
-                   + '<i class="fas ' + (gCat === 'ENVIRONMENTAL' ? 'fa-leaf' : 'fa-hard-hat') + '" style="margin-right:5px;"></i>' + gCat + '</td></tr>';
-            }
-            var goalOverall = gotGoalAllProjAvg(allProjects, g.id);
-            h += '<tr>';
-            h += '<td style="text-align:center;font-weight:800;font-size:0.68rem;color:' + cColor + ';background:' + cBg + ';white-space:nowrap;">' + g.id + '</td>';
-            h += '<td style="text-align:left;font-size:0.67rem;font-weight:600;padding:5px 8px;color:' + cColor + ';">' + g.goal + '</td>';
-            h += '<td class="got-td-avg" style="color:' + avgClr(goalOverall) + ';font-size:0.72rem;">' + fmtAvg(goalOverall) + '</td>';
-            h += '</tr>';
-        });
-        h += '<tr class="got-tr-overall">';
-        h += '<td colspan="2" style="text-align:right;padding:6px 10px;font-size:0.66rem;">OVERALL AVERAGE</td>';
-        h += '<td style="color:' + avgClr(overallAvg) + ';font-weight:800;font-size:0.73rem;text-align:center;">' + fmtAvg(overallAvg) + '</td>';
-        h += '</tr>';
-        h += '</tbody></table></div></div>';
-
-        // ── Per-region collapsible blocks ─────────────────────────────────────
+        // ── Per-region        // ── Per-region collapsible blocks ─────────────────────────────────────
         // Each region: collapsible banner + ONE project at a time (Prev/Next nav like ESH Calendar)
         var presentRegions = GOT_REGION_ORDER.filter(function(reg) {
             return allProjects.some(function(p) { return p.region === reg; });
@@ -27612,6 +27681,139 @@ document.addEventListener('DOMContentLoaded', function() {
           + '<span class="tib-pill tib-pill-green">' + allProjects.length + ' PROJECTS</span>'
           + '<span class="tib-pill tib-pill-yellow">6 GOALS</span>'
           + '</div></div>';
+
+        // ── GOT OVERALL SUMMARY (Jan–Dec by Region) ──
+        (function buildGotSummary() {
+            var targetRegs = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+            var moShort    = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+            var curMoIdx   = new Date().getMonth(); // 0-based
+
+            // Get overall avg for a region across all goals for a specific month
+            function getRegMonthScore(reg, moIdx) {
+                var projs = allProjects.filter(function(p){ return p.region === reg; });
+                if (!projs.length) return null;
+                var month = moIdx + 1; // 1-based
+                var allVals = [];
+                projs.forEach(function(proj) {
+                    COMPLIANCE_GOALS.forEach(function(g) {
+                        var measures = GOAL_MEASURES[g.id] || [''];
+                        measures.forEach(function(_, mi) {
+                            var v = parseFloat(gotGetCell(proj, g.id, mi, month).r);
+                            if (!isNaN(v) && v > 0) allVals.push(v);
+                        });
+                    });
+                });
+                return allVals.length ? allVals.reduce(function(a,b){return a+b;},0)/allVals.length : null;
+            }
+
+            function cellBg(v){ return v >= 1.00 ? '#c8e6c9' : v >= 0.75 ? '#dcedc8' : v >= 0.50 ? '#fff9c4' : '#ffcdd2'; }
+            function cellFg(v){ return v >= 1.00 ? '#1b5e20' : v >= 0.75 ? '#388e3c' : v >= 0.50 ? '#7a5c00' : '#c62828'; }
+
+            // Build data matrix
+            var regData = targetRegs.map(function(reg){
+                return moShort.map(function(_, mi){ return getRegMonthScore(reg, mi); });
+            });
+
+            var regAvg = regData.map(function(row){
+                var vals = row.filter(function(v){ return v !== null; });
+                return vals.length ? vals.reduce(function(s,v){return s+v;},0)/vals.length : null;
+            });
+
+            var moAvg = moShort.map(function(_, mi){
+                var vals = regData.map(function(rd){ return rd[mi]; }).filter(function(v){ return v!==null; });
+                return vals.length ? vals.reduce(function(s,v){return s+v;},0)/vals.length : null;
+            });
+
+            var allVals2 = regAvg.filter(function(v){ return v !== null; });
+            var overallAvg = allVals2.length ? allVals2.reduce(function(s,v){return s+v;},0)/allVals2.length : null;
+
+            // Recommendations
+            var recLines = [];
+            targetRegs.forEach(function(reg, ri){
+                var avg = regAvg[ri];
+                if (avg !== null) {
+                    if (avg < 0.50) recLines.push('<li><strong>' + reg + '</strong>: Score of ' + (avg*100).toFixed(1) + '% is critically low. Immediate corrective action plan and management intervention required.</li>');
+                    else if (avg < 0.75) recLines.push('<li><strong>' + reg + '</strong>: Score of ' + (avg*100).toFixed(1) + '% needs improvement. Strengthen goal implementation and monitoring of deliverables.</li>');
+                    else if (avg < 1.00) recLines.push('<li><strong>' + reg + '</strong>: Score of ' + (avg*100).toFixed(1) + '% is on track. Continue monitoring to achieve 100% target compliance by year end.</li>');
+                    else recLines.push('<li><strong>' + reg + '</strong>: Score of ' + (avg*100).toFixed(1) + '% — fully compliant. Maintain performance and document best practices for replication.</li>');
+                }
+            });
+            var minMoScore = null, minMoName = '';
+            moAvg.forEach(function(s, mi){ if (s !== null && (minMoScore === null || s < minMoScore)){ minMoScore = s; minMoName = moShort[mi]; }});
+            if (minMoScore !== null && minMoScore < 0.75) {
+                recLines.push('<li><i class="fas fa-calendar-xmark" style="color:#c62828;margin-right:4px;"></i><strong>' + minMoName + '</strong> had the lowest company average (' + (minMoScore*100).toFixed(1) + '%). Review root causes and address compliance gaps for that period.</li>');
+            }
+
+            // Table header
+            var thCells = '<th style="min-width:120px;text-align:left;background:#1b5e20;color:#fff;font-size:0.62rem;padding:7px 10px;border:1px solid #388e3c;position:sticky;left:0;z-index:3;">REGION</th>';
+            moShort.forEach(function(m, mi){
+                var isLive = mi <= curMoIdx;
+                thCells += '<th style="min-width:46px;text-align:center;background:' + (isLive ? '#1b5e20' : '#388e3c') + ';color:#fff;font-size:0.6rem;padding:6px 4px;border:1px solid #388e3c;opacity:' + (isLive ? '1' : '0.65') + ';">' + m + '</th>';
+            });
+            thCells += '<th style="min-width:60px;text-align:center;background:#0d3311;color:#ffd54f;font-size:0.62rem;padding:7px 6px;border:1px solid #0d3311;">AVG</th>';
+
+            // Region rows
+            var bodyRows = targetRegs.map(function(reg, ri){
+                var cells = '<td style="text-align:left;font-weight:700;font-size:0.62rem;color:#1b5e20;background:#f1f8e9;padding:6px 10px;border:1px solid #c8e6c9;white-space:nowrap;position:sticky;left:0;z-index:2;box-shadow:2px 0 4px rgba(0,0,0,0.06);">' + reg + '</td>';
+                regData[ri].forEach(function(v, mi){
+                    var isFut = mi > curMoIdx;
+                    if (v === null) {
+                        cells += '<td style="text-align:center;font-size:0.6rem;color:#bdbdbd;background:' + (isFut?'#f9f9f9':'#fff8f8') + ';padding:5px 3px;border:1px solid #c8e6c9;opacity:' + (isFut?'0.5':'1') + ';">—</td>';
+                    } else {
+                        cells += '<td style="text-align:center;font-size:0.63rem;font-weight:700;color:' + cellFg(v) + ';background:' + cellBg(v) + ';padding:5px 3px;border:1px solid #c8e6c9;">' + (v*100).toFixed(1) + '%</td>';
+                    }
+                });
+                var av = regAvg[ri];
+                cells += '<td style="text-align:center;font-weight:900;font-size:0.66rem;color:' + (av!==null?cellFg(av):'#bdbdbd') + ';background:' + (av!==null?cellBg(av):'#f5f5f5') + ';padding:6px 5px;border:2px solid #a5d6a7;">' + (av!==null?(av*100).toFixed(1)+'%':'—') + '</td>';
+                return '<tr>' + cells + '</tr>';
+            }).join('');
+
+            // Company avg row
+            var compRow = '<td style="text-align:left;font-weight:800;font-size:0.62rem;color:#fff;background:#1b5e20;padding:7px 10px;border:1px solid #388e3c;position:sticky;left:0;z-index:2;box-shadow:2px 0 4px rgba(0,0,0,0.1);">🏢 COMPANY AVG</td>';
+            moAvg.forEach(function(v, mi){
+                var isFut = mi > curMoIdx;
+                if (v === null) {
+                    compRow += '<td style="text-align:center;font-size:0.6rem;color:#bdbdbd;background:' + (isFut?'#e8f5e9':'#f1f8e9') + ';padding:5px 3px;border:1px solid #388e3c;opacity:' + (isFut?'0.5':'1') + ';">—</td>';
+                } else {
+                    compRow += '<td style="text-align:center;font-size:0.65rem;font-weight:800;color:' + cellFg(v) + ';background:' + cellBg(v) + ';padding:5px 3px;border:1px solid #388e3c;">' + (v*100).toFixed(1) + '%</td>';
+                }
+            });
+            var oav = overallAvg;
+            compRow += '<td style="text-align:center;font-weight:900;font-size:0.7rem;color:#ffd54f;background:#0d3311;padding:7px 5px;border:2px solid #0d3311;">' + (oav!==null?(oav*100).toFixed(1)+'%':'—') + '</td>';
+
+            var recsHtml = recLines.length
+                ? '<ul style="margin:0;padding-left:18px;font-size:0.62rem;color:#333;line-height:1.7;">' + recLines.join('') + '</ul>'
+                : '<p style="font-size:0.62rem;color:#888;margin:0;">No data available yet to generate recommendations.</p>';
+
+            html +=
+                '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">'
+                + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+                + '<i class="fas fa-bullseye" style="font-size:1rem;color:#2e7d32;"></i>'
+                + '<div>'
+                + '<div style="font-family:Poppins,sans-serif;font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">📊 GOT Monthly Performance by Region (Jan – Dec ' + (state.selectedYear || new Date().getFullYear()) + ')</div>'
+                + '<div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Overall average compliance rating per region per month &bull; Rating: 25%=Started | 50%=Partial | 75%=Mostly Done | 100%=Fully Implemented</div>'
+                + '</div></div>'
+                + '<div style="overflow-x:auto;padding:14px 16px 10px;position:relative;">'
+                + '<table style="border-collapse:collapse;width:100%;min-width:640px;">'
+                + '<thead><tr>' + thCells + '</tr></thead>'
+                + '<tbody>' + bodyRows + '<tr style="border-top:2px solid #388e3c;">' + compRow + '</tr></tbody>'
+                + '</table></div>'
+                + '<div style="padding:6px 18px;background:#f9fdf9;border-top:1px solid #c8e6c9;display:flex;gap:14px;flex-wrap:wrap;">'
+                + '<span style="font-size:0.59rem;color:#1b5e20;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#c8e6c9;display:inline-block;"></span>100% Fully Implemented</span>'
+                + '<span style="font-size:0.59rem;color:#388e3c;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#dcedc8;display:inline-block;"></span>75% Mostly Done</span>'
+                + '<span style="font-size:0.59rem;color:#7a5c00;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#fff9c4;display:inline-block;"></span>50% Partial</span>'
+                + '<span style="font-size:0.59rem;color:#c62828;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#ffcdd2;display:inline-block;"></span>&lt;50% Needs Attention</span>'
+                + '<span style="font-size:0.59rem;color:#888;margin-left:auto;">— = no data entered for that month</span>'
+                + '</div>'
+                + '</div>'
+                + '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.08);border:1px solid #c8e6c9;border-left:5px solid #43a047;margin:0 16px 14px;">'
+                + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:8px;">'
+                + '<i class="fas fa-lightbulb" style="font-size:1rem;color:#f9a825;"></i>'
+                + '<div style="font-family:Poppins,sans-serif;font-size:0.82rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">💡 Recommendations based on YTD GOT Performance</div>'
+                + '</div>'
+                + '<div style="padding:12px 20px 14px;">' + recsHtml + '</div>'
+                + '</div>';
+        })();
 
         html += renderTabStrip();
 
@@ -29692,7 +29894,8 @@ function eshGetRegionKey(tabType, region) { return tabType + '|' + region; }
 
 function tabNavProject(tabType, region, delta) {
     const key = _tabNavKey(tabType, region);
-    const allProjects = (state && (state.filteredProjects || state.projects)) ? (state.filteredProjects || state.projects) : [];
+    // Use getReportProjects() to exclude work-stopped projects from navigation count
+    const allProjects = (typeof getReportProjects === 'function') ? getReportProjects() : ((state && (state.filteredProjects || state.projects)) ? (state.filteredProjects || state.projects) : []);
     const regProjs = allProjects.filter(p => p.region === region);
     if (!regProjs.length) return;
     let cur = _tabRegionProjectIdx[key] || 0;
@@ -29719,7 +29922,8 @@ window.tabNavProject = tabNavProject;
 
 function _tabNavBar(tabType, region, projIdx, regProjsLen) {
     if (regProjsLen <= 1) return '';
-    const allP = (state && (state.filteredProjects || state.projects)) ? (state.filteredProjects || state.projects) : [];
+    // Exclude work-stopped projects from nav bar count
+    const allP = (typeof getReportProjects === 'function') ? getReportProjects() : ((state && (state.filteredProjects || state.projects)) ? (state.filteredProjects || state.projects) : []);
     const proj = allP.filter(p => p.region === region)[projIdx];
     const projName = proj ? proj.name : '';
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:2px solid #c8e6c9;border-radius:0 0 0 0;">
