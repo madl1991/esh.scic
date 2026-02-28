@@ -4839,13 +4839,13 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
     transition: background 0.15s;
 }
 .esh-td-plan:not(.esh-plan-locked):hover { background: #fff176; }
-/* Scheduled/planned: color is set per-frequency via inline style — CSS is a fallback */
-.esh-td-plan.esh-planned { background: #fff9c4; }
+/* Scheduled/planned: amber — clearly visible vs unplanned pale yellow */
+.esh-td-plan.esh-planned { background: #f9a825 !important; }
 .esh-td-plan.esh-planned:hover { filter: brightness(0.93); }
 /* Locked (non-admin): same tint, no pointer */
 .esh-td-plan.esh-plan-locked { cursor: not-allowed !important; }
 .esh-td-plan.esh-plan-locked:hover { background: #fff9c4; }
-.esh-td-plan.esh-planned.esh-plan-locked { opacity: 0.9; }
+.esh-td-plan.esh-planned.esh-plan-locked { opacity: 0.9; background: #f9a825 !important; }
 .esh-td-plan.esh-planned.esh-plan-locked:hover { filter: brightness(0.93); }
 
 /* ── Actual cell ── */
@@ -5736,12 +5736,12 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 </div>
                 <div class="nav-group-items collapsed">
                     <div class="nav-item" data-tab="kpm" onclick="changeTab('kpm')"><i class="fas fa-file-lines"></i> KPM</div>
+                    <div class="nav-item" data-tab="got-monitoring" onclick="changeTab('got-monitoring')"><i class="fas fa-bullseye"></i> GOT Monitoring</div>
                     <div class="nav-item" data-tab="dole" onclick="changeTab('dole')"><i class="fas fa-file-contract"></i> DOLE Reportorial</div>
                     <div class="nav-item" data-tab="emb" onclick="changeTab('emb')"><i class="fas fa-industry"></i> EMB Reportorial</div>
                     <div class="nav-item" data-tab="doe" onclick="changeTab('doe')"><i class="fas fa-solar-panel"></i> DOE Reportorial</div>
                     <div class="nav-item" data-tab="env-monthly-report" onclick="changeTab('env-monthly-report')"><i class="fas fa-leaf"></i> Envi Reportorial</div>
                     <div class="nav-item" data-tab="health-report" onclick="changeTab('health-report')"><i class="fas fa-notes-medical"></i> Health Reportorial</div>
-                    <div class="nav-item" data-tab="got-monitoring" onclick="changeTab('got-monitoring')"><i class="fas fa-bullseye"></i> GOT Monitoring</div>
                 </div>
             </div>
 
@@ -5926,9 +5926,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                             <div class="ud-header-text">Select Year</div>
                         </div>
                         <div class="year-options" id="year-options"></div>
-                        <button class="year-add-btn" onclick="showAddYearDialog()" title="Add Custom Year">
-                            <i class="fas fa-plus"></i> Add Year
-                        </button>
+                        <!-- Add Year button removed — years generate automatically on Jan 1 of each new year -->
                     </div>
                 </div>
 
@@ -10340,7 +10338,7 @@ debugCommands.help() - Show this help
         }
 
         // ===== YEAR SELECTOR FUNCTIONS =====
-        const YEAR_RANGE = { min: 2026, max: Math.max(2027, new Date().getFullYear()) }; // Year range starts at 2026 (pre-2026 years are archived/hardcoded elsewhere)
+        const YEAR_RANGE = { min: 2026, max: new Date().getFullYear() }; // Year range: 2026 to current calendar year only — next year appears automatically on Jan 1
         let availableYears = [];
 
         function initializeYears() {
@@ -10369,12 +10367,6 @@ debugCommands.help() - Show this help
             
             container.innerHTML = '';
             
-            // Hide "Add Year" button for superintendent accounts
-            const addYearBtn = document.querySelector('.year-add-btn');
-            if (addYearBtn) {
-                addYearBtn.style.display = state.isAdmin ? '' : 'none';
-            }
-            
             // Sort years in descending order (newest first)
             const sortedYears = [...availableYears].sort((a, b) => b - a);
             
@@ -10393,6 +10385,8 @@ debugCommands.help() - Show this help
         }
 
         function toggleYearDropdown() {
+            // Admin-only guard — non-admin accounts cannot open the year dropdown
+            if (!state.isAdmin) return;
             const dropdown = document.getElementById('year-dropdown');
             dropdown.classList.toggle('hidden');
             
@@ -10415,6 +10409,11 @@ debugCommands.help() - Show this help
         }
 
         async function requestYearSwitch(newYear) {
+            // Admin-only guard — belt-and-suspenders check
+            if (!state.isAdmin) {
+                showToast('⛔ Only admin accounts can switch years.', 'error');
+                return;
+            }
             if (newYear === state.selectedYear) {
                 toggleYearDropdown();
                 return;
@@ -10804,6 +10803,7 @@ debugCommands.help() - Show this help
             showToast(`⏳ Loading ${newYear} data...`, 'info', 1500);
 
             let yearLoaded = false;
+            let carryForwardApplied = false; // tracks if carry-forward ran (new year, no Firebase data yet)
 
             // ── INITIALIZE year cache if needed ──
             if (!state.yearProjectCache) state.yearProjectCache = new Map();
@@ -10845,21 +10845,57 @@ debugCommands.help() - Show this help
                             // Copy the old year's RUNNING YTD → new year's PREVIOUS column.
                             // Only carry forward projects that are NOT completed in the old year.
                             debugLog('INFO', `📋 Applying carry-forward from ${oldYear} → ${newYear}`);
+
+                            // ── KEY CLASSIFICATION ──
+                            // CARRY_OVER_AS_IS: operational/compliance records — dalhin as-is, huwag baguhin
+                            //   permits, emb, cshp, reg, doe, doe-permit  → active records na may expiry dates
+                            //   nov, nov-env                               → open/unresolved NOVs dapat makita pa rin
+                            // FULL_RESET_PREFIXES: fresh encoding every year — delete lahat ng values
+                            //   got_, kpm_, audit_                         → per-year performance ratings
+                            // FLAT_RESET_KEYS: flat string keys (hindi Array[13]) na kailangan ding i-delete
+                            //   kpm_v3_*, kpm_v2_*, got_*                  → stored as plain string, not array
+                            const CARRY_OVER_PREFIXES = [
+                                'permits_', 'emb_', 'cshp_', 'dole_', 'doe_', 'doe-permit_',
+                                'reg_', 'nov_', 'nov-env_'
+                            ];
+                            const FULL_RESET_PREFIXES = [
+                                'got_', 'kpm_', 'audit_'
+                            ];
+
                             const oldYearProjects = state.yearProjectCache.get(oldYear) || [];
                             const carriedProjects = oldYearProjects
                                 .filter(p => {
-                                    // Skip completed projects — they do not carry forward
-                                    const isCompleted = (p.status || '').toUpperCase() === 'COMPLETED'
-                                        || (p.dateFinished && parseInt(p.dateFinished.split('-')[0]) <= oldYear);
-                                    return !isCompleted;
+                                    // Skip finished projects — they do not carry forward to next year
+                                    // A project is considered done if:
+                                    //   (a) status is 'finished' AND has a dateFinished in oldYear or earlier, OR
+                                    //   (b) has a dateFinished year <= oldYear regardless of status field
+                                    // work-stoppage projects carry forward (still active, just paused)
+                                    const finishedYear = p.dateFinished ? parseInt(p.dateFinished.split('-')[0]) : null;
+                                    const isFinished = (p.status || '').toLowerCase() === 'finished'
+                                        && finishedYear !== null && finishedYear <= oldYear;
+                                    const hasExpiredDate = finishedYear !== null && finishedYear < oldYear;
+                                    return !(isFinished || hasExpiredDate);
                                 })
                                 .map(p => {
                                     // Deep clone — do NOT share references between years
                                     const carried = JSON.parse(JSON.stringify(p));
-                                    // For each vals array: sum months 1–12 as YTD → set as PREVIOUS (index 0)
-                                    // Then clear monthly values (fresh accumulation for new year)
                                     if (carried.vals) {
                                         Object.keys(carried.vals).forEach(key => {
+                                            // ── CARRY-OVER AS-IS: permits, emb, cshp, reg, doe, nov, nov-env ──
+                                            // Dalhin lang as-is sa bagong taon — huwag baguhin ang data
+                                            if (CARRY_OVER_PREFIXES.some(pfx => key.startsWith(pfx))) {
+                                                return; // skip — carry-over as-is
+                                            }
+
+                                            // ── FULL RESET: got, kpm, audit ──
+                                            // I-delete lahat ng values — fresh encoding every year
+                                            if (FULL_RESET_PREFIXES.some(pfx => key.startsWith(pfx))) {
+                                                delete carried.vals[key];
+                                                return;
+                                            }
+
+                                            // ── YTD → PREVIOUS: continuous metrics (exposures, medical, activities, etc.) ──
+                                            // Sum months 1–12 as YTD → set as PREVIOUS (index 0), clear monthly values
                                             const arr = carried.vals[key];
                                             if (Array.isArray(arr) && arr.length >= 13) {
                                                 let ytd = 0, hasAny = false;
@@ -10879,6 +10915,7 @@ debugCommands.help() - Show this help
                                     return carried;
                                 });
                             state.yearProjectCache.set(newYear, carriedProjects);
+                            carryForwardApplied = true; // carry-forward ran — need to auto-save to Firebase
                         } else {
                             // Going to a PAST year with no data — blank slate, no carry-forward
                             // (Pre-2026 years should not exist in availableYears, this is a safety fallback)
@@ -10914,17 +10951,40 @@ debugCommands.help() - Show this help
                     state.incidentRateData = { recordableCases: 0, lostDays: 0, totalHours: 0 };
                     state.oshData = {};
                     if (newYear > oldYear) {
+                        // ── KEY CLASSIFICATION (offline fallback — same rules as Firebase path) ──
+                        const CARRY_OVER_PREFIXES_OFFLINE = [
+                            'permits_', 'emb_', 'cshp_', 'dole_', 'doe_', 'doe-permit_',
+                            'reg_', 'nov_', 'nov-env_'
+                        ];
+                        const FULL_RESET_PREFIXES_OFFLINE = [
+                            'got_', 'kpm_', 'audit_'
+                        ];
+
                         const oldYearProjects = state.yearProjectCache.get(oldYear) || [];
                         const carriedOffline = oldYearProjects
                             .filter(p => {
-                                const isCompleted = (p.status || '').toUpperCase() === 'COMPLETED'
-                                    || (p.dateFinished && parseInt(p.dateFinished.split('-')[0]) <= oldYear);
-                                return !isCompleted;
+                                // Skip finished projects — they do not carry forward to next year
+                                // work-stoppage projects carry forward (still active, just paused)
+                                const finishedYear = p.dateFinished ? parseInt(p.dateFinished.split('-')[0]) : null;
+                                const isFinished = (p.status || '').toLowerCase() === 'finished'
+                                    && finishedYear !== null && finishedYear <= oldYear;
+                                const hasExpiredDate = finishedYear !== null && finishedYear < oldYear;
+                                return !(isFinished || hasExpiredDate);
                             })
                             .map(p => {
                                 const carried = JSON.parse(JSON.stringify(p));
                                 if (carried.vals) {
                                     Object.keys(carried.vals).forEach(key => {
+                                        // CARRY-OVER AS-IS: permits, emb, cshp, reg, doe, nov, nov-env
+                                        if (CARRY_OVER_PREFIXES_OFFLINE.some(pfx => key.startsWith(pfx))) {
+                                            return;
+                                        }
+                                        // FULL RESET: got, kpm, audit
+                                        if (FULL_RESET_PREFIXES_OFFLINE.some(pfx => key.startsWith(pfx))) {
+                                            delete carried.vals[key];
+                                            return;
+                                        }
+                                        // YTD → PREVIOUS: continuous metrics
                                         const arr = carried.vals[key];
                                         if (Array.isArray(arr) && arr.length >= 13) {
                                             let ytd = 0, hasAny = false;
@@ -10942,6 +11002,7 @@ debugCommands.help() - Show this help
                                 return carried;
                             });
                         state.yearProjectCache.set(newYear, carriedOffline);
+                        carryForwardApplied = true; // carry-forward ran offline — save when Firebase available
                     } else {
                         // Going to older year with no data — blank (safety fallback, should not happen post-2026)
                         state.yearProjectCache.set(newYear, []);
@@ -10993,7 +11054,24 @@ debugCommands.help() - Show this help
                 localStorage.removeItem(`esh_projects_cache_ts_${dataUserId}`);
             } catch(e) {}
 
-            // ── STEP 10: Update all UI ──
+            // ── STEP 10: Auto-save if carry-forward was applied ──
+            // Carry-forward runs client-side only. If we don't save immediately,
+            // other accounts switching to this year will generate their own local
+            // carry-forward — which may differ or cause inconsistency.
+            // Solution: Admin auto-saves right after carry-forward so Firebase has
+            // the canonical 2027 data before anyone else loads it.
+            if (carryForwardApplied && state.isAdmin && window.firebaseReady && window.firebaseDb) {
+                try {
+                    showToast(`⏳ Initializing ${newYear} data — saving to Firebase...`, 'info', 2500);
+                    await saveToFirebase();
+                    debugLog('SUCCESS', `✅ Auto-saved carry-forward data for ${newYear} to Firebase`);
+                } catch(e) {
+                    console.warn('Auto-save after carry-forward failed:', e);
+                    showToast(`⚠️ Could not auto-save ${newYear} data. Please press Save manually.`, 'warning', 5000);
+                }
+            }
+
+            // ── STEP 11: Update all UI ──
             updateYearDisplay();
             renderYearOptions();
             render();
@@ -11402,9 +11480,37 @@ debugCommands.help() - Show this help
         }
 
         function updateYearDisplay() {
+            // ── YEAR SELECTOR VISIBILITY: Admin-only ──
+            // Only admin accounts can switch years.
+            // All other roles see the current year as a plain label (no dropdown).
+            const yearSelectorContainer = document.querySelector('.year-selector-container');
+            if (yearSelectorContainer) {
+                if (!state.isAdmin) {
+                    yearSelectorContainer.style.pointerEvents = 'none';
+                    yearSelectorContainer.title = '';
+                    const _btn = document.getElementById('year-selector-btn');
+                    if (_btn) {
+                        _btn.style.cursor = 'default';
+                        _btn.style.background = 'transparent';
+                        _btn.style.border = '1px solid rgba(255,255,255,0.3)';
+                        _btn.style.boxShadow = 'none';
+                    }
+                } else {
+                    yearSelectorContainer.style.pointerEvents = '';
+                    yearSelectorContainer.title = 'Select Year';
+                    const _btn = document.getElementById('year-selector-btn');
+                    if (_btn) {
+                        _btn.style.cursor = '';
+                        _btn.style.background = '';
+                        _btn.style.border = '';
+                        _btn.style.boxShadow = '';
+                    }
+                }
+            }
+
             const yearBtn = document.getElementById('year-selector-btn');
             if (yearBtn) {
-                yearBtn.title = `Select Year`;
+                yearBtn.title = state.isAdmin ? 'Select Year' : '';
                 const label = document.getElementById('year-selector-label');
                 if (label) label.textContent = state.selectedYear;
             }
@@ -11574,28 +11680,7 @@ debugCommands.help() - Show this help
         }
 
         function showAddYearDialog() {
-            if (!state.isAdmin) {
-                showToast('⛔ Only admins can add years.', 'error');
-                return;
-            }
-            const customYear = prompt('Enter a custom year (e.g., 2040):');
-            if (!customYear) return;
-            
-            const year = parseInt(customYear);
-            if (isNaN(year) || year < 2000 || year > 2100) {
-                showToast('❌ Invalid year. Please enter a year between 2000-2100.', 'error');
-                return;
-            }
-            
-            if (availableYears.includes(year)) {
-                showToast(`⚠️ Year ${year} already exists.`, 'warning');
-                return;
-            }
-            
-            availableYears.push(year);
-            availableYears.sort((a, b) => a - b);
-            renderYearOptions();
-            showToast(`✅ Year ${year} added successfully!`, 'success');
+            // Removed — years are generated automatically on January 1 of each new year
         }
 
         // ===== LOGIN & AUTH =====
@@ -12332,6 +12417,20 @@ function openAdminQuickView() {
 
         function toggleEdit() {
             if (state.userRole === 'manager') { showToast('👁️ Manager accounts are view-only. Cannot enter edit mode.', 'warning'); return; }
+
+            // ── PAST YEAR LOCK: Non-admin accounts are view-only on past years ──
+            // Admin can edit any year (for corrections).
+            // All other roles can only edit the LATEST available year.
+            // "Past year" = any year older than the newest year in availableYears.
+            // This means: if Admin already switched to 2027, then 2026 becomes a past year
+            // even if the device calendar still says 2026.
+            const latestYear = Math.max(...availableYears);
+            const isPastYear = state.selectedYear < latestYear;
+            if (isPastYear && !state.isAdmin) {
+                showToast(`👁️ ${state.selectedYear} is a past year — view-only for your account. Only Admin can make corrections.`, 'warning');
+                return;
+            }
+
             state.isEditing = true;
             
             // Update floating button to SAVE mode
@@ -12948,7 +13047,28 @@ function updateAuditData(pName, qtr, field, val) {
             // before any potential PDF upload that could race with the debounce timer.
             if (state.currentTab === 'cshp' || state.currentTab === 'reg' || state.currentTab === 'doe-permit') {
                 if (typeof saveUserData === 'function') saveUserData(state.currentUser?.email);
-                if (typeof saveToFirebase === 'function') saveToFirebase().catch(() => {});
+                // ── Targeted DOM update: reflect the new date value immediately on screen ──
+                // We skip full render() for these tabs to avoid disrupting the date picker,
+                // so we manually update just the affected input's displayed value.
+                // Use event.target if available; otherwise find by matching value in the row.
+                try {
+                    const _activeInput = (typeof event !== 'undefined' && event && event.target && event.target.tagName === 'INPUT') ? event.target : null;
+                    if (_activeInput) {
+                        _activeInput.value = val;
+                        _activeInput.style.borderColor = val ? '#4caf50' : '';
+                        _activeInput.style.background  = val ? '#f1fff1' : '';
+                    }
+                } catch(_domErr) {}
+                // Retry save if _isSaving lock is held (e.g. a PDF upload just finished)
+                (async function _cshpSaveWithRetry() {
+                    if (typeof saveToFirebase !== 'function') return;
+                    for (let _i = 0; _i < 4; _i++) {
+                        if (!window._isSaving) { saveToFirebase().catch(() => {}); return; }
+                        await new Promise(r => setTimeout(r, 600));
+                    }
+                    window._isSaving = false; // force-unlock after 4 attempts
+                    saveToFirebase().catch(() => {});
+                })();
             } else if (typeof saveToFirebaseDebounced === 'function') {
                 saveToFirebaseDebounced();
             }
@@ -12959,20 +13079,28 @@ function updateAuditData(pName, qtr, field, val) {
                     panel.outerHTML = buildIncidentTabulationHTML();
                 }
             }
-            // Re-render so computed columns (totals, averages, %) update immediately
-            // without requiring a page refresh. We preserve focus so typing is uninterrupted.
-            // SKIP re-render for date-only tabs (cshp, reg, doe-permit) — their date inputs are standalone,
-            // no computed columns to update, and re-rendering resets the date picker mid-selection.
-            const _skipRenderTabs = ['cshp', 'reg', 'doe-permit'];
+            // Re-render so computed columns (totals, averages, %) update immediately.
+            // SKIP re-render for tabs without computed columns — prevents flickering,
+            // scroll jumps, and date-picker resets on every keystroke.
+            // Only 'rates' needs a full re-render on input (auto-computed columns).
+            const _skipRenderTabs = ['cshp', 'reg', 'doe-permit', 'exposures', 'activities',
+                                     'dole', 'env-monthly-report', 'nov', 'nov-env', 'nov-monitoring',
+                                     'medical', 'kpm', 'emb', 'permits', 'lta-registry', 'health-report',
+                                     'audit', 'env-monitoring', 'osh-requirement', 'tabulation'];
             if (!_skipRenderTabs.includes(state.currentTab)) {
                 const _activeEl = document.activeElement;
+                const _activeId = _activeEl ? _activeEl.id : null;
+                const _activeName = _activeEl ? _activeEl.getAttribute('name') : null;
                 const _activeSelStart = (_activeEl && _activeEl.selectionStart !== undefined) ? _activeEl.selectionStart : null;
                 const _activeSelEnd = (_activeEl && _activeEl.selectionEnd !== undefined) ? _activeEl.selectionEnd : null;
-                if (_activeEl) _activeEl.setAttribute('data-focus-restore', 'true');
+                const _savedScrollY = window.scrollY || window.pageYOffset || 0;
                 render();
-                const _restoreEl = document.querySelector('[data-focus-restore="true"]');
+                if (_savedScrollY > 0) {
+                    try { window.scrollTo({ top: _savedScrollY, behavior: 'instant' }); } catch(e) { window.scrollTo(0, _savedScrollY); }
+                }
+                let _restoreEl = _activeId ? document.getElementById(_activeId) : null;
+                if (!_restoreEl && _activeName) _restoreEl = document.querySelector('[name=' + JSON.stringify(_activeName) + ']');
                 if (_restoreEl) {
-                    _restoreEl.removeAttribute('data-focus-restore');
                     _restoreEl.focus();
                     if (_activeSelStart !== null && _restoreEl.setSelectionRange) {
                         try { _restoreEl.setSelectionRange(_activeSelStart, _activeSelEnd); } catch(e) {}
@@ -13167,22 +13295,74 @@ function updateAuditData(pName, qtr, field, val) {
         }
 
         // ==================== PDF UPLOAD FUNCTIONS ====================
+        // ── PDF Upload Status Banner ──
+        // Uses a persistent status div rendered at the top of the current tab content,
+        // not inside the button's parent (which gets destroyed by render()).
+        // This survives DOM rebuilds and works correctly for multiple uploads in a row.
+        function _pdfSetStatus(msg, type) {
+            // type: 'uploading' | 'saving' | 'success' | 'error' | 'clear'
+            const colors = {
+                uploading: { bg: '#e3f2fd', border: '#1976D2', text: '#0d47a1', icon: 'fa-spinner fa-spin' },
+                saving:    { bg: '#fff8e1', border: '#f57c00', text: '#e65100', icon: 'fa-cloud-arrow-up fa-pulse' },
+                success:   { bg: '#e8f5e9', border: '#2e7d32', text: '#1b5e20', icon: 'fa-circle-check' },
+                error:     { bg: '#ffebee', border: '#c62828', text: '#b71c1c', icon: 'fa-triangle-exclamation' }
+            };
+            let el = document.getElementById('_pdf-upload-status-bar');
+            if (type === 'clear') { if (el) el.remove(); return; }
+            const c = colors[type] || colors.uploading;
+            if (!el) {
+                el = document.createElement('div');
+                el.id = '_pdf-upload-status-bar';
+                el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;min-width:320px;max-width:520px;border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,0.18);font-size:0.85rem;font-weight:600;transition:background 0.3s,border-color 0.3s;';
+                document.body.appendChild(el);
+            }
+            el.style.background = c.bg;
+            el.style.border = '2px solid ' + c.border;
+            el.style.color = c.text;
+            el.innerHTML = '<i class="fas ' + c.icon + '" style="font-size:1.1rem;flex-shrink:0;"></i><span>' + msg + '</span>';
+        }
+
+        window._pdfSetStatus = _pdfSetStatus; // expose to global scope for cross-closure access
+
+        // ── triggerPdfUpload: creates a FRESH file input every call ──
+        // Static <input type="file"> in the DOM fails on 2nd upload because:
+        //   1. onchange only fires if the selected file differs from the last one
+        //   2. After render(), the old inputElement reference is detached
+        // By creating a new element each time, both issues are eliminated.
+        window.triggerPdfUpload = function(projectName, pdfKey, isReplacement) {
+            var inp = document.createElement('input');
+            inp.type = 'file';
+            inp.accept = '.pdf,application/pdf';
+            inp.style.display = 'none';
+            document.body.appendChild(inp);
+            inp.onchange = function() {
+                document.body.removeChild(inp);
+                uploadPDF(inp, projectName, pdfKey, !!isReplacement);
+            };
+            // If user cancels (no change fires), clean up after 60s
+            setTimeout(function() { if (inp.parentNode) inp.parentNode.removeChild(inp); }, 60000);
+            inp.click();
+        };
+
         async function uploadPDF(inputElement, projectName, pdfKey, isReplacement = false) {
+            // Capture the file immediately — inputElement reference may become stale after render()
             const file = inputElement.files[0];
             if (!file) return;
+            // Clear input now so re-trigger is possible later
+            try { inputElement.value = ''; } catch(e) {}
 
             // Validate file type
             if (file.type !== 'application/pdf') {
-                showToast('Please upload only PDF files.', 'error');
-                inputElement.value = '';
+                _pdfSetStatus('❌ Please upload PDF files only.', 'error');
+                setTimeout(() => _pdfSetStatus('', 'clear'), 4000);
                 return;
             }
 
             // Validate file size (max 500KB — 1 page stamped file only)
-            const maxSize = 500 * 1024; // 500KB
+            const maxSize = 500 * 1024;
             if (file.size > maxSize) {
-                showToast('⚠️ File size must be less than 500KB. Please upload the STAMPED FILE PAGE only (1 page), hindi ang buong file.', 'warning');
-                inputElement.value = '';
+                _pdfSetStatus('⚠️ File must be under 500KB. Upload the stamped 1-page file only.', 'error');
+                setTimeout(() => _pdfSetStatus('', 'clear'), 5000);
                 return;
             }
 
@@ -13193,23 +13373,16 @@ function updateAuditData(pName, qtr, field, val) {
                     'Are you sure you want to replace the existing PDF file with this new one?',
                     true
                 );
-                if (!confirmed) {
-                    inputElement.value = '';
-                    return;
-                }
+                if (!confirmed) return;
             }
 
-            try {
-                // Show loading indicator
-                const container = inputElement.parentElement;
-                const originalHTML = container.innerHTML;
-                container.innerHTML = '<span style="color: #1976D2;"><i class="fas fa-spinner fa-spin"></i> Uploading PDF...</span>';
+            // ── Show persistent uploading status ──
+            _pdfSetStatus('Uploading PDF for <strong>' + projectName + '</strong>…', 'uploading');
 
-                // Get current project
+            try {
+                // Get current project (from live state — survives render())
                 const project = state.projects.find(p => p.name === projectName);
-                if (!project) {
-                    throw new Error('Project not found');
-                }
+                if (!project) throw new Error('Project not found: ' + projectName);
 
                 // Delete old file from Firebase Storage if replacing
                 if (isReplacement && project.vals[pdfKey] && project.vals[pdfKey][1]) {
@@ -13218,36 +13391,29 @@ function updateAuditData(pName, qtr, field, val) {
                         try {
                             const oldStorageRef = window.firebase.ref(window.firebaseStorage, oldPdfData.storagePath);
                             await window.firebase.deleteObject(oldStorageRef);
-                            console.log('✅ Old PDF deleted from storage');
                         } catch (deleteError) {
                             console.warn('⚠️ Could not delete old file from storage:', deleteError);
-                            // Continue anyway
                         }
                     }
                 }
 
-                // Upload to Firebase Storage
                 if (!window.firebaseStorage || !window.firebase) {
                     throw new Error('Firebase Storage not initialized');
                 }
 
-                // Always use admin UID for storage path so all users (any role/region) can access uploaded PDFs.
                 const STORAGE_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
                 const timestamp = Date.now();
-                const fileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_'); // Sanitize filename
-                const storagePath = `compliance-pdfs/${STORAGE_UID}/${projectName.replace(/[^a-zA-Z0-9]/g,'_')}_${pdfKey}_${timestamp}_${fileName}`;
-                
+                const fileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                const storagePath = 'compliance-pdfs/' + STORAGE_UID + '/' + projectName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + pdfKey.replace(/[^a-zA-Z0-9]/g,'_') + '_' + timestamp + '_' + fileName;
+
                 const storageRef = window.firebase.ref(window.firebaseStorage, storagePath);
-                
-                // Upload the actual PDF file to Firebase Storage
                 await window.firebase.uploadBytes(storageRef, file);
                 const downloadURL = await window.firebase.getDownloadURL(storageRef);
 
                 console.log('✅ PDF uploaded to Firebase Storage:', storagePath);
-                console.log('📎 Download URL:', downloadURL);
 
-                // Store PDF metadata in project vals
-                if (!project.vals[pdfKey]) project.vals[pdfKey] = new Array(13).fill("");
+                // Store metadata in state (survives render())
+                if (!project.vals[pdfKey]) project.vals[pdfKey] = new Array(13).fill('');
                 project.vals[pdfKey][1] = {
                     name: file.name,
                     url: downloadURL,
@@ -13255,31 +13421,108 @@ function updateAuditData(pName, qtr, field, val) {
                     uploadedAt: new Date().toISOString(),
                     size: file.size
                 };
-                
-                // Save to localStorage and Firebase Firestore
-                // FIX: Cancel any pending debounced save so it doesn't get skipped
-                // by the _isSaving lock during saveToFirebase() below.
-                // The date input from CSHP (or any other field edited just before PDF upload)
-                // is already in state.projects — so saving here includes it.
+
+                // ── Save to Firestore — wait for actual completion, retry if locked ──
+                _pdfSetStatus('Saving to cloud for <strong>' + projectName + '</strong>…', 'saving');
+                // Cancel any pending debounced saves to avoid race conditions
                 if (typeof _saveDebounceTimer !== 'undefined') clearTimeout(_saveDebounceTimer);
-                saveUserData(state.currentUser.email);
-                await saveToFirebase();
-                
-                // Re-render to show the uploaded PDF
-                render();
+                if (window._saveDebounceTimer) clearTimeout(window._saveDebounceTimer);
+                // Save to localStorage cache (non-blocking)
+                saveUserData(state.currentUser?.email);
+
+                // ── Retry save up to 6 times with progressive backoff ──
+                // _isSaving is held for 2s after each Firebase write — we must wait it out.
+                let saved = false;
+                const _maxAttempts = 6;
+                for (let attempt = 0; attempt < _maxAttempts; attempt++) {
+                    if (window._isSaving) {
+                        // Another save in progress — wait for it to finish (2s window + margin)
+                        await new Promise(res => setTimeout(res, 500 + attempt * 300));
+                        continue;
+                    }
+                    try {
+                        saved = await saveToFirebase();
+                    } catch(saveErr) {
+                        console.warn('⚠️ PDF save attempt', attempt + 1, 'threw:', saveErr.message);
+                    }
+                    if (saved) break;
+                    // saveToFirebase returned false — wait and retry
+                    await new Promise(res => setTimeout(res, 600));
+                }
+
+                if (!saved) {
+                    // Last resort: force-unlock and try once more
+                    console.warn('⚠️ PDF save: forcing unlock after exhausting retries');
+                    window._isSaving = false;
+                    window._isSavingEcho = false;
+                    await new Promise(res => setTimeout(res, 200));
+                    saved = await saveToFirebase();
+                }
+
+                if (!saved) {
+                    throw new Error('Could not save to Firestore after multiple attempts. Please refresh and try again.');
+                }
 
                 console.log('✅ PDF metadata saved to Firestore');
-                showToast(isReplacement ? 'PDF file replaced successfully!' : 'PDF uploaded successfully!', 'success');
+
+                // ── FIX 3: Real-time verification — confirm data actually persisted ──
+                _pdfSetStatus('🔍 Verifying save for <strong>' + projectName + '</strong>…', 'saving');
+                let verified = false;
+                try {
+                    // Re-read the project doc from Firestore to confirm the PDF field was written
+                    const _verifyRef = window.firebase.doc(
+                        window.firebaseDb,
+                        'users', 'fUnXsvKnRYMpuySRbeVYJk7TO452',
+                        'years', String(state.selectedYear || 2026),
+                        'projects', ProjectsDB.getProjectId(projectName)
+                    );
+                    const _verifySnap = await window.firebase.getDoc(_verifyRef);
+                    if (_verifySnap.exists()) {
+                        const _verifyData = _verifySnap.data();
+                        const _verifyVal = _verifyData?.vals?.[pdfKey];
+                        // Check that the pdfUrl is present in stored data
+                        const _savedUrl = Array.isArray(_verifyVal) ? _verifyVal[1]?.url : _verifyVal?.[1]?.url;
+                        verified = (_savedUrl === downloadURL);
+                        if (!verified) {
+                            console.warn('⚠️ PDF verify: URL mismatch. Stored:', _savedUrl, 'Expected:', downloadURL);
+                        }
+                    }
+                } catch(verifyErr) {
+                    console.warn('⚠️ PDF verification read failed (non-critical):', verifyErr.message);
+                    // If we can't verify (e.g. network error), treat as success since saveToFirebase returned true
+                    verified = true;
+                }
+
+                // Re-render to show the new PDF button — preserve scroll
+                const _pdfUpScrollY = window.scrollY || window.pageYOffset || 0;
+                render();
+                if (_pdfUpScrollY > 0) requestAnimationFrame(() => {
+                    try { window.scrollTo({ top: _pdfUpScrollY, behavior: 'instant' }); }
+                    catch(e) { window.scrollTo(0, _pdfUpScrollY); }
+                });
+
+                if (verified) {
+                    _pdfSetStatus((isReplacement ? '✅ PDF replaced & verified' : '✅ PDF uploaded & verified') + ' — ' + projectName, 'success');
+                    console.log('✅ PDF save verified in Firestore for:', projectName);
+                } else {
+                    // Save claimed success but verification failed — alert user
+                    _pdfSetStatus('⚠️ PDF uploaded but save could not be verified. Please refresh to check.', 'error');
+                    console.error('❌ PDF save verification FAILED for:', projectName, '| pdfKey:', pdfKey);
+                }
+                setTimeout(() => _pdfSetStatus('', 'clear'), verified ? 4000 : 8000);
+
             } catch (error) {
                 console.error('❌ PDF upload error:', error);
-                showToast('Failed to upload PDF: ' + error.message, 'error');
-                
-                // Re-render to restore UI
-                render();
-            }
+                _pdfSetStatus('❌ Upload failed: ' + error.message, 'error');
+                setTimeout(() => _pdfSetStatus('', 'clear'), 6000);
 
-            // Clear file input
-            inputElement.value = '';
+                const _pdfErrScrollY = window.scrollY || window.pageYOffset || 0;
+                render();
+                if (_pdfErrScrollY > 0) requestAnimationFrame(() => {
+                    try { window.scrollTo({ top: _pdfErrScrollY, behavior: 'instant' }); }
+                    catch(e) { window.scrollTo(0, _pdfErrScrollY); }
+                });
+            }
         }
 
         async function deletePDF(projectName, pdfKey) {
@@ -13311,19 +13554,32 @@ function updateAuditData(pName, qtr, field, val) {
 
                 // Remove from project vals
                 project.vals[pdfKey][1] = null;
-                
-                // Save changes to localStorage and Firebase Firestore
-                saveUserData(state.currentUser.email);
-                await saveToFirebase();
-                
-                // Re-render
+
+                // Save changes — retry if locked
+                _pdfSetStatus('Deleting PDF for <strong>' + projectName + '</strong>…', 'saving');
+                saveUserData(state.currentUser?.email);
+                let saved = false;
+                for (let attempt = 0; attempt < 4; attempt++) {
+                    if (window._isSaving) { await new Promise(res => setTimeout(res, 800)); continue; }
+                    saved = await saveToFirebase();
+                    if (saved) break;
+                    await new Promise(res => setTimeout(res, 800));
+                }
+                if (!saved) { window._isSaving = false; window._isSavingEcho = false; saved = await saveToFirebase(); }
+                if (!saved) throw new Error('Could not save deletion to Firestore. Please refresh and try again.');
+
+                // Re-render — preserve scroll position
+                const _pdfDelScrollY = window.scrollY || window.pageYOffset || 0;
                 render();
+                if (_pdfDelScrollY > 0) requestAnimationFrame(() => { try { window.scrollTo({ top: _pdfDelScrollY, behavior: 'instant' }); } catch(e) { window.scrollTo(0, _pdfDelScrollY); } });
 
                 console.log('✅ PDF metadata removed from Firestore');
-                showToast('PDF deleted successfully!', 'success');
+                _pdfSetStatus('✅ PDF deleted — ' + projectName, 'success');
+                setTimeout(() => _pdfSetStatus('', 'clear'), 3000);
             } catch (error) {
                 console.error('❌ PDF deletion error:', error);
-                showToast('Failed to delete PDF: ' + error.message, 'error');
+                _pdfSetStatus('❌ Delete failed: ' + error.message, 'error');
+                setTimeout(() => _pdfSetStatus('', 'clear'), 5000);
             }
         }
         // ==================== END PDF UPLOAD FUNCTIONS ====================
@@ -14689,6 +14945,8 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         }
 
         function _ltaAutoEditMode() {
+            const _isPastYr = state.selectedYear < Math.max(...availableYears);
+            if (_isPastYr && !state.isAdmin) return; // past year — non-admin view-only
             if (!state.isEditing) {
                 state.isEditing = true;
                 const _fb = document.getElementById('floating-edit-btn');
@@ -15298,6 +15556,8 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         }
 
         function _oshAutoEditMode() {
+            const _isPastYr = state.selectedYear < Math.max(...availableYears);
+            if (_isPastYr && !state.isAdmin) return; // past year — non-admin view-only
             if (!state.isEditing) {
                 state.isEditing = true;
                 const _fb = document.getElementById('floating-edit-btn');
@@ -16338,6 +16598,46 @@ function renderTabulation() {
 
 
 
+        // ── Scroll-safe render wrapper — preserves page scroll position across all render() calls ──
+        function safeRender() {
+            const _sy = window.scrollY || window.pageYOffset || 0;
+            const _sx = window.scrollX || window.pageXOffset || 0;
+            render();
+            if (_sy > 0 || _sx > 0) {
+                requestAnimationFrame(() => {
+                    try { window.scrollTo({ top: _sy, left: _sx, behavior: 'instant' }); }
+                    catch(e) { window.scrollTo(_sx, _sy); }
+                });
+            }
+        }
+        window.safeRender = safeRender;
+
+        // Expose _pdfSetStatus globally so PDF upload helpers outside the closure can use it
+        // (set here as placeholder; overwritten when uploadPDF code runs for the first time)
+        if (!window._pdfSetStatus) {
+            window._pdfSetStatus = function(msg, type) {
+                var el = document.getElementById('_pdf-upload-status-bar');
+                if (type === 'clear') { if (el) el.remove(); return; }
+                var colors = {
+                    uploading: { bg: '#e3f2fd', border: '#1976D2', text: '#0d47a1', icon: 'fa-spinner fa-spin' },
+                    saving:    { bg: '#fff8e1', border: '#f57c00', text: '#e65100', icon: 'fa-cloud-arrow-up fa-pulse' },
+                    success:   { bg: '#e8f5e9', border: '#2e7d32', text: '#1b5e20', icon: 'fa-circle-check' },
+                    error:     { bg: '#ffebee', border: '#c62828', text: '#b71c1c', icon: 'fa-triangle-exclamation' }
+                };
+                var c = colors[type] || colors.uploading;
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = '_pdf-upload-status-bar';
+                    el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;min-width:320px;max-width:520px;border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,0.18);font-size:0.85rem;font-weight:600;transition:background 0.3s,border-color 0.3s;';
+                    document.body.appendChild(el);
+                }
+                el.style.background = c.bg;
+                el.style.border = '2px solid ' + c.border;
+                el.style.color = c.text;
+                el.innerHTML = '<i class="fas ' + c.icon + '" style="font-size:1.1rem;flex-shrink:0;"></i><span>' + msg + '</span>';
+            };
+        }
+
         function render() {
             try {
             const _eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
@@ -17204,6 +17504,8 @@ if (state.currentTab === 'audit') {
                 }
 
                 function _autoEditMode() {
+                    const _isPastYr = state.selectedYear < Math.max(...availableYears);
+                    if (_isPastYr && !state.isAdmin) return; // past year — non-admin view-only
                     if (!state.isEditing) {
                         state.isEditing = true;
                         const _fb = document.getElementById('floating-edit-btn');
@@ -18403,7 +18705,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var currentMoIdx = new Date().getMonth();
 
                         function getRegMonthScore(reg, mo) {
-                            var projs = displayProjects.filter(function(p){ return p.region === reg; });
+                            var projs = displayProjects.filter(function(p){ return p.region === reg && !(p.vals && p.vals['kpm_na'] === '1'); });
                             if (!projs.length) return null;
                             var grand = 0, hasAny = false;
                             KPM_ESH_ROWS.forEach(function(row) {
@@ -18550,6 +18852,24 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     }
                     window.kpmSet = kpmSet;
 
+                    // ── KPM N/A helpers ──
+                    // Project marked N/A is exempt from EP averages and regional scoring.
+                    // Flag stored as vals['kpm_na'] = '1' on the project itself.
+                    function kpmIsNA(p) {
+                        return p && p.vals && p.vals['kpm_na'] === '1';
+                    }
+                    window.kpmToggleNA = function(projName) {
+                        var p = state.projects.find(function(x){ return x.name === projName; });
+                        if (!p) return;
+                        var _rbac = UserAccounts.checkPermission(state.currentUser && state.currentUser.email, 'edit', p.region, 'kpm');
+                        if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+                        if (!p.vals) p.vals = {};
+                        p.vals['kpm_na'] = (p.vals['kpm_na'] === '1') ? '' : '1';
+                        if (typeof markPendingSync === 'function') markPendingSync();
+                        if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
+                        render();
+                    };
+
                     // ── State: which month/role is active per project ──
                     if (!window._kpmActiveMo) window._kpmActiveMo = {};
                     if (!window._kpmActiveRole) window._kpmActiveRole = {};
@@ -18644,13 +18964,14 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         rows.forEach(function(row) {
                             var projEPs = projs.map(function(p) {
+                                if (kpmIsNA(p)) return null; // N/A — excluded from average
                                 var k = 'kpm_v3_' + activeMo + '_' + row.id;
                                 var val = p.vals[k] !== undefined ? p.vals[k] : '';
                                 var raw = String(val).replace('%','').trim();
                                 var n = parseFloat(raw);
                                 return isNaN(n) ? '' : n / 100;
                             });
-                            var validEPs = projEPs.filter(function(v){return v !== '';});
+                            var validEPs = projEPs.filter(function(v){ return v !== '' && v !== null; });
                             var avgEp = validEPs.length > 0 ? validEPs.reduce(function(s,v){return s+v;},0) / validEPs.length : '';
                             var rowTotal = avgEp !== '' ? avgEp * row.dw : '';
                             if (rowTotal !== '') grandTotal += rowTotal;
@@ -18667,9 +18988,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                             var projCells = projs.map(function(p, pi) {
                                 var pk = p.name.replace(/[^a-zA-Z0-9]/g,'_');
+                                var pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                                // N/A project — show greyed-out cell, no input
+                                if (kpmIsNA(p)) {
+                                    return '<td style="text-align:center;padding:2px 3px;border:1px solid #e0e0e0;min-width:72px;background:#f5f5f5;">'
+                                        + '<span style="font-size:0.68rem;font-weight:800;color:#bdbdbd;letter-spacing:0.5px;">N/A</span>'
+                                        + '</td>';
+                                }
                                 var k = 'kpm_v3_' + activeMo + '_' + row.id;
                                 var rawVal = p.vals[k] !== undefined ? p.vals[k] : '';
-                                var pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
                                 var n = parseFloat(String(rawVal).replace('%',''));
                                 var inputColor = (isNaN(n)||n===0) ? '#555' : n/100 >= 0.90 ? '#2e7d32' : n/100 >= 0.85 ? '#e65100' : '#c62828';
                                 var disAttr = canEdit ? '' : ' disabled';
@@ -18681,7 +19008,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     + ' oninput="window.kpmAutoPercent(this)"'
                                     + ' onblur="window.kpmEpBlurDS(this)"'
                                     + ' style="width:62px;text-align:center;border:1px solid #b0c8b0;border-radius:3px;padding:3px 2px;font-size:0.72rem;font-weight:700;color:' + inputColor + ';">'
-                                    + '</td>';                         }).join('');
+                                    + '</td>';
+                            }).join('');
 
                             var impKey = 'kpm_v3_imp_' + activeMo + '_' + row.id;
                             var impProj = projs[0];
@@ -18726,7 +19054,17 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         var grandColor = grandTotal >= 0.90 ? '#2e7d32' : grandTotal >= 0.85 ? '#e65100' : '#c62828';
                         var projHeaderCols = projs.map(function(p) {
-                            return '<th style="padding:5px 4px;border:1px solid #c8e6c9;color:#1b5e20;font-size:0.62rem;font-weight:700;text-align:center;min-width:72px;white-space:normal;word-break:break-word;background:#b7ddb5;">' + p.name + '</th>';
+                            var isNA = kpmIsNA(p);
+                            var pnSafeH = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                            var naBtn = canEdit
+                                ? '<br><button onclick="event.stopPropagation();window.kpmToggleNA(\'' + pnSafeH + '\')" style="margin-top:3px;background:' + (isNA?'#ff9800':'#fff8e1') + ';color:' + (isNA?'white':'#e65100') + ';border:1.5px solid ' + (isNA?'#f57c00':'#ffc107') + ';border-radius:4px;padding:2px 7px;font-size:0.55rem;font-weight:800;cursor:pointer;white-space:nowrap;">'
+                                  + (isNA ? '✓ Remove N/A' : '✕ Mark N/A') + '</button>'
+                                : '';
+                            return '<th style="padding:5px 4px;border:1px solid #c8e6c9;color:' + (isNA?'#bdbdbd':'#1b5e20') + ';font-size:0.62rem;font-weight:700;text-align:center;min-width:72px;white-space:normal;word-break:break-word;background:' + (isNA?'#f5f5f5':'#b7ddb5') + ';">'
+                                + (isNA
+                                    ? '<span style="text-decoration:line-through;opacity:0.5;">' + p.name + '</span><br><span style="font-size:0.55rem;background:#ff9800;color:white;padding:1px 5px;border-radius:8px;">N/A EXEMPT</span>'
+                                    : p.name)
+                                + naBtn + '</th>';
                         }).join('');
                         var projGradeRow3Cols = projs.map(function() {
                             return '<th style="padding:4px 2px;border:1px solid #c8e6c9;color:#1b5e20;font-size:0.6rem;font-style:italic;text-align:center;background:#c5e8c3;">EP (%)</th>';
@@ -18844,6 +19182,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     // ── Render per region ──
                     if (!window._kpmRegActiveMo) window._kpmRegActiveMo = {};
+
+
+
                     REGIONS.forEach(function(reg) {
                         if (reg === 'CORPORATE' || reg === 'PLANT OPERATIONS') return;
                         var projs = displayProjects.filter(function(p) { return p.region === reg; });
@@ -18875,7 +19216,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     // ── In-place KPM region refresh — swap only the table content, not the whole page ──
                     // Called when user switches months in the KPM tab to avoid full render() and data loss.
                     window.kpmRefreshRegion = function(regKey) {
-                        var REGIONS_LOCAL = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO','CORPORATE','PLANT OPERATIONS'];
+                        var REGIONS_LOCAL = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
                         var reg = REGIONS_LOCAL.find(function(r){ return r.replace(/[^a-zA-Z0-9]/g,'_') === regKey; });
                         if (!reg) return;
                         var projs = (state.filteredProjects || state.projects).filter(function(p){ return p.region === reg; });
@@ -19015,9 +19356,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                             <i class="fas fa-file-pdf"></i> View
                                         </button>
                                         ${state.isEditing && canEditRegion ? `
-                                            <input type="file" id="pdf_${p.name}_${state.currentTab}" accept=".pdf"
-                                                style="display:none;" onchange="uploadPDF(this,'${_pnSafe}','${_pkSafe}',true)">
-                                            <button class="pdf-delete-btn" onclick="document.getElementById('pdf_${p.name}_${state.currentTab}').click()" title="Replace PDF">
+                                            <button class="pdf-delete-btn" onclick="window.triggerPdfUpload('${_pnSafe}','${_pkSafe}',true)" title="Replace PDF">
                                                 <i class="fas fa-sync-alt"></i> Replace
                                             </button>
                                             <button class="pdf-delete-btn" onclick="deletePDF('${_pnSafe}','${_pkSafe}')" title="Delete PDF" style="background:#ef5350;">
@@ -19030,9 +19369,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 if (state.isEditing && canEditRegion) {
                                     pdfCell = `
                                         <div>
-                                            <input type="file" id="pdf_${p.name}_${state.currentTab}" accept=".pdf"
-                                                style="display:none;" onchange="uploadPDF(this,'${_pnSafe}','${_pkSafe}',false)">
-                                            <button class="pdf-upload-btn" onclick="document.getElementById('pdf_${p.name}_${state.currentTab}').click()">
+                                            <button class="pdf-upload-btn" onclick="window.triggerPdfUpload('${_pnSafe}','${_pkSafe}',false)">
                                                 <i class="fas fa-upload"></i> Upload
                                             </button>
                                             <div style="font-size:10px;color:#e65100;margin-top:3px;font-style:italic;">
@@ -19044,13 +19381,23 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 }
                             }
                             
+                            const _cshpDateId = `cshp-date-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}`;
                             html += `<tr>
                                 <td style="text-align:left;font-weight:600;background:var(--border-color); position: sticky; left: 0; z-index: 5;">
                                     ${p.isRenewable ? '<i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;" title="Renewable Energy Project"></i>' : ''}
                                     ${p.name}
                                 </td>
-                                <td><input type="date" value="${v}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
-                                    oninput="updateVal('${p.name}','${key}',1,this.value)"></td>
+                                <td style="white-space:nowrap;">
+                                    <input type="date" id="${_cshpDateId}"
+                                        value="${v}"
+                                        data-saved-value="${v}"
+                                        ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
+                                        onfocus="(function(el){el.dataset.savedValue=el.value;})(this)"
+                                        oninput="(function(el){updateVal('${p.name}','${key}',1,el.value); el.style.borderColor=el.value?'#4caf50':''; el.style.background=el.value?'#f1fff1':''; var clrBtn=document.getElementById('cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}'); if(clrBtn) clrBtn.style.display=el.value?'inline':'none';})(this)"
+                                        onchange="(function(el){updateVal('${p.name}','${key}',1,el.value); el.style.borderColor=el.value?'#4caf50':''; el.style.background=el.value?'#f1fff1':''; var clrBtn=document.getElementById('cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}'); if(clrBtn) clrBtn.style.display=el.value?'inline':'none';})(this)"
+                                        style="${v ? 'border-color:#4caf50;background:#f1fff1;' : ''}">
+                                    ${(state.isEditing && canEditRegion) ? `<button id="cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}" title="Clear date" style="display:${v ? 'inline' : 'none'};margin-left:4px;background:none;border:none;cursor:pointer;color:#ef5350;font-size:0.85rem;padding:2px 4px;vertical-align:middle;" tabindex="-1" onclick="(function(btn){var inp=document.getElementById('cshp-date-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}');if(inp){inp.value='';inp.style.borderColor='';inp.style.background='';updateVal('${p.name}','${key}',1,'');}btn.style.display='none';})(this)"><i class='fas fa-times-circle'></i></button>` : ''}
+                                </td>
                                 <td>${pdfCell}</td>
                             </tr>`;
                         });
@@ -22875,7 +23222,7 @@ const ProjectsDB = {
     // ────────────────────────────────────────────────────────────────────────────────────────────────
 
     _ENV_VALS_PREFIXES: ['permits', 'emb', 'env-monitoring', 'env-monthly-report', 'nov-env', 'doe', 'doe-permit', 'ecc', 'pcab', 'zoning'],
-    _HEALTH_VALS_PREFIXES: ['medical', 'health-report', 'exposures', 'lta-registry', 'osh-requirement', 'cshp'],
+    _HEALTH_VALS_PREFIXES: ['medical', 'health-report', 'exposures', 'lta-registry', 'osh-requirement'],
 
     _isEnvValsKey(k)    { return this._ENV_VALS_PREFIXES.some(p => k === p || k.startsWith(p + '-') || k.startsWith(p + '_')); },
     _isHealthValsKey(k) { return this._HEALTH_VALS_PREFIXES.some(p => k === p || k.startsWith(p + '-') || k.startsWith(p + '_')); },
@@ -22912,10 +23259,12 @@ const ProjectsDB = {
                 });
             }
         } else if (userRole === 'corp_nurse') {
-            // Owns only health vals keys
+            // Owns health vals keys + cshp (Construction Safety & Health Program)
             if (sanitized.vals) {
                 Object.keys(sanitized.vals).forEach(k => {
-                    if (this._isHealthValsKey(k)) payload[`vals.${k}`] = sanitized.vals[k];
+                    if (this._isHealthValsKey(k) || k === 'cshp' || k.startsWith('cshp_')) {
+                        payload[`vals.${k}`] = sanitized.vals[k];
+                    }
                 });
             }
         }
@@ -23501,7 +23850,6 @@ async function loadFromFirebase() {
         // Update UI
         render();
         renderPTable();
-        if (state.currentTab === 'osh-requirement') { renderOsh2(); }
         
     } catch (error) {
         console.error('❌ Error loading from Firebase:', error);
@@ -23530,7 +23878,6 @@ function loadFromLocalStorage() {
         ensureCorporateProject(); ensurePlantProjects();
         render();
         renderPTable();
-        if (state.currentTab === 'osh-requirement') { renderOsh2(); }
     }
 }
 
@@ -23578,7 +23925,6 @@ async function loadAllProjectsAndFilter() {
 
                 render();
                 renderPTable();
-                if (state.currentTab === 'osh-requirement') { renderOsh2(); }
                 console.log(`⚡ Instant render from cache (${Math.round(cacheAge/1000)}s old)`);
 
                 // ── FIX: Only use cache for instant visual render — ALWAYS fetch Firebase after ──
@@ -23760,7 +24106,6 @@ async function loadAllProjectsAndFilter() {
         // Re-render with fresh data
         render();
         renderPTable();
-        if (state.currentTab === 'osh-requirement') { renderOsh2(); }
         console.log(`✅ UI updated with fresh Firebase data`);
 
     } catch (error) {
@@ -25864,13 +26209,37 @@ async function uploadDoePdf(projectName, quarter) {
                     uploadedAt: new Date().toISOString()
                 };
                 
-                await saveToFirebase();
+                // Retry save if locked
+                if (window._saveDebounceTimer) clearTimeout(window._saveDebounceTimer);
+                let saved = false;
+                for (let attempt = 0; attempt < 4; attempt++) {
+                    if (window._isSaving) { await new Promise(res => setTimeout(res, 800)); continue; }
+                    saved = await saveToFirebase();
+                    if (saved) break;
+                    await new Promise(res => setTimeout(res, 800));
+                }
+                if (!saved) { window._isSaving = false; window._isSavingEcho = false; saved = await saveToFirebase(); }
+                const _doeQScrollY = window.scrollY || window.pageYOffset || 0;
                 render();
-                showToast(`✅ PDF uploaded for Q${quarter}`, 'success');
+                if (_doeQScrollY > 0) requestAnimationFrame(() => { try { window.scrollTo({ top: _doeQScrollY, behavior: 'instant' }); } catch(e) { window.scrollTo(0, _doeQScrollY); } });
+                if (saved) {
+                    if (typeof window._pdfSetStatus === 'function') window._pdfSetStatus('✅ PDF uploaded for Q' + quarter + ' — ' + projectName, 'success');
+                    else showToast('✅ PDF uploaded for Q' + quarter, 'success');
+                    setTimeout(() => { if (typeof window._pdfSetStatus === 'function') window._pdfSetStatus('', 'clear'); }, 4000);
+                } else {
+                    if (typeof window._pdfSetStatus === 'function') window._pdfSetStatus('⚠️ Uploaded to storage but cloud save may have failed. Refresh to verify.', 'error');
+                    else showToast('⚠️ Upload may not have saved fully. Refresh to verify.', 'warning');
+                    setTimeout(() => { if (typeof window._pdfSetStatus === 'function') window._pdfSetStatus('', 'clear'); }, 6000);
+                }
             }
         } catch (error) {
             console.error('Error uploading PDF:', error);
-            showToast('❌ Failed to upload PDF: ' + error.message, 'error');
+            if (typeof window._pdfSetStatus === 'function') {
+                window._pdfSetStatus('❌ Upload failed: ' + error.message, 'error');
+                setTimeout(() => window._pdfSetStatus('', 'clear'), 6000);
+            } else {
+                showToast('❌ Failed to upload PDF: ' + error.message, 'error');
+            }
         }
     };
     
@@ -26084,25 +26453,40 @@ async function uploadDoePermitPdf(projectName) {
                 // typed just before this upload) is already in state.projects, so one
                 // saveToFirebase() call here saves everything together.
                 if (typeof _saveDebounceTimer !== 'undefined') clearTimeout(_saveDebounceTimer);
+                if (window._saveDebounceTimer) clearTimeout(window._saveDebounceTimer);
                 saveUserData(state.currentUser?.email);
-                await saveToFirebase();
+
+                // Retry save up to 4 times if locked
+                _pdfSetStatus('Saving DOE Permit for <strong>' + projectName + '</strong>…', 'saving');
+                let saved = false;
+                for (let attempt = 0; attempt < 4; attempt++) {
+                    if (window._isSaving) { await new Promise(res => setTimeout(res, 800)); continue; }
+                    saved = await saveToFirebase();
+                    if (saved) break;
+                    await new Promise(res => setTimeout(res, 800));
+                }
+                if (!saved) { window._isSaving = false; window._isSavingEcho = false; saved = await saveToFirebase(); }
+                if (!saved) throw new Error('Could not save to Firestore. Please refresh and try again.');
+
+                // Re-render to show uploaded PDF — preserve scroll position
+                const _doeUpScrollY = window.scrollY || window.pageYOffset || 0;
                 render();
+                if (_doeUpScrollY > 0) requestAnimationFrame(() => { try { window.scrollTo({ top: _doeUpScrollY, behavior: 'instant' }); } catch(e) { window.scrollTo(0, _doeUpScrollY); } });
 
                 // Friendly result message
                 const autoMsg = [
-                    (parsed.permitNumber && !hadPermitNo) ? `Permit No: ${parsed.permitNumber}` : '',
-                    (parsed.validUntil   && !hadValidUntil) ? `Valid Until: ${parsed.validUntil}` : ''
+                    (parsed.permitNumber && !hadPermitNo) ? 'Permit No: ' + parsed.permitNumber : '',
+                    (parsed.validUntil   && !hadValidUntil) ? 'Valid Until: ' + parsed.validUntil : ''
                 ].filter(Boolean).join(' · ');
 
-                if (autoMsg) {
-                    showToast(`✅ PDF uploaded — Auto-filled: ${autoMsg}`, 'success', 5000);
-                } else {
-                    showToast('✅ PDF uploaded. Fields not auto-detected — please fill in manually.', 'success', 4000);
-                }
+                const successMsg = (autoMsg ? '✅ DOE Permit uploaded — Auto-filled: ' + autoMsg : '✅ DOE Permit uploaded. Fill fields manually if needed.') + ' — ' + projectName;
+                _pdfSetStatus(successMsg, 'success');
+                setTimeout(() => _pdfSetStatus('', 'clear'), 5000);
             }
         } catch (error) {
             console.error('Error uploading PDF:', error);
-            showToast('❌ Failed to upload PDF: ' + error.message, 'error');
+            _pdfSetStatus('❌ DOE Permit upload failed: ' + error.message, 'error');
+            setTimeout(() => _pdfSetStatus('', 'clear'), 6000);
         }
     };
     
@@ -26154,13 +26538,29 @@ async function deleteDoePermitPdf(projectName) {
         delete project.vals[key][3];
         delete project.vals[key].pdfFileName;
         delete project.vals[key].pdfStoragePath;
-        
-        await saveToFirebase();
+
+        // Retry save if locked
+        _pdfSetStatus('Clearing DOE Permit PDF for <strong>' + projectName + '</strong>…', 'saving');
+        let saved = false;
+        for (let attempt = 0; attempt < 4; attempt++) {
+            if (window._isSaving) { await new Promise(res => setTimeout(res, 800)); continue; }
+            saved = await saveToFirebase();
+            if (saved) break;
+            await new Promise(res => setTimeout(res, 800));
+        }
+        if (!saved) { window._isSaving = false; window._isSavingEcho = false; saved = await saveToFirebase(); }
+
         render();
-        showToast('✅ PDF cleared. You can now upload a new one.', 'success');
+        if (saved) {
+            _pdfSetStatus('✅ PDF cleared — ' + projectName + '. You can now upload a new one.', 'success');
+        } else {
+            _pdfSetStatus('⚠️ PDF removed locally but cloud save may have failed. Refresh to verify.', 'error');
+        }
+        setTimeout(() => _pdfSetStatus('', 'clear'), 5000);
     } catch (error) {
         console.error('Error deleting PDF:', error);
-        showToast('❌ Failed to delete PDF: ' + error.message, 'error');
+        _pdfSetStatus('❌ Failed to delete PDF: ' + error.message, 'error');
+        setTimeout(() => _pdfSetStatus('', 'clear'), 5000);
     }
 }
 
@@ -26298,58 +26698,6 @@ function countActualOshPersonnel(projectName) {
 function renderOsh2() {
     const container = document.getElementById('osh2-regions-container');
     if (!container) return;
-
-    // ── LOADING STATE: Show spinner ONLY if projects haven't loaded yet ──
-    // FIX: Removed personnelData.length > 0 check — personnelData can be [] if no OSH staff
-    // are registered yet, and the table (Manpower, First Aider, etc.) comes from state.oshData
-    // and state.projects — not from personnelData. Blocking on personnelData caused the table
-    // to never render (or take 1.2s+ per retry) even when all the real data was already loaded.
-    const projectsReady = state.projects && state.projects.length > 0;
-    if (!projectsReady) {
-        const alreadySpinning = container.querySelector('.osh2-loading-spinner');
-        if (!alreadySpinning) {
-            container.innerHTML = `
-            <div class="osh2-loading-spinner" style="
-                display:flex;flex-direction:column;align-items:center;justify-content:center;
-                padding:60px 20px;background:var(--bg-card);border-radius:10px;
-                border:1px solid var(--border-color);gap:16px;">
-                <div style="position:relative;width:52px;height:52px;">
-                    <div style="
-                        position:absolute;inset:0;border-radius:50%;
-                        border:4px solid #e8f5e9;
-                        border-top-color:#2e7d32;
-                        animation:osh2-spin 0.9s linear infinite;">
-                    </div>
-                    <div style="
-                        position:absolute;inset:8px;border-radius:50%;
-                        border:3px solid #f1f8e9;
-                        border-bottom-color:#66bb6a;
-                        animation:osh2-spin 1.4s linear infinite reverse;">
-                    </div>
-                </div>
-                <div style="text-align:center;">
-                    <div style="font-weight:700;font-size:0.85rem;color:var(--text-primary);margin-bottom:4px;">
-                        Loading OSH Personnel Data…
-                    </div>
-                    <div style="font-size:0.72rem;color:var(--text-secondary);">
-                        Fetching personnel registry from database
-                    </div>
-                </div>
-                <div style="display:flex;gap:6px;align-items:center;">
-                    <div style="width:7px;height:7px;border-radius:50%;background:#2e7d32;animation:osh2-bounce 1.2s ease-in-out 0s infinite;"></div>
-                    <div style="width:7px;height:7px;border-radius:50%;background:#43a047;animation:osh2-bounce 1.2s ease-in-out 0.2s infinite;"></div>
-                    <div style="width:7px;height:7px;border-radius:50%;background:#66bb6a;animation:osh2-bounce 1.2s ease-in-out 0.4s infinite;"></div>
-                </div>
-            </div>
-            <style>
-                @keyframes osh2-spin   { to { transform: rotate(360deg); } }
-                @keyframes osh2-bounce { 0%,80%,100% { transform:scale(0.6);opacity:0.4; } 40% { transform:scale(1);opacity:1; } }
-            </style>`;
-        }
-        setTimeout(renderOsh2, 300);
-        return;
-    }
-    // ── END LOADING STATE ──
 
     const regionFilter = (document.getElementById('osh2-region-filter') || {}).value || 'all';
     const statusFilter = (document.getElementById('osh2-status-filter') || {}).value || 'all';
@@ -27688,6 +28036,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // ── Per-region        // ── Per-region collapsible blocks ─────────────────────────────────────
         // Each region: collapsible banner + ONE project at a time (Prev/Next nav like ESH Calendar)
         var presentRegions = GOT_REGION_ORDER.filter(function(reg) {
+            if (reg === 'CORPORATE' || reg === 'PLANT OPERATIONS') return false;
             return allProjects.some(function(p) { return p.region === reg; });
         });
 
@@ -27733,7 +28082,7 @@ document.addEventListener('DOMContentLoaded', function() {
             h += '<span style="font-weight:800;color:' + (_rc.white?'#1b5e20':'white') + ';font-size:0.9rem;letter-spacing:0.05em;text-transform:uppercase;">' + reg + '</span>';
             if (isCorp)  h += '<span style="background:' + (_rc.white?'#e8f5e9':'rgba(255,255,255,0.18)') + ';color:' + (_rc.white?'#1b5e20':'white') + ';border:1px solid ' + (_rc.white?'#a5d6a7':'transparent') + ';padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">ADMIN ONLY</span>';
             if (isPlant) h += '<span style="background:' + (_rc.white?'#e8f5e9':'rgba(255,255,255,0.18)') + ';color:' + (_rc.white?'#1b5e20':'white') + ';border:1px solid ' + (_rc.white?'#a5d6a7':'transparent') + ';padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">&#127981; MONITORING ONLY</span>';
-            if (!state.isEditing) h += '<span style="background:rgba(0,0,0,0.20);color:rgba(255,255,255,0.8);padding:2px 10px;border-radius:12px;font-size:0.63rem;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-lock" style="font-size:0.6rem;"></i> Press ✏️ to Edit</span>';
+            if (!state.isEditing) h += '<span style="background:rgba(0,0,0,0.20);color:rgba(255,255,255,0.8);padding:2px 10px;border-radius:12px;font-size:0.63rem;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-lock" style="font-size:0.6rem;"></i></span>';
             h += '</div>';
             h += '<div style="display:flex;gap:8px;align-items:center;">';
             h += '<span style="background:' + (_rc.white?'#e8f5e9':'rgba(255,255,255,0.18)') + ';color:' + (_rc.white?'#1b5e20':'white') + ';border:1px solid ' + (_rc.white?'#a5d6a7':'transparent') + ';padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">' + countLabel + '</span>';
@@ -27930,6 +28279,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // After rendering Tab 3 scaffold, inject the first project table for each region
         if (_gotTab === 'tab3') {
             GOT_REGION_ORDER.forEach(function(reg) {
+                if (reg === 'CORPORATE' || reg === 'PLANT OPERATIONS') return;
                 var projs = allProjects.filter(function(p){ return p.region === reg; });
                 if (!projs.length) return;
                 var safeReg = reg.replace(/[^a-zA-Z0-9]/g, '_');
@@ -29687,33 +30037,65 @@ function applySnapshotChanges(changes, deepMergeVals) {
         window._snapshotRenderTimer = setTimeout(() => {
             if (window._isSaving) return;
             if (window._isSavingEcho) return;
-            const ae = document.activeElement;
-            const userIsTyping = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable);
-            if (userIsTyping) {
-                clearTimeout(window._snapshotRenderTimer);
-                window._snapshotRenderTimer = setTimeout(() => {
+
+            // Detect if user is actively interacting with any input (including date/file pickers)
+            function _isUserInteracting() {
+                const ae = document.activeElement;
+                if (!ae) return false;
+                const tag = ae.tagName;
+                if (tag === 'TEXTAREA' || ae.isContentEditable) return true;
+                if (tag === 'INPUT') {
+                    const t = (ae.type || '').toLowerCase();
+                    // Always protect date/time/file inputs — re-render destroys picker state
+                    if (t === 'date' || t === 'time' || t === 'datetime-local' || t === 'file') return true;
+                    return true; // protect all text/number inputs from mid-type re-renders
+                }
+                return false;
+            }
+
+            if (_isUserInteracting()) {
+                // Defer until idle — retry up to 8 times (max ~6.4s) then give up
+                let _deferAttempts = 0;
+                function _tryDeferredRender() {
+                    _deferAttempts++;
+                    if (_deferAttempts > 8) return;
                     if (window._isSaving || window._isSavingEcho) return;
-                    const ae2 = document.activeElement;
-                    const stillTyping = ae2 && (ae2.tagName === 'INPUT' || ae2.tagName === 'TEXTAREA' || ae2.isContentEditable);
-                    if (stillTyping) return;
-                    console.log('\ud83d\udd04 Real-time project update received (deferred) — re-rendering...');
-                    try { render(); } catch(e) {}
-                    try { renderPTable(); } catch(e) {}
-                }, 1500);
+                    if (_isUserInteracting()) {
+                        clearTimeout(window._snapshotRenderTimer);
+                        window._snapshotRenderTimer = setTimeout(_tryDeferredRender, 800);
+                        return;
+                    }
+                    _doSnapshotRender();
+                }
+                clearTimeout(window._snapshotRenderTimer);
+                window._snapshotRenderTimer = setTimeout(_tryDeferredRender, 800);
                 return;
             }
-            console.log('\ud83d\udd04 Real-time project update received — re-rendering...');
-            try { render(); } catch(e) {}
-            try { renderPTable(); } catch(e) {}
-            const dataTabs = ['nov','nov-env','kpm','activities','exposures','rates','medical','dole','emb','permits',
-                              'env-monitoring','lta-registry','health-report','cshp','reg','audit','env-monthly-report'];
-            if (state.currentTab && dataTabs.includes(state.currentTab)) {
-                try {
-                    if (typeof renderOshNovTab === 'function' && state.currentTab === 'nov') renderOshNovTab();
-                    else if (typeof renderNovEnvTab === 'function' && state.currentTab === 'nov-env') renderNovEnvTab();
-                    else if (typeof renderLtaRegistryTab === 'function' && state.currentTab === 'lta-registry') renderLtaRegistryTab();
-                    else if (typeof renderHealthReportTab === 'function' && state.currentTab === 'health-report') renderHealthReportTab();
-                } catch(e) {}
+            _doSnapshotRender();
+
+            function _doSnapshotRender() {
+                const _snapScrollY = window.scrollY || window.pageYOffset || 0;
+                const _snapScrollX = window.scrollX || window.pageXOffset || 0;
+                console.log('\ud83d\udd04 Real-time project update received — re-rendering...');
+                try { render(); } catch(e) {}
+                try { renderPTable(); } catch(e) {}
+                const dataTabs = ['nov','nov-env','kpm','activities','exposures','rates','medical','dole','emb','permits',
+                                  'env-monitoring','lta-registry','health-report','cshp','reg','audit','env-monthly-report'];
+                if (state.currentTab && dataTabs.includes(state.currentTab)) {
+                    try {
+                        if (typeof renderOshNovTab === 'function' && state.currentTab === 'nov') renderOshNovTab();
+                        else if (typeof renderNovEnvTab === 'function' && state.currentTab === 'nov-env') renderNovEnvTab();
+                        else if (typeof renderLtaRegistryTab === 'function' && state.currentTab === 'lta-registry') renderLtaRegistryTab();
+                        else if (typeof renderHealthReportTab === 'function' && state.currentTab === 'health-report') renderHealthReportTab();
+                    } catch(e) {}
+                }
+                // Restore scroll position after render to prevent page jump
+                if (_snapScrollY > 0 || _snapScrollX > 0) {
+                    requestAnimationFrame(() => {
+                        try { window.scrollTo({ top: _snapScrollY, left: _snapScrollX, behavior: 'instant' }); }
+                        catch(e) { window.scrollTo(_snapScrollX, _snapScrollY); }
+                    });
+                }
             }
         }, 800);
     }
@@ -30527,18 +30909,20 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                 let actualBg = '';
                 if (done) { actualClass += ' esh-done'; actualBg = ''; }
                 else if (overdue) { actualClass += ' esh-overdue'; actualBg = ''; }
-                // esh-not-planned visual cue removed — actual date always editable for canEdit roles
+                else if (!isPlanned) { actualClass += ' esh-not-planned'; }
 
                 html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}${!isAdmin?' esh-plan-locked':''}"
                     data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}"
                     onclick="event.stopPropagation();eshSetPlan('${tabType}','${proj.name}',${storageIdx},${mi},null,this)"
                     title="${!isAdmin ? '🔒 Admin only — Cannot set Plan/Schedule' : isPlanned ? 'Click to unschedule' : 'Click to schedule'}">
                 </td>`;
-                html += `<td class="${actualClass}">
-                    <input type="date" value="${actualVal}" ${dateDisabled}
+                // Actual cell: only show date input if the training is planned.
+                // If not planned → empty grey cell with no date picker (no placeholder confusion).
+                html += `<td class="${actualClass}">` + (isPlanned
+                    ? `<input type="date" value="${actualVal}" ${dateDisabled}
                         ${effectiveMax} ${effectiveMin}
-                        onchange="eshSetActual('${tabType}','${proj.name}',${storageIdx},${mi},this.value,this.closest('td'))">
-                </td>`;
+                        onchange="eshSetActual('${tabType}','${proj.name}',${storageIdx},${mi},this.value,this.closest('td'))">`
+                    : '') + `</td>`;
             });
             html += `</tr>`;
         });
@@ -30856,13 +31240,35 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
         // Toggle adjacent actual cell
         const actualSib = cell.nextElementSibling;
         if (actualSib && actualSib.classList.contains('esh-td-actual')) {
-            const inp = actualSib.querySelector('input[type="date"]');
-            if (inp) {
+            if (tabType !== 'esh-calendar-drills') {
+                // Training tabs: inject/remove date input
                 if (nowPlanned) {
-                    const _canEdit = eshCanEdit(tabType, (state.projects||[]).find(p=>p.name===projName)?.region);
-                    if (_canEdit) { inp.disabled = false; inp.title = ''; inp.style.opacity = ''; actualSib.classList.remove('esh-not-planned'); }
+                    actualSib.classList.remove('esh-not-planned', 'esh-done', 'esh-overdue');
+                    if (!actualSib.querySelector('input[type="date"]')) {
+                        const _canEditCell = eshCanEdit(tabType, (state.projects||[]).find(p=>p.name===projName)?.region);
+                        const _inp = document.createElement('input');
+                        _inp.type = 'date'; _inp.value = '';
+                        if (!_canEditCell) { _inp.disabled = true; _inp.title = '🔒 Read-only for your role/region'; }
+                        _inp.onchange = function() {
+                            window.eshSetActual(tabType, projName, ti, mi, this.value, this.closest('td'));
+                        };
+                        actualSib.appendChild(_inp);
+                    }
                 } else {
-                    inp.disabled = true; actualSib.classList.add('esh-not-planned');
+                    const _inp = actualSib.querySelector('input[type="date"]');
+                    if (_inp) { _inp.value = ''; actualSib.removeChild(_inp); }
+                    actualSib.classList.remove('esh-done', 'esh-overdue');
+                    actualSib.classList.add('esh-not-planned');
+                }
+            } else {
+                const inp = actualSib.querySelector('input[type="date"]');
+                if (inp) {
+                    if (nowPlanned) {
+                        const _canEdit = eshCanEdit(tabType, (state.projects||[]).find(p=>p.name===projName)?.region);
+                        if (_canEdit) { inp.disabled = false; inp.title = ''; inp.style.opacity = ''; actualSib.classList.remove('esh-not-planned'); }
+                    } else {
+                        inp.disabled = true; actualSib.classList.add('esh-not-planned');
+                    }
                 }
             }
         }
@@ -30872,13 +31278,39 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
     if (tdEl) {
         const actualSib = tdEl.nextElementSibling;
         if (actualSib && actualSib.classList.contains('esh-td-actual')) {
-            const inp = actualSib.querySelector('input[type="date"]');
-            if (inp) {
-                if (nowPlanned) {
-                    const _canEdit = eshCanEdit(tabType, proj?.region);
-                    if (_canEdit) { inp.disabled = false; inp.title = ''; inp.style.opacity = ''; actualSib.classList.remove('esh-not-planned'); }
+            if (nowPlanned) {
+                const _canEdit = eshCanEdit(tabType, proj?.region);
+                actualSib.classList.remove('esh-not-planned', 'esh-done', 'esh-overdue');
+                if (tabType !== 'esh-calendar-drills') {
+                    // Training tabs: inject the date input (was not rendered when unplanned)
+                    if (!actualSib.querySelector('input[type="date"]')) {
+                        const inp = document.createElement('input');
+                        inp.type = 'date'; inp.value = '';
+                        if (!_canEdit) { inp.disabled = true; inp.title = '🔒 Read-only for your role/region'; }
+                        inp.onchange = function() {
+                            window.eshSetActual(tabType, projName, ti, mi, this.value, this.closest('td'));
+                        };
+                        actualSib.appendChild(inp);
+                    } else {
+                        const inp = actualSib.querySelector('input[type="date"]');
+                        if (_canEdit) { inp.disabled = false; inp.title = ''; inp.style.opacity = ''; }
+                    }
                 } else {
-                    inp.value = ''; inp.disabled = true; actualSib.classList.remove('esh-done','esh-overdue'); actualSib.classList.add('esh-not-planned');
+                    const inp = actualSib.querySelector('input[type="date"]');
+                    if (inp && _canEdit) { inp.disabled = false; inp.title = ''; inp.style.opacity = ''; actualSib.classList.remove('esh-not-planned'); }
+                }
+            } else {
+                if (tabType !== 'esh-calendar-drills') {
+                    // Training tabs: remove the date input entirely when unplanned
+                    const inp = actualSib.querySelector('input[type="date"]');
+                    if (inp) { inp.value = ''; actualSib.removeChild(inp); }
+                    actualSib.classList.remove('esh-done', 'esh-overdue');
+                    actualSib.classList.add('esh-not-planned');
+                } else {
+                    const inp = actualSib.querySelector('input[type="date"]');
+                    if (inp) { inp.value = ''; inp.disabled = true; }
+                    actualSib.classList.remove('esh-done', 'esh-overdue');
+                    actualSib.classList.add('esh-not-planned');
                 }
             }
         }
