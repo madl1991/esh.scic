@@ -22076,6 +22076,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                 REGIONS.forEach(reg => {
                     if (reg === 'CORPORATE') return; // CORPORATE not shown in this tab
+                    if (reg === 'PLANT OPERATIONS') return; // PLANT OPERATIONS excluded from CSHP/REG/AUDIT
                     const projs = displayProjects.filter(p => p.region === reg);
                     if (projs.length === 0) return;
 
