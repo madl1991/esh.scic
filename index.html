@@ -7216,7 +7216,44 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
   </div>
 </div>
             
-    </main>
+    
+<!-- ── STATIC FOOTER ── -->
+<div style="
+    background: #1b5e20;
+    color: rgba(255,255,255,0.75);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    font-family: 'Inter', sans-serif;
+    gap: 12px;
+    flex-shrink: 0;
+">
+    <span style="color:white; font-weight:700; font-size:0.78rem; letter-spacing:0.5px;">
+        <i class="fas fa-shield-halved" style="margin-right:6px;"></i>SCIC ESH COMPLIANCE DASHBOARD
+    </span>
+    <div style="display:flex; align-items:center; gap:16px;">
+        <span>© 2026 SCIC</span>
+        <span style="opacity:0.4;">|</span>
+        <span>For Internal Use Only</span>
+        <span style="opacity:0.4;">|</span>
+        <span>ESH Department</span>
+    </div>
+    <div style="
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 20px;
+        padding: 2px 10px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: white;
+    ">
+        <i class="fas fa-lock" style="margin-right:4px; font-size:0.6rem;"></i>Confidential
+    </div>
+</div>
+
+</main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -13133,7 +13170,7 @@ function updateAuditData(pName, qtr, field, val) {
         window.updateMultiPermitEntry = updateMultiPermitEntry;
         // ==================== END GENERIC MULTI-ENTRY PERMITS ====================
 
-        function togglePermitNA(pName, key) {
+        function togglePermitNA(pName, key, forceVal) {
             const p = state.projects.find(x => x.name === pName);
             if (!p) return;
             const _rbacNA = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p?.region, 'permits');
@@ -13142,14 +13179,15 @@ function updateAuditData(pName, qtr, field, val) {
                 return;
             }
             if (!p.vals[key]) p.vals[key] = {};
-            p.vals[key]['na'] = !p.vals[key]['na'];
+            const newVal = (forceVal !== undefined) ? forceVal : !p.vals[key]['na'];
+            p.vals[key]['na'] = newVal;
             // Clear Client-Provided if switching to N/A
-            if (p.vals[key]['na']) delete p.vals[key].careOfClient;
+            if (newVal) delete p.vals[key].careOfClient;
             saveToFirebaseDebounced();
             render();
         }
 
-        function togglePermitCareOfClient(pName, key) {
+        function togglePermitCareOfClient(pName, key, forceVal) {
             const p = state.projects.find(x => x.name === pName);
             if (!p) return;
             const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p?.region, 'permits');
@@ -13158,12 +13196,13 @@ function updateAuditData(pName, qtr, field, val) {
                 return;
             }
             if (!p.vals[key]) p.vals[key] = {};
-            if (p.vals[key].careOfClient) {
-                delete p.vals[key].careOfClient;
-            } else {
+            const newVal = (forceVal !== undefined) ? forceVal : !p.vals[key].careOfClient;
+            if (newVal) {
                 p.vals[key].careOfClient = true;
                 // Clear N/A if switching to Client-Provided
                 delete p.vals[key]['na'];
+            } else {
+                delete p.vals[key].careOfClient;
             }
             saveToFirebaseDebounced();
             render();
@@ -20829,6 +20868,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
             html += `<th class="env-th-dark">Q3 (JUL-SEP)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Oct 15</small></th>`;
             html += `<th class="env-th-dark">Q4 (OCT-DEC)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Jan 15</small></th>`;
         } else if (state.currentTab === 'permits') {
+            html += `<th style="width:70px;min-width:70px;white-space:nowrap;text-align:center;" title="Mark as Not Applicable">N/A</th>`;
+            html += `<th style="width:120px;min-width:120px;white-space:normal;text-align:center;" title="Permit is shouldered/provided by the client">CLIENT-<br>PROVIDED <i class="fas fa-info-circle" style="font-size:0.6rem;opacity:0.7;"></i></th>`;
             html += `<th style="min-width: 200px; white-space: normal; padding: 10px 12px;">PERMIT NO. / ACCREDITATION NO.</th>`;
             html += `<th style="min-width: 140px; white-space: nowrap;">DATE ISSUED</th>`;
             html += `<th style="min-width: 140px; white-space: nowrap;">EXPIRY DATE</th>`;
@@ -20860,24 +20901,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
         const isPermitClientProvided = state.currentTab === 'permits' && p.vals[key] && !!(p.vals[key].careOfClient);
         const isEmbCareOfClient = state.currentTab === 'emb' && p.vals[key] && !!(p.vals[key].careOfClient);
         const rowStyle = isPermitNA ? 'opacity:0.4; background:#f5f5f5;' : (isPermitClientProvided || isEmbCareOfClient ? 'background:#eef5fc;' : '');
-        const naBtn = state.currentTab === 'permits'
-            ? `<span onclick="togglePermitNA('${p.name}','${_keySafe}')" title="Mark as Not Applicable" style="
-                display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
-                font-size:0.63rem; font-weight:700; padding:3px 8px; border-radius:20px; border:1.5px solid;
-                white-space:nowrap; user-select:none; transition: all 0.2s; flex-shrink:0; min-width:38px;
-                ${isPermitNA
-                    ? 'background:#ef5350; color:white; border-color:#ef5350;'
-                    : 'background:transparent; color:#9e9e9e; border-color:#bdbdbd;'}
-              ">${isPermitNA ? '✕ N/A' : 'N/A'}</span>
-              <span onclick="togglePermitCareOfClient('${p.name}','${_keySafe}')" title="Mark as Client-Provided (client shoulders/provides this permit)" style="
-                display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
-                font-size:0.63rem; font-weight:700; padding:3px 8px; border-radius:20px; border:1.5px solid;
-                white-space:nowrap; user-select:none; transition: all 0.2s; flex-shrink:0; min-width:38px;
-                ${isPermitClientProvided
-                    ? 'background:#1565c0; color:white; border-color:#1565c0;'
-                    : 'background:transparent; color:#1565c0; border-color:#90caf9;'}
-              "><i class="fas fa-handshake" style="margin-right:3px;font-size:0.58rem;"></i>${isPermitClientProvided ? '✕ Client' : 'Client'}</span>`
-            : '';
+        const naBtn = ''; // N/A and CLIENT-PROVIDED are now separate columns (see permitNaCell/permitClientCell below)
         // EMB Care of Client button — shown on Submission Date rows only
         const _embIsSubDateRow = (state.currentTab === 'emb') &&
             (row === 'SMR (Quarterly) - Submission Date' || row === 'CMR (Semi-Annual) - Submission Date');
@@ -20928,11 +20952,38 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                            </div>`
                         : ''}
                 </span>
-                ${naBtn}
                 ${embCareOfClientBtn}
                 ${embAddBtn}
             </div>
-        </td>`;
+        </td>
+        ${state.currentTab === 'permits' ? `
+        <td style="width:70px;min-width:70px;text-align:center;vertical-align:middle;padding:4px;">
+            ${inputsEditable
+                ? `<label style="display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;user-select:none;">
+                    <input type="checkbox" ${isPermitNA ? 'checked' : ''}
+                        onchange="togglePermitNA('${p.name.replace(/'/g,"\\'")}','${_keySafe}')"
+                        style="width:15px;height:15px;accent-color:#ef5350;cursor:pointer;">
+                    <span style="font-size:0.65rem;font-weight:700;color:${isPermitNA ? '#ef5350' : 'var(--text-secondary)'};">N/A</span>
+                   </label>`
+                : (isPermitNA
+                    ? `<span style="font-size:0.72rem;font-weight:700;color:#ef5350;"><i class="fas fa-ban"></i> N/A</span>`
+                    : `<span style="color:var(--text-secondary);font-size:0.75rem;">—</span>`)
+            }
+        </td>
+        <td style="width:120px;min-width:120px;text-align:center;vertical-align:middle;padding:4px;">
+            ${inputsEditable
+                ? `<label style="display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;user-select:none;">
+                    <input type="checkbox" ${isPermitClientProvided ? 'checked' : ''}
+                        onchange="togglePermitCareOfClient('${p.name.replace(/'/g,"\\'")}','${_keySafe}')"
+                        style="width:15px;height:15px;accent-color:#1565c0;cursor:pointer;">
+                    <span style="font-size:0.65rem;font-weight:600;color:${isPermitClientProvided ? '#1565c0' : 'var(--text-secondary)'};">Client-Provided</span>
+                   </label>`
+                : (isPermitClientProvided
+                    ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:20px;padding:3px 8px;font-size:0.65rem;font-weight:700;"><i class="fas fa-handshake"></i> Client</span>`
+                    : `<span style="color:var(--text-secondary);font-size:0.75rem;">—</span>`)
+            }
+        </td>` : ''}
+        `;
 
         if (isCshp) {
             const v = p.vals[key] ? (p.vals[key][1] ?? "") : "";
@@ -21040,7 +21091,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     <span style="flex:1; font-size:0.78rem; color:#555;">ECC #${idx + 1}</span>
                                     ${inputsEditable ? `<span onclick="removeEccEntry('${p.name}',${idx})" title="Remove this entry" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;border:1.5px solid #ef5350;color:#ef5350;background:transparent;user-select:none;white-space:nowrap;">✕ Remove</span>` : ''}
                                 </div>
-                            </td>`;
+                            </td><td style="width:70px;min-width:70px;"></td><td style="width:120px;min-width:120px;"></td>`;
                         }
                         html += `<td style="min-width:200px;padding:8px 12px;"><input type="text" placeholder="${isPermitNA ? 'N/A' : 'Permit/Accreditation #'}" value="${isPermitNA ? '' : (entry.permitNo ?? '')}" ${naDisabled} oninput="updateEccEntry('${p.name}',${idx},'permitNo',this.value)" style="width:100%;${isPermitNA ? 'background:#f5f5f5;color:#bbb;' : ''}"></td>`;
                         html += `<td style="min-width:140px;padding:8px 12px;"><input type="date" value="${isPermitNA ? '' : (entry.dateIssued ?? '')}" ${naDisabled} oninput="updateEccEntry('${p.name}',${idx},'dateIssued',this.value)" style="width:100%;${isPermitNA ? 'background:#f5f5f5;' : ''}"></td>`;
@@ -21083,7 +21134,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">';
                             html += '<span style="flex:1;font-size:0.78rem;color:#555;">' + _mpShort + ' #' + (_mpIdx+1) + '</span>';
                             if (inputsEditable) html += '<span onclick="removeMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ')" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;border:1.5px solid #ef5350;color:#ef5350;background:transparent;user-select:none;">&#10005; Remove</span>';
-                            html += '</div></td>';
+                            html += '</div></td><td style="width:70px;min-width:70px;"></td><td style="width:120px;min-width:120px;"></td>';
                         }
                         var _mpNo  = isPermitNA ? '' : (_mpEntry.permitNo || '');
                         var _mpIss = isPermitNA ? '' : (_mpEntry.dateIssued || '');
@@ -34353,6 +34404,7 @@ function applyRegionBannerColors() {
 // Run after every DOM change (catches all dynamic renders)
 new MutationObserver(applyRegionBannerColors).observe(document.body, { childList: true, subtree: true });
 </script>
+
 
 </body>
 </html>
