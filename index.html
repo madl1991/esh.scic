@@ -867,7 +867,25 @@
             display: flex; flex-direction: column; flex-shrink: 0; z-index: 100; 
             box-shadow: 4px 0 20px rgba(0,0,0,0.15);
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 20px 15px 0 15px;
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.2) transparent;
+        }
+
+        aside::-webkit-scrollbar {
+            width: 4px;
+        }
+        aside::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        aside::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+        }
+        aside::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.4);
         }
 
         .sidebar-header { 
@@ -890,6 +908,11 @@
             pointer-events: auto !important;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
+            width: 100%;
+            box-sizing: border-box;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .nav-item:hover { 
             background: rgba(255,255,255,0.1);
@@ -905,6 +928,8 @@
         /* Collapsible Navigation Groups */
         .nav-group {
             margin-bottom: 5px;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .nav-group-header {
@@ -923,6 +948,10 @@
             color: rgba(255, 255, 255, 0.6);
             transition: all 0.3s;
             user-select: none;
+            width: 100%;
+            box-sizing: border-box;
+            white-space: nowrap;
+            overflow: hidden;
         }
         
         .nav-group-header:hover {
@@ -944,6 +973,8 @@
             transition: height 0.18s ease-out,
                         opacity 0.15s ease-out;
             opacity: 1;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .nav-group-items.collapsed {
@@ -958,14 +989,23 @@
         
         /* ── COLLAPSIBLE SIDEBAR ── */
         aside {
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             overflow-x: hidden;
         }
 
         aside.sidebar-collapsed {
             width: 0 !important;
+            min-width: 0 !important;
             padding: 0 !important;
             overflow: hidden !important;
+        }
+
+        /* Prevent nav-group items from affecting sidebar width */
+        .nav-group-items {
+            width: 230px !important;
+            box-sizing: border-box;
         }
 
         /* Toggle button wrapper inside sidebar */
@@ -5474,7 +5514,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 </div>
             </div>
         </div>
-        <nav style="flex-grow: 1; padding-top: 10px;">
+        <nav style="flex-grow: 1; padding-top: 10px; width: 100%; box-sizing: border-box; overflow-x: hidden;">
             <!-- DASHBOARD & ANALYTICS -->
             <div class="nav-group">
                 <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)" data-tip="Dashboard & Analytics">
