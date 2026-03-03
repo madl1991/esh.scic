@@ -7921,8 +7921,8 @@ const RBAC_ACCOUNTS = [
     { uid: '3d8uwAYjNPSCcH9Xbu1fsCiuJK13', email: 'esh@lmp.com.ph',      role: 'manager',       displayName: 'LMP Manager',                   region: 'ALL',                 module_access: [] },
     { uid: 'ljciHhNmmGQnriHwbwgeb8Yi1V63',    email: 'esh@wda.com.ph',      role: 'admin',      displayName: 'WDA System Admin',              region: 'ALL',                 module_access: [] },
     { uid: 'WYcn1vEPoRTrq8rbrGBFUB9x4H03',    email: 'esh@corpdc.com.ph',   role: 'admin', displayName: 'Corporate Document Controller', region: 'ALL',                 module_access: [] },
-    { uid: 'b1uiTykyjhN60Il11Inmv9e6h252', email: 'esh@cbmganda.com.ph', role: 'envi_head',     displayName: 'Environmental Head',            region: 'ALL',                 module_access: ['permits','emb','env-monitoring','env-monthly-report','nov-env','esh-calendar-env','tabulation','got-monitoring'] },
-    { uid: 'EW3RstAsVwNxMHHCNHdV3zWGMtt2',  email: 'esh@health.com.ph',   role: 'corp_nurse',    displayName: 'Corporate Nurse',               region: 'ALL',                 module_access: ['medical','health-report','exposures','lta-registry','esh-calendar-health','personnel','osh-requirement'] },
+    { uid: 'b1uiTykyjhN60Il11Inmv9e6h252', email: 'esh@cbmganda.com.ph', role: 'envi_head',     displayName: 'Environmental Head',            region: 'ALL',                 module_access: ['permits','emb','env-monitoring','env-monthly-report','nov-env','esh-calendar-env'] },
+    { uid: 'EW3RstAsVwNxMHHCNHdV3zWGMtt2',  email: 'esh@health.com.ph',   role: 'corp_nurse',    displayName: 'Corporate Nurse',               region: 'ALL',                 module_access: ['health-report'] },
 ];
 
 async function rbacDeployAll() {
@@ -9172,22 +9172,26 @@ function applyNumFmtToInputs() {
             PCO_EDITABLE_TABS: [
                 'permits', 'emb', 'env-monitoring', 'env-monthly-report',
                 'nov-env', 'esh-calendar-env',
-                'tabulation',   // Envi Reportorial — was missing, PCO must be able to save
-                'doe-permit',   // DOE SOP — env-adjacent regulatory tab
+                // 'tabulation' REMOVED — Admin + Superintendent write only
+                // 'doe-permit' REMOVED — Superintendent only
             ],
 
-            // ── ENVI HEAD editable tabs (all envi + viewing everything else) ──
-            // FIXED: Added 'doe-permit' (DOE SOP)
+            // ── ENVI HEAD editable tabs (all envi modules, all regions) ──
+            // FIXED: Removed tabulation, got-monitoring, doe-permit (Superintendent only)
             ENVI_HEAD_EDITABLE_TABS: [
                 'permits', 'emb', 'env-monitoring', 'env-monthly-report',
-                'nov-env', 'esh-calendar-env', 'tabulation', 'got-monitoring',
-                'doe-permit',   // DOE SOP — envi-head should be able to edit
+                'nov-env', 'esh-calendar-env',
+                // 'tabulation' REMOVED — PCO write only
+                // 'got-monitoring' REMOVED — Superintendent only
+                // 'doe-permit' REMOVED — Superintendent only
             ],
 
             // ── CORPORATE NURSE editable tabs ──
+            // FIXED: Removed medical, exposures, lta-registry, esh-calendar-health,
+            //        personnel, osh-requirement — Nurse is VIEW ONLY on these.
+            //        Only health-report remains as write for nurse (shared with superintendent).
             NURSE_EDITABLE_TABS: [
-                'medical', 'health-report', 'exposures', 'lta-registry',
-                'esh-calendar-health', 'personnel', 'osh-requirement',
+                'health-report',  // Both Nurse and Superintendent can write
             ],
 
             // ── Tabs PCO can VIEW but NOT edit ──
@@ -9195,7 +9199,8 @@ function applyNumFmtToInputs() {
                 'overall', 'rates', 'exposures', 'medical', 'nov', 'nov-monitoring',
                 'activities', 'kpm', 'dole', 'doe', 'doe-permit', 'cshp', 'reg', 'audit',
                 'esh-calendar-safety', 'esh-calendar-health', 'esh-calendar-drills',
-                'personnel', 'osh-requirement', 'health-report'
+                'personnel', 'osh-requirement', 'health-report', 'tabulation',
+                'got-monitoring', 'nov-monitoring', 'exposures', 'lta-registry', 'medical'
             ],
 
             // ── Get user info (role, region, etc.) ──
@@ -26170,8 +26175,11 @@ const ProjectsDB = {
     // _updatedBy and _updatedAt are always written by whoever saves last (intentional — audit trail).
     // ────────────────────────────────────────────────────────────────────────────────────────────────
 
-    _ENV_VALS_PREFIXES: ['permits', 'emb', 'env-monitoring', 'env-monthly-report', 'nov-env', 'doe', 'doe-permit', 'ecc', 'pcab', 'zoning'],
-    _HEALTH_VALS_PREFIXES: ['medical', 'health-report', 'exposures', 'lta-registry', 'osh-requirement'],
+    _ENV_VALS_PREFIXES: ['permits', 'emb', 'env-monitoring', 'env-monthly-report', 'nov-env', 'ecc', 'pcab', 'zoning'], // doe + doe-permit REMOVED (Superintendent only)
+    // FIXED: Nurse writes health-report ONLY. medical, exposures, lta-registry,
+    // osh-requirement are Superintendent write — removed from health prefix list.
+    // This unblocks Superintendent _buildScopedPayload for those keys (activities bug fix).
+    _HEALTH_VALS_PREFIXES: ['health-report'],
 
     _isEnvValsKey(k)    { return this._ENV_VALS_PREFIXES.some(p => k === p || k.startsWith(p + '-') || k.startsWith(p + '_')); },
     _isHealthValsKey(k) { return this._HEALTH_VALS_PREFIXES.some(p => k === p || k.startsWith(p + '-') || k.startsWith(p + '_')); },
@@ -26211,7 +26219,8 @@ const ProjectsDB = {
             // Owns health vals keys + cshp (Construction Safety & Health Program)
             if (sanitized.vals) {
                 Object.keys(sanitized.vals).forEach(k => {
-                    if (this._isHealthValsKey(k) || k === 'cshp' || k.startsWith('cshp_')) {
+                    // FIXED: Nurse writes health_report vals only — removed cshp
+                    if (this._isHealthValsKey(k)) {
                         payload[`vals.${k}`] = sanitized.vals[k];
                     }
                 });
@@ -27357,6 +27366,7 @@ function setupAuthObserver() {
             
             // Log login to logbook with IP and location
             // Guard: only log once per session (not on every page refresh)
+            const _isFirstLogin = !sessionStorage.getItem('esh_login_logged_' + user.uid);
             if (_isFirstLogin) {
                 sessionStorage.setItem('esh_login_logged_' + user.uid, '1');
                 await LoginLogbook.logLogin(user);
@@ -32520,19 +32530,31 @@ function eshCanEdit(tabType, projectRegion) {
     // Admin: full access
     if (info.role === 'admin') return true;
 
-    // Corporate region: Admin only — block everyone else
-    // Exception: esh-calendar-corp-drills is handled by its own renderer (admin already passed above)
+    // Corporate region: Admin only
     if (projectRegion === 'CORPORATE') return false;
 
-    // Superintendent: only their region, ALL ESH calendar tabs
+    // Superintendent: own region, all calendar tabs EXCEPT corp-drills
+    // FIXED: added esh-calendar-health (Both nurse and superintendent can write)
+    // FIXED: esh-calendar-drills is Admin + Superintendent ONLY (PCO removed)
     if (info.role === 'superintendent') {
         return info.region === projectRegion;
     }
 
-    // PCO: only env trainings tab + drills, only their region
+    // PCO: env trainings only — drills REMOVED (Admin + Superintendent only)
+    // FIXED: removed 'esh-calendar-drills' from pcoAllowed
     if (info.role === 'pco') {
-        const pcoAllowed = ['esh-calendar-env', 'esh-calendar-drills'];
+        const pcoAllowed = ['esh-calendar-env'];
         return pcoAllowed.includes(tabType) && info.region === projectRegion;
+    }
+
+    // FIXED: EnviHead — all regions, env calendar tab only
+    if (info.role === 'envi_head') {
+        return tabType === 'esh-calendar-env';
+    }
+
+    // FIXED: CorpNurse — all regions, health calendar tab only
+    if (info.role === 'corp_nurse') {
+        return tabType === 'esh-calendar-health';
     }
 
     return false;
@@ -34478,7 +34500,7 @@ function chatClearTyping() {
 // ── Load Yjs + y-protocols via CDN (UMD builds) ──────────────────────────────────────────
 (function _loadYjsCDN() {
     const scripts = [
-        'https://cdn.jsdelivr.net/npm/yjs@13.6.14/dist/yjs.cjs.js',
+        'https://cdn.jsdelivr.net/npm/yjs@13.6.14/dist/yjs.umd.js',
     ];
     scripts.forEach(src => {
         if (document.querySelector(`script[src="${src}"]`)) return;
@@ -34508,14 +34530,16 @@ const ESHDataSync = (() => {
         'env_monitoring','env_waste','env_water','env_appliances',
         'emb','permits','env_monthly_report','nov_env',
         'env-monitoring','nov-env',   // tab name aliases
-        'doe','ecc','pcab','zoning',
-        // ── PREVIOUSLY MISSING — caused PCO/EnviHead writes to be silently blocked ──
-        'tabulation',           // Envi Reportorial tab
-        'doe_permit',           // DOE SOP / DOE Permit tab
+        'ecc','pcab','zoning', // 'doe' REMOVED — Superintendent write only
         'esh_calendar_env',     // ESH Calendar — Environment Trainings
-        'esh-calendar-env',     // alias (tab name used by changeTab)
-        'got_monitoring',       // GOT Monitoring (envi head access)
-        'got-monitoring',       // alias
+        'esh-calendar-env',     // alias
+        // FIXED — REMOVED (Superintendent only, not env):
+        // 'tabulation'     → PCO write only via PCO_EDITABLE_TABS
+        // 'doe_permit'     → Superintendent only (DOE Safety Officer Permit)
+        // 'got_monitoring' → Superintendent only (GOT Monitoring)
+        // FIXED — ADDED (cross-role: Admin + Superintendent only for drills):
+        // esh_calendar_drills intentionally NOT in ENV_MODULES
+        // (drills = Admin+Supt only, not PCO/EnviHead)
     ]);
 
     // Map dashboard tab names → Firestore module segment
@@ -34543,12 +34567,13 @@ const ESHDataSync = (() => {
         'got-monitoring':           'got_monitoring',
         'osh-requirement':          'osh_requirement',
         'health-report':            'health_report',
-        // ── PREVIOUSLY MISSING — ESH Calendar tabs had no module mapping ──
-        'esh-calendar-env':         'esh_calendar_env',     // Environment Trainings
-        'esh-calendar-safety':      'esh_calendar_safety',  // Safety Trainings
-        'esh-calendar-health':      'esh_calendar_health',  // Health Trainings
-        'esh-calendar-drills':      'esh_calendar_drills',  // Emergency Drills
-        'esh-calendar-corp-drills': 'esh_calendar_corp_drills', // Corporate HQ Drills
+        // ── ESH Calendar tabs — data stored in Firebase RTDB, NOT Firestore/Yjs ──
+        // FIXED: Set to null so ESHDataSync does not attempt Yjs writes for these tabs
+        'esh-calendar-env':         null,
+        'esh-calendar-safety':      null,
+        'esh-calendar-health':      null,
+        'esh-calendar-drills':      null,
+        'esh-calendar-corp-drills': null,
         'env-monthly-report':       'env_monthly_report',   // Environmental Monthly Report
     };
 
@@ -34614,13 +34639,13 @@ const ESHDataSync = (() => {
         // ── PCO: own region only, environmental modules only ──
         if (role === 'pco')            return rk === userRegion && isEnv;
 
-        // ── Corporate Nurse: ALL regions, health-related modules ──
-        // Health modules: medical, exposures, lta_registry, osh_requirement,
-        //                 health_report, esh_calendar_health, personnel
+        // ── Corporate Nurse: ALL regions, health-report ONLY ──
+        // FIXED: Removed medical, exposures, lta_registry, osh_requirement,
+        //        esh_calendar_health, personnel — Nurse is VIEW ONLY on these.
+        //        Only health_report remains (shared write with Superintendent).
         if (role === 'corp_nurse') {
             const NURSE_MODULES = new Set([
-                'medical','exposures','lta_registry','osh_requirement',
-                'health_report','esh_calendar_health','personnel'
+                'health_report',  // Both Nurse and Superintendent can write
             ]);
             return NURSE_MODULES.has(module) || isAllRegion;
         }
@@ -34637,10 +34662,14 @@ const ESHDataSync = (() => {
         const path = yjsDocPath(region, module);
         if (_ydocCache.has(path)) return _ydocCache.get(path);
 
-        // Guard: Yjs CDN must be loaded
+        // Guard: Yjs CDN must be loaded — poll up to 5s (CDN load can be slow)
         if (typeof Y === 'undefined') {
-            console.warn('ESHDataSync: Yjs not yet loaded — retrying in 500ms');
-            await new Promise(r => setTimeout(r, 500));
+            let _yjsWaited = 0;
+            while (typeof Y === 'undefined' && _yjsWaited < 5000) {
+                console.warn('ESHDataSync: Yjs not yet loaded — retrying in 300ms');
+                await new Promise(r => setTimeout(r, 300));
+                _yjsWaited += 300;
+            }
             if (typeof Y === 'undefined') {
                 console.error('ESHDataSync: Yjs failed to load. CRDT sync unavailable.');
                 return null;
@@ -34952,7 +34981,7 @@ const ESHDataSync = (() => {
         console.log('          Superintendent (non-env, own region), PCO (env, own region),');
         console.log('          CorpNurse (health modules, all regions)');
         console.log('   Concurrent edits: automatically merged by Yjs CRDT — no "last write wins"');
-        console.log('   ENV_MODULES includes: tabulation, doe_permit, esh_calendar_env, got_monitoring (FIXED)');
+        console.log('   ENV_MODULES includes: esh_calendar_env (FIXED — tabulation, doe_permit, got_monitoring removed, Supt-only)');
         console.log('   TAB_TO_MODULE includes all ESH Calendar variants (FIXED)');
     }
 
