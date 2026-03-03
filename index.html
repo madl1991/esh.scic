@@ -21,8 +21,8 @@
         import { getDatabase, ref as dbRef, set, push, update, onValue, onDisconnect, serverTimestamp, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         // ⚠️ SECURITY WARNING: API Keys Exposed
-        // Dapat gamitin ang Firebase Security Rules at gawing private ang sensitive credentials.
-        // I-configure ang Firestore/Database rules sa Firebase Console para sa proper access control.
+        // Firebase Security Rules must be configured and sensitive credentials must be kept private.
+        // Configure Firestore/Database rules in Firebase Console for proper access control.
         //
         // ══════════════════════════════════════════════════════════════════════════════════════
         // ██  FIRESTORE SECURITY RULES — Deploy these in Firebase Console → Firestore Rules   ██
@@ -4359,7 +4359,7 @@ body.dark-mode .tooltip-content::after {
     padding-right: 10px !important;
 }
 
-/* Kulay para sa disabled cells */
+/* Color styling for disabled cells */
 .cell-disabled {
     background-color: var(--border-color) !important;
     cursor: not-allowed;
@@ -5644,7 +5644,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <div class="nav-group-items collapsed">
                     <div class="nav-item" data-tab="esh-calendar-env" onclick="changeTab('esh-calendar-env')"><i class="fas fa-leaf"></i> Environment Trainings</div>
                     <div class="nav-item" data-tab="esh-calendar-safety" onclick="changeTab('esh-calendar-safety')"><i class="fas fa-hard-hat"></i> Safety Trainings</div>
-                    <div class="nav-item" data-tab="esh-calendar-health" onclick="changeTab('esh-calendar-health')"><i class="fas fa-heart-pulse"></i> Health Trainings</div>
+                    <div class="nav-item" data-tab="esh-calendar-health" onclick="changeTab('esh-calendar-health')"><i class="fas fa-heart-pulse"></i> Health Awareness</div>
                     <div class="nav-item" data-tab="esh-calendar-drills" onclick="changeTab('esh-calendar-drills')"><i class="fas fa-person-running"></i> Emergency Drills</div>
                     <div class="nav-item" data-tab="esh-calendar-corp-drills" onclick="changeTab('esh-calendar-corp-drills')" style="border-left:3px solid #fbc02d;padding-left:13px;"><i class="fas fa-building-columns"></i> Corporate Drills</div>
                 </div>
@@ -6352,7 +6352,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
             <!-- Warning -->
             <div style="background:#fff8e1;border-bottom:1px solid #ffe082;padding:10px 20px;display:flex;align-items:center;gap:10px;font-size:0.73rem;color:#e65100;">
                 <i class="fas fa-triangle-exclamation" style="flex-shrink:0;color:#fbc02d;"></i>
-                <span>Kailangan na naka-login ka bilang <strong>Admin</strong> para gumana ito. Mag-w-write ito ng <code style="background:#fff3e0;padding:1px 5px;border-radius:3px;">roles/{uid}</code> documents sa Firestore para sa bawat account.</span>
+                <span>You must be logged in as <strong>Admin</strong> for this to work. This will write <code style="background:#fff3e0;padding:1px 5px;border-radius:3px;">roles/{uid}</code> documents in Firestore for each account.</span>
             </div>
 
             <!-- Accounts table -->
@@ -12612,7 +12612,7 @@ function openAdminQuickView() {
                 'env-monthly-report': 'ENVIRONMENTAL MONTHLY REPORT',
                 'esh-calendar-env': `${state.selectedYear} ESH CALENDAR — ENVIRONMENT TRAININGS`,
                 'esh-calendar-safety': `${state.selectedYear} ESH CALENDAR — SAFETY TRAININGS`,
-                'esh-calendar-health': `${state.selectedYear} ESH CALENDAR — HEALTH TRAININGS`,
+                'esh-calendar-health': `${state.selectedYear} ESH CALENDAR — HEALTH AWARENESS`,
                 'esh-calendar-drills': `${state.selectedYear} ESH CALENDAR — EMERGENCY DRILLS`,
                 'esh-calendar-corp-drills': `${state.selectedYear} ESH CALENDAR — CORPORATE HQ DRILLS`,
                 'got-monitoring': 'GOALS, OBJECTIVES & TARGETS (GOT) MONITORING'
@@ -17907,8 +17907,9 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         function renderLtaRegistryTab() {
             const container = document.getElementById('lta-registry-view');
             if (!container) return;
-            // Exclude work-stopped projects — they are hidden from all report tabs
-            const displayProjects = getReportProjects();
+            // Show ALL projects including work-stopped (displayed with Work Stoppage badge).
+            // Work-stopped projects excluded only from compliance calculations, not from display.
+            const displayProjects = (state.filteredProjects || state.projects || []);
             const REGIONS_LTA = ["CORPORATE", "NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
 
             let totalEntries = 0;
@@ -18019,11 +18020,13 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     const canEdit = UserAccounts.canEdit(state.currentUser?.email, p.region) && UserAccounts.canEditTab(state.currentUser?.email, 'medical');
                     const dis = (state.isEditing && canEdit) ? '' : 'disabled';
 
-                    html += `<div class="lta-project-card">
-                        <div class="lta-project-header" onclick="toggleLtaProject('lta-proj-${pId}')">
+                    const _ltaIsWS = isProjectOnStoppage(p);
+                    html += `<div class="lta-project-card" style="${_ltaIsWS ? 'opacity:0.85;border-left:4px solid #bf360c;' : ''}">
+                        <div class="lta-project-header" onclick="toggleLtaProject('lta-proj-${pId}')" style="${_ltaIsWS ? 'background:linear-gradient(90deg,#bf360c,#8d1c0a);' : ''}">
                             <div style="display:flex;align-items:center;gap:8px;">
                                 <span class="lta-project-name">${p.name}</span>
                                 <span class="lta-region-badge">${p.region}</span>
+                                ${_ltaIsWS ? `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.2);color:white;padding:2px 8px;border-radius:12px;font-size:0.62rem;font-weight:700;"><i class="fas fa-hand-paper" style="font-size:0.6rem;"></i> Work Stoppage</span>` : ''}
                             </div>
                             <div style="display:flex;align-items:center;gap:8px;">
                                 ${canEdit ? `<button class="lta-add-btn" onclick="event.stopPropagation();addLtaEntry('${pnSafe}')"><i class="fas fa-plus"></i> Add Entry</button>` : ''}
@@ -19108,8 +19111,9 @@ function renderTabulation() {
         function renderOshNovTab() {
             const container = document.getElementById('osh-nov-view');
             if (!container) return;
-            // Exclude work-stopped projects — hidden from all report tabs
-            const displayProjects = getReportProjects();
+            // Show ALL projects including work-stopped (displayed with Work Stoppage badge).
+            // Work-stopped projects excluded only from compliance calculations, not from display.
+            const displayProjects = (state.filteredProjects || state.projects || []);
             let html = '';
 
             html += `<style>
@@ -19609,11 +19613,10 @@ function renderTabulation() {
                 renderCharts();
             }
 
-            // Always use filteredProjects (it will equal projects when no filters active)
-            // For report/data tabs: exclude work-stopped projects (they show only in Overall Summary)
-            const displayProjects = state.currentTab === 'overall'
-                ? state.filteredProjects
-                : getReportProjects();
+            // Always use filteredProjects — work-stopped projects are shown in ALL tabs
+            // with a visual Work Stoppage badge. Compliance calculations use
+            // complianceProjects (defined above) which correctly excludes them.
+            const displayProjects = state.filteredProjects;
 
             // Add trend chart for medical tab
             if (state.currentTab === 'medical') {
@@ -19624,7 +19627,7 @@ function renderTabulation() {
             }
 
             // ────────────────────────────────────────────────────────────────────────
-            // OVERALL SUMMARY - ALL REGIONS (para sa specific tabs)
+            // OVERALL SUMMARY - ALL REGIONS (for specific tabs)
             // ────────────────────────────────────────────────────────────────────────
             if (['exposures', 'medical', 'activities', 'nov'].includes(state.currentTab) && displayProjects.length > 0) {
                 const hasYTD = ['exposures', 'medical', 'activities', 'nov'].includes(state.currentTab);
@@ -19919,8 +19922,9 @@ function renderTabulation() {
 
                 const projs = displayProjects.filter(p => p.region === reg);
                 
-                // Calculate region average only if there are projects
-                const regPercValues = projs.map(p => getPerc(p)).filter(v => v !== null);
+                // Calculate region average — exclude work-stopped (shown visually but not in scores)
+                const regComplianceProjs = projs.filter(p => !isProjectOnStoppage(p));
+                const regPercValues = regComplianceProjs.map(p => getPerc(p)).filter(v => v !== null);
                 const regSum = regPercValues.reduce((sum, v) => sum + v, 0);
                 const regionAvg = regPercValues.length > 0 ? Math.round(regSum / regPercValues.length) : 0;
 
@@ -21308,7 +21312,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         }
                         // ────────────────────────────────────────────────────────────────
                         const _cellDisabled = (!inputsEditable || _isFutureMonth) ? 'disabled' : '';
-                        const _futureTip = _isFutureMonth ? ` title="Input locked — hindi pa ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i-1]}"` : '';
+                        const _futureTip = _isFutureMonth ? ` title="Input locked — ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i-1]} has not arrived yet"` : '';
 
                         // ✅ FIX: Red/green cell styling for date-type tabs based on current selected year
                         const _selYear = state.selectedYear || new Date().getFullYear();
@@ -22366,7 +22370,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     const v = p.vals[key] ? (p.vals[key][i] ?? "") : "";
                                     const _isFutureMo = i > (new Date().getMonth() + 1);
                                     const _moDisabled = (!(state.isEditing && canEditRegion) || _isFutureMo) ? 'disabled' : '';
-                                    const _moTip = _isFutureMo ? ` title="Input locked — hindi pa ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i-1]}"` : '';
+                                    const _moTip = _isFutureMo ? ` title="Input locked — ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i-1]} has not arrived yet"` : '';
                                     html += `<td class="monthly-data" style="${_isFutureMo ? 'background:#f5f5f5;opacity:0.65;' : ''}"><input type="date" value="${v}"
                                         ${_moDisabled}${_moTip}
                                         oninput="updateVal('${p.name}','${key}',${i},this.value)"></td>`;
@@ -23041,7 +23045,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             const val = parseFloat(p.vals[key][i]) || 0;
                             const _novFuture = i > (new Date().getMonth() + 1);
                             const _novDisabled = (!(state.isEditing && canEditRegion) || _novFuture) ? 'disabled' : '';
-                            const _novTip = _novFuture ? ` title="Input locked — hindi pa ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i-1]}"` : '';
+                            const _novTip = _novFuture ? ` title="Input locked — ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i-1]} has not arrived yet"` : '';
                             html += `<td class="month-col" style="${_novFuture ? 'background:#f5f5f5;opacity:0.65;' : ''}">
                                 <input type="text" inputmode="decimal" data-num min="0" value="${fmtNum(p.vals[key][i] || '')}" ${_novDisabled}${_novTip}
                                     oninput="numFmtInput(this, function(v){updateVal('${p.name}','${key}',${i},v)})">
@@ -27104,7 +27108,7 @@ async function firebaseSignup(email, password) {
     }
 
     // ⚠️ SECURITY WARNING: Password Validation
-    // Wala pang minimum requirements para sa password strength
+    // No minimum requirements for password strength yet
     // Dapat mag-implement ng:
     // - Minimum 8+ characters
     // - May numbers at special characters
@@ -32572,8 +32576,9 @@ function eshGetRegionKey(tabType, region) { return tabType + '|' + region; }
 
 function tabNavProject(tabType, region, delta) {
     const key = _tabNavKey(tabType, region);
-    // Use getReportProjects() to exclude work-stopped projects from navigation count
-    const allProjects = (typeof getReportProjects === 'function') ? getReportProjects() : ((state && (state.filteredProjects || state.projects)) ? (state.filteredProjects || state.projects) : []);
+    // ✅ FIX: Use state.filteredProjects (same source as all callers) so indices stay in sync.
+    // Using getReportProjects() (which strips work-stopped) caused index mismatches and wrong project names.
+    const allProjects = (state && (state.filteredProjects || state.projects)) ? (state.filteredProjects || state.projects) : [];
     const regProjs = allProjects.filter(p => p.region === region);
     if (!regProjs.length) return;
     let cur = _tabRegionProjectIdx[key] || 0;
@@ -32600,8 +32605,12 @@ window.tabNavProject = tabNavProject;
 
 function _tabNavBar(tabType, region, projIdx, regProjsLen) {
     if (regProjsLen <= 1) return '';
-    // Exclude work-stopped projects from nav bar count
-    const allP = (typeof getReportProjects === 'function') ? getReportProjects() : ((state && (state.filteredProjects || state.projects)) ? (state.filteredProjects || state.projects) : []);
+    // ✅ FIX: Use state.filteredProjects (same source as ALL callers) so the displayed project name
+    // always matches the project actually being rendered. Previously used getReportProjects() which
+    // strips work-stopped projects, causing index mismatches — e.g. Cabulig II HEPP and Clarin
+    // projects showing wrong names in the nav bar because indices shifted when stopped projects
+    // were excluded from one list but not the other.
+    const allP = (state && (state.filteredProjects || state.projects)) ? (state.filteredProjects || state.projects) : [];
     const proj = allP.filter(p => p.region === region)[projIdx];
     const projName = proj ? proj.name : '';
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:2px solid #c8e6c9;border-radius:0 0 0 0;">
