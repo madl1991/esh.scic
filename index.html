@@ -12631,6 +12631,9 @@ function openAdminQuickView() {
                     pdfBtn.style.display = 'inline-block';
                 }
             }
+
+            // ── ESHDataSync: reattach realtime listeners on tab change ──
+            if (window.ESHDataSync) { window.ESHDataSync.onTabChange(t); }
             
             render();
         }
@@ -12784,6 +12787,10 @@ function updateAuditData(pName, qtr, field, val) {
             if (p) {
                 if (!p.vals[key]) p.vals[key] = new Array(13).fill("");
                 p.vals[key][mIdx] = val;
+                // ── ESHDataSync: granular per-field save to ESH_DATA/{region}/{module}/{rowId} ──
+                if (window.ESHDataSync) {
+                    window.ESHDataSync.queueFieldSave(p.region, state.currentTab, pName, key, mIdx, val);
+                }
             }
             // Mark that there are unsaved changes pending cloud sync
             if (typeof markPendingSync === 'function') markPendingSync();
@@ -25827,6 +25834,8 @@ function waitForFirebase() {
     return new Promise((resolve) => {
         if (window.firebase && window.firebaseDb && window.firebaseAuth) {
             firebaseReady = true;
+            // ── ESHDataSync: initialize granular real-time sync engine ──
+            if (window.ESHDataSync) window.ESHDataSync.init();
             resolve();
             return;
         }
@@ -25835,6 +25844,8 @@ function waitForFirebase() {
                 clearInterval(checkInterval);
                 clearTimeout(timeoutId);
                 firebaseReady = true;
+                // ── ESHDataSync: initialize granular real-time sync engine ──
+                if (window.ESHDataSync) window.ESHDataSync.init();
                 resolve();
             }
         }, 100);
@@ -30679,6 +30690,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         envData.push({ id: Date.now() + Math.random(), region: regionRaw, project: projName || '', month, location: loc, kwh, amount, ghg, trees });
 
+        // ── ESHDataSync: save new electricity row to ESH_DATA ──
+        if (window.ESHDataSync) {
+            window.ESHDataSync.saveEnvRow('env_monitoring', envData[envData.length - 1]);
+        }
+
         // clear form
         ['env-loc-','env-kwh-','env-amt-','env-ghg-','env-trees-'].forEach(p => {
             const el = document.getElementById(p+suffix);
@@ -30695,6 +30711,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (row && (!UserAccounts.canEdit(userEmail, row.region) || !UserAccounts.canEditTab(userEmail, 'env-monitoring'))) {
             if (typeof showToast === 'function') showToast('🔒 You do not have permission to delete entries in this region.', 'warning');
             return;
+        }
+        // ── ESHDataSync: delete from ESH_DATA ──
+        if (row && window.ESHDataSync) {
+            window.ESHDataSync.deleteEnvRow('env_monitoring', row);
         }
         envData = envData.filter(r => r.id !== id);
         envRender();
@@ -31385,6 +31405,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         wasteData.push({ id: Date.now() + Math.random(), region: regionRaw, project: projName || '', month, location: loc, bioGen, bioDisp, nonbioGen, nonbioDisp, recGen, recDisp, hazGen, hazDisp, septage, remarks });
 
+        // ── ESHDataSync: save new waste row to ESH_DATA ──
+        if (window.ESHDataSync) {
+            window.ESHDataSync.saveEnvRow('env_waste', wasteData[wasteData.length - 1]);
+        }
+
         ['waste-loc-','waste-bio-gen-','waste-bio-disp-','waste-nonbio-gen-','waste-nonbio-disp-','waste-rec-gen-','waste-rec-disp-','waste-haz-gen-','waste-haz-disp-','waste-sep-','waste-rem-'].forEach(p => {
             const el = document.getElementById(p+suffix);
             if (el) el.value = '';
@@ -31399,6 +31424,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (row && (!UserAccounts.canEdit(userEmail, row.region) || !UserAccounts.canEditTab(userEmail, 'env-monitoring'))) {
             if (typeof showToast === 'function') showToast('🔒 You do not have permission to delete entries in this region.', 'warning');
             return;
+        }
+        // ── ESHDataSync: delete from ESH_DATA ──
+        if (row && window.ESHDataSync) {
+            window.ESHDataSync.deleteEnvRow('env_waste', row);
         }
         wasteData = wasteData.filter(r => r.id !== id);
         wasteRenderRegions();
@@ -34243,7 +34272,586 @@ function chatClearTyping() {
     } catch(e) { /* silent */ }
 }
 
-// ── COLLAPSIBLE SIDEBAR ──
+// ──────────────────────────────────────────────────────────────────────────────────────────
+// ██████████████████████████████████████████████████████████████████████████████████████████
+//  ESH DATA SYNC — Granular Row-Based Firestore Auto-Save + Real-Time Cross-Editing Engine
+//  Version 1.0 | Architecture: ESH_DATA/{region}/{module}/{rowId}
+// ██████████████████████████████████████████████████████████████████████████████████████████
+//
+//  FIRESTORE SECURITY RULES — deploy these to Firebase Console > Firestore > Rules
+//  ─────────────────────────────────────────────────────────────────────────────────────────
+//  rules_version = '2';
+//  service cloud.firestore {
+//    match /databases/{database}/documents {
+//
+//      function isAuthenticated() { return request.auth != null; }
+//
+//      function roleDoc() {
+//        return get(/databases/$(database)/documents/roles/$(request.auth.uid)).data;
+//      }
+//      function getRole()   { return roleDoc().role; }
+//      function getRegion() { return roleDoc().region; }
+//
+//      function isAdmin()      { return getRole() == 'admin'; }
+//      function isSuperint()   { return getRole() == 'superintendent'; }
+//      function isPCO()        { return getRole() == 'pco'; }
+//      function isEnviHead()   { return getRole() == 'envi_head'; }
+//
+//      function isEnvModule(module) {
+//        return module in ['env_monitoring','env_waste','env_water','env_appliances',
+//                          'emb','permits','env_monthly_report','nov_env','doe','ecc',
+//                          'pcab','zoning'];
+//      }
+//
+//      function validWrite() {
+//        // Every write MUST stamp updatedBy = caller's own UID
+//        return request.resource.data.updatedBy == request.auth.uid;
+//      }
+//
+//      // ── ESH_DATA: Granular row-level access control ──
+//      match /ESH_DATA/{region}/{module}/{rowId} {
+//        allow read: if isAuthenticated();
+//
+//        allow write: if isAuthenticated() && validWrite() && (
+//          isAdmin()
+//          || (isEnviHead()  && isEnvModule(module))
+//          || (isSuperint()  && getRegion() == region && !isEnvModule(module))
+//          || (isPCO()       && getRegion() == region && isEnvModule(module))
+//        );
+//
+//        allow delete: if isAuthenticated() && (
+//          isAdmin()
+//          || (isEnviHead()  && isEnvModule(module))
+//          || (isSuperint()  && getRegion() == region && !isEnvModule(module))
+//          || (isPCO()       && getRegion() == region && isEnvModule(module))
+//        );
+//      }
+//
+//      // ── Existing paths (unchanged) ──
+//      match /users/{userId}/{document=**} {
+//        allow read, write: if isAuthenticated() && (isAdmin() || request.auth.uid == userId);
+//      }
+//      match /roles/{uid} {
+//        allow read:  if isAuthenticated();
+//        allow write: if isAdmin();
+//      }
+//    }
+//  }
+// ──────────────────────────────────────────────────────────────────────────────────────────
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ESHDataSync — Yjs CRDT Edition
+// ──────────────────────────────────────────────────────────────────────────────────────────
+// DROP-IN REPLACEMENT for the old per-field Firestore updateDoc approach.
+// Public API is 100% identical — no changes needed anywhere else in this file.
+//
+// HOW IT WORKS:
+//   • One Y.Doc per (region × module) document path   →  "ESH_YJS/{region}_{module}"
+//   • Each Firestore document stores raw Yjs CRDT binary updates in a "updates" subcollection
+//   • All inputs bind to a shared Y.Map — concurrent edits merge automatically (no conflicts)
+//   • No more updateDoc() / setDoc() per field — Yjs handles everything
+//   • Role-based write permissions enforced BOTH client-side (canWrite) and Firestore rules
+//
+// NEW FIRESTORE SECURITY RULES (add alongside existing rules):
+// ─────────────────────────────────────────────────────────────────────────────────────────
+//   match /ESH_YJS/{docId}/updates/{updateId} {
+//     allow read:  if isAuthenticated();
+//     allow write: if isAuthenticated() && (
+//       isAdmin()
+//       || (isEnviHead()  && isEnvModule(docId.split('_')[1]))   // after first underscore
+//       || (isSuperint()  && docId.startsWith(getRegion()) && !isEnvModule(docId.split('_')[1]))
+//       || (isPCO()       && docId.startsWith(getRegion()) &&  isEnvModule(docId.split('_')[1]))
+//     );
+//   }
+// ─────────────────────────────────────────────────────────────────────────────────────────
+
+// ── Load Yjs + y-protocols via CDN (UMD builds) ──────────────────────────────────────────
+(function _loadYjsCDN() {
+    const scripts = [
+        'https://cdn.jsdelivr.net/npm/yjs@13.6.14/dist/yjs.cjs.js',
+    ];
+    scripts.forEach(src => {
+        if (document.querySelector(`script[src="${src}"]`)) return;
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = false;
+        document.head.appendChild(s);
+    });
+})();
+
+const ESHDataSync = (() => {
+
+    // ── Region key map: human names → safe Firestore path segments ──
+    const REGION_KEY_MAP = {
+        'NCR':                  'NCR',
+        'NORTH LUZON':          'NORTH_LUZON',
+        'SOUTH LUZON':          'SOUTH_LUZON',
+        'VISAYAS & MINDANAO':   'VISMIN',
+        'PLANT OPERATIONS':     'PLANT_OPS',
+        'CORPORATE':            'CORPORATE',
+        'ALL':                  'ALL'
+    };
+
+    // Environmental modules — PCO/EnviHead can write; Superintendent cannot
+    const ENV_MODULES = new Set([
+        'env_monitoring','env_waste','env_water','env_appliances',
+        'emb','permits','env_monthly_report','nov_env',
+        'env-monitoring','nov-env',   // tab name aliases
+        'doe','ecc','pcab','zoning'
+    ]);
+
+    // Map dashboard tab names → Firestore module segment
+    const TAB_TO_MODULE = {
+        'overall':              null,  // no row-based data
+        'rates':                null,
+        'medical':              'medical',
+        'exposures':            'exposures',
+        'activities':           'activities',
+        'kpm':                  'kpm',
+        'reg':                  'reg',
+        'audit':                'audit',
+        'cshp':                 'cshp',
+        'dole':                 'dole',
+        'permits':              'permits',
+        'emb':                  'emb',
+        'doe':                  'doe',
+        'doe-permit':           'doe_permit',
+        'env-monitoring':       'env_monitoring',
+        'nov':                  'nov_osh',
+        'nov-env':              'nov_env',
+        'lta-registry':         'lta_registry',
+        'tabulation':           'tabulation',
+        'got-monitoring':       'got_monitoring',
+        'osh-requirement':      'osh_requirement',
+        'health-report':        'health_report',
+    };
+
+    // ── Internal state ────────────────────────────────────────────────────────
+    // ydocCache: docPath → { ydoc, ytable, unsubUpdates, unsubSnapshot }
+    const _ydocCache   = new Map();
+    const _debounce    = new Map();   // key → timer id
+    let   _initialized = false;
+    let   _currentTab  = null;
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function regionKey(raw) {
+        const up = (raw || '').toUpperCase().trim();
+        return REGION_KEY_MAP[up] || up.replace(/[^A-Z0-9]/g, '_');
+    }
+
+    function toRowId(projectName) {
+        return (projectName || 'unknown')
+            .trim()
+            .replace(/[^a-zA-Z0-9_-]/g, '_')
+            .substring(0, 180);
+    }
+
+    function toEnvRowId(id) {
+        return 'env_' + String(id).replace(/[^0-9]/g, '').substring(0, 18);
+    }
+
+    function isEnvModule(module) {
+        return ENV_MODULES.has(module);
+    }
+
+    /** Derive the Yjs docPath from (region, module) → "ESH_YJS/{rk}_{module}" */
+    function yjsDocPath(region, module) {
+        return `ESH_YJS/${regionKey(region)}_${module}`;
+    }
+
+    // ── RBAC permission check ─────────────────────────────────────────────────
+
+    function canWrite(region, module) {
+        const auth = window.firebaseAuth;
+        if (!auth?.currentUser) return false;
+        const email      = auth.currentUser.email;
+        const info       = (typeof UserAccounts !== 'undefined') ? UserAccounts.getUserInfo(email) : null;
+        if (!info) return false;
+        const role       = info.role;
+        const userRegion = regionKey(info.region || 'ALL');
+        const rk         = regionKey(region);
+        const isEnv      = isEnvModule(module);
+
+        if (role === 'admin')          return true;
+        if (role === 'envi_head')      return isEnv;                           // all regions, env only
+        if (role === 'superintendent') return rk === userRegion && !isEnv;    // own region, non-env
+        if (role === 'pco')            return rk === userRegion && isEnv;     // own region, env only
+        return false;
+    }
+
+    // ── Yjs document bootstrap ────────────────────────────────────────────────
+    // Returns (or creates) a { ydoc, ytable } for the given (region, module).
+    // Uses Firestore's "updates" subcollection as the persistence / broadcast layer
+    // so every client stays in sync via CRDT merging — no per-field overwrite.
+
+    async function _getOrCreateYDoc(region, module) {
+        const path = yjsDocPath(region, module);
+        if (_ydocCache.has(path)) return _ydocCache.get(path);
+
+        // Guard: Yjs CDN must be loaded
+        if (typeof Y === 'undefined') {
+            console.warn('ESHDataSync: Yjs not yet loaded — retrying in 500ms');
+            await new Promise(r => setTimeout(r, 500));
+            if (typeof Y === 'undefined') {
+                console.error('ESHDataSync: Yjs failed to load. CRDT sync unavailable.');
+                return null;
+            }
+        }
+
+        const db = window.firebaseDb;
+        if (!db) return null;
+
+        const ydoc  = new Y.Doc();
+        const ytable = ydoc.getMap('manpower'); // shared map for this region+module
+
+        // ── Firestore persistence: "ESH_YJS/{rk_module}/updates/{updateId}" ──
+        const updatesCol = window.firebase.collection(db, path, 'updates');
+
+        // 1. Load existing CRDT state from Firestore
+        try {
+            const snap = await window.firebase.getDocs(updatesCol);
+            snap.forEach(docSnap => {
+                const raw = docSnap.data().u;
+                if (raw) {
+                    // Stored as a plain JS array of bytes
+                    const arr = new Uint8Array(raw);
+                    Y.applyUpdate(ydoc, arr);
+                }
+            });
+            console.log(`📥 ESHDataSync [Yjs]: loaded ${snap.size} update(s) for ${path}`);
+        } catch (e) {
+            console.warn('ESHDataSync [Yjs]: could not load existing state —', e.message);
+        }
+
+        // 2. Broadcast local edits to Firestore
+        ydoc.on('update', async (update, origin) => {
+            if (origin === 'remote') return; // don't echo back remote updates
+            try {
+                const newDocRef = window.firebase.doc(updatesCol); // auto-ID
+                await window.firebase.setDoc(newDocRef, { u: Array.from(update), t: Date.now() });
+            } catch (e) {
+                console.error('ESHDataSync [Yjs]: failed to persist update —', e.message);
+            }
+        });
+
+        // 3. Listen for remote edits from Firestore and apply them
+        const unsubUpdates = window.firebase.onSnapshot(updatesCol, (snap) => {
+            snap.docChanges().forEach(change => {
+                if (change.type === 'added') {
+                    const raw = change.doc.data().u;
+                    if (!raw) return;
+                    const arr = new Uint8Array(raw);
+                    // Apply with origin='remote' to avoid echoing back
+                    Y.applyUpdate(ydoc, arr, 'remote');
+                }
+            });
+        }, (err) => console.warn(`ESHDataSync [Yjs] snapshot error [${path}]:`, err.message));
+
+        // 4. When ytable changes, propagate updates into state.projects
+        ytable.observe((event) => {
+            event.changes.keys.forEach((change, rowId) => {
+                if (change.action === 'delete') return;
+                const rowMap = ytable.get(rowId);
+                if (!rowMap || !(rowMap instanceof Y.Map)) return;
+                _mergeYRowIntoState(rowId, rowMap);
+            });
+        });
+
+        const entry = { ydoc, ytable, unsubUpdates };
+        _ydocCache.set(path, entry);
+        console.log(`✅ ESHDataSync [Yjs]: provider ready → ${path}`);
+        return entry;
+    }
+
+    /** Merge a Y.Map row back into state.projects for live UI update */
+    function _mergeYRowIntoState(rowId, rowMap) {
+        if (typeof state === 'undefined' || !state.projects) return;
+        // rowId is "toRowId(projectName)" — find matching project
+        const proj = state.projects.find(p => toRowId(p.name) === rowId);
+        if (!proj) return;
+        let changed = false;
+        rowMap.forEach((val, fieldRaw) => {
+            if (fieldRaw === '__meta') return;
+            const lastUnder = fieldRaw.lastIndexOf('_');
+            if (lastUnder < 0) return;
+            const key  = fieldRaw.substring(0, lastUnder);
+            const mIdx = parseInt(fieldRaw.substring(lastUnder + 1), 10);
+            if (isNaN(mIdx)) return;
+            if (!proj.vals) proj.vals = {};
+            if (!proj.vals[key]) proj.vals[key] = new Array(13).fill('');
+            if (proj.vals[key][mIdx] !== val) {
+                proj.vals[key][mIdx] = val;
+                changed = true;
+            }
+        });
+        if (changed) {
+            _flashRemoteUpdate();
+        }
+    }
+
+    // ── Yjs field writer ──────────────────────────────────────────────────────
+    // This replaces ALL updateDoc() / setDoc() calls.
+    // Writes go into Y.Map — Yjs CRDT merges them; the ydoc.on('update') listener
+    // above persists the binary diff to Firestore automatically.
+
+    async function saveField(region, module, rowId, fieldObj) {
+        if (!canWrite(region, module)) {
+            console.warn(`🔒 ESHDataSync [Yjs]: BLOCKED — cannot write to ${module}/${region}`);
+            return false;
+        }
+        const entry = await _getOrCreateYDoc(region, module);
+        if (!entry) return false;
+
+        const { ydoc, ytable } = entry;
+
+        ydoc.transact(() => {
+            let rowMap = ytable.get(rowId);
+            if (!rowMap || !(rowMap instanceof Y.Map)) {
+                rowMap = new Y.Map();
+                ytable.set(rowId, rowMap);
+            }
+            Object.entries(fieldObj).forEach(([field, val]) => {
+                rowMap.set(field, val === undefined ? '' : String(val));
+            });
+            // Stamp metadata (non-blocking, low-priority)
+            rowMap.set('__meta', JSON.stringify({
+                by: window.firebaseAuth?.currentUser?.uid || 'unknown',
+                at: Date.now()
+            }));
+        });
+
+        console.log(`✅ ESHDataSync [Yjs]: ${regionKey(region)}/${module}/${rowId} updated (CRDT)`);
+        return true;
+    }
+
+    // ── Project table: queue debounced Yjs write per cell ────────────────────
+
+    function queueFieldSave(region, tabName, projectName, key, mIdx, val) {
+        const module = TAB_TO_MODULE[tabName] || tabName;
+        if (!module) return;
+        const rk     = regionKey(region);
+        const rowId  = toRowId(projectName);
+        const field  = `${key.replace(/[^a-zA-Z0-9_]/g, '_')}_${mIdx}`;
+        const dKey   = `${rk}/${module}/${rowId}/${field}`;
+
+        clearTimeout(_debounce.get(dKey));
+        _debounce.set(dKey, setTimeout(async () => {
+            _debounce.delete(dKey);
+            const ok = await saveField(region, module, rowId, { [field]: val });
+            if (ok) console.log(`✅ ESHDataSync [Yjs]: ${dKey} = "${val}"`);
+        }, 400));
+    }
+
+    // ── Env-monitoring row save / delete ─────────────────────────────────────
+
+    async function saveEnvRow(module, rowObj) {
+        if (!rowObj || !rowObj.region) return;
+        const rowId   = toEnvRowId(rowObj.id);
+        const payload = { ...rowObj };
+        delete payload.id;
+        const ok = await saveField(rowObj.region, module, rowId, payload);
+        if (ok) console.log(`✅ ESHDataSync [Yjs]: env row saved → ${module}/${rowId}`);
+    }
+
+    async function deleteEnvRow(module, rowObj) {
+        if (!rowObj || !rowObj.region) return;
+        if (!canWrite(rowObj.region, module)) return;
+        const entry = await _getOrCreateYDoc(rowObj.region, module);
+        if (!entry) return;
+        const rowId = toEnvRowId(rowObj.id);
+        entry.ydoc.transact(() => {
+            entry.ytable.delete(rowId);
+        });
+        // Also remove from Firestore via a tombstone doc so peers know it was deleted
+        try {
+            const db = window.firebaseDb;
+            const path = yjsDocPath(rowObj.region, module);
+            const tombRef = window.firebase.doc(db, path, 'tombstones', rowId);
+            await window.firebase.setDoc(tombRef, { deletedAt: Date.now(), by: window.firebaseAuth?.currentUser?.uid });
+            console.log(`🗑️ ESHDataSync [Yjs]: tombstone written for ${module}/${rowId}`);
+        } catch (e) {
+            console.warn('ESHDataSync [Yjs] deleteEnvRow tombstone:', e.message);
+        }
+    }
+
+    // ── Listener shim (kept for API compatibility) ────────────────────────────
+    // With Yjs, real-time sync is automatic via ytable.observe().
+    // attachRowListener is kept as a no-op shim so existing callers don't break.
+
+    function attachRowListener(region, module, rowId, onUpdate) {
+        // Ensure the Y.Doc for this region/module is bootstrapped (async, fire-and-forget)
+        _getOrCreateYDoc(region, module).then(entry => {
+            if (!entry) return;
+            // Wire a targeted observer for this specific row
+            const { ytable } = entry;
+            const rowMap = ytable.get(rowId);
+            if (rowMap instanceof Y.Map) {
+                rowMap.observe(() => {
+                    const data = {};
+                    rowMap.forEach((v, k) => { if (k !== '__meta') data[k] = v; });
+                    if (typeof onUpdate === 'function') onUpdate(data, region, module, rowId);
+                });
+            }
+        });
+    }
+
+    // Flash a toast when a remote Yjs update arrives
+    function _flashRemoteUpdate() {
+        if (typeof showToast === 'function') {
+            clearTimeout(_flashRemoteUpdate._toast);
+            _flashRemoteUpdate._toast = setTimeout(() => {
+                showToast('🔄 Live update received from another user (CRDT merged)', 'info', 2500);
+            }, 200);
+        }
+    }
+    _flashRemoteUpdate._toast = null;
+
+    // Detach all active listeners / tear down Y.Doc providers
+    function detachAll() {
+        _ydocCache.forEach(({ ydoc, unsubUpdates }) => {
+            try { unsubUpdates && unsubUpdates(); } catch (e) {}
+            try { ydoc.destroy(); } catch (e) {}
+        });
+        _ydocCache.clear();
+        console.log('🧹 ESHDataSync [Yjs]: all Y.Doc providers detached');
+    }
+
+    // Called on every tab change — bootstrap Yjs providers for new tab
+    function onTabChange(tabName) {
+        _currentTab = tabName;
+        // Detach providers for OTHER tabs to free memory (optional — Yjs is cheap)
+        // We keep the current-tab provider alive; detach the rest.
+        const module = TAB_TO_MODULE[tabName];
+        _ydocCache.forEach(({ ydoc, unsubUpdates }, path) => {
+            if (module && !path.endsWith(`_${module}`)) {
+                try { unsubUpdates && unsubUpdates(); } catch (e) {}
+                try { ydoc.destroy(); } catch (e) {}
+                _ydocCache.delete(path);
+            }
+        });
+        // Pre-warm Yjs providers for all visible projects in this tab
+        setTimeout(() => {
+            if (typeof state === 'undefined' || !state.projects) return;
+            const seenPaths = new Set();
+            state.projects.forEach(p => {
+                if (!module) return;
+                const path = yjsDocPath(p.region, module);
+                if (seenPaths.has(path)) return;
+                seenPaths.add(path);
+                _getOrCreateYDoc(p.region, module);
+            });
+        }, 300);
+    }
+
+    // ── Initialize event-delegation auto-save for data-* tagged inputs ────────
+
+    function init() {
+        if (_initialized) return;
+        _initialized = true;
+
+        // ── Auto-save via data-region / data-module / data-row / data-field attributes ──
+        // Any input with all four metadata attributes will auto-save via Yjs on change.
+        document.addEventListener('change', async (e) => {
+            const el = e.target;
+            if (!el.matches('input, select, textarea')) return;
+            const region = el.dataset.region;
+            const module = el.dataset.module;
+            const rowId  = el.dataset.row;
+            const field  = el.dataset.field;
+            if (!region || !module || !rowId || !field) return;
+
+            const dKey = `${regionKey(region)}/${module}/${rowId}/${field}`;
+            clearTimeout(_debounce.get(dKey));
+            _debounce.set(dKey, setTimeout(async () => {
+                _debounce.delete(dKey);
+                const ok = await saveField(region, module, rowId, { [field]: el.value });
+                if (ok) console.log(`✅ ESHDataSync [Yjs attr]: ${dKey} = "${el.value}"`);
+            }, 350));
+        });
+
+        // ── Debounced Yjs write for free-text input events ──
+        document.addEventListener('input', (e) => {
+            const el = e.target;
+            if (!el.matches('input[type="text"], input:not([type]), textarea')) return;
+            const region = el.dataset.region;
+            const module = el.dataset.module;
+            const rowId  = el.dataset.row;
+            const field  = el.dataset.field;
+            if (!region || !module || !rowId || !field) return;
+
+            const dKey = `${regionKey(region)}/${module}/${rowId}/${field}`;
+            clearTimeout(_debounce.get(dKey));
+            _debounce.set(dKey, setTimeout(async () => {
+                _debounce.delete(dKey);
+                const ok = await saveField(region, module, rowId, { [field]: el.value });
+                if (ok) console.log(`✅ ESHDataSync [Yjs input]: ${dKey} = "${el.value}"`);
+            }, 700));
+        });
+
+        console.log('✅ ESHDataSync [Yjs CRDT]: initialized — conflict-free collaborative sync active');
+        console.log('   Path pattern: ESH_YJS/{region}_{module}/updates/{autoId}');
+        console.log('   Roles: Admin (all), EnviHead (env modules, all regions),');
+        console.log('          Superintendent (non-env, own region), PCO (env, own region)');
+        console.log('   Concurrent edits: automatically merged by Yjs CRDT — no "last write wins"');
+    }
+
+    // ── Public API (identical to original ESHDataSync) ───────────────────────
+    return {
+        init,
+        onTabChange,
+        queueFieldSave,
+        saveEnvRow,
+        deleteEnvRow,
+        saveField,
+        attachRowListener,
+        detachAll,
+        canWrite,
+        regionKey,
+        TAB_TO_MODULE,
+        ENV_MODULES
+    };
+
+})(); // IIFE — self-contained, no global pollution except window.ESHDataSync
+
+window.ESHDataSync = ESHDataSync;
+
+// ──────────────────────────────────────────────────────────────────────────────────────────
+// HOW TO ADD data-* ATTRIBUTES TO NEW INPUTS FOR DIRECT Yjs CRDT SAVES:
+//
+//   Each editable <input>, <select>, or <textarea> that should auto-save via ESHDataSync
+//   must include these four HTML data attributes:
+//
+//     data-region="NCR"               ← one of: NCR | NORTH LUZON | SOUTH LUZON | VISAYAS & MINDANAO
+//     data-module="permits"           ← Firestore module segment (see TAB_TO_MODULE map above)
+//     data-row="row_001"              ← unique row ID within the module/region
+//     data-field="permit_number"      ← field name within the document
+//
+//   Example:
+//     <input type="text"
+//            data-region="NCR"
+//            data-module="permits"
+//            data-row="PROJ_NAME_SAFE"
+//            data-field="permit_no_0"
+//            value="">
+//
+//   ✅ Yjs CRDT Edition — what changed vs. the old ESHDataSync:
+//   ─────────────────────────────────────────────────────────────
+//   OLD (per-field Firestore):  updateDoc(ref, { permit_no_0: value, updatedBy: uid })
+//   NEW (Yjs CRDT):             ytable.get(rowId).set('permit_no_0', value)  ← CRDT auto-merges
+//
+//   • No more "last write wins" data loss — concurrent edits are merged by Yjs
+//   • No more updateDoc() / setDoc() for table data — Yjs handles everything
+//   • Firestore is now used ONLY as a sync/persistence layer (binary CRDT diffs)
+//   • New Firestore path:  ESH_YJS/{region}_{module}/updates/{autoId}
+//   • Old path (ESH_DATA) is no longer written to — migrate existing data if needed
+//
+//   MIGRATION NOTE:
+//   Existing data in ESH_DATA/{region}/{module}/{rowId} will NOT be auto-migrated.
+//   Run the one-time migration utility (see companion MIGRATION_GUIDE.md) to read
+//   all existing ESH_DATA documents and replay them as Yjs CRDT updates into ESH_YJS.
+// ──────────────────────────────────────────────────────────────────────────────────────────
+
 function toggleSidebar() {
     const sidebar = document.getElementById('main-sidebar');
     sidebar.classList.toggle('sidebar-collapsed');
