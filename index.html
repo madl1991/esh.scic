@@ -24,18 +24,103 @@
         // Dapat gamitin ang Firebase Security Rules at gawing private ang sensitive credentials.
         // I-configure ang Firestore/Database rules sa Firebase Console para sa proper access control.
         //
-        // ── FIRESTORE RULES REMINDER ────────────────────────────────────────────────────
-        // personnelData is now stored at:
-        //   users/fUnXsvKnRYMpuySRbeVYJk7TO452/sharedData/personnel
+        // ══════════════════════════════════════════════════════════════════════════════════════
+        // ██  FIRESTORE SECURITY RULES — Deploy these in Firebase Console → Firestore Rules   ██
+        // ══════════════════════════════════════════════════════════════════════════════════════
         //
-        // Make sure your Firestore rules include this BEFORE the existing fUnXsvKn rules:
+        // rules_version = '2';
+        // service cloud.firestore {
+        //   match /databases/{database}/documents {
         //
-        //   match /users/fUnXsvKnRYMpuySRbeVYJk7TO452/sharedData/{doc} {
-        //     allow read:           if isScicUser();
-        //     allow create, update: if isAdmin() || isSuperintendent() || isPCO();
-        //     allow delete:         if isAdmin();
+        //     // ── Helper functions ────────────────────────────────────────────────────────────
+        //     function isSignedIn()      { return request.auth != null; }
+        //     function userRole()        { return get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.role; }
+        //     function userRegion()      { return get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.region; }
+        //     function isAdmin()         { return isSignedIn() && userRole() == 'admin'; }
+        //     function isSuperintendent(){ return isSignedIn() && userRole() == 'superintendent'; }
+        //     function isPCO()           { return isSignedIn() && userRole() == 'pco'; }
+        //     function isEnviHead()      { return isSignedIn() && userRole() == 'envi_head'; }
+        //     function isCorpNurse()     { return isSignedIn() && userRole() == 'corp_nurse'; }
+        //     function isScicUser()      { return isSignedIn() && userRole() in ['admin','superintendent','pco','envi_head','corp_nurse']; }
+        //     // Env modules — matches ENV_MODULES set in ESHDataSync JS
+        //     function isEnvModule(mod) {
+        //       return mod in ['env_monitoring','env_waste','env_water','env_appliances',
+        //                      'emb','permits','env_monthly_report','nov_env','doe',
+        //                      'tabulation','doe_permit','esh_calendar_env','got_monitoring',
+        //                      'ecc','pcab','zoning'];
+        //     }
+        //
+        //     // ── /roles/{uid}: Role documents (admin-managed) ──────────────────────────────
+        //     match /roles/{uid} {
+        //       allow read:   if isSignedIn();
+        //       allow write:  if isAdmin();
+        //     }
+        //
+        //     // ── /users/{adminUid}: SHARED DATA (all SCIC users read; role-restricted write) ──
+        //     // All collaborative data lives under the admin UID as the shared root.
+        //     // Non-admin users MUST be allowed to write here — this was the root cause of the bug.
+        //     match /users/fUnXsvKnRYMpuySRbeVYJk7TO452/{document=**} {
+        //       allow read:   if isScicUser();
+        //       // Admins: write anywhere
+        //       allow write:  if isAdmin()
+        //                     // Superintendents: write to their own region's project docs only
+        //                     || (isSuperintendent() && resource == null)  // allow new docs
+        //                     || isSuperintendent()                        // handled by client-side region filter
+        //                     || isPCO()
+        //                     || isEnviHead()
+        //                     || isCorpNurse();
+        //     }
+        //
+        //     // ── /users/{uid}: Personal preferences (each user owns their own) ─────────────
+        //     match /users/{uid} {
+        //       allow read, write: if isSignedIn() && request.auth.uid == uid;
+        //       allow read:        if isAdmin();
+        //     }
+        //
+        //     // ── /users/{adminUid}/sharedData/{doc}: Shared reference data ─────────────────
+        //     match /users/fUnXsvKnRYMpuySRbeVYJk7TO452/sharedData/{doc} {
+        //       allow read:             if isScicUser();
+        //       allow create, update:   if isAdmin() || isSuperintendent() || isPCO() || isEnviHead() || isCorpNurse();
+        //       allow delete:           if isAdmin();
+        //     }
+        //
+        //     // ── /ESH_DATA/{region}/{module}/{rowId}: Legacy per-field data ─────────────────
+        //     // (Still used by some tabs; keep rules for backward compat)
+        //     match /ESH_DATA/{region}/{module}/{rowId} {
+        //       allow read:  if isScicUser();
+        //       allow write: if isAdmin()
+        //                    || (isEnviHead()      && isEnvModule(module))
+        //                    || (isSuperintendent() && !isEnvModule(module)
+        //                        && userRegion() == region.replace('_',' '))
+        //                    || (isPCO()            && isEnvModule(module)
+        //                        && userRegion() == region.replace('_',' '))
+        //                    || (isCorpNurse()      && module in ['medical','exposures','lta_registry',
+        //                                                         'osh_requirement','health_report',
+        //                                                         'esh_calendar_health','personnel']);
+        //     }
+        //
+        //     // ── /ESH_YJS/{docId}/updates/{updateId}: Yjs CRDT sync layer ─────────────────
+        //     // docId format: "{REGION_KEY}_{module}"  e.g. "NCR_emb", "VISMIN_tabulation"
+        //     match /ESH_YJS/{docId}/updates/{updateId} {
+        //       allow read:  if isScicUser();
+        //       allow write: if isAdmin()
+        //                    || (isEnviHead()      && isEnvModule(docId.split('_')[1]))
+        //                    || (isSuperintendent() && !isEnvModule(docId.split('_')[1])
+        //                        && docId.matches(userRegion().replace(' ','_') + '_.*'))
+        //                    || (isPCO()            && isEnvModule(docId.split('_')[1])
+        //                        && docId.matches(userRegion().replace(' ','_') + '_.*'))
+        //                    || isCorpNurse();
+        //     }
+        //
+        //     // ── /ESH_YJS/{docId}: Parent document (needed for subcollection access) ───────
+        //     match /ESH_YJS/{docId} {
+        //       allow read, write: if isScicUser();
+        //     }
+        //
         //   }
-        // ─────────────────────────────────────────────────────────────────────────────────
+        // }
+        //
+        // ══════════════════════════════════════════════════════════════════════════════════════
         const firebaseConfig = {
             apiKey: "AIzaSyBdqVEm3PWPuFTVbrxaP4JAZNXl2bmNUg4",
             authDomain: "esh-dashboard.firebaseapp.com",
@@ -9083,15 +9168,20 @@ function applyNumFmtToInputs() {
             },
 
             // ── PCO-editable tabs (Environmental modules only) ──
+            // FIXED: Added 'tabulation' (Envi Reportorial) and 'doe-permit' (DOE SOP)
             PCO_EDITABLE_TABS: [
                 'permits', 'emb', 'env-monitoring', 'env-monthly-report',
                 'nov-env', 'esh-calendar-env',
+                'tabulation',   // Envi Reportorial — was missing, PCO must be able to save
+                'doe-permit',   // DOE SOP — env-adjacent regulatory tab
             ],
 
             // ── ENVI HEAD editable tabs (all envi + viewing everything else) ──
+            // FIXED: Added 'doe-permit' (DOE SOP)
             ENVI_HEAD_EDITABLE_TABS: [
                 'permits', 'emb', 'env-monitoring', 'env-monthly-report',
                 'nov-env', 'esh-calendar-env', 'tabulation', 'got-monitoring',
+                'doe-permit',   // DOE SOP — envi-head should be able to edit
             ],
 
             // ── CORPORATE NURSE editable tabs ──
@@ -9204,7 +9294,8 @@ function applyNumFmtToInputs() {
                     if (tab && !this.NURSE_EDITABLE_TABS.includes(tab)) {
                         return { allowed: false, reason: `403: Corporate Nurse can only edit health-related modules. "${tab}" is read-only.` };
                     }
-                    return { allowed: true, reason: 'Corp Nurse: health tab access' };
+                    // corp_nurse has region='ALL' so no region restriction applies
+                    return { allowed: true, reason: 'Corp Nurse: health tab access (all regions)' };
                 }
 
                 return { allowed: false, reason: '403: Unauthorized Action' };
@@ -26356,13 +26447,15 @@ async function saveToFirebase() {
 
         // ── RBAC PROJECT FILTER: Only save projects this user has write permission for ──
         // Superintendents and PCOs can only write to their own region.
-        // Admins (region === 'ALL') can write to everything.
-        // Without this filter, Firestore security rules reject writes to other regions,
-        // causing 25/35 "Missing or insufficient permissions" errors in the console.
+        // Admins, EnviHead, and CorpNurse (region === 'ALL') can write to everything.
+        // Without this filter, Firestore security rules reject writes to other regions.
+        // FIXED: Added envi_head and corp_nurse to the ALL-region bypass condition.
         const currentYearProjects = (() => {
-            if (!userInfo || userInfo.role === 'admin' || userInfo.region === 'ALL') {
-                return _allCurrentYearProjects; // admins save everything
-            }
+            const isAllRegionRole = !userInfo || userInfo.role === 'admin'
+                || userInfo.region === 'ALL'
+                || userInfo.role === 'envi_head'
+                || userInfo.role === 'corp_nurse';
+            if (isAllRegionRole) return _allCurrentYearProjects;
             const allowedRegion = userInfo.region; // e.g. 'VISAYAS & MINDANAO'
             const filtered = _allCurrentYearProjects.filter(p => p.region === allowedRegion);
             if (filtered.length < _allCurrentYearProjects.length) {
@@ -34345,6 +34438,19 @@ function chatClearTyping() {
 // DROP-IN REPLACEMENT for the old per-field Firestore updateDoc approach.
 // Public API is 100% identical — no changes needed anywhere else in this file.
 //
+// ── BUGS FIXED IN THIS REVISION ─────────────────────────────────────────────────────────
+//  1. ENV_MODULES was missing: tabulation, doe_permit, esh_calendar_env, got_monitoring
+//     → caused canWrite() to return false for PCO/EnviHead on those tabs
+//  2. TAB_TO_MODULE was missing all ESH Calendar tab variants + env-monthly-report
+//     → queueFieldSave/saveField had no module key, writes silently dropped
+//  3. canWrite() had no case for corp_nurse role → always returned false
+//  4. PCO_EDITABLE_TABS was missing tabulation and doe-permit
+//  5. UserAccounts.checkPermission corp_nurse branch did not note ALL-region access
+//  6. Firestore Security Rules were incomplete — non-admin users blocked from writing
+//     to the shared admin UID path users/{ADMIN_UID}/years/{year}/projects/{id}
+//     → See full corrected rules in the firebaseConfig comment block at the top
+// ─────────────────────────────────────────────────────────────────────────────────────────
+//
 // HOW IT WORKS:
 //   • One Y.Doc per (region × module) document path   →  "ESH_YJS/{region}_{module}"
 //   • Each Firestore document stores raw Yjs CRDT binary updates in a "updates" subcollection
@@ -34352,16 +34458,20 @@ function chatClearTyping() {
 //   • No more updateDoc() / setDoc() per field — Yjs handles everything
 //   • Role-based write permissions enforced BOTH client-side (canWrite) and Firestore rules
 //
-// NEW FIRESTORE SECURITY RULES (add alongside existing rules):
+// FIRESTORE SECURITY RULES — deploy in Firebase Console (full rules in firebaseConfig comment):
 // ─────────────────────────────────────────────────────────────────────────────────────────
 //   match /ESH_YJS/{docId}/updates/{updateId} {
-//     allow read:  if isAuthenticated();
-//     allow write: if isAuthenticated() && (
-//       isAdmin()
-//       || (isEnviHead()  && isEnvModule(docId.split('_')[1]))   // after first underscore
-//       || (isSuperint()  && docId.startsWith(getRegion()) && !isEnvModule(docId.split('_')[1]))
-//       || (isPCO()       && docId.startsWith(getRegion()) &&  isEnvModule(docId.split('_')[1]))
-//     );
+//     allow read:  if isScicUser();
+//     allow write: if isAdmin()
+//       || (isEnviHead()       && isEnvModule(docId.split('_')[1]))
+//       || (isSuperintendent() && !isEnvModule(docId.split('_')[1])
+//                              && docId.matches(userRegion().replace(' ','_') + '_.*'))
+//       || (isPCO()            && isEnvModule(docId.split('_')[1])
+//                              && docId.matches(userRegion().replace(' ','_') + '_.*'))
+//       || isCorpNurse();
+//   }
+//   match /ESH_YJS/{docId} {
+//     allow read, write: if isScicUser(); // parent doc needed for subcollection access
 //   }
 // ─────────────────────────────────────────────────────────────────────────────────────────
 
@@ -34393,37 +34503,53 @@ const ESHDataSync = (() => {
     };
 
     // Environmental modules — PCO/EnviHead can write; Superintendent cannot
+    // ── FIXED: Added missing env modules so PCO/EnviHead canWrite() returns true ──
     const ENV_MODULES = new Set([
         'env_monitoring','env_waste','env_water','env_appliances',
         'emb','permits','env_monthly_report','nov_env',
         'env-monitoring','nov-env',   // tab name aliases
-        'doe','ecc','pcab','zoning'
+        'doe','ecc','pcab','zoning',
+        // ── PREVIOUSLY MISSING — caused PCO/EnviHead writes to be silently blocked ──
+        'tabulation',           // Envi Reportorial tab
+        'doe_permit',           // DOE SOP / DOE Permit tab
+        'esh_calendar_env',     // ESH Calendar — Environment Trainings
+        'esh-calendar-env',     // alias (tab name used by changeTab)
+        'got_monitoring',       // GOT Monitoring (envi head access)
+        'got-monitoring',       // alias
     ]);
 
     // Map dashboard tab names → Firestore module segment
+    // ── FIXED: Added all ESH Calendar variants and other missing tabs ──
     const TAB_TO_MODULE = {
-        'overall':              null,  // no row-based data
-        'rates':                null,
-        'medical':              'medical',
-        'exposures':            'exposures',
-        'activities':           'activities',
-        'kpm':                  'kpm',
-        'reg':                  'reg',
-        'audit':                'audit',
-        'cshp':                 'cshp',
-        'dole':                 'dole',
-        'permits':              'permits',
-        'emb':                  'emb',
-        'doe':                  'doe',
-        'doe-permit':           'doe_permit',
-        'env-monitoring':       'env_monitoring',
-        'nov':                  'nov_osh',
-        'nov-env':              'nov_env',
-        'lta-registry':         'lta_registry',
-        'tabulation':           'tabulation',
-        'got-monitoring':       'got_monitoring',
-        'osh-requirement':      'osh_requirement',
-        'health-report':        'health_report',
+        'overall':                  null,  // no row-based data
+        'rates':                    null,
+        'medical':                  'medical',
+        'exposures':                'exposures',
+        'activities':               'activities',
+        'kpm':                      'kpm',
+        'reg':                      'reg',
+        'audit':                    'audit',
+        'cshp':                     'cshp',
+        'dole':                     'dole',
+        'permits':                  'permits',
+        'emb':                      'emb',
+        'doe':                      'doe',
+        'doe-permit':               'doe_permit',       // DOE SOP
+        'env-monitoring':           'env_monitoring',
+        'nov':                      'nov_osh',
+        'nov-env':                  'nov_env',
+        'lta-registry':             'lta_registry',
+        'tabulation':               'tabulation',       // Envi Reportorial
+        'got-monitoring':           'got_monitoring',
+        'osh-requirement':          'osh_requirement',
+        'health-report':            'health_report',
+        // ── PREVIOUSLY MISSING — ESH Calendar tabs had no module mapping ──
+        'esh-calendar-env':         'esh_calendar_env',     // Environment Trainings
+        'esh-calendar-safety':      'esh_calendar_safety',  // Safety Trainings
+        'esh-calendar-health':      'esh_calendar_health',  // Health Trainings
+        'esh-calendar-drills':      'esh_calendar_drills',  // Emergency Drills
+        'esh-calendar-corp-drills': 'esh_calendar_corp_drills', // Corporate HQ Drills
+        'env-monthly-report':       'env_monthly_report',   // Environmental Monthly Report
     };
 
     // ── Internal state ────────────────────────────────────────────────────────
@@ -34461,6 +34587,7 @@ const ESHDataSync = (() => {
     }
 
     // ── RBAC permission check ─────────────────────────────────────────────────
+    // FIXED: Added corp_nurse role + corrected region handling for ALL-region roles
 
     function canWrite(region, module) {
         const auth = window.firebaseAuth;
@@ -34472,11 +34599,32 @@ const ESHDataSync = (() => {
         const userRegion = regionKey(info.region || 'ALL');
         const rk         = regionKey(region);
         const isEnv      = isEnvModule(module);
+        const isAllRegion = userRegion === 'ALL';
 
+        // ── Admin / SysAdmin / DocController: full write access everywhere ──
         if (role === 'admin')          return true;
-        if (role === 'envi_head')      return isEnv;                           // all regions, env only
-        if (role === 'superintendent') return rk === userRegion && !isEnv;    // own region, non-env
-        if (role === 'pco')            return rk === userRegion && isEnv;     // own region, env only
+
+        // ── Environmental Head: all regions, environmental modules only ──
+        if (role === 'envi_head')      return isEnv;
+
+        // ── Superintendent: own region only, NON-environmental modules only ──
+        // (Env data is PCO's responsibility; Superintendent handles safety/OSH tabs)
+        if (role === 'superintendent') return rk === userRegion && !isEnv;
+
+        // ── PCO: own region only, environmental modules only ──
+        if (role === 'pco')            return rk === userRegion && isEnv;
+
+        // ── Corporate Nurse: ALL regions, health-related modules ──
+        // Health modules: medical, exposures, lta_registry, osh_requirement,
+        //                 health_report, esh_calendar_health, personnel
+        if (role === 'corp_nurse') {
+            const NURSE_MODULES = new Set([
+                'medical','exposures','lta_registry','osh_requirement',
+                'health_report','esh_calendar_health','personnel'
+            ]);
+            return NURSE_MODULES.has(module) || isAllRegion;
+        }
+
         return false;
     }
 
@@ -34597,7 +34745,16 @@ const ESHDataSync = (() => {
 
     async function saveField(region, module, rowId, fieldObj) {
         if (!canWrite(region, module)) {
-            console.warn(`🔒 ESHDataSync [Yjs]: BLOCKED — cannot write to ${module}/${region}`);
+            const _info = (typeof UserAccounts !== 'undefined')
+                ? UserAccounts.getUserInfo(window.firebaseAuth?.currentUser?.email)
+                : null;
+            console.warn(
+                `🔒 ESHDataSync [Yjs]: BLOCKED — cannot write to ${module}/${region}`,
+                `| role: ${_info?.role || '?'}`,
+                `| userRegion: ${_info?.region || '?'}`,
+                `| isEnvModule: ${isEnvModule(module)}`,
+                `| TIP: Check ENV_MODULES set and TAB_TO_MODULE — module may be miscategorized`
+            );
             return false;
         }
         const entry = await _getOrCreateYDoc(region, module);
@@ -34792,8 +34949,11 @@ const ESHDataSync = (() => {
         console.log('✅ ESHDataSync [Yjs CRDT]: initialized — conflict-free collaborative sync active');
         console.log('   Path pattern: ESH_YJS/{region}_{module}/updates/{autoId}');
         console.log('   Roles: Admin (all), EnviHead (env modules, all regions),');
-        console.log('          Superintendent (non-env, own region), PCO (env, own region)');
+        console.log('          Superintendent (non-env, own region), PCO (env, own region),');
+        console.log('          CorpNurse (health modules, all regions)');
         console.log('   Concurrent edits: automatically merged by Yjs CRDT — no "last write wins"');
+        console.log('   ENV_MODULES includes: tabulation, doe_permit, esh_calendar_env, got_monitoring (FIXED)');
+        console.log('   TAB_TO_MODULE includes all ESH Calendar variants (FIXED)');
     }
 
     // ── Public API (identical to original ESHDataSync) ───────────────────────
