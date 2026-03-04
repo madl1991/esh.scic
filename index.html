@@ -8779,7 +8779,7 @@ function applyNumFmtToInputs() {
             ],
 
             NURSE_EDITABLE_TABS: [
-                'health-report',  // Both Nurse and Superintendent can write
+                'health-report', 'esh-calendar-health',  // Both Nurse and Superintendent can write
             ],
 
             PCO_VIEW_TABS: [
@@ -11585,9 +11585,15 @@ function openAdminQuickView() {
             const floatingBtn = document.getElementById('floating-edit-btn');
             const floatingIcon = document.getElementById('floating-edit-icon');
             const floatingTooltip = document.getElementById('floating-edit-tooltip');
-            
+
             state.isEditing = false;
-            
+
+            // Re-render LTA Registry immediately so inputs reflect isEditing=false
+            // BEFORE disabling the button — prevents visible freeze
+            if (state.currentTab === 'lta-registry' && typeof renderLtaRegistryTab === 'function') {
+                renderLtaRegistryTab();
+            }
+
             if (floatingBtn) {
                 floatingBtn.style.pointerEvents = 'none';
                 floatingBtn.style.opacity = '0.6';
@@ -11762,7 +11768,7 @@ function openAdminQuickView() {
                                 : `🔒 <strong>Read-Only Access</strong> — PCO accounts can only edit Environmental modules.`}
                         </div>
                         <div style="font-weight:400;font-size:0.76rem;opacity:0.85;">
-                            Editable tabs: Environmental Monitoring · EMB Reportorial · Environmental Permits · ESH Calendar (Env) · Emergency Drills &nbsp;|&nbsp; Region: <strong>${info.region}</strong>
+                            Editable tabs: Environmental Monitoring · EMB Reportorial · Environmental Permits · ESH Calendar (Env) &nbsp;|&nbsp; Region: <strong>${info.region}</strong>
                         </div>
                     </div>
                 </div>`;
@@ -11798,7 +11804,7 @@ function openAdminQuickView() {
                                 ? `✏️ <strong>Editable</strong> — This tab is within your Environmental Head access.`
                                 : `🔒 <strong>Read-Only</strong> — Environmental Head can only edit environmental modules.`}
                         </div>
-                        <div style="font-weight:400;font-size:0.76rem;opacity:0.85;">Editable tabs: Environmental Monitoring · EMB · Permits · NOV-Env · ESH Calendar (Env) · GOT · Tabulation</div>
+                        <div style="font-weight:400;font-size:0.76rem;opacity:0.85;">Editable tabs: Environmental Monitoring · EMB · Permits · NOV-Env · ESH Calendar (Env)</div>
                     </div>
                 </div>`;
             }
@@ -11818,7 +11824,7 @@ function openAdminQuickView() {
                                 ? `✏️ <strong>Editable</strong> — This tab is within your Corporate Nurse access.`
                                 : `🔒 <strong>Read-Only</strong> — Corporate Nurse can only edit health-related modules.`}
                         </div>
-                        <div style="font-weight:400;font-size:0.76rem;opacity:0.85;">Editable tabs: Accident/Incident Record · Health Report · Exposures · LTA Registry · ESH Calendar (Health) · Personnel · OSH Requirement</div>
+                        <div style="font-weight:400;font-size:0.76rem;opacity:0.85;">Editable tabs: Health Report · ESH Calendar (Health) &nbsp;|&nbsp; All other tabs are read-only.</div>
                     </div>
                 </div>`;
             }
@@ -13898,7 +13904,8 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             function getDl(e) {
                 let dl = e.daysLostComputed || '';
                 if (!dl) {
-                    if (e.scheduledChargeItem && typeof SCHEDULED_CHARGES !== 'undefined' && SCHEDULED_CHARGES[e.scheduledChargeItem]) dl = SCHEDULED_CHARGES[e.scheduledChargeItem];
+                    if (e.injuryType === 'na') { dl = 0; } // N/A — excluded from computation
+                    else if (e.scheduledChargeItem && typeof SCHEDULED_CHARGES !== 'undefined' && SCHEDULED_CHARGES[e.scheduledChargeItem]) dl = SCHEDULED_CHARGES[e.scheduledChargeItem];
                     else if (e.dateOfAccident && e.dateRTW && typeof computeDaysLost === 'function') dl = computeDaysLost(e.dateOfAccident, e.dateRTW);
                 }
                 return dl || '—';
@@ -16546,6 +16553,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             { value: 'hearing',    label: 'Loss of Hearing',              useScheduled: true,  note: 'Use Scheduled Charges (Table 6)' },
             { value: 'fatality',   label: 'Fatality',                     useScheduled: true,  note: 'Use Scheduled Charges (Table 6) — 6,000 days' },
             { value: 'confinement',label: 'Confinement Only (Temporary)', useScheduled: false, note: 'Use Actual Days Lost (Date of Accident → RTW)' },
+            { value: 'na',         label: 'N/A — No Days Lost / Not Applicable', useScheduled: false, note: 'Will NOT be counted in Days Lost computation' },
         ];
 
         
@@ -16567,6 +16575,12 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         
         function computeDaysCharged(entry) {
             const injuryType = entry.injuryType || 'temporary';
+
+            // N/A — explicitly excluded from all days-lost computation
+            if (injuryType === 'na') {
+                return { daysCharged: 0, method: 'na', scheduledItem: null };
+            }
+
             const injuryTypeDef = LTA_INJURY_TYPES.find(t => t.value === injuryType);
             const useScheduled = injuryTypeDef ? injuryTypeDef.useScheduled : false;
 
@@ -16588,6 +16602,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 const monthTotals = new Array(14).fill(0);
                 let hasCurrentYearEntries = false;
                 entries.forEach(e => {
+                    if (e.injuryType === 'na') return;       // ← skip N/A entries
                     if (!e.dateOfAccident) return;
                     const accidentYear = new Date(e.dateOfAccident).getFullYear();
                     if (accidentYear !== selectedYear) return; // ← skip other years
@@ -16908,13 +16923,13 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                                         <span class="lta-entry-num">${idx+1}</span>
                                         <div>
                                             <div style="font-size:0.72rem;font-weight:700;color:var(--text-primary);">${e.aiirNo || '<em style="color:#aaa;font-weight:400;">No AIIR No.</em>'}</div>
-                                            <div style="font-size:0.62rem;color:#888;">${e.dateOfAccident || 'No accident date'} · ${e.injuredPersonName || 'No injured person'}</div>
+                                            <div style="font-size:0.62rem;color:#888;">${e.dateOfAccident || 'No accident date'} · ${e.injuredPersonName === 'N/A' ? '<em>N/A — No injured person</em>' : (e.injuredPersonName || 'No injured person')}</div>
                                         </div>
                                     </div>
                                     <div style="display:flex;align-items:center;gap:8px;">
                                         <div style="text-align:center;">
-                                            <div style="font-size:0.55rem;color:#888;margin-bottom:2px;">${dlMethod === 'scheduled' ? 'DAYS CHARGED (SC)' : 'DAYS LOST'}</div>
-                                            <span id="lta-dl-${pId}-${idx}" class="lta-days-badge" style="background:${dlBg};color:${dlColor};">${dlLabel}</span>
+                                            <div style="font-size:0.55rem;color:#888;margin-bottom:2px;">${dlMethod === 'na' ? 'DAYS LOST' : (dlMethod === 'scheduled' ? 'DAYS CHARGED (SC)' : 'DAYS LOST')}</div>
+                                            <span id="lta-dl-${pId}-${idx}" class="lta-days-badge" style="background:${dlMethod==='na'?'#e0e0e0':dlBg};color:${dlMethod==='na'?'#888':dlColor};">${dlMethod === 'na' ? 'N/A' : dlLabel}</span>
                                         </div>
                                         <span style="background:${statusBg};color:${statusColor};border-radius:8px;padding:2px 8px;font-size:0.63rem;font-weight:700;">${e.status||'Open'}</span>
                                         ${canEdit ? `<button class="lta-del-btn" onclick="removeLtaEntry('${pnSafe}',${idx})"><i class="fas fa-trash"></i></button>` : ''}
@@ -16979,7 +16994,31 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
 
                                     <div class="lta-field">
                                         <label>Injured Person Name / Age</label>
-                                        <input type="text" value="${e.injuredPersonName||''}" ${dis} placeholder="e.g. Juan dela Cruz, 35" oninput="updateLtaField('${pnSafe}',${idx},'injuredPersonName',this.value)">
+                                        <div style="display:flex;gap:6px;align-items:center;">
+                                            <input type="text"
+                                                id="lta-injperson-${pId}-${idx}"
+                                                value="${e.injuredPersonName === 'N/A' ? '' : (e.injuredPersonName||'')}"
+                                                ${dis}
+                                                ${e.injuredPersonName === 'N/A' ? 'disabled placeholder="N/A — Not Applicable"' : 'placeholder="e.g. Juan dela Cruz, 35"'}
+                                                style="${e.injuredPersonName === 'N/A' ? 'background:#f5f5f5;color:#999;font-style:italic;' : ''}"
+                                                oninput="updateLtaField('${pnSafe}',${idx},'injuredPersonName',this.value)">
+                                            <button
+                                                type="button"
+                                                ${dis}
+                                                title="${e.injuredPersonName === 'N/A' ? 'Clear N/A — enter a name' : 'Mark as N/A (no injured person)'}"
+                                                style="flex-shrink:0;padding:5px 10px;border-radius:6px;border:1.5px solid ${e.injuredPersonName === 'N/A' ? '#2e7d32' : '#bbb'};
+                                                    background:${e.injuredPersonName === 'N/A' ? '#e8f5e9' : '#f9f9f9'};
+                                                    color:${e.injuredPersonName === 'N/A' ? '#2e7d32' : '#888'};
+                                                    font-size:0.65rem;font-weight:700;cursor:${dis ? 'not-allowed' : 'pointer'};white-space:nowrap;"
+                                                onclick="(function(){
+                                                    const isNA = ${e.injuredPersonName === 'N/A' ? 'true' : 'false'};
+                                                    const newVal = isNA ? '' : 'N/A';
+                                                    updateLtaField('${pnSafe}',${idx},'injuredPersonName',newVal);
+                                                    renderLtaRegistryTab();
+                                                })()">
+                                                ${e.injuredPersonName === 'N/A' ? '✓ N/A' : 'N/A'}
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="lta-field">
                                         <label>Nature of Injury</label>
@@ -17037,7 +17076,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                                     </div>
 
                                     
-                                    <div class="lta-section-label"><i class="fas fa-calendar-xmark" style="margin-right:5px;"></i>Days Lost / Charged Computation</div>
+                                    <div class="lta-section-label"><i class="fas fa-calendar-xmark" style="margin-right:5px;"></i>Days Lost / Charged Computation <span style="font-size:0.6rem;font-weight:400;color:#888;">(Select "N/A" if no days are lost or not applicable)</span></div>
 
                                     
                                     <div class="lta-field lta-field-full">
@@ -17068,6 +17107,19 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                                     ${(() => {
                                         const injuryTypeDef = LTA_INJURY_TYPES.find(t => t.value === (e.injuryType || 'temporary'));
                                         const useScheduled = injuryTypeDef ? injuryTypeDef.useScheduled : false;
+
+                                        // N/A selected — no computation, no fields shown
+                                        if (e.injuryType === 'na') {
+                                            return `
+                                            <div class="lta-computed-dl" style="background:#f5f5f5;border-color:#ccc;grid-column:1/-1;">
+                                                <i class="fas fa-ban" style="color:#9e9e9e;font-size:1rem;"></i>
+                                                <div>
+                                                    <div style="font-size:0.62rem;color:#888;font-weight:600;">DAYS LOST / CHARGED — NOT APPLICABLE</div>
+                                                    <div style="font-size:0.85rem;font-weight:800;color:#9e9e9e;">0 days — excluded from computation</div>
+                                                    <div style="font-size:0.58rem;color:#aaa;margin-top:2px;">This entry will NOT be counted in Medical Tab → Days Lost/Charged</div>
+                                                </div>
+                                            </div>`;
+                                        }
 
                                         if (useScheduled) {
                                             const scOpts = SCHEDULED_CHARGES_GROUPS.map(g =>
@@ -18275,6 +18327,13 @@ function renderTabulation() {
             try {
             const _eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
             const _nonTableTabs = ['settings','personnel','admin','env-monitoring','osh-requirement','nov','got-monitoring'];
+
+            // LTA Registry has its own container — render it directly and return
+            if (state.currentTab === 'lta-registry') {
+                if (typeof renderLtaRegistryTab === 'function') renderLtaRegistryTab();
+                return;
+            }
+
             if (_nonTableTabs.includes(state.currentTab) || _eshCalTabs.includes(state.currentTab)) {
                 if (state.currentTab === 'got-monitoring' && window.renderGotMonitoring) { window.renderGotMonitoring(); }
                 if (state.currentTab === 'osh-requirement' && typeof renderOsh2 === 'function') { renderOsh2(); }
@@ -29685,27 +29744,73 @@ function setEshStorage(data) {
 
 const _eshMyWrites = new Map(); // key -> timestamp of our write
 let _eshLastLocalWrite = 0;     // timestamp of last local write (used by legacy code)
+const _ESH_PENDING_KEY = 'esh_calendar_pending_writes'; // localStorage key for failed writes
+
+// Load any pending writes from a previous session and re-attempt them
+function _eshFlushPendingWrites() {
+    try {
+        const pending = JSON.parse(localStorage.getItem(_ESH_PENDING_KEY) || '{}');
+        const keys = Object.keys(pending);
+        if (!keys.length) return;
+        console.log('🔄 ESH: flushing', keys.length, 'pending write(s) from previous session...');
+        keys.forEach(function(k) {
+            _eshSaveKeyToFirebase(k, pending[k]);
+        });
+        localStorage.removeItem(_ESH_PENDING_KEY);
+    } catch(e) {}
+}
+
+function _eshAddPendingWrite(key, value) {
+    try {
+        const pending = JSON.parse(localStorage.getItem(_ESH_PENDING_KEY) || '{}');
+        if (value === null || value === undefined || value === false) {
+            delete pending[key];
+        } else {
+            pending[key] = value;
+        }
+        localStorage.setItem(_ESH_PENDING_KEY, JSON.stringify(pending));
+    } catch(e) {}
+}
+
+function _eshRemovePendingWrite(key) {
+    try {
+        const pending = JSON.parse(localStorage.getItem(_ESH_PENDING_KEY) || '{}');
+        delete pending[key];
+        localStorage.setItem(_ESH_PENDING_KEY, JSON.stringify(pending));
+    } catch(e) {}
+}
 
 function _eshSaveKeyToFirebase(key, value) {
     try {
-        if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.set) return;
+        if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.set) {
+            // Firebase not ready — queue for later
+            _eshAddPendingWrite(key, value);
+            return;
+        }
         const safePath = 'esh-calendar/data/' + key;
         _eshMyWrites.set(key, Date.now());
         _eshLastLocalWrite = Date.now();
+
+        // Mark as pending until Firebase confirms
+        _eshAddPendingWrite(key, value);
 
         const ref = window.firebase.dbRef(window.firebaseRealtimeDb, safePath);
         const writeVal = (value === false || value === null || value === undefined) ? null : value;
         window.firebase.set(ref, writeVal)
             .then(function() {
                 console.log('✅ ESH key saved to Firebase:', key, '=', writeVal);
-                setTimeout(function() { _eshMyWrites.delete(key); }, 10000);
+                _eshRemovePendingWrite(key); // confirmed — remove from pending queue
+                setTimeout(function() { _eshMyWrites.delete(key); }, 15000);
             })
             .catch(function(e) {
                 _eshMyWrites.delete(key);
-                console.warn('ESH Firebase save failed for key:', key, e);
+                // Keep in pending queue — will be re-uploaded next session
+                console.warn('⚠️ ESH Firebase save failed (queued for retry):', key, e.message || e);
+                if (typeof showToast === 'function') showToast('⚠️ Date saved locally — will sync to cloud when connection is restored.', 'warning', 4000);
             });
     } catch(e) {
         console.warn('ESH Firebase save error:', e);
+        _eshAddPendingWrite(key, value);
     }
 }
 
@@ -29734,13 +29839,14 @@ function eshFetchAndRender(tabType) {
 
             Object.entries(remoteData).forEach(function([k, v]) {
                 const myWriteTime = _eshMyWrites.get(k);
-                if (myWriteTime && (now - myWriteTime) < 10000) return; // skip our own echo
+                if (myWriteTime && (now - myWriteTime) < 15000) return; // skip our own echo
                 if (v === null || v === undefined) {
                     delete merged[k];
                 } else {
                     merged[k] = v;
                 }
             });
+            // SAFE: do NOT delete local-only keys here — they may be pending uploads
 
             try { localStorage.setItem('esh_calendar_data', JSON.stringify(merged)); } catch(e) {}
             try { renderEshCalendar(tabType); } catch(e) {}
@@ -29994,6 +30100,9 @@ function startEshCalendarSync() {
     if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.onValue) return;
     if (_eshCalendarUnsubscribe) { try { _eshCalendarUnsubscribe(); } catch(e){} }
 
+    // Re-attempt any writes that failed in a previous session
+    setTimeout(_eshFlushPendingWrites, 2000);
+
     const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
     _eshCalendarUnsubscribe = window.firebase.onValue(ref, (snapshot) => {
         const remoteData = snapshot.val();
@@ -30003,25 +30112,33 @@ function startEshCalendarSync() {
         const merged = Object.assign({}, local); // start with local
         const now = Date.now();
 
+        // ── Merge remote data into local ───────────────────────────────────────
+        // Local data is NEVER deleted just because it's absent from Firebase.
+        // That was the root cause of data loss on refresh: _eshMyWrites is
+        // an in-memory Map that resets every page load, so the 10-second
+        // protection window was gone, wiping any unconfirmed saves.
         Object.entries(remoteData).forEach(function([k, v]) {
             const myWriteTime = _eshMyWrites.get(k);
-            if (myWriteTime && (now - myWriteTime) < 10000) {
-                return;
+            if (myWriteTime && (now - myWriteTime) < 15000) {
+                return; // skip echo of our own very-recent write
             }
             if (v === null || v === undefined) {
-                delete merged[k]; // null from Firebase = deleted
+                // Null in Firebase = explicitly deleted (e.g. user cleared date)
+                delete merged[k];
             } else {
                 merged[k] = v;
             }
         });
 
+        // ── Re-upload orphaned local keys ────────────────────────────────────
+        // If a key is in localStorage but absent from Firebase AND not in our
+        // current write-map, it means a previous session's save failed.
+        // Re-push it to Firebase instead of silently discarding it.
         Object.keys(local).forEach(function(k) {
-            if (!(k in remoteData)) {
-                if (k.includes('|')) {
-                    const myWriteTime = _eshMyWrites.get(k);
-                    if (!myWriteTime || (now - myWriteTime) >= 10000) {
-                        delete merged[k];
-                    }
+            if (k.includes('|') && !(k in remoteData) && merged[k]) {
+                if (!_eshMyWrites.has(k)) {
+                    console.log('🔄 ESH sync: re-uploading orphaned key to Firebase:', k);
+                    _eshSaveKeyToFirebase(k, merged[k]);
                 }
             }
         });
@@ -30193,7 +30310,12 @@ function eshCanEdit(tabType, projectRegion) {
 
     if (info.role === 'admin') return true;
 
+    // Corporate region and Corp Drills are always admin-only
     if (projectRegion === 'CORPORATE') return false;
+    if (tabType === 'esh-calendar-corp-drills') return false;
+
+    // Managers are always view-only
+    if (info.role === 'manager') return false;
 
     if (info.role === 'superintendent') {
         return info.region === projectRegion;
@@ -30608,6 +30730,79 @@ function renderEshCalendar(tabType) {
 
     let html = `<div class="esh-cal-wrap">
         ${_ssHtml}
+        ${(function() {
+            const _rbacEmail = state && state.currentUser ? state.currentUser.email : null;
+            if (!_rbacEmail || !window.UserAccounts) return '';
+            const _rbacInfo = window.UserAccounts.getUserInfo(_rbacEmail);
+            if (_rbacInfo.role === 'admin') return '';
+            const _isDrillsTab = (tabType === 'esh-calendar-drills');
+            const _isCorpDrills = (tabType === 'esh-calendar-corp-drills');
+            const _tabLabels = {
+                'esh-calendar-env':    'Environment Trainings',
+                'esh-calendar-safety': 'Safety Trainings',
+                'esh-calendar-health': 'Health Awareness',
+                'esh-calendar-drills': 'Emergency Drills',
+                'esh-calendar-corp-drills': 'Corporate HQ Drills'
+            };
+            const _tabLabel = _tabLabels[tabType] || tabType;
+
+            // Determine access for this tab/role
+            let _rbacIcon = 'fa-lock', _rbacColor = '#c62828', _rbacBg = '#ffebee', _rbacBorder = '#ef9a9a';
+            let _rbacTitle = '', _rbacSub = '', _canEditAny = false;
+
+            if (_rbacInfo.role === 'superintendent') {
+                _canEditAny = true;
+                _rbacIcon = 'fa-pen-to-square'; _rbacColor = '#1565c0'; _rbacBg = '#e3f2fd'; _rbacBorder = '#90caf9';
+                _rbacTitle = `✏️ Editable — ${_tabLabel}`;
+                _rbacSub = `You can edit records for your region: <strong>${_rbacInfo.region}</strong>. Other regions are read-only.`;
+            } else if (_rbacInfo.role === 'pco') {
+                _canEditAny = (tabType === 'esh-calendar-env');
+                if (_canEditAny) {
+                    _rbacIcon = 'fa-pen-to-square'; _rbacColor = '#00695c'; _rbacBg = '#e0f2f1'; _rbacBorder = '#80cbc4';
+                    _rbacTitle = `✏️ Editable — ${_tabLabel}`;
+                    _rbacSub = `PCO access: You can enter actual dates for your region: <strong>${_rbacInfo.region}</strong>.`;
+                } else {
+                    _rbacTitle = `🔒 Read-Only — ${_tabLabel}`;
+                    _rbacSub = `PCO accounts can only edit the <strong>Environment Trainings</strong> tab. All other calendar tabs are view-only.`;
+                }
+            } else if (_rbacInfo.role === 'envi_head') {
+                _canEditAny = (tabType === 'esh-calendar-env');
+                if (_canEditAny) {
+                    _rbacIcon = 'fa-pen-to-square'; _rbacColor = '#00695c'; _rbacBg = '#e0f2f1'; _rbacBorder = '#80cbc4';
+                    _rbacTitle = `✏️ Editable — ${_tabLabel}`;
+                    _rbacSub = `Environmental Head: Full read/write access to all regions for this tab.`;
+                } else {
+                    _rbacTitle = `🔒 Read-Only — ${_tabLabel}`;
+                    _rbacSub = `Environmental Head can only edit the <strong>Environment Trainings</strong> tab. All other calendar tabs are view-only.`;
+                }
+            } else if (_rbacInfo.role === 'corp_nurse') {
+                _canEditAny = (tabType === 'esh-calendar-health');
+                if (_canEditAny) {
+                    _rbacIcon = 'fa-pen-to-square'; _rbacColor = '#ad1457'; _rbacBg = '#fce4ec'; _rbacBorder = '#f48fb1';
+                    _rbacTitle = `✏️ Editable — ${_tabLabel}`;
+                    _rbacSub = `Corporate Nurse: Full read/write access to all regions for this tab.`;
+                } else {
+                    _rbacColor = '#880e4f'; _rbacBg = '#fce4ec'; _rbacBorder = '#f48fb1';
+                    _rbacTitle = `🔒 Read-Only — ${_tabLabel}`;
+                    _rbacSub = `Corporate Nurse can only edit the <strong>Health Awareness</strong> tab. All other calendar tabs are view-only.`;
+                }
+            } else if (_rbacInfo.role === 'manager') {
+                _rbacTitle = `👁️ View-Only — ${_tabLabel}`;
+                _rbacSub = `Manager accounts can view all data but cannot make any changes.`;
+            } else {
+                _rbacTitle = `🔒 Read-Only — ${_tabLabel}`;
+                _rbacSub = `Your account does not have edit access to this tab. Contact an Admin if you need write access.`;
+            }
+
+            return `<div style="display:flex;align-items:center;gap:14px;background:${_rbacBg};border:1.5px solid ${_rbacBorder};border-radius:10px;padding:11px 18px;margin:0 0 12px;font-size:0.82rem;color:${_rbacColor};font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                <i class="fas ${_rbacIcon}" style="font-size:1.1rem;color:${_rbacColor};flex-shrink:0;"></i>
+                <div>
+                    <div style="margin-bottom:2px;">${_rbacTitle}</div>
+                    <div style="font-weight:400;font-size:0.76rem;opacity:0.9;">${_rbacSub}</div>
+                </div>
+                <div style="margin-left:auto;background:${_rbacColor};color:white;border-radius:6px;padding:3px 12px;font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">${_rbacInfo.role.replace('_',' ').toUpperCase()}</div>
+            </div>`;
+        })()}
         <div class="esh-cal-legend" style="flex-wrap:wrap;gap:10px 18px;">
             <span style="font-weight:700;color:var(--text-primary);font-size:0.72rem;">FREQUENCY:</span>
             <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#b3d9f7;border:1px solid #7ab8e8;"></div> Once a Year (Pastel Blue)</div>
@@ -30644,12 +30839,17 @@ function renderEshCalendar(tabType) {
         const projIdx = _eshRegionProjectIdx[eshGetRegionKey(tabType, region)] || 0;
 
         const _eshRegionClass = {'NCR':'r-ncr','NORTH LUZON':'r-northluzon','SOUTH LUZON':'r-southluzon','VISAYAS & MINDANAO':'r-vismin','PLANT OPERATIONS':'r-plantops'}[region] || '';
+        const _eshCanEditRegion = eshCanEdit(tabType, region);
+        const _eshAccessBadge = _eshCanEditRegion
+            ? `<span style="background:rgba(255,255,255,0.22);color:white;font-size:0.55rem;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;"><i class="fas fa-pen" style="margin-right:3px;font-size:0.5rem;"></i>EDITABLE</span>`
+            : `<span style="background:rgba(0,0,0,0.25);color:#ffd54f;font-size:0.55rem;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;"><i class="fas fa-lock" style="margin-right:3px;font-size:0.5rem;"></i>VIEW ONLY</span>`;
         html += `
         <div class="esh-region-block">
             <div class="esh-region-banner ${_eshRegionClass}" onclick="eshToggleRegion('${regionContentId}')" style="border-radius:8px;">
                 <i class="fas fa-location-dot"></i> ${region}
                 <span style="background:rgba(255,255,255,0.18);padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;margin-left:8px;">${regProjects.length} PROJECT${regProjects.length!==1?'S':''}</span>
-                <i class="fas fa-chevron-down esh-region-toggle" id="${regionIconId}" style="transform:rotate(-90deg);"></i>
+                ${_eshAccessBadge}
+                <i class="fas fa-chevron-down esh-region-toggle" id="${regionIconId}" style="transform:rotate(-90deg);margin-left:auto;"></i>
             </div>
             <div id="${regionContentId}" class="esh-region-content" style="display:none;">
                 <div id="${tableContainerId}"></div>
