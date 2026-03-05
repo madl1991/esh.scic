@@ -226,7 +226,7 @@
         html {
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            scroll-behavior: smooth;
+            scroll-behavior: auto;
         }
         
         body { 
@@ -11583,8 +11583,21 @@ function openAdminQuickView() {
             if (floatingTooltip) {
                 floatingTooltip.textContent = 'Click to Save';
             }
-            
-            render();
+
+            // For KPM tab: refresh each region table in-place instead of full render()
+            // This avoids destroying inputs and causing scroll jumps
+            if (state.currentTab === 'kpm' && typeof window.kpmRefreshRegion === 'function') {
+                ['NCR','SOUTH_LUZON','NORTH_LUZON','VISAYAS___MINDANAO'].forEach(function(rk) {
+                    window.kpmRefreshRegion(rk);
+                });
+            } else {
+                const _mc = document.getElementById('main-content');
+                const _scrollBefore = _mc ? _mc.scrollTop : 0;
+                render();
+                if (_mc && _scrollBefore > 0) {
+                    requestAnimationFrame(() => { _mc.scrollTop = _scrollBefore; });
+                }
+            }
         }
 
         async function saveData() {
@@ -11657,8 +11670,17 @@ function openAdminQuickView() {
                     const _eshSaveTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
                     if (_eshSaveTabs.includes(state.currentTab)) {
                         try { eshFetchAndRender(state.currentTab); } catch(e) {}
+                    } else if (state.currentTab === 'kpm' && typeof window.kpmRefreshRegion === 'function') {
+                        ['NCR','SOUTH_LUZON','NORTH_LUZON','VISAYAS___MINDANAO'].forEach(function(rk) {
+                            window.kpmRefreshRegion(rk);
+                        });
                     } else {
+                        const _saveMc = document.getElementById('main-content');
+                        const _saveScroll = _saveMc ? _saveMc.scrollTop : 0;
                         render();
+                        if (_saveMc && _saveScroll > 0) {
+                            requestAnimationFrame(() => { _saveMc.scrollTop = _saveScroll; });
+                        }
                     }
                 }, 400);
             } else {
@@ -11679,8 +11701,17 @@ function openAdminQuickView() {
                     const _eshFailTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
                     if (_eshFailTabs.includes(state.currentTab)) {
                         try { eshFetchAndRender(state.currentTab); } catch(e) {}
+                    } else if (state.currentTab === 'kpm' && typeof window.kpmRefreshRegion === 'function') {
+                        ['NCR','SOUTH_LUZON','NORTH_LUZON','VISAYAS___MINDANAO'].forEach(function(rk) {
+                            window.kpmRefreshRegion(rk);
+                        });
                     } else {
+                        const _failMc = document.getElementById('main-content');
+                        const _failScroll = _failMc ? _failMc.scrollTop : 0;
                         render();
+                        if (_failMc && _failScroll > 0) {
+                            requestAnimationFrame(() => { _failMc.scrollTop = _failScroll; });
+                        }
                     }
                 }, 800);
             }
@@ -11855,6 +11886,11 @@ function openAdminQuickView() {
         }
 
         function changeTab(t) {
+            // Save scroll of current tab before switching
+            const _mc = document.getElementById('main-content');
+            if (_mc && state.currentTab) {
+                try { localStorage.setItem('esh_last_scroll_' + state.currentTab, String(_mc.scrollTop || 0)); } catch(e) {}
+            }
             state.currentTab = t;
             localStorage.setItem('esh_last_tab', t);
             document.querySelectorAll('.nav-item').forEach(n => {
@@ -12164,25 +12200,29 @@ function updateAuditData(pName, qtr, field, val) {
             // Note: _skipRenderTabs are re-rendered by saveData() and _doSnapshotRender()
             // No deferred render here — avoids wiping active input while user is typing
             if (state.currentTab === 'rates') {
-                const panel = document.getElementById('incident-tabulation-panel');
-                if (panel) {
-                    panel.outerHTML = buildIncidentTabulationHTML();
+                const _activeInPanel = document.activeElement?.closest('#incident-tabulation-panel');
+                if (!_activeInPanel) {
+                    const panel = document.getElementById('incident-tabulation-panel');
+                    if (panel) {
+                        panel.outerHTML = buildIncidentTabulationHTML();
+                    }
                 }
             }
             const _skipRenderTabs = ['cshp', 'reg', 'doe-permit', 'exposures', 'activities',
                                      'dole', 'env-monthly-report', 'nov', 'nov-env', 'nov-monitoring',
                                      'medical', 'kpm', 'emb', 'permits', 'lta-registry', 'health-report',
-                                     'audit', 'env-monitoring', 'osh-requirement', 'tabulation'];
+                                     'audit', 'env-monitoring', 'osh-requirement', 'tabulation', 'got-monitoring'];
             if (!_skipRenderTabs.includes(state.currentTab)) {
                 const _activeEl = document.activeElement;
                 const _activeId = _activeEl ? _activeEl.id : null;
                 const _activeName = _activeEl ? _activeEl.getAttribute('name') : null;
                 const _activeSelStart = (_activeEl && _activeEl.selectionStart !== undefined) ? _activeEl.selectionStart : null;
                 const _activeSelEnd = (_activeEl && _activeEl.selectionEnd !== undefined) ? _activeEl.selectionEnd : null;
-                const _savedScrollY = window.scrollY || window.pageYOffset || 0;
+                const _mainEl = document.getElementById('main-content') || document.documentElement;
+                const _savedScrollY = _mainEl.scrollTop || 0;
                 render();
                 if (_savedScrollY > 0) {
-                    try { window.scrollTo({ top: _savedScrollY, behavior: 'instant' }); } catch(e) { window.scrollTo(0, _savedScrollY); }
+                    requestAnimationFrame(() => { _mainEl.scrollTop = _savedScrollY; });
                 }
                 let _restoreEl = _activeId ? document.getElementById(_activeId) : null;
                 if (!_restoreEl && _activeName) _restoreEl = document.querySelector('[name=' + JSON.stringify(_activeName) + ']');
@@ -12558,11 +12598,10 @@ function updateAuditData(pName, qtr, field, val) {
                     verified = true;
                 }
 
-                const _pdfUpScrollY = window.scrollY || window.pageYOffset || 0;
+                const _pdfUpScrollY = (document.getElementById("main-content")||{}).scrollTop || 0; const _pdfUpMc = document.getElementById("main-content");
                 render();
                 if (_pdfUpScrollY > 0) requestAnimationFrame(() => {
-                    try { window.scrollTo({ top: _pdfUpScrollY, behavior: 'instant' }); }
-                    catch(e) { window.scrollTo(0, _pdfUpScrollY); }
+                    if(_pdfUpMc) _pdfUpMc.scrollTop = _pdfUpScrollY;
                 });
 
                 if (verified) {
@@ -12579,12 +12618,9 @@ function updateAuditData(pName, qtr, field, val) {
                 _pdfSetStatus('❌ Upload failed: ' + error.message, 'error');
                 setTimeout(() => _pdfSetStatus('', 'clear'), 6000);
 
-                const _pdfErrScrollY = window.scrollY || window.pageYOffset || 0;
+                const _pdfErrMc = document.getElementById("main-content"); const _pdfErrScrollY = (_pdfErrMc||{}).scrollTop || 0;
                 render();
-                if (_pdfErrScrollY > 0) requestAnimationFrame(() => {
-                    try { window.scrollTo({ top: _pdfErrScrollY, behavior: 'instant' }); }
-                    catch(e) { window.scrollTo(0, _pdfErrScrollY); }
-                });
+                if (_pdfErrScrollY > 0) requestAnimationFrame(() => { if(_pdfErrMc) _pdfErrMc.scrollTop = _pdfErrScrollY; });
             }
         }
 
@@ -12627,9 +12663,9 @@ function updateAuditData(pName, qtr, field, val) {
                 if (!saved) { window._isSaving = false; window._isSavingEcho = false; saved = await saveToFirebase(); }
                 if (!saved) throw new Error('Could not save deletion to Firestore. Please refresh and try again.');
 
-                const _pdfDelScrollY = window.scrollY || window.pageYOffset || 0;
+                const _pdfDelMc = document.getElementById("main-content"); const _pdfDelScrollY = (_pdfDelMc||{}).scrollTop || 0;
                 render();
-                if (_pdfDelScrollY > 0) requestAnimationFrame(() => { try { window.scrollTo({ top: _pdfDelScrollY, behavior: 'instant' }); } catch(e) { window.scrollTo(0, _pdfDelScrollY); } });
+                if (_pdfDelScrollY > 0) requestAnimationFrame(() => { if(_pdfDelMc) _pdfDelMc.scrollTop = _pdfDelScrollY; });
 
                 console.log('✅ PDF metadata removed from Firestore');
                 _pdfSetStatus('✅ PDF deleted — ' + projectName, 'success');
@@ -16124,7 +16160,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const _validTabs = ['overall','rates','exposures','medical','nov','nov-env','nov-monitoring',
                 'activities','kpm','dole','emb','doe','doe-permit','env-monthly-report',
                 'permits','env-monitoring','cshp','reg','audit','personnel','osh-requirement','nov-env',
-                'health-report','got-monitoring',
+                'health-report','got-monitoring','lta-registry','tabulation',
                 'esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
             const _storedTab = localStorage.getItem('esh_last_tab') || 'overall';
             let lastTab = _validTabs.includes(_storedTab) ? _storedTab : 'overall';
@@ -16137,6 +16173,15 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             try { changeTab(lastTab); } catch(e) {
                 console.error('❌ changeTab on load failed, falling back to overall:', e);
                 try { changeTab('overall'); } catch(e2) { console.error('❌ Fallback also failed:', e2); }
+            }
+            // Restore scroll position after tab is rendered
+            const _storedScrollKey = 'esh_last_scroll_' + lastTab;
+            const _storedScroll = parseInt(localStorage.getItem(_storedScrollKey) || '0', 10);
+            if (_storedScroll > 0) {
+                setTimeout(() => {
+                    const _mc = document.getElementById('main-content');
+                    if (_mc) _mc.scrollTop = _storedScroll;
+                }, 200);
             }
         }
 
@@ -16789,6 +16834,8 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         function renderLtaRegistryTab() {
             const container = document.getElementById('lta-registry-view');
             if (!container) return;
+            const _mc = document.getElementById('main-content') || document.documentElement;
+            const _savedScroll = _mc.scrollTop || 0;
             const displayProjects = (state.filteredProjects || state.projects || []);
             const REGIONS_LTA = ["CORPORATE", "NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
 
@@ -17229,6 +17276,9 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
 
             html += `</div>`; // end lta-view
             container.innerHTML = html;
+            if (_savedScroll > 0) {
+                requestAnimationFrame(() => { _mc.scrollTop = _savedScroll; });
+            }
         }
 
         function toggleLtaRegion(regionName, event) {
@@ -18306,15 +18356,15 @@ function renderTabulation() {
         }
         window.toggleNovEnvRegion = toggleNovEnvRegion;
 
+        function _getScrollEl() {
+            return document.getElementById('main-content') || document.documentElement;
+        }
         function safeRender() {
-            const _sy = window.scrollY || window.pageYOffset || 0;
-            const _sx = window.scrollX || window.pageXOffset || 0;
+            const _mc = _getScrollEl();
+            const _sy = _mc.scrollTop || 0;
             render();
-            if (_sy > 0 || _sx > 0) {
-                requestAnimationFrame(() => {
-                    try { window.scrollTo({ top: _sy, left: _sx, behavior: 'instant' }); }
-                    catch(e) { window.scrollTo(_sx, _sy); }
-                });
+            if (_sy > 0) {
+                requestAnimationFrame(() => { _mc.scrollTop = _sy; });
             }
         }
         window.safeRender = safeRender;
@@ -18344,6 +18394,9 @@ function renderTabulation() {
         }
 
         function render() {
+            // Always preserve scroll position — prevents view jumping on edit/save/input
+            const _renderMc = document.getElementById('main-content');
+            const _renderScroll = _renderMc ? _renderMc.scrollTop : 0;
             try {
             const _eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
             const _nonTableTabs = ['settings','personnel','admin','env-monitoring','osh-requirement','nov','got-monitoring'];
@@ -20472,9 +20525,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         p.vals[k][field] = val;
                         if (typeof markPendingSync === 'function') markPendingSync();
                         if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
-                        // Refresh region UI immediately so data shows without requiring refresh
-                        const regKey = p.region.replace(/[^a-zA-Z0-9]/g,'_');
-                        if (typeof window.kpmRefreshRegion === 'function') window.kpmRefreshRegion(regKey);
+                        // NOTE: Do NOT rebuild here — causes scroll jump and focus loss.
+                        // Data is saved to state and will persist on next full render.
                     }
                     window.kpmSet = kpmSet;
 
@@ -20490,7 +20542,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         p.vals['kpm_na'] = (p.vals['kpm_na'] === '1') ? '' : '1';
                         if (typeof markPendingSync === 'function') markPendingSync();
                         if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
-                        render();
+                        // Refresh only this project's region, not the whole page
+                        var _naRegKey = p.region.replace(/[^a-zA-Z0-9]/g,'_');
+                        if (typeof window.kpmRefreshRegion === 'function') {
+                            window.kpmRefreshRegion(_naRegKey);
+                        }
                     };
 
                     if (!window._kpmActiveMo) window._kpmActiveMo = {};
@@ -20532,8 +20588,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             if(typeof saveToFirebaseDebounced==='function') saveToFirebaseDebounced();
                         }
                         window.kpmUpdateRowTotals(regKey, rowId, dw);
-                        // Refresh region UI immediately so data shows without requiring refresh
-                        if (typeof window.kpmRefreshRegion === 'function') window.kpmRefreshRegion(regKey);
+                        // NOTE: Do NOT call kpmRefreshRegion here — it rebuilds the entire
+                        // region table, destroying the focused input and causing scroll jumps.
+                        // kpmUpdateRowTotals already updates totals directly in the DOM.
                     };
                     window.kpmAutoPercent = function(inp) {
                         var raw = inp.value.replace(/%/g, '').trim();
@@ -20834,9 +20891,22 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var contentEl = document.getElementById('region-content-' + reg);
                         if (!contentEl) return;
                         var buildFn = window._buildKpmRegionTable;
-                        if (typeof buildFn === 'function') {
-                            contentEl.innerHTML = buildFn(projs, reg, activeMo, canEditReg);
+                        if (typeof buildFn !== 'function') return;
+
+                        // If user is currently typing inside this region — skip rebuild entirely
+                        // Rebuilding destroys the focused input and causes scroll jumps
+                        var _activeEl = document.activeElement;
+                        if (_activeEl && contentEl.contains(_activeEl) && (_activeEl.tagName === 'INPUT' || _activeEl.tagName === 'TEXTAREA')) {
+                            return;
                         }
+
+                        var _mc = document.getElementById('main-content');
+                        var _scrollY = _mc ? _mc.scrollTop : 0;
+
+                        contentEl.innerHTML = buildFn(projs, reg, activeMo, canEditReg);
+
+                        // Restore scroll immediately — no animation
+                        if (_mc && _scrollY > 0) _mc.scrollTop = _scrollY;
                     };
                     window.kpmRefreshProject = window.kpmRefreshRegion; // alias
 
@@ -21799,6 +21869,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 }, 100);
             }
             applyRegionBannerColors();
+
+            // Restore scroll position after render — prevents view jumping
+            if (_renderMc && _renderScroll > 0) {
+                requestAnimationFrame(() => { _renderMc.scrollTop = _renderScroll; });
+            }
             } catch(renderErr) {
                 console.error('❌ render() crashed:', renderErr);
                 const _rc = document.getElementById('dashboard-content');
@@ -24740,7 +24815,6 @@ window._isSavingEcho = false;
 
 function saveToFirebaseDebounced() {
     clearTimeout(_saveDebounceTimer);
-    window._isSavingEcho = true;
     _saveDebounceTimer = setTimeout(() => {
         saveToFirebase().catch(() => {}).finally(() => {
         });
@@ -25729,7 +25803,29 @@ window.addEventListener('beforeunload', () => {
     if (state.currentUser && state.currentUser.uid) {
         PresenceTracker.cleanup(); // fire-and-forget is fine here — onDisconnect is the real safety net
     }
+    // Save current scroll position per tab
+    if (state.currentTab) {
+        const _mc = document.getElementById('main-content');
+        if (_mc) {
+            try { localStorage.setItem('esh_last_scroll_' + state.currentTab, String(_mc.scrollTop || 0)); } catch(e) {}
+        }
+    }
 });
+
+// Save scroll position continuously (debounced) so refresh restores exact position
+(function _initScrollSave() {
+    let _scrollSaveTimer = null;
+    document.addEventListener('scroll', function() {
+        if (!state || !state.currentTab) return;
+        clearTimeout(_scrollSaveTimer);
+        _scrollSaveTimer = setTimeout(function() {
+            const _mc = document.getElementById('main-content');
+            if (_mc) {
+                try { localStorage.setItem('esh_last_scroll_' + state.currentTab, String(_mc.scrollTop || 0)); } catch(e) {}
+            }
+        }, 300);
+    }, true);
+})();
 
 console.log('🔥 Firebase integration loaded - OPTIMIZED: Save button only!');
 
@@ -26279,9 +26375,9 @@ async function uploadDoePdf(projectName, quarter) {
                     await new Promise(res => setTimeout(res, 800));
                 }
                 if (!saved) { window._isSaving = false; window._isSavingEcho = false; saved = await saveToFirebase(); }
-                const _doeQScrollY = window.scrollY || window.pageYOffset || 0;
+                const _doeQMc = document.getElementById("main-content"); const _doeQScrollY = (_doeQMc||{}).scrollTop || 0;
                 render();
-                if (_doeQScrollY > 0) requestAnimationFrame(() => { try { window.scrollTo({ top: _doeQScrollY, behavior: 'instant' }); } catch(e) { window.scrollTo(0, _doeQScrollY); } });
+                if (_doeQScrollY > 0) requestAnimationFrame(() => { if(_doeQMc) _doeQMc.scrollTop = _doeQScrollY; });
                 if (saved) {
                     if (typeof window._pdfSetStatus === 'function') window._pdfSetStatus('✅ PDF uploaded for Q' + quarter + ' — ' + projectName, 'success');
                     else showToast('✅ PDF uploaded for Q' + quarter, 'success');
@@ -26501,9 +26597,9 @@ async function uploadDoePermitPdf(projectName) {
                 if (!saved) { window._isSaving = false; window._isSavingEcho = false; saved = await saveToFirebase(); }
                 if (!saved) throw new Error('Could not save to Firestore. Please refresh and try again.');
 
-                const _doeUpScrollY = window.scrollY || window.pageYOffset || 0;
+                const _doeUpMc = document.getElementById("main-content"); const _doeUpScrollY = (_doeUpMc||{}).scrollTop || 0;
                 render();
-                if (_doeUpScrollY > 0) requestAnimationFrame(() => { try { window.scrollTo({ top: _doeUpScrollY, behavior: 'instant' }); } catch(e) { window.scrollTo(0, _doeUpScrollY); } });
+                if (_doeUpScrollY > 0) requestAnimationFrame(() => { if(_doeUpMc) _doeUpMc.scrollTop = _doeUpScrollY; });
 
                 const autoMsg = [
                     (parsed.permitNumber && !hadPermitNo) ? 'Permit No: ' + parsed.permitNumber : '',
@@ -29774,6 +29870,35 @@ function setEshStorage(data) {
 
 const _eshMyWrites = new Map(); // key -> timestamp of our write
 let _eshLastLocalWrite = 0;     // timestamp of last local write (used by legacy code)
+
+// Write a deletion record for a GLOBAL_PLAN key to Firebase RTDB.
+// Path: esh-calendar/deletions/{safe_key} = unix timestamp
+// Other browsers read this on sync and discard any local value older than the deletion.
+function _eshWriteDeletionRecord(key) {
+    try {
+        if (!window.firebaseRealtimeDb || !window.firebase) return;
+        const safeKey = _eshKeyToFirebasePath(key);
+        const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/deletions/' + safeKey);
+        window.firebase.set(ref, Date.now());
+    } catch(e) {}
+}
+
+// Returns the deletion timestamp for a key from localStorage cache, or 0 if none.
+function _eshGetDeletionTs(key) {
+    try {
+        const cache = JSON.parse(localStorage.getItem('esh_calendar_deletions') || '{}');
+        return cache[key] || 0;
+    } catch(e) { return 0; }
+}
+
+// Cache deletion records locally so they survive page refresh.
+function _eshCacheDeletionRecords(deletions) {
+    try {
+        const existing = JSON.parse(localStorage.getItem('esh_calendar_deletions') || '{}');
+        Object.assign(existing, deletions);
+        localStorage.setItem('esh_calendar_deletions', JSON.stringify(existing));
+    } catch(e) {}
+}
 const _ESH_PENDING_KEY = 'esh_calendar_pending_writes'; // localStorage key for failed writes
 const _ESH_TOMBSTONE_MARKER = '__DELETED__'; // in-band tombstone value stored inside esh_calendar_data
 
@@ -29813,6 +29938,14 @@ function _eshFlushPendingWrites() {
         if (!keys.length) return;
         console.log('🔄 ESH: flushing', keys.length, 'pending write(s) from previous session...');
         keys.forEach(function(k) {
+            // FIX: Never flush GLOBAL_PLAN plan keys from a previous session.
+            // These are shared across all admin accounts — only the admin who
+            // actively clicks the plan cell should write. Flushing stale 'true'
+            // values from another session restores plans that were intentionally deleted.
+            if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) {
+                console.log('⏭️ ESH flush: skipping GLOBAL_PLAN key (shared — not safe to replay):', k);
+                return;
+            }
             _eshSaveKeyToFirebase(k, pending[k]);
         });
         localStorage.removeItem(_ESH_PENDING_KEY);
@@ -29883,11 +30016,27 @@ function _eshSaveKeyToFirebase(key, value) {
                 console.log('✅ ESH key saved to Firebase:', key, '=', writeVal);
                 _eshRemovePendingWrite(key); // confirmed — remove from pending queue
                 if (writeVal === null) {
-                    // Intentional delete confirmed — write tombstone marker into esh_calendar_data
-                    // This replaces any truthy value with __DELETED__ so orphaned re-upload skips it
-                    _eshAddTombstone(key);
+                    // Intentional delete confirmed.
+                    // For plan keys: just ensure no stale value remains in localStorage (no tombstone needed)
+                    // For other keys: write tombstone to prevent orphaned re-upload
+                    if (key.endsWith('|plan')) {
+                        // Clean delete — remove any lingering value or tombstone
+                        try {
+                            const _s = getEshStorage();
+                            if (_s[key] !== undefined) {
+                                delete _s[key];
+                                localStorage.setItem('esh_calendar_data', JSON.stringify(_s));
+                            }
+                        } catch(e2) {}
+                    } else {
+                        _eshAddTombstone(key);
+                    }
                 }
-                setTimeout(function() { _eshMyWrites.delete(key); }, 15000);
+                // Keep deleted keys in _eshMyWrites longer to block orphan re-upload
+                // FIX: Extend to 60s for all plan keys (was 15s) — prevents other admin browsers
+                // from overwriting a freshly-saved plan during the sync echo window
+                const _isGlobalPlan = key.includes('|GLOBAL_PLAN|') && key.endsWith('|plan');
+                setTimeout(function() { _eshMyWrites.delete(key); }, writeVal === null ? 60000 : (_isGlobalPlan ? 60000 : 15000));
             })
             .catch(function(e) {
                 _eshMyWrites.delete(key);
@@ -29908,8 +30057,17 @@ function _eshSaveToFirebase(data) {
         // Sanitize all keys before writing — Firebase RTDB does not allow . # $ [ ] in key names
         const safeData = {};
         Object.entries(data).forEach(function([k, v]) {
+            // FIX (ROOT CAUSE): Never include GLOBAL_PLAN|...|plan keys in bulk update().
+            // These keys are managed exclusively by _eshSaveKeyToFirebase (individual set/null).
+            // Including them here causes Firebase to re-create deleted plan keys because
+            // update() does NOT delete — it only adds/modifies. Any stale 'true' value in
+            // localStorage would silently restore a plan that was intentionally deleted.
+            if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) return;
+            // Also skip tombstone markers — these are local-only, never write to Firebase
+            if (v === '__DELETED__') return;
             safeData[_eshKeyToFirebasePath(k)] = v;
         });
+        if (!Object.keys(safeData).length) return;
         const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
         window.firebase.update(ref, safeData).catch(e => console.warn('ESH bulk save failed:', e));
     } catch(e) { console.warn('ESH bulk save error:', e); }
@@ -29926,20 +30084,37 @@ function eshFetchAndRender(tabType) {
             if (!remoteData || typeof remoteData !== 'object') return;
 
             const local = getEshStorage();
-            const merged = Object.assign({}, local);
             const now = Date.now();
 
+            // Same logic as startEshCalendarSync:
+            // GLOBAL_PLAN keys come from Firebase only — never from local cache.
+            const remoteDecoded = {};
             Object.entries(remoteData).forEach(function([k, v]) {
-                const originalKey = _eshFirebasePathToKey(k); // decode _DOT_ etc. back to original
-                const myWriteTime = _eshMyWrites.get(originalKey);
-                if (myWriteTime && (now - myWriteTime) < 15000) return; // skip our own echo
+                remoteDecoded[_eshFirebasePathToKey(k)] = v;
+            });
+
+            const merged = {};
+            Object.entries(local).forEach(function([k, v]) {
+                if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) return; // never from local
+                merged[k] = v;
+            });
+
+            Object.entries(remoteDecoded).forEach(function([k, v]) {
+                const isPlanKey = k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan');
+                if (!isPlanKey) {
+                    const myWriteTime = _eshMyWrites.get(k);
+                    if (myWriteTime && (now - myWriteTime) < 15000) return;
+                }
                 if (v === null || v === undefined) {
-                    delete merged[originalKey];
+                    delete merged[k];
                 } else {
-                    merged[originalKey] = v;
+                    merged[k] = v;
                 }
             });
-            // SAFE: do NOT delete local-only keys here — they may be pending uploads
+
+            Object.keys(merged).forEach(function(k) {
+                if (merged[k] === _ESH_TOMBSTONE_MARKER) delete merged[k];
+            });
 
             try { localStorage.setItem('esh_calendar_data', JSON.stringify(merged)); } catch(e) {}
             try { renderEshCalendar(tabType); } catch(e) {}
@@ -30124,8 +30299,8 @@ function applySnapshotChanges(changes, deepMergeVals) {
             _doSnapshotRender();
 
             function _doSnapshotRender() {
-                const _snapScrollY = window.scrollY || window.pageYOffset || 0;
-                const _snapScrollX = window.scrollX || window.pageXOffset || 0;
+                const _snapMc = document.getElementById("main-content"); const _snapScrollY = (_snapMc||{}).scrollTop || 0;
+                
                 console.log('\ud83d\udd04 Real-time project update received — re-rendering...');
                 try { render(); } catch(e) {}
                 try { renderPTable(); } catch(e) {}
@@ -30143,12 +30318,7 @@ function applySnapshotChanges(changes, deepMergeVals) {
                         else if (typeof renderOsh2 === 'function' && state.currentTab === 'osh-requirement') renderOsh2();
                     } catch(e) {}
                 }
-                if (_snapScrollY > 0 || _snapScrollX > 0) {
-                    requestAnimationFrame(() => {
-                        try { window.scrollTo({ top: _snapScrollY, left: _snapScrollX, behavior: 'instant' }); }
-                        catch(e) { window.scrollTo(_snapScrollX, _snapScrollY); }
-                    });
-                }
+                if (_snapScrollY > 0) { requestAnimationFrame(() => { if(_snapMc) _snapMc.scrollTop = _snapScrollY; }); }
             }
         }, 800);
     }
@@ -30195,68 +30365,91 @@ window.changeYear = function(yr) {
 
 function startEshCalendarSync() {
     if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.onValue) return;
+    // Do not start sync if no user is authenticated
+    if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
+        console.log('⏭️ ESH Calendar sync skipped — no authenticated user.');
+        return;
+    }
     if (_eshCalendarUnsubscribe) { try { _eshCalendarUnsubscribe(); } catch(e){} }
 
     // Re-attempt any writes that failed in a previous session
     setTimeout(_eshFlushPendingWrites, 2000);
 
+    // Sync deletion records first so we know which plan keys were intentionally deleted
+    const delRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/deletions');
+    window.firebase.onValue(delRef, function(snap) {
+        const dels = snap.val();
+        if (dels && typeof dels === 'object') {
+            const decoded = {};
+            Object.entries(dels).forEach(function([k, ts]) {
+                decoded[_eshFirebasePathToKey(k)] = ts;
+            });
+            _eshCacheDeletionRecords(decoded);
+        }
+    }, { onlyOnce: true });
+
     const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
     _eshCalendarUnsubscribe = window.firebase.onValue(ref, (snapshot) => {
-        const remoteData = snapshot.val();
-        if (!remoteData || typeof remoteData !== 'object') return;
-
+        const remoteData = snapshot.val() || {};
         const local = getEshStorage();
-        const merged = Object.assign({}, local); // start with local
         const now = Date.now();
 
-        // ── Merge remote data into local ───────────────────────────────────────
-        // Local data is NEVER deleted just because it's absent from Firebase.
-        // That was the root cause of data loss on refresh: _eshMyWrites is
-        // an in-memory Map that resets every page load, so the 10-second
-        // protection window was gone, wiping any unconfirmed saves.
+        // ── Build merged object ───────────────────────────────────────────────
+        // Rule 1: Start with local (for actual dates, na keys, etc.)
+        // Rule 2: GLOBAL_PLAN keys — Firebase is the ONLY source of truth.
+        //         Never pull plan state from local cache — only from remoteData.
+        // Rule 3: For all other keys, merge remote over local (remote wins).
+        // Rule 4: Skip echo of our own very-recent writes.
+
+        const remoteDecoded = {};
         Object.entries(remoteData).forEach(function([k, v]) {
-            const originalKey = _eshFirebasePathToKey(k); // decode _DOT_ etc. back to original
-            const myWriteTime = _eshMyWrites.get(originalKey);
-            if (myWriteTime && (now - myWriteTime) < 15000) {
-                return; // skip echo of our own very-recent write
+            remoteDecoded[_eshFirebasePathToKey(k)] = v;
+        });
+
+        // Build merged: non-plan keys from local, GLOBAL_PLAN keys from Firebase ONLY
+        const merged = {};
+        Object.entries(local).forEach(function([k, v]) {
+            if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) return; // never from local
+            merged[k] = v;
+        });
+
+        // Apply ALL remoteData on top — this is the only source for GLOBAL_PLAN keys
+        Object.entries(remoteDecoded).forEach(function([k, v]) {
+            // Skip echo of our own recent writes ONLY for non-plan keys
+            // For plan keys, always trust Firebase — even our own writes are confirmed there
+            const isPlanKey = k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan');
+            if (!isPlanKey) {
+                const myWriteTime = _eshMyWrites.get(k);
+                if (myWriteTime && (now - myWriteTime) < 15000) return; // skip echo
             }
             if (v === null || v === undefined) {
-                // Null in Firebase = explicitly deleted (e.g. user cleared date)
-                delete merged[originalKey];
+                delete merged[k];
             } else {
-                merged[originalKey] = v;
+                merged[k] = v;
             }
         });
 
-        // Strip any tombstone markers that may have come from remote
-        // (tombstones are local-only markers — they should never exist in Firebase)
+        // Remove tombstone markers from merged (local-only — never render as real data)
         Object.keys(merged).forEach(function(k) {
-            if (merged[k] === _ESH_TOMBSTONE_MARKER) {
-                // Keep tombstone in merged (prevents re-upload), but don't render it as real data
-            }
+            if (merged[k] === _ESH_TOMBSTONE_MARKER) delete merged[k];
         });
 
-        // ── Re-upload orphaned local keys ────────────────────────────────────
-        // If a key is in localStorage but absent from Firebase AND not in our
-        // current write-map, it means a previous session's save failed.
-        // Re-push it to Firebase instead of silently discarding it.
-        //
-        // IMPORTANT: remoteData keys are Firebase-encoded (e.g. _DOT_), but
-        // local keys are original. Compare against DECODED remote keys —
-        // otherwise intentionally-deleted keys get re-uploaded on every sync.
-        const remoteDecodedKeys = new Set(
-            Object.keys(remoteData).map(function(rk) { return _eshFirebasePathToKey(rk); })
-        );
+        // Re-upload orphaned NON-plan local keys that failed to save previously
         Object.keys(local).forEach(function(k) {
-            if (k.includes('|') && !remoteDecodedKeys.has(k) && merged[k]) {
-                // Skip tombstoned keys (intentionally deleted) and tombstone markers themselves
-                if (merged[k] === _ESH_TOMBSTONE_MARKER) return;
-                if (!_eshMyWrites.has(k) && !_eshIsTombstoned(k)) {
-                    console.log('🔄 ESH sync: re-uploading orphaned key to Firebase:', k);
-                    _eshSaveKeyToFirebase(k, merged[k]);
-                }
-            }
+            if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) return; // never re-upload plan keys
+            if (!k.includes('|')) return;
+            if (remoteDecoded.hasOwnProperty(k)) return; // already in Firebase
+            if (_eshMyWrites.has(k)) return;
+            if (!merged[k] || merged[k] === _ESH_TOMBSTONE_MARKER) return;
+            if (_eshIsTombstoned(k)) return;
+            const _whoAmI = window.firebaseAuth?.currentUser?.email || 'unknown';
+            console.warn('🔄 ESH sync: re-uploading orphaned key [' + _whoAmI + ']:', k, '=', merged[k]);
+            _eshSaveKeyToFirebase(k, merged[k]);
         });
+
+        const planKeysRemote = Object.keys(remoteDecoded).filter(k => k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')).length;
+        const planKeysLocal  = Object.keys(merged).filter(k => k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')).length;
+        console.log('🔍 ESH sync — local plan keys:', planKeysLocal, '| remote plan keys:', planKeysRemote);
 
         try { localStorage.setItem('esh_calendar_data', JSON.stringify(merged)); } catch(e){
             if (e && e.name === 'QuotaExceededError') {
@@ -30332,6 +30525,26 @@ function migrateEshAddYearPrefix() {
     } catch(e) { console.warn('ESH migration v3 failed:', e); }
 }
 migrateEshAddYearPrefix();
+
+// FIX: One-time cleanup — remove any stale GLOBAL_PLAN entries from the pending
+// writes queue that may have accumulated from previous sessions on this browser.
+// These would have been re-uploaded on next flush, restoring deleted plans.
+(function _cleanStalePlanPendingWrites() {
+    try {
+        const pending = JSON.parse(localStorage.getItem('esh_calendar_pending_writes') || '{}');
+        let cleaned = 0;
+        Object.keys(pending).forEach(function(k) {
+            if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) {
+                delete pending[k];
+                cleaned++;
+            }
+        });
+        if (cleaned > 0) {
+            localStorage.setItem('esh_calendar_pending_writes', JSON.stringify(pending));
+            console.log('\u2705 ESH startup: cleared ' + cleaned + ' stale GLOBAL_PLAN pending write(s)');
+        }
+    } catch(e) {}
+})();
 
 window.getEshStorage = getEshStorage;
 
@@ -31132,7 +31345,7 @@ function buildDrillsSingleTable(projects, storage, col) {
 
                 const planKey = getEshKey(tabType, proj.name, storageIdx, mi, 'plan');
                 const actualKey = getEshKey(tabType, proj.name, storageIdx, mi, 'actual');
-                const isPlanned = !isNaCell && !!(storage[planKey]);
+                const isPlanned = !isNaCell && !!(storage[planKey]) && storage[planKey] !== _ESH_TOMBSTONE_MARKER;
                 const actualVal = !isNaCell ? (storage[actualKey] || '') : '';
                 const overdue = !isNaCell && isPlanned && !actualVal && isMonthOverdue(mi);
                 const done = !isNaCell && !!actualVal;
@@ -31306,7 +31519,7 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
 
     const storage = getEshStorage();
     const key = getEshKey(tabType, projName, ti, mi, 'plan');
-    const wasPlanned = !!(storage[key]);
+    const wasPlanned = !!(storage[key]) && storage[key] !== _ESH_TOMBSTONE_MARKER;
     const nowPlanned = !wasPlanned;
 
     const planTitle = nowPlanned ? 'Click to unschedule' : 'Click to schedule';
@@ -31415,8 +31628,26 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
 
     if (nowPlanned) {
         storage[key] = true;
+        // Clear deletion record so this key can be set again freely
+        try {
+            const _dc = JSON.parse(localStorage.getItem('esh_calendar_deletions') || '{}');
+            delete _dc[key];
+            localStorage.setItem('esh_calendar_deletions', JSON.stringify(_dc));
+        } catch(e) {}
+        // Remove deletion record from Firebase too
+        try {
+            if (window.firebaseRealtimeDb && window.firebase) {
+                const _safeK = _eshKeyToFirebasePath(key);
+                const _dRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/deletions/' + _safeK);
+                window.firebase.set(_dRef, null);
+            }
+        } catch(e) {}
     } else {
-        delete storage[key]; // Remove key entirely so Firebase null-delete works
+        delete storage[key];
+        _eshMyWrites.set(key, Date.now());
+        // Write a deletion record with timestamp so other browsers know
+        // this key was intentionally deleted — not just missing from their cache
+        _eshWriteDeletionRecord(key);
     }
     const actualKeyToRemove = getEshKey(tabType, projName, ti, mi, 'actual');
     if (!nowPlanned) {
@@ -31448,7 +31679,7 @@ window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drill
 
     const storage = getEshStorage();
     const key = getEshKey(tabType, projName, ti, mi, 'plan');
-    const wasPlanned = !!(storage[key]);
+    const wasPlanned = !!(storage[key]) && storage[key] !== _ESH_TOMBSTONE_MARKER;
     const nowPlanned = !wasPlanned;
 
     const planTitle = nowPlanned ? 'Click to unschedule' : 'Click to schedule';
@@ -31486,6 +31717,7 @@ window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drill
         storage[key] = true;
     } else {
         delete storage[key];
+        _eshMyWrites.set(key, Date.now()); // block orphan re-upload immediately
     }
     const _corpActualKey = getEshKey(tabType, projName, ti, mi, 'actual');
     if (!nowPlanned) {
