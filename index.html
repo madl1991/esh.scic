@@ -11561,6 +11561,12 @@ function openAdminQuickView() {
             }
 
             state.isEditing = true;
+
+            // Re-render ESH calendar if currently on that tab — so inputs become enabled immediately
+            const _eshEditTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
+            if (_eshEditTabs.includes(state.currentTab)) {
+                try { eshFetchAndRender(state.currentTab); } catch(e) {}
+            }
             
             const floatingBtn = document.getElementById('floating-edit-btn');
             const floatingIcon = document.getElementById('floating-edit-icon');
@@ -11648,7 +11654,12 @@ function openAdminQuickView() {
                     }
                     if (floatingIcon) floatingIcon.className = 'fas fa-edit';
                     if (floatingTooltip) floatingTooltip.textContent = 'Click to Edit';
-                    render();
+                    const _eshSaveTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
+                    if (_eshSaveTabs.includes(state.currentTab)) {
+                        try { eshFetchAndRender(state.currentTab); } catch(e) {}
+                    } else {
+                        render();
+                    }
                 }, 400);
             } else {
                 if (floatingIcon) floatingIcon.className = 'fas fa-times';
@@ -11665,7 +11676,12 @@ function openAdminQuickView() {
                     }
                     if (floatingIcon) floatingIcon.className = 'fas fa-edit';
                     if (floatingTooltip) floatingTooltip.textContent = 'Click to Edit';
-                    render();
+                    const _eshFailTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
+                    if (_eshFailTabs.includes(state.currentTab)) {
+                        try { eshFetchAndRender(state.currentTab); } catch(e) {}
+                    } else {
+                        render();
+                    }
                 }, 800);
             }
             
@@ -12143,6 +12159,10 @@ function updateAuditData(pName, qtr, field, val) {
             } else if (typeof saveToFirebaseDebounced === 'function') {
                 saveToFirebaseDebounced();
             }
+            // Deferred render for _skipRenderTabs: re-render 800ms after user stops typing
+            // so data reflects immediately without needing save/refresh
+            // Note: _skipRenderTabs are re-rendered by saveData() and _doSnapshotRender()
+            // No deferred render here — avoids wiping active input while user is typing
             if (state.currentTab === 'rates') {
                 const panel = document.getElementById('incident-tabulation-panel');
                 if (panel) {
@@ -18337,6 +18357,11 @@ function renderTabulation() {
             if (_nonTableTabs.includes(state.currentTab) || _eshCalTabs.includes(state.currentTab)) {
                 if (state.currentTab === 'got-monitoring' && window.renderGotMonitoring) { window.renderGotMonitoring(); }
                 if (state.currentTab === 'osh-requirement' && typeof renderOsh2 === 'function') { renderOsh2(); }
+                if (state.currentTab === 'nov' && typeof renderOshNovTab === 'function') { renderOshNovTab(); }
+                if (state.currentTab === 'nov-env' && typeof renderNovEnvTab === 'function') { renderNovEnvTab(); }
+                if (state.currentTab === 'nov-monitoring' && typeof renderNovEnvTab === 'function') { renderNovEnvTab(); }
+                if (state.currentTab === 'lta-registry' && typeof renderLtaRegistryTab === 'function') { renderLtaRegistryTab(); }
+                if (state.currentTab === 'health-report' && typeof renderHealthReportTab === 'function') { renderHealthReportTab(); }
                 return;
             }
 
@@ -20447,6 +20472,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         p.vals[k][field] = val;
                         if (typeof markPendingSync === 'function') markPendingSync();
                         if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
+                        // Refresh region UI immediately so data shows without requiring refresh
+                        const regKey = p.region.replace(/[^a-zA-Z0-9]/g,'_');
+                        if (typeof window.kpmRefreshRegion === 'function') window.kpmRefreshRegion(regKey);
                     }
                     window.kpmSet = kpmSet;
 
@@ -20504,6 +20532,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             if(typeof saveToFirebaseDebounced==='function') saveToFirebaseDebounced();
                         }
                         window.kpmUpdateRowTotals(regKey, rowId, dw);
+                        // Refresh region UI immediately so data shows without requiring refresh
+                        if (typeof window.kpmRefreshRegion === 'function') window.kpmRefreshRegion(regKey);
                     };
                     window.kpmAutoPercent = function(inp) {
                         var raw = inp.value.replace(/%/g, '').trim();
@@ -29745,6 +29775,35 @@ function setEshStorage(data) {
 const _eshMyWrites = new Map(); // key -> timestamp of our write
 let _eshLastLocalWrite = 0;     // timestamp of last local write (used by legacy code)
 const _ESH_PENDING_KEY = 'esh_calendar_pending_writes'; // localStorage key for failed writes
+const _ESH_TOMBSTONE_MARKER = '__DELETED__'; // in-band tombstone value stored inside esh_calendar_data
+
+// Mark a key as intentionally deleted inside esh_calendar_data (no separate localStorage key needed)
+function _eshAddTombstone(key) {
+    try {
+        const storage = getEshStorage();
+        storage[key] = _ESH_TOMBSTONE_MARKER;
+        localStorage.setItem('esh_calendar_data', JSON.stringify(storage));
+    } catch(e) {}
+}
+
+// Check if a key is tombstoned
+function _eshIsTombstoned(key) {
+    try {
+        const storage = getEshStorage();
+        return storage[key] === _ESH_TOMBSTONE_MARKER;
+    } catch(e) { return false; }
+}
+
+// Remove a tombstone when a key is intentionally re-created
+function _eshRemoveTombstone(key) {
+    try {
+        const storage = getEshStorage();
+        if (storage[key] === _ESH_TOMBSTONE_MARKER) {
+            delete storage[key];
+            localStorage.setItem('esh_calendar_data', JSON.stringify(storage));
+        }
+    } catch(e) {}
+}
 
 // Load any pending writes from a previous session and re-attempt them
 function _eshFlushPendingWrites() {
@@ -29780,6 +29839,28 @@ function _eshRemovePendingWrite(key) {
     } catch(e) {}
 }
 
+// Converts a raw ESH key (e.g. "2026|esh-calendar-drills|4.85MW Mat-I 1 HEPP|3|0|actual")
+// into a Firebase-safe path segment by replacing all invalid RTDB characters.
+// Firebase RTDB path segments cannot contain: . # $ [ ]
+function _eshKeyToFirebasePath(key) {
+    return key
+        .replace(/\./g, '_DOT_')
+        .replace(/#/g, '_HASH_')
+        .replace(/\$/g, '_DOLLAR_')
+        .replace(/\[/g, '_LBRACKET_')
+        .replace(/\]/g, '_RBRACKET_');
+}
+
+// Reverse: converts a Firebase-safe node name back to the original ESH key
+function _eshFirebasePathToKey(safeName) {
+    return safeName
+        .replace(/_DOT_/g, '.')
+        .replace(/_HASH_/g, '#')
+        .replace(/_DOLLAR_/g, '$')
+        .replace(/_LBRACKET_/g, '[')
+        .replace(/_RBRACKET_/g, ']');
+}
+
 function _eshSaveKeyToFirebase(key, value) {
     try {
         if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.set) {
@@ -29787,7 +29868,8 @@ function _eshSaveKeyToFirebase(key, value) {
             _eshAddPendingWrite(key, value);
             return;
         }
-        const safePath = 'esh-calendar/data/' + key;
+        const safeKey  = _eshKeyToFirebasePath(key);
+        const safePath = 'esh-calendar/data/' + safeKey;
         _eshMyWrites.set(key, Date.now());
         _eshLastLocalWrite = Date.now();
 
@@ -29800,6 +29882,11 @@ function _eshSaveKeyToFirebase(key, value) {
             .then(function() {
                 console.log('✅ ESH key saved to Firebase:', key, '=', writeVal);
                 _eshRemovePendingWrite(key); // confirmed — remove from pending queue
+                if (writeVal === null) {
+                    // Intentional delete confirmed — write tombstone marker into esh_calendar_data
+                    // This replaces any truthy value with __DELETED__ so orphaned re-upload skips it
+                    _eshAddTombstone(key);
+                }
                 setTimeout(function() { _eshMyWrites.delete(key); }, 15000);
             })
             .catch(function(e) {
@@ -29818,8 +29905,13 @@ function _eshSaveToFirebase(data) {
     try {
         if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.update) return;
         _eshLastLocalWrite = Date.now();
+        // Sanitize all keys before writing — Firebase RTDB does not allow . # $ [ ] in key names
+        const safeData = {};
+        Object.entries(data).forEach(function([k, v]) {
+            safeData[_eshKeyToFirebasePath(k)] = v;
+        });
         const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
-        window.firebase.update(ref, data).catch(e => console.warn('ESH bulk save failed:', e));
+        window.firebase.update(ref, safeData).catch(e => console.warn('ESH bulk save failed:', e));
     } catch(e) { console.warn('ESH bulk save error:', e); }
 }
 
@@ -29838,12 +29930,13 @@ function eshFetchAndRender(tabType) {
             const now = Date.now();
 
             Object.entries(remoteData).forEach(function([k, v]) {
-                const myWriteTime = _eshMyWrites.get(k);
+                const originalKey = _eshFirebasePathToKey(k); // decode _DOT_ etc. back to original
+                const myWriteTime = _eshMyWrites.get(originalKey);
                 if (myWriteTime && (now - myWriteTime) < 15000) return; // skip our own echo
                 if (v === null || v === undefined) {
-                    delete merged[k];
+                    delete merged[originalKey];
                 } else {
-                    merged[k] = v;
+                    merged[originalKey] = v;
                 }
             });
             // SAFE: do NOT delete local-only keys here — they may be pending uploads
@@ -30037,13 +30130,17 @@ function applySnapshotChanges(changes, deepMergeVals) {
                 try { render(); } catch(e) {}
                 try { renderPTable(); } catch(e) {}
                 const dataTabs = ['nov','nov-env','kpm','activities','exposures','rates','medical','dole','emb','permits',
-                                  'env-monitoring','lta-registry','health-report','cshp','reg','audit','env-monthly-report'];
+                                  'env-monitoring','lta-registry','health-report','cshp','reg','audit','env-monthly-report',
+                                  'nov-monitoring','tabulation','got-monitoring','osh-requirement'];
                 if (state.currentTab && dataTabs.includes(state.currentTab)) {
                     try {
                         if (typeof renderOshNovTab === 'function' && state.currentTab === 'nov') renderOshNovTab();
                         else if (typeof renderNovEnvTab === 'function' && state.currentTab === 'nov-env') renderNovEnvTab();
+                        else if (typeof renderNovEnvTab === 'function' && state.currentTab === 'nov-monitoring') renderNovEnvTab();
                         else if (typeof renderLtaRegistryTab === 'function' && state.currentTab === 'lta-registry') renderLtaRegistryTab();
                         else if (typeof renderHealthReportTab === 'function' && state.currentTab === 'health-report') renderHealthReportTab();
+                        else if (typeof window.renderGotMonitoring === 'function' && state.currentTab === 'got-monitoring') window.renderGotMonitoring();
+                        else if (typeof renderOsh2 === 'function' && state.currentTab === 'osh-requirement') renderOsh2();
                     } catch(e) {}
                 }
                 if (_snapScrollY > 0 || _snapScrollX > 0) {
@@ -30118,15 +30215,24 @@ function startEshCalendarSync() {
         // an in-memory Map that resets every page load, so the 10-second
         // protection window was gone, wiping any unconfirmed saves.
         Object.entries(remoteData).forEach(function([k, v]) {
-            const myWriteTime = _eshMyWrites.get(k);
+            const originalKey = _eshFirebasePathToKey(k); // decode _DOT_ etc. back to original
+            const myWriteTime = _eshMyWrites.get(originalKey);
             if (myWriteTime && (now - myWriteTime) < 15000) {
                 return; // skip echo of our own very-recent write
             }
             if (v === null || v === undefined) {
                 // Null in Firebase = explicitly deleted (e.g. user cleared date)
-                delete merged[k];
+                delete merged[originalKey];
             } else {
-                merged[k] = v;
+                merged[originalKey] = v;
+            }
+        });
+
+        // Strip any tombstone markers that may have come from remote
+        // (tombstones are local-only markers — they should never exist in Firebase)
+        Object.keys(merged).forEach(function(k) {
+            if (merged[k] === _ESH_TOMBSTONE_MARKER) {
+                // Keep tombstone in merged (prevents re-upload), but don't render it as real data
             }
         });
 
@@ -30134,9 +30240,18 @@ function startEshCalendarSync() {
         // If a key is in localStorage but absent from Firebase AND not in our
         // current write-map, it means a previous session's save failed.
         // Re-push it to Firebase instead of silently discarding it.
+        //
+        // IMPORTANT: remoteData keys are Firebase-encoded (e.g. _DOT_), but
+        // local keys are original. Compare against DECODED remote keys —
+        // otherwise intentionally-deleted keys get re-uploaded on every sync.
+        const remoteDecodedKeys = new Set(
+            Object.keys(remoteData).map(function(rk) { return _eshFirebasePathToKey(rk); })
+        );
         Object.keys(local).forEach(function(k) {
-            if (k.includes('|') && !(k in remoteData) && merged[k]) {
-                if (!_eshMyWrites.has(k)) {
+            if (k.includes('|') && !remoteDecodedKeys.has(k) && merged[k]) {
+                // Skip tombstoned keys (intentionally deleted) and tombstone markers themselves
+                if (merged[k] === _ESH_TOMBSTONE_MARKER) return;
+                if (!_eshMyWrites.has(k) && !_eshIsTombstoned(k)) {
                     console.log('🔄 ESH sync: re-uploading orphaned key to Firebase:', k);
                     _eshSaveKeyToFirebase(k, merged[k]);
                 }
@@ -30906,7 +31021,7 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
             ESH_MONTHS.forEach((m, mi) => {
                 const planKey = getEshKey(tabType, proj.name, storageIdx, mi, 'plan');
                 const actualKey = getEshKey(tabType, proj.name, storageIdx, mi, 'actual');
-                const isPlanned = !!(storage[planKey]);
+                const isPlanned = !!(storage[planKey]) && storage[planKey] !== _ESH_TOMBSTONE_MARKER;
                 const actualVal = storage[actualKey] || '';
                 const isFuture = isMonthFuture(mi);
                 const overdue = isPlanned && !actualVal && isMonthOverdue(mi);
@@ -30930,8 +31045,9 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                     onclick="event.stopPropagation();eshSetPlan('${tabType}','${proj.name}',${storageIdx},${mi},null,this)"
                     title="${!isAdmin ? '🔒 Admin only — Cannot set Plan/Schedule' : isPlanned ? 'Click to unschedule' : 'Click to schedule'}">
                 </td>`;
+                const _editDisabled2 = (!(state && state.isEditing) && !dateDisabled) ? `disabled title="✏️ Press Edit button to enable input"` : '';
                 html += `<td class="${actualClass}">` + (isPlanned
-                    ? `<input type="date" value="${actualVal}" ${dateDisabled}
+                    ? `<input type="date" value="${actualVal}" ${dateDisabled || _editDisabled2}
                         ${effectiveMax} ${effectiveMin}
                         onchange="eshSetActual('${tabType}','${proj.name}',${storageIdx},${mi},this.value,this.closest('td'))">`
                     : '') + `</td>`;
@@ -31048,7 +31164,8 @@ function buildDrillsSingleTable(projects, storage, col) {
 
                 const dateDisabled = isNaCell
                     ? `disabled title="N/A – not applicable for this project"`
-                    : (!canEdit ? `disabled title="🔒 Read-only for your role/region"` : '');
+                    : (!canEdit ? `disabled title="🔒 Read-only for your role/region"`
+                    : (!(state && state.isEditing) ? `disabled title="✏️ Press Edit button to enable input"` : ''));
 
                 html += `<td class="${actualClass}" style="${actualStyle}">
                     ${isNaCell ? '<span style="color:#888;font-size:0.65rem;font-weight:700;">N/A</span>' :
@@ -31172,6 +31289,10 @@ window.eshToggleDrillNA = function(e, tabType, projName, ti, mi) {
 };
 
 window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
+    if (!(state && state.isEditing)) {
+        showToast('✏️ Press the Edit button first to make changes.', 'info', 3000);
+        return;
+    }
     if (!(state && state.isAdmin)) {
         showToast('🔒 Admin only — Cannot set Plan/Schedule.', 'warning', 3000);
         return;
@@ -31302,6 +31423,7 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
         delete storage[actualKeyToRemove];
     }
     try { localStorage.setItem('esh_calendar_data', JSON.stringify(storage)); } catch(e) {}
+    if (nowPlanned) { _eshRemoveTombstone(key); }
     _eshSaveKeyToFirebase(key, nowPlanned ? true : null);
     if (!nowPlanned && storage[actualKeyToRemove] !== undefined) {
         _eshSaveKeyToFirebase(actualKeyToRemove, null);
@@ -31309,6 +31431,10 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
 };
 
 window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drillColor) {
+    if (!(state && state.isEditing)) {
+        showToast('✏️ Press the Edit button first to make changes.', 'info', 3000);
+        return;
+    }
     if (!(state && state.isAdmin)) {
         showToast('🔒 Admin only — Cannot set Plan/Schedule.', 'warning', 3000);
         return;
@@ -31373,6 +31499,11 @@ window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drill
 };
 
 window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
+    if (!(state && state.isEditing)) {
+        if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
+        showToast('✏️ Press the Edit button first to make changes.', 'info', 3000);
+        return;
+    }
     const allProjects = (state && state.projects) ? state.projects : [];
     const proj = allProjects.find(p => p.name === projName);
     if (proj && !eshCanEdit(tabType, proj.region)) {
@@ -31394,6 +31525,7 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
     const actualKey = getEshKey(tabType, projName, ti, mi, 'actual');
     if (value) {
         storage[actualKey] = value;
+        _eshRemoveTombstone(actualKey); // re-created — clear tombstone
     } else {
         delete storage[actualKey];
     }
@@ -31595,7 +31727,7 @@ function renderCorpDrillsTab() {
         ESH_MONTHS.forEach((m, mi) => {
             const planKey = getEshKey(tabType, projName, storageIdx, mi, 'plan');
             const actualKey = getEshKey(tabType, projName, storageIdx, mi, 'actual');
-            const isPlanned = !!(storage[planKey]);
+            const isPlanned = !!(storage[planKey]) && storage[planKey] !== _ESH_TOMBSTONE_MARKER;
             const actualVal = storage[actualKey] || '';
             const overdue = isPlanned && !actualVal && isMonthOverdue(mi);
             const done = !!actualVal;
@@ -31611,7 +31743,8 @@ function renderCorpDrillsTab() {
                 data-drillcolor="${drillColor}"
                 onclick="event.stopPropagation();eshCorpSetPlan('${tabType}','${projName}',${storageIdx},${mi},null,this,'${drillColor}')"
                 title="${!canEdit ? '🔒 Admin only' : isPlanned ? 'Click to unschedule' : 'Click to schedule'}"></td>`;
-            html += `<td class="${actualClass}"><input type="date" value="${actualVal}" ${!canEdit ? 'disabled' : ''}
+            const _corpEditDisabled = (!canEdit || !(state && state.isEditing)) ? 'disabled' : '';
+            html += `<td class="${actualClass}"><input type="date" value="${actualVal}" ${_corpEditDisabled}
                 onchange="eshSetActual('${tabType}','${projName}',${storageIdx},${mi},this.value,this.closest('td'))"></td>`;
         });
         html += `</tr>`;
