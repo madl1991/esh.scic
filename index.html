@@ -10259,18 +10259,24 @@ debugCommands.help() - Show this help
                 }
 
                 if (project.isRenewable === true) {
-                    const doePermitKey = 'doe-permit_DOE Safety Officer Permit';
-                    const doePermitVals = project.vals[doePermitKey];
-                    {
-                        const permitNumber = doePermitVals ? doePermitVals[1] : '';
-                        const validUntil = doePermitVals ? doePermitVals[2] : '';
-                        if (!permitNumber || permitNumber.trim() === '' || !validUntil || validUntil.trim() === '') {
-                            overdueTabs.push({ name: 'DOE Safety Officer Permit (Missing)', tab: 'doe-permit' });
+                    // Client-Provided → exempt from compliance check
+                    if (!(project.vals && project.vals['doe-permit_client_provided'] === '1')) {
+                        const doePermitKey = 'doe-permit_DOE Safety Officer Permit';
+                        const doePermitVals = project.vals[doePermitKey];
+                        {
+                            const permitNumber = doePermitVals ? doePermitVals[1] : '';
+                            const validUntil = doePermitVals ? doePermitVals[2] : '';
+                            if (!permitNumber || permitNumber.trim() === '' || !validUntil || validUntil.trim() === '') {
+                                overdueTabs.push({ name: 'DOE Safety Officer Permit (Missing)', tab: 'doe-permit' });
+                            }
                         }
                     }
                 }
 
                 if (project.isRenewable === true) {
+                    // Client-Provided → exempt from compliance check
+                    // Also exempt if DOE Safety Officer Permit is client-provided (linked)
+                    if (!(project.vals && (project.vals['doe_client_provided'] === '1' || project.vals['doe-permit_client_provided'] === '1'))) {
                     {
                         const doeQKey = 'doe_DOE Quarterly Report Submission Date';
                         const _doeNow = new Date();
@@ -10308,6 +10314,7 @@ debugCommands.help() - Show this help
                             overdueTabs.push({ name: 'DOE Reportorial (Overdue)', tab: 'doe' });
                         }
                     }
+                    } // end if not client-provided
                 }
 
                 const certKey = 'permits_Certificate of Registration';
@@ -18720,7 +18727,19 @@ function renderTabulation() {
                     for (let i = 1; i <= 12; i++) {
                         let monthTotal = 0;
                         const mi = i - 1; // 0-based month index for ESH calendar
-                        if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
+                        if (state.currentTab === 'activities' && row === 'No. of Identified Near-Miss') {
+                            const _nmYear2 = state.selectedYear || new Date().getFullYear();
+                            displayProjects.forEach(p => {
+                                const entries = p.vals['lta-registry_entries'] || [];
+                                monthTotal += entries.filter(e => {
+                                    if (e.incidentClassification !== 'Near Miss') return false;
+                                    const d = e.dateOfAccident || '';
+                                    if (!d) return false;
+                                    return parseInt(d.substring(0,4)) === _nmYear2 && (parseInt(d.substring(5,7)) - 1) === (i - 1);
+                                }).length;
+                            });
+                            html += `<td class="monthly-data" style="font-weight:700;background:${monthTotal>0?'rgba(230,81,0,0.08)':''};text-align:center;">${monthTotal > 0 ? fmtNum(monthTotal) : ''}</td>`;
+                        } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
                             const eshStor = getEshStorage();
                             const _eshYear1 = state.selectedYear || new Date().getFullYear();
                             displayProjects.forEach(p => {
@@ -18766,6 +18785,17 @@ function renderTabulation() {
                             }
                             const scolor = row === 'LTIR' ? '#1b5e20' : row === 'TRIR' ? '#1565c0' : '#b71c1c';
                             html += `<td class="monthly-data" style="font-weight:800;background:${smh>0?'rgba(27,94,32,0.06)':''};text-align:center;color:${smh>0?scolor:''}">${sval}</td>`;
+                        } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
+                            const _mhSumKey = 'exposures_Total Exposed Manhour';
+                            displayProjects.forEach(p => {
+                                const _prevBase = parseFloat(p.vals[key] ? (p.vals[key][0] ?? 0) : 0) || 0;
+                                let _cum = _prevBase;
+                                for (let _j = 1; _j <= i; _j++) {
+                                    _cum += parseFloat(p.vals[_mhSumKey] ? (p.vals[_mhSumKey][_j] ?? '') : '') || 0;
+                                }
+                                monthTotal += _cum;
+                            });
+                            html += `<td class="monthly-data" style="font-weight:700;background:#f1f8e9;text-align:center;">${monthTotal > 0 ? fmtNum(monthTotal) : ''}</td>`;
                         } else {
                             displayProjects.forEach(p => {
                                 const val = p.vals[key] ? (p.vals[key][i] ?? "") : "";
@@ -18778,16 +18808,19 @@ function renderTabulation() {
                     if (hasYTD) {
                         let ytdTotal = 0;
                         if (row === "Total Manpower") {
-                            let totalAvg = 0;
-                            let projectCount = 0;
-                            displayProjects.forEach(p => {
-                                const avg = calculateAverage(p.vals[key], rowIdx);
-                                if (avg > 0) {
-                                    totalAvg += avg;
-                                    projectCount++;
-                                }
-                            });
-                            ytdTotal = projectCount > 0 ? Math.round(totalAvg / projectCount) : 0;
+                            // YTD = average of monthly sums (sum all projects per month, then average across months with data)
+                            let monthSumTotal = 0;
+                            let monthsWithData = 0;
+                            for (let _mi = 1; _mi <= 12; _mi++) {
+                                let monthSum = 0;
+                                let hasData = false;
+                                displayProjects.forEach(p => {
+                                    const v = parseFloat(p.vals[key] ? (p.vals[key][_mi] ?? '') : '') || 0;
+                                    if (v > 0) { monthSum += v; hasData = true; }
+                                });
+                                if (hasData) { monthSumTotal += monthSum; monthsWithData++; }
+                            }
+                            ytdTotal = monthsWithData > 0 ? Math.round(monthSumTotal / monthsWithData) : 0;
                             html += `<td class="average-cell" style="font-weight: 800; font-size: 0.7rem;">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
                         } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
                             const eshStor = getEshStorage();
@@ -18813,6 +18846,17 @@ function renderTabulation() {
                                 }
                             });
                             html += `<td class="ytd-cell" style="font-weight: 800; font-size: 0.7rem;">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
+                        } else if (state.currentTab === 'activities' && row === 'No. of Identified Near-Miss') {
+                            const _nmOsYear = state.selectedYear || new Date().getFullYear();
+                            displayProjects.forEach(p => {
+                                const entries = p.vals['lta-registry_entries'] || [];
+                                ytdTotal += entries.filter(e => {
+                                    if (e.incidentClassification !== 'Near Miss') return false;
+                                    const d = e.dateOfAccident || '';
+                                    return d && parseInt(d.substring(0,4)) === _nmOsYear;
+                                }).length;
+                            });
+                            html += `<td class="ytd-cell" style="font-weight:800;font-size:0.7rem;color:${ytdTotal>0?'#e65100':''};">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
                         } else if (state.currentTab === 'rates' && ['LTIR','TRIR','SEVERITY RATE'].includes(row)) {
                             const _rateBase = (state.ratesStandard === 'osha') ? 200000 : 1000000;
                             let ymh=0, ylta=0, ymed=0, yfat=0, yhip=0, ydL=0;
@@ -18835,6 +18879,17 @@ function renderTabulation() {
                             }
                             const ycolor = row === 'LTIR' ? '#1b5e20' : row === 'TRIR' ? '#1565c0' : '#b71c1c';
                             html += `<td class="ytd-cell" style="font-weight:800;color:${ymh>0?ycolor:''};">${yval}</td>`;
+                        } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
+                            const _mhYtdKey = 'exposures_Total Exposed Manhour';
+                            displayProjects.forEach(p => {
+                                const _prevBase = parseFloat(p.vals[key] ? (p.vals[key][0] ?? 0) : 0) || 0;
+                                let _cum = _prevBase;
+                                for (let _j = 1; _j <= 12; _j++) {
+                                    _cum += parseFloat(p.vals[_mhYtdKey] ? (p.vals[_mhYtdKey][_j] ?? '') : '') || 0;
+                                }
+                                ytdTotal += _cum;
+                            });
+                            html += `<td class="ytd-cell" style="font-weight:800;font-size:0.7rem;">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
                         } else {
                             displayProjects.forEach(p => {
                                 const ytd = calculateYTD(p.vals[key], rowIdx);
@@ -19886,6 +19941,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
             html += `<th class="env-th-dark">Q3 (JUL-SEP)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Oct 15</small></th>`;
             html += `<th class="env-th-dark">Q4 (OCT-DEC)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Jan 15</small></th>`;
         } else if (state.currentTab === 'permits') {
+            html += `<th style="width:32px;min-width:32px;max-width:32px;text-align:center;white-space:nowrap;background:#e3f2fd;color:#1565c0;padding:6px 4px;"><i class="fas fa-building" style="display:block;margin:0 auto 3px;font-size:0.75rem;"></i><span style="font-size:0.6rem;">CLIENT-PROVIDED</span></th>`;
+            html += `<th style="width:32px;min-width:32px;max-width:32px;text-align:center;white-space:nowrap;background:#f5f5f5;color:#757575;padding:6px 4px;"><i class="fas fa-ban" style="display:block;margin:0 auto 3px;font-size:0.75rem;"></i><span style="font-size:0.6rem;">N/A</span></th>`;
             html += `<th style="min-width: 200px; white-space: normal; padding: 10px 12px;">PERMIT NO. / ACCREDITATION NO.</th>`;
             html += `<th style="min-width: 140px; white-space: nowrap;">DATE ISSUED</th>`;
             html += `<th style="min-width: 140px; white-space: nowrap;">EXPIRY DATE</th>`;
@@ -19910,9 +19967,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
         const key = `${state.currentTab}_${row}`;
         const _keySafe = key.replace(/'/g, "\\'");
         
-        const isPermitNA = false;
-        const isPermitClientProvided = false;
-        const rowStyle = '';
+        const isPermitNA = !!(p.vals && p.vals[`${key}__na`] === '1');
+        const isPermitClientProvided = !!(p.vals && p.vals[`${key}__cp`] === '1');
+        const _permitPnSafe = p.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const _permitKeySafe = key.replace(/'/g, "\\'");
+        const rowStyle = isPermitClientProvided ? 'background:#e3f2fd;' : isPermitNA ? 'background:#eeeeee;' : '';
         const naBtn = '';
         const _embType = row.startsWith('SMR') ? 'SMR' : (row.startsWith('CMR') ? 'CMR' : '');
         const _embPnSafe = p.name.replace(/'/g, "\\'");
@@ -19953,6 +20012,24 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 ${embAddBtn}
             </div>
         </td>`;
+
+        // ── CLIENT-PROVIDED & N/A checkbox columns (permits tab only) ──────
+        if (state.currentTab === 'permits') {
+            html += `<td style="text-align:center;background:${isPermitClientProvided?'#dceefb':''};">
+                <label style="display:inline-flex;align-items:center;justify-content:center;cursor:${inputsEditable?'pointer':'default'};">
+                    <input type="checkbox" ${isPermitClientProvided?'checked':''} ${inputsEditable?'':'disabled'}
+                        onchange="(function(chk){var proj=state.projects.find(function(x){return x.name==='${_permitPnSafe}';});if(!proj)return;if(!proj.vals)proj.vals={};proj.vals['${_permitKeySafe}__cp']=chk?'1':'';if(chk)proj.vals['${_permitKeySafe}__na']='';if(typeof markPendingSync==='function')markPendingSync();if(typeof saveToFirebaseDebounced==='function')saveToFirebaseDebounced();render();})(this.checked)"
+                        style="accent-color:#1565c0;width:15px;height:15px;cursor:inherit;">
+                </label>
+            </td>`;
+            html += `<td style="text-align:center;background:${isPermitNA?'#eeeeee':''};">
+                <label style="display:inline-flex;align-items:center;justify-content:center;cursor:${inputsEditable?'pointer':'default'};">
+                    <input type="checkbox" ${isPermitNA?'checked':''} ${inputsEditable?'':'disabled'}
+                        onchange="(function(chk){var proj=state.projects.find(function(x){return x.name==='${_permitPnSafe}';});if(!proj)return;if(!proj.vals)proj.vals={};proj.vals['${_permitKeySafe}__na']=chk?'1':'';if(chk)proj.vals['${_permitKeySafe}__cp']='';if(typeof markPendingSync==='function')markPendingSync();if(typeof saveToFirebaseDebounced==='function')saveToFirebaseDebounced();render();})(this.checked)"
+                        style="accent-color:#757575;width:15px;height:15px;cursor:inherit;">
+                </label>
+            </td>`;
+        }
 
         if (isCshp) {
             const v = p.vals[key] ? (p.vals[key][1] ?? "") : "";
@@ -20018,7 +20095,28 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 const naDisabled = inputsEditable ? '' : 'disabled';
                 const naPlaceholder = 'Permit/Accreditation #';
 
-                if (row === 'ECC') {
+                // If CP or NA checked → show single merged exempt cell
+                if (isPermitClientProvided || isPermitNA) {
+                    const _mergeColor = isPermitClientProvided ? '#1565c0' : '#616161';
+                    const _mergeBg    = isPermitClientProvided ? '#dceefb' : '#eeeeee';
+                    const _mergeIcon  = isPermitClientProvided ? 'fa-building' : 'fa-ban';
+                    const _mergeText  = isPermitClientProvided ? 'Client-Provided — Exempt from compliance tracking' : 'Not Applicable — Exempt from compliance tracking';
+                    html += `<td colspan="3" style="text-align:center;background:${_mergeBg};white-space:nowrap;">
+                        <span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;color:${_mergeColor};font-size:0.75rem;font-style:italic;font-weight:700;">
+                            <i class="fas ${_mergeIcon}" style="font-size:0.8rem;"></i>
+                            ${_mergeText}
+                            <span style="position:relative;display:inline-flex;align-items:center;">
+                                <i class="fas fa-info-circle" style="color:${_mergeColor};font-size:0.82rem;cursor:pointer;opacity:0.8;"
+                                   onmouseenter="(function(el){el.nextElementSibling.style.display='block';})(this)"
+                                   onmouseleave="(function(el){el.nextElementSibling.style.display='none';})(this)"></i>
+                                <span style="display:none;position:absolute;bottom:130%;left:50%;transform:translateX(-50%);background:${_mergeColor};color:white;font-size:0.67rem;font-style:normal;font-weight:600;padding:7px 11px;border-radius:7px;white-space:normal;width:220px;text-align:center;z-index:999;box-shadow:0 3px 10px rgba(0,0,0,0.25);line-height:1.4;">
+                                    <i class="fas fa-info-circle" style="margin-right:4px;"></i>${isPermitClientProvided ? 'Client-Provided is checked. This permit is managed by the client and is exempt from compliance tracking.' : 'Not Applicable is checked. This permit does not apply to this project and is excluded from compliance tracking.'}
+                                    <span style="position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:${_mergeColor};"></span>
+                                </span>
+                            </span>
+                        </span>
+                    </td>`;
+                } else if (row === 'ECC') {
                     {
                     const eccKey = `permits_ECC`;
                     const rawVal = p.vals[eccKey];
@@ -20042,7 +20140,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     <span style="flex:1; font-size:0.78rem; color:#555;">ECC #${idx + 1}</span>
                                     ${inputsEditable ? `<span onclick="removeEccEntry('${p.name}',${idx})" title="Remove this entry" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;border:1.5px solid #ef5350;color:#ef5350;background:transparent;user-select:none;white-space:nowrap;">✕ Remove</span>` : ''}
                                 </div>
-                            </td>`;
+                            </td>
+                            <td style="background:${isPermitClientProvided?'#dceefb':isPermitNA?'#eeeeee':''}" ></td>
+                            <td style="background:${isPermitClientProvided?'#dceefb':isPermitNA?'#eeeeee':''}" ></td>`;
                         }
                         html += `<td style="min-width:200px;padding:8px 12px;"><input type="text" placeholder="Permit/Accreditation #" value="${entry.permitNo ?? ''}" ${naDisabled} oninput="updateEccEntry('${p.name}',${idx},'permitNo',this.value)" style="width:100%;"></td>`;
                         html += `<td style="min-width:140px;padding:8px 12px;"><input type="date" value="${entry.dateIssued ?? ''}" ${naDisabled} oninput="updateEccEntry('${p.name}',${idx},'dateIssued',this.value)" style="width:100%;"></td>`;
@@ -20079,6 +20179,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             html += '<span style="flex:1;font-size:0.78rem;color:#555;">' + _mpShort + ' #' + (_mpIdx+1) + '</span>';
                             if (inputsEditable) html += '<span onclick="removeMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ')" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;border:1.5px solid #ef5350;color:#ef5350;background:transparent;user-select:none;">&#10005; Remove</span>';
                             html += '</div></td>';
+                            html += '<td style="background:' + (isPermitClientProvided?'#dceefb':isPermitNA?'#eeeeee':'') + '"></td>';
+                            html += '<td style="background:' + (isPermitClientProvided?'#dceefb':isPermitNA?'#eeeeee':'') + '"></td>';
                         }
                         var _mpNo  = _mpEntry.permitNo || '';
                         var _mpIss = _mpEntry.dateIssued || '';
@@ -20110,7 +20212,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${expiryDate}" data-allow-future ${naDisabled} oninput="updateVal('${p.name}','${_safeKey}',3,this.value)" style="width: 100%;"></td>`;
                         }
                     }
-                }
+                } // end else (not client-provided / not N/A)
             } else if (state.currentTab === 'emb') {
                 if (row === "SMR (Quarterly) - Submission Date") {
                     const _nowQ = Math.ceil((new Date().getMonth() + 1) / 3); // current quarter 1-4
@@ -20225,6 +20327,38 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         html += `<td class="monthly-data" style="text-align:center;background:${bgColor};cursor:default;" title="Auto-computed from ESH Calendar &amp; Drills — cannot be edited manually">
                             <span style="font-weight:${dispWeight};color:${dispColor};font-size:0.8rem;">
                                 ${disp}${count>0?'<i class="fas fa-lock" style="font-size:0.5rem;margin-left:3px;opacity:0.5;vertical-align:middle;"></i>':''}
+                            </span>
+                        </td>`;
+                    }
+                } else if (state.currentTab === 'activities' && row === 'No. of Identified Near-Miss') {
+                    const _nmEntries = p.vals['lta-registry_entries'] || [];
+                    const _nmYear = state.selectedYear || new Date().getFullYear();
+                    const _now2 = new Date();
+                    const _curYear2 = _now2.getFullYear();
+                    const _curMonth2 = _now2.getMonth();
+                    const _selYear2 = state.selectedYear || _curYear2;
+
+                    for (let mi = 0; mi < 12; mi++) {
+                        const count = _nmEntries.filter(e => {
+                            if (e.incidentClassification !== 'Near Miss') return false;
+                            const d = e.dateOfAccident || '';
+                            if (!d) return false;
+                            const yr = parseInt(d.substring(0, 4));
+                            const mo = parseInt(d.substring(5, 7)) - 1;
+                            return yr === _nmYear && mo === mi;
+                        }).length;
+
+                        const isPast2 = _selYear2 < _curYear2 || (_selYear2 === _curYear2 && mi < _curMonth2);
+                        const isCurrent2 = _selYear2 === _curYear2 && mi === _curMonth2;
+                        const showZero2 = (isPast2 || isCurrent2) && count === 0;
+                        const disp2 = count > 0 ? count : (showZero2 ? '0' : '');
+                        const dispColor2 = count > 0 ? '#e65100' : (showZero2 ? '#999' : '#bbb');
+                        const dispWeight2 = count > 0 ? '700' : (showZero2 ? '600' : '400');
+                        const bgColor2 = count > 0 ? 'rgba(230,81,0,0.08)' : (showZero2 ? 'rgba(0,0,0,0.02)' : '');
+
+                        html += `<td class="monthly-data" style="text-align:center;background:${bgColor2};cursor:default;" title="Auto-counted from Incident &amp; Accident Registry — Near Miss entries for this month">
+                            <span style="font-weight:${dispWeight2};color:${dispColor2};font-size:0.8rem;">
+                                ${disp2}${count>0?'<i class="fas fa-lock" style="font-size:0.5rem;margin-left:3px;opacity:0.5;vertical-align:middle;"></i>':''}
                             </span>
                         </td>`;
                     }
@@ -20358,6 +20492,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         }
                     }
                     html += `<td class="ytd-cell" style="color:${ytdValue>0?'#2e7d32':''};">${ytdValue > 0 ? fmtNum(ytdValue) : ''}</td>`;
+                } else if (state.currentTab === 'activities' && row === 'No. of Identified Near-Miss') {
+                    const _nmYtdEntries = p.vals['lta-registry_entries'] || [];
+                    const _nmYtdYear = state.selectedYear || new Date().getFullYear();
+                    const _nmYtdCount = _nmYtdEntries.filter(e => {
+                        if (e.incidentClassification !== 'Near Miss') return false;
+                        const d = e.dateOfAccident || '';
+                        return d && parseInt(d.substring(0, 4)) === _nmYtdYear;
+                    }).length;
+                    html += `<td class="ytd-cell" style="color:${_nmYtdCount>0?'#e65100':''};font-weight:800;">${_nmYtdCount > 0 ? fmtNum(_nmYtdCount) : ''}</td>`;
                 } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
                     const _mhKey = `exposures_Total Exposed Manhour`;
                     const _prevBase = parseFloat(p.vals[key] ? (p.vals[key][0] ?? 0) : 0) || 0;
@@ -21202,62 +21345,91 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             +'</div><div class="region-banner-right">'
                             +'<span class="rbadge rbadge-count">'+regProjs.length+' PROJ</span>'
                             +'<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">'+doeComplete+'/'+doeCurQ+' complete</span>'
-                            +(canEditReg?'<button class="lta-add-btn" onclick="event.stopPropagation();window.openDoeDialog(\''+regKey+'\',\''+reg.replace(/'/g,"\\'")+'\',\'Q1\',true)" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-plus"></i> Add Entry</button>':'')
                             +'<i class="fas fa-chevron-down region-toggle-icon"></i>'
                             +'</div></div></div>'
-                            +'<div id="region-content-'+reg+'" class="region-content '+(isCollapsed?'collapsed':'')+'">';
+                            +'<div id="region-content-'+reg+'" class="region-content '+(isCollapsed?'collapsed':'')+'"><div style="overflow-x:auto;padding:12px 14px;">';
 
-                        var doePeriods = [];
-                        for(var q2=1;q2<=doeCurQ;q2++){
-                            var qFill = regProjs.filter(function(p){ return p.vals[DOE_KEY]&&p.vals[DOE_KEY][q2]; }).length;
-                            doePeriods.push({
-                                label: 'DOE Quarterly Report — '+DOE_Q_LABELS[q2-1]+' &nbsp;<span style="font-size:0.6rem;color:#888;">'+DOE_Q_DUE[q2-1]+'</span>',
-                                shortLabel: 'Q'+q2, filledCount: qFill, totalSlots: regProjs.length,
-                                sub: 'Submitted: <span style="color:'+(qFill===regProjs.length?'#2e7d32':qFill>0?'#e65100':'#c62828')+';font-weight:700;">'+qFill+'/'+regProjs.length+'</span>',
-                                periodKey: 'Q'+q2
-                            });
+                        // Build inline table: PROJECT | Q1 | Q2 | Q3 | Q4
+                        html += '<table class="got-tbl" style="width:auto;min-width:100%;">';
+
+                        // Header row
+                        html += '<thead><tr>'
+                            + '<th class="got-th-left got-th-dark" style="min-width:180px;text-align:left;padding-left:10px;">PROJECT</th>';
+                        var _qDueLabels = ['Due: Apr 20','Due: Jul 20','Due: Oct 20','Due: Jan 20'];
+                        for(var qh=1;qh<=4;qh++){
+                            var _qPast = qh <= doeDueQ;
+                            html += '<th style="min-width:155px;'+(!_qPast?'opacity:0.5;':'')+'">'
+                                + DOE_Q_LABELS[qh-1]
+                                + '<br><small style="font-weight:400;font-size:0.6rem;color:'+(_qPast?'#b71c1c':'#999')+';letter-spacing:0.2px;">'+_qDueLabels[qh-1]+'</small>'
+                                + '</th>';
                         }
-                        html += _buildRegionMonthList(reg, regKey, doePeriods, canEditReg, 'window.openDoeDialog');
-                        html += '</div>';
+                        html += '</tr></thead><tbody>';
+
+                        regProjs.forEach(function(p){
+                            var _isCP = !!(p.vals && (p.vals['doe_client_provided']==='1' || p.vals['doe-permit_client_provided']==='1'));
+                            var _pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                            var _stopped = isProjectOnStoppage(p);
+
+                            html += '<tr style="'+(_isCP?'background:#e3f2fd;':'')+'">';
+
+                            // Project name
+                            html += '<td class="got-td-proj" style="text-align:left;background:'+(_isCP?'#bbdefb':'#e8f5e9')+';color:'+(_isCP?'#1565c0':'#1b5e20')+';position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;">'
+                                + '<i class="fas fa-leaf" style="color:#4caf50;margin-right:5px;"></i>'
+                                + p.name
+                                + (_isCP?' <span style="font-size:0.58rem;font-weight:800;background:#1565c0;color:white;border-radius:6px;padding:1px 6px;margin-left:4px;">CLIENT</span>':'')
+                                + (_stopped?' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;margin-left:3px;"><i class="fas fa-pause-circle"></i></span>':'')
+                                + '</td>';
+
+                            // Q1–Q4 cells
+                            for(var q=1;q<=4;q++){
+                                var _val = (p.vals && p.vals[DOE_KEY]) ? (p.vals[DOE_KEY][q]||'') : '';
+                                var _doeNow2 = new Date();
+                                var _doeThisYr = doeSelYear === _doeNow2.getFullYear();
+                                var _doeFutQ = _doeThisYr && q > doeCurQ;
+                                var _dueMon = {1:[3,20],2:[6,20],3:[9,20],4:[0,20]};
+                                var _dm = _dueMon[q];
+                                var _dueDt = q===4 ? new Date(doeSelYear+1,_dm[0],_dm[1]) : new Date(doeSelYear,_dm[0],_dm[1]);
+                                var _isPastDue = !_doeFutQ && _doeNow2 > _dueDt;
+
+                                if (_isCP) {
+                                    html += '<td style="text-align:center;background:#dceefb;padding:5px 8px;white-space:nowrap;">'
+                                        + '<span style="display:inline-flex;align-items:center;justify-content:center;gap:4px;color:#1565c0;font-size:0.72rem;font-style:italic;font-weight:600;">'
+                                        + '<i class="fas fa-building" style="font-size:0.72rem;"></i>Client-Provided'
+                                        + '<span style="position:relative;display:inline-flex;align-items:center;">'
+                                        + '<i class="fas fa-info-circle" style="color:#1976d2;font-size:0.78rem;cursor:pointer;" '
+                                        + 'onmouseenter="(function(el){el.nextElementSibling.style.display=\'block\';})(this)" '
+                                        + 'onmouseleave="(function(el){el.nextElementSibling.style.display=\'none\';})(this)"></i>'
+                                        + '<span style="display:none;position:absolute;bottom:130%;left:50%;transform:translateX(-50%);'
+                                        + 'background:#1565c0;color:white;font-size:0.67rem;font-style:normal;font-weight:600;'
+                                        + 'padding:7px 11px;border-radius:7px;white-space:normal;width:220px;text-align:center;'
+                                        + 'z-index:999;box-shadow:0 3px 12px rgba(0,0,0,0.28);line-height:1.5;">'
+                                        + '<i class="fas fa-info-circle" style="margin-right:4px;"></i>'
+                                        + 'Client-Provided is checked. DOE Quarterly Reportorial is handled by the client and is exempt from compliance tracking.'
+                                        + '<span style="position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1565c0;"></span>'
+                                        + '</span></span></span></td>';
+
+                                } else if (_doeFutQ) {
+                                    html += '<td style="background:#f5f5f5;text-align:center;opacity:0.55;font-size:0.68rem;color:#bbb;padding:5px;">—</td>';
+
+                                } else {
+                                    var _bg  = _val ? '#e8f5e9' : (_isPastDue ? '#ffebee' : '#fff8e1');
+                                    var _brd = _val ? '#a5d6a7' : (_isPastDue ? '#ef9a9a' : '#ffe082');
+                                    var _ibg = _val ? '#f1fff1' : (_isPastDue ? '#fff5f5' : '#fffde7');
+                                    var _clr = _val ? '#2e7d32' : (_isPastDue ? '#c62828' : '#7a5c00');
+                                    html += '<td style="background:'+_bg+';text-align:center;padding:4px 5px;">'
+                                        + '<input type="date" value="'+_val+'" '+(canEditReg&&!_stopped?'':'disabled')+' '
+                                        + 'oninput="updateVal(\''+_pnSafe+'\',\''+DOE_KEY+'\','+q+',this.value);_refreshDateCell(this)" '
+                                        + 'style="border:1.5px solid '+_brd+';border-radius:4px;padding:3px 4px;background:'+_ibg+';color:'+_clr+';width:140px;font-size:0.67rem;">'
+                                        + '</td>';
+                                }
+                            }
+
+                            html += '</tr>';
+                        });
+
+                        html += '</tbody></table></div></div>';
                     });
 
-                    container.innerHTML = html;
-
-                    window.openDoeDialog = function(regKey, reg, periodKey, editMode) {
-                        var selYear = state.selectedYear || new Date().getFullYear();
-                        var regProjs = (state.filteredProjects||state.projects).filter(function(p){ return p.region===reg && p.isRenewable; });
-                        if (!regProjs.length) return;
-                        var canEdit = !!editMode;
-                        var dis = canEdit?'':'disabled';
-                        if (canEdit) _activateEditMode();
-
-                        var qIdx = parseInt(periodKey.replace('Q',''));
-                        var qLabel = DOE_Q_LABELS[qIdx-1];
-                        var qDue   = DOE_Q_DUE[qIdx-1];
-
-                        var rowDefs = [
-                            { label: 'Submission Date', desc: 'DOE Quarterly Report '+qLabel+' &nbsp;<span style="font-size:0.6rem;color:#888;">'+qDue+'</span>',
-                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:DOE_KEY,idx:qIdx,val:p.vals[DOE_KEY]?p.vals[DOE_KEY][qIdx]||'':'',dis:(stopped||!canEdit)?'disabled':dis,inputType:'date',stopped:stopped}; }) }
-                        ];
-
-                        var tableHtml = _modalTable(rowDefs, null, regProjs.map(function(p){ return p.name + (isProjectOnStoppage(p) ? ' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;"><i class=\'fas fa-pause-circle\'></i></span>' : ''); }));
-                        var header = _modalHeader('linear-gradient(90deg,#0d3d0f,#1b5e20,#2e7d32)',
-                            (canEdit?'✏️ Edit':'🔍 View')+' DOE Report — <span style="color:#fbc02d;">'+qLabel+'</span>',
-                            '<i class="fas fa-location-dot" style="margin-right:4px;"></i>'+reg+' · '+regProjs.length+' RE project'+(regProjs.length!==1?'s':'')+' &nbsp;·&nbsp; '+selYear,
-                            'doe-modal');
-                        var infoBar = _modalInfoBar('All RE projects in region — '+qLabel+' '+selYear);
-                        var footer = _modalFooter(
-                            canEdit ? 'window._saveDoeModal()' : null,
-                            canEdit ? null : 'window.openDoeDialog(\''+regKey.replace(/'/g,"\\'")+'\',\''+reg.replace(/'/g,"\\'")+'\',\''+periodKey+'\',true)',
-                            'doe-modal');
-
-                        var modal = _buildModalOverlay('doe-modal', header, infoBar, tableHtml, footer);
-                        modal.setAttribute('data-reg', reg);
-                        modal.setAttribute('data-period', periodKey);
-                    };
-                    window._saveDoeModal = function(){ _genericSaveModal('doe-modal','doe'); };
-
-                    return;
                 } // end doe
 
                 // ══════════════════════════════════════════════════════════════════════
@@ -21460,22 +21632,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var currentMoIdx = new Date().getMonth();
 
                         function getRegMonthScore(reg, mo) {
-                            var projs = displayProjects.filter(function(p){ return p.region === reg && !(p.vals && p.vals['kpm_na'] === '1') && !isProjectOnStoppage(p); });
-                            if (!projs.length) return null;
-                            var grand = 0, hasAny = false;
-                            KPM_ESH_ROWS.forEach(function(row) {
-                                var validEPs = projs.map(function(p) {
-                                    var v = p.vals['kpm_v3_' + mo + '_' + row.id];
-                                    var n = parseFloat(String(v||'').replace('%','').trim());
-                                    return isNaN(n) ? null : n / 100;
-                                }).filter(function(v){ return v !== null; });
-                                if (validEPs.length) {
-                                    hasAny = true;
-                                    var avgEp = validEPs.reduce(function(s,v){return s+v;},0) / validEPs.length;
-                                    grand += avgEp * row.dw;
-                                }
-                            });
-                            return hasAny ? grand : null;
+                            // Mirror exactly what kpmRegionMonthScore returns —
+                            // same value shown in the region banner/list.
+                            return kpmRegionMonthScore(reg, mo);
                         }
 
                         function cellBg(v){ return v >= 0.90 ? '#e8f5e9' : v >= 0.85 ? '#fff8e1' : '#ffebee'; }
@@ -21945,14 +22104,17 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         if (!projs.length) return null;
                         var grand = 0, hasAny = false;
                         KPM_ESH_ROWS.forEach(function(row) {
-                            var validEPs = projs.map(function(p) {
+                            // FIX: All active projects in the region are included in the denominator.
+                            // Projects with no input yet are treated as 0 — not excluded.
+                            var allEPs = projs.map(function(p) {
                                 var v = p.vals['kpm_v3_' + mo + '_' + row.id];
                                 var n = parseFloat(String(v||'').replace('%','').trim());
-                                return isNaN(n) ? null : n / 100;
-                            }).filter(function(v){ return v !== null; });
-                            if (validEPs.length) {
+                                return isNaN(n) ? 0 : n / 100;
+                            });
+                            var hasInput = allEPs.some(function(v){ return v > 0; });
+                            if (hasInput) {
                                 hasAny = true;
-                                grand += (validEPs.reduce(function(s,v){return s+v;},0) / validEPs.length) * row.dw;
+                                grand += (allEPs.reduce(function(s,v){return s+v;},0) / allEPs.length) * row.dw;
                             }
                         });
                         return hasAny ? grand : null;
@@ -22714,13 +22876,35 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         `;
                         
                         regProjects.forEach(p => {
+                            const _doeClient = !!(p.vals && (p.vals['doe_client_provided'] === '1' || p.vals['doe-permit_client_provided'] === '1'));
+                            const _doePnSafe = p.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
-                            html += `<tr>
-                                <td style="text-align: left; font-weight: 700; background: #e8f5e9; color: #1b5e20; position: sticky; left: 0; z-index: 5;">
+                            html += `<tr style="${_doeClient ? 'background:#e3f2fd;' : ''}">
+                                <td style="text-align: left; font-weight: 700; background: ${_doeClient ? '#bbdefb' : '#e8f5e9'}; color: ${_doeClient ? '#1565c0' : '#1b5e20'}; position: sticky; left: 0; z-index: 5;">
                                     <i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;"></i>
                                     ${p.name}
+                                    ${_doeClient ? '<span style="font-size:0.6rem;font-weight:800;background:#1565c0;color:white;border-radius:8px;padding:1px 7px;margin-left:6px;">CLIENT</span>' : ''}
                                 </td>`;
-                            
+
+                            if (_doeClient) {
+                                // Single merged cell spanning all 4 quarters
+                                html += `<td colspan="4" style="text-align:center;background:#dceefb;white-space:nowrap;">
+                                    <span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;color:#1565c0;font-size:0.78rem;font-style:italic;font-weight:700;">
+                                        <i class="fas fa-building" style="font-size:0.82rem;"></i>
+                                        Client-Provided — Exempt from DOE Quarterly Reportorial
+                                        <span style="position:relative;display:inline-flex;align-items:center;">
+                                            <i class="fas fa-info-circle" style="color:#1976d2;font-size:0.85rem;cursor:pointer;"
+                                               onmouseenter="(function(el){el.nextElementSibling.style.display='block';})(this)"
+                                               onmouseleave="(function(el){el.nextElementSibling.style.display='none';})(this)"></i>
+                                            <span style="display:none;position:absolute;bottom:130%;left:50%;transform:translateX(-50%);background:#1565c0;color:white;font-size:0.68rem;font-style:normal;font-weight:600;padding:7px 11px;border-radius:7px;white-space:normal;width:230px;text-align:center;z-index:999;box-shadow:0 3px 10px rgba(0,0,0,0.25);line-height:1.4;">
+                                                <i class="fas fa-info-circle" style="margin-right:4px;"></i>Client-Provided is checked under DOE Safety Officer Permit. All quarterly reportorial submissions are handled by the client and exempt from compliance tracking.
+                                                <span style="position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1565c0;"></span>
+                                            </span>
+                                        </span>
+                                    </span>
+                                </td>`;
+                            } else {
+
                             const _doeNowQ = Math.ceil((new Date().getMonth() + 1) / 3);
                             const _doeSelYr = state.selectedYear || new Date().getFullYear();
                             const _doeThisYear = _doeSelYr === new Date().getFullYear();
@@ -22738,6 +22922,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 const _doeCellBg = !_doeThisYear ? '' : (_doeFutureQ ? 'background:#f5f5f5;opacity:0.65;' : val ? 'background:#e8f5e9;' : _doeIsPastDue ? 'background:#ffebee;' : 'background:#fff8e1;');
                                 const _doeInputStyle = (_doeThisYear && !_doeFutureQ) ? `border:1.5px solid ${val?'#a5d6a7':_doeIsPastDue?'#ef9a9a':'#ffe082'};border-radius:4px;padding:3px 4px;background:${val?'#f1fff1':_doeIsPastDue?'#fff5f5':'#fffde7'};color:${val?'#2e7d32':_doeIsPastDue?'#c62828':'#7a5c00'};width:140px;` : 'width:140px;';
                                 
+                                if (false) { // exempt branch removed — handled above via colspan
+                                    // (dead code — kept for structure only)
+                                    html += '';
+                                } else {
                                 html += `<td style="${_doeCellBg}">
                                     <input type="date" 
                                            value="${val}" 
@@ -22786,7 +22974,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         </button>
                                     ` : ''}
                                 </td>`;
-                            }
+                                } // end else (not client-provided)
+                            } // end for q
+                            } // end else (not client-provided — outer)
                             
                             html += `</tr>`;
                         });
@@ -22862,6 +23052,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             <table class="env-tbl">
                                 <tr>
                                     <th class="env-th-left env-th-sticky env-th-dark" style="width: 280px;">PROJECT NAME</th>
+                                    <th style="text-align:center;white-space:nowrap;background:#e3f2fd;color:#1565c0;"><i class="fas fa-building" style="margin-right:5px;"></i>Client-Provided</th>
                                     <th>SAFETY OFFICER PERMIT NUMBER</th>
                                     <th>VALID UNTIL</th>
                                     <th>PDF FILE</th>
@@ -22869,6 +23060,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         `;
                         
                         regProjects.forEach(p => {
+                            const _dpClient = !!(p.vals && p.vals['doe-permit_client_provided'] === '1');
+                            const _dpPnSafe = p.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                             const permitNumber = p.vals[key] ? (p.vals[key][1] ?? "") : "";
                             const rawValidUntil = p.vals[key] ? (p.vals[key][2] ?? "") : "";
 
@@ -22925,14 +23118,38 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 }
                             }
 
-                            html += `<tr>
-                                <td style="text-align: left; font-weight: 700; background: #e8f5e9; color: #1b5e20; position: sticky; left: 0; z-index: 5;">
+                            html += `<tr style="${_dpClient ? 'background:#e3f2fd;' : ''}">
+                                <td style="text-align: left; font-weight: 700; background: ${_dpClient ? '#bbdefb' : '#e8f5e9'}; color: ${_dpClient ? '#1565c0' : '#1b5e20'}; position: sticky; left: 0; z-index: 5;">
                                     <i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;"></i>
                                     ${p.name}
+                                    ${_dpClient ? '<span style="font-size:0.6rem;font-weight:800;background:#1565c0;color:white;border-radius:8px;padding:1px 7px;margin-left:6px;">CLIENT</span>' : ''}
                                 </td>
-                                <td><input type="text" placeholder="e.g., HOEMD-2025-486" value="${permitNumber}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 100%;"></td>
-                                <td><input type="date" value="${validUntil}" data-allow-future ${(state.isEditing && canEditRegion) ? '' : 'disabled'} onchange="updateVal('${p.name}','${key}',2,this.value)" style="width: 100%;"></td>
-                                <td style="text-align: center;">${pdfCell}</td>
+                                <td style="text-align:center;background:${_dpClient?'#dceefb':''}">
+                                    <label style="display:inline-flex;align-items:center;justify-content:center;cursor:${(state.isEditing&&canEditRegion)?'pointer':'default'};">
+                                        <input type="checkbox" ${_dpClient?'checked':''} ${(state.isEditing&&canEditRegion)?'':' disabled'}
+                                            onchange="(function(chk){var proj=state.projects.find(function(x){return x.name==='${_dpPnSafe}';});if(!proj)return;if(!proj.vals)proj.vals={};proj.vals['doe-permit_client_provided']=chk?'1':'';proj.vals['doe_client_provided']=chk?'1':'';if(typeof markPendingSync==='function')markPendingSync();if(typeof saveToFirebaseDebounced==='function')saveToFirebaseDebounced();render();})(this.checked)"
+                                            style="accent-color:#1565c0;width:16px;height:16px;cursor:inherit;">
+                                    </label>
+                                </td>
+                                ${_dpClient ? `
+                                <td colspan="3" style="text-align:center;background:#dceefb;white-space:nowrap;">
+                                    <span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;color:#1565c0;font-size:0.78rem;font-style:italic;font-weight:700;">
+                                        <i class="fas fa-building" style="font-size:0.82rem;"></i>
+                                        Exempt — Client handles permit
+                                        <span style="position:relative;display:inline-flex;align-items:center;">
+                                            <i class="fas fa-info-circle" style="color:#1976d2;font-size:0.85rem;cursor:pointer;"
+                                               onmouseenter="(function(el){el.nextElementSibling.style.display='block';})(this)"
+                                               onmouseleave="(function(el){el.nextElementSibling.style.display='none';})(this)"></i>
+                                            <span style="display:none;position:absolute;bottom:130%;left:50%;transform:translateX(-50%);background:#1565c0;color:white;font-size:0.68rem;font-style:normal;font-weight:600;padding:7px 11px;border-radius:7px;white-space:normal;width:230px;text-align:center;z-index:999;box-shadow:0 3px 10px rgba(0,0,0,0.25);line-height:1.4;">
+                                                <i class="fas fa-info-circle" style="margin-right:4px;"></i>Client-Provided is checked. The DOE Safety Officer Permit is managed by the client and is exempt from compliance tracking.
+                                                <span style="position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1565c0;"></span>
+                                            </span>
+                                        </span>
+                                    </span>
+                                </td>` : `
+                                <td>${'<input type="text" placeholder="e.g., HOEMD-2025-486" value="' + permitNumber + '" ' + ((state.isEditing && canEditRegion) ? '' : 'disabled') + ' oninput="updateVal(\'${p.name}\',\'${key}\',1,this.value)" style="width: 100%;">'}</td>
+                                <td>${'<input type="date" value="' + validUntil + '" data-allow-future ' + ((state.isEditing && canEditRegion) ? '' : 'disabled') + ' onchange="updateVal(\'${p.name}\',\'${key}\',2,this.value)" style="width: 100%;">'}</td>
+                                <td style="text-align: center;">${pdfCell}</td>`}
                             </tr>`;
                         });
                         
@@ -30882,74 +31099,79 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>`;
         });
 
-        const grandKwh   = overallSummary.reduce((s,r)=>s+r.kwh,0);
-        const grandAmt   = overallSummary.reduce((s,r)=>s+r.amount,0);
-        const grandGhg   = overallSummary.reduce((s,r)=>s+r.ghg,0);
-        const grandTrees = overallSummary.reduce((s,r)=>s+r.trees,0);
-        const hasAnyData = grandKwh > 0 || overallSummary.some(r=>r.kwh>0);
+        const grandKwh     = overallSummary.reduce((s,r)=>s+r.kwh,0);
+        const grandAmt     = overallSummary.reduce((s,r)=>s+r.amount,0);
+        const grandGhg     = overallSummary.reduce((s,r)=>s+r.ghg,0);
+        const grandTrees   = overallSummary.reduce((s,r)=>s+r.trees,0);
+        const grandDomM3   = overallSummary.reduce((s,r)=>s+(r.domM3||0),0);
+        const grandDomAmt  = overallSummary.reduce((s,r)=>s+(r.domAmt||0),0);
+        const grandPotLit  = overallSummary.reduce((s,r)=>s+(r.potLit||0),0);
+        const grandPotAmt  = overallSummary.reduce((s,r)=>s+(r.potAmt||0),0);
+        const grandIndM3   = overallSummary.reduce((s,r)=>s+(r.indM3||0),0);
+        const grandIndAmt  = overallSummary.reduce((s,r)=>s+(r.indAmt||0),0);
+        const grandBioGen  = overallSummary.reduce((s,r)=>s+(r.bioGen||0),0);
+        const grandNonbio  = overallSummary.reduce((s,r)=>s+(r.nonbioGen||0),0);
+        const grandRecGen  = overallSummary.reduce((s,r)=>s+(r.recGen||0),0);
+        const grandHazGen  = overallSummary.reduce((s,r)=>s+(r.hazGen||0),0);
+        const grandSeptage = overallSummary.reduce((s,r)=>s+(r.septage||0),0);
+        const hasAnyData   = grandKwh > 0 || grandDomM3 > 0 || grandBioGen > 0 || overallSummary.some(r=>r.kwh>0);
 
         const summaryContainer = document.getElementById('env-overall-summary-container');
         if (summaryContainer) {
-            summaryContainer.innerHTML = `
-        <div style="background:var(--bg-card);border-radius:12px;overflow:hidden;border:2px solid #2e7d32;box-shadow:0 4px 16px rgba(46,125,50,0.12);">
-            <div style="background:linear-gradient(135deg,#0d3d0f 0%,#1b5e20 60%,#2e7d32 100%);padding:12px 18px;display:flex;align-items:center;gap:10px;">
-                <i class="fas fa-globe" style="color:#a5d6a7;font-size:1.1rem;"></i>
-                <span style="font-weight:800;color:white;font-size:0.88rem;letter-spacing:0.5px;">OVERALL SUMMARY — ALL REGIONS</span>
-                <span style="background:rgba(255,255,255,0.15);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;margin-left:auto;">${allProjects.length} Total Projects</span>
-            </div>
-            <div style="overflow-x:auto;">
-                <table style="width:100%;border-collapse:collapse;font-size:0.72rem;">
-                    <thead>
-                        <tr>
-                            <th style="padding:9px 14px;text-align:left;background:#b7ddb5;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.68rem;">Region</th>
-                            <th style="padding:9px 14px;text-align:center;background:#b7ddb5;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.68rem;">Projects</th>
-                            <th style="padding:9px 14px;text-align:right;background:#c5e8c3;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.68rem;">kWh</th>
-                            <th style="padding:9px 14px;text-align:right;background:#c5e8c3;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.68rem;">Amount (Php)</th>
-                            <th style="padding:9px 14px;text-align:right;background:#c5e8c3;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.68rem;">Eq. GHG (tCO2)</th>
-                            <th style="padding:9px 14px;text-align:right;background:#c5e8c3;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.68rem;">Offset (Trees)</th>
-                            <th style="padding:9px 14px;text-align:right;background:#c5e8c3;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.68rem;">% of Total kWh</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${overallSummary.map((s,i) => `
-                        <tr style="background:${i%2===0?'var(--bg-card)':'var(--input-bg)'};">
-                            <td style="padding:8px 14px;border:1px solid #e8f5e9;font-weight:700;display:flex;align-items:center;gap:7px;">
-                                <span style="width:10px;height:10px;border-radius:2px;background:${s.color};flex-shrink:0;display:inline-block;"></span>
-                                ${s.region}
-                            </td>
-                            <td style="padding:8px 14px;text-align:center;border:1px solid #e8f5e9;color:var(--text-secondary);">${s.projCount}</td>
-                            <td style="padding:8px 14px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);font-weight:${s.kwh>0?'600':'400'};">${s.kwh>0?s.kwh.toLocaleString(undefined,{maximumFractionDigits:2}):'—'}</td>
-                            <td style="padding:8px 14px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);">${s.amount>0?s.amount.toLocaleString(undefined,{maximumFractionDigits:2}):'—'}</td>
-                            <td style="padding:8px 14px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);">${s.ghg>0?s.ghg.toFixed(4):'—'}</td>
-                            <td style="padding:8px 14px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);">${s.trees>0?s.trees.toFixed(4):'—'}</td>
-                            <td style="padding:8px 14px;text-align:right;border:1px solid #e8f5e9;">
-                                ${grandKwh>0 ? `
-                                <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;">
-                                    <div style="flex:1;max-width:80px;background:#e8f5e9;border-radius:3px;height:6px;overflow:hidden;">
-                                        <div style="width:${Math.round((s.kwh/grandKwh)*100)}%;height:100%;background:${s.color};border-radius:3px;"></div>
-                                    </div>
-                                    <span style="font-weight:700;color:${s.color};min-width:32px;text-align:right;">${Math.round((s.kwh/grandKwh)*100)}%</span>
-                                </div>` : '<span style="color:var(--text-secondary);">—</span>'}
-                            </td>
-                        </tr>`).join('')}
-                    </tbody>
-                    <tfoot>
-                        <tr style="background:linear-gradient(90deg,#e8f5e9,#f1f8e9);">
-                            <td style="padding:10px 14px;font-weight:800;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.73rem;"><i class="fas fa-globe" style="margin-right:5px;"></i>GRAND TOTAL</td>
-                            <td style="padding:10px 14px;text-align:center;font-weight:800;color:#1b5e20;border:1px solid #c8e6c9;">${allProjects.length}</td>
-                            <td style="padding:10px 14px;text-align:right;font-weight:800;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.74rem;">${grandKwh>0?grandKwh.toLocaleString(undefined,{maximumFractionDigits:2}):'—'}</td>
-                            <td style="padding:10px 14px;text-align:right;font-weight:800;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.74rem;">${grandAmt>0?grandAmt.toLocaleString(undefined,{maximumFractionDigits:2}):'—'}</td>
-                            <td style="padding:10px 14px;text-align:right;font-weight:800;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.74rem;">${grandGhg>0?grandGhg.toFixed(4):'—'}</td>
-                            <td style="padding:10px 14px;text-align:right;font-weight:800;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.74rem;">${grandTrees>0?grandTrees.toFixed(4):'—'}</td>
-                            <td style="padding:10px 14px;text-align:center;font-weight:800;color:#1b5e20;border:1px solid #c8e6c9;">100%</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-            ${!hasAnyData ? `<div style="padding:24px;text-align:center;color:var(--text-secondary);font-size:0.78rem;font-style:italic;"><i class="fas fa-seedling" style="opacity:0.2;font-size:1.8rem;display:block;margin-bottom:8px;"></i>No electricity data entered yet. Add entries per project in each region above.</div>` : ''}
-        </div>`;
-        }
+            const _fmt = (v, dec) => { dec = dec||2; return v > 0 ? v.toLocaleString(undefined,{maximumFractionDigits:dec}) : '\u2014'; };
+            const _th  = function(txt, bg) { return '<th style="padding:7px 10px;text-align:right;background:'+bg+';color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.62rem;white-space:nowrap;">'+txt+'</th>'; };
+            const _thL = function(txt, bg) { return '<th style="padding:7px 10px;text-align:left;background:'+bg+';color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.62rem;white-space:nowrap;">'+txt+'</th>'; };
+            const _td  = function(v, bold) { return '<td style="padding:7px 10px;text-align:right;border:1px solid #e8f5e9;font-size:0.68rem;'+(bold?'font-weight:700;':'')+'">'+_fmt(v)+'</td>'; };
+            const _tdF = function(v) { return '<td style="padding:7px 10px;text-align:right;border:1px solid #e8f5e9;font-size:0.68rem;">'+(v>0?v.toFixed(4):'\u2014')+'</td>'; };
 
+            const _rowHtml = overallSummary.map(function(s, i) {
+                return '<tr style="background:'+(i%2===0?'var(--bg-card)':'var(--input-bg)')+';">'
+                    + '<td style="padding:7px 12px;border:1px solid #e8f5e9;font-weight:700;font-size:0.68rem;white-space:nowrap;">'
+                    + '<span style="width:9px;height:9px;border-radius:2px;background:'+s.color+';display:inline-block;margin-right:6px;vertical-align:middle;"></span>'+s.region+'</td>'
+                    + '<td style="padding:7px 12px;text-align:center;border:1px solid #e8f5e9;color:var(--text-secondary);font-size:0.68rem;">'+s.projCount+'</td>'
+                    + _td(s.kwh) + _td(s.amount) + _tdF(s.ghg) + _tdF(s.trees)
+                    + _td(s.domM3||0) + _td(s.domAmt||0) + _td(s.potLit||0) + _td(s.potAmt||0) + _td(s.indM3||0) + _td(s.indAmt||0)
+                    + _td(s.bioGen||0) + _td(s.nonbioGen||0) + _td(s.recGen||0) + _td(s.hazGen||0) + _td(s.septage||0)
+                    + '</tr>';
+            }).join('');
+
+            const _footHtml = '<tr style="background:linear-gradient(90deg,#e8f5e9,#f1f8e9);">'
+                + '<td style="padding:9px 12px;font-weight:800;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.7rem;" colspan="2"><i class="fas fa-globe" style="margin-right:5px;"></i>GRAND TOTAL</td>'
+                + _td(grandKwh,true) + _td(grandAmt,true) + _tdF(grandGhg) + _tdF(grandTrees)
+                + _td(grandDomM3,true) + _td(grandDomAmt,true) + _td(grandPotLit,true) + _td(grandPotAmt,true) + _td(grandIndM3,true) + _td(grandIndAmt,true)
+                + _td(grandBioGen,true) + _td(grandNonbio,true) + _td(grandRecGen,true) + _td(grandHazGen,true) + _td(grandSeptage,true)
+                + '</tr>';
+
+            summaryContainer.innerHTML =
+                '<div style="background:var(--bg-card);border-radius:12px;overflow:hidden;border:2px solid #2e7d32;box-shadow:0 4px 16px rgba(46,125,50,0.12);">'
+                + '<div style="background:linear-gradient(135deg,#0d3d0f 0%,#1b5e20 60%,#2e7d32 100%);padding:12px 18px;display:flex;align-items:center;gap:10px;">'
+                + '<i class="fas fa-globe" style="color:#a5d6a7;font-size:1.1rem;"></i>'
+                + '<span style="font-weight:800;color:white;font-size:0.88rem;letter-spacing:0.5px;">OVERALL SUMMARY — ALL REGIONS</span>'
+                + '<span style="background:rgba(255,255,255,0.15);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;margin-left:auto;">'+allProjects.length+' Total Projects</span>'
+                + '</div>'
+                + '<div style="overflow-x:auto;">'
+                + '<table style="width:100%;border-collapse:collapse;font-size:0.68rem;">'
+                + '<thead>'
+                + '<tr>'
+                + _thL('Region','#388e3c') + _thL('Projects','#388e3c')
+                + '<th colspan="4" style="padding:7px 10px;text-align:center;background:#1b5e20;color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">&#9889; ELECTRICITY</th>'
+                + '<th colspan="6" style="padding:7px 10px;text-align:center;background:#2e7d32;color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">&#128167; WATER</th>'
+                + '<th colspan="5" style="padding:7px 10px;text-align:center;background:#388e3c;color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">&#128465; WASTE (MT)</th>'
+                + '</tr>'
+                + '<tr>'
+                + _thL('','#b7ddb5') + _thL('','#b7ddb5')
+                + _th('kWh','#1b5e20') + _th('Amt (Php)','#1b5e20') + _th('GHG (tCO2)','#1b5e20') + _th('Trees','#1b5e20')
+                + _th('Dom. m³','#2e7d32') + _th('Dom. Amt','#2e7d32') + _th('Potable (L)','#2e7d32') + _th('Pot. Amt','#2e7d32') + _th('Ind. m³','#2e7d32') + _th('Ind. Amt','#2e7d32')
+                + _th('Biodeg.','#43a047') + _th('Non-Bio','#43a047') + _th('Recyclable','#43a047') + _th('Hazardous','#43a047') + _th('Septage','#43a047')
+                + '</tr>'
+                + '</thead>'
+                + '<tbody>' + _rowHtml + '</tbody>'
+                + '<tfoot>' + _footHtml + '</tfoot>'
+                + '</table>'
+                + '</div>'
+                + (!hasAnyData ? '<div style="padding:24px;text-align:center;color:var(--text-secondary);font-size:0.78rem;font-style:italic;"><i class="fas fa-seedling" style="opacity:0.2;font-size:1.8rem;display:block;margin-bottom:8px;"></i>No environmental data entered yet.</div>' : '')
+                + '</div>';
+        }
         container.innerHTML = html;
     }
     window.envRenderRegions = envRenderRegions;
@@ -31361,6 +31583,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         wasteRenderRegions();
         wasteUpdateSummary();
+        if (typeof envRenderRegions === 'function') envRenderRegions();
     };
 
     window.wasteDeleteRow = function(id) {
@@ -31378,6 +31601,7 @@ document.addEventListener('DOMContentLoaded', function() {
         wasteData = wasteData.filter(r => r.id !== id);
         wasteRenderRegions();
         wasteUpdateSummary();
+        if (typeof envRenderRegions === 'function') envRenderRegions();
     };
 
     window.wasteClearRegion = function(regionRaw) {
@@ -32327,15 +32551,34 @@ function startEshCalendarSync() {
 
         // Apply deletion records — permanently suppress any plan key that was intentionally deleted
         _eshApplyDeletionFilter(merged);
+        // Build a set of recently-deleted actual keys to block orphan re-upload
+        const _recentlyDeleted = new Set();
+        _eshMyWrites.forEach(function(ts, k) {
+            // Any key written as null within the last 120s is a recent delete
+            if ((now - ts) < 120000) _recentlyDeleted.add(k);
+        });
+        // Also include all locally-tombstoned keys
+        try {
+            const _rawStorageCheck = getEshStorage();
+            Object.keys(_rawStorageCheck).forEach(function(k) {
+                if (_rawStorageCheck[k] === _ESH_TOMBSTONE_MARKER) _recentlyDeleted.add(k);
+            });
+        } catch(e) {}
+        // Also include all keys in the local deletions cache
+        try {
+            const _delCache = JSON.parse(localStorage.getItem('esh_calendar_deletions') || '{}');
+            Object.keys(_delCache).forEach(function(k) { _recentlyDeleted.add(k); });
+        } catch(e) {}
+
         Object.keys(local).forEach(function(k) {
             if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) return; // never re-upload plan keys
             if (!k.includes('|')) return;
             if (remoteDecoded.hasOwnProperty(k)) return; // already in Firebase
             if (_eshMyWrites.has(k)) return;
+            if (_recentlyDeleted.has(k)) return; // recently deleted — do NOT re-upload
             if (!merged[k] || merged[k] === _ESH_TOMBSTONE_MARKER) return;
             if (_eshIsTombstoned(k)) return;
             // FIX: Also check local storage directly for tombstone — guards against timing gap
-            // where tombstone was written but merged hasn't been updated yet
             const _rawStorage = getEshStorage();
             if (_rawStorage[k] === _ESH_TOMBSTONE_MARKER) return;
             const _whoAmI = window.firebaseAuth?.currentUser?.email || 'unknown';
@@ -33226,7 +33469,7 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                 const planKey = getEshKey(tabType, proj.name, storageIdx, mi, 'plan');
                 const actualKey = getEshKey(tabType, proj.name, storageIdx, mi, 'actual');
                 const isPlanned = !!(storage[planKey]) && storage[planKey] !== _ESH_TOMBSTONE_MARKER;
-                const actualVal = storage[actualKey] || '';
+                const actualVal = (storage[actualKey] && storage[actualKey] !== '__DELETED__') ? storage[actualKey] : '';
                 const isFuture = isMonthFuture(mi);
                 const overdue = isPlanned && !actualVal && isMonthOverdue(mi);
                 const done = !!actualVal;
@@ -33337,7 +33580,7 @@ function buildDrillsSingleTable(projects, storage, col) {
                 const planKey = getEshKey(tabType, proj.name, storageIdx, mi, 'plan');
                 const actualKey = getEshKey(tabType, proj.name, storageIdx, mi, 'actual');
                 const isPlanned = !isNaCell && !!(storage[planKey]) && storage[planKey] !== _ESH_TOMBSTONE_MARKER;
-                const actualVal = !isNaCell ? (storage[actualKey] || '') : '';
+                const actualVal = !isNaCell ? ((storage[actualKey] && storage[actualKey] !== '__DELETED__') ? storage[actualKey] : '') : '';
                 const overdue = !isNaCell && isPlanned && !actualVal && isMonthOverdue(mi);
                 const done = !isNaCell && !!actualVal;
 
@@ -33744,6 +33987,23 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
         }
     }
 
+    // ── Confirmation when clearing/deleting an existing actual date ──────────
+    if (!value) {
+        const _confirmStorage = getEshStorage();
+        const _confirmKey = getEshKey(tabType, projName, ti, mi, 'actual');
+        const _existingDate = (_confirmStorage[_confirmKey] && _confirmStorage[_confirmKey] !== '__DELETED__')
+            ? _confirmStorage[_confirmKey] : '';
+        if (_existingDate) {
+            const _monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const _monthLabel = _monthNames[mi] || ('Month ' + (mi + 1));
+            if (!confirm(`🗑️ Delete actual date "${_existingDate}" for ${projName} — ${_monthLabel}?\n\nThis action cannot be undone.`)) {
+                // User cancelled — restore the old date in the input
+                if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = _existingDate; }
+                return;
+            }
+        }
+    }
+
     const storage = getEshStorage();
     const actualKey = getEshKey(tabType, projName, ti, mi, 'actual');
     if (value) {
@@ -33754,6 +34014,10 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
         // This prevents the onValue orphan re-upload check from restoring the deleted key
         // during the async window between delete and Firebase confirmation.
         storage[actualKey] = _ESH_TOMBSTONE_MARKER;
+        // Track in _eshMyWrites immediately so orphan re-upload check skips this key
+        _eshMyWrites.set(actualKey, Date.now());
+        // Also write to deletions cache immediately so sync filter picks it up
+        _eshCacheDeletionRecords({ [actualKey]: Date.now() });
     }
     try { localStorage.setItem('esh_calendar_data', JSON.stringify(storage)); } catch(e) {}
     _eshSaveKeyToFirebase(actualKey, value || null);
@@ -33954,7 +34218,7 @@ function renderCorpDrillsTab() {
             const planKey = getEshKey(tabType, projName, storageIdx, mi, 'plan');
             const actualKey = getEshKey(tabType, projName, storageIdx, mi, 'actual');
             const isPlanned = !!(storage[planKey]) && storage[planKey] !== _ESH_TOMBSTONE_MARKER;
-            const actualVal = storage[actualKey] || '';
+            const actualVal = (storage[actualKey] && storage[actualKey] !== '__DELETED__') ? storage[actualKey] : '';
             const overdue = isPlanned && !actualVal && isMonthOverdue(mi);
             const done = !!actualVal;
             let actualClass = 'esh-td-actual';
