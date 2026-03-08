@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESH COMPLIANCE DASHBOARD - SCIC</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;600;700&family=Raleway:wght@300;400;700;800&family=Lato:wght@300;400;700;900&family=Teko:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,600&display=swap" rel="stylesheet">
+    <!-- OPTIMIZED: consolidated font load — only weights actually used, preconnect for speed -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&family=Raleway:wght@700;800;900&family=Lato:wght@400;700;900&family=Teko:wght@500;600&family=Playfair+Display:ital,wght@1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         // Yjs load guard — try primary CDN, fall back to unpkg if it fails within 3s.
@@ -859,13 +862,17 @@
         }
 
         aside {
-            width: 260px; 
+            width: 260px;
+            min-width: 260px;
+            max-width: 260px;
+            height: 100vh;
             background: linear-gradient(180deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%);
             color: white;
-            display: flex; flex-direction: column; flex-shrink: 0; z-index: 100; 
+            display: flex; flex-direction: column; flex-shrink: 0; z-index: 100;
             box-shadow: 4px 0 20px rgba(0,0,0,0.15);
-            overflow-y: auto;
+            overflow: hidden;
             padding: 20px 15px 0 15px;
+            position: relative;
         }
 
         .sidebar-header { 
@@ -888,6 +895,9 @@
             pointer-events: auto !important;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .nav-item:hover { 
             background: rgba(255,255,255,0.1);
@@ -954,13 +964,17 @@
         }
         
         
+        aside nav::-webkit-scrollbar { display: none; }
+
         aside {
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s;
             overflow-x: hidden;
         }
 
         aside.sidebar-collapsed {
             width: 0 !important;
+            min-width: 0 !important;
+            max-width: 0 !important;
             padding: 0 !important;
             overflow: hidden !important;
         }
@@ -1440,6 +1454,8 @@
             justify-content: center;
             font-size: 0.65rem;
             font-weight: 700;
+            z-index: 10;
+            pointer-events: none;
         }
 
         .notification-dropdown {
@@ -1887,31 +1903,44 @@
         
 
         
+        /* ══════════════════════════════════════════════════════════════════
+           REGION BANNER GRADIENTS — CSS fallback only.
+           The authoritative source is applyRegionBannerColors() in JS.
+           Tonal green depth: NCR (darkest) → South → North → VisMin (lightest)
+           ══════════════════════════════════════════════════════════════════ */
+
+        /* NCR — darkest */
         .region-banner.region-ncr,
         .region-banner[id*="-NCR"],
         .region-banner[id*="_NCR"],
+        .region-banner[id*="NCR"],
         #p-grp-banner-NCR {
             background: linear-gradient(135deg, #1b5e20 0%, #0d3311 100%);
         }
         
-        .region-banner.region-north-luzon,
-        .region-banner[id*="NORTH LUZON"],
-        .region-banner[id*="NORTH_LUZON"],
-        #p-grp-banner-NORTH_LUZON {
-            background: linear-gradient(135deg, #2e7d32 0%, #1b5020 100%);
-        }
-        
+        /* SOUTH LUZON */
         .region-banner.region-south-luzon,
         .region-banner[id*="SOUTH LUZON"],
         .region-banner[id*="SOUTH_LUZON"],
+        .region-banner[id*="SOUTH"],
         #p-grp-banner-SOUTH_LUZON {
-            background: linear-gradient(135deg, #388e3c 0%, #1f5e23 100%);
+            background: linear-gradient(135deg, #24692a 0%, #133816 100%);
+        }
+
+        /* NORTH LUZON */
+        .region-banner.region-north-luzon,
+        .region-banner[id*="NORTH LUZON"],
+        .region-banner[id*="NORTH_LUZON"],
+        .region-banner[id*="NORTH"],
+        #p-grp-banner-NORTH_LUZON {
+            background: linear-gradient(135deg, #2e7d32 0%, #1a4d1e 100%);
         }
         
+        /* VISAYAS & MINDANAO — lightest */
         .region-banner.region-visayas---mindanao,
         .region-banner[id*="VISAYAS"],
         #p-grp-banner-VISAYAS___MINDANAO {
-            background: linear-gradient(135deg, #43a047 0%, #2a6b2e 100%);
+            background: linear-gradient(135deg, #388e3c 0%, #215c26 100%);
         }
         
         .region-banner.region-plant-operations,
@@ -4557,10 +4586,11 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
     transition: filter 0.18s; box-shadow: 0 3px 10px rgba(0,0,0,0.22);
 }
 .esh-region-banner:hover { filter: brightness(1.12); }
+/* esh-region-banner colors — synced with applyRegionBannerColors() */
 .esh-region-banner.r-ncr        { background: linear-gradient(135deg, #1b5e20 0%, #0d3311 100%); }
-.esh-region-banner.r-northluzon { background: linear-gradient(135deg, #2e7d32 0%, #1b5020 100%); }
-.esh-region-banner.r-southluzon { background: linear-gradient(135deg, #388e3c 0%, #1f5e23 100%); }
-.esh-region-banner.r-vismin     { background: linear-gradient(135deg, #43a047 0%, #2a6b2e 100%); }
+.esh-region-banner.r-southluzon { background: linear-gradient(135deg, #24692a 0%, #133816 100%); }
+.esh-region-banner.r-northluzon { background: linear-gradient(135deg, #2e7d32 0%, #1a4d1e 100%); }
+.esh-region-banner.r-vismin     { background: linear-gradient(135deg, #388e3c 0%, #215c26 100%); }
 .esh-region-banner.r-plantops   {
     background: #ffffff !important; color: #1b5e20 !important;
     border: 1.5px solid #c8e6c9; box-shadow: 0 2px 8px rgba(0,0,0,0.10);
@@ -4687,6 +4717,249 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
     border: 1px solid #c8e6c9; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     margin-bottom: 14px;
 }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     ESH DASHBOARD — UI / READABILITY / ACCESSIBILITY PATCH
+     Safe additive overrides only. No JS or saving logic touched.
+     ═══════════════════════════════════════════════════════════════ -->
+<style>
+/* ── 1. TABLE READABILITY — bump tiny 9-10px text up to legible sizes ─────── */
+.got-tbl {
+    font-size: 0.76rem !important;   /* was 0.68rem (~9.8px) → now ~11px */
+}
+.got-tbl th {
+    font-size: 0.72rem !important;   /* was 0.63rem (~9px) → now ~10.4px */
+    padding: 6px 8px !important;     /* a bit more breathing room */
+    letter-spacing: 0.02em;
+}
+.got-tbl td {
+    font-size: 0.74rem !important;   /* was 0.67rem */
+    padding: 5px 7px !important;     /* was 4px 6px — more tap target */
+    line-height: 1.35;
+}
+.got-tbl td.got-td-desc {
+    font-size: 0.70rem !important;   /* was 0.61rem — most critical, was <9px */
+    line-height: 1.45;
+}
+.got-tbl td.got-td-avg {
+    font-size: 0.78rem !important;   /* was 0.70rem */
+}
+.got-tbl tr.got-tr-overall td {
+    font-size: 0.80rem !important;   /* was 0.72rem */
+}
+.got-tbl tr.got-tr-region-avg td {
+    font-size: 0.74rem !important;
+}
+
+/* ── 2. TABLE ROW HOVER — subtle highlight for readability across wide rows ── */
+.got-tbl tbody tr:hover td:not(.got-td-future) {
+    background-color: rgba(76, 175, 80, 0.07) !important;
+    transition: background-color 0.12s ease;
+}
+body.dark-mode .got-tbl tbody tr:hover td:not(.got-td-future) {
+    background-color: rgba(76, 175, 80, 0.12) !important;
+}
+
+/* ── 3. SIDEBAR — slightly warmer active item, better contrast on text ──────── */
+.nav-item {
+    font-size: 0.78rem !important;  /* was 0.75rem — more legible */
+}
+.nav-group-items .nav-item {
+    font-size: 0.75rem !important;  /* was 0.72rem */
+}
+.nav-item.active {
+    box-shadow: 0 2px 10px rgba(251, 192, 45, 0.3);
+    letter-spacing: 0.01em;
+}
+
+/* ── 4. ACCESSIBILITY — focus rings (keyboard navigation) ──────────────────── */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid #4caf50 !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.2) !important;
+}
+body.dark-mode button:focus-visible,
+body.dark-mode input:focus-visible,
+body.dark-mode select:focus-visible {
+    outline-color: #81c784 !important;
+    box-shadow: 0 0 0 4px rgba(129, 199, 132, 0.25) !important;
+}
+
+/* ── 5. ARIA / ICON-ONLY BUTTONS — tooltip removed (caused visual bug) */
+.theme-toggle,
+.notification-bell-btn {
+    position: relative;
+}
+
+/* ── 6. HEADER — slight border refinement for depth ────────────────────────── */
+header {
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+    border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+}
+body.dark-mode header {
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+    border-bottom-color: rgba(255,255,255,0.07) !important;
+}
+
+/* ── 7. SCROLLBARS — thin, styled to match brand ───────────────────────────── */
+::-webkit-scrollbar              { width: 6px; height: 6px; }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: rgba(46,125,50,0.35); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover  { background: rgba(46,125,50,0.6); }
+body.dark-mode ::-webkit-scrollbar-thumb       { background: rgba(76,175,80,0.3); }
+body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55); }
+
+/* ── 8. GOT SELECT — slightly bigger tap target ─────────────────────────────── */
+.got-sel {
+    width: 58px !important;     /* was 52px */
+    font-size: 0.70rem !important;  /* was 0.64rem */
+    padding: 4px 2px !important;
+}
+
+/* ── 9. CARD / SECTION SHADOWS — subtle depth upgrade ──────────────────────── */
+.region-banner,
+[class*="-card"],
+[class*="-section"] {
+    transition: box-shadow 0.2s ease;
+}
+
+/* ── 10. PRINT — table font sizes respect readability fixes ─────────────────── */
+@media print {
+    .got-tbl th, .got-tbl td {
+        font-size: 8pt !important;
+        padding: 3pt 5pt !important;
+    }
+}
+
+/* ── 11. REGION BANNER ICONS — unique icon per region via CSS content override  */
+/* FontAwesome unicode values used to replace the default fa-location-dot icon.  */
+/* Only the icon content changes — colors, layout, JS untouched.                 */
+
+/* NCR → fa-city (f64f) */
+.region-banner[id*="NCR"] .region-icon::before,
+#p-grp-banner-NCR .region-icon::before,
+.region-banner.region-ncr .region-icon::before {
+    content: "\f64f" !important;
+}
+
+/* NORTH LUZON → fa-mountain (f6fc) */
+.region-banner[id*="NORTH"] .region-icon::before,
+#p-grp-banner-NORTH_LUZON .region-icon::before,
+.region-banner.region-north-luzon .region-icon::before {
+    content: "\f6fc" !important;
+}
+
+/* SOUTH LUZON → fa-tree (f1bb) */
+.region-banner[id*="SOUTH"] .region-icon::before,
+#p-grp-banner-SOUTH_LUZON .region-icon::before,
+.region-banner.region-south-luzon .region-icon::before {
+    content: "\f1bb" !important;
+}
+
+/* VISAYAS / MINDANAO → fa-water (f773) */
+.region-banner[id*="VISAYAS"] .region-icon::before,
+#p-grp-banner-VISAYAS___MINDANAO .region-icon::before,
+.region-banner.region-visayas---mindanao .region-icon::before {
+    content: "\f773" !important;
+}
+
+/* ── 12. REGION BANNER SUBTITLES — full name below the short region label ──── */
+/* Uses CSS ::after on .region-name to inject descriptive subtitle text.         */
+/* Pure CSS — no JS touched, no HTML structure changed.                          */
+
+.region-banner-left .region-name {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.region-banner-left .region-name::after {
+    font-size: 0.60rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    opacity: 0.72;
+    margin-top: 2px;
+    font-family: 'Inter', sans-serif;
+    text-shadow: none;
+    white-space: nowrap;
+}
+
+/* NCR */
+.region-banner[id*="NCR"] .region-name::after,
+#p-grp-banner-NCR .region-name::after,
+.region-banner.region-ncr .region-name::after {
+    content: "National Capital Region";
+}
+
+/* NORTH LUZON */
+.region-banner[id*="NORTH"] .region-name::after,
+#p-grp-banner-NORTH_LUZON .region-name::after,
+.region-banner.region-north-luzon .region-name::after {
+    content: "Northern Region";
+}
+
+/* SOUTH LUZON */
+.region-banner[id*="SOUTH"] .region-name::after,
+#p-grp-banner-SOUTH_LUZON .region-name::after,
+.region-banner.region-south-luzon .region-name::after {
+    content: "Southern Region";
+}
+
+/* VISAYAS & MINDANAO — show VISMIN as label, full name as subtitle */
+.region-banner[id*="VISAYAS"] .region-name,
+#p-grp-banner-VISAYAS___MINDANAO .region-name,
+.region-banner.region-visayas---mindanao .region-name {
+    font-size: 0 !important;
+}
+.region-banner[id*="VISAYAS"] .region-name::before,
+#p-grp-banner-VISAYAS___MINDANAO .region-name::before,
+.region-banner.region-visayas---mindanao .region-name::before {
+    content: "VISMIN";
+    font-size: 0.92rem;
+}
+.region-banner[id*="VISAYAS"] .region-name::after,
+#p-grp-banner-VISAYAS___MINDANAO .region-name::after,
+.region-banner.region-visayas---mindanao .region-name::after {
+    content: "Visayas & Mindanao Region";
+    font-size: 0.60rem;
+}
+
+/* PLANT OPERATIONS */
+.region-banner[id*="PLANT"] .region-name::after,
+#p-grp-banner-PLANT_OPERATIONS .region-name::after,
+.region-banner.region-plant-operations .region-name::after {
+    content: "Plant Operations";
+    color: #2e7d32;
+    opacity: 0.6;
+}
+
+/* CORPORATE */
+.region-banner[id*="CORPORATE"] .region-name::after,
+#p-grp-banner-CORPORATE .region-name::after,
+.region-banner.region-corporate .region-name::after {
+    content: "Corporate Office";
+    color: #2e7d32;
+    opacity: 0.6;
+}
+
+/* LTA + OSH-NOV region banners */
+#lta-region-banner-NCR .region-name::after,
+#osh-nov-region-banner-NCR .region-name::after                     { content: "National Capital Region"; }
+#lta-region-banner-NORTH\ LUZON .region-name::after,
+#osh-nov-region-banner-NORTH\ LUZON .region-name::after            { content: "Northern Region"; }
+#lta-region-banner-SOUTH\ LUZON .region-name::after,
+#osh-nov-region-banner-SOUTH\ LUZON .region-name::after            { content: "Southern Region"; }
+#lta-region-banner-VISAYAS\ &\ MINDANAO .region-name,
+#osh-nov-region-banner-VISAYAS\ &\ MINDANAO .region-name           { font-size: 0 !important; }
+#lta-region-banner-VISAYAS\ &\ MINDANAO .region-name::before,
+#osh-nov-region-banner-VISAYAS\ &\ MINDANAO .region-name::before   { content: "VISMIN"; font-size: 0.92rem; }
+#lta-region-banner-VISAYAS\ &\ MINDANAO .region-name::after,
+#osh-nov-region-banner-VISAYAS\ &\ MINDANAO .region-name::after    { content: "Visayas & Mindanao Region"; font-size: 0.60rem; }
 </style>
 
 </head>
@@ -5383,7 +5656,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 </div>
             </div>
         </div>
-        <nav style="flex-grow: 1; padding-top: 10px;">
+        <nav style="flex-grow: 1; padding-top: 10px; padding-bottom: 130px; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none;">
             
             <div class="nav-group">
                 <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)" data-tip="Dashboard & Analytics">
@@ -5405,6 +5678,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <div class="nav-group-items collapsed">
                     <div class="nav-item" data-tab="exposures" onclick="changeTab('exposures')"><i class="fas fa-stopwatch"></i> Total Exposures</div>
                     <div class="nav-item" data-tab="personnel" onclick="changeTab('personnel')"><i class="fas fa-users-viewfinder"></i> ESH Personnel Monitoring</div>
+                    <div class="nav-item" data-tab="personnel-compliance" onclick="openPersonnelComplianceModal()"><i class="fas fa-certificate"></i> Personnel & Compliance</div>
                     <div class="nav-item" data-tab="osh-requirement" onclick="changeTab('osh-requirement')"><i class="fas fa-shield-halved"></i> OSH Personnel Requirement</div>
                     <div class="nav-item" data-tab="activities" onclick="changeTab('activities')"><i class="fas fa-clipboard-check"></i> ESH Activities & Programs</div>
                 </div>
@@ -5435,10 +5709,10 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 </div>
                 <div class="nav-group-items collapsed">
                     <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-triangle-exclamation"></i> Accident/Incident Record</div>
-                    <div class="nav-item" data-tab="lta-registry" onclick="changeTab('lta-registry')"><i class="fas fa-hospital-user"></i> Incident and Accident Registry</div>
+                    <div class="nav-item" data-tab="lta-registry" onclick="changeTab('lta-registry')"><i class="fas fa-hospital-user"></i> Incident & Accident Registry</div>
                     <div class="nav-item" data-tab="tabulation" onclick="changeTab('tabulation')"><i class="fas fa-table-list"></i> Incident Tabulation</div>
-                    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fas fa-hard-hat"></i> OSH Regulatory Issued NOV</div>
-                    <div class="nav-item" data-tab="nov-env" onclick="changeTab('nov-env')"><i class="fas fa-leaf"></i> ENVI REGULATORY ISSUED NOV</div>
+                    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fas fa-hard-hat"></i> OSH Issued NOV</div>
+                    <div class="nav-item" data-tab="nov-env" onclick="changeTab('nov-env')"><i class="fas fa-leaf"></i> Envi Issued NOV</div>
                     <div class="nav-item" data-tab="nov-monitoring" onclick="changeTab('nov-monitoring')"><i class="fas fa-chart-gantt"></i> ESH NOV Monitoring</div>
                 </div>
             </div>
@@ -5480,38 +5754,50 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
         </nav>
 
         
-        <div style="width:100%;height:120px;flex-shrink:0;overflow:hidden;margin-top:auto;">
-            <svg viewBox="0 0 200 120" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">
-                <rect x="0" y="108" width="200" height="12" fill="#0d2e0f"/>
-                <path d="M2,108 L2,90 L8,90 L8,85 L22,85 L22,90 L26,90 L26,108 Z" fill="#0d2e0f"/>
-                <rect x="4" y="87" width="18" height="6" rx="1" fill="#0d2e0f"/>
-                <rect x="1" y="95" width="26" height="6" rx="2" fill="#0d2e0f"/>
-                <path d="M0,88 L4,86 L4,98 L0,100 Z" fill="#0d2e0f"/>
-                <path d="M30,108 L30,94 L35,94 L35,90 L48,90 L48,94 L52,94 L52,108 Z" fill="#0d2e0f"/>
-                <rect x="33" y="84" width="14" height="9" rx="1" fill="#0d2e0f"/>
-                <path d="M44,84 L50,74 L54,76 L56,72 L60,74 L56,84 Z" fill="#0d2e0f"/>
-                <path d="M58,72 L63,68 L66,72 L63,76 Z" fill="#0d2e0f"/>
-                <path d="M68,108 L68,92 L72,92 L72,88 L86,88 L86,92 L90,92 L90,108 Z" fill="#0d2e0f"/>
-                <ellipse cx="79" cy="90" rx="9" ry="7" fill="#0d2e0f"/>
-                <path d="M75,83 L83,83 L83,88 L75,88 Z" fill="#0d2e0f"/>
-                <path d="M96,108 L96,88 L118,88 L118,84 L128,84 L128,88 L132,92 L132,108 Z" fill="#0d2e0f"/>
-                <path d="M118,88 L118,80 L128,80 L132,84 L132,88 Z" fill="#0d2e0f"/>
-                <path d="M96,88 L96,82 L118,82 L118,88 Z" fill="#0d2e0f"/>
-                <rect x="138" y="50" width="3" height="58" fill="#0d2e0f"/>
-                <rect x="148" y="50" width="3" height="58" fill="#0d2e0f"/>
-                <rect x="138" y="50" width="13" height="3" fill="#0d2e0f"/>
-                <rect x="138" y="62" width="13" height="2" fill="#0d2e0f"/>
-                <rect x="138" y="74" width="13" height="2" fill="#0d2e0f"/>
-                <rect x="138" y="86" width="13" height="2" fill="#0d2e0f"/>
-                <rect x="138" y="98" width="13" height="2" fill="#0d2e0f"/>
-                <path d="M138,50 L151,62 M151,50 L138,62 M138,62 L151,74 M151,62 L138,74 M138,74 L151,86 M151,74 L138,86" stroke="#0d2e0f" stroke-width="1.2"/>
-                <rect x="160" y="10" width="4" height="98" fill="#0d2e0f"/>
-                <rect x="155" y="10" width="42" height="3" fill="#0d2e0f"/>
-                <rect x="155" y="13" width="12" height="2" fill="#0d2e0f"/>
-                <path d="M185,13 L185,45 L180,45 L180,108" stroke="#0d2e0f" stroke-width="1.5" fill="none"/>
-                <rect x="178" y="43" width="5" height="5" rx="1" fill="#0d2e0f"/>
-                <path d="M162,15 L196,13" stroke="#0d2e0f" stroke-width="1"/>
-                <path d="M162,15 L157,13" stroke="#0d2e0f" stroke-width="1"/>
+        <div style="position:absolute;bottom:0;left:0;width:100%;height:140px;overflow:hidden;pointer-events:none;opacity:0.28;filter:blur(0.6px);">
+            <svg viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet" style="width:100%;height:100%;display:block;">
+                <!-- Mountain backdrop -->
+                <path d="M0,130 L0,55 L35,25 L70,60 L105,20 L140,55 L175,15 L210,50 L260,30 L260,130Z" fill="#0a2a0c" opacity="0.5"/>
+                <!-- Dam wall -->
+                <path d="M20,30 L35,120 L90,120 L103,30Z" fill="#0a2a0c"/>
+                <rect x="18" y="25" width="87" height="9" rx="2" fill="#0a2a0c"/>
+                <!-- Spillway gates -->
+                <rect x="40" y="90" width="10" height="30" rx="1" fill="#0d3d10"/>
+                <rect x="54" y="90" width="10" height="30" rx="1" fill="#0d3d10"/>
+                <rect x="68" y="90" width="10" height="30" rx="1" fill="#0d3d10"/>
+                <!-- Penstock pipes -->
+                <rect x="24" y="55" width="7" height="65" rx="2" fill="#0a2a0c" transform="rotate(30,27,87)"/>
+                <rect x="90" y="55" width="7" height="65" rx="2" fill="#0a2a0c" transform="rotate(-30,93,87)"/>
+                <!-- Powerhouse -->
+                <rect x="4" y="102" width="30" height="22" rx="2" fill="#0a2a0c"/>
+                <rect x="90" y="102" width="30" height="22" rx="2" fill="#0a2a0c"/>
+                <!-- Transmission tower -->
+                <rect x="120" y="40" width="3" height="90" fill="#0a2a0c"/>
+                <rect x="133" y="40" width="3" height="90" fill="#0a2a0c"/>
+                <rect x="117" y="40" width="22" height="3" fill="#0a2a0c"/>
+                <rect x="117" y="57" width="22" height="2" fill="#0a2a0c"/>
+                <rect x="117" y="74" width="22" height="2" fill="#0a2a0c"/>
+                <rect x="117" y="91" width="22" height="2" fill="#0a2a0c"/>
+                <path d="M117,40 L136,57 M136,40 L117,57 M117,57 L136,74 M136,57 L117,74 M117,74 L136,91 M136,74 L117,91" stroke="#0a2a0c" stroke-width="1.3"/>
+                <!-- Wind turbine -->
+                <rect x="158" y="18" width="3.5" height="112" fill="#0a2a0c"/>
+                <circle cx="159" cy="18" r="4" fill="#0a2a0c"/>
+                <path d="M159,18 L148,-8 L155,-4Z" fill="#0a2a0c"/>
+                <path d="M159,18 L187,31 L184,25Z" fill="#0a2a0c"/>
+                <path d="M159,18 L136,38 L140,44Z" fill="#0a2a0c"/>
+                <!-- Solar panels -->
+                <rect x="192" y="90" width="18" height="10" rx="1" transform="rotate(-12,201,95)" fill="#0a2a0c"/>
+                <rect x="213" y="88" width="18" height="10" rx="1" transform="rotate(-12,222,93)" fill="#0a2a0c"/>
+                <rect x="234" y="86" width="18" height="10" rx="1" transform="rotate(-12,243,91)" fill="#0a2a0c"/>
+                <rect x="200" y="100" width="2" height="30" fill="#0a2a0c"/>
+                <rect x="221" y="98" width="2" height="32" fill="#0a2a0c"/>
+                <rect x="242" y="96" width="2" height="34" fill="#0a2a0c"/>
+                <!-- Bulldozer far right -->
+                <rect x="215" y="104" width="42" height="20" rx="2" fill="#0a2a0c"/>
+                <rect x="219" y="94" width="25" height="13" rx="2" fill="#0a2a0c"/>
+                <rect x="211" y="109" width="5" height="15" rx="1" fill="#0a2a0c"/>
+                <ellipse cx="224" cy="124" rx="7" ry="7" fill="#0a2a0c"/>
+                <ellipse cx="251" cy="124" rx="7" ry="7" fill="#0a2a0c"/>
             </svg>
         </div>
 
@@ -5683,11 +5969,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                                 <span class="smi-label" id="settings-theme-text">Dark Mode</span>
                                 <i class="fas fa-chevron-right smi-arrow"></i>
                             </div>
-                            <div class="settings-menu-item" onclick="saveToFirebaseMain()">
-                                <div class="smi-icon" style="background:#fff8e1"><i class="fas fa-cloud-upload-alt" style="color:#f57f17"></i></div>
-                                <span class="smi-label">Sync to Cloud</span>
-                                <i class="fas fa-chevron-right smi-arrow"></i>
-                            </div>
+
                             <div class="settings-divider"></div>
                             <div class="settings-menu-item logout" onclick="handleLogoutFromMenu()">
                                 <div class="smi-icon"><i class="fas fa-right-from-bracket"></i></div>
@@ -6073,7 +6355,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
                 <input type="text" id="p-filter-value" placeholder="Search personnel..." onkeyup="filterPTable()" style="flex:1; padding:8px 12px; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:0.75rem;">
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
-                <button id="p-add-personnel-btn" class="btn btn-primary" onclick="openAddPersonnelModal()" style="padding:8px 16px; display:flex; align-items:center; gap:6px; font-size:0.78rem; border-radius:6px;">
+                <button id="p-add-personnel-btn" class="btn btn-primary" onclick="openAddPersonnelModal()" style="padding:8px 16px; display:none; align-items:center; gap:6px; font-size:0.78rem; border-radius:6px;">
                     <i class="fas fa-user-plus"></i> Add Personnel
                 </button>
                 <div id="p-global-action" style="display:none; gap:6px;">
@@ -6339,7 +6621,7 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
 
         <div id="settings-view" class="hidden">
   <style>
-    .settings-page { max-width: 780px; margin: 0 auto; padding: 28px 24px 80px; }
+    .settings-page { max-width: 860px; margin: 0 auto; padding: 28px 24px 80px; }
     .settings-hero {
       background: linear-gradient(135deg, #0a2e10 0%, #1b5e20 60%, #2e7d32 100%);
       border-radius: 16px; padding: 28px 30px; margin-bottom: 24px;
@@ -6379,22 +6661,31 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
       animation: pulse 2s infinite;
     }
 
-    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-    @media (max-width: 620px) { .settings-grid { grid-template-columns: 1fr; } }
+    /* ── Full-width Icon Sections layout ── */
+    .settings-grid { display: flex; flex-direction: column; gap: 14px; }
 
     .settings-card {
       background: var(--bg-card); border-radius: 14px; overflow: hidden;
       border: 1px solid var(--border-color);
       box-shadow: 0 2px 12px rgba(0,0,0,0.06); transition: box-shadow 0.2s;
+      width: 100%;
     }
-    .settings-card-full { grid-column: 1 / -1; }
+    .settings-card-full { width: 100%; }
     .settings-card-header {
       background: linear-gradient(90deg, #1b5e20 0%, #2e7d32 100%);
-      padding: 13px 18px; display: flex; align-items: center; gap: 10px;
+      padding: 16px 22px; display: flex; align-items: center; gap: 14px;
     }
-    .settings-card-header i { color: #fbc02d; font-size: 0.95rem; }
-    .settings-card-title { color: white; font-weight: 700; font-size: 0.82rem; letter-spacing: 0.5px; }
-    .settings-card-body { padding: 18px; }
+    .settings-card-header-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: rgba(255,255,255,0.15); border: 1.5px solid rgba(251,192,45,0.4);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .settings-card-header-icon i { color: #fbc02d; font-size: 1.15rem; }
+    .settings-card-header-text { flex: 1; }
+    .settings-card-title { color: white; font-weight: 700; font-size: 0.9rem; letter-spacing: 0.5px; display: block; }
+    .settings-card-subtitle { color: #a5d6a7; font-size: 0.7rem; margin-top: 2px; display: block; }
+    .settings-card-body { padding: 22px; }
 
     .settings-input-group { margin-bottom: 14px; position: relative; }
     .settings-input-group:last-child { margin-bottom: 0; }
@@ -6513,8 +6804,11 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
       
       <div class="settings-card">
         <div class="settings-card-header">
-          <i class="fas fa-id-badge"></i>
-          <span class="settings-card-title">DISPLAY NAME</span>
+          <div class="settings-card-header-icon"><i class="fas fa-id-badge"></i></div>
+          <div class="settings-card-header-text">
+            <span class="settings-card-title">DISPLAY NAME</span>
+            <span class="settings-card-subtitle">Update how your name appears across the system</span>
+          </div>
         </div>
         <div class="settings-card-body">
           <div class="settings-input-group">
@@ -6542,8 +6836,11 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
       
       <div class="settings-card">
         <div class="settings-card-header">
-          <i class="fas fa-circle-info"></i>
-          <span class="settings-card-title">ACCOUNT INFO</span>
+          <div class="settings-card-header-icon"><i class="fas fa-circle-info"></i></div>
+          <div class="settings-card-header-text">
+            <span class="settings-card-title">ACCOUNT INFO</span>
+            <span class="settings-card-subtitle">Firebase connection status and account details</span>
+          </div>
         </div>
         <div class="settings-card-body">
           <div class="info-row">
@@ -6574,11 +6871,11 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
       
       <div class="settings-card">
         <div class="settings-card-header">
-          <i class="fas fa-lock"></i>
-          <span class="settings-card-title">CHANGE PASSWORD</span>
-          <span style="font-size: 11px; color: var(--safety-yellow); background: rgba(251, 192, 45, 0.15); padding: 3px 8px; border-radius: 4px; margin-left: 10px;">
-            🔐 Enhanced Security
-          </span>
+          <div class="settings-card-header-icon"><i class="fas fa-lock"></i></div>
+          <div class="settings-card-header-text">
+            <span class="settings-card-title">CHANGE PASSWORD</span>
+            <span class="settings-card-subtitle">🔐 Enhanced Security — requires current password to verify identity</span>
+          </div>
         </div>
         <div class="settings-card-body">
           
@@ -6660,29 +6957,17 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
       </div>
 
       
-      <div class="settings-card">
+      <div class="settings-card" id="force-sync-section" style="display:none;">
         <div class="settings-card-header">
-          <i class="fas fa-palette"></i>
-          <span class="settings-card-title">APPEARANCE</span>
+          <div class="settings-card-header-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+          <div class="settings-card-header-text">
+            <span class="settings-card-title">FIREBASE CLOUD SYNC</span>
+            <span class="settings-card-subtitle">Force sync all local data to the Firebase cloud</span>
+          </div>
         </div>
         <div class="settings-card-body">
-          <div class="settings-input-group">
-            <label class="settings-label">Theme</label>
-            <div class="theme-options">
-              <div class="theme-option" id="theme-light-btn" onclick="applyTheme('light')">
-                <div class="theme-icon">☀️</div>
-                Light Mode
-              </div>
-              <div class="theme-option" id="theme-dark-btn" onclick="applyTheme('dark')">
-                <div class="theme-icon">🌙</div>
-                Dark Mode
-              </div>
-            </div>
-          </div>
-          <div class="settings-divider"></div>
-          
-          <div class="settings-input-group" style="margin-bottom:0;" id="force-sync-section">
-            <label class="settings-label">Firebase Cloud Sync</label>
+          <div class="settings-input-group" style="margin-bottom:0;">
+            <label class="settings-label">Force sync all data to Firebase cloud</label>
             <button class="settings-btn settings-btn-primary" onclick="saveToFirebaseMain()">
               <i class="fas fa-cloud-upload-alt"></i> FORCE SYNC TO CLOUD
             </button>
@@ -6691,10 +6976,13 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
       </div>
 
       
-      <div class="settings-card settings-card-full" id="year-management-section">
+      <div class="settings-card settings-card-full" id="year-management-section" style="display:none;">
         <div class="settings-card-header">
-          <i class="fas fa-calendar-check"></i>
-          <span class="settings-card-title">YEAR DATA MANAGEMENT</span>
+          <div class="settings-card-header-icon"><i class="fas fa-calendar-check"></i></div>
+          <div class="settings-card-header-text">
+            <span class="settings-card-title">YEAR DATA MANAGEMENT</span>
+            <span class="settings-card-subtitle">Copy or manage data across different compliance years</span>
+          </div>
         </div>
         <div class="settings-card-body">
           <div style="background: #e8f5e9; border-left: 4px solid #2e7d32; padding: 14px; border-radius: 6px; margin-bottom: 16px;">
@@ -6728,10 +7016,13 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
       </div>
 
       
-      <div class="settings-card settings-card-full">
+      <div class="settings-card settings-card-full" id="backup-recovery-card" style="display:none;">
         <div class="settings-card-header">
-          <i class="fas fa-database"></i>
-          <span class="settings-card-title">BACKUP &amp; RECOVERY</span>
+          <div class="settings-card-header-icon"><i class="fas fa-database"></i></div>
+          <div class="settings-card-header-text">
+            <span class="settings-card-title">BACKUP &amp; RECOVERY</span>
+            <span class="settings-card-subtitle">Auto-save snapshots and restore previous data states</span>
+          </div>
         </div>
         <div class="settings-card-body">
           <div id="backup-recovery-section"></div>
@@ -6739,13 +7030,13 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
       </div>
 
       
-      <div class="settings-card settings-card-full" id="audit-trail-section">
+      <div class="settings-card settings-card-full" id="audit-trail-section" style="display:none;">
         <div class="settings-card-header">
-          <i class="fas fa-history"></i>
-          <span class="settings-card-title">AUDIT TRAIL</span>
-          <span style="font-size: 11px; color: var(--safety-yellow); background: rgba(251, 192, 45, 0.15); padding: 3px 8px; border-radius: 4px; margin-left: 10px;">
-            📝 Activity Log
-          </span>
+          <div class="settings-card-header-icon"><i class="fas fa-history"></i></div>
+          <div class="settings-card-header-text">
+            <span class="settings-card-title">AUDIT TRAIL</span>
+            <span class="settings-card-subtitle">📝 Activity Log — all system actions tracked for security & compliance</span>
+          </div>
         </div>
         <div class="settings-card-body">
           <p style="margin: 0 0 15px 0; font-size: 0.85rem; color: var(--text-secondary);">
@@ -6787,10 +7078,13 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
       </div>
 
       
-      <div class="settings-card settings-card-full danger-zone-card" id="danger-zone-section">
+      <div class="settings-card settings-card-full danger-zone-card" id="danger-zone-section" style="display:none;">
         <div class="settings-card-header">
-          <i class="fas fa-triangle-exclamation"></i>
-          <span class="settings-card-title">DANGER ZONE</span>
+          <div class="settings-card-header-icon" style="border-color:rgba(255,100,100,0.5);background:rgba(255,255,255,0.15);"><i class="fas fa-triangle-exclamation" style="color:#ff8a80;"></i></div>
+          <div class="settings-card-header-text">
+            <span class="settings-card-title">DANGER ZONE</span>
+            <span class="settings-card-subtitle">Session logout and irreversible data actions</span>
+          </div>
         </div>
         <div class="settings-card-body">
           <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
@@ -6849,6 +7143,11 @@ let backupManager = {
     },
 
     init() {
+        // Only run backup system for admin accounts
+        if (!UserAccounts.isAdmin(state.currentUser?.email)) {
+            console.log('ℹ️ Backup Manager: skipped for non-admin user.');
+            return;
+        }
         this.loadBackupsFromStorage();
         this.startAutoSave();
         console.log('✅ Backup Manager Initialized');
@@ -7350,6 +7649,9 @@ function pGlobalEdit() {
     const saveBtn = document.getElementById('p-global-save-btn');
     if (editBtn) editBtn.style.display = 'none';
     if (saveBtn) saveBtn.style.display = '';
+    // Show Add Personnel button now that edit mode is active
+    const pAddBtn = document.getElementById('p-add-personnel-btn');
+    if (pAddBtn && state.userRole !== 'manager') pAddBtn.style.display = 'flex';
     if (!anyEditable) showToast('ℹ️ No personnel rows to edit.', 'info');
 }
 window.pGlobalEdit = pGlobalEdit;
@@ -7367,6 +7669,9 @@ function pGlobalSave() {
     const saveBtn = document.getElementById('p-global-save-btn');
     if (editBtn) editBtn.style.display = '';
     if (saveBtn) saveBtn.style.display = 'none';
+    // Hide Add Personnel button when exiting edit mode
+    const pAddBtn = document.getElementById('p-add-personnel-btn');
+    if (pAddBtn) pAddBtn.style.display = 'none';
     showToast('✅ All personnel changes saved.', 'success');
 }
 window.pGlobalSave = pGlobalSave;
@@ -7386,7 +7691,7 @@ const RBAC_ACCOUNTS = [
     { uid: 'u8r8wlD0thb5hAR9HwJ0vSQZC8u1',     email: 'esh@mab.com.ph',      role: 'manager',       displayName: 'MAB Manager',                   region: 'ALL',                 module_access: [] },
     { uid: '3d8uwAYjNPSCcH9Xbu1fsCiuJK13', email: 'esh@lmp.com.ph',      role: 'manager',       displayName: 'LMP Manager',                   region: 'ALL',                 module_access: [] },
     { uid: 'ljciHhNmmGQnriHwbwgeb8Yi1V63',    email: 'esh@wda.com.ph',      role: 'admin',      displayName: 'WDA System Admin',              region: 'CORPORATE',           module_access: [] },
-    { uid: 'WYcn1vEPoRTrq8rbrGBFUB9x4H03',    email: 'esh@corpdc.com.ph',   role: 'doc_controller', displayName: 'Corporate Document Controller', region: 'ALL',            module_access: [] },
+    { uid: 'WYcn1vEPoRTrq8rbrGBFUB9x4H03',    email: 'esh@corpdc.com.ph',   role: 'admin',          displayName: 'Corporate Document Controller', region: 'CORPORATE',      module_access: [] },
     { uid: 'b1uiTykyjhN60Il11Inmv9e6h252', email: 'esh@cbmganda.com.ph', role: 'envi_head',     displayName: 'Environmental Head',            region: 'PLANT OPERATIONS',    module_access: ['permits','emb','env-monitoring','env-monthly-report','nov-env','esh-calendar-env'] },
     { uid: 'EW3RstAsVwNxMHHCNHdV3zWGMtt2',  email: 'esh@health.com.ph',   role: 'corp_nurse',    displayName: 'Corporate Nurse',               region: 'ALL',                 module_access: [] },
 ];
@@ -8505,9 +8810,9 @@ function applyNumFmtToInputs() {
 
                 'esh@corpdc.com.ph': {
                     password: '*** (auth via Firebase Auth)',
-                    role: 'doc_controller',
+                    role: 'admin',
                     displayName: 'Corporate Document Controller',
-                    region: 'ALL',
+                    region: 'CORPORATE',
                     color: '#1a237e'
                 },
 
@@ -11849,7 +12154,7 @@ debugCommands.help() - Show this help
                     setTimeout(envInitChart, 100);
                 }
             }
-            if (t === 'health-report') { setTimeout(renderHealthReport, 100); }
+            if (t === 'health-report') { setTimeout(renderHealthReport, 100); setTimeout(function(){ if(typeof window.openHealthReportModal==='function') window.openHealthReportModal(); }, 200); }
             if (t === 'got-monitoring') { setTimeout(renderGotMonitoring, 100); }
             if (t === 'nov') { setTimeout(renderOshNovTab, 100); }
             if (t === 'tabulation') { setTimeout(renderTabulation, 100); }
@@ -11874,7 +12179,11 @@ debugCommands.help() - Show this help
             
             const pdfBtn = document.getElementById('export-pdf-btn');
             if (pdfBtn) {
-                if (t === 'personnel' && !state.isAdmin && state.userRole !== 'manager') {
+                const _noPdfRoles = ['superintendent', 'pco', 'corp_nurse'];
+                const _roleNoPdf  = _noPdfRoles.includes(state.userRole);
+                if (_roleNoPdf) {
+                    pdfBtn.style.display = 'none';
+                } else if (t === 'personnel' && !state.isAdmin && state.userRole !== 'manager') {
                     pdfBtn.style.display = 'none';
                 } else if (t === 'got-monitoring' || t === 'kpm') {
                     pdfBtn.style.display = 'none';
@@ -15589,6 +15898,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 const si = drill._custom ? (1000 + drill._customIdx) : di;
                 for (var mi = 0; mi < 12; mi++) {
                     if (_isFuture(mi)) continue;
+                    if (corpProj && isMonthBlacklistedForProject(corpProj, mi + 1, year)) continue; // work stoppage — skip
                     const planKey   = year + '|' + tabType + '|GLOBAL_PLAN|' + si + '|' + mi + '|plan';
                     const actualKey = year + '|' + tabType + '|' + projName + '|' + si + '|' + mi + '|actual';
                     if (storage[planKey]) totalPlanned++;
@@ -15780,6 +16090,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                             : di;
                         for (let mi = 0; mi < 12; mi++) {
                             if (_isFutureMonth(mi)) continue;
+                            if (isMonthBlacklistedForProject(proj, mi + 1, year)) continue; // work stoppage — skip
                             const planKey   = `${year}|${tab}|GLOBAL_PLAN|${ti}|${mi}|plan`;
                             const actualKey = `${year}|${tab}|${proj.name}|${ti}|${mi}|actual`;
                             const naKey     = `${year}|${tab}|${proj.name}|${ti}|${mi}|na`;
@@ -16663,19 +16974,11 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const label = entry?.name || `LTA entry #${idx + 1}`;
             showDeleteDialog('LTA Entry', `${label} from ${pName}`).then(confirmed => {
                 if (!confirmed) return;
-                const backup = JSON.parse(JSON.stringify(p.vals['lta-registry_entries'] || []));
                 p.vals['lta-registry_entries'].splice(idx, 1);
                 syncIncidentClassificationsFromRegistry();
                 syncDaysLostFromLtaRegistry();
                 saveToFirebase();
                 renderLtaRegistryTab();
-                showUndoToast(`${label} deleted from ${pName}`, () => {
-                    p.vals['lta-registry_entries'] = backup;
-                    syncIncidentClassificationsFromRegistry();
-                    syncDaysLostFromLtaRegistry();
-                    saveToFirebase();
-                    renderLtaRegistryTab();
-                });
             });
         }
 
@@ -17128,7 +17431,9 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             syncIncidentClassificationsFromRegistry();
             syncDaysLostFromLtaRegistry();
             if (typeof saveUserData === 'function') saveUserData(state.currentUser?.email);
+            if (window.RowSaveManager) window.RowSaveManager.markDirty(pName, 'lta_entries');
             if (typeof markPendingSync === 'function') markPendingSync();
+            if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
             _ltaAutoEditMode();
 
             modal.remove();
@@ -17290,7 +17595,29 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 if (!regProjs.length) return;
                 const canEditReg = UserAccounts.canEdit(state.currentUser?.email, reg);
                 const isCollapsed = !expandedRegions.has(reg);
-                const regEntries = regProjs.reduce((sum, p) => sum + (p.vals['lta-registry_entries']||[]).length, 0);
+                const allRegEntries = regProjs.flatMap(p => p.vals['lta-registry_entries']||[]);
+                const _classifCounts = {};
+                allRegEntries.forEach(e => {
+                    const c = e.incidentClassification || 'Unclassified';
+                    _classifCounts[c] = (_classifCounts[c] || 0) + 1;
+                });
+                // Badge config: label, background, text color — only shown if count > 0
+                const _classifBadgeConfig = {
+                    'LTA':                    { bg: 'rgba(198,40,40,0.35)',    color: '#ffcdd2' },
+                    'Fatality':               { bg: 'rgba(80,0,0,0.5)',        color: '#ff8a80' },
+                    'Medical Treatment':      { bg: 'rgba(230,81,0,0.35)',     color: '#ffe0b2' },
+                    'First Aid':              { bg: 'rgba(245,127,23,0.35)',   color: '#fff9c4' },
+                    'High-Potential incident':{ bg: 'rgba(74,20,140,0.35)',    color: '#e1bee7' },
+                    'Dangerous Occurrences':  { bg: 'rgba(1,87,155,0.35)',     color: '#bbdefb' },
+                    'Unclassified':           { bg: 'rgba(97,97,97,0.35)',     color: '#f5f5f5' },
+                };
+                const _classifBadgesHtml = Object.entries(_classifCounts)
+                    .filter(([,cnt]) => cnt > 0)
+                    .map(([cls, cnt]) => {
+                        const cfg = _classifBadgeConfig[cls] || { bg: 'rgba(97,97,97,0.35)', color: '#f5f5f5' };
+                        const shortLabel = cls === 'High-Potential incident' ? 'Hi-Po' : cls === 'Dangerous Occurrences' ? 'Dang. Occ.' : cls === 'Medical Treatment' ? 'Med. Treat.' : cls;
+                        return `<span class="rbadge" style="background:${cfg.bg};color:${cfg.color};">${cnt} ${shortLabel}</span>`;
+                    }).join('');
 
                 html += `<div id="lta-region-banner-${reg}" class="lta-region-banner region-banner region-${reg.toLowerCase()} ${isCollapsed?'collapsed':''}" onclick="toggleLtaRegion('${reg}',event)">
                     <div class="region-banner-inner">
@@ -17301,7 +17628,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         </div>
                         <div class="region-banner-right">
                             <span class="rbadge rbadge-count">${regProjs.length} PROJ</span>
-                            <span class="rbadge" style="background:rgba(198,40,40,0.3);color:#ffcdd2;">${regEntries} LTA</span>
+                            ${_classifBadgesHtml}
                             <i class="fas fa-chevron-down region-toggle-icon"></i>
                         </div>
                     </div>
@@ -17331,7 +17658,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                             <div style="display:flex;align-items:center;gap:8px;">
                                 <span class="lta-project-name">${p.name}</span>
                                 <span class="lta-region-badge">${p.region}</span>
-                                ${_ltaIsWS ? `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.2);color:white;padding:2px 8px;border-radius:12px;font-size:0.62rem;font-weight:700;"><i class="fas fa-hand-paper" style="font-size:0.6rem;"></i> Work Stoppage</span>` : ''}
+
                             </div>
                             <div style="display:flex;align-items:center;gap:8px;">
                                 ${canEdit ? `<button class="lta-add-btn" onclick="event.stopPropagation();window._addLtaEntryViaModal('${pnSafe}')"><i class="fas fa-plus"></i> Add Entry</button>` : ''}
@@ -17365,7 +17692,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                             const statusBg   = e.status === 'Closed' ? '#e8f5e9' : e.status === 'Ongoing' ? '#fff3e0' : '#ffebee';
                             const classifLabel = e.incidentClassification || '—';
                             const personLabel  = e.injuredPersonName === 'N/A' ? '<em style="color:#aaa;">N/A</em>' : (e.injuredPersonName || '<em style="color:#aaa;">—</em>');
-                            const accidentDate = e.dateOfAccident || '—';
+                            const accidentDate = e.dateOfAccident || (e.dateReported ? `${e.dateReported} (reported)` : '—');
                             const aiirLabel    = e.aiirNo || '<em style="color:#aaa;">No AIIR No.</em>';
 
                             html += `<div class="lta-row-item" style="
@@ -17981,7 +18308,7 @@ function renderTabulation() {
     }
 
     const year = state.selectedYear || 2026;
-    const availableYears = [2026, 2027, 2028, 2029, 2030];
+    const availableYears = (function(){ const _yr=[]; for(let y=(typeof YEAR_RANGE!=='undefined'?YEAR_RANGE.min:2026); y<=Math.max(new Date().getFullYear(),(typeof YEAR_RANGE!=='undefined'?YEAR_RANGE.max:2030)); y++) _yr.push(y); return _yr; })();
     const yearColors = { 2026:'#1b5e20', 2027:'#2e7d32', 2028:'#388e3c', 2029:'#43a047', 2030:'#66bb6a' };
     const yc = yearColors[year] || '#1b5e20';
 
@@ -18548,6 +18875,11 @@ function renderTabulation() {
             const _renderMc = document.getElementById('main-content');
             const _renderScroll = _renderMc ? _renderMc.scrollTop : 0;
             try {
+            // Hide PDF export button for superintendent, pco, and corp_nurse
+            const _pdfBtnEl = document.getElementById('export-pdf-btn');
+            if (_pdfBtnEl && ['superintendent','pco','corp_nurse'].includes(state.userRole)) {
+                _pdfBtnEl.style.display = 'none';
+            }
             const _eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
             const _nonTableTabs = ['settings','personnel','env-monitoring','osh-requirement','nov','got-monitoring'];
 
@@ -18558,6 +18890,7 @@ function renderTabulation() {
             }
 
             if (_nonTableTabs.includes(state.currentTab) || _eshCalTabs.includes(state.currentTab)) {
+                if (state.currentTab === 'personnel' && typeof renderPTable === 'function') { renderPTable(); return; }
                 if (state.currentTab === 'got-monitoring' && window.renderGotMonitoring) { window.renderGotMonitoring(); }
                 if (state.currentTab === 'osh-requirement' && typeof renderOsh2 === 'function') { renderOsh2(); }
                 if (state.currentTab === 'nov' && typeof renderOshNovTab === 'function') { renderOshNovTab(); }
@@ -18729,16 +19062,25 @@ function renderTabulation() {
                         const mi = i - 1; // 0-based month index for ESH calendar
                         if (state.currentTab === 'activities' && row === 'No. of Identified Near-Miss') {
                             const _nmYear2 = state.selectedYear || new Date().getFullYear();
+                            const _nmNow2 = new Date(); const _nmCY2 = _nmNow2.getFullYear(); const _nmCM2 = _nmNow2.getMonth();
                             displayProjects.forEach(p => {
                                 const entries = p.vals['lta-registry_entries'] || [];
                                 monthTotal += entries.filter(e => {
                                     if (e.incidentClassification !== 'Near Miss') return false;
-                                    const d = e.dateOfAccident || '';
-                                    if (!d) return false;
+                                    const d = e.dateOfAccident || e.dateReported || '';
+                                    if (!d) return (i - 1) === _nmCM2; // undated → assign to current month
                                     return parseInt(d.substring(0,4)) === _nmYear2 && (parseInt(d.substring(5,7)) - 1) === (i - 1);
                                 }).length;
                             });
-                            html += `<td class="monthly-data" style="font-weight:700;background:${monthTotal>0?'rgba(230,81,0,0.08)':''};text-align:center;">${monthTotal > 0 ? fmtNum(monthTotal) : ''}</td>`;
+                            const _nmSY2 = state.selectedYear || _nmCY2;
+                            const _nmIsPast2 = _nmSY2 < _nmCY2 || (_nmSY2 === _nmCY2 && (i - 1) < _nmCM2);
+                            const _nmIsCurr2 = _nmSY2 === _nmCY2 && (i - 1) === _nmCM2;
+                            const _nmShowZero2 = (_nmIsPast2 || _nmIsCurr2) && monthTotal === 0;
+                            const _nmDisp2 = monthTotal > 0 ? fmtNum(monthTotal) : (_nmShowZero2 ? '0' : '');
+                            const _nmBg2 = monthTotal > 0 ? 'rgba(230,81,0,0.08)' : (_nmShowZero2 ? 'rgba(0,0,0,0.02)' : '');
+                            const _nmColor2 = monthTotal > 0 ? '#e65100' : (_nmShowZero2 ? '#999' : '');
+                            const _nmWeight2 = monthTotal > 0 ? '700' : (_nmShowZero2 ? '600' : '400');
+                            html += `<td class="monthly-data" style="font-weight:${_nmWeight2};color:${_nmColor2};background:${_nmBg2};text-align:center;" title="Auto-counted from Incident &amp; Accident Registry — Near Miss entries for this month">${_nmDisp2}${monthTotal>0?'<i class="fas fa-lock" style="font-size:0.5rem;margin-left:3px;opacity:0.5;vertical-align:middle;"></i>':''}</td>`;
                         } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
                             const eshStor = getEshStorage();
                             const _eshYear1 = state.selectedYear || new Date().getFullYear();
@@ -18752,8 +19094,15 @@ function renderTabulation() {
                                         if (eshStor[ak]) monthTotal++;
                                     });
                                 } else {
+                                    const _8HR_LABEL1 = '8-Hr Mandatory OSH Training';
                                     ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
                                         (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
+                                            // Skip 8-Hr OSH N/A months
+                                            if (tr === _8HR_LABEL1) {
+                                                const _naK1 = `${_eshYear1}|${tt}|${p.name}|${ti}|na_row`;
+                                                const _naF1 = eshStor[_naK1] !== undefined ? parseInt(eshStor[_naK1]) : -1;
+                                                if (_naF1 >= 0 && mi >= _naF1) return;
+                                            }
                                             const ak = `${_eshYear1}|${tt}|${p.name}|${ti}|${mi}|actual`;
                                             if (eshStor[ak]) monthTotal++;
                                         });
@@ -18801,7 +19150,15 @@ function renderTabulation() {
                                 const val = p.vals[key] ? (p.vals[key][i] ?? "") : "";
                                 if (val !== "" && !isNaN(val)) monthTotal += parseFloat(val);
                             });
-                            html += `<td class="${isNov ? 'nov-narrow-td' : 'monthly-data'}" style="font-weight: 600; background: #f1f8e9;">${monthTotal > 0 ? fmtNum(monthTotal) : ''}</td>`;
+                            const _osNow = new Date(); const _osCY = _osNow.getFullYear(); const _osCM = _osNow.getMonth() + 1;
+                            const _osSY = state.selectedYear || _osCY;
+                            const _osMedAutoRows = ['LTA','Medical Treatment','First Aid','Fatality','High-Potential incident','Dangerous Occurrences','Days Lost/Charged'];
+                            const _osIsMedAuto = state.currentTab === 'medical' && _osMedAutoRows.includes(row);
+                            const _osIsPast = _osSY < _osCY || (_osSY === _osCY && i < _osCM);
+                            const _osIsCurr = _osSY === _osCY && i === _osCM;
+                            const _osShowZero = _osIsMedAuto && (_osIsPast || _osIsCurr) && monthTotal === 0;
+                            const _osDisp = monthTotal > 0 ? fmtNum(monthTotal) : (_osShowZero ? '0' : '');
+                            html += `<td class="${isNov ? 'nov-narrow-td' : 'monthly-data'}" style="font-weight: 600; background: ${monthTotal > 0 ? '#f1f8e9' : ''}; color: ${_osShowZero ? '#bbb' : ''};">${_osDisp}</td>`;
                         }
                     }
                     
@@ -18836,8 +19193,15 @@ function renderTabulation() {
                                             if (eshStor[ak]) ytdTotal++;
                                         });
                                     } else {
+                                        const _8HR_LABEL2 = '8-Hr Mandatory OSH Training';
                                         ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
                                             (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
+                                                // Skip 8-Hr OSH N/A months
+                                                if (tr === _8HR_LABEL2) {
+                                                    const _naK2 = `${_eshYear2}|${tt}|${p.name}|${ti}|na_row`;
+                                                    const _naF2 = eshStor[_naK2] !== undefined ? parseInt(eshStor[_naK2]) : -1;
+                                                    if (_naF2 >= 0 && mi >= _naF2) return;
+                                                }
                                                 const ak = `${_eshYear2}|${tt}|${p.name}|${ti}|${mi}|actual`;
                                                 if (eshStor[ak]) ytdTotal++;
                                             });
@@ -18852,8 +19216,9 @@ function renderTabulation() {
                                 const entries = p.vals['lta-registry_entries'] || [];
                                 ytdTotal += entries.filter(e => {
                                     if (e.incidentClassification !== 'Near Miss') return false;
-                                    const d = e.dateOfAccident || '';
-                                    return d && parseInt(d.substring(0,4)) === _nmOsYear;
+                                    const d = e.dateOfAccident || e.dateReported || '';
+                                    if (!d) return true; // undated Near Miss — count in YTD for this year
+                                    return parseInt(d.substring(0,4)) === _nmOsYear;
                                 }).length;
                             });
                             html += `<td class="ytd-cell" style="font-weight:800;font-size:0.7rem;color:${ytdTotal>0?'#e65100':''};">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
@@ -19004,7 +19369,7 @@ function renderTabulation() {
                     const _realYrNow = new Date().getFullYear();
                     const _pastMonths = _selYrNow < _realYrNow ? 12 : (_selYrNow === _realYrNow ? _curMoNow : 0);
                     let _dTotalSlots = 0, _dFilled = 0, _dOverdue = 0;
-                    const _dActiveProjs = displayProjects.filter(function(dp) { return !isProjectOnStoppage(dp); });
+                    const _dActiveProjs = displayProjects.filter(function(dp) { return !isProjectOnStoppage(dp) && dp.region !== 'CORPORATE' && dp.region !== 'PLANT OPERATIONS'; });
                     _dActiveProjs.forEach(function(dp) {
                         _doleMonthlyRows.forEach(function(row) {
                             const k = 'dole_' + row;
@@ -19044,7 +19409,7 @@ function renderTabulation() {
                 }
 
                 REGIONS.forEach(reg => {
-                const CORPORATE_ALLOWED_TABS = ['overall', 'rates', 'exposures', 'dole', 'medical', 'nov', 'nov-env', 'nov-monitoring', 'activities'];
+                const CORPORATE_ALLOWED_TABS = ['overall', 'rates', 'exposures', 'medical', 'nov', 'nov-env', 'nov-monitoring', 'activities']; // 'dole' removed — CORPORATE has no DOLE obligation
                 if (reg === 'CORPORATE' && !CORPORATE_ALLOWED_TABS.includes(state.currentTab)) return;
 
                 const PLANT_ALLOWED_TABS = ['overall', 'permits', 'env-monitoring', 'env-monthly-report'];
@@ -19142,10 +19507,10 @@ function renderTabulation() {
                             <div class="circular-progress-inner" style="${isWorkStopped ? 'font-size:0.62rem;color:#bf360c;' : ''}">${percDisplay}${percDisplay !== '—' ? '%' : ''}</div>
                         </div>
                         <div class="project-info">
-                            <div class="project-name">
+                            <div class="project-name" ${isWorkStopped ? 'style="color:#c62828;"' : ''}>
                                 ${p.name}
                                 ${p.isRenewable ? '<span style="display: inline-flex; align-items: center; gap: 4px; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; margin-left: 8px;"><i class="fas fa-leaf" style="color: #4caf50;"></i> RE</span>' : ''}
-                                ${isWorkStopped ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#f5f5f5;color:#757575;border:1px solid #bdbdbd;padding:2px 8px;border-radius:12px;font-size:0.68rem;font-weight:700;margin-left:8px;cursor:help;" title="Work Stoppage — Data entry is disabled. Set a Resume Date to re-enable input."><i class="fas fa-pause-circle" style="font-size:0.65rem;"></i> WORK STOPPAGE</span>` : ''}
+
                                 ${(p.workStoppageDate && p.workResumeDate) ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;padding:2px 8px;border-radius:12px;font-size:0.68rem;font-weight:700;margin-left:8px;"><i class="fas fa-play-circle" style="font-size:0.65rem;"></i> RESUMED — Counting from ${formatDateDMY(p.workResumeDate)}</span>` : ''}
                             </div>
                             <div class="project-meta">${p.region === 'CORPORATE' ? 'Main Office' : p.region === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : 'Safety Compliance'} • ${p.region || 'No Region'}</div>
@@ -19176,7 +19541,7 @@ if (state.currentTab === 'dole' && projs.length > 1) {
         <i class="fas fa-building" style="color:#2e7d32;font-size:0.85rem;"></i>
         <span style="font-weight:800;font-size:0.82rem;color:#1b5e20;">${p.name}</span>
         ${p.isRenewable ? '<span style="background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;border-radius:10px;font-size:0.62rem;font-weight:700;padding:1px 7px;margin-left:4px;"><i class="fas fa-leaf" style="font-size:0.58rem;margin-right:3px;"></i>RE</span>' : ''}
-        ${isWorkStopped ? '<span style="background:#fff3e0;color:#bf360c;border:1px solid #ffccbc;border-radius:10px;font-size:0.62rem;font-weight:700;padding:1px 7px;margin-left:4px;"><i class="fas fa-hand-paper" style="font-size:0.58rem;margin-right:3px;"></i>Work Stoppage</span>' : ''}
+
         <span style="background:${_dolePercBg};color:${_dolePercColor};border-radius:10px;font-size:0.65rem;font-weight:800;padding:2px 9px;margin-left:auto;">${_dolePercDisplay} compliant</span>
     </div>`;
 }
@@ -20307,8 +20672,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 if (eshStor[ak]) count++;
                             });
                         } else {
+                            const _8HR_LABEL3 = '8-Hr Mandatory OSH Training';
                             ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
                                 (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
+                                    // Skip 8-Hr OSH N/A months
+                                    if (tr === _8HR_LABEL3) {
+                                        const _naK3 = `${_eshYear3}|${tt}|${projName}|${ti}|na_row`;
+                                        const _naF3 = eshStor[_naK3] !== undefined ? parseInt(eshStor[_naK3]) : -1;
+                                        if (_naF3 >= 0 && mi >= _naF3) return;
+                                    }
                                     const ak = `${_eshYear3}|${tt}|${projName}|${ti}|${mi}|actual`;
                                     if (eshStor[ak]) count++;
                                 });
@@ -20341,8 +20713,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     for (let mi = 0; mi < 12; mi++) {
                         const count = _nmEntries.filter(e => {
                             if (e.incidentClassification !== 'Near Miss') return false;
-                            const d = e.dateOfAccident || '';
-                            if (!d) return false;
+                            const d = e.dateOfAccident || e.dateReported || '';
+                            if (!d) return mi === (_curMonth2); // undated → assign to current month
                             const yr = parseInt(d.substring(0, 4));
                             const mo = parseInt(d.substring(5, 7)) - 1;
                             return yr === _nmYear && mo === mi;
@@ -20408,14 +20780,24 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         </td>`;
                     }
                 } else {
-                    const _medAutoRows = ['LTA', 'Medical Treatment', 'First Aid', 'Fatality', 'High-Potential incident', 'Dangerous Occurrences'];
+                    const _medAutoRows = ['LTA', 'Medical Treatment', 'First Aid', 'Fatality', 'High-Potential incident', 'Dangerous Occurrences', 'Days Lost/Charged'];
                     if (state.currentTab === 'medical' && _medAutoRows.includes(row)) {
+                        const _medNow = new Date();
+                        const _medCurYear = _medNow.getFullYear();
+                        const _medCurMonth = _medNow.getMonth() + 1; // 1-based
+                        const _medSelYear = state.selectedYear || _medCurYear;
                         for (let i = 1; i <= 12; i++) {
                             const v = parseFloat(p.vals[key]?.[i]) || 0;
-                            const hasAny = (p.vals['lta-registry_entries'] || []).length > 0;
-                            html += `<td class="monthly-data" style="text-align:center;background:${v > 0 ? 'rgba(27,94,32,0.07)' : ''};cursor:default;" title="Auto-computed from Incident &amp; Accident Registry — cannot be edited manually">
-                                <span style="font-weight:${v > 0 ? '800' : '600'};color:${v > 0 ? '#1b5e20' : '#bbb'};font-size:0.8rem;">
-                                    ${v > 0 ? v : (hasAny ? '0' : '—')}${v > 0 ? '<i class="fas fa-lock" style="font-size:0.5rem;margin-left:3px;opacity:0.5;vertical-align:middle;"></i>' : ''}
+                            const _medIsPast = _medSelYear < _medCurYear || (_medSelYear === _medCurYear && i < _medCurMonth);
+                            const _medIsCurr = _medSelYear === _medCurYear && i === _medCurMonth;
+                            const _medShowZero = _medIsPast || _medIsCurr; // past or current month → always show 0
+                            const _medDisp = v > 0 ? v : (_medShowZero ? '0' : '—');
+                            const _medColor = v > 0 ? '#1b5e20' : (_medShowZero ? '#bbb' : '#ddd');
+                            const _medWeight = v > 0 ? '800' : '600';
+                            const _medBg = v > 0 ? 'rgba(27,94,32,0.07)' : '';
+                            html += `<td class="monthly-data" style="text-align:center;background:${_medBg};cursor:default;" title="Auto-computed from Incident &amp; Accident Registry — cannot be edited manually">
+                                <span style="font-weight:${_medWeight};color:${_medColor};font-size:0.8rem;">
+                                    ${_medDisp}${v > 0 ? '<i class="fas fa-lock" style="font-size:0.5rem;margin-left:3px;opacity:0.5;vertical-align:middle;"></i>' : ''}
                                 </span>
                             </td>`;
                         }
@@ -20444,13 +20826,41 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         const _selYear = state.selectedYear || new Date().getFullYear();
                         const _realCurYear = new Date().getFullYear();
                         const _isCurrentYear = _selYear === _realCurYear;
+
+                        // ── DOLE deadline-aware overdue check ─────────────────────────────────
+                        // Red lang kung NAKALIPAS na ang actual DOLE submission deadline:
+                        //   WAIR / MOM / RSO : due on the 20th of the FOLLOWING month
+                        //   (AEDR & AMR are annual — handled separately above)
+                        // Para sa ibang tabs, original logic pa rin (_isCurrentMonth || _isPastMonth).
+                        function _isDoleDeadlinePassed(monthIdx1Based) {
+                            const _now = new Date();
+                            const _nowY = _now.getFullYear();
+                            const _nowM = _now.getMonth() + 1; // 1-based
+                            const _nowD = _now.getDate();
+                            if (_selYear < _nowY) return true;   // past year → all overdue
+                            if (_selYear > _nowY) return false;  // future year → none overdue
+                            // Current year: deadline = 20th of following month
+                            const _dlMonth1 = monthIdx1Based === 12 ? 1 : monthIdx1Based + 1;
+                            const _dlYear   = monthIdx1Based === 12 ? _nowY + 1 : _nowY;
+                            if (_nowY > _dlYear) return true;
+                            if (_nowY === _dlYear) {
+                                if (_nowM > _dlMonth1) return true;
+                                if (_nowM === _dlMonth1 && _nowD > 20) return true;
+                            }
+                            return false;
+                        }
+
+                        const _isOverdue = (isDole && isDateType)
+                            ? _isDoleDeadlinePassed(i)
+                            : (_isCurrentMonth || _isPastMonth); // original logic for non-DOLE tabs
+
                         let _dateCellStyle = '';
                         if (isDateType && _isCurrentYear) {
                             if (_isFutureMonth) {
                                 _dateCellStyle = 'background:#f5f5f5;opacity:0.65;';
                             } else if (v) {
                                 _dateCellStyle = 'background:#e8f5e9;';
-                            } else if (_isCurrentMonth || _isPastMonth) {
+                            } else if (_isOverdue) {
                                 _dateCellStyle = 'background:#ffebee;';
                             }
                         } else if (!isDateType && _isFutureMonth) {
@@ -20458,7 +20868,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         }
 
                         const _dateInputStyle = (isDateType && _isCurrentYear && !_isFutureMonth)
-                            ? `style="width:100%;border:1.5px solid ${v ? '#a5d6a7' : (_isCurrentMonth || _isPastMonth) ? '#ef9a9a' : 'var(--border-color)'};border-radius:4px;padding:2px 3px;font-size:0.72rem;background:${v ? '#f1fff1' : (_isCurrentMonth || _isPastMonth) ? '#fff5f5' : 'var(--input-bg)'};color:${v ? '#2e7d32' : (_isCurrentMonth || _isPastMonth) ? '#c62828' : 'var(--text-primary)'};"`
+                            ? `style="width:100%;border:1.5px solid ${v ? '#a5d6a7' : _isOverdue ? '#ef9a9a' : 'var(--border-color)'};border-radius:4px;padding:2px 3px;font-size:0.72rem;background:${v ? '#f1fff1' : _isOverdue ? '#fff5f5' : 'var(--input-bg)'};color:${v ? '#2e7d32' : _isOverdue ? '#c62828' : 'var(--text-primary)'};"`
                             : '';
 
                         html += `<td class="${isNov ? 'nov-narrow-td' : (isDole ? 'dole-narrow-td' : 'monthly-data')}" style="${_dateCellStyle}"><input type="${isDateType ? 'date' : 'text'}" ${isDateType ? '' : 'inputmode="decimal" data-num'} value="${vFmt}" ${_cellDisabled}${_futureTip} ${_dateInputStyle} ${isDateType ? `oninput="updateVal('${p.name}','${key}',${i},this.value);_refreshDateCell(this)"` : `oninput="numFmtInput(this, function(v){updateVal('${p.name}','${key}',${i},v)})"`}></td>`;
@@ -20484,8 +20894,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 if (eshStor[`${_eshYear4}|esh-calendar-drills|${p.name}|${_dsi4}|${mi}|actual`]) ytdValue++;
                             });
                         } else {
+                            const _8HR_LABEL4 = '8-Hr Mandatory OSH Training';
                             ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
                                 (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
+                                    // Skip 8-Hr OSH N/A months
+                                    if (tr === _8HR_LABEL4) {
+                                        const _naK4 = `${_eshYear4}|${tt}|${p.name}|${ti}|na_row`;
+                                        const _naF4 = eshStor[_naK4] !== undefined ? parseInt(eshStor[_naK4]) : -1;
+                                        if (_naF4 >= 0 && mi >= _naF4) return;
+                                    }
                                     if (eshStor[`${_eshYear4}|${tt}|${p.name}|${ti}|${mi}|actual`]) ytdValue++;
                                 });
                             });
@@ -20497,8 +20914,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const _nmYtdYear = state.selectedYear || new Date().getFullYear();
                     const _nmYtdCount = _nmYtdEntries.filter(e => {
                         if (e.incidentClassification !== 'Near Miss') return false;
-                        const d = e.dateOfAccident || '';
-                        return d && parseInt(d.substring(0, 4)) === _nmYtdYear;
+                        const d = e.dateOfAccident || e.dateReported || '';
+                        if (!d) return true; // undated Near Miss — count in YTD for this year
+                        return parseInt(d.substring(0, 4)) === _nmYtdYear;
                     }).length;
                     html += `<td class="ytd-cell" style="color:${_nmYtdCount>0?'#e65100':''};font-weight:800;">${_nmYtdCount > 0 ? fmtNum(_nmYtdCount) : ''}</td>`;
                 } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
@@ -20663,7 +21081,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     // ── Summary cards ──────────────────────────────────────────────────
                     var dTotalSlots = 0, dFilled = 0, dOverdue = 0;
-                    var dActiveProjs = displayProjects.filter(function(dp){ return !isProjectOnStoppage(dp); });
+                    var dActiveProjs = displayProjects.filter(function(dp){ return !isProjectOnStoppage(dp) && dp.region !== 'CORPORATE' && dp.region !== 'PLANT OPERATIONS'; });
                     dActiveProjs.forEach(function(dp){
                         DOLE_MONTHLY_ROWS.forEach(function(row){
                             var k = 'dole_' + row;
@@ -20841,7 +21259,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var hdrStyle = 'padding:5px 8px;border:1px solid #c8e6c9;font-size:0.67rem;font-weight:700;text-align:center;min-width:160px;white-space:normal;word-break:break-word;'
                                 + (isStopped ? 'background:#f5f5f5;color:#9e9e9e;opacity:0.7;' : 'background:#b7ddb5;color:#1b5e20;');
                             return '<th style="' + hdrStyle + '">' + p.name
-                                + (isStopped ? ' <span style="display:inline-block;background:#e0e0e0;color:#757575;border-radius:4px;padding:1px 5px;font-size:0.6rem;margin-top:2px;"><i class=\'fas fa-pause-circle\'></i> WORK STOPPAGE</span>' : '')
+                                + (isStopped ? '' : '')
                                 + '</th>';
                         }).join('');
 
@@ -20853,16 +21271,37 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 var k = 'dole_' + row;
                                 var v = p.vals[k] ? (p.vals[k][moIdx+1] || '') : '';
                                 var pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-                                var cellBg = isStopped ? '#f5f5f5' : (v ? '#c8e6c9' : '#ffcdd2');
-                                var cellBorder = isStopped ? '#e0e0e0' : (v ? '#a5d6a7' : '#ef9a9a');
-                                var cellColor = isStopped ? '#9e9e9e' : (v ? '#2e7d32' : '#c62828');
+                                // ── DOLE deadline-aware coloring for modal ───────────────────────
+                                // Red only AFTER the 20th of the following month has passed.
+                                // moIdx is 0-based (0=Jan…11=Dec); selYear is the selected year.
+                                var _modalNow = new Date();
+                                var _modalNowY = _modalNow.getFullYear();
+                                var _modalNowM = _modalNow.getMonth() + 1; // 1-based
+                                var _modalNowD = _modalNow.getDate();
+                                var _modalMoIdx1 = moIdx + 1; // 1-based month of the report data
+                                var _modalDeadlineM = _modalMoIdx1 === 12 ? 1 : _modalMoIdx1 + 1;
+                                var _modalDeadlineY = _modalMoIdx1 === 12 ? selYear + 1 : selYear;
+                                var _modalDeadlinePassed = false;
+                                if (selYear < _modalNowY) {
+                                    _modalDeadlinePassed = true; // past year, all overdue
+                                } else if (selYear === _modalNowY) {
+                                    if (_modalNowY > _modalDeadlineY) { _modalDeadlinePassed = true; }
+                                    else if (_modalNowY === _modalDeadlineY) {
+                                        if (_modalNowM > _modalDeadlineM) { _modalDeadlinePassed = true; }
+                                        else if (_modalNowM === _modalDeadlineM && _modalNowD > 20) { _modalDeadlinePassed = true; }
+                                    }
+                                }
+                                var _modalIsOverdue = !v && _modalDeadlinePassed;
+                                var cellBg = isStopped ? '#f5f5f5' : (v ? '#c8e6c9' : (_modalIsOverdue ? '#ffcdd2' : '#f5f5f5'));
+                                var cellBorder = isStopped ? '#e0e0e0' : (v ? '#a5d6a7' : (_modalIsOverdue ? '#ef9a9a' : '#e0e0e0'));
+                                var cellColor = isStopped ? '#9e9e9e' : (v ? '#2e7d32' : (_modalIsOverdue ? '#c62828' : '#9e9e9e'));
                                 var inputStyle = 'width:100%;border:1px solid ' + cellBorder + ';border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:700;background:' + cellBg + ';color:' + cellColor + ';' + (isStopped ? 'cursor:not-allowed;' : '');
                                 return '<td style="padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;' + (isStopped ? 'background:#fafafa;opacity:0.65;' : '') + '">'
                                     + (isStopped ? '<div style="font-size:0.62rem;color:#9e9e9e;text-align:center;padding:4px;font-style:italic;"><i class="fas fa-ban"></i> Stopped</div>' :
                                         '<input type="date" value="' + v + '" ' + cellDis
                                         + ' name="dolemod-' + row + '-' + p.name.replace(/[^a-zA-Z0-9]/g,'_') + '"'
-                                        + ' data-pname="' + pnSafe + '" data-row="' + row + '" data-moIdx="' + (moIdx+1) + '"'
-                                        + ' oninput="(function(el){var p=state.projects.find(function(x){return x.name===el.dataset.pname;});if(p){if(!p.vals[\'dole_\'+el.dataset.row])p.vals[\'dole_\'+el.dataset.row]=new Array(14).fill(\'\');p.vals[\'dole_\'+el.dataset.row][parseInt(el.dataset.moIdx)]=el.value;if(typeof markPendingSync===\'function\')markPendingSync();}el.style.background=el.value?\'#c8e6c9\':\'#ffcdd2\';el.style.borderColor=el.value?\'#a5d6a7\':\'#ef9a9a\';el.style.color=el.value?\'#2e7d32\':\'#c62828\';})(this)"'
+                                        + ' data-pname="' + pnSafe + '" data-row="' + row + '" data-moIdx="' + (moIdx+1) + '" data-overdue="' + (_modalIsOverdue ? '1' : '0') + '"'
+                                        + ' oninput="(function(el){var p=state.projects.find(function(x){return x.name===el.dataset.pname;});if(p){if(!p.vals[\'dole_\'+el.dataset.row])p.vals[\'dole_\'+el.dataset.row]=new Array(14).fill(\'\');p.vals[\'dole_\'+el.dataset.row][parseInt(el.dataset.moIdx)]=el.value;if(typeof markPendingSync===\'function\')markPendingSync();}var _od=el.dataset.overdue===\'1\';el.style.background=el.value?\'#c8e6c9\':\'\'+(_od?\'#ffcdd2\':\'#f5f5f5\')+\'\';el.style.borderColor=el.value?\'#a5d6a7\':\'\'+(_od?\'#ef9a9a\':\'#e0e0e0\')+\'\';el.style.color=el.value?\'#2e7d32\':\'\'+(_od?\'#c62828\':\'#9e9e9e\')+\'\';})(this)"'
                                         + ' style="' + inputStyle + '"></td>');
                             }).join('');
                             var rowDesc = row === 'WAIR' ? 'Work Accident/Illness Report' : row === 'RSO' ? 'Report on Safety Officer' : 'Minutes of Meeting';
@@ -20870,6 +21309,56 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-weight:800;color:#1b5e20;background:#e8f5e9;min-width:80px;white-space:nowrap;">' + row + '</td>'
                                 + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-size:0.67rem;color:#555;min-width:180px;white-space:normal;">' + rowDesc + '</td>'
                                 + projCells + '</tr>';
+                        }).join('');
+
+                        // ── AEDR & AMR annual rows ───────────────────────────────────────────
+                        var _annNow = new Date();
+                        var _annNowY = _annNow.getFullYear();
+                        var _annNowM = _annNow.getMonth() + 1;
+                        var _annNowD = _annNow.getDate();
+                        var _annDefs = [
+                            { row: 'AEDR', desc: 'Annual Exposure Data Report', dlM: 1,  dlD: 30 },
+                            { row: 'AMR',  desc: 'Annual Medical Report',        dlM: 3,  dlD: 31 }
+                        ];
+                        var annualRows = _annDefs.map(function(rd) {
+                            var dlY = selYear + 1;
+                            var passed = (_annNowY > dlY) ||
+                                (_annNowY === dlY && _annNowM > rd.dlM) ||
+                                (_annNowY === dlY && _annNowM === rd.dlM && _annNowD > rd.dlD);
+                            var moNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                            var dlLabel = 'Due: ' + moNames[rd.dlM-1] + ' ' + rd.dlD + ', ' + dlY;
+
+                            var cells = regProjs.map(function(proj) {
+                                var stopped = isProjectOnStoppage(proj);
+                                var dis = (stopped || !canEdit) ? 'disabled' : '';
+                                var k = 'dole_' + rd.row;
+                                var v = proj.vals[k] ? (proj.vals[k][1] || '') : '';
+                                var overdue = !v && passed;
+                                var bg  = stopped ? '#f5f5f5' : v ? '#c8e6c9' : overdue ? '#ffcdd2' : '#f5f5f5';
+                                var bdr = stopped ? '#e0e0e0' : v ? '#a5d6a7' : overdue ? '#ef9a9a' : '#e0e0e0';
+                                var clr = stopped ? '#9e9e9e' : v ? '#2e7d32' : overdue ? '#c62828' : '#9e9e9e';
+                                var pnEsc = proj.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                                var tdStyle = 'padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;' + (stopped ? 'background:#fafafa;opacity:0.65;' : '');
+                                var inStyle = 'width:100%;border:1px solid ' + bdr + ';border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:700;background:' + bg + ';color:' + clr + ';';
+                                var cell;
+                                if (stopped) {
+                                    cell = '<div style="font-size:0.62rem;color:#9e9e9e;text-align:center;padding:4px;font-style:italic;"><i class="fas fa-ban"></i> Stopped</div>';
+                                } else {
+                                    var safeName = proj.name.replace(/[^a-zA-Z0-9]/g,'_');
+                                    cell = '<input type="date" value="' + v + '" ' + dis
+                                        + ' name="dolemod-' + rd.row + '-' + safeName + '"'
+                                        + ' data-pname="' + pnEsc + '" data-row="' + rd.row + '" data-moIdx="1"'
+                                        + ' style="' + inStyle + '"'
+                                        + ' oninput="window._doleAnnualInput(this)">';
+                                }
+                                return '<td style="' + tdStyle + '">' + cell + '</td>';
+                            }).join('');
+
+                            return '<tr style="background:#fff8e1;border-bottom:1px solid #ffe0b2;">'
+                                + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-weight:800;color:#e65100;background:#fff3e0;min-width:80px;white-space:nowrap;">'
+                                + rd.row + '<br><span style="font-size:0.55rem;font-weight:600;color:#bf360c;">' + dlLabel + '</span></td>'
+                                + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-size:0.67rem;color:#555;min-width:180px;white-space:normal;">' + rd.desc + '</td>'
+                                + cells + '</tr>';
                         }).join('');
 
                         var tableHtml = '<table style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
@@ -20881,7 +21370,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '</tr>'
                             + '<tr style="background:#b7ddb5;">' + projHeaderCols + '</tr>'
                             + '</thead>'
-                            + '<tbody>' + tableRows + '</tbody></table>';
+                            + '<tbody>'
+                            + '<tr><td colspan="' + (regProjs.length + 2) + '" style="padding:4px 12px;background:#e8f5e9;font-size:0.6rem;font-weight:700;color:#2e7d32;letter-spacing:0.4px;border:1px solid #c8e6c9;">📅 MONTHLY REPORTS — WAIR / RSO / MOM &nbsp;&nbsp;(due 20th of following month)</td></tr>'
+                            + tableRows
+                            + '<tr><td colspan="' + (regProjs.length + 2) + '" style="padding:4px 12px;background:#fff3e0;font-size:0.6rem;font-weight:700;color:#e65100;letter-spacing:0.4px;border:1px solid #c8e6c9;border-top:2px solid #ffb74d;">📆 ANNUAL REPORTS — AEDR / AMR &nbsp;&nbsp;(submitted once per year)</td></tr>'
+                            + annualRows
+                            + '</tbody></table>';
 
                         modal.innerHTML = '<div style="background:var(--bg-card);border-radius:12px;width:min(900px,97vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
                             // Header
@@ -20928,7 +21422,21 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         document.body.appendChild(modal);
                     };
 
-                    // ── Save DOLE Modal ────────────────────────────────────────────────
+                    // ── Annual DOLE input handler (no escape-hell inline) ──────────────
+                    window._doleAnnualInput = function(el) {
+                        var px = state.projects.find(function(x){ return x.name === el.dataset.pname; });
+                        if (px) {
+                            var rowKey = 'dole_' + el.dataset.row;
+                            if (!px.vals[rowKey]) px.vals[rowKey] = new Array(14).fill('');
+                            px.vals[rowKey][1] = el.value;
+                            if (typeof markPendingSync === 'function') markPendingSync();
+                        }
+                        el.style.background    = el.value ? '#c8e6c9' : '#f5f5f5';
+                        el.style.borderColor   = el.value ? '#a5d6a7' : '#e0e0e0';
+                        el.style.color         = el.value ? '#2e7d32' : '#9e9e9e';
+                    };
+
+                                        // ── Save DOLE Modal ────────────────────────────────────────────────
                     window.saveDoleModal = function() {
                         var modal = document.getElementById('dole-month-modal');
                         if (!modal) return;
@@ -21441,7 +21949,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     var EMR_KEY = 'env-monthly-report_Environmental Monthly Report (EMR)';
                     var EMR_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-                    var emrActProjs = displayProjects.filter(function(p){ return !isProjectOnStoppage(p); });
+                    var emrActProjs = displayProjects.filter(function(p){ return !isProjectOnStoppage(p) && p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS'; });
                     var emrTot=0, emrFill=0;
                     // Only count months BEFORE the current one as overdue (current month hasn't ended yet)
                     // emrCurMoIdx is 0-based; mo is 1-based → loop mo=1 to emrCurMoIdx (excludes current)
@@ -22839,7 +23347,50 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     `;
                     
                     const key = 'doe_DOE Quarterly Report Submission Date';
-                    
+
+                    // ── Summary cards ─────────────────────────────────────────────
+                    (function() {
+                        function _mkCard(bg,border,icon,iconColor,label,value,sub,valueColor){
+                            return '<div style="flex:1;min-width:130px;background:'+bg+';border:1.5px solid '+border+';border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:3px;">'                                +'<div style="font-size:0.6rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;"><i class="fas '+icon+'" style="color:'+iconColor+';margin-right:5px;"></i>'+label+'</div>'                                +'<div style="font-size:1.5rem;font-weight:900;color:'+valueColor+';line-height:1;">'+value+'</div>'                                +'<div style="font-size:0.6rem;color:#888;">'+sub+'</div>'                                +'</div>';
+                        }
+                        var _doeNow2 = new Date();
+                        var _doeSelY2 = state.selectedYear || _doeNow2.getFullYear();
+                        var _doeNowM2 = _doeNow2.getMonth(), _doeNowD2 = _doeNow2.getDate(), _doeNowY2 = _doeNow2.getFullYear();
+                        var _doeDueQ2 = 0;
+                        if (_doeSelY2 < _doeNowY2) {
+                            _doeDueQ2 = 4;
+                        } else if (_doeSelY2 === _doeNowY2) {
+                            if (_doeNowM2 > 3  || (_doeNowM2 === 3  && _doeNowD2 > 20)) _doeDueQ2 = 1;
+                            if (_doeNowM2 > 6  || (_doeNowM2 === 6  && _doeNowD2 > 20)) _doeDueQ2 = 2;
+                            if (_doeNowM2 > 9  || (_doeNowM2 === 9  && _doeNowD2 > 20)) _doeDueQ2 = 3;
+                        }
+                        var _doeActProjs2 = renewableProjects.filter(function(p) {
+                            return !isProjectOnStoppage(p) && !(p.vals && (p.vals['doe_client_provided'] === '1' || p.vals['doe-permit_client_provided'] === '1'));
+                        });
+                        var _doeClientProjs2 = renewableProjects.filter(function(p) {
+                            return p.vals && (p.vals['doe_client_provided'] === '1' || p.vals['doe-permit_client_provided'] === '1');
+                        });
+                        var _doeTot2 = 0, _doeFill2 = 0;
+                        _doeActProjs2.forEach(function(p) {
+                            for (var q = 1; q <= _doeDueQ2; q++) {
+                                _doeTot2++;
+                                if (p.vals[key] && p.vals[key][q]) _doeFill2++;
+                            }
+                        });
+                        var _doeOvd2 = _doeTot2 - _doeFill2;
+                        var _doePct2 = _doeTot2 > 0 ? Math.round(_doeFill2 / _doeTot2 * 100) : 0;
+                        var _doePctC2 = _doePct2 >= 90 ? '#2e7d32' : _doePct2 >= 75 ? '#e65100' : '#c62828';
+                        var _doePctBg2 = _doePct2 >= 90 ? '#e8f5e9' : _doePct2 >= 75 ? '#fff3e0' : '#ffebee';
+                        var _doePctBd2 = _doePct2 >= 90 ? '#a5d6a7' : _doePct2 >= 75 ? '#ffcc80' : '#ef9a9a';
+
+                        html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px 0;">'
+                            + _mkCard('#e8f5e9','#a5d6a7','fa-solar-panel','#2e7d32','RE Projects',renewableProjects.length,_doeClientProjs2.length+' client-handled · '+_doeActProjs2.length+' self-reporting','#1b5e20')
+                            + _mkCard(_doePctBg2,_doePctBd2,'fa-chart-pie',_doePctC2,'Overall Compliance',_doePct2+'%',_doeFill2+' of '+_doeTot2+' quarterly slots filled',_doePctC2)
+                            + _mkCard('#e8f5e9','#a5d6a7','fa-calendar-check','#2e7d32','Submitted',_doeFill2,'DOE quarterly reports','#1b5e20')
+                            + _mkCard(_doeOvd2>0?'#ffebee':'#e8f5e9',_doeOvd2>0?'#ef9a9a':'#a5d6a7','fa-exclamation-circle',_doeOvd2>0?'#c62828':'#2e7d32','Overdue / Missing',_doeOvd2,'Past-due unfilled slots',_doeOvd2>0?'#c62828':'#2e7d32')
+                            + '</div>';
+                    })();
+
                     REGIONS.forEach(reg => {
                         const regProjects = renewableProjects.filter(p => p.region === reg);
                         if (regProjects.length === 0) return;
@@ -23023,7 +23574,47 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     `;
                     
                     const key = 'doe-permit_DOE Safety Officer Permit';
-                    
+
+                    // ── Summary cards ────────────────────────────────────────────────
+                    const _dpNow = new Date();
+                    const _dpActProjs = renewableProjects.filter(p => !isProjectOnStoppage(p) && p.vals && p.vals['doe-permit_client_provided'] !== '1');
+                    const _dpClientProjs = renewableProjects.filter(p => p.vals && p.vals['doe-permit_client_provided'] === '1');
+                    let _dpWithPermit = 0, _dpExpired = 0, _dpExpiringSoon = 0, _dpMissing = 0;
+                    _dpActProjs.forEach(function(p) {
+                        const permitNo = p.vals[key] ? (p.vals[key][1] || '') : '';
+                        const validUntil = p.vals[key] ? (p.vals[key][2] || '') : '';
+                        if (!permitNo && !validUntil) { _dpMissing++; return; }
+                        _dpWithPermit++;
+                        if (validUntil) {
+                            const expDate = new Date(validUntil);
+                            const diffDays = Math.ceil((expDate - _dpNow) / (1000 * 60 * 60 * 24));
+                            if (diffDays < 0) _dpExpired++;
+                            else if (diffDays <= 90) _dpExpiringSoon++;
+                        }
+                    });
+                    const _dpTotal = _dpActProjs.length;
+                    const _dpCompliant = _dpWithPermit - _dpExpired;
+                    const _dpPct = _dpTotal > 0 ? Math.round(_dpCompliant / _dpTotal * 100) : 0;
+                    const _dpPctC = _dpPct >= 90 ? '#2e7d32' : _dpPct >= 75 ? '#e65100' : '#c62828';
+                    const _dpPctBg = _dpPct >= 90 ? '#e8f5e9' : _dpPct >= 75 ? '#fff3e0' : '#ffebee';
+                    const _dpPctBd = _dpPct >= 90 ? '#a5d6a7' : _dpPct >= 75 ? '#ffcc80' : '#ef9a9a';
+
+                    (function(){
+                        function _mkCard2(bg,border,icon,iconColor,label,value,sub,valueColor){
+                            return '<div style="flex:1;min-width:130px;background:'+bg+';border:1.5px solid '+border+';border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:3px;">'
+                                +'<div style="font-size:0.6rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;"><i class="fas '+icon+'" style="color:'+iconColor+';margin-right:5px;"></i>'+label+'</div>'
+                                +'<div style="font-size:1.5rem;font-weight:900;color:'+valueColor+';line-height:1;">'+value+'</div>'
+                                +'<div style="font-size:0.6rem;color:#888;">'+sub+'</div>'
+                                +'</div>';
+                        }
+                        html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px 0;">'
+                            + _mkCard2('#e8f5e9','#a5d6a7','fa-solar-panel','#2e7d32','RE Projects',renewableProjects.length,_dpClientProjs.length+' client-handled, '+_dpActProjs.length+' self-managed','#1b5e20')
+                            + _mkCard2(_dpPctBg,_dpPctBd,'fa-chart-pie',_dpPctC,'Permit Compliance',_dpPct+'%',_dpCompliant+' of '+_dpTotal+' with valid permit',_dpPctC)
+                            + _mkCard2(_dpExpiringSoon>0?'#fff3e0':'#e8f5e9',_dpExpiringSoon>0?'#ffcc80':'#a5d6a7','fa-clock',_dpExpiringSoon>0?'#e65100':'#2e7d32','Expiring Soon',_dpExpiringSoon,'Within 90 days',_dpExpiringSoon>0?'#e65100':'#2e7d32')
+                            + _mkCard2((_dpExpired+_dpMissing)>0?'#ffebee':'#e8f5e9',(_dpExpired+_dpMissing)>0?'#ef9a9a':'#a5d6a7','fa-exclamation-circle',(_dpExpired+_dpMissing)>0?'#c62828':'#2e7d32','Expired / Missing',_dpExpired+_dpMissing,_dpExpired+' expired · '+_dpMissing+' no permit',(_dpExpired+_dpMissing)>0?'#c62828':'#2e7d32')
+                            + '</div>';
+                    })();
+
                     REGIONS.forEach(reg => {
                         const regProjects = renewableProjects.filter(p => p.region === reg);
                         if (regProjects.length === 0) return;
@@ -23824,28 +24415,32 @@ document.addEventListener('click', closeAllStatusDropdowns);
 
             updateSettingsThemeButtons();
 
+            const isAdmin = UserAccounts.isAdmin(user.email);
+
             const backupSection = document.getElementById('backup-recovery-section');
-            if (backupSection) backupSection.innerHTML = showBackupRecoveryUI();
+            if (backupSection && isAdmin) backupSection.innerHTML = showBackupRecoveryUI();
             
             const copyrightYear = document.getElementById('copyright-year');
             if (copyrightYear) copyrightYear.textContent = new Date().getFullYear();
             
-            const isAdmin = UserAccounts.isAdmin(user.email);
             const forceSyncSection = document.getElementById('force-sync-section');
             const yearManagementSection = document.getElementById('year-management-section');
             const auditTrailSection = document.getElementById('audit-trail-section');
             const dangerZoneSection = document.getElementById('danger-zone-section');
-            
+            const backupRecoveryCard = document.getElementById('backup-recovery-card');
+
             if (!isAdmin) {
                 if (forceSyncSection) forceSyncSection.style.display = 'none';
                 if (yearManagementSection) yearManagementSection.style.display = 'none';
                 if (auditTrailSection) auditTrailSection.style.display = 'none';
                 if (dangerZoneSection) dangerZoneSection.style.display = 'none';
+                if (backupRecoveryCard) backupRecoveryCard.style.display = 'none';
             } else {
                 if (forceSyncSection) forceSyncSection.style.display = 'block';
                 if (yearManagementSection) yearManagementSection.style.display = 'block';
                 if (auditTrailSection) auditTrailSection.style.display = 'block';
                 if (dangerZoneSection) dangerZoneSection.style.display = 'block';
+                if (backupRecoveryCard) backupRecoveryCard.style.display = 'block';
             }
         }
 
@@ -23863,9 +24458,6 @@ document.addEventListener('click', closeAllStatusDropdowns);
 });
 function showDeleteDialog(itemLabel, itemName) {
     return new Promise((resolve) => {
-        const COUNTDOWN = 5;
-        const circumference = 2 * Math.PI * 7; // r=7
-
         const overlay = document.createElement('div');
         overlay.className = 'delete-dialog-overlay';
         overlay.innerHTML = `
@@ -23875,18 +24467,11 @@ function showDeleteDialog(itemLabel, itemName) {
                 <div class="delete-dialog-message">
                     This will permanently delete
                     <span class="delete-dialog-name">${itemName}</span>
-                    <span style="display:block;margin-top:8px;font-size:0.76rem;color:#999;">You can undo within 5 seconds after deleting.</span>
                 </div>
                 <div class="delete-dialog-btns">
                     <button class="delete-dialog-cancel" id="dd-cancel">Cancel</button>
-                    <button class="delete-dialog-confirm" id="dd-confirm" disabled>
-                        <svg class="delete-timer-ring" viewBox="0 0 18 18">
-                            <circle cx="9" cy="9" r="7"/>
-                            <circle class="progress" id="dd-ring" cx="9" cy="9" r="7"
-                                stroke-dasharray="${circumference.toFixed(1)}"
-                                stroke-dashoffset="0"/>
-                        </svg>
-                        <span id="dd-label">Delete (${COUNTDOWN})</span>
+                    <button class="delete-dialog-confirm" id="dd-confirm">
+                        <span id="dd-label">Delete</span>
                     </button>
                 </div>
             </div>`;
@@ -23895,43 +24480,10 @@ function showDeleteDialog(itemLabel, itemName) {
 
         const confirmBtn = overlay.querySelector('#dd-confirm');
         const cancelBtn  = overlay.querySelector('#dd-cancel');
-        const label      = overlay.querySelector('#dd-label');
-        const ring       = overlay.querySelector('#dd-ring');
 
-        let remaining = COUNTDOWN;
-        const interval = setInterval(() => {
-            remaining--;
-            const offset = circumference * (remaining / COUNTDOWN);
-            ring.style.strokeDashoffset = (circumference - offset).toFixed(1);
-            if (remaining <= 0) {
-                clearInterval(interval);
-                confirmBtn.disabled = false;
-                label.textContent = 'Delete';
-                ring.style.strokeDashoffset = circumference.toFixed(1);
-                ring.style.stroke = 'rgba(255,255,255,0.7)';
-            } else {
-                label.textContent = `Delete (${remaining})`;
-            }
-        }, 1000);
-
-        cancelBtn.onclick = () => {
-            clearInterval(interval);
-            overlay.remove();
-            resolve(false);
-        };
-        confirmBtn.onclick = () => {
-            if (confirmBtn.disabled) return;
-            clearInterval(interval);
-            overlay.remove();
-            resolve(true);
-        };
-        overlay.onclick = (e) => {
-            if (e.target === overlay) {
-                clearInterval(interval);
-                overlay.remove();
-                resolve(false);
-            }
-        };
+        cancelBtn.onclick = () => { overlay.remove(); resolve(false); };
+        confirmBtn.onclick = () => { overlay.remove(); resolve(true); };
+        overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); resolve(false); } };
     });
 }
 
@@ -25080,7 +25632,7 @@ function renderPTable() {
 
     const isManagerUser = state.userRole === 'manager';
     const pAddBtn = document.getElementById('p-add-personnel-btn');
-    if (pAddBtn) pAddBtn.style.display = isManagerUser ? 'none' : '';
+    if (pAddBtn) pAddBtn.style.display = (!isManagerUser && state.isEditing) ? 'flex' : 'none';
     const pGlobalAction = document.getElementById('p-global-action');
     if (pGlobalAction) {
         if (state.isAdmin) {
@@ -31936,7 +32488,7 @@ function setEshStorage(data) {
                     const k = localStorage.key(i);
                     if (k && (
                         k.startsWith('esh_dashboard_201') ||
-                        k.startsWith('esh_dashboard_202') && !k.includes('_2026_') && !k.includes('_2027_') ||
+                        k.startsWith('esh_dashboard_') && !k.includes('_' + new Date().getFullYear() + '_') && !k.includes('_' + (new Date().getFullYear() - 1) + '_') ||
                         k === 'esh_login_logbook' ||
                         k === 'esh_audit_log' ||
                         k === 'esh_projects_cache'
@@ -32205,12 +32757,25 @@ function eshFetchAndRender(tabType) {
                 merged[k] = v;
             });
 
+            // Build deletion cache set for fast lookup
+            const _fetchDelCache = new Set();
+            try {
+                const _dc = JSON.parse(localStorage.getItem('esh_calendar_deletions') || '{}');
+                Object.keys(_dc).forEach(function(k) { _fetchDelCache.add(k); });
+            } catch(e) {}
+
             Object.entries(remoteDecoded).forEach(function([k, v]) {
                 const isPlanKey = k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan');
                 if (!isPlanKey) {
                     const myWriteTime = _eshMyWrites.get(k);
                     if (myWriteTime && (now - myWriteTime) < 15000) return;
                 }
+                // FIX: If local has a tombstone for this key, Firebase must NOT overwrite it.
+                // This prevents deleted dates from reappearing on refresh when the Firebase
+                // delete hasn't propagated yet (async window between delete and confirmation).
+                if (local[k] === _ESH_TOMBSTONE_MARKER) return;
+                // Also respect the local deletions cache
+                if (_fetchDelCache.has(k)) return;
                 if (v === null || v === undefined) {
                     delete merged[k];
                 } else {
@@ -32527,6 +33092,13 @@ function startEshCalendarSync() {
             merged[k] = v;
         });
 
+        // Build deletion cache set for fast lookup
+        const _syncDelCache = new Set();
+        try {
+            const _sdc = JSON.parse(localStorage.getItem('esh_calendar_deletions') || '{}');
+            Object.keys(_sdc).forEach(function(k) { _syncDelCache.add(k); });
+        } catch(e) {}
+
         // Apply ALL remoteData on top — this is the only source for GLOBAL_PLAN keys
         Object.entries(remoteDecoded).forEach(function([k, v]) {
             // Skip echo of our own recent writes ONLY for non-plan keys
@@ -32537,6 +33109,10 @@ function startEshCalendarSync() {
                 // FIX: Use 60s echo guard for all keys (was 15s) to cover slow Firebase round-trips
                 if (myWriteTime && (now - myWriteTime) < 60000) return; // skip echo
             }
+            // FIX: Respect local tombstones — if this key was intentionally deleted locally,
+            // do NOT let Firebase restore it (handles async window where delete hasn't confirmed yet)
+            if (!isPlanKey && local[k] === _ESH_TOMBSTONE_MARKER) return;
+            if (!isPlanKey && _syncDelCache.has(k)) return;
             if (v === null || v === undefined) {
                 delete merged[k];
             } else {
@@ -32870,7 +33446,13 @@ function eshCanEdit(tabType, projectRegion) {
     if (!email) return false;
     const info = UserAccounts.getUserInfo(email);
 
-    if (info.role === 'admin') return true;
+    // Admin: write on CORPORATE region only — view-only for all other regions (per RBAC Matrix v2)
+    if (info.role === 'admin') {
+        const _adminReg = (projectRegion || '').trim().toUpperCase();
+        if (tabType === 'esh-calendar-corp-drills') return true; // corp-drills is admin-managed
+        if (!projectRegion) return true;
+        return _adminReg === 'CORPORATE';
+    }
 
     // Corporate region and Corp Drills are always admin-only
     if (projectRegion === 'CORPORATE') return false;
@@ -33187,6 +33769,7 @@ function renderEshCalendar(tabType) {
         if (_ssIsDrills) {
             _ssDrills.forEach((drill, di) => {
                 for (let mi = 0; mi < 12; mi++) {
+                    if (isMonthBlacklistedForProject(proj, mi + 1, _ssYear)) continue; // work stoppage — skip
                     const pk = `${_ssYear}|esh-calendar-drills|GLOBAL_PLAN|${di}|${mi}|plan`;
                     if (!_ss[pk] || !_ssMonthOverdue(mi)) continue;
                     tp++;
@@ -33195,8 +33778,16 @@ function renderEshCalendar(tabType) {
                 }
             });
         } else {
+            const _OSH8HR_LABEL = '8-Hr Mandatory OSH Training';
             _ssTrainings.forEach((t, ti) => {
                 for (let mi = 0; mi < 12; mi++) {
+                    if (isMonthBlacklistedForProject(proj, mi + 1, _ssYear)) continue; // work stoppage — skip
+                    // ── 8-Hr OSH N/A: skip months from activation onwards ──
+                    if (t === _OSH8HR_LABEL) {
+                        const _naK = `${_ssYear}|${tabType}|${proj.name}|${ti}|na_row`;
+                        const _naFrom = _ss[_naK] !== undefined ? parseInt(_ss[_naK]) : -1;
+                        if (_naFrom >= 0 && mi >= _naFrom) continue; // exempt
+                    }
                     const pk = `${_ssYear}|${tabType}|GLOBAL_PLAN|${ti}|${mi}|plan`;
                     if (!_ss[pk] || !_ssMonthOverdue(mi)) continue;
                     tp++;
@@ -33434,12 +34025,17 @@ function renderEshCalendar(tabType) {
 function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
     const canEdit = projects.length > 0 ? eshCanEdit(tabType, projects[0].region) : false;
     const isAdmin = !!(state && state.isAdmin);
+    // RBAC: Admin can ONLY set Plan. Only Superintendent can input Actual dates.
+    const canEditActual = !isAdmin && canEdit;
+    // N/A: Superintendent only (Admin cannot set N/A on actual-input tabs)
+    const _canSetNA = !!(state && state.userRole === 'superintendent');
     const customRows = (typeof getEshCustomRows === 'function') ? getEshCustomRows(tabType, projects[0] ? projects[0].name : '') : [];
     const allTrainings = [
         ...trainings.map(t => ({ label: t, isCustom: false })),
         ...customRows.map((r, i) => ({ label: typeof r === 'string' ? r : r.name, isCustom: true, customIdx: i }))
     ];
 
+    const OSH_8HR_LABEL = '8-Hr Mandatory OSH Training';
     let html = `<table class="esh-table">
         <thead>
             <tr>
@@ -33466,6 +34062,90 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                 ${(isCustomEntry && isAdmin) ? `<button onclick="eshDeleteCustomRow('${tabType}','${projects[0]?projects[0].name.replace(/'/g,"\\'"):''}',${customIdx})" title="Remove this row" style="float:right;background:none;border:none;color:#c62828;cursor:pointer;font-size:0.75rem;padding:0 3px;opacity:0.6;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="fas fa-trash"></i></button>` : ''}
             </td>`;
             ESH_MONTHS.forEach((m, mi) => {
+                // ── Work Stoppage: gray out the month cell ──────────────────
+                const _eshSelYr = (state && state.selectedYear) || new Date().getFullYear();
+                const _wsBlocked = (typeof isMonthBlacklistedForProject === 'function')
+                    && isMonthBlacklistedForProject(proj, mi + 1, _eshSelYr);
+                if (_wsBlocked) {
+                    const _wsTip = proj.workResumeDate
+                        ? 'Work Stoppage period — this month is excluded.'
+                        : 'Work Stoppage — set a Resume Date in Project Settings to unlock.';
+                    html += `<td class="esh-td-plan esh-plan-locked" style="background:#e0e0e0 !important;cursor:not-allowed;" title="${_wsTip}"></td>`;
+                    html += `<td class="esh-td-actual" style="background:#e0e0e0 !important;cursor:not-allowed;" title="${_wsTip}"></td>`;
+                    return;
+                }
+
+                // ── 8-Hr OSH N/A: per-month toggle ──
+                const _is8HrOsh = (trainingLabel === OSH_8HR_LABEL);
+                const _naSelYr  = (state && state.selectedYear) || new Date().getFullYear();
+                const _naRKey   = `${_naSelYr}|${tabType}|${proj.name}|${storageIdx}|na_row`;
+                const _naFrom   = storage[_naRKey] !== undefined ? parseInt(storage[_naRKey]) : -1;
+                const _isNaCell = _is8HrOsh && _naFrom >= 0 && mi >= _naFrom;
+
+                if (_is8HrOsh && _isNaCell) {
+                    // Only the STARTING month shows an undo button — following months are display-only
+                    const _isStartMonth = (mi === _naFrom);
+                    if (_isStartMonth) {
+                        // Starting month: Superintendent/Admin can click to remove N/A entirely
+                        const _undoTip = _canSetNA
+                            ? `N/A is set from ${ESH_MONTHS[_naFrom]} onwards — all employees in this project have completed the 8-Hr Mandatory OSH Training. Click to remove N/A and restore all months.`
+                            : `N/A is set from ${ESH_MONTHS[_naFrom]} onwards — all employees have completed this training. This month is excluded from compliance tracking.`;
+                        const _undoClick = _canSetNA
+                            ? `onclick="eshToggle8HrOshNA(event,'${tabType}','${proj.name.replace(/'/g,"\'")}',${storageIdx},${mi})"`
+                            : '';
+                        html += `<td colspan="2" class="esh-td-actual" style="background:#d4edda !important;text-align:center;vertical-align:middle;padding:3px 4px;">
+                            <button ${_undoClick} title="${_undoTip}"
+                                style="background:#2e7d32;color:#fff;border:none;border-radius:4px;font-size:0.58rem;font-weight:700;padding:2px 6px;cursor:${_canSetNA?'pointer':'default'};width:100%;">
+                                ✓ N/A
+                            </button>
+                            ${_canSetNA ? `<div style="font-size:0.48rem;color:#555;margin-top:2px;line-height:1.2;">click to undo</div>` : ''}
+                        </td>`;
+                    } else {
+                        // Following months — greyed out, no interaction
+                        const _followTip = `N/A — All employees in this project have completed the 8-Hr Mandatory OSH Training. This month is excluded from compliance tracking.`;
+                        html += `<td colspan="2" class="esh-td-actual" style="background:#e0e0e0 !important;text-align:center;vertical-align:middle;padding:3px 4px;">
+                            <span style="font-size:0.58rem;font-weight:700;color:#9e9e9e;" title="${_followTip}">✓ N/A</span>
+                        </td>`;
+                    }
+                    return;
+                }
+
+                if (_is8HrOsh && !_isNaCell) {
+                    // Normal month for 8-Hr OSH — render plan/actual + small N/A button inside actual cell
+                    const planKey8 = getEshKey(tabType, proj.name, storageIdx, mi, 'plan');
+                    const actualKey8 = getEshKey(tabType, proj.name, storageIdx, mi, 'actual');
+                    const isPlanned8 = !!(storage[planKey8]) && storage[planKey8] !== _ESH_TOMBSTONE_MARKER;
+                    const actualVal8 = (storage[actualKey8] && storage[actualKey8] !== '__DELETED__') ? storage[actualKey8] : '';
+                    const overdue8 = isPlanned8 && !actualVal8 && isMonthOverdue(mi);
+                    const done8 = !!actualVal8;
+                    let actualClass8 = 'esh-td-actual';
+                    if (done8) actualClass8 += ' esh-done';
+                    else if (overdue8) actualClass8 += ' esh-overdue';
+                    else if (!isPlanned8) actualClass8 += ' esh-not-planned';
+                    const _naBtnTip = _canSetNA
+                        ? `Click N/A to mark that all employees in this project have already completed the 8-Hr Mandatory OSH Training. From ${ESH_MONTHS[mi]} onwards, all months will be excluded from compliance tracking.`
+                        : 'N/A — Mark this when all employees have completed the 8-Hr Mandatory OSH Training. (Only Superintendent or Admin can set this.)';
+                    const _naBtnClick = _canSetNA
+                        ? `onclick="event.stopPropagation();eshToggle8HrOshNA(event,'${tabType}','${proj.name.replace(/'/g,"\'")}',${storageIdx},${mi})"`
+                        : '';
+                    html += `<td class="esh-td-plan${isPlanned8?' esh-planned':''}${!isAdmin?' esh-plan-locked':''}"
+                        data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}"
+                        onclick="event.stopPropagation();eshSetPlan('${tabType}','${proj.name}',${storageIdx},${mi},null,this)"
+                        title="${!isAdmin ? '🔒 Admin only — Cannot set Plan/Schedule' : isPlanned8 ? 'Click to unschedule' : 'Click to schedule'}">
+                    </td>`;
+                    const _editDisabled8 = (!(state && state.isEditing) && canEditActual) ? `disabled title="✏️ Press Edit button to enable input"` : '';
+                    const dateDisabled8 = !canEditActual ? `disabled title="${isAdmin ? '🔒 Admin can only set Plan — Superintendent inputs Actual dates.' : '🔒 Read-only for your role/region'}"` : '';
+                    html += `<td class="${actualClass8}" style="position:relative;">` + (isPlanned8
+                        ? `<input type="date" value="${actualVal8}" ${dateDisabled8 || _editDisabled8}
+                            onchange="eshSetActual('${tabType}','${proj.name}',${storageIdx},${mi},this.value,this.closest('td'))">`
+                        : '') +
+                        `<button ${_naBtnClick} title="${_naBtnTip}"
+                            style="display:block;margin:${isPlanned8?'2px auto 0':'auto'};background:${_canSetNA?'#bdbdbd':'#e0e0e0'};color:${_canSetNA?'#fff':'#aaa'};border:none;border-radius:3px;font-size:0.5rem;font-weight:700;padding:1px 5px;cursor:${_canSetNA?'pointer':'default'};line-height:1.4;width:100%;"
+                        >N/A</button>
+                    </td>`;
+                    return;
+                }
+
                 const planKey = getEshKey(tabType, proj.name, storageIdx, mi, 'plan');
                 const actualKey = getEshKey(tabType, proj.name, storageIdx, mi, 'actual');
                 const isPlanned = !!(storage[planKey]) && storage[planKey] !== _ESH_TOMBSTONE_MARKER;
@@ -33477,14 +34157,13 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                 const minDate = getMinDateForMonth(mi);
                 const planDisabled = !isAdmin ? 'disabled title="🔒 Admin only — Cannot set Plan/Schedule"' : '';
 
-                const dateDisabled = !canEdit ? `disabled title="🔒 Read-only for your role/region"` : '';
+                const dateDisabled = !canEditActual ? `disabled title="${isAdmin ? '🔒 Admin can only set Plan — Superintendent inputs Actual dates.' : '🔒 Read-only for your role/region'}"` : '';
                 const effectiveMax = '';
                 const effectiveMin = '';
 
                 let actualClass = 'esh-td-actual';
-                let actualBg = '';
-                if (done) { actualClass += ' esh-done'; actualBg = ''; }
-                else if (overdue) { actualClass += ' esh-overdue'; actualBg = ''; }
+                if (done) { actualClass += ' esh-done'; }
+                else if (overdue) { actualClass += ' esh-overdue'; }
                 else if (!isPlanned) { actualClass += ' esh-not-planned'; }
 
                 html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}${!isAdmin?' esh-plan-locked':''}"
@@ -33499,6 +34178,9 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                         onchange="eshSetActual('${tabType}','${proj.name}',${storageIdx},${mi},this.value,this.closest('td'))">`
                     : '') + `</td>`;
             });
+
+            // (N/A per-month buttons rendered inline in each month cell)
+
             html += `</tr>`;
         });
     });
@@ -33525,6 +34207,9 @@ function buildDrillsSingleTable(projects, storage, col) {
     };
     const canEdit = projects.length > 0 ? eshCanEdit('esh-calendar-drills', projects[0].region) : false;
     const isAdmin = !!(state && state.isAdmin);
+    // RBAC: Admin can ONLY set Plan (color). Only Superintendent can input Actual dates.
+    const canEditActual = !isAdmin && canEdit;
+    const _canSetNA = !!(state && state.userRole === 'superintendent');
     const tabType = 'esh-calendar-drills';
     const customDrillRows = (typeof getEshCustomRows === 'function') ? getEshCustomRows(tabType, projects[0] ? projects[0].name : '') : [];
     const allDrills = [
@@ -33542,7 +34227,7 @@ function buildDrillsSingleTable(projects, storage, col) {
     });
     html += `</tr><tr>`;
     ESH_MONTHS.forEach(() => {
-        html += `<th class="esh-th-plan">Plan</th><th class="esh-th-actual">Actual</th><th style="background:#c0c0c0;color:#333;font-size:0.58rem;font-weight:700;min-width:34px;">N/A</th>`;
+        html += `<th class="esh-th-plan">Plan</th><th class="esh-th-actual">Actual</th><th style="background:#b0bec5;color:#1b5e20;font-size:0.58rem;font-weight:700;min-width:34px;">N/A</th>`;
     });
     html += `</tr></thead><tbody>`;
 
@@ -33573,6 +34258,19 @@ function buildDrillsSingleTable(projects, storage, col) {
             </td>`;
 
             ESH_MONTHS.forEach((m, mi) => {
+                // ── Work Stoppage: gray out the month cell ──────────────────
+                const _eshDrillSelYr = (state && state.selectedYear) || new Date().getFullYear();
+                const _drillWsBlocked = (typeof isMonthBlacklistedForProject === 'function')
+                    && isMonthBlacklistedForProject(proj, mi + 1, _eshDrillSelYr);
+                if (_drillWsBlocked) {
+                    const _drillWsTip = proj.workResumeDate
+                        ? 'Work Stoppage period — this month is excluded.'
+                        : 'Work Stoppage — set a Resume Date in Project Settings to unlock.';
+                    html += `<td class="esh-td-plan esh-plan-locked" style="background:#e0e0e0 !important;cursor:not-allowed;" title="${_drillWsTip}"></td>`;
+                    html += `<td class="esh-td-actual" style="background:#e0e0e0 !important;cursor:not-allowed;" title="${_drillWsTip}"></td>`;
+                    html += `<td style="background:#e0e0e0 !important;cursor:not-allowed;text-align:center;border:1.5px solid #bbb;min-width:34px;padding:2px;" title="${_drillWsTip}"><span style="font-size:0.6rem;font-weight:700;color:#bbb;">—</span></td>`;
+                    return;
+                }
                 const _naYear = (state && state.selectedYear) || 2026;
                 const naCellKey = `${_naYear}|${tabType}|${proj.name}|${storageIdx}|${mi}|na`;
                 const isNaCell = isNaRow || !!(storage[naCellKey]);
@@ -33611,24 +34309,34 @@ function buildDrillsSingleTable(projects, storage, col) {
 
                 const dateDisabled = isNaCell
                     ? `disabled title="N/A – not applicable for this project"`
-                    : (!canEdit ? `disabled title="🔒 Read-only for your role/region"`
+                    : (!canEditActual ? `disabled title="${isAdmin ? '🔒 Admin can only set Plan — Superintendent inputs Actual dates.' : '🔒 Read-only for your role/region'}"`
                     : (!(state && state.isEditing) ? `disabled title="✏️ Press Edit button to enable input"` : ''));
 
                 html += `<td class="${actualClass}" style="${actualStyle}">
-                    ${isNaCell ? '<span style="color:#888;font-size:0.65rem;font-weight:700;">N/A</span>' :
-                    `<input type="date" value="${actualVal}" ${dateDisabled}
-                        onchange="eshSetActual('${tabType}','${proj.name}',${storageIdx},${mi},this.value,this.closest('td'))">`}
+                    ${isNaCell
+                        ? '<span style="color:#888;font-size:0.65rem;font-weight:700;">N/A</span>'
+                        : (isPlanned
+                            ? `<input type="date" value="${actualVal}" ${dateDisabled}
+                                onchange="eshSetActual('${tabType}','${proj.name}',${storageIdx},${mi},this.value,this.closest('td'))">`
+                            : '')
+                    }
                 </td>`;
 
-                const naToggleTitle = !isAdmin
-                    ? '🔒 Admin only – cannot set N/A'
-                    : (isNaCell ? 'Click to remove N/A — restore this drill cell' : 'Click to mark as N/A (not applicable for this project)');
-                const naOnClick = isAdmin
-                    ? `onclick="eshToggleDrillNA(event,'${tabType}','${proj.name}',${storageIdx},${mi})"`
-                    : '';
-                html += `<td ${naOnClick} title="${naToggleTitle}" style="background:${isNaCell?'#a0a0a0':'#e0e0e0'};text-align:center;cursor:${isAdmin?'pointer':'not-allowed'};vertical-align:middle;border:1.5px solid #bbb;min-width:34px;padding:2px;">
-                    <span style="font-size:0.6rem;font-weight:700;color:${isNaCell?'#fff':'#888'};">${isNaCell?'✓N/A':'N/A'}</span>
-                </td>`;
+                // N/A cell — only show and allow interaction when the month has a plan set
+                if (!isPlanned && !isNaCell) {
+                    // No plan set and not N/A — show empty, non-interactive placeholder
+                    html += `<td style="background:#ebebeb;text-align:center;vertical-align:middle;border:1.5px solid #ccc;min-width:34px;padding:2px;" title="Set a Plan first to enable N/A"></td>`;
+                } else {
+                    const naToggleTitle = isNaCell
+                        ? (_canSetNA ? 'Click to remove N/A — restore this drill cell' : 'N/A — This month is excluded from compliance tracking.')
+                        : (_canSetNA ? 'Click to mark as N/A (not applicable for this project)' : '🔒 Superintendent or Admin only – cannot set N/A');
+                    const naOnClick = (_canSetNA && (isPlanned || isNaCell))
+                        ? `onclick="eshToggleDrillNA(event,'${tabType}','${proj.name}',${storageIdx},${mi})"`
+                        : '';
+                    html += `<td ${naOnClick} title="${naToggleTitle}" style="background:${isNaCell?'#a0a0a0':'#e0e0e0'};text-align:center;cursor:${(_canSetNA&&(isPlanned||isNaCell))?'pointer':'not-allowed'};vertical-align:middle;border:1.5px solid #bbb;min-width:34px;padding:2px;">
+                        <span style="font-size:0.6rem;font-weight:700;color:${isNaCell?'#fff':'#888'};">${isNaCell?'✓N/A':'N/A'}</span>
+                    </td>`;
+                }
             });
             html += `</tr>`;
         });
@@ -33648,11 +34356,76 @@ function buildDrillsSingleTable(projects, storage, col) {
     return html;
 }
 
+// ── 8-Hr Mandatory OSH Training — row-level N/A toggle ──────────────────────
+// Storage key: `{year}|{tabType}|{projName}|{storageIdx}|na_row` = month index (0-11) when N/A was activated
+// Once set, all months from that index onwards are greyed out and excluded from compliance.
+window.eshToggle8HrOshNA = function(e, tabType, projName, storageIdx, clickedMonth) {
+    e.stopPropagation();
+    const _canToggleNA = state && (state.isAdmin || state.userRole === 'superintendent');
+    if (!_canToggleNA) {
+        showToast('🔒 Only Superintendent or Admin can set N/A.', 'warning', 3000);
+        return;
+    }
+    // Superintendent can only toggle N/A for their own region's projects
+    if (!state.isAdmin && state.userRole === 'superintendent') {
+        const _naProj = state.projects && state.projects.find(p => p.name === projName);
+        if (_naProj && state.userRegion && _naProj.region !== state.userRegion) {
+            showToast(`🔒 Superintendent can only set N/A for projects in their own region (${state.userRegion}).`, 'warning', 3500);
+            return;
+        }
+    }
+    const storage = getEshStorage();
+    const _naYear = (state && state.selectedYear) || new Date().getFullYear();
+    const naKey = `${_naYear}|${tabType}|${projName}|${storageIdx}|na_row`;
+    const wasActive = storage[naKey] !== undefined;
+    const ESH_MO = typeof ESH_MONTHS !== 'undefined' ? ESH_MONTHS : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    if (wasActive && clickedMonth !== undefined && parseInt(storage[naKey]) === parseInt(clickedMonth)) {
+        // Clicking the same starting month — remove N/A entirely
+        delete storage[naKey];
+        setEshStorage(storage);
+        showToast('↩️ N/A removed — 8-Hr OSH Training restored for all months.', 'info', 3000);
+    } else if (wasActive) {
+        // Clicking a different month while N/A is active — move the start month
+        storage[naKey] = parseInt(clickedMonth);
+        setEshStorage(storage);
+        showToast(`✅ N/A updated — 8-Hr OSH Training excluded from ${ESH_MO[clickedMonth]} onwards.`, 'success', 3500);
+    } else {
+        // Activate N/A from the clicked month onwards
+        const fromMonth = (clickedMonth !== undefined) ? parseInt(clickedMonth) : new Date().getMonth();
+        storage[naKey] = fromMonth;
+        setEshStorage(storage);
+        showToast(`✅ 8-Hr OSH Training marked N/A from ${ESH_MO[fromMonth]} onwards — all employees have completed this training. Excluded from compliance.`, 'success', 4000);
+    }
+
+    // Re-render the table
+    if (typeof eshRenderRegionTable === 'function' && state && state.projects) {
+        const proj = state.projects.find(p => p.name === projName);
+        if (proj) {
+            const regionOrder = ['CORPORATE', 'NCR', 'SOUTH LUZON', 'NORTH LUZON', 'VISAYAS & MINDANAO', 'PLANT OPERATIONS'];
+            regionOrder.forEach(region => {
+                const regProjs = state.projects.filter(p => p.region === region);
+                const idx = regProjs.findIndex(p => p.name === projName);
+                if (idx >= 0) eshRenderRegionTable(tabType, region, regProjs, idx);
+            });
+        }
+    }
+};
+
 window.eshToggleDrillNA = function(e, tabType, projName, ti, mi) {
     e.stopPropagation();
-    if (!(state && state.isAdmin)) {
-        showToast('🔒 Admin only — Cannot set N/A.', 'warning', 3000);
+    const _canToggleDrillNA = state && (state.isAdmin || state.userRole === 'superintendent');
+    if (!_canToggleDrillNA) {
+        showToast('🔒 Only Superintendent or Admin can set N/A.', 'warning', 3000);
         return;
+    }
+    // Superintendent can only set N/A for their own region's projects
+    if (!state.isAdmin && state.userRole === 'superintendent') {
+        const _drillNaProj = state.projects && state.projects.find(p => p.name === projName);
+        if (_drillNaProj && state.userRegion && _drillNaProj.region !== state.userRegion) {
+            showToast(`🔒 Superintendent can only set N/A for projects in their own region (${state.userRegion}).`, 'warning', 3500);
+            return;
+        }
     }
 
     const storage = getEshStorage();
@@ -33965,11 +34738,14 @@ window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drill
 };
 
 window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
+    // ── Guard: edit mode ──────────────────────────────────────────────────────
     if (!(state && state.isEditing)) {
         if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
         showToast('✏️ Press the Edit button first to make changes.', 'info', 3000);
         return;
     }
+
+    // ── Guard: RBAC ───────────────────────────────────────────────────────────
     const allProjects = (state && state.projects) ? state.projects : [];
     const proj = allProjects.find(p => p.name === projName);
     if (proj && !eshCanEdit(tabType, proj.region)) {
@@ -33977,7 +34753,16 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
         if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
         return;
     }
+    // Admin cannot write Actual dates on any ESH Calendar/Drills tab (except corp-drills which has no actual input)
+    const _isAdminRole = !!(state && state.isAdmin);
+    const _isCorp = tabType === 'esh-calendar-corp-drills';
+    if (_isAdminRole && !_isCorp) {
+        showToast('🔒 Admin can only set the Plan (schedule). Only the Superintendent can input Actual dates.', 'warning', 4000);
+        if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
+        return;
+    }
 
+    // ── Guard: year validation ─────────────────────────────────────────────────
     if (value) {
         const expectedYear = (state && state.selectedYear) || 2026;
         if (!value.startsWith(String(expectedYear))) {
@@ -33987,46 +34772,43 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
         }
     }
 
-    // ── Confirmation when clearing/deleting an existing actual date ──────────
+    // ── Confirm delete ────────────────────────────────────────────────────────
     if (!value) {
-        const _confirmStorage = getEshStorage();
-        const _confirmKey = getEshKey(tabType, projName, ti, mi, 'actual');
-        const _existingDate = (_confirmStorage[_confirmKey] && _confirmStorage[_confirmKey] !== '__DELETED__')
-            ? _confirmStorage[_confirmKey] : '';
-        if (_existingDate) {
-            const _monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            const _monthLabel = _monthNames[mi] || ('Month ' + (mi + 1));
-            if (!confirm(`🗑️ Delete actual date "${_existingDate}" for ${projName} — ${_monthLabel}?\n\nThis action cannot be undone.`)) {
-                // User cancelled — restore the old date in the input
-                if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = _existingDate; }
+        const _storage = getEshStorage();
+        const _key = getEshKey(tabType, projName, ti, mi, 'actual');
+        const _existing = (_storage[_key] && _storage[_key] !== '__DELETED__') ? _storage[_key] : '';
+        if (_existing) {
+            const _mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            if (!confirm(`🗑️ Delete actual date "${_existing}" for ${projName} — ${_mn[mi] || 'Month '+(mi+1)}?
+
+This action cannot be undone.`)) {
+                if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = _existing; }
                 return;
             }
         }
     }
 
-    const storage = getEshStorage();
     const actualKey = getEshKey(tabType, projName, ti, mi, 'actual');
-    if (value) {
-        storage[actualKey] = value;
-        _eshRemoveTombstone(actualKey); // re-created — clear tombstone
-    } else {
-        // FIX: Write tombstone IMMEDIATELY (synchronously) before async Firebase call.
-        // This prevents the onValue orphan re-upload check from restoring the deleted key
-        // during the async window between delete and Firebase confirmation.
-        storage[actualKey] = _ESH_TOMBSTONE_MARKER;
-        // Track in _eshMyWrites immediately so orphan re-upload check skips this key
-        _eshMyWrites.set(actualKey, Date.now());
-        // Also write to deletions cache immediately so sync filter picks it up
-        _eshCacheDeletionRecords({ [actualKey]: Date.now() });
-    }
-    try { localStorage.setItem('esh_calendar_data', JSON.stringify(storage)); } catch(e) {}
-    _eshSaveKeyToFirebase(actualKey, value || null);
 
+    // ── DIRECT FIREBASE WRITE — single source of truth ───────────────────────
+    // Write value (date string) or null (delete) straight to Firebase RTDB.
+    // localStorage is updated as a secondary cache only — Firebase is authoritative.
+    if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.set) {
+        showToast('⚠️ Firebase not ready. Please try again.', 'warning', 3000);
+        if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
+        return;
+    }
+
+    const safePath = 'esh-calendar/data/' + _eshKeyToFirebasePath(actualKey);
+    const ref = window.firebase.dbRef(window.firebaseRealtimeDb, safePath);
+    const writeVal = value || null;
+
+    // Update UI immediately (optimistic update)
     if (tdEl) {
         tdEl.classList.remove('esh-done', 'esh-overdue', 'esh-not-planned');
-        tdEl.style.background = ''; // Clear any inline override
+        tdEl.style.background = '';
         const inp = tdEl.querySelector('input[type="date"]');
-        if (inp) { inp.value = value || ''; }
+        if (inp) inp.value = value || '';
         if (value) {
             tdEl.classList.add('esh-done');
             if (inp) { inp.style.color = '#fff'; inp.style.fontWeight = '700'; inp.disabled = false; inp.style.opacity = ''; inp.style.pointerEvents = ''; }
@@ -34039,6 +34821,58 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
             }
         }
     }
+
+    // Update localStorage cache to match
+    try {
+        const storage = getEshStorage();
+        if (value) {
+            storage[actualKey] = value;
+            // Clear any stale tombstone so the new value renders correctly
+            if (storage[actualKey] === _ESH_TOMBSTONE_MARKER) delete storage[actualKey];
+        } else {
+            // Write tombstone so the onValue merge loop never re-injects the old Firebase value
+            storage[actualKey] = _ESH_TOMBSTONE_MARKER;
+        }
+        localStorage.setItem('esh_calendar_data', JSON.stringify(storage));
+    } catch(e) {}
+
+    // For deletes: also write a Firebase deletion record so OTHER browsers
+    // learn this key was intentionally removed (not just absent from their cache)
+    if (!value) {
+        _eshWriteDeletionRecord(actualKey);
+        _eshCacheDeletionRecords({ [actualKey]: Date.now() });
+    }
+
+    // Write to Firebase — this is the only authoritative write
+    _eshMyWrites.set(actualKey, Date.now());
+    window.firebase.set(ref, writeVal)
+        .then(function() {
+            showToast(value ? '✅ Actual date saved.' : '🗑️ Actual date deleted.', 'success', 2000);
+            console.log('✅ eshSetActual: Firebase write confirmed —', actualKey, '=', writeVal);
+            // Keep the block window longer for deletes to prevent the Firebase
+            // onValue echo from immediately re-inserting the nulled-out value
+            setTimeout(function() { _eshMyWrites.delete(actualKey); }, value ? 30000 : 60000);
+        })
+        .catch(function(e) {
+            const errMsg = (e && (e.message || e.code || String(e))) || '';
+            console.error('❌ eshSetActual: Firebase write failed —', actualKey, errMsg);
+            showToast('❌ Save failed: ' + errMsg, 'error', 5000);
+            // Rollback localStorage and UI on failure
+            try {
+                const storage = getEshStorage();
+                // Only clear tombstone if this was a SAVE attempt, not a delete.
+                // If it was a delete that failed, leave the tombstone in place so
+                // the onValue merge loop doesn't re-inject the old value.
+                if (value) { delete storage[actualKey]; }
+                localStorage.setItem('esh_calendar_data', JSON.stringify(storage));
+            } catch(e2) {}
+            if (tdEl) {
+                const inp = tdEl.querySelector('input[type="date"]');
+                if (inp) inp.value = '';
+                tdEl.classList.remove('esh-done', 'esh-overdue');
+            }
+            _eshMyWrites.delete(actualKey);
+        });
 };
 
 const CORP_DRILLS = [
@@ -35148,11 +35982,15 @@ window.ESHDataSync = ESHDataSync;
 // attributes only. This function acts as a JS fallback to guarantee correct
 // colors regardless of render order.
 function applyRegionBannerColors() {
+    // ── SINGLE SOURCE OF TRUTH for all region banner gradients ──────────────
+    // Tonal green depth: NCR (darkest) → South → North → VisMin (lightest)
+    // Applies to ALL tabs/modules — region-banner, lta-region-banner,
+    // osh-nov-region-banner, nov-env-region-banner, esh-region-banner, etc.
     const REGION_STYLES = {
         'NCR':                { bg: 'linear-gradient(135deg, #1b5e20 0%, #0d3311 100%)', color: '#fff' },
-        'NORTH LUZON':        { bg: 'linear-gradient(135deg, #2e7d32 0%, #1b5020 100%)', color: '#fff' },
-        'SOUTH LUZON':        { bg: 'linear-gradient(135deg, #388e3c 0%, #1f5e23 100%)', color: '#fff' },
-        'VISAYAS & MINDANAO': { bg: 'linear-gradient(135deg, #43a047 0%, #2a6b2e 100%)', color: '#fff' },
+        'SOUTH LUZON':        { bg: 'linear-gradient(135deg, #24692a 0%, #133816 100%)', color: '#fff' },
+        'NORTH LUZON':        { bg: 'linear-gradient(135deg, #2e7d32 0%, #1a4d1e 100%)', color: '#fff' },
+        'VISAYAS & MINDANAO': { bg: 'linear-gradient(135deg, #388e3c 0%, #215c26 100%)', color: '#fff' },
         'PLANT OPERATIONS':   { bg: '#ffffff', color: '#1b5e20', border: '1.5px solid #c8e6c9' },
         'CORPORATE':          { bg: '#ffffff', color: '#1b5e20', border: '1.5px solid #c8e6c9' }
     };
@@ -35448,7 +36286,134 @@ window.RowSaveManager = (function() {
     };
 
 })();
+</script>
 
+<!-- ══ PERSONNEL & COMPLIANCE — COMING SOON MODAL ══ -->
+<div id="personnel-compliance-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.55); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+  <div style="background:var(--bg-card,#fff); border-radius:20px; max-width:520px; width:90%; padding:0; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.25); animation:slideUp 0.3s ease-out;">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0a2e10 0%,#1b5e20 60%,#2e7d32 100%); padding:28px 30px 22px; position:relative;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div style="width:52px; height:52px; border-radius:14px; background:rgba(251,192,45,0.2); border:2px solid rgba(251,192,45,0.5); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <i class="fas fa-certificate" style="color:#fbc02d; font-size:1.4rem;"></i>
+        </div>
+        <div>
+          <div style="font-size:1.05rem; font-weight:800; color:white; letter-spacing:0.3px;">Personnel & Compliance</div>
+          <div style="font-size:0.72rem; color:#a5d6a7; margin-top:3px;">Certificate & Training Tracker</div>
+        </div>
+      </div>
+      <button onclick="closePersonnelComplianceModal()" style="position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:white; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center;">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <!-- Body -->
+    <div style="padding:28px 30px 30px;">
+      <div style="display:flex; align-items:flex-start; gap:14px; background:#fff8e1; border:1.5px solid #ffe082; border-radius:12px; padding:18px 20px; margin-bottom:22px;">
+        <i class="fas fa-triangle-exclamation" style="color:#f9a825; font-size:1.4rem; margin-top:2px; flex-shrink:0;"></i>
+        <div>
+          <div style="font-size:0.88rem; font-weight:700; color:#e65100; margin-bottom:6px;">Module Under Development</div>
+          <div style="font-size:0.8rem; color:#795548; line-height:1.7;">
+            This module is currently being planned and designed. The approach and setup for certificate management, training tracking, and OneDrive/document storage integration are still under review and have not been finalized.
+          </div>
+        </div>
+      </div>
+      <div style="font-size:0.78rem; color:var(--text-secondary,#666); margin-bottom:16px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Planned Features</div>
+      <div style="display:flex; flex-direction:column; gap:9px; margin-bottom:24px;">
+        <div style="display:flex; align-items:center; gap:10px; font-size:0.8rem; color:var(--text-primary,#333);">
+          <i class="fas fa-circle-dot" style="color:#bdbdbd; font-size:0.55rem;"></i> Training & Certificate Tracker per Personnel
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; font-size:0.8rem; color:var(--text-primary,#333);">
+          <i class="fas fa-circle-dot" style="color:#bdbdbd; font-size:0.55rem;"></i> Certificate Expiry Alerts (BOSH, CSH, PRC, PCO, First Aid)
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; font-size:0.8rem; color:var(--text-primary,#333);">
+          <i class="fas fa-circle-dot" style="color:#bdbdbd; font-size:0.55rem;"></i> PDF Certificate Upload with File Size Limit
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; font-size:0.8rem; color:var(--text-primary,#333);">
+          <i class="fas fa-circle-dot" style="color:#bdbdbd; font-size:0.55rem;"></i> OneDrive / Cloud Storage Integration (Approach TBD)
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; font-size:0.8rem; color:var(--text-primary,#333);">
+          <i class="fas fa-circle-dot" style="color:#bdbdbd; font-size:0.55rem;"></i> Compliance Status per DOLE SO Level Requirements
+        </div>
+      </div>
+      <button onclick="closePersonnelComplianceModal()" style="width:100%; padding:12px; background:linear-gradient(135deg,#1b5e20,#2e7d32); color:white; border:none; border-radius:10px; font-size:0.85rem; font-weight:700; cursor:pointer; letter-spacing:0.3px;">
+        <i class="fas fa-check"></i> &nbsp;Got It
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HEALTH REPORTORIAL — PENDING MODAL ══ -->
+<div id="health-report-pending-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.55); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+  <div style="background:var(--bg-card,#fff); border-radius:20px; max-width:500px; width:90%; padding:0; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.25); animation:slideUp 0.3s ease-out;">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0a2e10 0%,#1b5e20 60%,#2e7d32 100%); padding:28px 30px 22px; position:relative;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div style="width:52px; height:52px; border-radius:14px; background:rgba(251,192,45,0.2); border:2px solid rgba(251,192,45,0.5); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <i class="fas fa-notes-medical" style="color:#fbc02d; font-size:1.4rem;"></i>
+        </div>
+        <div>
+          <div style="font-size:1.05rem; font-weight:800; color:white; letter-spacing:0.3px;">Health Reportorial</div>
+          <div style="font-size:0.72rem; color:#a5d6a7; margin-top:3px;">ESH Health Report Module</div>
+        </div>
+      </div>
+      <button onclick="closeHealthReportModal()" style="position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:white; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center;">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <!-- Body -->
+    <div style="padding:28px 30px 30px;">
+      <div style="display:flex; align-items:flex-start; gap:14px; background:#e3f2fd; border:1.5px solid #90caf9; border-radius:12px; padding:18px 20px; margin-bottom:22px;">
+        <i class="fas fa-hourglass-half" style="color:#1976d2; font-size:1.4rem; margin-top:2px; flex-shrink:0;"></i>
+        <div>
+          <div style="font-size:0.88rem; font-weight:700; color:#0d47a1; margin-bottom:6px;">Awaiting Revised Report Modules</div>
+          <div style="font-size:0.8rem; color:#37474f; line-height:1.7;">
+            This module is currently empty and is pending the revised Health Reportorial format from the <strong>Corporate Nurse</strong>. No data entry is available until the updated report structure and requirements have been finalized and submitted.
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--border-color,#f5f5f5); border-radius:10px; padding:14px 16px; margin-bottom:22px; font-size:0.78rem; color:var(--text-secondary,#666); line-height:1.7;">
+        <i class="fas fa-circle-info" style="color:#1976d2; margin-right:6px;"></i>
+        Once the revised modules are received from the Corporate Nurse, this section will be updated accordingly. Please coordinate directly with the Corporate Health team for the expected timeline.
+      </div>
+      <button onclick="closeHealthReportModal()" style="width:100%; padding:12px; background:linear-gradient(135deg,#1b5e20,#2e7d32); color:white; border:none; border-radius:10px; font-size:0.85rem; font-weight:700; cursor:pointer; letter-spacing:0.3px;">
+        <i class="fas fa-check"></i> &nbsp;Understood
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes slideUp {
+  from { opacity:0; transform:translateY(30px) scale(0.97); }
+  to   { opacity:1; transform:translateY(0)   scale(1); }
+}
+</style>
+
+<script>
+window.openPersonnelComplianceModal = function() {
+  const m = document.getElementById('personnel-compliance-modal');
+  if (m) { m.style.display = 'flex'; }
+};
+window.closePersonnelComplianceModal = function() {
+  const m = document.getElementById('personnel-compliance-modal');
+  if (m) { m.style.display = 'none'; }
+};
+// Close on backdrop click
+document.getElementById('personnel-compliance-modal').addEventListener('click', function(e) {
+  if (e.target === this) window.closePersonnelComplianceModal();
+});
+
+window.openHealthReportModal = function() {
+  const m = document.getElementById('health-report-pending-modal');
+  if (m) { m.style.display = 'flex'; }
+};
+window.closeHealthReportModal = function() {
+  const m = document.getElementById('health-report-pending-modal');
+  if (m) { m.style.display = 'none'; }
+};
+document.getElementById('health-report-pending-modal').addEventListener('click', function(e) {
+  if (e.target === this) window.closeHealthReportModal();
+});
 
 window.toggleSidebar = function() {
     const sidebar = document.getElementById('main-sidebar');
