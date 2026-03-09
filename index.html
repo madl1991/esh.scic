@@ -25861,7 +25861,7 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
             const _CMAP = {'PCO':'PCO_ACCRED','First Aider':'BLS','ESH Superintendent':'DOLE_OSH','ESH Head':'DOLE_OSH'};
             const _ckey = _CMAP[p.pos];
             if (!_ckey) return '<td style="text-align:center;padding:5px 14px;color:#ccc;font-size:0.7rem;">—</td>';
-            const _pid2 = String(p._pid||p.id||origIdx);
+            const _pid2 = (typeof PersonnelDB !== 'undefined') ? PersonnelDB.getPersonId(p) : String(p._pid || (p.id ? 'emp_' + String(p.id).trim() : String(origIdx)));
             const _cdata = (window._pcCertData && window._pcCertData[_pid2] || {})[_ckey];
             if (!_cdata) return '<td style="text-align:center;padding:5px 14px;font-size:0.68rem;color:#bbb;">No cert</td>';
             if (p.certToFollow === _ckey) return '<td style="text-align:center;padding:5px 14px;font-size:0.65rem;color:#e65100;font-weight:700;">⏳ To Follow</td>';
@@ -35593,7 +35593,7 @@ window.pcViewPersonnel = function(idx) {
     if (!p) return;
 
     window._pcCurrentIdx = idx;
-    const pid = String(p._pid || p.id || idx);
+    const pid = (typeof PersonnelDB !== 'undefined') ? PersonnelDB.getPersonId(p) : String(p._pid || (p.id ? 'emp_' + String(p.id).trim() : String(idx)));
     window._pcCurrentPid = pid;
 
     // Name
@@ -36977,7 +36977,10 @@ window.toggleSidebar = function() {
         </div>
         <div id="pc-upload-existing" style="display:none;margin-top:6px;font-size:0.7rem;padding:5px 10px;background:#e8f5e9;border-radius:6px;border:1px solid #a5d6a7;">
           <i class="fas fa-check-circle" style="color:#2e7d32;margin-right:4px;"></i>PDF on file — <a id="pc-upload-existing-link" href="#" target="_blank" style="color:#1b5e20;font-weight:700;">View existing</a>
-          <span style="color:#aaa;font-size:0.62rem;margin-left:6px;">Upload new to replace</span>
+        </div>
+        <div id="pc-upload-locked-note" style="display:none;margin-top:8px;font-size:0.7rem;padding:8px 10px;background:#fff8e1;border-radius:6px;border:1px solid #ffe082;align-items:center;gap:7px;">
+          <i class="fas fa-lock" style="color:#f9a825;font-size:0.85rem;flex-shrink:0;"></i>
+          <span style="color:#795548;line-height:1.4;">PDF is <strong>locked</strong> — once uploaded, certificates cannot be replaced. You may still update the expiry date.</span>
         </div>
       </div>
 
@@ -37173,14 +37176,28 @@ window.toggleSidebar = function() {
     const drop = document.getElementById('pc-upload-drop');
     drop.style.borderColor = '#c8e6c9'; drop.style.background = '#fafffe';
 
-    const existing = (window._pcCertData[pid] || {})[certKey];
-    const existEl = document.getElementById('pc-upload-existing');
+    // Use same stable pid as pcViewPersonnel
+    const _lookupPid = window._pcCurrentPid || pid;
+    const existing = (window._pcCertData[_lookupPid] || {})[certKey];
+    const existEl  = document.getElementById('pc-upload-existing');
+    const dropEl   = document.getElementById('pc-upload-drop');
+    const fileInp  = document.getElementById('pc-upload-file');
+    const lockNote = document.getElementById('pc-upload-locked-note');
+
     if (existing && existing.pdfUrl) {
+      // PDF already on file — show it, lock the upload area
       existEl.style.display = 'block';
       document.getElementById('pc-upload-existing-link').href = existing.pdfUrl;
       document.getElementById('pc-upload-expiry').value = existing.expiry || '';
+      // Hide drop zone — PDF is locked, no replacement allowed
+      dropEl.style.display = 'none';
+      fileInp.disabled = true;
+      if (lockNote) lockNote.style.display = 'flex';
     } else {
       existEl.style.display = 'none';
+      dropEl.style.display = 'block';
+      fileInp.disabled = false;
+      if (lockNote) lockNote.style.display = 'none';
     }
     document.getElementById('pc-upload-modal').style.display = 'flex';
   };
@@ -37357,16 +37374,31 @@ Do not include any other text, explanation, or markdown. JSON only.`
       }
 
       const docRef = doc(db, 'personnel_certificates', getCurPid());
+
+      // ── Always fetch existing Firestore record first ───────────────────────
+      // This is the source of truth — never trust local cache for PDF protection.
       const existing = await getDoc(docRef);
+      const existingCert = existing.exists() ? (existing.data()[_pcCurrentCertKey] || null) : null;
+
+      // ── PDF Protection: once a PDF exists in Firestore, it is LOCKED ───────
+      // Nobody — not even admin — can overwrite an existing pdfUrl.
+      // Only the expiry date can be updated on existing records.
       const entry = { expiry, updatedAt: new Date().toISOString() };
-      if (pdfUrl) { entry.pdfUrl = pdfUrl; entry.fileName = fileName; }
-      else if (existing.exists() && (existing.data()[_pcCurrentCertKey]||{}).pdfUrl) {
-        entry.pdfUrl = existing.data()[_pcCurrentCertKey].pdfUrl;
-        entry.fileName = existing.data()[_pcCurrentCertKey].fileName;
+      if (existingCert && existingCert.pdfUrl) {
+        // PDF already on file — preserve it unconditionally, ignore any new upload
+        entry.pdfUrl    = existingCert.pdfUrl;
+        entry.fileName  = existingCert.fileName;
+        entry.uploadedBy = existingCert.uploadedBy || null;
+        // Note: new file (_pcCurrentFile) is intentionally discarded here
+      } else if (pdfUrl) {
+        // No existing PDF — allow the new upload, stamp who uploaded it
+        entry.pdfUrl    = pdfUrl;
+        entry.fileName  = fileName;
+        entry.uploadedBy = window.state?.currentUser?.email || null;
       }
 
       if (existing.exists()) { await updateDoc(docRef, { [_pcCurrentCertKey]: entry }); }
-      else                   { await setDoc(docRef, { [_pcCurrentCertKey]: entry }); }
+      else                   { await setDoc(docRef,   { [_pcCurrentCertKey]: entry }); }
 
       pcCloseUpload();
       // Refresh the cert section in view modal if still open
