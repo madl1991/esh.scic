@@ -28175,6 +28175,14 @@ function setupAuthObserver() {
                 try { eshFetchAndRender(state.currentTab); } catch(e) {}
             }
             
+            // ── REFRESH CERT CACHE ON LOGIN (mirrors loadAllProjectsAndFilter) ─
+            // Call _pcLoadCerts() after every login so the cert cache is always
+            // fresh regardless of which account logged in — same idea as calling
+            // loadAllProjectsAndFilter() to get fresh project/personnel data.
+            if (typeof window._pcLoadCerts === 'function') {
+                setTimeout(window._pcLoadCerts, 600);
+            }
+            // ────────────────────────────────────────────────────────────────
             console.log('✅ All systems initialized successfully!');
 
         } else {
@@ -35662,7 +35670,34 @@ window.pcViewPersonnel = function(idx) {
         certExempt.style.display  = 'none';
         certLabel.textContent     = pos;
 
+        // ── DIRECT FIRESTORE READ (same pattern as CSHP/DOLE/DOE-PERMIT) ─────
+        // Instead of relying on an onSnapshot listener (which dies after logout),
+        // read fresh directly from Firestore each time — exactly like uploadPDF does.
         const certData = (window._pcCertData && window._pcCertData[pid] || {})[certCfg.key];
+
+        // Async-refresh: fetch fresh data from Firestore in background, then re-render.
+        // This means the modal opens instantly with cached data (if any), then updates
+        // silently once the fresh Firestore read completes — same UX as project PDFs.
+        if (window.firebaseDb && window.firebase && window.firebase.getDoc) {
+            const _freshPid = pid;
+            const _freshIdx = idx;
+            window.firebase.getDoc(
+                window.firebase.doc(window.firebaseDb, 'personnel_certificates', _freshPid)
+            ).then(snap => {
+                const freshData = snap.exists() ? snap.data() : {};
+                // Update local cache with the fresh Firestore data
+                if (!window._pcCertData) window._pcCertData = {};
+                window._pcCertData[_freshPid] = freshData;
+                // Re-render only if this modal is still showing the same person
+                if (window._pcCurrentIdx === _freshIdx &&
+                    document.getElementById('pc-view-modal').classList.contains('show')) {
+                    const _freshCertCfg = certCfg;
+                    const _freshCertData = (freshData || {})[_freshCertCfg.key];
+                    const certListEl = document.getElementById('pc-cert-list');
+                    if (certListEl) certListEl.innerHTML = _certCardView(_freshCertCfg, _freshCertData);
+                }
+            }).catch(e => console.warn('pcViewPersonnel: fresh cert read failed:', e.message));
+        }
 
         // View-only cert card
         function _certCardView(cfg, data) {
@@ -37071,7 +37106,7 @@ window.toggleSidebar = function() {
   // _pcCurrentIdx and _pcCurrentPid are managed on window by pcViewPersonnel (in main script)
   let _pcCurrentCertKey = null;
   let _pcCurrentFile = null;
-  let _pcUnsub = null;
+  // _pcUnsub removed — no longer using onSnapshot; using direct getDocs instead
 
   // Convenience getters for use inside this IIFE
   function getCurIdx() { return window._pcCurrentIdx != null ? window._pcCurrentIdx : null; }
@@ -37401,10 +37436,30 @@ Do not include any other text, explanation, or markdown. JSON only.`
       else                   { await setDoc(docRef,   { [_pcCurrentCertKey]: entry }); }
 
       pcCloseUpload();
-      // Refresh the cert section in view modal if still open
-      if (document.getElementById('pc-view-modal').classList.contains('show') && getCurIdx() !== null) {
-        pcViewPersonnel(getCurIdx());
+
+      // ── POST-SAVE REFRESH (mirrors uploadPDF pattern) ─────────────────────
+      // Force a fresh Firestore read of the entire personnel_certificates
+      // collection (same as how saveToFirebase + render() refreshes project PDFs),
+      // then re-render the view modal if it's still open.
+      if (typeof window._pcLoadCerts === 'function') window._pcLoadCerts();
+      // Also do an immediate direct getDoc for this specific person so the modal
+      // updates instantly without waiting for the full getDocs to complete.
+      if (window.firebaseDb && window.firebase && window.firebase.getDoc) {
+        const _savePid   = getCurPid();
+        const _saveIdx   = getCurIdx();
+        window.firebase.getDoc(
+          window.firebase.doc(window.firebaseDb, 'personnel_certificates', _savePid)
+        ).then(snap => {
+          if (!window._pcCertData) window._pcCertData = {};
+          window._pcCertData[_savePid] = snap.exists() ? snap.data() : {};
+          if (_saveIdx !== null &&
+              document.getElementById('pc-view-modal').classList.contains('show') &&
+              window._pcCurrentIdx === _saveIdx) {
+            pcViewPersonnel(_saveIdx);
+          }
+        }).catch(e => console.warn('post-save cert refresh failed:', e.message));
       }
+      // ──────────────────────────────────────────────────────────────────────
 
     } catch(err) {
       console.error('pcSaveCert error:', err);
@@ -37417,28 +37472,39 @@ Do not include any other text, explanation, or markdown. JSON only.`
     }
   };
 
-  // ── Firestore live listener ────────────────────────────────────────
+  // ── DIRECT FIRESTORE READ — same pattern as CSHP / DOLE / DOE-PERMIT ──────
+  // The old onSnapshot listener approach caused certs to disappear after
+  // logout/re-login because Firebase kills the listener when auth token is
+  // revoked. This replacement does a one-shot getDocs (like loadAllProjectsAndFilter)
+  // on demand — no persistent listener to maintain or restart.
+  //
+  // Called: (a) on init to warm up the cache, (b) by pcSaveCert after every save,
+  //         (c) by pcViewPersonnel via its own per-person getDoc (see above).
+  // ────────────────────────────────────────────────────────────────────────────
+
   function _loadCerts() {
     const db = window.firebaseDb;
-    const { collection, onSnapshot } = window.firebase || {};
-    if (!db || !onSnapshot) { setTimeout(_loadCerts, 1000); return; }
-    if (_pcUnsub) _pcUnsub();
-    _pcUnsub = onSnapshot(
-      collection(db, 'personnel_certificates'),
-      snap => {
+    const { getDocs, collection } = window.firebase || {};
+    if (!db || !getDocs || !collection) { setTimeout(_loadCerts, 800); return; }
+
+    getDocs(collection(db, 'personnel_certificates'))
+      .then(snap => {
         window._pcCertData = {};
         snap.forEach(d => { window._pcCertData[d.id] = d.data(); });
-        // Refresh view modal if open
+        console.log('✅ pcLoadCerts: loaded', snap.size, 'cert docs (direct read)');
+        // Refresh view modal if it happens to be open
         if (document.getElementById('pc-view-modal').classList.contains('show') && getCurIdx() !== null) {
           pcViewPersonnel(getCurIdx());
         }
-      },
-      err => console.warn('pcLoadCerts error:', err)
-    );
+      })
+      .catch(err => console.warn('pcLoadCerts getDocs error:', err));
   }
 
+  // Expose for login/logout hooks (same pattern as saveToFirebase exposure)
+  window._pcLoadCerts = _loadCerts;
+
   function _waitFirebase() {
-    if (window.firebaseDb && window.firebase && window.firebase.collection) _loadCerts();
+    if (window.firebaseDb && window.firebase && window.firebase.getDocs) _loadCerts();
     else setTimeout(_waitFirebase, 800);
   }
   _waitFirebase();
