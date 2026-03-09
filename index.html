@@ -2098,6 +2098,21 @@
             border: 1px solid #a5d6a7 !important;
         }
 
+        /* Personnel tab — Corporate group uses CORP_OFFICE as safeKey */
+        #p-grp-banner-CORP_OFFICE {
+            background: #ffffff !important;
+            color: #1b5e20 !important;
+            border: 1.5px solid #c8e6c9 !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10) !important;
+        }
+        #p-grp-banner-CORP_OFFICE .region-icon { color: #1b5e20 !important; filter: none !important; }
+        #p-grp-banner-CORP_OFFICE .region-name { color: #1b5e20 !important; text-shadow: none !important; }
+        #p-grp-banner-CORP_OFFICE .region-toggle-icon { color: #2e7d32 !important; }
+        #p-grp-banner-CORP_OFFICE .rbadge {
+            background: #e8f5e9 !important; color: #1b5e20 !important;
+            border: 1px solid #a5d6a7 !important;
+        }
+
         .region-banner:hover {
             filter: brightness(1.12);
             box-shadow: 0 4px 14px rgba(0,0,0,0.28);
@@ -4451,18 +4466,17 @@ body.dark-mode #osh-req-body tr:nth-child(even) .osh-sticky-td { background: rgb
 }
 .p-view-text {
     display: inline-block;
-    white-space: normal !important;
-    word-break: break-word;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     line-height: 1.35;
     vertical-align: middle;
     font-size: 0.72rem;
 }
 .p-project-card td {
-    white-space: normal;
+    white-space: nowrap;
     vertical-align: middle;
-    word-break: break-word;
-    overflow-wrap: anywhere;
 }
 .p-project-card tbody tr {
     border-bottom: 1px solid var(--border-color);
@@ -5514,7 +5528,11 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
                     <label style="margin:0;">Position *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_position" onchange="toggleToUpdateField('editPersonnelPositionInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
-                <select id="editPersonnelPositionInput" required>
+                <select id="editPersonnelPositionInput" required onchange="
+                    const _idx = parseInt(document.getElementById('editPersonnelIndex').value);
+                    const _p = (window.state && window.state.personnelData && window.state.personnelData[_idx]) || {};
+                    if (typeof _loadEditCertSection === 'function') _loadEditCertSection({..._p, pos: this.value});
+                ">
                     <option value="">Select Position</option>
                     <optgroup label="Project-Based Positions">
                         <option value="ESH Superintendent">ESH Superintendent</option>
@@ -5602,6 +5620,54 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_address" onchange="toggleToUpdateField('editPersonnelAddressInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <textarea id="editPersonnelAddressInput" placeholder="Enter home address" oninput="this.value=titleCase(this.value)"></textarea>
+            </div>
+
+            <!-- ── CREDENTIALS SECTION ── -->
+            <div id="editPersonnelCertSection" style="display:none;margin-top:4px;margin-bottom:4px;">
+                <div style="border-top:1px solid #e8f5e9;padding-top:14px;margin-bottom:10px;">
+                    <div style="font-size:0.7rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.8px;display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                        <i class="fas fa-certificate"></i> Required Credentials
+                    </div>
+                    <div id="editPersonnelCertLabel" style="font-size:0.65rem;color:#888;"></div>
+                </div>
+
+                <!-- To Follow checkbox -->
+                <label style="display:flex;align-items:center;gap:8px;font-size:0.75rem;color:#e65100;font-weight:600;cursor:pointer;margin-bottom:12px;padding:8px 12px;background:#fff8f0;border:1px solid #ffcc80;border-radius:8px;">
+                    <input type="checkbox" id="editCert_toFollow" onchange="toggleCertToFollow(this.checked)" style="accent-color:#e65100;width:14px;height:14px;">
+                    Certificate not yet available — mark as <strong style="margin-left:2px;">To Follow</strong>
+                </label>
+
+                <div id="editCertFields">
+                    <!-- Expiry date — only for BLS, PCO, DOLE OSH -->
+                    <div id="editCertExpiryGroup" style="display:none;" class="form-group">
+                        <label>Expiry Date <span style="color:#c62828;">*</span></label>
+                        <input type="date" id="editCertExpiry" data-allow-future>
+                    </div>
+
+                    <!-- PDF upload -->
+                    <div class="form-group">
+                        <label>Certificate PDF <span style="font-size:0.65rem;color:#aaa;font-weight:400;">(max 500KB)</span></label>
+                        <div id="editCertDropZone" onclick="document.getElementById('editCertFileInput').click()"
+                            style="border:2px dashed #c8e6c9;border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:#fafffe;transition:all 0.2s;">
+                            <i class="fas fa-file-pdf" style="font-size:1.4rem;color:#c8e6c9;display:block;margin-bottom:6px;"></i>
+                            <div style="font-size:0.72rem;color:#aaa;">Click to choose PDF file</div>
+                            <div id="editCertExistingName" style="display:none;margin-top:6px;font-size:0.68rem;color:#2e7d32;font-weight:600;"></div>
+                        </div>
+                        <input type="file" id="editCertFileInput" accept=".pdf" style="display:none;" onchange="onEditCertFileChosen(this)">
+                        <div id="editCertChosenName" style="display:none;margin-top:6px;font-size:0.7rem;color:#2e7d32;padding:5px 10px;background:#f1f8e9;border-radius:6px;border:1px solid #c8e6c9;">
+                            <i class="fas fa-file-pdf" style="margin-right:4px;"></i><span id="editCertChosenNameText"></span>
+                        </div>
+                        <div id="editCertError" style="display:none;margin-top:6px;font-size:0.72rem;color:#c62828;background:#ffebee;padding:6px 10px;border-radius:6px;border:1px solid #ef9a9a;"></div>
+                    </div>
+
+                    <!-- Upload progress -->
+                    <div id="editCertProgress" style="display:none;margin-bottom:10px;">
+                        <div style="font-size:0.7rem;color:#666;margin-bottom:4px;">Uploading certificate...</div>
+                        <div style="background:#e8f5e9;border-radius:100px;height:5px;overflow:hidden;">
+                            <div id="editCertProgressBar" style="height:100%;background:linear-gradient(90deg,#1b5e20,#4caf50);width:0%;transition:width 0.3s;border-radius:100px;"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-buttons" style="justify-content:space-between;align-items:center;">
                 <div style="display:flex;flex-direction:column;gap:6px;">
@@ -5779,7 +5845,6 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
                 <div class="nav-group-items collapsed">
                     <div class="nav-item" data-tab="exposures" onclick="changeTab('exposures')"><i class="fas fa-stopwatch"></i> Total Exposures</div>
                     <div class="nav-item" data-tab="personnel" onclick="changeTab('personnel')"><i class="fas fa-users-viewfinder"></i> ESH Personnel Monitoring</div>
-                    <div class="nav-item" data-tab="personnel-compliance" onclick="openPersonnelComplianceModal()"><i class="fas fa-certificate"></i> Personnel & Compliance</div>
                     <div class="nav-item" data-tab="osh-requirement" onclick="changeTab('osh-requirement')"><i class="fas fa-shield-halved"></i> OSH Personnel Requirement</div>
                     <div class="nav-item" data-tab="activities" onclick="changeTab('activities')"><i class="fas fa-clipboard-check"></i> ESH Activities & Programs</div>
                 </div>
@@ -25135,11 +25200,177 @@ function openEditPersonnelModal(index) {
     }
     if (deleteBtn) deleteBtn.style.display = canDelete ? '' : 'none';
     if (transferBtn) transferBtn.style.display = canTransfer ? '' : 'none';
+
+    // ── Load certificate section based on position ──
+    _loadEditCertSection(person);
 }
 
 function closeEditPersonnelModal() {
     document.getElementById('editPersonnelModal').classList.remove('show');
 }
+
+// ── EDIT MODAL CERT HELPERS ────────────────────────────────────────────────
+
+const _EDIT_CERT_MAP = {
+    'Safety Officer I':   { key:'COSH',      label:'COSH Certificate',                  icon:'fa-shield-halved', hasExpiry: false },
+    'Safety Officer II':  { key:'COSH',      label:'COSH Certificate',                  icon:'fa-shield-halved', hasExpiry: false },
+    'Safety Officer III': { key:'COSH',      label:'COSH Certificate',                  icon:'fa-shield-halved', hasExpiry: false },
+    'Safety Officer IV':  { key:'COSH',      label:'COSH Certificate',                  icon:'fa-shield-halved', hasExpiry: false },
+    'PCO':                { key:'PCO_ACCRED',label:'PCO Accreditation',                 icon:'fa-leaf',          hasExpiry: true  },
+    'First Aider':        { key:'BLS',       label:'BLS Certificate',                   icon:'fa-heart-pulse',   hasExpiry: true  },
+    'Project Nurse':      { key:'OHNAP',     label:'OHNAP Certificate',                 icon:'fa-user-nurse',    hasExpiry: false },
+    'ESH Superintendent': { key:'DOLE_OSH',  label:'DOLE OSH Practitioner Certificate', icon:'fa-certificate',   hasExpiry: true  },
+    'ESH Head':           { key:'DOLE_OSH',  label:'DOLE OSH Practitioner Certificate', icon:'fa-certificate',   hasExpiry: true  },
+};
+const _EDIT_CORP_POS = [
+    'QESH Group Manager','QESH Deputy Manager',
+    'ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation',
+    'Environmental and Sustainability Head','Corporate Physician','Corporate Nurse',
+    'Corporate Dentist','QESH Corp. DC'
+];
+
+window._editCertFile = null;
+window._editCertCfg  = null;
+window._editCertPid  = null;
+
+function _loadEditCertSection(person) {
+    const pos    = person.pos || '';
+    const certCfg = _EDIT_CERT_MAP[pos];
+    const section = document.getElementById('editPersonnelCertSection');
+    if (!certCfg || _EDIT_CORP_POS.includes(pos)) {
+        section.style.display = 'none';
+        window._editCertCfg = null;
+        return;
+    }
+
+    window._editCertCfg = certCfg;
+    window._editCertPid = String(person._pid || person.id || '');
+    window._editCertFile = null;
+
+    // Label
+    document.getElementById('editPersonnelCertLabel').innerHTML =
+        `<i class="fas ${certCfg.icon}" style="color:#2e7d32;margin-right:4px;"></i>${certCfg.label}` +
+        (certCfg.hasExpiry
+            ? ' <span style="color:#888;">· Expiry date required</span>'
+            : ' <span style="color:#888;">· No expiration</span>');
+
+    // Expiry group
+    document.getElementById('editCertExpiryGroup').style.display = certCfg.hasExpiry ? '' : 'none';
+    document.getElementById('editCertExpiry').value = '';
+
+    // Reset file UI
+    document.getElementById('editCertChosenName').style.display = 'none';
+    document.getElementById('editCertError').style.display = 'none';
+    document.getElementById('editCertProgress').style.display = 'none';
+
+    // Load existing cert data
+    const pid  = window._editCertPid;
+    const existing = (window._pcCertData && window._pcCertData[pid] || {})[certCfg.key];
+    const toFollow = person.certToFollow === certCfg.key;
+    document.getElementById('editCert_toFollow').checked = toFollow;
+    toggleCertToFollow(toFollow);
+
+    const dropZone   = document.getElementById('editCertDropZone');
+    const existingEl = document.getElementById('editCertExistingName');
+    if (existing && existing.pdfUrl) {
+        existingEl.style.display = 'block';
+        existingEl.innerHTML = `<i class="fas fa-check-circle" style="color:#2e7d32;margin-right:4px;"></i>Current: <a href="${existing.pdfUrl}" target="_blank" style="color:#1b5e20;font-weight:700;">${existing.fileName || 'View PDF'}</a>`;
+        if (existing.expiry) document.getElementById('editCertExpiry').value = existing.expiry;
+        dropZone.querySelector('div:last-child').textContent = 'Click to replace PDF';
+    } else {
+        existingEl.style.display = 'none';
+        dropZone.querySelector('div:last-child').textContent = 'Click to choose PDF file';
+    }
+
+    section.style.display = 'block';
+}
+
+window.toggleCertToFollow = function(checked) {
+    document.getElementById('editCertFields').style.display = checked ? 'none' : '';
+};
+
+window.onEditCertFileChosen = function(input) {
+    const file = input.files[0];
+    const errEl = document.getElementById('editCertError');
+    errEl.style.display = 'none';
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+        errEl.textContent = '❌ PDF files only.'; errEl.style.display = 'block';
+        input.value = ''; return;
+    }
+    if (file.size > 500 * 1024) {
+        errEl.textContent = `⚠️ Max 500KB. Your file: ${(file.size/1024).toFixed(0)}KB`; errEl.style.display = 'block';
+        input.value = ''; return;
+    }
+    window._editCertFile = file;
+    document.getElementById('editCertChosenNameText').textContent = `${file.name} (${(file.size/1024).toFixed(0)} KB)`;
+    document.getElementById('editCertChosenName').style.display = 'block';
+    document.getElementById('editCertDropZone').style.borderColor = '#2e7d32';
+    document.getElementById('editCertDropZone').style.background = '#f1f8e9';
+};
+
+// Called by confirmEditPersonnel — uploads cert if file chosen, saves cert data
+window._saveEditCert = async function(personIdx) {
+    const cfg = window._editCertCfg;
+    if (!cfg) return; // position has no cert requirement
+
+    const person    = state.personnelData[personIdx];
+    const pid       = String(person._pid || person.id || personIdx);
+    const toFollow  = document.getElementById('editCert_toFollow').checked;
+
+    // Mark certToFollow on person object
+    person.certToFollow = toFollow ? cfg.key : '';
+
+    if (toFollow) return; // no upload needed
+
+    const expiry   = cfg.hasExpiry ? document.getElementById('editCertExpiry').value : '';
+    const errEl    = document.getElementById('editCertError');
+    errEl.style.display = 'none';
+
+    if (cfg.hasExpiry && !expiry) {
+        errEl.textContent = '⚠️ Please enter the expiry date for this certificate.';
+        errEl.style.display = 'block';
+        throw new Error('expiry_required');
+    }
+
+    const db      = window.firebaseDb;
+    const storage = window.firebaseStorage;
+    if (!db || !storage) return;
+
+    const { doc, setDoc, getDoc, updateDoc } = window.firebase;
+    const { ref, uploadBytes, getDownloadURL } = window.firebase;
+
+    let pdfUrl = null, fileName = null;
+
+    if (window._editCertFile) {
+        document.getElementById('editCertProgress').style.display = 'block';
+        const bar = document.getElementById('editCertProgressBar');
+        bar.style.width = '20%';
+        const path = `personnel_certificates/${pid}/${cfg.key}_${Date.now()}.pdf`;
+        bar.style.width = '50%';
+        const snap = await uploadBytes(ref(storage, path), window._editCertFile);
+        bar.style.width = '85%';
+        pdfUrl    = await getDownloadURL(snap.ref);
+        fileName  = window._editCertFile.name;
+        bar.style.width = '100%';
+    }
+
+    // Build entry — preserve existing pdfUrl if no new file
+    const docRef   = doc(db, 'personnel_certificates', pid);
+    const existing = await getDoc(docRef);
+    const entry    = { updatedAt: new Date().toISOString() };
+    if (cfg.hasExpiry) entry.expiry = expiry;
+    if (pdfUrl) { entry.pdfUrl = pdfUrl; entry.fileName = fileName; }
+    else if (existing.exists() && (existing.data()[cfg.key]||{}).pdfUrl) {
+        entry.pdfUrl    = existing.data()[cfg.key].pdfUrl;
+        entry.fileName  = existing.data()[cfg.key].fileName;
+    }
+
+    if (existing.exists()) await updateDoc(docRef, { [cfg.key]: entry });
+    else                   await setDoc(docRef,    { [cfg.key]: entry });
+
+    document.getElementById('editCertProgress').style.display = 'none';
+};
 
 let _transferSelectedProject = null;
 
@@ -25514,6 +25745,14 @@ function confirmEditPersonnel() {
     closeEditPersonnelModal();
     if (window.showToast) window.showToast('Personnel updated successfully!', 'success');
     if (window.showSyncPill) window.showSyncPill('syncing', 'Saving to cloud...');
+
+    // Save cert in background (non-blocking for the modal close)
+    if (window._saveEditCert) {
+        window._saveEditCert(index).catch(err => {
+            if (err.message !== 'expiry_required') console.error('Cert save error:', err);
+        });
+    }
+
     PersonnelDB.savePerson(updatedPerson)
         .then(s => {
             if (s) { if (window.markSyncComplete) window.markSyncComplete(); }
@@ -25583,18 +25822,19 @@ window.pToggleGroupSafe = function(safeKey) {
 
 const P_TABLE_THEAD = `
 <tr style="background:linear-gradient(90deg,#1b5e20 0%,#388e3c 100%);">
-    <th style="padding:8px 12px;color:white;text-align:left;white-space:nowrap;font-weight:700;letter-spacing:0.3px;border:none;position:sticky;left:0;z-index:10;background:#1b5e20;">#&nbsp;&nbsp;Full Name</th>
-    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:180px;">Position</th>
-    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:95px;">ID Number</th>
-    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:110px;">Date Hired</th>
-    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;min-width:180px;">Current Assignment</th>
-    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:48px;">Age</th>
-    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:80px;">Gender</th>
-    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;min-width:180px;">Email</th>
-    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:115px;">Contact No.</th>
-    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;min-width:200px;">Home Address</th>
-    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:70px;">Yrs. of Svc</th>
-    <th style="padding:8px 8px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;width:100px;">Action</th>
+    <th style="padding:7px 10px 7px 12px;color:white;text-align:left;font-weight:700;letter-spacing:0.3px;border:none;position:sticky;left:0;z-index:10;background:#1b5e20;width:320px;min-width:320px;">#&nbsp;&nbsp;Full Name</th>
+    <th style="padding:7px 14px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Position</th>
+    <th style="padding:7px 14px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">ID No.</th>
+    <th style="padding:7px 14px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Cert. Expiry</th>
+    <th style="padding:7px 12px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Action</th>
+</tr>`;
+
+const P_CORP_TABLE_THEAD = `
+<tr style="background:linear-gradient(90deg,#1b5e20 0%,#388e3c 100%);">
+    <th style="padding:7px 10px 7px 12px;color:white;text-align:left;font-weight:700;letter-spacing:0.3px;border:none;position:sticky;left:0;z-index:10;background:#1b5e20;width:320px;min-width:320px;">#&nbsp;&nbsp;Full Name</th>
+    <th style="padding:7px 14px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Position</th>
+    <th style="padding:7px 14px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">ID No.</th>
+    <th style="padding:7px 12px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Action</th>
 </tr>`;
 
 function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isCorporateCard) {
@@ -25612,76 +25852,40 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
         if (!p) return;
         displayIndexRef.n++;
         const di = displayIndexRef.n;
-        const genderClass = p.gen === 'Male' ? 'p-gender-m' : p.gen === 'Female' ? 'p-gender-f' : '';
-        const posDisplay  = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>` : '';
-        const genDisplay  = p.gen && p.gen !== 'Select' ? `<span class="p-pos-badge ${genderClass}">${p.gen}</span>` : '';
-        const yearsOfService = calculateYearsOfService(p.hired);
-        if (p.hired && yearsOfService !== '' && p.len !== yearsOfService.toString()) {
-            state.personnelData[origIdx].len = yearsOfService.toString();
-        }
+        const posDisplay = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>` : '<span style="color:#bbb;font-size:0.7rem;">—</span>';
         const hasToUpdate = p.toUpdate && p.toUpdate.length > 0;
         const rowBg = hasToUpdate ? 'background:#ffebee;' : (di % 2 === 0 ? 'background:#ffffff;' : 'background:#f4f6f8;');
         const stickyBg = hasToUpdate ? 'background:#ffebee;' : (di%2===1?'background:#f4f6f8;':'background:#ffffff;');
+        // Compute cert expiry cell before template literal
+        const _certCell = (() => {
+            const _CMAP = {'PCO':'PCO_ACCRED','First Aider':'BLS','ESH Superintendent':'DOLE_OSH','ESH Head':'DOLE_OSH'};
+            const _ckey = _CMAP[p.pos];
+            if (!_ckey) return '<td style="text-align:center;padding:5px 14px;color:#ccc;font-size:0.7rem;">—</td>';
+            const _pid2 = String(p._pid||p.id||origIdx);
+            const _cdata = (window._pcCertData && window._pcCertData[_pid2] || {})[_ckey];
+            if (!_cdata) return '<td style="text-align:center;padding:5px 14px;font-size:0.68rem;color:#bbb;">No cert</td>';
+            if (p.certToFollow === _ckey) return '<td style="text-align:center;padding:5px 14px;font-size:0.65rem;color:#e65100;font-weight:700;">⏳ To Follow</td>';
+            const _exp = _cdata.expiry;
+            if (!_exp) return '<td style="text-align:center;padding:5px 14px;font-size:0.68rem;color:#bbb;">—</td>';
+            const _now = new Date(); _now.setHours(0,0,0,0);
+            const _ed  = new Date(_exp); _ed.setHours(0,0,0,0);
+            const _d   = Math.round((_ed - _now) / 86400000);
+            const _col = _d < 0 ? '#c62828' : _d <= 60 ? '#e65100' : '#2e7d32';
+            const _lbl = _d < 0 ? 'EXPIRED' : _d <= 60 ? 'EXPIRING' : 'VALID';
+            const _bg  = _d < 0 ? '#ffebee' : _d <= 60 ? '#fff3e0' : '#f1f8e9';
+            return `<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div style="font-size:0.68rem;font-weight:700;color:${_col};">${_exp}</div><div style="font-size:0.56rem;font-weight:800;color:${_col};background:${_bg};padding:1px 5px;border-radius:8px;display:inline-block;margin-top:1px;">${_lbl}</div></td>`;
+        })();
         rows += `
         <tr id="p-row-${origIdx}" style="${rowBg}${hasToUpdate ? 'outline:1.5px solid #ef9a9a;' : ''}">
-            <td style="text-align:left;position:sticky;left:0;z-index:5;${stickyBg}white-space:nowrap;padding:6px 10px 6px 12px;">
+            <td style="text-align:left;position:sticky;left:0;z-index:5;${stickyBg}padding:5px 10px 5px 12px;white-space:nowrap;">
                 <span class="p-row-num">${di}</span>
-                <div class="p-view-text" style="display:inline-block;white-space:nowrap;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;padding-right:6px;${hasToUpdate?'color:#c62828;font-weight:800;':''}">${(p.name||'').toUpperCase()}</div>
-                ${hasToUpdate ? `<span style="display:inline-block;font-size:0.58rem;font-weight:800;padding:2px 6px;background:#ef5350;color:white;border-radius:10px;margin-left:4px;vertical-align:middle;letter-spacing:0.5px;" title="Pending fields: ${p.toUpdate.join(', ')}">⚠ TO UPDATE</span>` : ''}
-                <input type="text" value="${(p.name||'').toUpperCase()}" onchange="state.personnelData[${origIdx}].name=this.value.toUpperCase()" style="min-width:190px;text-align:left;text-transform:uppercase;display:none;" disabled>
+                <span class="p-view-text" onclick="pcViewPersonnel(${origIdx})" style="display:inline-block;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;cursor:pointer;text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(27,94,32,0.4);${hasToUpdate?'color:#c62828;font-weight:800;':'color:#1b5e20;font-weight:700;'}">${(p.name||'').toUpperCase()}</span>
+                ${hasToUpdate ? `<i class="fas fa-circle-exclamation" title="TO UPDATE" style="font-size:0.75rem;color:#ef5350;margin-left:5px;vertical-align:middle;"></i>` : ''}
             </td>
-            <td style="width:180px;text-align:center;">
-                ${posDisplay}
-                <select onchange="state.personnelData[${origIdx}].pos=this.value;renderPTable();" style="width:170px;display:none;text-align:center;" disabled>
-                    <option value="${p.pos||''}">${p.pos||'Select'}</option>
-                    <optgroup label="Project-Based Positions">
-                        <option>ESH Superintendent</option><option>ESH Head</option>
-                        <option>Safety Officer I</option><option>Safety Officer II</option>
-                        <option>Safety Officer III</option><option>Safety Officer IV</option>
-                        <option>PCO</option><option>Project Physician</option>
-                        <option>Project Nurse</option><option>First Aider</option>
-                    </optgroup>
-                    <optgroup label="Corporate Positions">
-                        <option>QESH Group Manager</option><option>QESH Deputy Manager</option>
-                        <option>ESH Manager for Regulation &amp; Compliance</option>
-                        <option>ESH Manager for Project Implementation</option>
-                        <option>Environmental and Sustainability Head</option>
-                        <option>Corporate Physician</option><option>Corporate Nurse</option><option>Corporate Dentist</option>
-                        <option>QESH Corp. DC</option>
-                    </optgroup>
-                    <optgroup label="Other"><option>Others</option></optgroup>
-                </select>
-            </td>
-            <td style="width:95px;text-align:center;"><input type="text" value="${p.id||''}" onchange="state.personnelData[${origIdx}].id=this.value" style="width:80px;text-align:center;" disabled></td>
-            <td style="width:110px;text-align:center;">
-                <div class="p-view-text p-hired-display" style="font-size:0.72rem;white-space:nowrap;">${formatDateDMY(p.hired)}</div>
-                <input type="date" value="${p.hired||''}" onchange="state.personnelData[${origIdx}].hired=this.value;renderPTable();" style="width:100px;display:none;" disabled>
-            </td>
-            <td style="min-width:180px;text-align:center;">
-                <select onchange="state.personnelData[${origIdx}].current=this.value" style="min-width:170px;text-align:center;text-align-last:center;" disabled>
-                    <option value="${p.current||''}">${p.current||'Select Assignment'}</option>
-                    ${projOptions}
-                </select>
-            </td>
-            <td style="width:48px;text-align:center;"><input type="number" value="${p.age||''}" onchange="state.personnelData[${origIdx}].age=this.value" style="width:38px;text-align:center;" min="0" max="99" disabled></td>
-            <td style="width:80px;text-align:center;">
-                ${genDisplay}
-                <select onchange="state.personnelData[${origIdx}].gen=this.value;renderPTable();" style="width:70px;display:none;" disabled>
-                    <option value="${p.gen||''}">${p.gen||'Select'}</option>
-                    <option>Male</option><option>Female</option>
-                </select>
-            </td>
-            <td style="min-width:180px;text-align:center;">
-                <div class="p-view-text" style="white-space:normal;word-break:break-all;font-size:0.72rem;">${p.mail||''}</div>
-                <input type="email" value="${p.mail||''}" onchange="state.personnelData[${origIdx}].mail=this.value" style="min-width:165px;text-align:center;display:none;" disabled>
-            </td>
-            <td style="width:115px;text-align:center;"><input type="text" value="${p.num||''}" onchange="state.personnelData[${origIdx}].num=fmtPhone(this.value);this.value=fmtPhone(this.value)" style="width:105px;text-align:center;" disabled></td>
-            <td style="min-width:200px;text-align:left;">
-                <div class="p-view-text" style="white-space:normal;word-break:break-word;font-size:0.72rem;padding:2px 0;">${p.addr||''}</div>
-                <input type="text" value="${p.addr||''}" onchange="state.personnelData[${origIdx}].addr=this.value" style="min-width:185px;text-align:center;display:none;" disabled>
-            </td>
-            <td style="width:70px;text-align:center;"><input type="text" value="${yearsOfService!==''?yearsOfService:(p.len||'')}" style="width:55px;text-align:center;background:#f0f0f0;color:#666;font-weight:600;" disabled readonly title="Auto-calculated from Date Hired"></td>
-            <td style="width:100px;text-align:center;white-space:nowrap;">
+            <td style="text-align:center;padding:5px 8px;white-space:nowrap;">${posDisplay}</td>
+            <td style="text-align:center;padding:5px 14px;white-space:nowrap;font-size:0.72rem;color:#555;font-weight:600;">${p.id||'—'}</td>
+            ${_certCell}
+            <td style="text-align:center;padding:5px 12px;white-space:nowrap;">
                 ${personnelEditBtn(origIdx, (window._pRegionMap||{})[p.current] || 'OTHER')}
             </td>
         </tr>`;
@@ -25698,7 +25902,7 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
             </div>
         </div>
         <div id="p-proj-body-${safeKey}" style="overflow-x:auto;display:${isCollapsed?'none':''};">
-            <table style="width:max-content;min-width:100%;border-collapse:collapse;font-size:0.72rem;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.72rem;table-layout:fixed;">
                 <thead>${P_TABLE_THEAD}</thead>
                 <tbody>${rows}</tbody>
             </table>
@@ -25843,47 +26047,20 @@ function renderPTable() {
             if (!p) return;
             displayIndexRef.n++;
             const di = displayIndexRef.n;
-            const genderClass = p.gen === 'Male' ? 'p-gender-m' : p.gen === 'Female' ? 'p-gender-f' : '';
-            const posDisplay  = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>` : '';
-            const genDisplay  = p.gen && p.gen !== 'Select' ? `<span class="p-pos-badge ${genderClass}">${p.gen}</span>` : '';
-            const yearsOfService = calculateYearsOfService(p.hired);
-            if (p.hired && yearsOfService !== '' && String(p.len) !== String(yearsOfService)) {
-                state.personnelData[origIdx].len = String(yearsOfService);
-            }
-                        const _hasToUpdate = p.toUpdate && p.toUpdate.length > 0;
+            const posDisplay = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>` : '<span style="color:#bbb;font-size:0.7rem;">—</span>';
+            const _hasToUpdate = p.toUpdate && p.toUpdate.length > 0;
             const _rowBg = _hasToUpdate ? 'background:#ffebee;' : (di%2===0?'background:#ffffff;':'background:#f4f6f8;');
             const _stickyBg = _hasToUpdate ? 'background:#ffebee;' : (di%2===1?'background:#f4f6f8;':'background:#ffffff;');
             _corpRows += `
             <tr id="p-row-${origIdx}" style="${_rowBg}${_hasToUpdate ? 'outline:1.5px solid #ef9a9a;' : ''}">
-                <td style="text-align:left;position:sticky;left:0;z-index:5;${_stickyBg}white-space:nowrap;padding:6px 10px 6px 12px;">
+                <td style="text-align:left;position:sticky;left:0;z-index:5;${_stickyBg}padding:5px 10px 5px 12px;white-space:nowrap;">
                     <span class="p-row-num">${di}</span>
-                    <div class="p-view-text" style="display:inline-block;white-space:nowrap;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;padding-right:6px;${_hasToUpdate?'color:#c62828;font-weight:800;':''}">${(p.name||'').toUpperCase()}</div>
-                    ${_hasToUpdate ? `<span style="display:inline-block;font-size:0.58rem;font-weight:800;padding:2px 6px;background:#ef5350;color:white;border-radius:10px;margin-left:4px;vertical-align:middle;letter-spacing:0.5px;" title="Pending fields: ${p.toUpdate.join(', ')}">⚠ TO UPDATE</span>` : ''}
-                    <input type="text" value="${(p.name||'').toUpperCase()}" onchange="state.personnelData[${origIdx}].name=this.value.toUpperCase()" style="min-width:190px;text-align:left;text-transform:uppercase;display:none;" disabled>
+                    <span class="p-view-text" onclick="pcViewPersonnel(${origIdx})" style="display:inline-block;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;cursor:pointer;text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(27,94,32,0.4);${_hasToUpdate?'color:#c62828;font-weight:800;':'color:#1b5e20;font-weight:700;'}">${(p.name||'').toUpperCase()}</span>
+                    ${_hasToUpdate ? `<i class="fas fa-circle-exclamation" title="TO UPDATE" style="font-size:0.75rem;color:#ef5350;margin-left:5px;vertical-align:middle;"></i>` : ''}
                 </td>
-                <td style="width:180px;text-align:center;">${posDisplay}</td>
-                <td style="width:95px;text-align:center;"><input type="text" value="${p.id||''}" onchange="state.personnelData[${origIdx}].id=this.value" style="width:80px;text-align:center;" disabled></td>
-                <td style="width:110px;text-align:center;">
-                    <div class="p-view-text p-hired-display" style="font-size:0.72rem;white-space:nowrap;">${formatDateDMY(p.hired)}</div>
-                    <input type="date" value="${p.hired||''}" onchange="state.personnelData[${origIdx}].hired=this.value;renderPTable();" style="width:100px;display:none;" disabled>
-                </td>
-                <td style="min-width:180px;text-align:center;">
-                    <select onchange="state.personnelData[${origIdx}].current=this.value" style="min-width:170px;" disabled>
-                        <option value="${p.current||''}">${p.current||'Select Assignment'}</option>
-                        ${projOptions}
-                    </select>
-                </td>
-                <td style="width:48px;text-align:center;"><input type="number" value="${p.age||''}" onchange="state.personnelData[${origIdx}].age=this.value" style="width:38px;text-align:center;" min="0" max="99" disabled></td>
-                <td style="width:80px;text-align:center;">${genDisplay}</td>
-                <td style="min-width:180px;text-align:center;">
-                    <div class="p-view-text" style="white-space:normal;word-break:break-all;font-size:0.72rem;">${p.mail||''}</div>
-                </td>
-                <td style="width:115px;text-align:center;"><input type="text" value="${p.num||''}" onchange="state.personnelData[${origIdx}].num=fmtPhone(this.value);this.value=fmtPhone(this.value)" style="width:105px;text-align:center;" disabled></td>
-                <td style="min-width:200px;text-align:left;">
-                    <div class="p-view-text" style="white-space:normal;word-break:break-word;font-size:0.72rem;padding:2px 0;">${p.addr||''}</div>
-                </td>
-                <td style="width:70px;text-align:center;"><input type="text" value="${yearsOfService!==''?yearsOfService:(p.len||'')}" style="width:55px;text-align:center;background:#f0f0f0;color:#666;font-weight:600;" disabled readonly></td>
-                <td style="width:100px;text-align:center;white-space:nowrap;">
+                <td style="text-align:center;padding:5px 8px;white-space:nowrap;">${posDisplay}</td>
+                <td style="text-align:center;padding:5px 14px;white-space:nowrap;font-size:0.72rem;color:#555;font-weight:600;">${p.id||'—'}</td>
+                <td style="text-align:center;padding:5px 12px;white-space:nowrap;">
                     ${personnelEditBtn(origIdx, 'CORPORATE')}
                 </td>
             </tr>`;
@@ -25894,7 +26071,10 @@ function renderPTable() {
             <div class="region-banner-inner">
                 <div class="region-banner-left">
                     <i class="fas fa-building-columns region-icon"></i>
-                    <span class="region-name">CORPORATE</span>
+                    <div style="display:flex;flex-direction:column;gap:1px;">
+                        <span class="region-name">CORPORATE</span>
+                        <span style="font-size:0.58rem;font-weight:600;opacity:0.75;letter-spacing:0.3px;">Corporate Office</span>
+                    </div>
                 </div>
                 <div class="region-banner-right">
                     <span class="rbadge rbadge-count">${corpPersonnel.length} PERSONNEL</span>
@@ -25903,8 +26083,8 @@ function renderPTable() {
             </div>
         </div>
         <div id="p-grp-body-${grpSafe}" class="region-content${_corpCollapsed?' collapsed':''}" style="overflow-x:auto;">
-            <table style="width:max-content;min-width:100%;border-collapse:collapse;font-size:0.72rem;">
-                <thead>${P_TABLE_THEAD}</thead>
+            <table style="width:100%;border-collapse:collapse;font-size:0.72rem;table-layout:fixed;">
+                <thead>${P_CORP_TABLE_THEAD}</thead>
                 <tbody>${_corpRows}</tbody>
             </table>
         </div>`;
@@ -26063,11 +26243,12 @@ function updatePersonnelSummary() {
         const icon  = POS_ICONS[pos]  || 'fa-user';
         const color = POS_COLORS[pos] || '#546e7a';
         const label = POS_LABELS[pos] || pos;
-        return `<div title="${pos}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 16px;border-right:1px solid var(--border-color);min-width:76px;flex:1;position:relative;gap:2px;cursor:default;transition:background 0.15s;">
-            <i class="fas ${icon}" style="font-size:0.78rem;color:${color};opacity:0.75;"></i>
-            <div style="font-size:1.25rem;font-weight:900;color:${color};line-height:1.1;">${cnt}</div>
-            <div style="font-size:0.56rem;color:var(--text-secondary);font-weight:700;text-align:center;line-height:1.3;white-space:nowrap;">${label}</div>
-            <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:${color};border-radius:2px 2px 0 0;"></div>
+        const bgLight = color + '12';
+        return `<div title="${pos}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 14px 10px;border-right:1px solid var(--border-color);min-width:80px;flex:1;position:relative;gap:1px;cursor:default;transition:background 0.15s;overflow:hidden;background:${bgLight};" onmouseover="this.style.filter='brightness(0.96)'" onmouseout="this.style.filter=''">
+            <i class="fas ${icon}" style="position:absolute;bottom:-6px;right:-4px;font-size:2.6rem;color:${color};opacity:0.10;pointer-events:none;transform:rotate(-10deg);"></i>
+            <div style="font-size:1.4rem;font-weight:900;color:${color};line-height:1;position:relative;z-index:1;">${cnt}</div>
+            <div style="font-size:0.54rem;color:${color};font-weight:700;text-align:center;line-height:1.3;white-space:nowrap;opacity:0.8;position:relative;z-index:1;">${label}</div>
+            <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:${color};opacity:0.6;"></div>
         </div>`;
     }).join('');
 
@@ -31753,7 +31934,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (regionRows.length > 0) {
                     projTablesHtml += `
                     <div style="margin:8px 14px 14px;border-radius:8px;overflow:hidden;border:2px solid ${rc.bg}44;">
-                        <table style="width:100%;border-collapse:collapse;font-size:0.72rem;">
+                        <table style="width:100%;border-collapse:collapse;font-size:0.72rem;table-layout:fixed;">
                             <tr style="background:${rc.bg}18;">
                                 <td colspan="2" style="padding:9px 14px;font-weight:800;color:${rc.bg};border:1px solid ${rc.bg}33;font-size:0.72rem;">
                                     <i class="fas fa-map-marker-alt" style="margin-right:5px;"></i>REGION TOTAL — ${region}
@@ -32165,7 +32346,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (regionRows.length > 0) {
                     projTablesHtml += `
                     <div style="margin:8px 14px 14px;border-radius:8px;overflow:hidden;border:2px solid ${rc.bg}44;">
-                        <table style="width:100%;border-collapse:collapse;font-size:0.72rem;">
+                        <table style="width:100%;border-collapse:collapse;font-size:0.72rem;table-layout:fixed;">
                             <tr style="background:${rc.bg}18;">
                                 <td colspan="2" style="padding:9px 14px;font-weight:800;color:${rc.bg};border:1px solid ${rc.bg}33;font-size:0.72rem;">
                                     <i class="fas fa-map-marker-alt" style="margin-right:5px;"></i>REGION TOTAL — ${region}
@@ -32379,7 +32560,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function wasteProjectTableHTML(projRows, colors, canEdit) {
-        let t = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.72rem;">
+        let t = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.72rem;table-layout:fixed;">
             <thead>
                 <tr>
                     <th style="background:${colors.bg};color:white;padding:6px 10px;text-align:center;border:1px solid #ddd;">Month</th>
@@ -35403,7 +35584,164 @@ window.renderEshCalendar = function(tabType) {
     }
 };
 
+
 })();
+
+// ── Personnel View Modal — defined here so it has access to `state` ──
+window.pcViewPersonnel = function(idx) {
+    const p = state.personnelData[idx];
+    if (!p) return;
+
+    window._pcCurrentIdx = idx;
+    const pid = String(p._pid || p.id || idx);
+    window._pcCurrentPid = pid;
+
+    // Name
+    document.getElementById('pc-view-name').textContent      = (p.name || '').toUpperCase();
+    document.getElementById('pc-view-pos-badge').textContent  = p.pos || '—';
+    document.getElementById('pc-view-assign').textContent    = p.current ? `📍 ${p.current}` : '';
+
+    // Info grid — compact, clean
+    function _iRow(label, val) {
+        const v = (!val || val === '—') ? '<span style="color:#ccc;">—</span>' : val;
+        return `<div style="padding:8px 10px;border:1px solid #f0f0f0;border-radius:8px;background:#fafafa;">
+          <div style="font-size:0.58rem;color:#bbb;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">${label}</div>
+          <div style="font-size:0.75rem;color:#333;font-weight:600;line-height:1.3;">${v}</div>
+        </div>`;
+    }
+
+    const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return isNaN(d)?s:d.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'}); };
+    const calcYOS = s => { if(!s) return '—'; const y=new Date().getFullYear()-new Date(s).getFullYear(); return `${y} yr${y!==1?'s':''}`; };
+
+    document.getElementById('pc-view-info-grid').innerHTML = [
+        _iRow('ID Number',        p.id   || '—'),
+        _iRow('Date Hired',       fmtDate(p.hired)),
+        _iRow('Years of Service', calcYOS(p.hired)),
+        _iRow('Age',              p.age  ? `${p.age} yrs old` : '—'),
+        _iRow('Gender',           p.gen  || '—'),
+        _iRow('Email',            p.mail || '—'),
+        _iRow('Contact No.',      p.num  || '—'),
+        _iRow('Home Address',     p.addr || '—'),
+    ].join('');
+
+    // Credentials — VIEW ONLY, no upload/edit buttons
+    const CERT_MAP_LOCAL = {
+        'Safety Officer I':   { key:'COSH',      label:'COSH Certificate',                  icon:'fa-shield-halved', hasExpiry: false },
+        'Safety Officer II':  { key:'COSH',      label:'COSH Certificate',                  icon:'fa-shield-halved', hasExpiry: false },
+        'Safety Officer III': { key:'COSH',      label:'COSH Certificate',                  icon:'fa-shield-halved', hasExpiry: false },
+        'Safety Officer IV':  { key:'COSH',      label:'COSH Certificate',                  icon:'fa-shield-halved', hasExpiry: false },
+        'PCO':                { key:'PCO_ACCRED',label:'PCO Accreditation',                 icon:'fa-leaf',          hasExpiry: true  },
+        'First Aider':        { key:'BLS',       label:'BLS Certificate',                   icon:'fa-heart-pulse',   hasExpiry: true  },
+        'Project Nurse':      { key:'OHNAP',     label:'OHNAP Certificate',                 icon:'fa-user-nurse',    hasExpiry: false },
+        'ESH Superintendent': { key:'DOLE_OSH',  label:'DOLE OSH Practitioner Certificate', icon:'fa-certificate',   hasExpiry: true  },
+        'ESH Head':           { key:'DOLE_OSH',  label:'DOLE OSH Practitioner Certificate', icon:'fa-certificate',   hasExpiry: true  },
+    };
+    const CORP_POS_LOCAL = [
+        'QESH Group Manager','QESH Deputy Manager',
+        'ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation',
+        'Environmental and Sustainability Head','Corporate Physician','Corporate Nurse',
+        'Corporate Dentist','QESH Corp. DC'
+    ];
+
+    const pos        = p.pos || '';
+    const isCorpPos  = CORP_POS_LOCAL.includes(pos);
+    const certCfg    = CERT_MAP_LOCAL[pos];
+    const certSection = document.getElementById('pc-cert-section');
+    const certExempt  = document.getElementById('pc-cert-exempt');
+    const certList    = document.getElementById('pc-cert-list');
+    const certLabel   = document.getElementById('pc-cert-section-label');
+
+    if (isCorpPos) {
+        certSection.style.display = 'none';
+        certExempt.style.display  = 'block';
+    } else if (!certCfg) {
+        certSection.style.display = 'none';
+        certExempt.style.display  = 'none';
+    } else {
+        certSection.style.display = 'block';
+        certExempt.style.display  = 'none';
+        certLabel.textContent     = pos;
+
+        const certData = (window._pcCertData && window._pcCertData[pid] || {})[certCfg.key];
+
+        // View-only cert card
+        function _certCardView(cfg, data) {
+            const { label, icon } = cfg;
+
+            // Check if marked as To Follow
+            const toFollow = p.certToFollow === cfg.key;
+            if (toFollow) {
+                return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px dashed #ffcc80;border-radius:10px;background:#fff8e1;">
+                  <div style="width:34px;height:34px;border-radius:9px;background:#fff3e0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fas ${icon}" style="color:#ffa726;font-size:0.9rem;"></i>
+                  </div>
+                  <div style="flex:1;">
+                    <div style="font-size:0.78rem;font-weight:700;color:#333;">${label}</div>
+                    <div style="font-size:0.63rem;color:#e65100;margin-top:2px;font-weight:600;">⏳ Certificate — To Follow</div>
+                  </div>
+                  <span style="font-size:0.55rem;font-weight:800;color:#e65100;background:#fff3e0;padding:2px 7px;border-radius:20px;border:1px solid #ffcc80;white-space:nowrap;">TO FOLLOW</span>
+                </div>`;
+            }
+
+            if (!data) {
+                return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px dashed #e0e0e0;border-radius:10px;background:#fafafa;">
+                  <div style="width:34px;height:34px;border-radius:9px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fas ${icon}" style="color:#ccc;font-size:0.9rem;"></i>
+                  </div>
+                  <div>
+                    <div style="font-size:0.78rem;font-weight:700;color:#333;">${label}</div>
+                    <div style="font-size:0.63rem;color:#bbb;margin-top:2px;">No certificate on file</div>
+                  </div>
+                </div>`;
+            }
+
+            const now = new Date(); now.setHours(0,0,0,0);
+            const exp = data.expiry ? new Date(data.expiry) : null;
+            if (exp) exp.setHours(0,0,0,0);
+            const d   = (exp && cfg.hasExpiry !== false) ? Math.round((exp - now) / 86400000) : null;
+
+            // Status — only compute if cert has expiry requirement
+            const hasExp = !!(data.expiry);
+            const st  = d===null?'valid':d<0?'expired':d<=60?'expiring':'valid';
+            const color  = st==='valid'?'#2e7d32':st==='expiring'?'#e65100':'#c62828';
+            const bg     = st==='valid'?'#f1f8e9':st==='expiring'?'#fff3e0':'#ffebee';
+            const border = st==='valid'?'#c8e6c9':st==='expiring'?'#ffcc80':'#ef9a9a';
+            const stLabel= st==='valid'?'VALID':st==='expiring'?'EXPIRING SOON':'EXPIRED';
+            const dLabel = d===null?'No expiry':d<0?`Expired ${Math.abs(d)}d ago`:`${d} days left`;
+
+            return `<div style="border:1.5px solid ${border};border-radius:10px;padding:12px 14px;background:${bg};">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                  <div style="width:34px;height:34px;border-radius:9px;background:${color}18;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fas ${icon}" style="color:${color};font-size:0.9rem;"></i>
+                  </div>
+                  <div style="min-width:0;">
+                    <div style="font-size:0.78rem;font-weight:700;color:#222;">${label}</div>
+                    <div style="font-size:0.63rem;color:#666;margin-top:2px;">${hasExp ? `Expires <strong>${data.expiry}</strong> · <span style="color:${color};font-weight:700;">${dLabel}</span>` : '<span style="color:#888;">No expiration date</span>'}</div>
+                  </div>
+                </div>
+                <span style="font-size:0.55rem;font-weight:800;color:${color};background:${color}18;padding:2px 7px;border-radius:20px;border:1px solid ${border};white-space:nowrap;flex-shrink:0;">${hasExp ? stLabel : '✓ ON FILE'}</span>
+              </div>
+              ${data.pdfUrl ? `<a href="${data.pdfUrl}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;padding:6px;background:#fff;border:1px solid ${border};border-radius:7px;font-size:0.68rem;font-weight:700;color:${color};text-decoration:none;"><i class="fas fa-file-pdf"></i> View Certificate PDF</a>` : `<div style="margin-top:8px;padding:5px;text-align:center;font-size:0.63rem;color:#bbb;">No PDF on file</div>`}
+            </div>`;
+        }
+
+        certList.innerHTML = _certCardView(certCfg, certData);
+    }
+
+    document.getElementById('pc-view-modal').classList.add('show');
+};
+
+window.pcCloseView = function() {
+    document.getElementById('pc-view-modal').classList.remove('show');
+};
+
+window.pcOpenEditFromView = function() {
+    pcCloseView();
+    if (window._pcCurrentIdx !== null && window._pcCurrentIdx !== undefined) {
+        openEditPersonnelModal(window._pcCurrentIdx);
+    }
+};
 
     </script>
 
@@ -36172,11 +36510,13 @@ function applyRegionBannerColors() {
         const textReg  = (el.querySelector('.region-name')?.textContent || '').toUpperCase().trim();
 
         let matched = null;
+        // Treat CORP_OFFICE as CORPORATE (personnel tab uses CORP_OFFICE as safeKey)
+        const idNorm = id.replace('CORP_OFFICE', 'CORPORATE');
         for (const [region, style] of Object.entries(REGION_STYLES)) {
             const rUp = region.toUpperCase();
-            if (id.includes(rUp.replace(/ /g,'_')) || id.includes(rUp.replace(/ /g,'-'))
+            if (idNorm.includes(rUp.replace(/ /g,'_')) || idNorm.includes(rUp.replace(/ /g,'-'))
                 || dataReg.includes(rUp) || textReg.includes(rUp)
-                || id.includes(rUp)) {
+                || idNorm.includes(rUp)) {
                 matched = style;
                 break;
             }
@@ -36458,59 +36798,7 @@ window.RowSaveManager = (function() {
 })();
 </script>
 
-<!-- ══ PERSONNEL & COMPLIANCE — COMING SOON MODAL ══ -->
-<div id="personnel-compliance-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.55); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
-  <div style="background:var(--bg-card,#fff); border-radius:20px; max-width:520px; width:90%; padding:0; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.25); animation:slideUp 0.3s ease-out;">
-    <!-- Header -->
-    <div style="background:linear-gradient(135deg,#0a2e10 0%,#1b5e20 60%,#2e7d32 100%); padding:28px 30px 22px; position:relative;">
-      <div style="display:flex; align-items:center; gap:14px;">
-        <div style="width:52px; height:52px; border-radius:14px; background:rgba(251,192,45,0.2); border:2px solid rgba(251,192,45,0.5); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-          <i class="fas fa-certificate" style="color:#fbc02d; font-size:1.4rem;"></i>
-        </div>
-        <div>
-          <div style="font-size:1.05rem; font-weight:800; color:white; letter-spacing:0.3px;">Personnel & Compliance</div>
-          <div style="font-size:0.72rem; color:#a5d6a7; margin-top:3px;">Certificate & Training Tracker</div>
-        </div>
-      </div>
-      <button onclick="closePersonnelComplianceModal()" style="position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:white; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center;">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-    <!-- Body -->
-    <div style="padding:28px 30px 30px;">
-      <div style="display:flex; align-items:flex-start; gap:14px; background:#fff8e1; border:1.5px solid #ffe082; border-radius:12px; padding:18px 20px; margin-bottom:22px;">
-        <i class="fas fa-triangle-exclamation" style="color:#f9a825; font-size:1.4rem; margin-top:2px; flex-shrink:0;"></i>
-        <div>
-          <div style="font-size:0.88rem; font-weight:700; color:#e65100; margin-bottom:6px;">Module Under Development</div>
-          <div style="font-size:0.8rem; color:#795548; line-height:1.7;">
-            This module is currently being planned and designed. The approach and setup for certificate management, training tracking, and OneDrive/document storage integration are still under review and have not been finalized.
-          </div>
-        </div>
-      </div>
-      <div style="font-size:0.78rem; color:var(--text-secondary,#666); margin-bottom:16px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Planned Features</div>
-      <div style="display:flex; flex-direction:column; gap:9px; margin-bottom:24px;">
-        <div style="display:flex; align-items:center; gap:10px; font-size:0.8rem; color:var(--text-primary,#333);">
-          <i class="fas fa-circle-dot" style="color:#bdbdbd; font-size:0.55rem;"></i> Training & Certificate Tracker per Personnel
-        </div>
-        <div style="display:flex; align-items:center; gap:10px; font-size:0.8rem; color:var(--text-primary,#333);">
-          <i class="fas fa-circle-dot" style="color:#bdbdbd; font-size:0.55rem;"></i> Certificate Expiry Alerts (BOSH, CSH, PRC, PCO, First Aid)
-        </div>
-        <div style="display:flex; align-items:center; gap:10px; font-size:0.8rem; color:var(--text-primary,#333);">
-          <i class="fas fa-circle-dot" style="color:#bdbdbd; font-size:0.55rem;"></i> PDF Certificate Upload with File Size Limit
-        </div>
-        <div style="display:flex; align-items:center; gap:10px; font-size:0.8rem; color:var(--text-primary,#333);">
-          <i class="fas fa-circle-dot" style="color:#bdbdbd; font-size:0.55rem;"></i> OneDrive / Cloud Storage Integration (Approach TBD)
-        </div>
-        <div style="display:flex; align-items:center; gap:10px; font-size:0.8rem; color:var(--text-primary,#333);">
-          <i class="fas fa-circle-dot" style="color:#bdbdbd; font-size:0.55rem;"></i> Compliance Status per DOLE SO Level Requirements
-        </div>
-      </div>
-      <button onclick="closePersonnelComplianceModal()" style="width:100%; padding:12px; background:linear-gradient(135deg,#1b5e20,#2e7d32); color:white; border:none; border-radius:10px; font-size:0.85rem; font-weight:700; cursor:pointer; letter-spacing:0.3px;">
-        <i class="fas fa-check"></i> &nbsp;Got It
-      </button>
-    </div>
-  </div>
-</div>
+
 
 <!-- ══ HEALTH REPORTORIAL — PENDING MODAL ══ -->
 <div id="health-report-pending-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.55); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
@@ -36560,18 +36848,7 @@ window.RowSaveManager = (function() {
 </style>
 
 <script>
-window.openPersonnelComplianceModal = function() {
-  const m = document.getElementById('personnel-compliance-modal');
-  if (m) { m.style.display = 'flex'; }
-};
-window.closePersonnelComplianceModal = function() {
-  const m = document.getElementById('personnel-compliance-modal');
-  if (m) { m.style.display = 'none'; }
-};
-// Close on backdrop click
-document.getElementById('personnel-compliance-modal').addEventListener('click', function(e) {
-  if (e.target === this) window.closePersonnelComplianceModal();
-});
+
 
 window.openHealthReportModal = function() {
   const m = document.getElementById('health-report-pending-modal');
@@ -36612,5 +36889,533 @@ window.toggleSidebar = function() {
     }
 };
 </script>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- PERSONNEL VIEW MODAL — Shows info + position-specific certificates -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<div id="pc-view-modal" class="modal" style="z-index:9999;">
+  <div style="background:#fff;border-radius:16px;width:92%;max-width:520px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.25);animation:scaleIn 0.25s ease-out;">
+
+    <!-- Header bar -->
+    <div style="background:linear-gradient(135deg,#1b5e20 0%,#2e7d32 100%);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="fas fa-id-card" style="color:rgba(255,255,255,0.7);font-size:0.9rem;"></i>
+        <span style="font-size:0.82rem;font-weight:700;color:white;letter-spacing:0.5px;text-transform:uppercase;">Personnel Profile</span>
+      </div>
+      <button onclick="pcCloseView()" style="background:rgba(255,255,255,0.15);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">&times;</button>
+    </div>
+
+    <!-- Name section -->
+    <div style="padding:16px 20px 14px;border-bottom:1px solid #e8f5e9;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#1b5e20,#388e3c);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px rgba(27,94,32,0.3);">
+          <i class="fas fa-user" style="color:white;font-size:1.1rem;"></i>
+        </div>
+        <div style="min-width:0;">
+          <div id="pc-view-name" style="font-size:0.95rem;font-weight:800;color:#1b5e20;letter-spacing:0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;">
+            <span id="pc-view-pos-badge" style="font-size:0.6rem;background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:20px;font-weight:700;border:1px solid #c8e6c9;"></span>
+            <span id="pc-view-assign" style="font-size:0.63rem;color:#888;"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrollable body -->
+    <div style="overflow-y:auto;flex:1;padding:16px 20px 20px;">
+
+      <!-- Info grid -->
+      <div style="font-size:0.6rem;font-weight:800;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Information</div>
+      <div id="pc-view-info-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:18px;"></div>
+
+      <!-- Credentials -->
+      <div id="pc-cert-section" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-size:0.6rem;font-weight:800;color:#aaa;text-transform:uppercase;letter-spacing:1px;">Required Credentials</div>
+          <span id="pc-cert-section-label" style="font-size:0.58rem;background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:20px;font-weight:700;border:1px solid #c8e6c9;"></span>
+        </div>
+        <div id="pc-cert-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
+      <!-- Corporate exempt -->
+      <div id="pc-cert-exempt" style="display:none;text-align:center;padding:20px;color:#bbb;font-size:0.75rem;">
+        <i class="fas fa-building-columns" style="display:block;font-size:1.8rem;margin-bottom:8px;opacity:0.3;"></i>
+        Corporate personnel are not subject to certificate tracking.
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:12px 20px;border-top:1px solid #f0f0f0;display:flex;justify-content:flex-end;background:#fafafa;flex-shrink:0;">
+      <button onclick="pcCloseView()" style="padding:8px 24px;background:#1b5e20;color:white;border:none;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='#2e7d32'" onmouseout="this.style.background='#1b5e20'">Close</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ CERTIFICATE UPLOAD MINI MODAL ══ -->
+<div id="pc-upload-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;width:90%;max-width:440px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,0.3);animation:slideUp 0.25s ease-out;">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#1b5e20,#2e7d32);padding:16px 20px;position:relative;flex-shrink:0;">
+      <div id="pc-upload-title" style="font-size:0.9rem;font-weight:800;color:white;"></div>
+      <div style="font-size:0.68rem;color:#a5d6a7;margin-top:2px;">Upload PDF — max 500KB &nbsp;·&nbsp; <i class="fas fa-magic" style="margin-right:3px;"></i>Auto-detects expiry date</div>
+      <button onclick="pcCloseUpload()" style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.15);border:none;color:white;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.8rem;"><i class="fas fa-times"></i></button>
+    </div>
+    <!-- Scrollable body -->
+    <div style="overflow-y:auto;flex:1;padding:18px 20px;">
+      <!-- PDF Upload section (first — so OCR can fill expiry below) -->
+      <div style="margin-bottom:14px;">
+        <label style="font-size:0.72rem;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">PDF File <span style="font-weight:400;color:#aaa;">(max 500KB)</span></label>
+        <div id="pc-upload-drop" onclick="document.getElementById('pc-upload-file').click()" style="border:2px dashed #c8e6c9;border-radius:10px;padding:18px;text-align:center;cursor:pointer;background:#fafffe;transition:all 0.2s;">
+          <i class="fas fa-file-pdf" style="font-size:1.6rem;color:#c8e6c9;margin-bottom:6px;display:block;"></i>
+          <div style="font-size:0.74rem;color:#aaa;">Click to upload PDF</div>
+        </div>
+        <input type="file" id="pc-upload-file" accept=".pdf" style="display:none;" onchange="pcFileChosen(this)">
+        <div id="pc-upload-fname" style="display:none;margin-top:6px;font-size:0.7rem;color:#2e7d32;padding:5px 10px;background:#f1f8e9;border-radius:6px;border:1px solid #c8e6c9;">
+          <i class="fas fa-file-pdf" style="margin-right:4px;"></i><span id="pc-upload-fname-text"></span>
+        </div>
+        <div id="pc-upload-existing" style="display:none;margin-top:6px;font-size:0.7rem;padding:5px 10px;background:#e8f5e9;border-radius:6px;border:1px solid #a5d6a7;">
+          <i class="fas fa-check-circle" style="color:#2e7d32;margin-right:4px;"></i>PDF on file — <a id="pc-upload-existing-link" href="#" target="_blank" style="color:#1b5e20;font-weight:700;">View existing</a>
+          <span style="color:#aaa;font-size:0.62rem;margin-left:6px;">Upload new to replace</span>
+        </div>
+      </div>
+
+      <!-- OCR status indicator -->
+      <div id="pc-ocr-status" style="display:none;margin-bottom:12px;font-size:0.72rem;padding:8px 12px;border-radius:8px;display:none;align-items:center;gap:8px;"></div>
+
+      <!-- PDF Preview (inline, shown after file chosen) -->
+      <div id="pc-pdf-preview-wrap" style="display:none;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+          <label style="font-size:0.72rem;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:0.5px;">Preview</label>
+          <button onclick="document.getElementById('pc-pdf-preview-wrap').style.display='none'" style="font-size:0.65rem;background:none;border:none;color:#aaa;cursor:pointer;">Hide</button>
+        </div>
+        <iframe id="pc-pdf-iframe" src="" style="width:100%;height:260px;border:1.5px solid #c8e6c9;border-radius:8px;background:#f5f5f5;"></iframe>
+      </div>
+
+      <!-- Expiry Date (filled by OCR automatically) -->
+      <div style="margin-bottom:14px;">
+        <label style="font-size:0.72rem;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">
+          Expiry Date
+          <span id="pc-ocr-badge" style="display:none;margin-left:6px;font-size:0.6rem;background:#e8f5e9;color:#2e7d32;padding:1px 7px;border-radius:20px;font-weight:700;border:1px solid #c8e6c9;vertical-align:middle;">
+            <i class="fas fa-magic" style="margin-right:3px;"></i>Auto-filled
+          </span>
+        </label>
+        <input type="date" id="pc-upload-expiry" style="width:100%;padding:9px 10px;border:1.5px solid #c8e6c9;border-radius:8px;font-size:0.82rem;outline:none;box-sizing:border-box;">
+      </div>
+
+      <!-- Upload progress -->
+      <div id="pc-upload-progress" style="display:none;margin-bottom:12px;">
+        <div style="font-size:0.7rem;color:#666;margin-bottom:4px;">Uploading...</div>
+        <div style="background:#e8f5e9;border-radius:100px;height:5px;overflow:hidden;">
+          <div id="pc-upload-bar" style="height:100%;background:linear-gradient(90deg,#1b5e20,#4caf50);width:0%;transition:width 0.3s;border-radius:100px;"></div>
+        </div>
+      </div>
+
+      <div id="pc-upload-error" style="display:none;margin-bottom:10px;font-size:0.72rem;color:#c62828;background:#ffebee;padding:7px 10px;border-radius:6px;border:1px solid #ef9a9a;"></div>
+    </div>
+
+    <!-- Footer buttons (fixed at bottom) -->
+    <div style="padding:12px 20px;border-top:1px solid #f0f0f0;display:flex;gap:8px;background:#fafafa;flex-shrink:0;">
+      <button onclick="pcCloseUpload()" style="flex:1;padding:9px;background:#f5f5f5;color:#666;border:none;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;">Cancel</button>
+      <button id="pc-upload-save-btn" onclick="pcSaveCert()" style="flex:2;padding:9px;background:linear-gradient(135deg,#1b5e20,#2e7d32);color:white;border:none;border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <i class="fas fa-save"></i> Save
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+//  PERSONNEL CERTIFICATE SYSTEM
+//  - Certs stored in Firestore: personnel_certificates/{_pid}
+//  - PDF in Firebase Storage:   personnel_certificates/{_pid}/{certKey}_{ts}.pdf
+//  - Size limit: 500KB (same as CSHP)
+//  - Position → Required cert mapping:
+//    Safety Officer I-IV  → COSH
+//    PCO                  → PCO Accreditation
+//    First Aider          → BLS Certificate
+//    Project Nurse        → OHNAP
+//    ESH Superintendent / ESH Head → DOLE OSH Practitioner Certificate
+//    Corporate positions  → Exempt (no cert required)
+// ══════════════════════════════════════════════════════════════════════
+(function() {
+
+  const MAX_BYTES = 500 * 1024; // 500KB — same as CSHP
+
+  // Position → cert config
+  const CERT_MAP = {
+    'Safety Officer I':   { key:'COSH',      label:'COSH',                              icon:'fa-shield-halved' },
+    'Safety Officer II':  { key:'COSH',      label:'COSH',                              icon:'fa-shield-halved' },
+    'Safety Officer III': { key:'COSH',      label:'COSH',                              icon:'fa-shield-halved' },
+    'Safety Officer IV':  { key:'COSH',      label:'COSH',                              icon:'fa-shield-halved' },
+    'PCO':                { key:'PCO_ACCRED',label:'PCO Accreditation',                 icon:'fa-leaf' },
+    'First Aider':        { key:'BLS',       label:'BLS Certificate',                   icon:'fa-heart-pulse' },
+    'Project Nurse':      { key:'OHNAP',     label:'OHNAP',                             icon:'fa-user-nurse' },
+    'ESH Superintendent': { key:'DOLE_OSH',  label:'DOLE OSH Practitioner Certificate', icon:'fa-certificate' },
+    'ESH Head':           { key:'DOLE_OSH',  label:'DOLE OSH Practitioner Certificate', icon:'fa-certificate' },
+  };
+
+  const CORPORATE_POSITIONS = [
+    'QESH Group Manager','QESH Deputy Manager',
+    'ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation',
+    'Environmental and Sustainability Head','Corporate Physician','Corporate Nurse',
+    'Corporate Dentist','QESH Corp. DC'
+  ];
+
+  // State
+  window._pcCertData = {};
+  // _pcCurrentIdx and _pcCurrentPid are managed on window by pcViewPersonnel (in main script)
+  let _pcCurrentCertKey = null;
+  let _pcCurrentFile = null;
+  let _pcUnsub = null;
+
+  // Convenience getters for use inside this IIFE
+  function getCurIdx() { return window._pcCurrentIdx != null ? window._pcCurrentIdx : null; }
+  function getCurPid() { return window._pcCurrentPid || null; }
+
+  // ── Helpers ────────────────────────────────────────────────────────
+  function _days(dateStr) {
+    if (!dateStr) return null;
+    const now = new Date(); now.setHours(0,0,0,0);
+    const exp = new Date(dateStr); exp.setHours(0,0,0,0);
+    return Math.round((exp - now) / 86400000);
+  }
+
+  function _status(dateStr) {
+    if (!dateStr) return 'none';
+    const d = _days(dateStr);
+    if (d < 0)  return 'expired';
+    if (d <= 60) return 'expiring';
+    return 'valid';
+  }
+
+  function _pid(person) {
+    if (person._pid) return String(person._pid);
+    if (person.id)   return String(person.id);
+    // Fallback to index in personnelData
+    const arr = window.state && window.state.personnelData;
+    if (arr) {
+      const i = arr.indexOf(person);
+      if (i >= 0) return String(i);
+    }
+    return String(getCurIdx() !== null ? getCurIdx() : 'unknown');
+  }
+
+  function _infoRow(label, value) {
+    const display = (!value || value === '—') ? '—' : value;
+    if (!label) return '';
+    return `<div style="background:#f8fdf8;border-radius:8px;padding:8px 10px;border:1px solid #e8f5e9;">
+      <div style="font-size:0.62rem;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">${label}</div>
+      <div style="font-size:0.76rem;color:#222;font-weight:600;">${display}</div>
+    </div>`;
+  }
+
+  function _certCard(certCfg, certData, pid, canEdit) {
+    const { key, label, icon } = certCfg;
+    if (!certData) {
+      // No cert uploaded yet
+      return `<div style="border:1.5px dashed #c8e6c9;border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fafffe;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fas ${icon}" style="color:#a5d6a7;font-size:1rem;"></i>
+          </div>
+          <div>
+            <div style="font-size:0.8rem;font-weight:700;color:#333;">${label}</div>
+            <div style="font-size:0.68rem;color:#bbb;margin-top:1px;">No certificate uploaded</div>
+          </div>
+        </div>
+        ${canEdit ? `<button onclick="pcOpenUpload('${pid}','${key}','${label.replace(/'/g,"\'")}')" style="padding:6px 14px;background:linear-gradient(135deg,#1b5e20,#2e7d32);color:white;border:none;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;"><i class="fas fa-plus" style="font-size:0.6rem;"></i> Upload</button>` : ''}
+      </div>`;
+    }
+
+    const d = _days(certData.expiry);
+    const st = _status(certData.expiry);
+    const color  = st==='valid'?'#4caf50':st==='expiring'?'#ff9800':'#f44336';
+    const bg     = st==='valid'?'#f1f8e9':st==='expiring'?'#fff8e1':'#ffebee';
+    const border = st==='valid'?'#c8e6c9':st==='expiring'?'#ffe082':'#ef9a9a';
+    const stLabel= st==='valid'?'VALID':st==='expiring'?'EXPIRING SOON':'EXPIRED';
+    const dLabel = d===null?'':d<0?`${Math.abs(d)} days ago`:`${d} days left`;
+
+    return `<div style="border:1.5px solid ${border};border-radius:12px;padding:14px 16px;background:${bg};">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+          <div style="width:36px;height:36px;border-radius:10px;background:${color}22;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fas ${icon}" style="color:${color};font-size:1rem;"></i>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.8rem;font-weight:700;color:#222;">${label}</div>
+            <div style="font-size:0.68rem;color:#666;margin-top:2px;">Expires: <strong>${certData.expiry||'—'}</strong> &nbsp;·&nbsp; <span style="color:${color};font-weight:700;">${dLabel}</span></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+          <span style="font-size:0.58rem;font-weight:800;color:${color};background:${color}22;padding:2px 7px;border-radius:10px;border:1px solid ${color}44;">${stLabel}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:10px;">
+        ${certData.pdfUrl ? `<a href="${certData.pdfUrl}" target="_blank" style="flex:1;padding:6px 10px;background:#fff;border:1px solid ${border};border-radius:7px;font-size:0.7rem;font-weight:700;color:#1b5e20;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:5px;"><i class="fas fa-file-pdf"></i> View PDF</a>` : `<div style="flex:1;padding:6px 10px;background:#f5f5f5;border:1px solid #eee;border-radius:7px;font-size:0.7rem;color:#aaa;text-align:center;">No PDF on file</div>`}
+        ${canEdit ? `<button onclick="pcOpenUpload('${pid}','${key}','${label.replace(/'/g,"\'")}')" style="flex:1;padding:6px 10px;background:#fff;border:1px solid ${border};border-radius:7px;font-size:0.7rem;font-weight:700;color:#555;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;"><i class="fas fa-pen"></i> Update</button>` : ''}
+      </div>
+    </div>`;
+  }
+
+  // ── Upload modal ───────────────────────────────────────────────────
+  window.pcOpenUpload = function(pid, certKey, certLabel) {
+    window._pcCurrentPid = pid;
+    _pcCurrentCertKey = certKey;
+    _pcCurrentFile = null;
+    document.getElementById('pc-upload-title').textContent = certLabel;
+    document.getElementById('pc-upload-expiry').value = '';
+    document.getElementById('pc-upload-file').value = '';
+    document.getElementById('pc-upload-fname').style.display = 'none';
+    document.getElementById('pc-upload-progress').style.display = 'none';
+    document.getElementById('pc-upload-error').style.display = 'none';
+    const drop = document.getElementById('pc-upload-drop');
+    drop.style.borderColor = '#c8e6c9'; drop.style.background = '#fafffe';
+
+    const existing = (window._pcCertData[pid] || {})[certKey];
+    const existEl = document.getElementById('pc-upload-existing');
+    if (existing && existing.pdfUrl) {
+      existEl.style.display = 'block';
+      document.getElementById('pc-upload-existing-link').href = existing.pdfUrl;
+      document.getElementById('pc-upload-expiry').value = existing.expiry || '';
+    } else {
+      existEl.style.display = 'none';
+    }
+    document.getElementById('pc-upload-modal').style.display = 'flex';
+  };
+
+  window.pcCloseUpload = function() {
+    document.getElementById('pc-upload-modal').style.display = 'none';
+    _pcCurrentFile = null;
+    // Revoke preview object URL to free memory
+    const iframe = document.getElementById('pc-pdf-iframe');
+    if (iframe && iframe.src && iframe.src.startsWith('blob:')) {
+      URL.revokeObjectURL(iframe.src);
+      iframe.src = '';
+    }
+    document.getElementById('pc-pdf-preview-wrap').style.display = 'none';
+    document.getElementById('pc-ocr-status').style.display = 'none';
+    document.getElementById('pc-ocr-badge').style.display = 'none';
+  };
+
+  window.pcFileChosen = function(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const errEl = document.getElementById('pc-upload-error');
+    errEl.style.display = 'none';
+    if (file.type !== 'application/pdf') {
+      errEl.textContent = '❌ PDF files only.';
+      errEl.style.display = 'block';
+      input.value = '';
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      errEl.textContent = `⚠️ File must be under 500KB. Your file: ${(file.size/1024).toFixed(0)}KB`;
+      errEl.style.display = 'block';
+      input.value = '';
+      return;
+    }
+    _pcCurrentFile = file;
+    document.getElementById('pc-upload-fname-text').textContent = `${file.name} (${(file.size/1024).toFixed(0)} KB)`;
+    document.getElementById('pc-upload-fname').style.display = 'block';
+    const drop = document.getElementById('pc-upload-drop');
+    drop.style.borderColor = '#2e7d32'; drop.style.background = '#f1f8e9';
+
+    // ── PDF Preview ──────────────────────────────────────────────────────
+    const prevUrl = URL.createObjectURL(file);
+    const iframe = document.getElementById('pc-pdf-iframe');
+    iframe.src = prevUrl;
+    document.getElementById('pc-pdf-preview-wrap').style.display = 'block';
+
+    // ── OCR: auto-extract expiry date via Claude API ─────────────────────
+    pcExtractExpiry(file);
+  };
+
+  // ── OCR function — reads PDF and extracts expiry date ──────────────────
+  window.pcExtractExpiry = async function(file) {
+    const statusEl = document.getElementById('pc-ocr-status');
+    const badgeEl  = document.getElementById('pc-ocr-badge');
+    const expiryEl = document.getElementById('pc-upload-expiry');
+
+    // Show scanning indicator
+    statusEl.style.display = 'flex';
+    statusEl.style.background = '#e3f2fd';
+    statusEl.style.border = '1px solid #90caf9';
+    statusEl.style.color = '#1565c0';
+    statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning PDF for expiry date...';
+    badgeEl.style.display = 'none';
+
+    try {
+      // Convert PDF to base64
+      const base64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(',')[1]);
+        r.onerror = () => rej(new Error('Read failed'));
+        r.readAsDataURL(file);
+      });
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 200,
+          messages: [{
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: { type: 'base64', media_type: 'application/pdf', data: base64 }
+              },
+              {
+                type: 'text',
+                text: `Look at this certificate/document PDF and find the expiry, expiration, or validity date.
+Return ONLY a JSON object like: {"found": true, "date": "YYYY-MM-DD"} 
+If no expiry date found: {"found": false}
+Do not include any other text, explanation, or markdown. JSON only.`
+              }
+            ]
+          }]
+        })
+      });
+
+      const data = await response.json();
+      const text = (data.content || []).map(b => b.text || '').join('').trim();
+      const clean = text.replace(/```json|```/g, '').trim();
+      const result = JSON.parse(clean);
+
+      if (result.found && result.date) {
+        expiryEl.value = result.date;
+        statusEl.style.background = '#e8f5e9';
+        statusEl.style.border = '1px solid #a5d6a7';
+        statusEl.style.color = '#2e7d32';
+        statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Expiry date detected: <strong style="margin-left:4px;">${result.date}</strong> — please verify before saving.`;
+        badgeEl.style.display = 'inline';
+      } else {
+        statusEl.style.background = '#fff8e1';
+        statusEl.style.border = '1px solid #ffe082';
+        statusEl.style.color = '#f57f17';
+        statusEl.innerHTML = '<i class="fas fa-triangle-exclamation"></i> No expiry date found in PDF — please enter it manually.';
+      }
+
+    } catch(err) {
+      console.warn('pcExtractExpiry error:', err);
+      statusEl.style.background = '#fafafa';
+      statusEl.style.border = '1px solid #eee';
+      statusEl.style.color = '#999';
+      statusEl.innerHTML = '<i class="fas fa-circle-info"></i> OCR unavailable — please enter expiry date manually.';
+    }
+  };
+
+  window.pcSaveCert = async function() {
+    // RBAC guard — only admin and superintendent (own region) can save certs
+    const _role = window.state && window.state.userRole;
+    const _isAdmin = window.state && window.state.isAdmin;
+    const _userRegion = window.state && window.state.userRegion;
+    const _pRegMap = window._pRegionMap || {};
+    const _p = getCurIdx() !== null ? (window.state && window.state.personnelData||[])[getCurIdx()] : null;
+    const _personRegion = _p ? (_pRegMap[_p.current] || '') : '';
+    const _canSave = _isAdmin || (_role === 'superintendent' && _userRegion && _personRegion === _userRegion);
+    if (!_canSave) {
+      const errEl = document.getElementById('pc-upload-error');
+      errEl.textContent = '🔒 Access Denied — You do not have permission to upload certificates for this personnel.';
+      errEl.style.display = 'block';
+      return;
+    }
+    const expiry = document.getElementById('pc-upload-expiry').value;
+    const errEl  = document.getElementById('pc-upload-error');
+    errEl.style.display = 'none';
+
+    if (!expiry) { errEl.textContent = '⚠️ Please enter the expiry date.'; errEl.style.display = 'block'; return; }
+    if (!getCurPid() || !_pcCurrentCertKey) { errEl.textContent = '⚠️ No person selected.'; errEl.style.display = 'block'; return; }
+
+    const db = window.firebaseDb, storage = window.firebaseStorage;
+    if (!db || !storage) { errEl.textContent = '⚠️ Firebase not ready. Please wait.'; errEl.style.display = 'block'; return; }
+
+    const { doc, setDoc, getDoc, updateDoc } = window.firebase;
+    const { ref, uploadBytes, getDownloadURL } = window.firebase;
+
+    const saveBtn = document.getElementById('pc-upload-save-btn');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+    try {
+      let pdfUrl = null, fileName = null;
+
+      if (_pcCurrentFile) {
+        document.getElementById('pc-upload-progress').style.display = 'block';
+        const bar = document.getElementById('pc-upload-bar');
+        bar.style.width = '25%';
+        const path = `personnel_certificates/${getCurPid()}/${_pcCurrentCertKey}_${Date.now()}.pdf`;
+        bar.style.width = '55%';
+        const snap = await uploadBytes(ref(storage, path), _pcCurrentFile);
+        bar.style.width = '85%';
+        pdfUrl = await getDownloadURL(snap.ref);
+        fileName = _pcCurrentFile.name;
+        bar.style.width = '100%';
+      }
+
+      const docRef = doc(db, 'personnel_certificates', getCurPid());
+      const existing = await getDoc(docRef);
+      const entry = { expiry, updatedAt: new Date().toISOString() };
+      if (pdfUrl) { entry.pdfUrl = pdfUrl; entry.fileName = fileName; }
+      else if (existing.exists() && (existing.data()[_pcCurrentCertKey]||{}).pdfUrl) {
+        entry.pdfUrl = existing.data()[_pcCurrentCertKey].pdfUrl;
+        entry.fileName = existing.data()[_pcCurrentCertKey].fileName;
+      }
+
+      if (existing.exists()) { await updateDoc(docRef, { [_pcCurrentCertKey]: entry }); }
+      else                   { await setDoc(docRef, { [_pcCurrentCertKey]: entry }); }
+
+      pcCloseUpload();
+      // Refresh the cert section in view modal if still open
+      if (document.getElementById('pc-view-modal').classList.contains('show') && getCurIdx() !== null) {
+        pcViewPersonnel(getCurIdx());
+      }
+
+    } catch(err) {
+      console.error('pcSaveCert error:', err);
+      errEl.textContent = '❌ Error: ' + err.message;
+      errEl.style.display = 'block';
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="fas fa-save"></i> Save';
+      document.getElementById('pc-upload-progress').style.display = 'none';
+    }
+  };
+
+  // ── Firestore live listener ────────────────────────────────────────
+  function _loadCerts() {
+    const db = window.firebaseDb;
+    const { collection, onSnapshot } = window.firebase || {};
+    if (!db || !onSnapshot) { setTimeout(_loadCerts, 1000); return; }
+    if (_pcUnsub) _pcUnsub();
+    _pcUnsub = onSnapshot(
+      collection(db, 'personnel_certificates'),
+      snap => {
+        window._pcCertData = {};
+        snap.forEach(d => { window._pcCertData[d.id] = d.data(); });
+        // Refresh view modal if open
+        if (document.getElementById('pc-view-modal').classList.contains('show') && getCurIdx() !== null) {
+          pcViewPersonnel(getCurIdx());
+        }
+      },
+      err => console.warn('pcLoadCerts error:', err)
+    );
+  }
+
+  function _waitFirebase() {
+    if (window.firebaseDb && window.firebase && window.firebase.collection) _loadCerts();
+    else setTimeout(_waitFirebase, 800);
+  }
+  _waitFirebase();
+
+  // Backdrop clicks
+  document.getElementById('pc-view-modal').addEventListener('click', e => { if(e.target===document.getElementById('pc-view-modal')) pcCloseView(); });
+  document.getElementById('pc-upload-modal').addEventListener('click', e => { if(e.target===document.getElementById('pc-upload-modal')) pcCloseUpload(); });
+
+})();
+</script>
+
 </body>
-</html>
