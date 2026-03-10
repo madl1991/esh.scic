@@ -11,6 +11,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&family=Raleway:wght@700;800;900&family=Lato:wght@400;700;900&family=Teko:wght@500;600&family=Playfair+Display:ital,wght@1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
+    // ── GLOBAL REGION COLOR SOURCE OF TRUTH ──────────────────────────────────
+    // ALL modules must reference window.REGION_COLORS — never define local color objects.
+    window.REGION_COLORS = {
+        'NCR':                { bg: '#1b5e20', dark: '#0d3311', light: '#e8f5e9', badge: '#66bb6a' },
+        'NORTH LUZON':        { bg: '#2e7d32', dark: '#1a4d1e', light: '#f1f8e9', badge: '#81c784' },
+        'SOUTH LUZON':        { bg: '#24692a', dark: '#133816', light: '#f9fbe7', badge: '#a5d6a7' },
+        'VISAYAS & MINDANAO': { bg: '#388e3c', dark: '#215c26', light: '#f1f8e9', badge: '#c8e6c9' },
+        'PLANT OPERATIONS':   { bg: '#00695c', dark: '#004d40', light: '#e0f2f1', badge: '#80cbc4', white: true },
+        'CORPORATE':          { bg: '#0d3d0f', dark: '#061a07', light: '#e8f5e9', badge: '#4caf50' }
+    };
+    </script>
+    <script>
         // Yjs load guard — try primary CDN, fall back to unpkg if it fails within 3s.
         // This handles offline/file:// environments gracefully.
         window._yjsLoadTimeout = setTimeout(function() {
@@ -6151,8 +6163,8 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
 
 <div id="global-rbac-banner" style="display:none;margin:10px 20px 0;"></div>
 
-<div id="trend-chart-persistent-rates" style="display:none; margin-top: 10px; padding: 0 0px;"></div>
-<div id="trend-chart-persistent-medical" style="display:none; margin-top: 10px; padding: 0 0px;"></div>
+<div id="trend-chart-persistent-rates" style="display:none; margin: 10px 16px 0;"></div>
+<div id="trend-chart-persistent-medical" style="display:none; margin: 10px 16px 0;"></div>
 
  <div id="dashboard-content" style="margin-top: 10px;"></div>
 
@@ -6692,43 +6704,25 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
                         🔌 Appliances
                     </button>
                 </div>
-                <div id="env-badge-kwh" style="background:rgba(255,255,255,0.12);color:white;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid rgba(255,255,255,0.25);">0 kWh Total</div>
-                <div id="env-badge-ghg" style="background:rgba(76,175,80,0.25);color:#a5d6a7;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid rgba(76,175,80,0.4);">0.0000 tCO2</div>
-                <div id="env-badge-trees" style="background:rgba(255,235,59,0.15);color:#fff176;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:700;border:1px solid rgba(255,235,59,0.3);">0 Trees Needed</div>
+
+
             </div>
         </div>
     </div>
 
-    
-    <div id="env-overall-summary-container" style="margin-bottom:16px;"></div>
+    <!-- Per-mode summary containers — only the active one is shown -->
+    <div id="env-summary-electricity" style="margin-bottom:16px;display:block;"></div>
+    <div id="env-summary-water"       style="margin-bottom:16px;display:none;"></div>
+    <div id="env-summary-waste"       style="margin-bottom:16px;display:none;"></div>
+    <div id="env-summary-appliances"  style="margin-bottom:16px;display:none;"></div>
 
     
     <div id="env-electricity-section">
         
-        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-start;">
-            
-            <div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;flex:0 0 260px;min-width:220px;">
-                <div style="font-size:0.7rem;font-weight:700;color:var(--text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;"><i class="fas fa-chart-pie" style="color:#2e7d32;margin-right:5px;"></i>kWh by Region</div>
-                <div style="position:relative;width:180px;height:180px;margin:0 auto;">
-                    <canvas id="env-pie-chart" width="180" height="180"></canvas>
-                    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
-                        <div style="font-size:1rem;font-weight:800;color:var(--text-primary);" id="env-pie-total">0</div>
-                        <div style="font-size:0.58rem;color:var(--text-secondary);">kWh Total</div>
-                    </div>
-                </div>
-                <div id="env-pie-legend" style="margin-top:8px;display:flex;flex-direction:column;gap:3px;font-size:0.66rem;"></div>
-            </div>
-            
-            <div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;flex:1;min-width:200px;display:flex;flex-direction:column;gap:10px;justify-content:center;">
-                <div style="font-size:0.7rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;"><i class="fas fa-info-circle" style="color:#2e7d32;margin-right:5px;"></i>How to Use</div>
-                <div style="font-size:0.74rem;color:var(--text-primary);line-height:1.6;">
-                    Each region below has its own <strong>collapsible section</strong> with an entry form and table.<br>
-                    Click <span style="background:#e8f5e9;color:#2e7d32;padding:1px 7px;border-radius:4px;font-weight:700;font-size:0.7rem;">＋ Add Row</span> inside a region to log electricity data for that area.<br>
-                    Multiple rows per month are supported — just add as many as needed.
-                </div>
-                <div style="font-size:0.66rem;color:var(--text-secondary);background:var(--input-bg);border-radius:6px;padding:8px 10px;border-left:3px solid #2e7d32;">
-                    <i class="fas fa-calculator" style="color:#2e7d32;"></i> <strong>Auto-calc:</strong> 1 kWh = 0.000694 tCO2 &nbsp;|&nbsp; 1 tree ≈ 21.77 kg CO2/yr
-                </div>
+        <div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <i class="fas fa-bolt" style="color:#2e7d32;font-size:1.2rem;"></i>
+            <div style="font-size:0.74rem;color:var(--text-primary);line-height:1.6;flex:1;">
+                Log <strong>Electricity Consumption</strong> per region — kWh usage and billing amount in Php. Auto-calculates <strong>GHG emissions</strong> (tCO2) and <strong>equivalent trees</strong> needed to offset.
             </div>
         </div>
         
@@ -6738,7 +6732,7 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
     
     <div id="env-water-section" style="display:none;">
         <div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
-            <i class="fas fa-droplet" style="color:#0277bd;font-size:1.2rem;"></i>
+            <i class="fas fa-droplet" style="color:#2e7d32;font-size:1.2rem;"></i>
             <div style="font-size:0.74rem;color:var(--text-primary);line-height:1.6;flex:1;">
                 Log <strong>Water Consumption</strong> per region — Domestic Use (m³), Potable Use (Liters), and Industrial Use (m³), each with corresponding amount in Php.
             </div>
@@ -6755,7 +6749,6 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
             </div>
         </div>
         
-        <div id="env-waste-summary-container" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;"></div>
         <div id="env-waste-regions-container"></div>
     </div>
 
@@ -19567,7 +19560,7 @@ function renderTabulation() {
                     const _dPctColor = _dPct >= 90 ? '#2e7d32' : _dPct >= 75 ? '#e65100' : '#c62828';
                     const _dPctBg = _dPct >= 90 ? '#e8f5e9' : _dPct >= 75 ? '#fff3e0' : '#ffebee';
                     const _dPctBorder = _dPct >= 90 ? '#a5d6a7' : _dPct >= 75 ? '#ffcc80' : '#ef9a9a';
-                    html += `<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px 0;">
+                    html += `<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 16px 14px;">
                         <div style="flex:1;min-width:130px;background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:3px;">
                             <div style="font-size:0.6rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;"><i class="fas fa-hard-hat" style="color:#2e7d32;margin-right:5px;"></i>Active Projects</div>
                             <div style="font-size:1.5rem;font-weight:900;color:#1b5e20;line-height:1;">${_dActiveProjs.length}</div>
@@ -21264,24 +21257,36 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     // ── Summary cards ──────────────────────────────────────────────────
                     var dTotalSlots = 0, dFilled = 0, dOverdue = 0;
+                    var dNow = new Date();
+                    var dNowY = dNow.getFullYear(), dNowM = dNow.getMonth() + 1, dNowD = dNow.getDate();
                     var dActiveProjs = displayProjects.filter(function(dp){ return !isProjectOnStoppage(dp) && dp.region !== 'CORPORATE' && dp.region !== 'PLANT OPERATIONS'; });
+                    // Count PROJECTS with at least one overdue slot (not total slots) — deadline-aware (due 20th of following month)
+                    var dOverdueProjects = new Set();
                     dActiveProjs.forEach(function(dp){
                         DOLE_MONTHLY_ROWS.forEach(function(row){
                             var k = 'dole_' + row;
-                            // Only count PAST months (not current month) as overdue (mo is 1-based, dCurMoIdx is 0-based current month)
-                            for (var mo = 1; mo <= dCurMoIdx; mo++) {
+                            for (var mo = 1; mo <= 12; mo++) {
+                                var dlM = mo === 12 ? 1 : mo + 1;
+                                var dlY2 = mo === 12 ? dSelYear + 1 : dSelYear;
+                                var deadlinePassed;
+                                if (dSelYear < dNowY) { deadlinePassed = true; }
+                                else if (dSelYear > dNowY) { deadlinePassed = false; }
+                                else { deadlinePassed = (dNowY > dlY2) || (dNowY === dlY2 && dNowM > dlM) || (dNowY === dlY2 && dNowM === dlM && dNowD > 20); }
+                                if (!deadlinePassed) continue;
                                 dTotalSlots++;
                                 var v = dp.vals[k] ? (dp.vals[k][mo] || '') : '';
-                                if (v && v.toString().trim() !== '') { dFilled++; } else { dOverdue++; }
+                                if (v && v.toString().trim() !== '') { dFilled++; }
+                                else { dOverdueProjects.add(dp.name); }
                             }
                         });
                     });
+                    dOverdue = dOverdueProjects.size;
                     var dPct = dTotalSlots > 0 ? Math.round((dFilled / dTotalSlots) * 100) : 0;
                     var dPctColor  = dPct >= 90 ? '#2e7d32' : dPct >= 75 ? '#e65100' : '#c62828';
                     var dPctBg     = dPct >= 90 ? '#e8f5e9' : dPct >= 75 ? '#fff3e0' : '#ffebee';
                     var dPctBorder = dPct >= 90 ? '#a5d6a7' : dPct >= 75 ? '#ffcc80' : '#ef9a9a';
 
-                    html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px 0;">'
+                    html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 16px 14px;">'
                         + '<div style="flex:1;min-width:130px;background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:3px;">'
                         +   '<div style="font-size:0.6rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;"><i class="fas fa-hard-hat" style="color:#2e7d32;margin-right:5px;"></i>Active Projects</div>'
                         +   '<div style="font-size:1.5rem;font-weight:900;color:#1b5e20;line-height:1;">' + dActiveProjs.length + '</div>'
@@ -21300,7 +21305,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         + '<div style="flex:1;min-width:130px;background:' + (dOverdue > 0 ? '#ffebee' : '#e8f5e9') + ';border:1.5px solid ' + (dOverdue > 0 ? '#ef9a9a' : '#a5d6a7') + ';border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:3px;">'
                         +   '<div style="font-size:0.6rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;"><i class="fas fa-exclamation-circle" style="color:' + (dOverdue > 0 ? '#c62828' : '#2e7d32') + ';margin-right:5px;"></i>Overdue / Missing</div>'
                         +   '<div style="font-size:1.5rem;font-weight:900;color:' + (dOverdue > 0 ? '#c62828' : '#2e7d32') + ';line-height:1;">' + dOverdue + '</div>'
-                        +   '<div style="font-size:0.6rem;color:#888;">Past-due unfilled entries</div>'
+                        +   '<div style="font-size:0.6rem;color:#888;">Projects with past-due entries</div>'
                         + '</div>'
                         + '</div>';
 
@@ -21484,7 +21489,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         '<input type="date" value="' + v + '" ' + cellDis
                                         + ' name="dolemod-' + row + '-' + p.name.replace(/[^a-zA-Z0-9]/g,'_') + '"'
                                         + ' data-pname="' + pnSafe + '" data-row="' + row + '" data-moIdx="' + (moIdx+1) + '" data-overdue="' + (_modalIsOverdue ? '1' : '0') + '"'
-                                        + ' oninput="(function(el){var p=state.projects.find(function(x){return x.name===el.dataset.pname;});if(p){if(!p.vals[\'dole_\'+el.dataset.row])p.vals[\'dole_\'+el.dataset.row]=new Array(14).fill(\'\');p.vals[\'dole_\'+el.dataset.row][parseInt(el.dataset.moIdx)]=el.value;if(typeof markPendingSync===\'function\')markPendingSync();}var _od=el.dataset.overdue===\'1\';el.style.background=el.value?\'#c8e6c9\':\'\'+(_od?\'#ffcdd2\':\'#f5f5f5\')+\'\';el.style.borderColor=el.value?\'#a5d6a7\':\'\'+(_od?\'#ef9a9a\':\'#e0e0e0\')+\'\';el.style.color=el.value?\'#2e7d32\':\'\'+(_od?\'#c62828\':\'#9e9e9e\')+\'\';})(this)"'
+                                        + ' oninput="updateVal(\'' + pnSafe + '\',\'dole_' + row + '\',' + (moIdx+1) + ',this.value);_refreshDateCell(this)"'
                                         + ' style="' + inputStyle + '"></td>');
                             }).join('');
                             var rowDesc = row === 'WAIR' ? 'Work Accident/Illness Report' : row === 'RSO' ? 'Report on Safety Officer' : 'Minutes of Meeting';
@@ -21504,7 +21509,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             { row: 'AMR',  desc: 'Annual Medical Report',        dlM: 3,  dlD: 31 }
                         ];
                         var annualRows = _annDefs.map(function(rd) {
-                            var dlY = selYear + 1;
+                            var dlY = selYear; // deadline is within selYear (AEDR: Jan 30, AMR: Mar 31 of selYear)
                             var passed = (_annNowY > dlY) ||
                                 (_annNowY === dlY && _annNowM > rd.dlM) ||
                                 (_annNowY === dlY && _annNowM === rd.dlM && _annNowD > rd.dlD);
@@ -21532,7 +21537,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         + ' name="dolemod-' + rd.row + '-' + safeName + '"'
                                         + ' data-pname="' + pnEsc + '" data-row="' + rd.row + '" data-moIdx="1"'
                                         + ' style="' + inStyle + '"'
-                                        + ' oninput="window._doleAnnualInput(this)">';
+                                        + ' oninput="updateVal(\'' + pnEsc + '\',\'dole_' + rd.row + '\',1,this.value);_refreshDateCell(this)">';
                                 }
                                 return '<td style="' + tdStyle + '">' + cell + '</td>';
                             }).join('');
@@ -21556,7 +21561,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<tbody>'
                             + '<tr><td colspan="' + (regProjs.length + 2) + '" style="padding:4px 12px;background:#e8f5e9;font-size:0.6rem;font-weight:700;color:#2e7d32;letter-spacing:0.4px;border:1px solid #c8e6c9;">📅 MONTHLY REPORTS — WAIR / RSO / MOM &nbsp;&nbsp;(due 20th of following month)</td></tr>'
                             + tableRows
-                            + '<tr><td colspan="' + (regProjs.length + 2) + '" style="padding:4px 12px;background:#fff3e0;font-size:0.6rem;font-weight:700;color:#e65100;letter-spacing:0.4px;border:1px solid #c8e6c9;border-top:2px solid #ffb74d;">📆 ANNUAL REPORTS — AEDR / AMR &nbsp;&nbsp;(submitted once per year)</td></tr>'
+                            + '<tr><td colspan="' + (regProjs.length + 2) + '" style="padding:4px 12px;background:#fff3e0;font-size:0.6rem;font-weight:700;color:#e65100;letter-spacing:0.4px;border:1px solid #c8e6c9;border-top:2px solid #ffb74d;">📆 ANNUAL REPORTS — AEDR / AMR (' + selYear + ')&nbsp;&nbsp;— AEDR due Jan 30 · AMR due Mar 31</td></tr>'
                             + annualRows
                             + '</tbody></table>';
 
@@ -21606,47 +21611,24 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     };
 
                     // ── Annual DOLE input handler (no escape-hell inline) ──────────────
-                    window._doleAnnualInput = function(el) {
-                        var px = state.projects.find(function(x){ return x.name === el.dataset.pname; });
-                        if (px) {
-                            var rowKey = 'dole_' + el.dataset.row;
-                            if (!px.vals[rowKey]) px.vals[rowKey] = new Array(14).fill('');
-                            px.vals[rowKey][1] = el.value;
-                            if (typeof markPendingSync === 'function') markPendingSync();
-                        }
-                        el.style.background    = el.value ? '#c8e6c9' : '#f5f5f5';
-                        el.style.borderColor   = el.value ? '#a5d6a7' : '#e0e0e0';
-                        el.style.color         = el.value ? '#2e7d32' : '#9e9e9e';
-                    };
-
-                                        // ── Save DOLE Modal ────────────────────────────────────────────────
+                    // ── Save DOLE Modal (Save Changes button) ────────────────────────────
+                    // Each input already calls updateVal() on oninput — same as exposures.
+                    // saveDoleModal just re-fires updateVal for any input that wasn't typed
+                    // (e.g. pre-filled values), then closes the modal.
                     window.saveDoleModal = function() {
                         var modal = document.getElementById('dole-month-modal');
                         if (!modal) return;
-                        var reg     = modal.getAttribute('data-reg');
-                        var activeMo = modal.getAttribute('data-month');
-                        if (!reg || !activeMo) { modal.remove(); render(); return; }
 
-                        var regProjs = (state.filteredProjects || state.projects).filter(function(p){ return p.region === reg; });
-                        if (regProjs.length) {
-                            var _rbac = UserAccounts.checkPermission(state.currentUser && state.currentUser.email, 'edit', reg, 'dole');
-                            if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
-                        }
-
-                        // Sweep all date inputs
+                        // Re-fire updateVal for every input to ensure all values are saved
                         modal.querySelectorAll('[data-pname][data-row]').forEach(function(inp) {
-                            var ppName = inp.dataset.pname;
+                            var pnSafe = inp.dataset.pname;
                             var row    = inp.dataset.row;
                             var moIdx  = parseInt(inp.dataset.moIdx);
-                            var pp = state.projects.find(function(x){ return x.name === ppName; });
-                            if (pp && row && moIdx) {
-                                if (!pp.vals['dole_' + row]) pp.vals['dole_' + row] = new Array(14).fill('');
-                                pp.vals['dole_' + row][moIdx] = inp.value;
+                            if (pnSafe && row && moIdx) {
+                                updateVal(pnSafe, 'dole_' + row, moIdx, inp.value);
                             }
                         });
 
-                        if (typeof markPendingSync === 'function') markPendingSync();
-                        if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
                         modal.remove();
                         render();
                         if (typeof showToast === 'function') showToast('✅ DOLE entry saved.', 'success', 2500);
@@ -21693,7 +21675,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 }
 
                 function _modalTable(rowDefs, projCols, projNames) {
-                    // rowDefs: [{label, desc, cells:[{pname,key,idx,val,inputType}]}]
+                    // rowDefs: [{label, desc, cells:[{pname,key,idx,val,inputType,stopped}]}]
                     var thead = '<tr style="background:#9ecf9b;color:#1b5e20;font-size:0.67rem;font-weight:800;">'
                         + '<th style="padding:6px 8px;border:1px solid #c8e6c9;min-width:120px;white-space:nowrap;">FIELD</th>'
                         + '<th style="padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;text-align:left;white-space:normal;">DESCRIPTION</th>'
@@ -21701,11 +21683,18 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         + '</tr>';
                     var tbody = rowDefs.map(function(rd){
                         var cells = rd.cells.map(function(c){
+                            // ── Work-stoppage: greyed out, exempt from reporting ──────────
+                            if (c.stopped) {
+                                return '<td style="padding:6px 8px;border:1px solid #e0e0e0;min-width:160px;background:#f5f5f5;opacity:0.7;">'
+                                    + '<div style="display:flex;align-items:center;justify-content:center;gap:5px;color:#9e9e9e;font-size:0.67rem;font-style:italic;padding:4px 0;">'
+                                    + '<i class="fas fa-ban" style="font-size:0.65rem;"></i> Work Stoppage — Exempt'
+                                    + '</div></td>';
+                            }
                             var inputCss = 'width:100%;border:1px solid ' + (c.val?'#a5d6a7':'#ef9a9a') + ';border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:700;background:' + (c.val?'#c8e6c9':'#ffcdd2') + ';color:' + (c.val?'#2e7d32':'#c62828') + ';';
                             return '<td style="padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;">'
                                 + '<input type="' + (c.inputType||'date') + '" value="' + (c.val||'') + '" ' + (c.dis||'')
                                 + ' data-pname="' + c.pname + '" data-key="' + c.key + '" data-idx="' + c.idx + '"'
-                                + ' oninput="(function(el){var p=state.projects.find(function(x){return x.name===el.dataset.pname;});if(p){if(!p.vals[el.dataset.key])p.vals[el.dataset.key]=new Array(14).fill(\'\');p.vals[el.dataset.key][parseInt(el.dataset.idx)]=el.value;if(typeof markPendingSync===\'function\')markPendingSync();}el.style.background=el.value?\'#c8e6c9\':\'#ffcdd2\';el.style.borderColor=el.value?\'#a5d6a7\':\'#ef9a9a\';el.style.color=el.value?\'#2e7d32\':\'#c62828\';})(this)"'
+                                + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\'"'
                                 + ' style="' + inputCss + '"></td>';
                         }).join('');
                         return '<tr style="background:var(--bg-card);border-bottom:1px solid #c8e6c9;">'
@@ -21739,27 +21728,21 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 function _genericSaveModal(modalId, tabName) {
                     var modal = document.getElementById(modalId);
                     if (!modal) return;
-                    var reg = modal.getAttribute('data-reg');
-                    if (reg) {
-                        var _rbac = UserAccounts.checkPermission(state.currentUser && state.currentUser.email, 'edit', reg, tabName);
-                        if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
-                    }
-                    modal.querySelectorAll('[data-pname][data-key][data-idx]').forEach(function(inp){
-                        var pp = state.projects.find(function(x){ return x.name===inp.dataset.pname; });
-                        if (pp && inp.dataset.key) {
-                            if (!pp.vals[inp.dataset.key]) pp.vals[inp.dataset.key]=new Array(14).fill('');
-                            pp.vals[inp.dataset.key][parseInt(inp.dataset.idx)] = inp.value;
+                    // Re-fire updateVal for every input — same pattern as DOLE/exposures.
+                    // Stopped projects have no input (replaced by exempt badge) so they are
+                    // naturally skipped — only [data-pname][data-key][data-idx] inputs are swept.
+                    modal.querySelectorAll('[data-pname][data-key][data-idx]').forEach(function(inp) {
+                        if (inp.dataset.pname && inp.dataset.key) {
+                            updateVal(inp.dataset.pname, inp.dataset.key, parseInt(inp.dataset.idx), inp.value);
                         }
                     });
-                    if (typeof markPendingSync==='function') markPendingSync();
-                    if (typeof saveToFirebaseDebounced==='function') saveToFirebaseDebounced();
                     modal.remove();
                     render();
-                    if (typeof showToast==='function') showToast('✅ Entry saved.','success',2500);
+                    if (typeof showToast === 'function') showToast('✅ Entry saved.', 'success', 2500);
                 }
 
                 function _buildSummaryCards(cards) {
-                    return '<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px 0;">'
+                    return '<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 16px 14px;">'
                         + cards.map(function(c){
                             return '<div style="flex:1;min-width:130px;background:' + c.bg + ';border:1.5px solid ' + c.border + ';border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:3px;">'
                                 + '<div style="font-size:0.6rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;"><i class="fas ' + c.icon + '" style="color:' + c.iconColor + ';margin-right:5px;"></i>' + c.label + '</div>'
@@ -23566,7 +23549,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var _doePctBg2 = _doePct2 >= 90 ? '#e8f5e9' : _doePct2 >= 75 ? '#fff3e0' : '#ffebee';
                         var _doePctBd2 = _doePct2 >= 90 ? '#a5d6a7' : _doePct2 >= 75 ? '#ffcc80' : '#ef9a9a';
 
-                        html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px 0;">'
+                        html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 16px 14px;">'
                             + _mkCard('#e8f5e9','#a5d6a7','fa-solar-panel','#2e7d32','RE Projects',renewableProjects.length,_doeClientProjs2.length+' client-handled · '+_doeActProjs2.length+' self-reporting','#1b5e20')
                             + _mkCard(_doePctBg2,_doePctBd2,'fa-chart-pie',_doePctC2,'Overall Compliance',_doePct2+'%',_doeFill2+' of '+_doeTot2+' quarterly slots filled',_doePctC2)
                             + _mkCard('#e8f5e9','#a5d6a7','fa-calendar-check','#2e7d32','Submitted',_doeFill2,'DOE quarterly reports','#1b5e20')
@@ -23790,7 +23773,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 +'<div style="font-size:0.6rem;color:#888;">'+sub+'</div>'
                                 +'</div>';
                         }
-                        html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px 0;">'
+                        html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 16px 14px;">'
                             + _mkCard2('#e8f5e9','#a5d6a7','fa-solar-panel','#2e7d32','RE Projects',renewableProjects.length,_dpClientProjs.length+' client-handled, '+_dpActProjs.length+' self-managed','#1b5e20')
                             + _mkCard2(_dpPctBg,_dpPctBd,'fa-chart-pie',_dpPctC,'Permit Compliance',_dpPct+'%',_dpCompliant+' of '+_dpTotal+' with valid permit',_dpPctC)
                             + _mkCard2(_dpExpiringSoon>0?'#fff3e0':'#e8f5e9',_dpExpiringSoon>0?'#ffcc80':'#a5d6a7','fa-clock',_dpExpiringSoon>0?'#e65100':'#2e7d32','Expiring Soon',_dpExpiringSoon,'Within 90 days',_dpExpiringSoon>0?'#e65100':'#2e7d32')
@@ -25441,13 +25424,10 @@ function renderTransferProjectList(projects) {
         return;
     }
 
-    const REGION_COLORS = {
-        'CORPORATE': '#5c35a0',
-        'NCR': '#1565c0',
-        'SOUTH LUZON': '#2e7d32',
-        'NORTH LUZON': '#e65100',
-        'VISAYAS & MINDANAO': '#00838f'
-    };
+    // Use global color source of truth; map to bg hex for the transfer list banner
+    const REGION_COLORS = Object.fromEntries(
+        Object.entries(window.REGION_COLORS).map(([k,v]) => [k, v.bg])
+    );
 
     let html = '';
     let lastRegion = null;
@@ -26592,7 +26572,7 @@ function buildTrendChartHTML(tabType) {
     if (persistentEl && !persistentEl.dataset.initialized) {
         persistentEl.dataset.initialized = 'true';
         persistentEl.innerHTML = `
-      <div style="background: var(--bg-card); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color); margin-bottom: 20px;">
+      <div style="background: var(--bg-card); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color); margin-bottom: 16px;">
         <div style="background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 25%, #2e7d32 50%, #43a047 75%, #66bb6a 100%); color: white; padding: 14px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1); position: relative; overflow: hidden;">
           <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%); pointer-events: none; z-index: 1;"></div>
           <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; position: relative; z-index: 2;">
@@ -26601,13 +26581,15 @@ function buildTrendChartHTML(tabType) {
               <span style="font-weight: 700; font-size: 1rem; letter-spacing: 0.5px;">${title}</span>
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-              <select id="trendRegionFilter_${tabType}" onchange="updateTrendChart('${tabType}')"
+              <select id="trendRegionFilter_${tabType}" onchange="populateProjectFilter('${tabType}'); updateTrendChart('${tabType}')"
                       style="padding: 6px 12px; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; background: white; color: #1b5e20; cursor: pointer;">
                 <option value="all">ALL REGIONS</option>
                 <option value="NCR">NCR</option>
                 <option value="SOUTH LUZON">SOUTH LUZON</option>
                 <option value="NORTH LUZON">NORTH LUZON</option>
-                <option value="VISAYAS & MINDANAO">VISMIN</option>
+                <option value="VISAYAS & MINDANAO">VISAYAS & MINDANAO</option>
+                <option value="PLANT OPERATIONS">PLANT OPERATIONS</option>
+                <option value="CORPORATE">CORPORATE</option>
               </select>
               <select id="trendProjectFilter_${tabType}" onchange="updateTrendChart('${tabType}')"
                       style="padding: 6px 12px; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; background: white; color: #1b5e20; cursor: pointer;">
@@ -26616,8 +26598,8 @@ function buildTrendChartHTML(tabType) {
             </div>
           </div>
         </div>
-        <div style="padding: 20px;">
-          <canvas id="trendChart_${tabType}" style="max-height: 400px;"></canvas>
+        <div style="padding: 14px 16px;">
+          <canvas id="trendChart_${tabType}" style="max-height: 400px;width:100%;"></canvas>
         </div>
       </div>`;
     }
@@ -26634,8 +26616,15 @@ function populateProjectFilter(tabType) {
     ids.forEach(id => {
         const projectFilter = document.getElementById(id);
         if (!projectFilter) return;
+        // Get currently selected region to filter project list
+        const regionSelId = id.replace('trendProjectFilter_', 'trendRegionFilter_');
+        const regionSel = document.getElementById(regionSelId);
+        const regionVal = regionSel ? regionSel.value : 'all';
+        const projects = regionVal === 'all'
+            ? state.projects
+            : state.projects.filter(p => p.region === regionVal);
         projectFilter.innerHTML = '<option value="all">All Projects</option>';
-        state.projects.forEach(p => {
+        projects.forEach(p => {
             const option = document.createElement('option');
             option.value = p.name;
             option.textContent = p.name;
@@ -26780,10 +26769,14 @@ function _doUpdateTrendChart(tabType) {
     const ctx = canvas.getContext('2d');
     
     const datasetsWithGradients = datasets.map(ds => {
+        // Target/dashed lines: keep them as-is (no gradient fill, no points)
+        if (ds.borderDash || ds.pointRadius === 0) {
+            return { ...ds, borderWidth: ds.borderWidth || 2 };
+        }
+        // Data lines: apply gradient fill
         const gradient = ctx.createLinearGradient(0, 0, 0, 300);
         gradient.addColorStop(0, ds.borderColor + '40');
         gradient.addColorStop(1, ds.borderColor + '00');
-        
         return {
             label: ds.label,
             data: ds.data,
@@ -27173,8 +27166,9 @@ const ProjectsDB = {
             return true;
         } catch(e) {
             if (e?.code === 'permission-denied' || e?.code === 'PERMISSION_DENIED') {
-                console.log(`🔒 ProjectsDB: write blocked by Firestore rules for "${project.name}" — skipped`);
-                return true; // not a failure — Firestore rules enforced correctly
+                console.error(`🔒 ProjectsDB: PERMISSION DENIED for "${project.name}" — check Firestore rules. Region: ${project.region}`);
+                if (typeof showToast === 'function') showToast(`🔒 Permission denied saving "${project.name}". Contact admin.`, 'error', 5000);
+                return false;
             }
             console.error(`❌ ProjectsDB.saveProject failed for "${project.name}" (${year}):`, e.message);
             return false;
@@ -29545,14 +29539,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const HR_REGIONS = ['NCR', 'NORTH LUZON', 'SOUTH LUZON', 'VISAYAS & MINDANAO', 'CORPORATE', 'PLANT OPERATIONS'];
 
-    const HR_REGION_COLORS = {
-        'NCR':                { bg: '#1b5e20', light: '#e8f5e9', accent: '#2e7d32', badge: '#66bb6a' },
-        'NORTH LUZON':        { bg: '#2e7d32', light: '#f1f8e9', accent: '#388e3c', badge: '#81c784' },
-        'SOUTH LUZON':        { bg: '#388e3c', light: '#f9fbe7', accent: '#43a047', badge: '#a5d6a7' },
-        'VISAYAS & MINDANAO': { bg: '#43a047', light: '#f1f8e9', accent: '#558b2f', badge: '#c8e6c9' },
-        'CORPORATE':          { bg: '#0d3d0f', light: '#e8f5e9', accent: '#1b5e20', badge: '#4caf50' },
-        'PLANT OPERATIONS':   { bg: '#00695c', light: '#e0f2f1', accent: '#00796b', badge: '#80cbc4' }
-    };
+    // Use global source of truth — no local copy needed
+    const HR_REGION_COLORS = window.REGION_COLORS;
 
     const HR_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const HR_MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -31046,20 +31034,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const ENV_REGIONS = ['NCR', 'SOUTH LUZON', 'NORTH LUZON', 'VISAYAS & MINDANAO', 'PLANT OPERATIONS'];
     const ENV_MONTHS  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-    const REGION_COLORS = {
-        'NCR':                  { bg: '#1b5e20', light: '#e8f5e9', badge: '#66bb6a' },
-        'NORTH LUZON':          { bg: '#2e7d32', light: '#f1f8e9', badge: '#81c784' },
-        'SOUTH LUZON':          { bg: '#388e3c', light: '#f9fbe7', badge: '#a5d6a7' },
-        'VISAYAS & MINDANAO':   { bg: '#43a047', light: '#f1f8e9', badge: '#c8e6c9' },
-        'PLANT OPERATIONS':     { bg: '#00695c', light: '#e0f2f1', badge: '#80cbc4', white: true }
-    };
+    // Use global color source of truth — see window.REGION_COLORS declared at top of file
+    const REGION_COLORS = window.REGION_COLORS;
     const PIE_COLORS = ['#1b5e20','#2e7d32','#558b2f','#43a047','#00695c'];
 
     let envData = [];
     let waterData = [];
     let envMode = 'electricity'; // 'electricity' | 'water'
-    let envCollapsed = {};
-    let waterCollapsed = {};
+    // Default all regions to collapsed — same behavior as all other tabs
+    const _initCollapsed = () => Object.fromEntries((window.REGION_COLORS ? Object.keys(window.REGION_COLORS) : ['NCR','NORTH LUZON','SOUTH LUZON','VISAYAS & MINDANAO','PLANT OPERATIONS','CORPORATE']).map(r=>[r,true]));
+    let envCollapsed = _initCollapsed();
+    let waterCollapsed = _initCollapsed();
 
     // Load env rows from Yjs/Firestore back into in-memory arrays on tab open
     async function loadEnvFromYjs() {
@@ -31322,40 +31307,47 @@ document.addEventListener('DOMContentLoaded', function() {
         const btnWaste = document.getElementById('env-toggle-waste');
         const btnAppl  = document.getElementById('env-toggle-appliances');
         const sub      = document.getElementById('env-header-sub');
-        const badges   = document.querySelectorAll('#env-badge-kwh,#env-badge-ghg,#env-badge-trees');
 
+        // Hide all sections & summaries
         [elecSection, waterSection, wasteSection, applSection].forEach(s => { if(s) s.style.display = 'none'; });
+        ['env-summary-electricity','env-summary-water','env-summary-waste','env-summary-appliances'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.style.display = 'none';
+        });
         [btnElec, btnWater, btnWaste, btnAppl].forEach(b => { if(b) { b.style.background = 'rgba(255,255,255,0.15)'; b.style.color = 'white'; } });
 
         if (mode === 'electricity') {
             if (elecSection)  elecSection.style.display  = '';
+            const es = document.getElementById('env-summary-electricity'); if (es) es.style.display = '';
             if (btnElec)  { btnElec.style.background  = 'white'; btnElec.style.color  = '#1b5e20'; }
             if (sub) sub.textContent = 'Electricity Consumption & GHG Emission Tracker — Per Region';
-            badges.forEach(b => { if(b) b.style.display = ''; });
+            envRenderRegions();
         } else if (mode === 'water') {
             if (waterSection) waterSection.style.display = '';
+            const ws = document.getElementById('env-summary-water'); if (ws) ws.style.display = '';
             if (btnWater) { btnWater.style.background = 'white'; btnWater.style.color = '#0277bd'; }
             if (sub) sub.textContent = 'Water Consumption Tracker — Domestic, Potable & Industrial Use — Per Region';
-            badges.forEach(b => { if(b) b.style.display = 'none'; });
             waterRenderRegions();
+            waterUpdateSummary();
         } else if (mode === 'waste') {
             if (wasteSection) wasteSection.style.display = '';
+            const wss = document.getElementById('env-summary-waste'); if (wss) wss.style.display = '';
             if (btnWaste) { btnWaste.style.background = 'white'; btnWaste.style.color = '#5d4037'; }
             if (sub) sub.textContent = 'Waste Generation & Disposal Tracker — Biodegradable, Recyclable & Hazardous — Per Region';
-            badges.forEach(b => { if(b) b.style.display = 'none'; });
             wasteRenderRegions();
+            wasteUpdateSummary();
         } else if (mode === 'appliances') {
             if (applSection) applSection.style.display = '';
+            const as = document.getElementById('env-summary-appliances'); if (as) as.style.display = '';
             if (btnAppl) { btnAppl.style.background = 'white'; btnAppl.style.color = '#1b5e20'; }
             if (sub) sub.textContent = 'Electrical Equipment & Lighting Fixtures Inventory — Per Region';
-            badges.forEach(b => { if(b) b.style.display = 'none'; });
             appliancesRenderRegions();
+            appliancesUpdateSummary();
         }
     };
     window.envSwitchMode = window.envSwitchMode; // expose
 
     let appliancesData = {};
-    let appliancesCollapsed = {};
+    let appliancesCollapsed = _initCollapsed();
     let appliancesNavIdx = {};   // tracks current project index per region
 
     window.appliancesNavProject = function(region, delta) {
@@ -31365,6 +31357,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const cur = appliancesNavIdx[region] || 0;
         appliancesNavIdx[region] = Math.max(0, Math.min(projs.length - 1, cur + delta));
         appliancesRenderRegions();
+        appliancesUpdateSummary();
     };
 
     const APPL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -31531,13 +31524,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const userEmail   = (typeof state !== 'undefined') ? state.currentUser?.email : null;
         const canEditEnv  = UserAccounts.canEditTab(userEmail, 'env-monitoring');
 
-        const AC = {
-            'NCR':                { bg:'#1b5e20', light:'#e8f5e9' },
-            'SOUTH LUZON':        { bg:'#388e3c', light:'#f9fbe7' },
-            'NORTH LUZON':        { bg:'#2e7d32', light:'#f1f8e9' },
-            'VISAYAS & MINDANAO': { bg:'#43a047', light:'#f1f8e9' },
-            'PLANT OPERATIONS':   { bg:'#00695c', light:'#e0f2f1', white:true }
-        };
+        const AC = window.REGION_COLORS; // single source of truth
 
         let html = '';
         ENV_REGIONS.forEach(region => {
@@ -31792,13 +31779,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
     window.envRender = function() {
-        envRenderRegions();
-        envUpdateChart();
+        envRenderRegions();       // electricity summary updated inside
         envUpdateBadges();
         // Re-render active sub-section so Add buttons appear after Edit mode toggle
-        if (envMode === 'water'      && typeof waterRenderRegions      === 'function') waterRenderRegions();
-        if (envMode === 'waste'      && typeof wasteRenderRegions      === 'function') wasteRenderRegions();
-        if (envMode === 'appliances' && typeof appliancesRenderRegions === 'function') appliancesRenderRegions();
+        if (envMode === 'water'      && typeof waterRenderRegions      === 'function') { waterRenderRegions(); waterUpdateSummary(); }
+        if (envMode === 'waste'      && typeof wasteRenderRegions      === 'function') { wasteRenderRegions(); wasteUpdateSummary(); }
+        if (envMode === 'appliances' && typeof appliancesRenderRegions === 'function') { appliancesRenderRegions(); appliancesUpdateSummary(); }
     };
 
     function envRenderRegions() {
@@ -32003,70 +31989,258 @@ document.addEventListener('DOMContentLoaded', function() {
         const grandRecGen  = overallSummary.reduce((s,r)=>s+(r.recGen||0),0);
         const grandHazGen  = overallSummary.reduce((s,r)=>s+(r.hazGen||0),0);
         const grandSeptage = overallSummary.reduce((s,r)=>s+(r.septage||0),0);
-        const hasAnyData   = grandKwh > 0 || grandDomM3 > 0 || grandBioGen > 0 || overallSummary.some(r=>r.kwh>0);
+        const hasElecData = grandKwh > 0;
 
-        const summaryContainer = document.getElementById('env-overall-summary-container');
-        if (summaryContainer) {
+        // ── Electricity-only summary ────────────────────────────────────────────
+        const elecSumContainer = document.getElementById('env-summary-electricity');
+        if (elecSumContainer) {
             const _fmt = (v, dec) => { dec = dec||2; return v > 0 ? v.toLocaleString(undefined,{maximumFractionDigits:dec}) : '\u2014'; };
-            const _th  = function(txt, bg) { return '<th style="padding:7px 10px;text-align:right;background:'+bg+';color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.62rem;white-space:nowrap;">'+txt+'</th>'; };
-            const _thL = function(txt, bg) { return '<th style="padding:7px 10px;text-align:left;background:'+bg+';color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.62rem;white-space:nowrap;">'+txt+'</th>'; };
-            const _td  = function(v, bold) { return '<td style="padding:7px 10px;text-align:right;border:1px solid #e8f5e9;font-size:0.68rem;'+(bold?'font-weight:700;':'')+'">'+_fmt(v)+'</td>'; };
-            const _tdF = function(v) { return '<td style="padding:7px 10px;text-align:right;border:1px solid #e8f5e9;font-size:0.68rem;">'+(v>0?v.toFixed(4):'\u2014')+'</td>'; };
+            const _th  = (txt, bg) => `<th style="padding:7px 10px;text-align:right;background:${bg};color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.62rem;white-space:nowrap;">${txt}</th>`;
+            const _thL = (txt, bg) => `<th style="padding:7px 10px;text-align:left;background:${bg};color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.62rem;white-space:nowrap;">${txt}</th>`;
+            const _td  = (v, bold) => `<td style="padding:7px 10px;text-align:right;border:1px solid #e8f5e9;font-size:0.68rem;${bold?'font-weight:800;':''}">${_fmt(v)}</td>`;
+            const _tdF = (v) => `<td style="padding:7px 10px;text-align:right;border:1px solid #e8f5e9;font-size:0.68rem;">${v>0?v.toFixed(4):'\u2014'}</td>`;
 
-            const _rowHtml = overallSummary.map(function(s, i) {
-                return '<tr style="background:'+(i%2===0?'var(--bg-card)':'var(--input-bg)')+';">'
-                    + '<td style="padding:7px 12px;border:1px solid #e8f5e9;font-weight:700;font-size:0.68rem;white-space:nowrap;">'
-                    + '<span style="width:9px;height:9px;border-radius:2px;background:'+s.color+';display:inline-block;margin-right:6px;vertical-align:middle;"></span>'+s.region+'</td>'
-                    + '<td style="padding:7px 12px;text-align:center;border:1px solid #e8f5e9;color:var(--text-secondary);font-size:0.68rem;">'+s.projCount+'</td>'
-                    + _td(s.kwh) + _td(s.amount) + _tdF(s.ghg) + _tdF(s.trees)
-                    + _td(s.domM3||0) + _td(s.domAmt||0) + _td(s.potLit||0) + _td(s.potAmt||0) + _td(s.indM3||0) + _td(s.indAmt||0)
-                    + _td(s.bioGen||0) + _td(s.nonbioGen||0) + _td(s.recGen||0) + _td(s.hazGen||0) + _td(s.septage||0)
-                    + '</tr>';
+            const kpiCards = [
+                { label:'Total Consumption', value: _fmt(grandKwh)+' kWh',           icon:'fa-bolt',       color:'#1b5e20', bg:'#e8f5e9' },
+                { label:'Total Amount',       value: '\u20b1'+_fmt(grandAmt),         icon:'fa-coins',      color:'#2e7d32', bg:'#f1f8e9' },
+                { label:'GHG Emissions',      value: grandGhg.toFixed(4)+' tCO2',    icon:'fa-cloud',      color:'#37474f', bg:'#eceff1' },
+                { label:'Trees Needed',       value: Math.ceil(grandTrees).toLocaleString(), icon:'fa-tree',color:'#388e3c', bg:'#f9fbe7' },
+            ];
+            const cardsHtml = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">'
+                + kpiCards.map(c => `<div style="background:${c.bg};border:1px solid ${c.color}33;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;min-width:150px;flex:1;"><i class="fas ${c.icon}" style="color:${c.color};font-size:1.1rem;"></i><div><div style="font-size:0.6rem;font-weight:700;color:${c.color};text-transform:uppercase;letter-spacing:0.4px;">${c.label}</div><div style="font-size:0.88rem;font-weight:800;color:${c.color};">${c.value}</div></div></div>`).join('')
+                + '</div>';
+
+            const rowsHtml = overallSummary.map((s) => {
+                const rc = REGION_COLORS[s.region] || { bg:'#2e7d32', light:'#e8f5e9' };
+                return `<tr style="background:${rc.light};">
+                    <td style="padding:7px 12px;border:1px solid ${rc.bg}33;font-weight:800;font-size:0.68rem;white-space:nowrap;color:${rc.bg};"><span style="width:9px;height:9px;border-radius:2px;background:${rc.bg};display:inline-block;margin-right:6px;vertical-align:middle;"></span>${s.region}</td>
+                    <td style="padding:7px 10px;text-align:center;border:1px solid ${rc.bg}33;color:${rc.bg};font-size:0.68rem;font-weight:700;">${s.projCount}</td>
+                    ${_td(s.kwh)} ${_td(s.amount)} ${_tdF(s.ghg)} ${_tdF(s.trees)}
+                </tr>`;
             }).join('');
+            const footHtml = `<tr style="background:linear-gradient(90deg,#e8f5e9,#f1f8e9);"><td style="padding:9px 12px;font-weight:800;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.7rem;" colspan="2"><i class="fas fa-globe" style="margin-right:5px;"></i>GRAND TOTAL</td>${_td(grandKwh,true)} ${_td(grandAmt,true)} ${_tdF(grandGhg)} ${_tdF(grandTrees)}</tr>`;
 
-            const _footHtml = '<tr style="background:linear-gradient(90deg,#e8f5e9,#f1f8e9);">'
-                + '<td style="padding:9px 12px;font-weight:800;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.7rem;" colspan="2"><i class="fas fa-globe" style="margin-right:5px;"></i>GRAND TOTAL</td>'
-                + _td(grandKwh,true) + _td(grandAmt,true) + _tdF(grandGhg) + _tdF(grandTrees)
-                + _td(grandDomM3,true) + _td(grandDomAmt,true) + _td(grandPotLit,true) + _td(grandPotAmt,true) + _td(grandIndM3,true) + _td(grandIndAmt,true)
-                + _td(grandBioGen,true) + _td(grandNonbio,true) + _td(grandRecGen,true) + _td(grandHazGen,true) + _td(grandSeptage,true)
-                + '</tr>';
-
-            summaryContainer.innerHTML =
-                '<div style="background:var(--bg-card);border-radius:12px;overflow:hidden;border:2px solid #2e7d32;box-shadow:0 4px 16px rgba(46,125,50,0.12);">'
-                + '<div style="background:linear-gradient(135deg,#0d3d0f 0%,#1b5e20 60%,#2e7d32 100%);padding:12px 18px;display:flex;align-items:center;gap:10px;">'
-                + '<i class="fas fa-globe" style="color:#a5d6a7;font-size:1.1rem;"></i>'
-                + '<span style="font-weight:800;color:white;font-size:0.88rem;letter-spacing:0.5px;">OVERALL SUMMARY — ALL REGIONS</span>'
-                + '<span style="background:rgba(255,255,255,0.15);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;margin-left:auto;">'+allProjects.length+' Total Projects</span>'
+            elecSumContainer.innerHTML =
+                '<div style="background:var(--bg-card);border-radius:12px;overflow:hidden;border:2px solid #1b5e20;box-shadow:0 4px 16px rgba(27,94,32,0.12);">'
+                + '<div style="background:linear-gradient(135deg,#0d3d0f 0%,#1b5e20 60%,#2e7d32 100%);padding:12px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+                + '<i class="fas fa-bolt" style="color:#a5d6a7;font-size:1.1rem;"></i>'
+                + '<span style="font-weight:800;color:white;font-size:0.88rem;letter-spacing:0.5px;">OVERALL SUMMARY \u2014 ELECTRICITY CONSUMPTION</span>'
+                + `<span style="background:rgba(255,255,255,0.15);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;margin-left:auto;" id="env-inline-badge-total-projects"></span>`
                 + '</div>'
-                + '<div style="overflow-x:auto;">'
-                + '<table style="width:100%;border-collapse:collapse;font-size:0.68rem;">'
-                + '<thead>'
-                + '<tr>'
+                + '<div style="padding:14px 18px 0;">' + cardsHtml + '</div>'
+                + '<div style="padding:0 18px 16px;overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.68rem;"><thead><tr>'
                 + _thL('Region','#388e3c') + _thL('Projects','#388e3c')
-                + '<th colspan="4" style="padding:7px 10px;text-align:center;background:#1b5e20;color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">&#9889; ELECTRICITY</th>'
-                + '<th colspan="6" style="padding:7px 10px;text-align:center;background:#2e7d32;color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">&#128167; WATER</th>'
-                + '<th colspan="5" style="padding:7px 10px;text-align:center;background:#388e3c;color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">&#128465; WASTE (MT)</th>'
-                + '</tr>'
-                + '<tr>'
-                + _thL('','#b7ddb5') + _thL('','#b7ddb5')
-                + _th('kWh','#1b5e20') + _th('Amt (Php)','#1b5e20') + _th('GHG (tCO2)','#1b5e20') + _th('Trees','#1b5e20')
-                + _th('Dom. m³','#2e7d32') + _th('Dom. Amt','#2e7d32') + _th('Potable (L)','#2e7d32') + _th('Pot. Amt','#2e7d32') + _th('Ind. m³','#2e7d32') + _th('Ind. Amt','#2e7d32')
-                + _th('Biodeg.','#43a047') + _th('Non-Bio','#43a047') + _th('Recyclable','#43a047') + _th('Hazardous','#43a047') + _th('Septage','#43a047')
-                + '</tr>'
-                + '</thead>'
-                + '<tbody>' + _rowHtml + '</tbody>'
-                + '<tfoot>' + _footHtml + '</tfoot>'
-                + '</table>'
-                + '</div>'
-                + (!hasAnyData ? '<div style="padding:24px;text-align:center;color:var(--text-secondary);font-size:0.78rem;font-style:italic;"><i class="fas fa-seedling" style="opacity:0.2;font-size:1.8rem;display:block;margin-bottom:8px;"></i>No environmental data entered yet.</div>' : '')
+                + `<th colspan="4" style="padding:7px 10px;text-align:center;background:#1b5e20;color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">\u26a1 ELECTRICITY CONSUMPTION</th>`
+                + `</tr><tr>${_thL('','#b7ddb5')}${_thL('','#b7ddb5')}${_th('kWh','#1b5e20')}${_th('Amount (\u20b1)','#1b5e20')}${_th('GHG (tCO2)','#1b5e20')}${_th('Trees Needed','#1b5e20')}</tr></thead>`
+                + `<tbody>${rowsHtml}</tbody><tfoot>${footHtml}</tfoot></table></div>`
+                + (!hasElecData ? '<div style="padding:24px;text-align:center;color:var(--text-secondary);font-size:0.78rem;font-style:italic;"><i class="fas fa-bolt" style="opacity:0.2;font-size:1.8rem;display:block;margin-bottom:8px;"></i>No electricity data entered yet.</div>' : '')
                 + '</div>';
         }
         container.innerHTML = html;
     }
     window.envRenderRegions = envRenderRegions;
-    // Expose envData/wasteData so outside scopes can check length
     Object.defineProperty(window, '_envData', { get: () => envData, set: v => { envData = v; }, configurable: true });
     Object.defineProperty(window, '_wasteData', { get: () => wasteData, set: v => { wasteData = v; }, configurable: true });
+
+    // ── Water overall summary ──────────────────────────────────────────────────
+    function waterUpdateSummary() {
+        const container = document.getElementById('env-summary-water');
+        if (!container) return;
+        const allProjects = (typeof state !== 'undefined' && state.projects) ? state.projects : [];
+        const fmt = (v) => v > 0 ? v.toLocaleString(undefined,{maximumFractionDigits:3}) : '\u2014';
+        const regionRows = [];
+        ENV_REGIONS.forEach(function(region) {
+            const rows   = waterData.filter(r => r.region === region);
+            const projs  = allProjects.filter(p => p.region === region).length;
+            const domM3  = rows.reduce((s,r)=>s+r.domM3,0);
+            const domAmt = rows.reduce((s,r)=>s+r.domAmt,0);
+            const potLit = rows.reduce((s,r)=>s+r.potLit,0);
+            const potAmt = rows.reduce((s,r)=>s+r.potAmt,0);
+            const indM3  = rows.reduce((s,r)=>s+r.indM3,0);
+            const indAmt = rows.reduce((s,r)=>s+r.indAmt,0);
+            const rc     = REGION_COLORS[region] || { bg:'#1b5e20' };
+            regionRows.push({ region, projs, domM3, domAmt, potLit, potAmt, indM3, indAmt, color: rc.bg });
+        });
+        const grandDomM3  = regionRows.reduce((s,r)=>s+r.domM3,0);
+        const grandDomAmt = regionRows.reduce((s,r)=>s+r.domAmt,0);
+        const grandPotLit = regionRows.reduce((s,r)=>s+r.potLit,0);
+        const grandPotAmt = regionRows.reduce((s,r)=>s+r.potAmt,0);
+        const grandIndM3  = regionRows.reduce((s,r)=>s+r.indM3,0);
+        const grandIndAmt = regionRows.reduce((s,r)=>s+r.indAmt,0);
+        const hasAnyData  = grandDomM3 > 0 || grandPotLit > 0 || grandIndM3 > 0;
+        const kpiCards = [
+            { label:'Domestic Water',  value: fmt(grandDomM3)+' m\u00b3',  icon:'fa-faucet',     color:'#1b5e20', bg:'#e8f5e9' },
+            { label:'Dom. Amount',     value: '\u20b1'+fmt(grandDomAmt),   icon:'fa-coins',      color:'#2e7d32', bg:'#f1f8e9' },
+            { label:'Potable Water',   value: fmt(grandPotLit)+' L',       icon:'fa-glass-water',color:'#388e3c', bg:'#f9fbe7' },
+            { label:'Pot. Amount',     value: '\u20b1'+fmt(grandPotAmt),   icon:'fa-coins',      color:'#33691e', bg:'#f1f8e9' },
+            { label:'Industrial Water',value: fmt(grandIndM3)+' m\u00b3',  icon:'fa-industry',   color:'#1b5e20', bg:'#e8f5e9' },
+            { label:'Ind. Amount',     value: '\u20b1'+fmt(grandIndAmt),   icon:'fa-coins',      color:'#2e7d32', bg:'#f1f8e9' },
+        ];
+        // ── Section cards: Domestic / Potable / Industrial ────────────────────
+        const waterSectionCards = [
+            { label: 'Domestic Water', icon: 'fa-faucet', color: '#1b5e20', bg: '#e8f5e9',
+              rows: [
+                { label: 'Volume', value: fmt(grandDomM3) + ' m³' },
+                { label: 'Amount', value: '₱' + fmt(grandDomAmt) }
+              ]
+            },
+            { label: 'Potable Water', icon: 'fa-glass-water', color: '#2e7d32', bg: '#f1f8e9',
+              rows: [
+                { label: 'Volume', value: fmt(grandPotLit) + ' L' },
+                { label: 'Amount', value: '₱' + fmt(grandPotAmt) }
+              ]
+            },
+            { label: 'Industrial Water', icon: 'fa-industry', color: '#388e3c', bg: '#f9fbe7',
+              rows: [
+                { label: 'Volume', value: fmt(grandIndM3) + ' m³' },
+                { label: 'Amount', value: '₱' + fmt(grandIndAmt) }
+              ]
+            }
+        ];
+        const sectionCardsHtml = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px;">'
+            + waterSectionCards.map(sc =>
+                `<div style="background:var(--bg-card);border:1px solid ${sc.color}33;border-radius:10px;padding:12px 16px;flex:1;min-width:180px;">` +
+                `<div style="font-size:0.65rem;font-weight:800;color:${sc.color};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;"><i class="fas ${sc.icon}" style="margin-right:6px;"></i>${sc.label}</div>` +
+                sc.rows.map(r => `<div style="display:flex;justify-content:space-between;font-size:0.66rem;color:var(--text-secondary);border-top:1px solid #f1f8e9;padding:3px 0;"><span>${r.label}</span><span style="font-weight:700;color:${sc.color};">${r.value}</span></div>`).join('') +
+                `</div>`
+            ).join('') + '</div>';
+        const cardsHtml = sectionCardsHtml + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">'
+            + kpiCards.map(c => `<div style="background:${c.bg};border:1px solid ${c.color}33;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;min-width:140px;flex:1;"><i class="fas ${c.icon}" style="color:${c.color};font-size:1.1rem;"></i><div><div style="font-size:0.6rem;font-weight:700;color:${c.color};text-transform:uppercase;letter-spacing:0.4px;">${c.label}</div><div style="font-size:0.88rem;font-weight:800;color:${c.color};">${c.value}</div></div></div>`).join('')
+            + '</div>';
+        const _th  = (txt, bg) => `<th style="padding:7px 10px;text-align:right;background:${bg};color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.62rem;white-space:nowrap;">${txt}</th>`;
+        const _thL = (txt, bg) => `<th style="padding:7px 10px;text-align:left;background:${bg};color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.62rem;white-space:nowrap;">${txt}</th>`;
+        const _td  = (v, bold) => `<td style="padding:7px 10px;text-align:right;border:1px solid #c8e6c9;font-size:0.68rem;${bold?'font-weight:800;':''}">${fmt(v)}</td>`;
+        const footHtml = `<tr style="background:linear-gradient(90deg,#e8f5e9,#f1f8e9);"><td style="padding:9px 12px;font-weight:800;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.7rem;" colspan="2"><i class="fas fa-globe" style="margin-right:5px;"></i>GRAND TOTAL</td>${_td(grandDomM3,true)} ${_td(grandDomAmt,true)} ${_td(grandPotLit,true)} ${_td(grandPotAmt,true)} ${_td(grandIndM3,true)} ${_td(grandIndAmt,true)}</tr>`;
+        const rowsHtml = regionRows.map((r) => {
+            const rc = REGION_COLORS[r.region] || { bg:'#1b5e20', light:'#e8f5e9' };
+            return `<tr style="background:${rc.light};">
+                <td style="padding:7px 12px;border:1px solid ${rc.bg}33;font-weight:800;font-size:0.68rem;white-space:nowrap;color:${rc.bg};"><span style="width:9px;height:9px;border-radius:2px;background:${rc.bg};display:inline-block;margin-right:6px;vertical-align:middle;"></span>${r.region}</td>
+                <td style="padding:7px 10px;text-align:center;border:1px solid ${rc.bg}33;color:${rc.bg};font-size:0.68rem;font-weight:700;">${r.projs}</td>
+                ${_td(r.domM3)} ${_td(r.domAmt)} ${_td(r.potLit)} ${_td(r.potAmt)} ${_td(r.indM3)} ${_td(r.indAmt)}
+            </tr>`;
+        }).join('');
+        container.innerHTML = '<div style="background:var(--bg-card);border-radius:12px;overflow:hidden;border:2px solid #1b5e20;box-shadow:0 4px 16px rgba(27,94,32,0.12);">'
+            + '<div style="background:linear-gradient(135deg,#0d3d0f 0%,#1b5e20 60%,#2e7d32 100%);padding:12px 18px;display:flex;align-items:center;gap:10px;">'
+            + '<i class="fas fa-droplet" style="color:#a5d6a7;font-size:1.1rem;"></i>'
+            + '<span style="font-weight:800;color:white;font-size:0.88rem;letter-spacing:0.5px;">OVERALL SUMMARY \u2014 WATER CONSUMPTION</span>'
+            + `<span style="background:rgba(255,255,255,0.15);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;margin-left:auto;">${allProjects.length} Total Projects</span>`
+            + '</div>'
+            + '<div style="padding:14px 18px 0;">' + cardsHtml + '</div>'
+            + '<div style="padding:0 18px 16px;overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.68rem;"><thead><tr>'
+            + _thL('Region','#388e3c') + _thL('Projects','#388e3c')
+            + `<th colspan="2" style="padding:7px 10px;text-align:center;background:#2e7d32;color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">🏠 Domestic</th>`
+            + `<th colspan="2" style="padding:7px 10px;text-align:center;background:#388e3c;color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">💧 Potable</th>`
+            + `<th colspan="2" style="padding:7px 10px;text-align:center;background:#1b5e20;color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">🏭 Industrial</th>`
+            + `</tr><tr>${_thL('','#66bb6a')}${_thL('','#66bb6a')}${_th('m\u00b3','#2e7d32')}${_th('Amount (\u20b1)','#2e7d32')}${_th('Liters','#388e3c')}${_th('Amount (\u20b1)','#388e3c')}${_th('m\u00b3','#1b5e20')}${_th('Amount (\u20b1)','#1b5e20')}</tr></thead>`
+            + `<tbody>${rowsHtml}</tbody><tfoot>${footHtml}</tfoot></table></div>`
+            + (!hasAnyData ? '<div style="padding:24px;text-align:center;color:var(--text-secondary);font-size:0.78rem;font-style:italic;"><i class="fas fa-droplet" style="opacity:0.2;font-size:1.8rem;display:block;margin-bottom:8px;"></i>No water data entered yet.</div>' : '')
+            + '</div>';
+    }
+
+    // ── Appliances overall summary ─────────────────────────────────────────────
+    function appliancesUpdateSummary() {
+        const container = document.getElementById('env-summary-appliances');
+        if (!container) return;
+        const allProjects = (typeof state !== 'undefined' && state.projects) ? state.projects : [];
+        const SECTION_LABELS = { A:'Household Appliances', A1:'Air Conditioning', B:'Lighting Fixtures', C:'Power Tools & Others' };
+        const SECTION_KEYS = ['A','A1','B','C'];
+
+        // ── Grand totals (all regions) ────────────────────────────────────────
+        const totals = {};
+        Object.values(appliancesData).forEach(function(entry) {
+            Object.keys(entry).forEach(function(fieldId) {
+                totals[fieldId] = (totals[fieldId] || 0) + (parseFloat(entry[fieldId]) || 0);
+            });
+        });
+        const hasAnyData = Object.values(totals).some(v => v > 0);
+        const totalUnits = Object.values(totals).reduce((s,v)=>s+v,0);
+
+        // ── Section summary cards (grand total) ──────────────────────────────
+        const sections = {};
+        APPL_FIELDS.forEach(function(f) {
+            if (!sections[f.section]) sections[f.section] = { fields: [] };
+            sections[f.section].fields.push({ id:f.id, label:f.label, total:totals[f.id]||0 });
+        });
+        const sectionCards = SECTION_KEYS.map(function(sk) {
+            const sec = sections[sk]; if (!sec) return '';
+            const secTotal = sec.fields.reduce((s,f)=>s+f.total,0);
+            const topFields = sec.fields.filter(f=>f.total>0).sort((a,b)=>b.total-a.total).slice(0,3);
+            return `<div style="background:var(--bg-card);border:1px solid #c8e6c9;border-radius:10px;padding:12px 16px;flex:1;min-width:180px;"><div style="font-size:0.65rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">${SECTION_LABELS[sk]||sk}</div><div style="font-size:1rem;font-weight:800;color:#2e7d32;margin-bottom:8px;">${secTotal.toLocaleString()} units</div>${topFields.map(f=>`<div style="display:flex;justify-content:space-between;font-size:0.66rem;color:var(--text-secondary);border-top:1px solid #f1f8e9;padding:3px 0;"><span>${f.label}</span><span style="font-weight:700;color:#1b5e20;">${f.total.toLocaleString()}</span></div>`).join('')}${topFields.length===0?'<div style="font-size:0.65rem;color:var(--text-secondary);font-style:italic;">No data yet</div>':''}</div>`;
+        }).join('');
+
+        // ── Per-region totals ─────────────────────────────────────────────────
+        const regionRows = ENV_REGIONS.map(function(region) {
+            const rTotals = {};
+            const rProjSet = new Set();
+            Object.entries(appliancesData).forEach(function([key, entry]) {
+                const parts = key.split(':');
+                // key format: region:projName:month:building (colons replaced with _ in non-alnum chars, but region preserved)
+                // Reconstruct region by matching against known regions
+                // appliancesKey replaces non-alnum non-colon with _, so "VISAYAS & MINDANAO" → "VISAYAS___MINDANAO"
+                // Normalize both sides: replace underscores with spaces for comparison
+                const keyRegionRaw = (parts[0] || '').replace(/_+/g,' ').trim().toUpperCase();
+                const targetRegion = region.replace(/[^a-z0-9]/gi,'_').replace(/_+/g,' ').trim().toUpperCase();
+                if (keyRegionRaw !== targetRegion) return;
+                rProjSet.add(parts[1] || '');
+                Object.keys(entry).forEach(function(fieldId) {
+                    rTotals[fieldId] = (rTotals[fieldId] || 0) + (parseFloat(entry[fieldId]) || 0);
+                });
+            });
+            const rSectionTotals = SECTION_KEYS.map(function(sk) {
+                const sFields = APPL_FIELDS.filter(f=>f.section===sk);
+                return sFields.reduce((s,f)=>s+(rTotals[f.id]||0),0);
+            });
+            const rTotal = rSectionTotals.reduce((s,v)=>s+v,0);
+            const rc = REGION_COLORS[region] || { bg:'#1b5e20', light:'#e8f5e9' };
+            return { region, projs: allProjects.filter(p=>p.region===region).length, rTotal, rSectionTotals, rc };
+        });
+
+        // ── Region breakdown table ────────────────────────────────────────────
+        const _th  = (txt, bg) => `<th style="padding:7px 10px;text-align:right;background:${bg};color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.62rem;white-space:nowrap;">${txt}</th>`;
+        const _thL = (txt, bg) => `<th style="padding:7px 10px;text-align:left;background:${bg};color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.62rem;white-space:nowrap;">${txt}</th>`;
+        const _td  = (v, bold) => `<td style="padding:7px 10px;text-align:right;border:1px solid #c8e6c9;font-size:0.68rem;${bold?'font-weight:800;color:#1b5e20;':''}">${v > 0 ? v.toLocaleString() : '\u2014'}</td>`;
+
+        const rowsHtml = regionRows.map(function(r) {
+            return `<tr style="background:${r.rc.light};">
+                <td style="padding:7px 12px;border:1px solid ${r.rc.bg}33;font-weight:800;font-size:0.68rem;white-space:nowrap;color:${r.rc.bg};"><span style="width:9px;height:9px;border-radius:2px;background:${r.rc.bg};display:inline-block;margin-right:6px;vertical-align:middle;"></span>${r.region}</td>
+                <td style="padding:7px 10px;text-align:center;border:1px solid ${r.rc.bg}33;color:${r.rc.bg};font-size:0.68rem;font-weight:700;">${r.projs}</td>
+                ${r.rSectionTotals.map(v=>_td(v,false)).join('')}
+                ${_td(r.rTotal, true)}
+            </tr>`;
+        }).join('');
+
+        const grandTotalsRow = `<tr style="background:linear-gradient(90deg,#e8f5e9,#f1f8e9);">
+            <td style="padding:9px 12px;font-weight:800;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.7rem;" colspan="2"><i class="fas fa-globe" style="margin-right:5px;"></i>GRAND TOTAL</td>
+            ${SECTION_KEYS.map(function(sk){
+                const sFields = APPL_FIELDS.filter(f=>f.section===sk);
+                const v = sFields.reduce((s,f)=>s+(totals[f.id]||0),0);
+                return _td(v,false);
+            }).join('')}
+            ${_td(totalUnits, true)}
+        </tr>`;
+
+        const tableHtml = '<div style="padding:0 18px 16px;overflow-x:auto;">'
+            + '<table style="width:100%;border-collapse:collapse;font-size:0.68rem;"><thead>'
+            + `<tr>${_thL('Region','#388e3c')}${_thL('Projects','#388e3c')}`
+            + SECTION_KEYS.map(sk=>`<th style="padding:7px 10px;text-align:center;background:#1b5e20;color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.62rem;white-space:nowrap;">${SECTION_LABELS[sk]||sk}</th>`).join('')
+            + _th('Total Units','#0d3d0f') + '</tr>'
+            + '</thead>'
+            + `<tbody>${rowsHtml}</tbody>`
+            + `<tfoot>${grandTotalsRow}</tfoot>`
+            + '</table></div>';
+
+        container.innerHTML = '<div style="background:var(--bg-card);border-radius:12px;overflow:hidden;border:2px solid #1b5e20;box-shadow:0 4px 16px rgba(27,94,32,0.12);">'
+            + '<div style="background:linear-gradient(135deg,#0d3d0f 0%,#1b5e20 60%,#2e7d32 100%);padding:12px 18px;display:flex;align-items:center;gap:10px;">'
+            + '<i class="fas fa-plug" style="color:#a5d6a7;font-size:1.1rem;"></i>'
+            + '<span style="font-weight:800;color:white;font-size:0.88rem;letter-spacing:0.5px;">OVERALL SUMMARY \u2014 ELECTRICAL EQUIPMENT & FIXTURES</span>'
+            + `<span style="background:rgba(255,255,255,0.15);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;margin-left:auto;">${totalUnits.toLocaleString()} Total Units</span>`
+            + '</div>'
+            + '<div style="padding:14px 18px 10px;display:flex;gap:12px;flex-wrap:wrap;">' + sectionCards + '</div>'
+            + tableHtml
+            + (!hasAnyData ? '<div style="padding:24px;text-align:center;color:var(--text-secondary);font-size:0.78rem;font-style:italic;"><i class="fas fa-plug" style="opacity:0.2;font-size:1.8rem;display:block;margin-bottom:8px;"></i>No appliance inventory entered yet.</div>' : '')
+            + '</div>';
+    }
+    window.appliancesUpdateSummary = appliancesUpdateSummary;
 
     function envBuildRows(rows, canEdit) {
         if (!rows.length) {
@@ -32100,58 +32274,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     
-    function envUpdateBadges() {
-        const totKwh  = envData.reduce((s,r)=>s+r.kwh,0);
-        const totGhg  = envData.reduce((s,r)=>s+r.ghg,0);
-        const totTrees= envData.reduce((s,r)=>s+r.trees,0);
-        const b1 = document.getElementById('env-badge-kwh');
-        const b2 = document.getElementById('env-badge-ghg');
-        const b3 = document.getElementById('env-badge-trees');
-        if (b1) b1.textContent = `${totKwh.toLocaleString()} kWh Total`;
-        if (b2) b2.textContent = `${totGhg.toFixed(4)} tCO2`;
-        if (b3) b3.textContent = `${Math.ceil(totTrees)} Trees Needed`;
-    }
+    function envUpdateBadges() { /* badges removed — totals shown in Overall Summary cards */ }
 
     
-    let envChart = null;
-    function envUpdateChart() {
-        const ctx = document.getElementById('env-pie-chart');
-        if (!ctx) return;
-
-        const labels = [], data = [], colors = [];
-        ENV_REGIONS.forEach((region, i) => {
-            const tot = envData.filter(r=>r.region===region).reduce((s,r)=>s+r.kwh,0);
-            if (tot > 0) { labels.push(region); data.push(tot); colors.push(PIE_COLORS[i]); }
-        });
-
-        if (envChart) {
-            envChart.data.labels = labels;
-            envChart.data.datasets[0].data = data;
-            envChart.data.datasets[0].backgroundColor = colors;
-            envChart.update();
-        } else {
-            envChart = new Chart(ctx.getContext('2d'), {
-                type: 'doughnut',
-                data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
-                options: {
-                    responsive: false, cutout: '60%',
-                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.label}: ${c.parsed.toLocaleString()} kWh` } } },
-                    animation: { duration: 500 }
-                }
-            });
-        }
-
-        const total = data.reduce((s,v)=>s+v,0);
-        const ctr = document.getElementById('env-pie-total');
-        if (ctr) ctr.textContent = total > 0 ? total.toLocaleString() : '0';
-
-        const leg = document.getElementById('env-pie-legend');
-        if (leg) {
-            leg.innerHTML = labels.length
-                ? labels.map((l,i)=>`<div style="display:flex;align-items:center;gap:5px;"><span style="width:9px;height:9px;border-radius:2px;background:${colors[i]};flex-shrink:0;"></span><span style="color:var(--text-secondary);flex:1;font-size:0.65rem;">${l}</span><span style="font-weight:700;color:var(--text-primary);font-size:0.65rem;">${data[i].toLocaleString()}</span></div>`).join('')
-                : `<div style="color:var(--text-secondary);font-size:0.65rem;font-style:italic;">No data yet</div>`;
-        }
-    }
+    // envUpdateChart removed — pie chart panel replaced with simple info bar
 
     
     function waterRegionKey(r) { return 'w_' + r.replace(/[^a-z0-9]/gi,'_'); }
@@ -32178,6 +32304,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const el = document.getElementById(p+suffix); if (el) el.value = '';
         });
         waterRenderRegions();
+        waterUpdateSummary();
     };
 
     window.waterDeleteRow = function(id) {
@@ -32190,6 +32317,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (row && typeof deleteEnvRowFromFirebase === 'function') deleteEnvRowFromFirebase('env_water_rows', id);
         waterData = waterData.filter(r => r.id !== id);
         waterRenderRegions();
+        waterUpdateSummary();
     };
 
     window.waterToggleRegion = function(regionRaw) {
@@ -32434,7 +32562,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
     window.envInitChart = function() {
-        if (envChart) { envChart.destroy(); envChart = null; }
         // If envData is empty, try loading from Yjs first (covers direct tab open)
         if (envData.length === 0 && typeof window.loadEnvFromYjs === 'function') {
             window.loadEnvFromYjs().then(() => {
@@ -32451,7 +32578,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     let wasteData = [];
-    let wasteCollapsed = {};
+    let wasteCollapsed = _initCollapsed();
 
     const WASTE_MONTHS = ENV_MONTHS;
     const WASTE_REGIONS = ENV_REGIONS;
@@ -32539,62 +32666,139 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     function wasteUpdateSummary() {
-        const container = document.getElementById('env-waste-summary-container');
+        const container = document.getElementById('env-summary-waste');
         if (!container) return;
-        const totBioGen    = wasteData.reduce((s,r) => s + r.bioGen, 0);
-        const totNonbioGen = wasteData.reduce((s,r) => s + r.nonbioGen, 0);
-        const totRecGen    = wasteData.reduce((s,r) => s + r.recGen, 0);
-        const totHazGen    = wasteData.reduce((s,r) => s + r.hazGen, 0);
-        const totSeptage   = wasteData.reduce((s,r) => s + r.septage, 0);
-        const totalGen     = totBioGen + totNonbioGen + totRecGen + totHazGen;
+        const allProjects = (typeof state !== 'undefined' && state.projects) ? state.projects : [];
+        const fmt = (v) => v > 0 ? v.toLocaleString(undefined,{maximumFractionDigits:3}) : '—';
 
+        // Per-region aggregation
+        const regionRows = [];
+        WASTE_REGIONS.forEach(function(region) {
+            const rows = wasteData.filter(r => r.region === region);
+            const projs = allProjects.filter(p => p.region === region).length;
+            const bioGen    = rows.reduce((s,r)=>s+r.bioGen,0);
+            const nonbioGen = rows.reduce((s,r)=>s+r.nonbioGen,0);
+            const recGen    = rows.reduce((s,r)=>s+r.recGen,0);
+            const hazGen    = rows.reduce((s,r)=>s+r.hazGen,0);
+            const septage   = rows.reduce((s,r)=>s+r.septage,0);
+            const total     = bioGen + nonbioGen + recGen + hazGen;
+            const rc        = REGION_COLORS[region] || { bg:'#1b5e20' };
+            regionRows.push({ region, projs, bioGen, nonbioGen, recGen, hazGen, septage, total, color: rc.bg });
+        });
+
+        const grandBio    = regionRows.reduce((s,r)=>s+r.bioGen,0);
+        const grandNonbio = regionRows.reduce((s,r)=>s+r.nonbioGen,0);
+        const grandRec    = regionRows.reduce((s,r)=>s+r.recGen,0);
+        const grandHaz    = regionRows.reduce((s,r)=>s+r.hazGen,0);
+        const grandSep    = regionRows.reduce((s,r)=>s+r.septage,0);
+        const grandTotal  = grandBio + grandNonbio + grandRec + grandHaz;
+        const hasAnyData  = grandTotal > 0 || grandSep > 0;
+
+        // Top KPI cards
         const cards = [
-            { label: 'Total Waste Generated', value: totalGen.toLocaleString(undefined,{maximumFractionDigits:2}) + ' MT', icon: 'fa-trash-alt', color: '#5d4037', bg: '#efebe9' },
-            { label: 'Biodegradable', value: totBioGen.toLocaleString(undefined,{maximumFractionDigits:2}) + ' MT', icon: 'fa-leaf', color: '#2e7d32', bg: '#e8f5e9' },
-            { label: 'Non-Biodegradable', value: totNonbioGen.toLocaleString(undefined,{maximumFractionDigits:2}) + ' MT', icon: 'fa-recycle', color: '#1565c0', bg: '#e3f2fd' },
-            { label: 'Recyclable', value: totRecGen.toLocaleString(undefined,{maximumFractionDigits:2}) + ' MT', icon: 'fa-sync', color: '#e65100', bg: '#fff3e0' },
-            { label: 'Hazardous', value: totHazGen.toLocaleString(undefined,{maximumFractionDigits:2}) + ' MT', icon: 'fa-skull-crossbones', color: '#b71c1c', bg: '#ffebee' },
-            { label: 'Septage (Siphoning)', value: totSeptage.toLocaleString(undefined,{maximumFractionDigits:2}) + ' m³', icon: 'fa-water', color: '#0277bd', bg: '#e1f5fe' },
+            { label:'Total Waste Generated', value: fmt(grandTotal)+' MT', icon:'fa-trash-alt', color:'#1b5e20', bg:'#e8f5e9' },
+            { label:'Biodegradable',          value: fmt(grandBio)+' MT',    icon:'fa-leaf',           color:'#2e7d32', bg:'#e8f5e9' },
+            { label:'Non-Biodegradable',      value: fmt(grandNonbio)+' MT', icon:'fa-recycle',        color:'#33691e', bg:'#f1f8e9' },
+            { label:'Recyclable',             value: fmt(grandRec)+' MT',    icon:'fa-sync',           color:'#388e3c', bg:'#f9fbe7' },
+            { label:'Hazardous',              value: fmt(grandHaz)+' MT',    icon:'fa-skull-crossbones',color:'#1b5e20',bg:'#e8f5e9' },
+            { label:'Septage (Siphoning)',    value: fmt(grandSep)+' m³',    icon:'fa-water',          color:'#2e7d32', bg:'#e8f5e9' },
         ];
 
-        container.innerHTML = cards.map(c => `
-            <div style="background:${c.bg};border:1px solid ${c.color}33;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;min-width:160px;flex:1;">
+        const cardsHtml = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">'
+            + cards.map(c => `<div style="background:${c.bg};border:1px solid ${c.color}33;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;min-width:150px;flex:1;">
                 <i class="fas ${c.icon}" style="color:${c.color};font-size:1.1rem;"></i>
-                <div>
-                    <div style="font-size:0.6rem;font-weight:700;color:${c.color};text-transform:uppercase;letter-spacing:0.4px;">${c.label}</div>
-                    <div style="font-size:0.9rem;font-weight:800;color:${c.color};">${c.value}</div>
-                </div>
-            </div>`).join('');
+                <div><div style="font-size:0.6rem;font-weight:700;color:${c.color};text-transform:uppercase;letter-spacing:0.4px;">${c.label}</div>
+                <div style="font-size:0.88rem;font-weight:800;color:${c.color};">${c.value}</div></div></div>`).join('')
+            + '</div>';
+
+        const _th = (txt, bg) => `<th style="padding:7px 10px;text-align:right;background:${bg};color:#fff;font-weight:700;border:1px solid #ddd;font-size:0.62rem;white-space:nowrap;">${txt}</th>`;
+        const _thL = (txt, bg) => `<th style="padding:7px 10px;text-align:left;background:${bg};color:#fff;font-weight:700;border:1px solid #ddd;font-size:0.62rem;white-space:nowrap;">${txt}</th>`;
+        const _td = (v) => `<td style="padding:7px 10px;text-align:right;border:1px solid #eee;font-size:0.68rem;">${fmt(v)}</td>`;
+        const _tdB = (v) => `<td style="padding:7px 10px;text-align:right;border:1px solid #ddd;font-size:0.68rem;font-weight:800;">${fmt(v)}</td>`;
+
+        const rowsHtml = regionRows.map(function(r) {
+            const rc = REGION_COLORS[r.region] || { bg:'#1b5e20', light:'#e8f5e9' };
+            return `<tr style="background:${rc.light};">
+                <td style="padding:7px 12px;border:1px solid ${rc.bg}33;font-weight:800;font-size:0.68rem;white-space:nowrap;color:${rc.bg};">
+                    <span style="width:9px;height:9px;border-radius:2px;background:${rc.bg};display:inline-block;margin-right:6px;vertical-align:middle;"></span>${r.region}</td>
+                <td style="padding:7px 10px;text-align:center;border:1px solid ${rc.bg}33;color:${rc.bg};font-size:0.68rem;font-weight:700;">${r.projs}</td>
+                ${_td(r.total)} ${_td(r.bioGen)} ${_td(r.nonbioGen)} ${_td(r.recGen)} ${_td(r.hazGen)} ${_td(r.septage)}
+            </tr>`;
+        }).join('');
+
+        const footHtml = `<tr style="background:linear-gradient(90deg,#e8f5e9,#f1f8e9);">
+            <td style="padding:9px 12px;font-weight:800;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.7rem;" colspan="2"><i class="fas fa-globe" style="margin-right:5px;"></i>GRAND TOTAL</td>
+            ${_tdB(grandTotal)} ${_tdB(grandBio)} ${_tdB(grandNonbio)} ${_tdB(grandRec)} ${_tdB(grandHaz)} ${_tdB(grandSep)}
+        </tr>`;
+
+        const tableHtml = '<div style="overflow-x:auto;">'
+            + '<table style="width:100%;border-collapse:collapse;font-size:0.68rem;">'
+            + '<thead>'
+            + `<tr>${_thL('Region','#388e3c')}${_thL('Projects','#388e3c')}`
+            + `<th colspan="5" style="padding:7px 10px;text-align:center;background:#1b5e20;color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">🗑️ WASTE GENERATED (MT)</th>`
+            + `${_th('Septage (m³)','#2e7d32')}</tr>`
+            + `<tr>${_thL('','#66bb6a')}${_thL('','#66bb6a')}`
+            + `${_th('Total','#5d4037')}${_th('Biodeg.','#2e7d32')}${_th('Non-Bio','#1565c0')}${_th('Recyclable','#e65100')}${_th('Hazardous','#b71c1c')}`
+            + `${_th('m³','#2e7d32')}</tr>`
+            + '</thead>'
+            + `<tbody>${rowsHtml}</tbody>`
+            + `<tfoot>${footHtml}</tfoot>`
+            + '</table></div>';
+
+        container.innerHTML = '<div style="background:var(--bg-card);border-radius:12px;overflow:hidden;border:2px solid #1b5e20;box-shadow:0 4px 16px rgba(27,94,32,0.12);">'
+            + '<div style="background:linear-gradient(135deg,#0d3d0f 0%,#1b5e20 60%,#2e7d32 100%);padding:12px 18px;display:flex;align-items:center;gap:10px;">'
+            + '<i class="fas fa-trash-alt" style="color:#a5d6a7;font-size:1.1rem;"></i>'
+            + '<span style="font-weight:800;color:white;font-size:0.88rem;letter-spacing:0.5px;">OVERALL SUMMARY — WASTE GENERATION & DISPOSAL</span>'
+            + `<span style="background:rgba(255,255,255,0.15);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;margin-left:auto;">${allProjects.length} Total Projects</span>`
+            + '</div>'
+            + '<div style="padding:14px 18px 0;">' + cardsHtml + '</div>'
+            + '<div style="padding:0 18px 16px;">' + tableHtml + '</div>'
+            + (!hasAnyData ? '<div style="padding:24px;text-align:center;color:var(--text-secondary);font-size:0.78rem;font-style:italic;"><i class="fas fa-trash-alt" style="opacity:0.2;font-size:1.8rem;display:block;margin-bottom:8px;"></i>No waste data entered yet.</div>' : '')
+            + '</div>';
     }
 
     function wasteProjectTableHTML(projRows, colors, canEdit) {
-        let t = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.72rem;table-layout:fixed;">
+        // Col widths: Month=7%, Location=22%, 8 data cols=5.5% each(44%), Septage=6%, Remarks=9%, [Delete=3%]
+        const colgroup = `<colgroup>
+            <col style="width:7%">
+            <col style="width:${canEdit?'19%':'22%'}">
+            <col style="width:5.5%"><col style="width:5.5%">
+            <col style="width:5.5%"><col style="width:5.5%">
+            <col style="width:5.5%"><col style="width:5.5%">
+            <col style="width:5.5%"><col style="width:5.5%">
+            <col style="width:6%">
+            <col style="width:${canEdit?'8%':'9%'}">
+            ${canEdit ? '<col style="width:3%">' : ''}
+        </colgroup>`;
+        const thS = 'padding:5px 4px;text-align:center;border:1px solid #ddd;white-space:nowrap;overflow:hidden;';
+        let t = `<div style="width:100%;"><table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:0.68rem;">
+            ${colgroup}
             <thead>
                 <tr>
-                    <th style="background:${colors.bg};color:white;padding:6px 10px;text-align:center;border:1px solid #ddd;">Month</th>
-                    <th style="background:${colors.bg};color:white;padding:6px 10px;text-align:center;border:1px solid #ddd;">Location</th>
-                    <th style="background:#2e7d32;color:white;padding:6px 8px;text-align:center;border:1px solid #ddd;" colspan="2">Biodegradable (MT)</th>
-                    <th style="background:#1565c0;color:white;padding:6px 8px;text-align:center;border:1px solid #ddd;" colspan="2">Non-Biodegradable (MT)</th>
-                    <th style="background:#e65100;color:white;padding:6px 8px;text-align:center;border:1px solid #ddd;" colspan="2">Recyclable (MT)</th>
-                    <th style="background:#b71c1c;color:white;padding:6px 8px;text-align:center;border:1px solid #ddd;" colspan="2">Hazardous (MT)</th>
-                    <th style="background:#0277bd;color:white;padding:6px 10px;text-align:center;border:1px solid #ddd;">Septage (m³)</th>
-                    <th style="background:#546e7a;color:white;padding:6px 10px;text-align:center;border:1px solid #ddd;">Remarks</th>
-                    ${canEdit ? '<th style="background:#546e7a;color:white;padding:6px 8px;text-align:center;border:1px solid #ddd;"></th>' : ''}
+                    <th style="background:${colors.bg};color:white;${thS}">Month</th>
+                    <th style="background:${colors.bg};color:white;${thS}text-align:left;padding-left:8px;">Location</th>
+                    <th style="background:#2e7d32;color:white;${thS}" colspan="2">Biodegradable (MT)</th>
+                    <th style="background:#1565c0;color:white;${thS}" colspan="2">Non-Biodeg. (MT)</th>
+                    <th style="background:#e65100;color:white;${thS}" colspan="2">Recyclable (MT)</th>
+                    <th style="background:#b71c1c;color:white;${thS}" colspan="2">Hazardous (MT)</th>
+                    <th style="background:#2e7d32;color:white;${thS}">Septage (m³)</th>
+                    <th style="background:#546e7a;color:white;${thS}">Remarks</th>
+                    ${canEdit ? '<th style="background:#546e7a;color:white;'+thS+'"></th>' : ''}
                 </tr>
                 <tr>
-                    <th style="background:#388e3c;color:white;padding:4px 6px;border:1px solid #ddd;"></th>
-                    <th style="background:#388e3c;color:white;padding:4px 6px;border:1px solid #ddd;"></th>
-                    <th style="background:#388e3c;color:#c8e6c9;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Gen</th>
-                    <th style="background:#388e3c;color:#c8e6c9;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Disp</th>
-                    <th style="background:#1976d2;color:#bbdefb;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Gen</th>
-                    <th style="background:#1976d2;color:#bbdefb;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Disp</th>
-                    <th style="background:#f57c00;color:#ffe0b2;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Gen</th>
-                    <th style="background:#f57c00;color:#ffe0b2;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Disp</th>
-                    <th style="background:#c62828;color:#ffcdd2;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Gen</th>
-                    <th style="background:#c62828;color:#ffcdd2;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;">Disp</th>
-                    <th style="background:#0288d1;color:#b3e5fc;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;"></th>
-                    <th style="background:#607d8b;color:white;padding:4px 6px;font-size:0.62rem;border:1px solid #ddd;"></th>
-                    ${canEdit ? '<th style="background:#607d8b;color:white;padding:4px 6px;border:1px solid #ddd;"></th>' : ''}
+                    <th style="background:#388e3c;color:white;${thS}"></th>
+                    <th style="background:#388e3c;color:white;${thS}"></th>
+                    <th style="background:#388e3c;color:#c8e6c9;${thS}font-size:0.6rem;">Gen</th>
+                    <th style="background:#388e3c;color:#c8e6c9;${thS}font-size:0.6rem;">Disp</th>
+                    <th style="background:#1976d2;color:#bbdefb;${thS}font-size:0.6rem;">Gen</th>
+                    <th style="background:#1976d2;color:#bbdefb;${thS}font-size:0.6rem;">Disp</th>
+                    <th style="background:#f57c00;color:#ffe0b2;${thS}font-size:0.6rem;">Gen</th>
+                    <th style="background:#f57c00;color:#ffe0b2;${thS}font-size:0.6rem;">Disp</th>
+                    <th style="background:#c62828;color:#ffcdd2;${thS}font-size:0.6rem;">Gen</th>
+                    <th style="background:#c62828;color:#ffcdd2;${thS}font-size:0.6rem;">Disp</th>
+                    <th style="background:#388e3c;color:#c8e6c9;${thS}font-size:0.6rem;"></th>
+                    <th style="background:#607d8b;color:white;${thS}font-size:0.6rem;"></th>
+                    ${canEdit ? '<th style="background:#607d8b;color:white;'+thS+'"></th>' : ''}
                 </tr>
             </thead>
             <tbody>`;
@@ -32609,21 +32813,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 const mRows = grouped[month];
                 if (!mRows.length) return;
                 mRows.forEach((r, i) => {
+                    const tdN = 'padding:5px 3px;text-align:right;border:1px solid #e0e0e0;font-size:0.67rem;overflow:hidden;';
+                    const tdL = 'padding:5px 5px;border:1px solid #e0e0e0;font-size:0.67rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
                     t += `<tr style="background:${i%2===0?'var(--bg-card)':'var(--input-bg)'};">
-                        ${i===0 ? `<td rowspan="${mRows.length}" style="padding:6px 10px;text-align:center;font-weight:700;color:${colors.bg};border:1px solid #e0e0e0;vertical-align:middle;white-space:nowrap;">${month}</td>` : ''}
-                        <td style="padding:5px 8px;border:1px solid #e0e0e0;">${r.location}</td>
-                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.bioGen||''}</td>
-                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.bioDisp||''}</td>
-                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.nonbioGen||''}</td>
-                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.nonbioDisp||''}</td>
-                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.recGen||''}</td>
-                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.recDisp||''}</td>
-                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.hazGen||''}</td>
-                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.hazDisp||''}</td>
-                        <td style="padding:5px 8px;text-align:right;border:1px solid #e0e0e0;">${r.septage||''}</td>
-                        <td style="padding:5px 8px;border:1px solid #e0e0e0;">${r.remarks||''}</td>
-                        ${canEdit ? `<td style="padding:4px 6px;text-align:center;border:1px solid #e0e0e0;">
-                            <button onclick="wasteDeleteRow(${r.id})" style="padding:2px 7px;background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;font-size:0.6rem;cursor:pointer;"><i class="fas fa-times"></i></button>
+                        ${i===0 ? `<td rowspan="${mRows.length}" style="padding:5px 3px;text-align:center;font-weight:700;color:${colors.bg};border:1px solid #e0e0e0;vertical-align:middle;font-size:0.67rem;">${month}</td>` : ''}
+                        <td style="${tdL}">${r.location}</td>
+                        <td style="${tdN}">${r.bioGen||''}</td>
+                        <td style="${tdN}">${r.bioDisp||''}</td>
+                        <td style="${tdN}">${r.nonbioGen||''}</td>
+                        <td style="${tdN}">${r.nonbioDisp||''}</td>
+                        <td style="${tdN}">${r.recGen||''}</td>
+                        <td style="${tdN}">${r.recDisp||''}</td>
+                        <td style="${tdN}">${r.hazGen||''}</td>
+                        <td style="${tdN}">${r.hazDisp||''}</td>
+                        <td style="${tdN}">${r.septage||''}</td>
+                        <td style="${tdL}">${r.remarks||''}</td>
+                        ${canEdit ? `<td style="padding:3px 3px;text-align:center;border:1px solid #e0e0e0;">
+                            <button onclick="wasteDeleteRow(${r.id})" style="padding:2px 5px;background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;font-size:0.58rem;cursor:pointer;"><i class="fas fa-times"></i></button>
                         </td>` : ''}
                     </tr>`;
                 });
@@ -32660,7 +32866,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <input id="waste-haz-gen-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;"></div>
                 <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#b71c1c;">Haz Disp (MT)</label>
                     <input id="waste-haz-disp-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;"></div>
-                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#0277bd;">Septage (m³)</label>
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#2e7d32;">Septage (m³)</label>
                     <input id="waste-sep-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;"></div>
                 <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:var(--text-secondary);">Remarks</label>
                     <input id="waste-rem-${suffix}" type="text" placeholder="Optional" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:110px;"></div>
@@ -33862,8 +34068,10 @@ function tabNavProject(tabType, region, delta) {
         envRenderRegions();
     } else if (tabType === 'waste' && typeof wasteRenderRegions === 'function') {
         wasteRenderRegions();
+        wasteUpdateSummary();
     } else if (tabType === 'water' && typeof waterRenderRegions === 'function') {
         waterRenderRegions();
+        waterUpdateSummary();
     } else if (typeof render === 'function') {
         render();
     }
@@ -36529,14 +36737,15 @@ function applyRegionBannerColors() {
     // Tonal green depth: NCR (darkest) → South → North → VisMin (lightest)
     // Applies to ALL tabs/modules — region-banner, lta-region-banner,
     // osh-nov-region-banner, nov-env-region-banner, esh-region-banner, etc.
-    const REGION_STYLES = {
-        'NCR':                { bg: 'linear-gradient(135deg, #1b5e20 0%, #0d3311 100%)', color: '#fff' },
-        'SOUTH LUZON':        { bg: 'linear-gradient(135deg, #24692a 0%, #133816 100%)', color: '#fff' },
-        'NORTH LUZON':        { bg: 'linear-gradient(135deg, #2e7d32 0%, #1a4d1e 100%)', color: '#fff' },
-        'VISAYAS & MINDANAO': { bg: 'linear-gradient(135deg, #388e3c 0%, #215c26 100%)', color: '#fff' },
-        'PLANT OPERATIONS':   { bg: '#ffffff', color: '#1b5e20', border: '1.5px solid #c8e6c9' },
-        'CORPORATE':          { bg: '#ffffff', color: '#1b5e20', border: '1.5px solid #c8e6c9' }
-    };
+    // Build REGION_STYLES dynamically from window.REGION_COLORS — single source of truth
+    const REGION_STYLES = Object.fromEntries(
+        Object.entries(window.REGION_COLORS).map(([region, c]) => [
+            region,
+            c.white
+                ? { bg: '#ffffff', color: c.bg, border: '1.5px solid #c8e6c9' }
+                : { bg: `linear-gradient(135deg, ${c.bg} 0%, ${c.dark} 100%)`, color: '#fff' }
+        ])
+    );
 
     document.querySelectorAll('.region-banner').forEach(el => {
         // Determine region from id, data-region attribute, or text content
