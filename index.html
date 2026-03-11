@@ -21364,9 +21364,27 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var noneFilledMo = filledCount === 0;
                             hasAnyRow = true;
 
-                            var rowBg     = allComplete ? '#e8f5e9' : (noneFilledMo && isCurMo) ? '#e3f2fd' : noneFilledMo ? '#ffebee' : '#fff8e1';
-                            var statusFg  = allComplete ? '#2e7d32' : (noneFilledMo && isCurMo) ? '#1565c0' : noneFilledMo ? '#c62828' : '#e65100';
-                            var statusLabel = allComplete ? '✓ Complete' : (noneFilledMo && isCurMo) ? '🕐 In Progress' : noneFilledMo ? '✗ Not submitted' : '⚠ Incomplete';
+                            // ── Deadline-aware status: due on the 20th of the FOLLOWING month ──
+                            var _dlMo2 = (mi2 + 1) === 12 ? 1 : (mi2 + 2); // 1-based deadline month
+                            var _dlYr2 = (mi2 + 1) === 12 ? dSelYear + 1 : dSelYear;
+                            var _deadlinePassed2;
+                            if (dSelYear < dNowY) { _deadlinePassed2 = true; }
+                            else if (dSelYear > dNowY) { _deadlinePassed2 = false; }
+                            else { _deadlinePassed2 = (dNowY > _dlYr2) || (dNowY === _dlYr2 && dNowM > _dlMo2) || (dNowY === _dlYr2 && dNowM === _dlMo2 && dNowD > 20); }
+
+                            var rowBg, statusFg, statusLabel;
+                            if (allComplete) {
+                                rowBg = '#e8f5e9'; statusFg = '#2e7d32'; statusLabel = '✓ Complete';
+                            } else if (isCurMo && noneFilledMo) {
+                                rowBg = '#e3f2fd'; statusFg = '#1565c0'; statusLabel = '🕐 In Progress';
+                            } else if (!_deadlinePassed2) {
+                                // Deadline not yet passed — show as pending, not overdue
+                                rowBg = '#fff8e1'; statusFg = '#e65100'; statusLabel = '🕐 Pending (due ' + DOLE_MONTHS[_dlMo2 - 1].substring(0,3) + ' 20)';
+                            } else if (noneFilledMo) {
+                                rowBg = '#ffebee'; statusFg = '#c62828'; statusLabel = '✗ Not submitted';
+                            } else {
+                                rowBg = '#ffebee'; statusFg = '#c62828'; statusLabel = '⚠ Incomplete';
+                            }
                             var curBadge = isCurMo ? ' <span style="background:#e3f2fd;color:#1565c0;border-radius:4px;padding:1px 5px;font-size:0.58rem;font-weight:700;vertical-align:middle;">CURRENT</span>' : '';
 
                             var rowSummary = DOLE_MONTHLY_ROWS.map(function(row){
