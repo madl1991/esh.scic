@@ -4197,7 +4197,7 @@ body.dark-mode .toast-close:hover { color: #aaa; }
 
 .delete-dialog-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-    z-index: 99999; display: flex; align-items: center; justify-content: center;
+    z-index: 2147483647; display: flex; align-items: center; justify-content: center;
     animation: fadeInOverlay 0.2s ease;
     backdrop-filter: blur(4px);
 }
@@ -18559,13 +18559,23 @@ function renderTabulation() {
             buildRow('External Environmental Incident (ENVI NOV)', rows.envNov),
         ];
 
-        const totalColCount = 2 + 12 + 1 + 1; // prev + 12 months + total + accum
-        const totalRow = new Array(totalColCount).fill(0);
+        // totalRow layout (after slice(1) consumed by renderer):
+        // [0]=prev, [1..12]=Jan-Dec months, [13]=Total, [14]=Accumulated
+        // We build it as a 16-element array (index 0 unused) matching summaryRow layout,
+        // then slice(1) in the d= assignment removes index 0.
+        const totalRow = new Array(16).fill(0);
         summaryRows.forEach(row => {
-            for (let c = 1; c < row.length; c++) {
+            // Sum only prev (index 1) and 12 months (indices 2-13); skip pre-calc total[14] & accum[15]
+            for (let c = 1; c <= 13; c++) {
                 totalRow[c] = (totalRow[c] || 0) + (row[c] || 0);
             }
         });
+        // index 14 = Total (sum of months indices 2-13)
+        let _tMonthSum = 0;
+        for (let c = 2; c <= 13; c++) _tMonthSum += totalRow[c];
+        totalRow[14] = _tMonthSum;
+        // index 15 = Accumulated (prev + total)
+        totalRow[15] = totalRow[1] + _tMonthSum;
 
         const yearlyTotal = summaryRows.reduce((sum, row) => {
             return sum + (row[14] || 0);
@@ -18575,7 +18585,7 @@ function renderTabulation() {
             summary: {
                 headers: ['Incident / Accident', 'Previous', ...MONTHS_SHORT, 'Total', 'Accumulated'],
                 rows: summaryRows,
-                total: totalRow.slice(1), // remove leading 0
+                total: totalRow, // index 0 unused (renderer reads from index 1 like summaryRows)
             },
             mechanism: computeMechanismFromLta(projects),
             factors:   computeFactorsFromLta(projects),
@@ -18683,312 +18693,364 @@ function renderTabulation() {
             const container = document.getElementById('osh-nov-view');
             if (!container) return;
             const displayProjects = (state.filteredProjects || state.projects || []);
-            let html = '';
 
-            html += `<style>
-                .osh-nov-section { background:var(--bg-card); border-radius:6px; overflow:hidden; border:1px solid var(--border-color); margin-bottom:10px; }
-                .osh-nov-header { background:#f5f5f5; border-bottom:2px solid #e0e0e0; border-left:4px solid #1b5e20; padding:7px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
-                .osh-nov-proj-name { color:#222; font-weight:700; font-size:0.78rem; }
-                .osh-nov-region-badge { background:rgba(27,94,32,0.1); color:#1b5e20; padding:2px 8px; border-radius:10px; font-size:0.6rem; font-weight:600; }
-                .osh-nov-table { width:100%; border-collapse:collapse; font-size:0.74rem; border:1px solid #e8e8e8; border-radius:6px; overflow:hidden; }
-                .osh-nov-table th { background:#fff; color:#555; padding:5px 8px; text-align:center; font-size:0.66rem; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; border-bottom:2px solid #eee; }
+            // ── Helper: compute per-project NOV summary ──────────────────────
+            function _oshNovSummary(p) {
+                migrateOshNovData(p);
+                const intNovs = p.vals['osh-nov_internal_novs'] || [];
+                const extNovs = p.vals['osh-nov_external_novs'] || [];
+                let open = 0, closed = 0;
+                [...intNovs, ...extNovs].forEach(n => {
+                    const vs = n.violations || [];
+                    const allClosed = vs.length > 0 && vs.every(v => (v.status||'Open') === 'Closed');
+                    if (allClosed) closed++; else open++;
+                });
+                return { total: intNovs.length + extNovs.length, int: intNovs.length, ext: extNovs.length, open, closed };
+            }
+
+            // ── Grand totals ─────────────────────────────────────────────────
+            let _gtTotal=0,_gtInt=0,_gtExt=0,_gtOpen=0,_gtClosed=0,_gtViol=0,_gtViolOpen=0,_gtViolClosed=0;
+            displayProjects.forEach(p => {
+                migrateOshNovData(p);
+                const intNovs = p.vals['osh-nov_internal_novs'] || [];
+                const extNovs = p.vals['osh-nov_external_novs'] || [];
+                _gtInt += intNovs.length; _gtExt += extNovs.length;
+                [...intNovs,...extNovs].forEach(n => {
+                    const vs = n.violations||[];
+                    _gtViol += vs.length;
+                    vs.forEach(v => { if((v.status||'Open')==='Closed') _gtViolClosed++; else _gtViolOpen++; });
+                    const allClosed = vs.length>0 && vs.every(v=>(v.status||'Open')==='Closed');
+                    if(allClosed) _gtClosed++; else _gtOpen++;
+                });
+            });
+            _gtTotal = _gtInt + _gtExt;
+
+            let html = `<style>
+                #osh-nov-view .nov-proj-row { display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s; }
+                #osh-nov-view .nov-proj-row:hover { background:var(--hover-bg,#f5f9f5); }
+                #osh-nov-view .nov-proj-row:last-child { border-bottom:none; }
+                #osh-nov-view .nov-region-card { background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:0 0 14px; }
+                .osh-nov-table { width:100%; border-collapse:collapse; font-size:0.74rem; }
+                .osh-nov-table th { background:#f9f9f9; color:#555; padding:6px 8px; text-align:center; font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; border-bottom:2px solid #e0e0e0; white-space:nowrap; }
                 .osh-nov-table thead tr th:first-child { border-left:3px solid #1b5e20; }
-                .osh-nov-table td { padding:4px 7px; border-bottom:1px solid #f5f5f5; text-align:center; vertical-align:middle; background:#fff; }
+                .osh-nov-table td { padding:5px 7px; border-bottom:1px solid #f5f5f5; text-align:center; vertical-align:middle; background:#fff; }
                 .osh-nov-table tbody tr:last-child td { border-bottom:none; }
-                .osh-nov-table tbody tr:hover td { background:#e8f5e9 !important; box-shadow: inset 3px 0 0 #2e7d32; }
+                .osh-nov-table tbody tr:hover td { background:#e8f5e9 !important; box-shadow:inset 3px 0 0 #2e7d32; }
                 .osh-nov-table td.nov-group-first { border-top:1px solid #eee; }
                 .osh-nov-table td.nov-rowspan { border-left:3px solid #1b5e20; border-right:1px solid #eee; vertical-align:middle; font-weight:700; color:#1b5e20; }
-                .osh-nov-table td input[type=date], .osh-nov-table td input[type=text] { width:100%; padding:3px 5px; border:1px solid #ddd; border-radius:4px; font-size:0.7rem; background:var(--input-bg); color:var(--text-primary); box-sizing:border-box; }
-                .osh-nov-table td input:disabled { background:#f5f5f5; color:#999; border-color:#e0e0e0; cursor:not-allowed; }
-                .osh-nov-table td select { width:100%; padding:3px 5px; border:1px solid #ddd; border-radius:4px; font-size:0.7rem; background:var(--input-bg); color:var(--text-primary); }
-                .osh-nov-table td select:disabled { background:#f5f5f5; color:#999; cursor:not-allowed; }
-                .osh-nov-add-btn { background:#2e7d32; color:white; border:none; border-radius:5px; padding:4px 10px; font-size:0.68rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; }
+                .osh-nov-table td input[type=date],.osh-nov-table td input[type=text] { width:100%;padding:3px 5px;border:1px solid #ddd;border-radius:4px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);box-sizing:border-box; }
+                .osh-nov-table td input:disabled { background:#f5f5f5;color:#999;border-color:#e0e0e0;cursor:not-allowed; }
+                .osh-nov-table td select { width:100%;padding:3px 5px;border:1px solid #ddd;border-radius:4px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary); }
+                .osh-nov-table td select:disabled { background:#f5f5f5;color:#999;cursor:not-allowed; }
+                .osh-nov-add-btn { background:#2e7d32;color:white;border:none;border-radius:6px;padding:6px 14px;font-size:0.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px; }
                 .osh-nov-add-btn:hover { background:#388e3c; }
-                .osh-nov-add-btn.external-btn { background:#e65100; }
-                .osh-nov-add-btn.external-btn:hover { background:#bf360c; }
-                .osh-nov-add-viol-btn { background:transparent; color:#2e7d32; border:1px solid #2e7d32; border-radius:4px; padding:2px 7px; font-size:0.62rem; font-weight:600; cursor:pointer; white-space:nowrap; }
+                .osh-nov-add-btn.external-btn { background:#c62828; }
+                .osh-nov-add-btn.external-btn:hover { background:#b71c1c; }
+                .osh-nov-add-viol-btn { background:transparent;color:#2e7d32;border:1px solid #2e7d32;border-radius:4px;padding:2px 7px;font-size:0.62rem;font-weight:600;cursor:pointer;white-space:nowrap; }
                 .osh-nov-add-viol-btn:hover { background:#e8f5e9; }
-                .osh-nov-del-btn { background:transparent; color:#ef5350; border:1px solid #ef5350; border-radius:4px; padding:2px 6px; font-size:0.62rem; font-weight:600; cursor:pointer; }
-                .osh-nov-del-btn:hover { background:#ef5350; color:white; }
-                .osh-nov-empty { padding:10px; text-align:center; color:#aaa; font-size:0.72rem; font-style:italic; }
-                .nov-sub-section-header { display:flex; align-items:center; justify-content:space-between; padding:6px 12px; cursor:pointer; user-select:none; border-bottom:1px solid var(--border-color); }
-                .nov-sub-section-header.internal-hdr { background:#fff3e0; border-left:4px solid #e65100; }
-                .nov-sub-section-header.external-hdr { background:#fce4ec; border-left:4px solid #c62828; }
-                body.dark-mode .nov-sub-section-header.internal-hdr { background:#2a1f0a; }
-                body.dark-mode .nov-sub-section-header.external-hdr { background:#2a0a0a; }
-                .nov-sub-section-content { overflow:hidden; max-height:9999px; transition:max-height 0.35s ease, opacity 0.25s ease; opacity:1; }
-                .nov-sub-section-content.collapsed { max-height:0 !important; opacity:0; }
-                .nov-sub-toggle-icon { transition:transform 0.3s ease; font-size:0.7rem; color:var(--text-secondary); }
-                body.dark-mode .osh-nov-table td { background:#2d2d2d; border-bottom-color:#3a3a3a; }
-                body.dark-mode .osh-nov-table th { background:#2d2d2d; color:#bbb; border-bottom-color:#444; }
-                body.dark-mode .osh-nov-table thead tr th:first-child { border-left-color:#4caf50; }
-                body.dark-mode .osh-nov-table tbody tr:hover td { background:#1b3a1f !important; box-shadow: inset 3px 0 0 #66bb6a; }
-                body.dark-mode .osh-nov-table td.nov-group-first { border-top-color:#444; }
-                body.dark-mode .osh-nov-table td.nov-rowspan { border-left-color:#4caf50; border-right-color:#444; }
-                .status-open { background:#ffebee; color:#c62828; border-radius:8px; padding:1px 7px; font-size:0.65rem; font-weight:700; }
-                .status-closed { background:#e8f5e9; color:#2e7d32; border-radius:8px; padding:1px 7px; font-size:0.65rem; font-weight:700; }
-                #osh-nov-view .region-banner { cursor:pointer; user-select:none; }
-                #osh-nov-view .region-content { overflow:hidden; max-height:9999px; transition:max-height 0.35s ease, opacity 0.25s ease, margin 0.25s ease; }
-                #osh-nov-view .region-content.collapsed { max-height:0 !important; opacity:0; border:none; margin-bottom:0; padding:0; }
-                #osh-nov-view .region-banner.collapsed .region-toggle-icon { transform:rotate(-90deg); }
-                #osh-nov-view .region-toggle-icon { transition:transform 0.3s ease; }
+                .osh-nov-del-btn { background:transparent;color:#ef5350;border:1px solid #ef5350;border-radius:4px;padding:2px 6px;font-size:0.62rem;font-weight:600;cursor:pointer; }
+                .osh-nov-del-btn:hover { background:#ef5350;color:white; }
+                .osh-nov-empty { padding:14px;text-align:center;color:#aaa;font-size:0.72rem;font-style:italic; }
+                .nov-modal-sec-hdr { display:flex;align-items:center;justify-content:space-between;padding:8px 16px;cursor:pointer;user-select:none; }
+                .nov-modal-sec-hdr.internal-hdr { background:#fff3e0;border-left:4px solid #e65100; }
+                .nov-modal-sec-hdr.external-hdr { background:#fce4ec;border-left:4px solid #c62828; }
+                .nov-modal-sec-content { overflow:hidden;transition:max-height 0.3s ease,opacity 0.25s ease;opacity:1; }
+                .nov-modal-sec-content.collapsed { max-height:0!important;opacity:0; }
+                .status-open { background:#ffebee;color:#c62828;border-radius:8px;padding:1px 7px;font-size:0.65rem;font-weight:700; }
+                .status-closed { background:#e8f5e9;color:#2e7d32;border-radius:8px;padding:1px 7px;font-size:0.65rem;font-weight:700; }
+                body.dark-mode .osh-nov-table td { background:#2d2d2d;border-bottom-color:#3a3a3a; }
+                body.dark-mode .osh-nov-table th { background:#2d2d2d;color:#bbb; }
             </style>`;
 
             html += `<div class="tab-info-bar">
                 <div class="tib-icon"><i class="fas fa-hard-hat"></i></div>
                 <div class="tib-body">
                     <p class="tib-title">OSH REGULATORY ISSUED NOV</p>
-                    <p class="tib-sub">Notices of Violation — <span style="color:#e65100;font-weight:700;">🔴 Internal NCR</span> (Client/Company) and <span style="color:#c62828;font-weight:700;">🟠 External NOV</span> (Regulatory Bodies). Each NOV may contain multiple violations.</p>
+                    <p class="tib-sub">Notices of Violation — <span style="color:#e65100;font-weight:700;">🔴 Internal NCR</span> (Client/Company) and <span style="color:#c62828;font-weight:700;">🟠 External NOV</span> (Regulatory Bodies). Click a project to view or edit its NOVs.</p>
                 </div>
                 <div class="tib-badges">
                     <span class="tib-pill tib-pill-green">${displayProjects.length} PROJECTS</span>
                 </div>
             </div>`;
 
-            (() => {
-                let totalIntNov = 0, totalExtNov = 0, openIntNov = 0, openExtNov = 0, closedIntNov = 0, closedExtNov = 0, totalViol = 0, openViol = 0, closedViol = 0;
-                displayProjects.forEach(p => {
-                    migrateOshNovData(p);
-                    const intNovs = p.vals['osh-nov_internal_novs'] || [];
-                    const extNovs = p.vals['osh-nov_external_novs'] || [];
-                    totalIntNov += intNovs.length;
-                    totalExtNov += extNovs.length;
-                    intNovs.forEach(n => {
-                        const viols = n.violations || [];
-                        totalViol += viols.length;
-                        viols.forEach(v => { if ((v.status||'Open') === 'Closed') closedViol++; else openViol++; });
-                        const allClosed = viols.length > 0 && viols.every(v => (v.status||'Open') === 'Closed');
-                        if (allClosed) closedIntNov++; else openIntNov++;
-                    });
-                    extNovs.forEach(n => {
-                        const viols = n.violations || [];
-                        totalViol += viols.length;
-                        viols.forEach(v => { if ((v.status||'Open') === 'Closed') closedViol++; else openViol++; });
-                        const allClosed = viols.length > 0 && viols.every(v => (v.status||'Open') === 'Closed');
-                        if (allClosed) closedExtNov++; else openExtNov++;
-                    });
-                });
-                const totalNov = totalIntNov + totalExtNov;
-                const openNov = openIntNov + openExtNov;
-                const closedNov = closedIntNov + closedExtNov;
-                html += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-                    <div style="background:#fff3e0;border:1px solid #ffe0b2;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
-                        <i class="fas fa-file-alt" style="color:#e65100;font-size:1.2rem;"></i>
-                        <div><div style="font-size:0.58rem;font-weight:700;color:#e65100;text-transform:uppercase;">Total NOV Issued</div><div style="font-size:1.1rem;font-weight:800;color:#e65100;">${totalNov}</div></div>
-                    </div>
-                    <div style="background:#fff3e0;border:1px solid #ffe0b2;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
-                        <i class="fas fa-exclamation-triangle" style="color:#e65100;font-size:1.2rem;"></i>
-                        <div><div style="font-size:0.58rem;font-weight:700;color:#e65100;text-transform:uppercase;">Internal NOV</div><div style="font-size:1.1rem;font-weight:800;color:#e65100;">${totalIntNov}</div></div>
-                    </div>
-                    <div style="background:#fce4ec;border:1px solid #f48fb1;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
-                        <i class="fas fa-building" style="color:#c62828;font-size:1.2rem;"></i>
-                        <div><div style="font-size:0.58rem;font-weight:700;color:#c62828;text-transform:uppercase;">External NOV</div><div style="font-size:1.1rem;font-weight:800;color:#c62828;">${totalExtNov}</div></div>
-                    </div>
-                    <div style="background:#ffebee;border:1px solid #ef9a9a;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
-                        <i class="fas fa-lock-open" style="color:#c62828;font-size:1.2rem;"></i>
-                        <div>
-                            <div style="font-size:0.58rem;font-weight:700;color:#c62828;text-transform:uppercase;">Open NOV</div>
-                            <div style="font-size:1.1rem;font-weight:800;color:#c62828;">${openNov}</div>
-                            <div style="font-size:0.57rem;color:#888;margin-top:1px;">
-                                <span style="color:#e65100;">${openIntNov} int</span> &bull; <span style="color:#c62828;">${openExtNov} ext</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
-                        <i class="fas fa-check-circle" style="color:#2e7d32;font-size:1.2rem;"></i>
-                        <div>
-                            <div style="font-size:0.58rem;font-weight:700;color:#2e7d32;text-transform:uppercase;">Closed NOV</div>
-                            <div style="font-size:1.1rem;font-weight:800;color:#2e7d32;">${closedNov}</div>
-                            <div style="font-size:0.57rem;color:#888;margin-top:1px;">
-                                <span style="color:#e65100;">${closedIntNov} int</span> &bull; <span style="color:#2e7d32;">${closedExtNov} ext</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
-                        <i class="fas fa-list" style="color:#6a1b9a;font-size:1.2rem;"></i>
-                        <div>
-                            <div style="font-size:0.58rem;font-weight:700;color:#6a1b9a;text-transform:uppercase;">Total Violations</div>
-                            <div style="font-size:1.1rem;font-weight:800;color:#6a1b9a;">${totalViol}</div>
-                            <div style="font-size:0.57rem;color:#888;margin-top:1px;">
-                                <span style="color:#c62828;font-weight:700;">${openViol} open</span> &bull; <span style="color:#2e7d32;font-weight:700;">${closedViol} closed</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-            })();
+            // Summary cards
+            html += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+                <div style="background:#fff3e0;border:1px solid #ffe0b2;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:130px;">
+                    <i class="fas fa-file-alt" style="color:#e65100;font-size:1.2rem;"></i>
+                    <div><div style="font-size:0.58rem;font-weight:700;color:#e65100;text-transform:uppercase;">Total NOV</div><div style="font-size:1.1rem;font-weight:800;color:#e65100;">${_gtTotal}</div><div style="font-size:0.57rem;color:#888;"><span style="color:#e65100;">${_gtInt} int</span> &bull; <span style="color:#c62828;">${_gtExt} ext</span></div></div>
+                </div>
+                <div style="background:#ffebee;border:1px solid #ef9a9a;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:130px;">
+                    <i class="fas fa-lock-open" style="color:#c62828;font-size:1.2rem;"></i>
+                    <div><div style="font-size:0.58rem;font-weight:700;color:#c62828;text-transform:uppercase;">Open NOV</div><div style="font-size:1.1rem;font-weight:800;color:#c62828;">${_gtOpen}</div></div>
+                </div>
+                <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:130px;">
+                    <i class="fas fa-check-circle" style="color:#2e7d32;font-size:1.2rem;"></i>
+                    <div><div style="font-size:0.58rem;font-weight:700;color:#2e7d32;text-transform:uppercase;">Closed NOV</div><div style="font-size:1.1rem;font-weight:800;color:#2e7d32;">${_gtClosed}</div></div>
+                </div>
+                <div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:130px;">
+                    <i class="fas fa-list" style="color:#6a1b9a;font-size:1.2rem;"></i>
+                    <div><div style="font-size:0.58rem;font-weight:700;color:#6a1b9a;text-transform:uppercase;">Total Violations</div><div style="font-size:1.1rem;font-weight:800;color:#6a1b9a;">${_gtViol}</div><div style="font-size:0.57rem;color:#888;"><span style="color:#c62828;">${_gtViolOpen} open</span> &bull; <span style="color:#2e7d32;">${_gtViolClosed} closed</span></div></div>
+                </div>
+            </div>`;
 
-            REGIONS.forEach(reg => {
+            const NOV_REG_ORDER = ['CORPORATE','PLANT OPERATIONS','NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+            const NOV_REG_CLR = {
+                'NCR':{'a':'#1b5e20','b':'#0d3311','white':false},
+                'SOUTH LUZON':{'a':'#24692a','b':'#133816','white':false},
+                'NORTH LUZON':{'a':'#2e7d32','b':'#1a4d1e','white':false},
+                'VISAYAS & MINDANAO':{'a':'#388e3c','b':'#215c26','white':false},
+                'PLANT OPERATIONS':{'a':'#ffffff','b':'#f5f5f5','white':true},
+                'CORPORATE':{'a':'#ffffff','b':'#f5f5f5','white':true}
+            };
+
+            NOV_REG_ORDER.forEach(reg => {
                 const regProjs = displayProjects.filter(p => p.region === reg);
                 if (!regProjs.length) return;
                 const canEdit = UserAccounts.canEdit(state.currentUser?.email, reg) && UserAccounts.canEditTab(state.currentUser?.email, 'nov');
                 const isCollapsed = !expandedRegions.has(reg);
+                const _rc = NOV_REG_CLR[reg] || {'a':'#2e7d32','b':'#1b5020'};
+                const safeReg = reg.replace(/[^a-zA-Z0-9]/g,'_');
 
-                html += `<div id="osh-nov-region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed?'collapsed':''}" onclick="toggleOshNovRegion('${reg}',event)">
-                    <div class="region-banner-inner">
-                        <div class="region-banner-left">
-                            <i class="fas fa-location-dot region-icon"></i>
-                            <span class="region-name">${reg}</span>
-                            ${!canEdit?'<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="View Only"></i>':''}
+                // Region totals
+                let regTotal=0, regOpen=0, regClosed=0;
+                regProjs.forEach(p => { const s=_oshNovSummary(p); regTotal+=s.total; regOpen+=s.open; regClosed+=s.closed; });
+
+                const _isWhite = _rc.white === true;
+                const _txtClr = _isWhite ? '#1b5e20' : 'white';
+                const _iconClr = _isWhite ? 'rgba(27,94,32,0.85)' : 'rgba(255,255,255,0.85)';
+                const _bannerBorder = _isWhite ? 'border:1.5px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.08);' : '';
+                const _projBadgeBg = _isWhite ? 'background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;' : 'background:rgba(255,255,255,0.18);color:white;';
+                const _novBadgeBg  = _isWhite ? 'background:#fff3e0;color:#e65100;border:1px solid #ffcc80;' : 'background:rgba(255,235,238,0.25);color:white;';
+                const _openBadgeBg = _isWhite ? 'background:#ffebee;color:#c62828;border:1px solid #ef9a9a;' : 'background:rgba(198,40,40,0.5);color:white;';
+                const _closedBadgeBg = _isWhite ? 'background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;' : 'background:rgba(46,125,50,0.5);color:white;';
+
+                html += `<div class="nov-region-card">
+                    <div id="osh-nov-region-banner-${safeReg}" onclick="toggleOshNovRegion('${reg}',event)"
+                        style="background:linear-gradient(135deg,${_rc.a} 0%,${_rc.b} 100%);${_bannerBorder}padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <i id="osh-nov-chev-${safeReg}" class="fas fa-chevron-down" style="color:${_iconClr};font-size:0.78rem;transition:transform 0.25s;${isCollapsed?'transform:rotate(-90deg);':''}"></i>
+                            <i class="fas fa-map-marker-alt" style="color:${_iconClr};"></i>
+                            <span style="font-weight:800;color:${_txtClr};font-size:0.9rem;letter-spacing:0.05em;">${reg}</span>
+                            ${!canEdit?`<i class="fas fa-lock" style="color:${_isWhite?'#e65100':'#fbc02d'};font-size:0.7rem;" title="View Only"></i>`:''}
                         </div>
-                        <div class="region-banner-right">
-                            <span class="rbadge rbadge-count">${regProjs.length} PROJ</span>
-                            <i class="fas fa-chevron-down region-toggle-icon"></i>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <span style="${_projBadgeBg}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regProjs.length} PROJ</span>
+                            ${regTotal>0?`<span style="${_novBadgeBg}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regTotal} NOV</span>`:''}
+                            ${regOpen>0?`<span style="${_openBadgeBg}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regOpen} Open</span>`:''}
+                            ${regClosed>0?`<span style="${_closedBadgeBg}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regClosed} Closed</span>`:''}
                         </div>
                     </div>
-                </div>
-                <div id="osh-nov-region-content-${reg}" class="region-content ${isCollapsed?'collapsed':''}">`;
+                    <div id="osh-nov-region-content-${safeReg}" style="${isCollapsed?'display:none;':''}">`;
 
-                let _novNavProjs = regProjs;
-                if (regProjs.length > 1) {
-                    const _novNk = _tabNavKey('nov', reg);
-                    let _novIdx = Math.min(_tabRegionProjectIdx[_novNk] || 0, regProjs.length - 1);
-                    _tabRegionProjectIdx[_novNk] = _novIdx;
-                    _novNavProjs = [regProjs[_novIdx]];
-                    html += _tabNavBar('nov', reg, _novIdx, regProjs.length);
-                }
-
-                _novNavProjs.forEach(p => {
+                regProjs.forEach((p, idx) => {
                     const pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-                    migrateOshNovData(p);
+                    const s = _oshNovSummary(p);
+                    const isWS = isProjectOnStoppage(p);
+                    // Score badge coloring
+                    const scoreBg = s.total === 0 ? '#f5f5f5' : s.open > 0 ? '#ffebee' : '#e8f5e9';
+                    const scoreFg = s.total === 0 ? '#aaa' : s.open > 0 ? '#c62828' : '#2e7d32';
+                    const scoreLabel = s.total === 0 ? '0 NOV' : `${s.total} NOV`;
 
-                    html += `<div class="osh-nov-section">
-                        <div class="osh-nov-header">
-                            <div style="display:flex;align-items:center;gap:8px;">
-                                <span class="osh-nov-proj-name">${p.name}</span>
-                                <span class="osh-nov-region-badge">${p.region}</span>
-                            </div>
-                        </div>`;
-
-                    function renderNovSection(type, label, emoji, hdrClass, bodies) {
-                        const key = type === 'internal' ? 'osh-nov_internal_novs' : 'osh-nov_external_novs';
-                        const novs = p.vals[key] || [];
-                        const secId = `osh-nov-${pnSafe.replace(/\s/g,'_')}-${type}`;
-                        const btnClass = type === 'internal' ? '' : ' external-btn';
-                        const colCount = canEdit ? 8 : 7;
-
-                        const _secOpenNov = novs.filter(n => {
-                            const vs = n.violations || [];
-                            return vs.length === 0 || vs.some(v => (v.status||'Open') !== 'Closed');
-                        }).length;
-                        const _secClosedNov = novs.filter(n => {
-                            const vs = n.violations || [];
-                            return vs.length > 0 && vs.every(v => (v.status||'Open') === 'Closed');
-                        }).length;
-                        html += `<div class="nov-sub-section-header ${hdrClass}" onclick="toggleNovSection('${secId}')">
-                            <div style="display:flex;align-items:center;gap:8px;">
-                                <span style="font-size:0.75rem;font-weight:700;">${emoji} ${label}</span>
-                                <span style="background:${type==='internal'?'#ff6d00':'#c62828'};color:white;border-radius:10px;padding:1px 8px;font-size:0.6rem;font-weight:700;">${novs.length} NOV</span>
-                                ${_secOpenNov > 0 ? `<span style="background:#ffebee;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.58rem;font-weight:700;border:1px solid #ef9a9a;">${_secOpenNov} open</span>` : ''}
-                                ${_secClosedNov > 0 ? `<span style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:1px 7px;font-size:0.58rem;font-weight:700;border:1px solid #a5d6a7;">${_secClosedNov} closed</span>` : ''}
-                            </div>
-                            <div style="display:flex;align-items:center;gap:10px;">
-                                ${canEdit ? `<button class="osh-nov-add-btn${btnClass}" onclick="event.stopPropagation();addOshNovEntry('${pnSafe}','${type}')"><i class="fas fa-plus"></i> Add NOV</button>` : ''}
-                                <i id="${secId}-icon" class="fas fa-chevron-down nov-sub-toggle-icon"></i>
-                            </div>
+                    html += `<div class="nov-proj-row" onclick="window.openOshNovModal('${pnSafe}')">
+                        <span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">${idx+1}</span>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWS?'opacity:0.7;':''}">${p.name}${isWS?' <span style="background:#e53935;color:white;border-radius:8px;padding:0 6px;font-size:0.58rem;font-weight:700;">WORK STOPPAGE</span>':''}</div>
+                            <div style="font-size:0.62rem;color:#888;margin-top:1px;">${reg}</div>
                         </div>
-                        <div id="${secId}-content" class="nov-sub-section-content">
-                        <div style="overflow-x:auto;">
-                        <table class="osh-nov-table">
-                            <thead><tr>
-                                <th style="min-width:40px;">NOV #</th>
-                                <th style="min-width:150px;">Date Issued</th>
-                                <th style="min-width:150px;">Date Received</th>
-                                <th style="min-width:170px;">Issuing Body</th>
-                                <th style="min-width:120px;">Reference No.</th>
-                                <th style="min-width:250px;">Violation Description per DOLE</th>
-                                <th style="min-width:90px;">Status</th>
-                                ${canEdit ? '<th style="min-width:90px;">Action</th>' : ''}
-                            </tr></thead>
-                            <tbody>`;
-
-                        if (novs.length === 0) {
-                            html += `<tr><td colspan="${colCount}" class="osh-nov-empty"><i class="fas fa-inbox" style="margin-right:6px;"></i>No ${label} NOV recorded.${canEdit ? ' Click "+ Add NOV" to add.' : ''}</td></tr>`;
-                        }
-
-                        novs.forEach((nov, nIdx) => {
-                            const dis = !(state.isEditing && canEdit) ? 'disabled' : ''
-                            const rowspan = nov.violations.length;
-                            const ibOpts = bodies.map(opt =>
-                                `<option value="${opt}" ${nov.issuingBody===opt?'selected':''}>${opt}</option>`
-                            ).join('');
-
-                            nov.violations.forEach((viol, vIdx) => {
-                                const isFirst = vIdx === 0;
-                                const statusClass = viol.status === 'Closed' ? 'status-closed' : 'status-open';
-                                const vlOpts = buildOshLawOpts(viol.violationLaw);
-                                const stOpts = ['Open','Closed'].map(opt =>
-                                    `<option value="${opt}" ${viol.status===opt?'selected':''}>${opt}</option>`
-                                ).join('');
-
-                                html += `<tr>`;
-                                if (isFirst) {
-                                    html += `
-                                    <td rowspan="${rowspan}" class="nov-group-first nov-rowspan">${nIdx+1}</td>
-                                    <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateIssued||''}" ${dis} oninput="updateOshNovNovField('${pnSafe}','${type}',${nIdx},'dateIssued',this.value)"></td>
-                                    <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateReceived||''}" ${dis} oninput="updateOshNovNovField('${pnSafe}','${type}',${nIdx},'dateReceived',this.value)"></td>
-                                    <td rowspan="${rowspan}" class="nov-group-first nov-rowspan">
-                                        ${dis ? `<span style="font-size:0.73rem;">${nov.issuingBody||''}</span>` :
-                                        `<select onchange="updateOshNovNovField('${pnSafe}','${type}',${nIdx},'issuingBody',this.value)">
-                                            <option value="">— Select —</option>${ibOpts}
-                                        </select>`}
-                                    </td>
-                                    <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="text" value="${nov.refNo||''}" ${dis} oninput="updateOshNovNovField('${pnSafe}','${type}',${nIdx},'refNo',this.value)"></td>`;
-                                }
-
-                                const firstClass = isFirst ? 'class="nov-group-first"' : '';
-                                html += `
-                                    <td ${firstClass}>
-                                        ${dis ? `<span style="font-size:0.73rem;">${viol.violationLaw||''}</span>` :
-                                        `<select onchange="updateOshNovViolField('${pnSafe}','${type}',${nIdx},${vIdx},'violationLaw',this.value)">${vlOpts}</select>`}
-                                    </td>
-                                    <td ${firstClass}>
-                                        ${dis ? `<span class="${statusClass}">${viol.status||'Open'}</span>` :
-                                        `<select onchange="updateOshNovViolField('${pnSafe}','${type}',${nIdx},${vIdx},'status',this.value)" style="width:100%;">
-                                            ${stOpts}
-                                        </select>`}
-                                    </td>`;
-
-                                if (canEdit) {
-                                    if (isFirst) {
-                                        html += `<td class="nov-group-first nov-rowspan" rowspan="${rowspan}" style="white-space:nowrap;vertical-align:middle;">
-                                            <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
-                                                <button class="osh-nov-add-viol-btn" onclick="addOshNovViolation('${pnSafe}','${type}',${nIdx})"><i class="fas fa-plus"></i> Violation</button>
-                                                <button class="osh-nov-del-btn" onclick="removeOshNovEntry('${pnSafe}','${type}',${nIdx})"><i class="fas fa-trash"></i> NOV</button>
-                                            </div>
-                                        </td>`;
-                                    } else {
-                                        html += `<td style="text-align:center;">
-                                            <button class="osh-nov-del-btn" onclick="removeOshNovViolation('${pnSafe}','${type}',${nIdx},${vIdx})"><i class="fas fa-times"></i></button>
-                                        </td>`;
-                                    }
-                                }
-                                html += `</tr>`;
-                            });
-                        });
-
-                        html += `</tbody></table></div></div>`;
-                    }
-
-                    renderNovSection('internal', 'INTERNAL NOV', '🔴', 'internal-hdr', OSH_NOV_INTERNAL_BODIES);
-                    renderNovSection('external', 'EXTERNAL NOV', '🟠', 'external-hdr', OSH_NOV_EXTERNAL_BODIES);
-
-                    html += `</div>`; // close osh-nov-section
+                        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                            <span style="background:${scoreBg};color:${scoreFg};border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">${scoreLabel}</span>
+                            ${s.open>0?`<span style="background:#ffebee;color:#c62828;border-radius:10px;padding:2px 8px;font-size:0.63rem;font-weight:700;border:1px solid #ef9a9a;">${s.open} Open</span>`:''}
+                            ${s.closed>0?`<span style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:2px 8px;font-size:0.63rem;font-weight:700;border:1px solid #a5d6a7;">${s.closed} Closed</span>`:''}
+                            <i class="fas fa-chevron-right" style="color:#bbb;font-size:0.7rem;"></i>
+                        </div>
+                    </div>`;
                 });
 
-                html += `</div>`; // close region-content
+                html += `</div></div>`;
             });
 
             container.innerHTML = html;
+
+            // Re-attach chevron state for region toggle (since we replaced innerHTML)
+            NOV_REG_ORDER.forEach(reg => {
+                const safeReg = reg.replace(/[^a-zA-Z0-9]/g,'_');
+                const chev = document.getElementById('osh-nov-chev-' + safeReg);
+                if (chev && !expandedRegions.has(reg)) chev.style.transform = 'rotate(-90deg)';
+            });
         }
 
-        window.addOshNovEntry = addOshNovEntry;
-        window.removeOshNovEntry = removeOshNovEntry;
-        window.addOshNovViolation = addOshNovViolation;
-        window.removeOshNovViolation = removeOshNovViolation;
-        window.updateOshNovNovField = updateOshNovNovField;
-        window.updateOshNovViolField = updateOshNovViolField;
-        window.toggleOshNovRegion = toggleOshNovRegion;
-        window.toggleNovSection = toggleNovSection;
+        // ── OSH NOV Full-Screen Modal ──────────────────────────────────────────
+        window.openOshNovModal = function(pName) {
+            const allProjects = state.filteredProjects || state.projects || [];
+            const p = allProjects.find(pr => pr.name === pName);
+            if (!p) return;
+            migrateOshNovData(p);
+
+            const userEmail = state.currentUser?.email || '';
+            const canEdit = UserAccounts.canEdit(userEmail, p.region) && UserAccounts.canEditTab(userEmail, 'nov');
+            const pnSafe = pName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+            const isWS = isProjectOnStoppage(p);
+
+            const existing = document.getElementById('osh-nov-modal');
+            if (existing) existing.remove();
+
+            function buildNovTable(type, label, emoji, hdrClass, bodies) {
+                const key = type === 'internal' ? 'osh-nov_internal_novs' : 'osh-nov_external_novs';
+                const novs = p.vals[key] || [];
+                const secId = `oshn-modal-${type}`;
+                const dis = !(state.isEditing && canEdit) ? 'disabled' : '';
+                const btnClass = type === 'internal' ? '' : ' external-btn';
+                const openCount = novs.filter(n => { const vs=n.violations||[]; return vs.length===0||vs.some(v=>(v.status||'Open')!=='Closed'); }).length;
+                const closedCount = novs.filter(n => { const vs=n.violations||[]; return vs.length>0&&vs.every(v=>(v.status||'Open')==='Closed'); }).length;
+                const colCount = (state.isEditing && canEdit) ? 8 : 7;
+
+                let t = `<div style="border:1px solid var(--border-color);border-radius:8px;overflow:hidden;margin-bottom:12px;">
+                    <div class="nov-modal-sec-hdr ${hdrClass}" onclick="toggleOshNovModalSec('${secId}')">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:0.78rem;font-weight:800;">${emoji} ${label}</span>
+                            <span style="background:${type==='internal'?'#e65100':'#c62828'};color:white;border-radius:10px;padding:1px 8px;font-size:0.62rem;font-weight:700;">${novs.length} NOV</span>
+                            ${openCount>0?`<span style="background:#ffebee;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.6rem;font-weight:700;border:1px solid #ef9a9a;">${openCount} open</span>`:''}
+                            ${closedCount>0?`<span style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:1px 7px;font-size:0.6rem;font-weight:700;border:1px solid #a5d6a7;">${closedCount} closed</span>`:''}
+                        </div>
+                        <i id="${secId}-icon" class="fas fa-chevron-down" style="font-size:0.7rem;color:#888;transition:transform 0.3s;"></i>
+                    </div>
+                    <div id="${secId}-content" class="nov-modal-sec-content" style="max-height:9999px;">
+                    <div style="overflow-x:auto;">
+                    <table class="osh-nov-table">
+                        <thead><tr>
+                            <th style="min-width:40px;">NOV #</th>
+                            <th style="min-width:130px;">Date Issued</th>
+                            <th style="min-width:130px;">Date Received</th>
+                            <th style="min-width:160px;">Issuing Body</th>
+                            <th style="min-width:120px;">Reference No.</th>
+                            <th style="min-width:260px;">Violation Description per DOLE</th>
+                            <th style="min-width:90px;">Status</th>
+                            ${(state.isEditing && canEdit)?'<th style="min-width:100px;">Action</th>':''}
+                        </tr></thead>
+                        <tbody>`;
+
+                if (novs.length === 0) {
+                    t += `<tr><td colspan="${colCount}" class="osh-nov-empty"><i class="fas fa-inbox" style="margin-right:6px;"></i>No ${label} NOV recorded.${(state.isEditing && canEdit)?' Click "+ Add NOV" to add.':''}</td></tr>`;
+                }
+                novs.forEach((nov, nIdx) => {
+                    const rowspan = Math.max(1, nov.violations.length);
+                    const ibOpts = bodies.map(opt => `<option value="${opt}" ${nov.issuingBody===opt?'selected':''}>${opt}</option>`).join('');
+                    if (nov.violations.length === 0) {
+                        t += `<tr>
+                            <td class="nov-group-first nov-rowspan">${nIdx+1}</td>
+                            <td class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateIssued||''}" ${dis} oninput="updateOshNovNovField('${pnSafe}','${type}',${nIdx},'dateIssued',this.value)"></td>
+                            <td class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateReceived||''}" ${dis} oninput="updateOshNovNovField('${pnSafe}','${type}',${nIdx},'dateReceived',this.value)"></td>
+                            <td class="nov-group-first nov-rowspan">${dis?`<span style="font-size:0.73rem;">${nov.issuingBody||''}</span>`:`<select onchange="updateOshNovNovField('${pnSafe}','${type}',${nIdx},'issuingBody',this.value)"><option value="">— Select —</option>${ibOpts}</select>`}</td>
+                            <td class="nov-group-first nov-rowspan"><input type="text" value="${nov.refNo||''}" ${dis} oninput="updateOshNovNovField('${pnSafe}','${type}',${nIdx},'refNo',this.value)"></td>
+                            <td class="nov-group-first"><span style="font-size:0.7rem;color:#aaa;font-style:italic;">No violations yet</span></td>
+                            <td class="nov-group-first"></td>
+                            ${(state.isEditing && canEdit)?`<td class="nov-group-first nov-rowspan" style="text-align:center;"><div style="display:flex;flex-direction:column;gap:4px;align-items:center;"><button class="osh-nov-add-viol-btn" onclick="addOshNovViolation('${pnSafe}','${type}',${nIdx});window.openOshNovModal('${pnSafe}')"><i class="fas fa-plus"></i> Violation</button><button class="osh-nov-del-btn" onclick="removeOshNovEntry('${pnSafe}','${type}',${nIdx});window.openOshNovModal('${pnSafe}')"><i class="fas fa-trash"></i> NOV</button></div></td>`:''}
+                        </tr>`;
+                    } else {
+                        nov.violations.forEach((viol, vIdx) => {
+                            const isFirst = vIdx === 0;
+                            const statusClass = viol.status === 'Closed' ? 'status-closed' : 'status-open';
+                            const vlOpts = buildOshLawOpts(viol.violationLaw);
+                            const stOpts = ['Open','Closed'].map(opt => `<option value="${opt}" ${viol.status===opt?'selected':''}>${opt}</option>`).join('');
+                            const firstClass = isFirst ? 'class="nov-group-first"' : '';
+                            t += `<tr>`;
+                            if (isFirst) {
+                                t += `<td rowspan="${rowspan}" class="nov-group-first nov-rowspan">${nIdx+1}</td>
+                                    <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateIssued||''}" ${dis} oninput="updateOshNovNovField('${pnSafe}','${type}',${nIdx},'dateIssued',this.value)"></td>
+                                    <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateReceived||''}" ${dis} oninput="updateOshNovNovField('${pnSafe}','${type}',${nIdx},'dateReceived',this.value)"></td>
+                                    <td rowspan="${rowspan}" class="nov-group-first nov-rowspan">${dis?`<span style="font-size:0.73rem;">${nov.issuingBody||''}</span>`:`<select onchange="updateOshNovNovField('${pnSafe}','${type}',${nIdx},'issuingBody',this.value)"><option value="">— Select —</option>${ibOpts}</select>`}</td>
+                                    <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="text" value="${nov.refNo||''}" ${dis} oninput="updateOshNovNovField('${pnSafe}','${type}',${nIdx},'refNo',this.value)"></td>`;
+                            }
+                            t += `<td ${firstClass}>${dis?`<span style="font-size:0.73rem;">${viol.violationLaw||''}</span>`:`<select onchange="updateOshNovViolField('${pnSafe}','${type}',${nIdx},${vIdx},'violationLaw',this.value)">${vlOpts}</select>`}</td>
+                                <td ${firstClass}>${dis?`<span class="${statusClass}">${viol.status||'Open'}</span>`:`<select onchange="updateOshNovViolField('${pnSafe}','${type}',${nIdx},${vIdx},'status',this.value)" style="width:100%;">${stOpts}</select>`}</td>`;
+                            if (state.isEditing && canEdit) {
+                                if (isFirst) {
+                                    t += `<td class="nov-group-first nov-rowspan" rowspan="${rowspan}" style="text-align:center;vertical-align:middle;">
+                                        <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+                                            <button class="osh-nov-add-viol-btn" onclick="addOshNovViolation('${pnSafe}','${type}',${nIdx});window.openOshNovModal('${pnSafe}')"><i class="fas fa-plus"></i> Violation</button>
+                                            <button class="osh-nov-del-btn" onclick="removeOshNovEntry('${pnSafe}','${type}',${nIdx});window.openOshNovModal('${pnSafe}')"><i class="fas fa-trash"></i> NOV</button>
+                                        </div></td>`;
+                                } else {
+                                    t += `<td style="text-align:center;"><button class="osh-nov-del-btn" onclick="removeOshNovViolation('${pnSafe}','${type}',${nIdx},${vIdx});window.openOshNovModal('${pnSafe}')"><i class="fas fa-times"></i></button></td>`;
+                                }
+                            }
+                            t += `</tr>`;
+                        });
+                    }
+                });
+                t += `</tbody></table></div></div></div>`;
+                return t;
+            }
+
+            const intNovs = p.vals['osh-nov_internal_novs'] || [];
+            const extNovs = p.vals['osh-nov_external_novs'] || [];
+            const totalNov = intNovs.length + extNovs.length;
+            let totalOpen=0, totalClosed=0;
+            [...intNovs,...extNovs].forEach(n => { const vs=n.violations||[]; const allC=vs.length>0&&vs.every(v=>(v.status||'Open')==='Closed'); if(allC) totalClosed++; else totalOpen++; });
+
+            const modal = document.createElement('div');
+            modal.id = 'osh-nov-modal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 10px;';
+            modal.innerHTML = `<div style="background:var(--bg-card);border-radius:12px;width:min(1300px,98vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.45);overflow:hidden;">
+                <div style="background:linear-gradient(90deg,#0d3311,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                    <div>
+                        <div style="color:white;font-weight:800;font-size:0.95rem;font-family:Poppins,sans-serif;">
+                            <i class="fas fa-hard-hat" style="margin-right:8px;color:#fbc02d;"></i>OSH NOV — <span style="color:#fbc02d;">${p.name}</span>
+                            ${isWS?'<span style="background:#e53935;color:white;border-radius:8px;padding:1px 8px;font-size:0.65rem;font-weight:700;margin-left:8px;">WORK STOPPAGE</span>':''}
+                        </div>
+                        <div style="color:#a5d6a7;font-size:0.67rem;margin-top:3px;">${p.region} &nbsp;·&nbsp; ${totalNov} NOV Total &nbsp;·&nbsp; <span style="color:#ff8a80;">${totalOpen} Open</span> &nbsp;·&nbsp; <span style="color:#69f0ae;">${totalClosed} Closed</span></div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                        ${(state.isEditing && canEdit)?`<button class="osh-nov-add-btn" onclick="addOshNovEntry('${pnSafe}','internal');window.openOshNovModal('${pnSafe}')"><i class="fas fa-plus"></i> Add Internal NOV</button>
+                        <button class="osh-nov-add-btn external-btn" onclick="addOshNovEntry('${pnSafe}','external');window.openOshNovModal('${pnSafe}')"><i class="fas fa-plus"></i> Add External NOV</button>`:''}
+                        <button onclick="document.getElementById('osh-nov-modal').remove()" style="background:rgba(255,255,255,0.15);color:white;border:none;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:0.75rem;font-weight:700;"><i class="fas fa-times"></i> Close</button>
+                    </div>
+                </div>
+                <div style="background:#f1f8e9;border-bottom:1px solid #c8e6c9;padding:6px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span style="font-size:0.63rem;color:#2e7d32;font-weight:600;"><i class="fas fa-hard-hat" style="margin-right:4px;"></i>OSH REGULATORY ISSUED NOV</span>
+                    ${!canEdit?'<span style="font-size:0.6rem;color:#e65100;"><i class="fas fa-lock" style="margin-right:4px;"></i>View Only — Press ✏️ Edit button to enable editing</span>':''}
+                    <span style="font-size:0.6rem;color:#888;margin-left:auto;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll table horizontally if needed</span>
+                </div>
+                <div style="padding:16px 20px;overflow-y:auto;max-height:70vh;">
+                    ${buildNovTable('internal','INTERNAL NOV','🔴','internal-hdr',OSH_NOV_INTERNAL_BODIES)}
+                    ${buildNovTable('external','EXTERNAL NOV','🟠','external-hdr',OSH_NOV_EXTERNAL_BODIES)}
+                </div>
+            </div>`;
+            modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+            document.body.appendChild(modal);
+        };
+
+        window.toggleOshNovModalSec = function(secId) {
+            const content = document.getElementById(secId + '-content');
+            const icon = document.getElementById(secId + '-icon');
+            if (!content) return;
+            const isCollapsed = content.style.maxHeight === '0px' || content.classList.contains('collapsed');
+            if (isCollapsed) { content.style.maxHeight = '9999px'; content.style.opacity = '1'; if(icon) icon.style.transform=''; }
+            else { content.style.maxHeight = '0px'; content.style.opacity = '0'; if(icon) icon.style.transform='rotate(-90deg)'; }
+        };
+
+        // Updated toggleOshNovRegion to support new safeReg chevron ids
+        function _toggleOshNovRegion2(regionName, event) {
+            if (event && (event.target.tagName === 'BUTTON' || event.target.closest('button'))) return;
+            const safeReg = regionName.replace(/[^a-zA-Z0-9]/g,'_');
+            const content = document.getElementById('osh-nov-region-content-' + safeReg);
+            const chev = document.getElementById('osh-nov-chev-' + safeReg);
+            if (!content) return;
+            if (expandedRegions.has(regionName)) {
+                expandedRegions.delete(regionName);
+                content.style.display = 'none';
+                if (chev) chev.style.transform = 'rotate(-90deg)';
+            } else {
+                expandedRegions.add(regionName);
+                content.style.display = '';
+                if (chev) chev.style.transform = '';
+            }
+            localStorage.setItem(_EXP_KEY, JSON.stringify([...expandedRegions]));
+        }
+
+        function renderOshNovTabPlaceholder() {} // kept for legacy refs
+        window.toggleOshNovRegion = _toggleOshNovRegion2;
+        window.toggleNovSection = function(secId) { window.toggleOshNovModalSec && window.toggleOshNovModalSec(secId); };
         window.renderOshNovTab = renderOshNovTab;
 
         function toggleNovEnvRegion(regionName, event) {
@@ -19070,8 +19132,8 @@ function renderTabulation() {
                 if (state.currentTab === 'got-monitoring' && window.renderGotMonitoring) { window.renderGotMonitoring(); }
                 if (state.currentTab === 'osh-requirement' && typeof renderOsh2 === 'function') { renderOsh2(); }
                 if (state.currentTab === 'nov' && typeof renderOshNovTab === 'function') { renderOshNovTab(); }
-                if (state.currentTab === 'nov-env' && typeof renderNovEnvTab === 'function') { renderNovEnvTab(); }
-                if (state.currentTab === 'nov-monitoring' && typeof renderNovEnvTab === 'function') { renderNovEnvTab(); }
+                if (state.currentTab === 'nov-env' && typeof window.renderNovEnvTab === 'function') { window.renderNovEnvTab(); }
+                if (state.currentTab === 'nov-monitoring' && typeof window.renderNovEnvTab === 'function') { window.renderNovEnvTab(); }
                 if (state.currentTab === 'lta-registry' && typeof renderLtaRegistryTab === 'function') { renderLtaRegistryTab(); }
                 if (state.currentTab === 'health-report' && typeof renderHealthReportTab === 'function') { renderHealthReportTab(); }
                 if (state.currentTab === 'env-monitoring' && typeof envRender === 'function') { envRender(); }
@@ -19545,7 +19607,7 @@ function renderTabulation() {
                     const _realYrNow = new Date().getFullYear();
                     const _pastMonths = _selYrNow < _realYrNow ? 12 : (_selYrNow === _realYrNow ? _curMoNow : 0);
                     let _dTotalSlots = 0, _dFilled = 0, _dOverdue = 0;
-                    const _dActiveProjs = displayProjects.filter(function(dp) { return !isProjectOnStoppage(dp) && dp.region !== 'CORPORATE' && dp.region !== 'PLANT OPERATIONS'; });
+                    const _dActiveProjs = displayProjects.filter(function(dp) { return !isProjectOnStoppage(dp) && dp.region !== 'PLANT OPERATIONS'; });
                     _dActiveProjs.forEach(function(dp) {
                         _doleMonthlyRows.forEach(function(row) {
                             const k = 'dole_' + row;
@@ -19585,7 +19647,7 @@ function renderTabulation() {
                 }
 
                 REGIONS.forEach(reg => {
-                const CORPORATE_ALLOWED_TABS = ['overall', 'rates', 'exposures', 'medical', 'nov', 'nov-env', 'nov-monitoring', 'activities']; // 'dole' removed — CORPORATE has no DOLE obligation
+                const CORPORATE_ALLOWED_TABS = ['overall', 'rates', 'exposures', 'medical', 'nov', 'nov-env', 'nov-monitoring', 'activities', 'dole']; // 'dole' included — CORPORATE region shown in DOLE Reportorial
                 if (reg === 'CORPORATE' && !CORPORATE_ALLOWED_TABS.includes(state.currentTab)) return;
 
                 const PLANT_ALLOWED_TABS = ['overall', 'permits', 'env-monitoring', 'env-monthly-report'];
@@ -19977,10 +20039,10 @@ if (state.currentTab === 'audit') {
 }
 
                   
-                  if (state.currentTab === 'nov-env') {
-                const envNovContainer = document.getElementById('nov-env-view');
-                if (!envNovContainer) { container.innerHTML = ''; return; }
-                container.innerHTML = '';
+                // ── ENVI NOV: always define functions so modal works from any tab ──
+                (function _defineEnvNovFunctions() {
+                    if (window._envNovFunctionsDefined) return;
+                    window._envNovFunctionsDefined = true;
 
                 const ENV_NOV_INTERNAL_BODIES = [
                     'Client',
@@ -20065,7 +20127,7 @@ if (state.currentTab === 'audit') {
                     const key = type === 'internal' ? 'nov-env_internal_novs' : 'nov-env_external_novs';
                     if (!p.vals[key]) p.vals[key] = [];
                     p.vals[key].push({ dateIssued: '', dateReceived: '', issuingBody: '', refNo: '', violations: [{ violationLaw: '', status: 'Open' }] });
-                    saveToFirebase(); renderNovEnvTab();
+                    saveToFirebase(); if(typeof window.renderNovEnvTab==='function') window.renderNovEnvTab();
                 }
 
                 function removeNovEnvNov(pName, type, nIdx) {
@@ -20081,10 +20143,10 @@ if (state.currentTab === 'audit') {
                         if (!confirmed) return;
                         const backup = JSON.parse(JSON.stringify(p.vals[key]));
                         p.vals[key].splice(nIdx, 1);
-                        saveToFirebase(); renderNovEnvTab();
+                        saveToFirebase(); if(typeof window.renderNovEnvTab==='function') window.renderNovEnvTab();
                         showUndoToast(`${label} deleted from ${pName}`, () => {
                             p.vals[key] = backup;
-                            saveToFirebase(); renderNovEnvTab();
+                            saveToFirebase(); if(typeof window.renderNovEnvTab==='function') window.renderNovEnvTab();
                         });
                     });
                 }
@@ -20099,7 +20161,7 @@ if (state.currentTab === 'audit') {
                     const key = type === 'internal' ? 'nov-env_internal_novs' : 'nov-env_external_novs';
                     if (!p.vals[key] || !p.vals[key][nIdx]) return;
                     p.vals[key][nIdx].violations.push({ violationLaw: '', status: 'Open' });
-                    saveToFirebase(); renderNovEnvTab();
+                    saveToFirebase(); if(typeof window.renderNovEnvTab==='function') window.renderNovEnvTab();
                 }
 
                 function removeNovEnvViolation(pName, type, nIdx, vIdx) {
@@ -20122,10 +20184,10 @@ if (state.currentTab === 'audit') {
                         } else {
                             nov.violations.splice(vIdx, 1);
                         }
-                        saveToFirebase(); renderNovEnvTab();
+                        saveToFirebase(); if(typeof window.renderNovEnvTab==='function') window.renderNovEnvTab();
                         showUndoToast(`${label} deleted`, () => {
                             p.vals[key] = backup;
-                            saveToFirebase(); renderNovEnvTab();
+                            saveToFirebase(); if(typeof window.renderNovEnvTab==='function') window.renderNovEnvTab();
                         });
                     });
                 }
@@ -20163,289 +20225,366 @@ if (state.currentTab === 'audit') {
                 window.updateNovEnvViolField = updateNovEnvViolField;
 
                 function renderNovEnvTab() {
-                    let envHtml = '';
-                    const displayProjects = getReportProjects();
+                    // NOV tab must show ALL projects including work-stoppage — they can still have NOVs recorded
+                    const displayProjects = (state.filteredProjects || state.projects || []);
                     const envNovContainer = document.getElementById('nov-env-view');
                     if (!envNovContainer) return;
 
-                    envHtml += `<style>
-                        .nov-env-section { background:var(--bg-card); border-radius:6px; overflow:hidden; border:1px solid var(--border-color); margin-bottom:10px; }
-                        .nov-env-header { background:#f5f5f5; border-bottom:2px solid #e0e0e0; border-left:4px solid #1b5e20; padding:7px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
-                        .nov-env-proj-name { color:#222; font-weight:700; font-size:0.78rem; }
-                        .nov-env-region-badge { background:rgba(27,94,32,0.1); color:#1b5e20; padding:2px 8px; border-radius:10px; font-size:0.6rem; font-weight:600; }
-                        .nov-env-table { width:100%; border-collapse:collapse; font-size:0.74rem; border:1px solid #e8e8e8; border-radius:6px; overflow:hidden; }
-                        .nov-env-table th { background:#fff; color:#555; padding:5px 8px; text-align:center; font-size:0.66rem; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; border-bottom:2px solid #eee; }
+                    // ── Helper: per-project NOV summary ──────────────────────
+                    function _envNovSummary(p) {
+                        migrateNovEnvData(p);
+                        const intNovs = p.vals['nov-env_internal_novs'] || [];
+                        const extNovs = p.vals['nov-env_external_novs'] || [];
+                        let open = 0, closed = 0;
+                        [...intNovs, ...extNovs].forEach(n => {
+                            const vs = n.violations || [];
+                            const allClosed = vs.length > 0 && vs.every(v => (v.status||'Open') === 'Closed');
+                            if (allClosed) closed++; else open++;
+                        });
+                        return { total: intNovs.length + extNovs.length, int: intNovs.length, ext: extNovs.length, open, closed };
+                    }
+
+                    // ── Grand totals ─────────────────────────────────────────
+                    let _gtTotal=0,_gtInt=0,_gtExt=0,_gtOpen=0,_gtClosed=0,_gtViol=0;
+                    displayProjects.forEach(p => {
+                        migrateNovEnvData(p);
+                        const intNovs = p.vals['nov-env_internal_novs'] || [];
+                        const extNovs = p.vals['nov-env_external_novs'] || [];
+                        _gtInt += intNovs.length; _gtExt += extNovs.length;
+                        [...intNovs,...extNovs].forEach(n => {
+                            const vs = n.violations||[];
+                            _gtViol += vs.length;
+                            const allClosed = vs.length>0 && vs.every(v=>(v.status||'Open')==='Closed');
+                            if(allClosed) _gtClosed++; else _gtOpen++;
+                        });
+                    });
+                    _gtTotal = _gtInt + _gtExt;
+
+                    let envHtml = `<style>
+                        #nov-env-view .nov-proj-row { display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s; }
+                        #nov-env-view .nov-proj-row:hover { background:var(--hover-bg,#f5f9f5); }
+                        #nov-env-view .nov-proj-row:last-child { border-bottom:none; }
+                        #nov-env-view .nov-region-card { background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:0 0 14px; }
+                        .nov-env-table { width:100%;border-collapse:collapse;font-size:0.74rem; }
+                        .nov-env-table th { background:#f9f9f9;color:#555;padding:6px 8px;text-align:center;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid #e0e0e0;white-space:nowrap; }
                         .nov-env-table thead tr th:first-child { border-left:3px solid #1b5e20; }
-                        .nov-env-table td { padding:4px 7px; border-bottom:1px solid #f5f5f5; text-align:center; vertical-align:middle; background:#fff; }
+                        .nov-env-table td { padding:5px 7px;border-bottom:1px solid #f5f5f5;text-align:center;vertical-align:middle;background:#fff; }
                         .nov-env-table tbody tr:last-child td { border-bottom:none; }
-                        .nov-env-table tbody tr:hover td { background:#e8f5e9 !important; box-shadow: inset 3px 0 0 #2e7d32; }
+                        .nov-env-table tbody tr:hover td { background:#e8f5e9!important;box-shadow:inset 3px 0 0 #2e7d32; }
                         .nov-env-table td.nov-group-first { border-top:1px solid #eee; }
-                        .nov-env-table td.nov-rowspan { border-left:3px solid #1b5e20; border-right:1px solid #eee; vertical-align:middle; font-weight:700; color:#1b5e20; }
-                        .nov-env-table td input[type=date], .nov-env-table td input[type=text] { width:100%; padding:3px 5px; border:1px solid #ddd; border-radius:4px; font-size:0.7rem; background:var(--input-bg); color:var(--text-primary); box-sizing:border-box; }
-                        .nov-env-table td input:disabled { background:#f5f5f5; color:#999; border-color:#e0e0e0; cursor:not-allowed; }
-                        .nov-env-table td select { width:100%; padding:3px 5px; border:1px solid #ddd; border-radius:4px; font-size:0.7rem; background:var(--input-bg); color:var(--text-primary); }
-                        .nov-env-table td select:disabled { background:#f5f5f5; color:#999; cursor:not-allowed; }
-                        .nov-env-add-btn { background:#2e7d32; color:white; border:none; border-radius:5px; padding:4px 10px; font-size:0.68rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; }
+                        .nov-env-table td.nov-rowspan { border-left:3px solid #1b5e20;border-right:1px solid #eee;vertical-align:middle;font-weight:700;color:#1b5e20; }
+                        .nov-env-table td input[type=date],.nov-env-table td input[type=text] { width:100%;padding:3px 5px;border:1px solid #ddd;border-radius:4px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);box-sizing:border-box; }
+                        .nov-env-table td input:disabled { background:#f5f5f5;color:#999;border-color:#e0e0e0;cursor:not-allowed; }
+                        .nov-env-table td select { width:100%;padding:3px 5px;border:1px solid #ddd;border-radius:4px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary); }
+                        .nov-env-table td select:disabled { background:#f5f5f5;color:#999;cursor:not-allowed; }
+                        .nov-env-add-btn { background:#2e7d32;color:white;border:none;border-radius:6px;padding:6px 14px;font-size:0.72rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px; }
                         .nov-env-add-btn:hover { background:#388e3c; }
                         .nov-env-add-btn.external-btn { background:#c62828; }
                         .nov-env-add-btn.external-btn:hover { background:#b71c1c; }
-                        .nov-env-add-viol-btn { background:transparent; color:#2e7d32; border:1px solid #2e7d32; border-radius:4px; padding:2px 7px; font-size:0.62rem; font-weight:600; cursor:pointer; white-space:nowrap; }
+                        .nov-env-add-viol-btn { background:transparent;color:#2e7d32;border:1px solid #2e7d32;border-radius:4px;padding:2px 7px;font-size:0.62rem;font-weight:600;cursor:pointer;white-space:nowrap; }
                         .nov-env-add-viol-btn:hover { background:#e8f5e9; }
-                        .nov-env-del-btn { background:transparent; color:#ef5350; border:1px solid #ef5350; border-radius:4px; padding:2px 6px; font-size:0.62rem; font-weight:600; cursor:pointer; }
-                        .nov-env-del-btn:hover { background:#ef5350; color:white; }
-                        .nov-env-empty { padding:10px; text-align:center; color:#aaa; font-size:0.72rem; font-style:italic; }
-                        body.dark-mode .nov-env-table td { background:#2d2d2d; border-bottom-color:#3a3a3a; }
-                        body.dark-mode .nov-env-table th { background:#2d2d2d; color:#bbb; border-bottom-color:#444; }
-                        body.dark-mode .nov-env-table thead tr th:first-child { border-left-color:#4caf50; }
-                        body.dark-mode .nov-env-table tbody tr:hover td { background:#1b3a1f !important; box-shadow: inset 3px 0 0 #66bb6a; }
-                        body.dark-mode .nov-env-table td.nov-group-first { border-top-color:#444; }
-                        body.dark-mode .nov-env-table td.nov-rowspan { border-left-color:#4caf50; border-right-color:#444; }
-                        #nov-env-view .region-banner { cursor:pointer; user-select:none; }
-                        #nov-env-view .region-content { overflow:hidden; max-height:9999px; transition:max-height 0.35s ease, opacity 0.25s ease, margin 0.25s ease; }
-                        #nov-env-view .region-content.collapsed { max-height:0 !important; opacity:0; border:none; margin-bottom:0; padding:0; }
-                        #nov-env-view .region-banner.collapsed .region-toggle-icon { transform:rotate(-90deg); }
-                        #nov-env-view .region-toggle-icon { transition:transform 0.3s ease; }
-                        .nov-sub-section-header { display:flex; align-items:center; justify-content:space-between; padding:6px 12px; cursor:pointer; user-select:none; border-bottom:1px solid var(--border-color); }
-                        .nov-sub-section-header.internal-hdr { background:#fff3e0; border-left:4px solid #e65100; }
-                        .nov-sub-section-header.external-hdr { background:#fce4ec; border-left:4px solid #c62828; }
-                        body.dark-mode .nov-sub-section-header.internal-hdr { background:#2a1f0a; }
-                        body.dark-mode .nov-sub-section-header.external-hdr { background:#2a0a0a; }
-                        .nov-sub-section-content { overflow:hidden; max-height:9999px; transition:max-height 0.35s ease, opacity 0.25s ease; opacity:1; }
-                        .nov-sub-section-content.collapsed { max-height:0 !important; opacity:0; }
-                        .nov-sub-toggle-icon { transition:transform 0.3s ease; font-size:0.7rem; color:var(--text-secondary); }
-                        .status-open { background:#ffebee; color:#c62828; border-radius:8px; padding:1px 7px; font-size:0.65rem; font-weight:700; }
-                        .status-closed { background:#e8f5e9; color:#2e7d32; border-radius:8px; padding:1px 7px; font-size:0.65rem; font-weight:700; }
+                        .nov-env-del-btn { background:transparent;color:#ef5350;border:1px solid #ef5350;border-radius:4px;padding:2px 6px;font-size:0.62rem;font-weight:600;cursor:pointer; }
+                        .nov-env-del-btn:hover { background:#ef5350;color:white; }
+                        .nov-env-empty { padding:14px;text-align:center;color:#aaa;font-size:0.72rem;font-style:italic; }
+                        .nov-modal-sec-hdr { display:flex;align-items:center;justify-content:space-between;padding:8px 16px;cursor:pointer;user-select:none; }
+                        .nov-modal-sec-hdr.internal-hdr { background:#fff3e0;border-left:4px solid #e65100; }
+                        .nov-modal-sec-hdr.external-hdr { background:#fce4ec;border-left:4px solid #c62828; }
+                        .nov-modal-sec-content { overflow:hidden;transition:max-height 0.3s ease,opacity 0.25s ease;opacity:1; }
+                        .nov-modal-sec-content.collapsed { max-height:0!important;opacity:0; }
+                        .status-open { background:#ffebee;color:#c62828;border-radius:8px;padding:1px 7px;font-size:0.65rem;font-weight:700; }
+                        .status-closed { background:#e8f5e9;color:#2e7d32;border-radius:8px;padding:1px 7px;font-size:0.65rem;font-weight:700; }
+                        body.dark-mode .nov-env-table td { background:#2d2d2d;border-bottom-color:#3a3a3a; }
+                        body.dark-mode .nov-env-table th { background:#2d2d2d;color:#bbb; }
                     </style>`;
 
                     envHtml += `<div class="tab-info-bar">
                         <div class="tib-icon"><i class="fas fa-leaf"></i></div>
                         <div class="tib-body">
                             <p class="tib-title">ENVI REGULATORY ISSUED NOV</p>
-                            <p class="tib-sub">Notices of Violation — <span style="color:#e65100;font-weight:700;">🔴 NCR (Client/SCIC Audit)</span> and <span style="color:#c62828;font-weight:700;">🟠 External NOV</span> (Regulatory Bodies). Each NOV may contain multiple violations.</p>
+                            <p class="tib-sub">Notices of Violation — <span style="color:#e65100;font-weight:700;">🔴 NCR (Client/SCIC Audit)</span> and <span style="color:#c62828;font-weight:700;">🟠 External NOV</span> (Regulatory Bodies). Click a project to view or edit its NOVs.</p>
                         </div>
                         <div class="tib-badges">
                             <span class="tib-pill tib-pill-green">${displayProjects.length} PROJECTS</span>
                         </div>
                     </div>`;
 
-                    (() => {
-                        let totalIntNov = 0, totalExtNov = 0, openIntNov = 0, openExtNov = 0, closedIntNov = 0, closedExtNov = 0, totalViol = 0;
-                        displayProjects.forEach(p => {
-                            migrateNovEnvData(p);
-                            const intNovs = p.vals['nov-env_internal_novs'] || [];
-                            const extNovs = p.vals['nov-env_external_novs'] || [];
-                            totalIntNov += intNovs.length;
-                            totalExtNov += extNovs.length;
-                            intNovs.forEach(n => {
-                                const viols = n.violations || [];
-                                totalViol += viols.length;
-                                const allClosed = viols.length > 0 && viols.every(v => (v.status||'Open') === 'Closed');
-                                if (allClosed) closedIntNov++; else openIntNov++;
-                            });
-                            extNovs.forEach(n => {
-                                const viols = n.violations || [];
-                                totalViol += viols.length;
-                                const allClosed = viols.length > 0 && viols.every(v => (v.status||'Open') === 'Closed');
-                                if (allClosed) closedExtNov++; else openExtNov++;
-                            });
-                        });
-                        const totalNov = totalIntNov + totalExtNov;
-                        const openNov = openIntNov + openExtNov;
-                        const closedNov = closedIntNov + closedExtNov;
-                        envHtml += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-                            <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
-                                <i class="fas fa-file-alt" style="color:#2e7d32;font-size:1.2rem;"></i>
-                                <div><div style="font-size:0.58rem;font-weight:700;color:#2e7d32;text-transform:uppercase;">Total NOV Issued</div><div style="font-size:1.1rem;font-weight:800;color:#2e7d32;">${totalNov}</div></div>
-                            </div>
-                            <div style="background:#fff3e0;border:1px solid #ffe0b2;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
-                                <i class="fas fa-exclamation-triangle" style="color:#e65100;font-size:1.2rem;"></i>
-                                <div><div style="font-size:0.58rem;font-weight:700;color:#e65100;text-transform:uppercase;">NCR</div><div style="font-size:1.1rem;font-weight:800;color:#e65100;">${totalIntNov}</div></div>
-                            </div>
-                            <div style="background:#fce4ec;border:1px solid #f48fb1;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
-                                <i class="fas fa-building" style="color:#c62828;font-size:1.2rem;"></i>
-                                <div><div style="font-size:0.58rem;font-weight:700;color:#c62828;text-transform:uppercase;">External NOV</div><div style="font-size:1.1rem;font-weight:800;color:#c62828;">${totalExtNov}</div></div>
-                            </div>
-                            <div style="background:#ffebee;border:1px solid #ef9a9a;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
-                                <i class="fas fa-lock-open" style="color:#c62828;font-size:1.2rem;"></i>
-                                <div><div style="font-size:0.58rem;font-weight:700;color:#c62828;text-transform:uppercase;">Open NOV</div><div style="font-size:1.1rem;font-weight:800;color:#c62828;">${openNov}</div></div>
-                            </div>
-                            <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
-                                <i class="fas fa-check-circle" style="color:#2e7d32;font-size:1.2rem;"></i>
-                                <div><div style="font-size:0.58rem;font-weight:700;color:#2e7d32;text-transform:uppercase;">Closed NOV</div><div style="font-size:1.1rem;font-weight:800;color:#2e7d32;">${closedNov}</div></div>
-                            </div>
-                            <div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:140px;">
-                                <i class="fas fa-leaf" style="color:#2e7d32;font-size:1.2rem;"></i>
-                                <div><div style="font-size:0.58rem;font-weight:700;color:#6a1b9a;text-transform:uppercase;">Total Violations</div><div style="font-size:1.1rem;font-weight:800;color:#6a1b9a;">${totalViol}</div></div>
-                            </div>
-                        </div>`;
-                    })();
+                    // Summary cards
+                    envHtml += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+                        <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:130px;">
+                            <i class="fas fa-file-alt" style="color:#2e7d32;font-size:1.2rem;"></i>
+                            <div><div style="font-size:0.58rem;font-weight:700;color:#2e7d32;text-transform:uppercase;">Total NOV</div><div style="font-size:1.1rem;font-weight:800;color:#2e7d32;">${_gtTotal}</div><div style="font-size:0.57rem;color:#888;"><span style="color:#e65100;">${_gtInt} NCR</span> &bull; <span style="color:#c62828;">${_gtExt} ext</span></div></div>
+                        </div>
+                        <div style="background:#ffebee;border:1px solid #ef9a9a;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:130px;">
+                            <i class="fas fa-lock-open" style="color:#c62828;font-size:1.2rem;"></i>
+                            <div><div style="font-size:0.58rem;font-weight:700;color:#c62828;text-transform:uppercase;">Open NOV</div><div style="font-size:1.1rem;font-weight:800;color:#c62828;">${_gtOpen}</div></div>
+                        </div>
+                        <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:130px;">
+                            <i class="fas fa-check-circle" style="color:#2e7d32;font-size:1.2rem;"></i>
+                            <div><div style="font-size:0.58rem;font-weight:700;color:#2e7d32;text-transform:uppercase;">Closed NOV</div><div style="font-size:1.1rem;font-weight:800;color:#2e7d32;">${_gtClosed}</div></div>
+                        </div>
+                        <div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:130px;">
+                            <i class="fas fa-leaf" style="color:#2e7d32;font-size:1.2rem;"></i>
+                            <div><div style="font-size:0.58rem;font-weight:700;color:#6a1b9a;text-transform:uppercase;">Total Violations</div><div style="font-size:1.1rem;font-weight:800;color:#6a1b9a;">${_gtViol}</div></div>
+                        </div>
+                    </div>`;
 
-                    REGIONS.forEach(reg => {
+                    const ENV_REG_ORDER = ['CORPORATE','PLANT OPERATIONS','NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+                    const ENV_REG_CLR = {
+                        'NCR':{'a':'#1b5e20','b':'#0d3311','white':false},
+                        'SOUTH LUZON':{'a':'#24692a','b':'#133816','white':false},
+                        'NORTH LUZON':{'a':'#2e7d32','b':'#1a4d1e','white':false},
+                        'VISAYAS & MINDANAO':{'a':'#388e3c','b':'#215c26','white':false},
+                        'PLANT OPERATIONS':{'a':'#ffffff','b':'#f5f5f5','white':true},
+                        'CORPORATE':{'a':'#ffffff','b':'#f5f5f5','white':true}
+                    };
+
+                    ENV_REG_ORDER.forEach(reg => {
                         const regProjs = displayProjects.filter(p => p.region === reg);
                         if (!regProjs.length) return;
                         const canEdit = UserAccounts.canEdit(state.currentUser?.email, reg) && UserAccounts.canEditTab(state.currentUser?.email, 'nov-env');
                         const isCollapsed = isRegionCollapsed(reg);
+                        const _rc = ENV_REG_CLR[reg] || {'a':'#2e7d32','b':'#1b5020'};
+                        const safeReg = reg.replace(/[^a-zA-Z0-9]/g,'_');
 
-                        envHtml += `<div id="nov-env-region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed?'collapsed':''}" onclick="toggleNovEnvRegion('${reg}',event)">
-                            <div class="region-banner-inner">
-                                <div class="region-banner-left">
-                                    <i class="fas fa-location-dot region-icon"></i>
-                                    <span class="region-name">${reg}</span>
-                                    ${!canEdit?'<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="View Only"></i>':''}
+                        // Region totals
+                        let regTotal=0, regOpen=0, regClosed=0;
+                        regProjs.forEach(p => { const s=_envNovSummary(p); regTotal+=s.total; regOpen+=s.open; regClosed+=s.closed; });
+
+                        const _isWhiteE = _rc.white === true;
+                        const _txtClrE = _isWhiteE ? '#1b5e20' : 'white';
+                        const _iconClrE = _isWhiteE ? 'rgba(27,94,32,0.85)' : 'rgba(255,255,255,0.85)';
+                        const _bannerBorderE = _isWhiteE ? 'border:1.5px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.08);' : '';
+                        const _projBadgeBgE = _isWhiteE ? 'background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;' : 'background:rgba(255,255,255,0.18);color:white;';
+                        const _novBadgeBgE  = _isWhiteE ? 'background:#fff3e0;color:#e65100;border:1px solid #ffcc80;' : 'background:rgba(255,235,238,0.25);color:white;';
+                        const _openBadgeBgE = _isWhiteE ? 'background:#ffebee;color:#c62828;border:1px solid #ef9a9a;' : 'background:rgba(198,40,40,0.5);color:white;';
+                        const _closedBadgeBgE = _isWhiteE ? 'background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;' : 'background:rgba(46,125,50,0.5);color:white;';
+
+                        envHtml += `<div class="nov-region-card">
+                            <div id="nov-env-region-banner-${safeReg}" onclick="toggleNovEnvRegion('${reg}',event)"
+                                style="background:linear-gradient(135deg,${_rc.a} 0%,${_rc.b} 100%);${_bannerBorderE}padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <i id="nov-env-chev-${safeReg}" class="fas fa-chevron-down" style="color:${_iconClrE};font-size:0.78rem;transition:transform 0.25s;${isCollapsed?'transform:rotate(-90deg);':''}"></i>
+                                    <i class="fas fa-map-marker-alt" style="color:${_iconClrE};"></i>
+                                    <span style="font-weight:800;color:${_txtClrE};font-size:0.9rem;letter-spacing:0.05em;">${reg}</span>
+                                    ${!canEdit?`<i class="fas fa-lock" style="color:${_isWhiteE?'#e65100':'#fbc02d'};font-size:0.7rem;" title="View Only"></i>`:''}
                                 </div>
-                                <div class="region-banner-right">
-                                    <span class="rbadge rbadge-count">${regProjs.length} PROJ</span>
-                                    <i class="fas fa-chevron-down region-toggle-icon"></i>
+                                <div style="display:flex;gap:8px;align-items:center;">
+                                    <span style="${_projBadgeBgE}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regProjs.length} PROJ</span>
+                                    ${regTotal>0?`<span style="${_novBadgeBgE}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regTotal} NOV</span>`:''}
+                                    ${regOpen>0?`<span style="${_openBadgeBgE}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regOpen} Open</span>`:''}
+                                    ${regClosed>0?`<span style="${_closedBadgeBgE}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regClosed} Closed</span>`:''}
                                 </div>
                             </div>
-                        </div>
-                        <div id="nov-env-region-content-${reg}" class="region-content ${isCollapsed?'collapsed':''}">`;
+                            <div id="nov-env-region-content-${safeReg}" style="${isCollapsed?'display:none;':''}">`;
 
-                        let _novEnvNavProjs = regProjs;
-                        if (regProjs.length > 1) {
-                            const _novEnvNk = _tabNavKey('nov-env', reg);
-                            let _novEnvIdx = Math.min(_tabRegionProjectIdx[_novEnvNk] || 0, regProjs.length - 1);
-                            _tabRegionProjectIdx[_novEnvNk] = _novEnvIdx;
-                            _novEnvNavProjs = [regProjs[_novEnvIdx]];
-                            envHtml += _tabNavBar('nov-env', reg, _novEnvIdx, regProjs.length);
-                        }
-
-                        _novEnvNavProjs.forEach(p => {
+                        regProjs.forEach((p, idx) => {
                             const pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-                            migrateNovEnvData(p);
+                            const s = _envNovSummary(p);
+                            const isWS = isProjectOnStoppage(p);
+                            const scoreBg = s.total === 0 ? '#f5f5f5' : s.open > 0 ? '#ffebee' : '#e8f5e9';
+                            const scoreFg = s.total === 0 ? '#aaa' : s.open > 0 ? '#c62828' : '#2e7d32';
+                            const scoreLabel = s.total === 0 ? '0 NOV' : `${s.total} NOV`;
 
-                            envHtml += `<div class="nov-env-section">
-                                <div class="nov-env-header">
-                                    <div style="display:flex;align-items:center;gap:8px;">
-                                        <span class="nov-env-proj-name">${p.name}</span>
-                                        <span class="nov-env-region-badge">${p.region}</span>
-                                    </div>
-                                </div>`;
-
-                            function renderEnvNovSection(type, label, emoji, hdrClass, bodies, lawsList) {
-                                const key = type === 'internal' ? 'nov-env_internal_novs' : 'nov-env_external_novs';
-                                const novs = p.vals[key] || [];
-                                const secId = `nov-env-${pnSafe.replace(/\s/g,'_')}-${type}`;
-                                const btnClass = type === 'internal' ? '' : ' external-btn';
-                                const colCount = canEdit ? 8 : 7;
-
-                                envHtml += `<div class="nov-sub-section-header ${hdrClass}" onclick="toggleNovSection('${secId}')">
-                                    <div style="display:flex;align-items:center;gap:8px;">
-                                        <span style="font-size:0.75rem;font-weight:700;">${emoji} ${label}</span>
-                                        <span style="background:${type==='internal'?'#ff6d00':'#c62828'};color:white;border-radius:10px;padding:1px 8px;font-size:0.6rem;font-weight:700;">${novs.length} NOV</span>
-                                    </div>
-                                    <div style="display:flex;align-items:center;gap:10px;">
-                                        ${canEdit ? `<button class="nov-env-add-btn${btnClass}" onclick="event.stopPropagation();addNovEnvNov('${pnSafe}','${type}')"><i class="fas fa-plus"></i> Add NOV</button>` : ''}
-                                        <i id="${secId}-icon" class="fas fa-chevron-down nov-sub-toggle-icon"></i>
-                                    </div>
+                            envHtml += `<div class="nov-proj-row" onclick="window.openEnvNovModal('${pnSafe}')">
+                                <span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">${idx+1}</span>
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWS?'opacity:0.7;':''}">${p.name}${isWS?' <span style="background:#e53935;color:white;border-radius:8px;padding:0 6px;font-size:0.58rem;font-weight:700;">WORK STOPPAGE</span>':''}</div>
+                                    <div style="font-size:0.62rem;color:#888;margin-top:1px;">${reg}</div>
                                 </div>
-                                <div id="${secId}-content" class="nov-sub-section-content">
-                                <div style="overflow-x:auto;">
-                                <table class="nov-env-table">
-                                    <thead><tr>
-                                        <th style="min-width:20px;width:36px;">NOV #</th>
-                                        <th style="min-width:150px;">Date Issued</th>
-                                        <th style="min-width:150px;">Date Received</th>
-                                        <th style="min-width:170px;">Issuing Body</th>
-                                        <th style="min-width:120px;">Reference No.</th>
-                                        <th style="min-width:230px;">Violation Description per Envi Law</th>
-                                        <th style="min-width:90px;">Status</th>
-                                        ${canEdit ? '<th style="min-width:90px;">Action</th>' : ''}
-                                    </tr></thead>
-                                    <tbody>`;
-
-                                if (novs.length === 0) {
-                                    envHtml += `<tr><td colspan="${colCount}" class="nov-env-empty"><i class="fas fa-inbox" style="margin-right:6px;"></i>No ${label} NOV recorded.${canEdit ? ' Click "+ Add NOV" to add.' : ''}</td></tr>`;
-                                }
-
-                                novs.forEach((nov, nIdx) => {
-                                    const dis = !(state.isEditing && canEdit) ? 'disabled' : ''
-                                    const rowspan = nov.violations.length;
-                                    const ibOpts = bodies.map(opt =>
-                                        `<option value="${opt}" ${nov.issuingBody===opt?'selected':''}>${opt}</option>`
-                                    ).join('');
-
-                                    nov.violations.forEach((viol, vIdx) => {
-                                        const isFirst = vIdx === 0;
-                                        const statusClass = viol.status === 'Closed' ? 'status-closed' : 'status-open';
-                                        const vlOpts = lawsList.map(opt =>
-                                            `<option value="${opt}" ${viol.violationLaw===opt?'selected':''}>${opt}</option>`
-                                        ).join('');
-                                        const stOpts = ['Open','Closed'].map(opt =>
-                                            `<option value="${opt}" ${viol.status===opt?'selected':''}>${opt}</option>`
-                                        ).join('');
-
-                                        envHtml += `<tr>`;
-                                        if (isFirst) {
-                                            const borderTop = 'class="nov-group-first nov-rowspan"';
-                                            envHtml += `
-                                            <td rowspan="${rowspan}" ${borderTop} style="font-weight:700;color:#388e3c;">${nIdx+1}</td>
-                                            <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateIssued||''}" ${dis} oninput="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'dateIssued',this.value)"></td>
-                                            <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateReceived||''}" ${dis} oninput="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'dateReceived',this.value)"></td>
-                                            <td rowspan="${rowspan}" class="nov-group-first nov-rowspan">
-                                                ${dis ? `<span style="font-size:0.73rem;">${nov.issuingBody||''}</span>` :
-                                                `<select onchange="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'issuingBody',this.value)">
-                                                    <option value="">— Select —</option>${ibOpts}
-                                                </select>`}
-                                            </td>
-                                            <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="text" value="${nov.refNo||''}" ${dis} oninput="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'refNo',this.value)"></td>`;
-                                        }
-
-                                        const firstViolClass = isFirst ? 'class="nov-group-first"' : '';
-                                        envHtml += `
-                                            <td ${firstViolClass}>
-                                                ${dis ? `<span style="font-size:0.73rem;">${viol.violationLaw||''}</span>` :
-                                                `<select onchange="updateNovEnvViolField('${pnSafe}','${type}',${nIdx},${vIdx},'violationLaw',this.value)">
-                                                    <option value="">— Select —</option>${vlOpts}
-                                                </select>`}
-                                            </td>
-                                            <td ${firstViolClass} style="text-align:center;">
-                                                ${dis
-                                                    ? `<span class="${statusClass}">${viol.status||'Open'}</span>`
-                                                    : `<button
-                                                        onclick="updateNovEnvViolField('${pnSafe}','${type}',${nIdx},${vIdx},'status','${(viol.status||'Open')==='Open'?'Closed':'Open'}');saveToFirebase();renderNovEnvTab();"
-                                                        style="border:none;cursor:pointer;border-radius:12px;padding:3px 12px;font-size:0.65rem;font-weight:700;letter-spacing:0.3px;min-width:72px;background:${(viol.status||'Open')==='Closed'?'#e8f5e9':'#ffebee'};color:${(viol.status||'Open')==='Closed'?'#2e7d32':'#c62828'};border:1px solid ${(viol.status||'Open')==='Closed'?'#a5d6a7':'#ef9a9a'};"
-                                                      >${(viol.status||'Open')==='Closed'?'✔ Closed':'● Open'}</button>`
-                                                }
-                                            </td>`;
-
-                                        if (canEdit) {
-                                            if (isFirst) {
-                                                envHtml += `<td ${firstViolClass} rowspan="${rowspan}" class="nov-group-first nov-rowspan" style="white-space:nowrap;vertical-align:middle;">
-                                                    <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
-                                                        <button class="nov-env-add-viol-btn" onclick="addNovEnvViolation('${pnSafe}','${type}',${nIdx})"><i class="fas fa-plus"></i> Violation</button>
-                                                        <button class="nov-env-del-btn" onclick="removeNovEnvNov('${pnSafe}','${type}',${nIdx})"><i class="fas fa-trash"></i> NOV</button>
-                                                    </div>
-                                                </td>`;
-                                            } else {
-                                                envHtml += `<td style="text-align:center;">
-                                                    <button class="nov-env-del-btn" onclick="removeNovEnvViolation('${pnSafe}','${type}',${nIdx},${vIdx})"><i class="fas fa-times"></i></button>
-                                                </td>`;
-                                            }
-                                        }
-                                        envHtml += `</tr>`;
-                                    });
-                                });
-
-                                envHtml += `</tbody></table></div></div>`;
-                            }
-
-                            renderEnvNovSection('internal', 'NCR (Client/SCIC Audit)', '🔴', 'internal-hdr', ENV_NOV_INTERNAL_BODIES, ENV_NOV_VIOLATION_LAWS);
-                            renderEnvNovSection('external', 'EXTERNAL NOV', '🟠', 'external-hdr', ENV_NOV_EXTERNAL_BODIES, ENV_NOV_VIOLATION_LAWS);
-
-                            envHtml += `</div>`; // close nov-env-section
+                                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                                    <span style="background:${scoreBg};color:${scoreFg};border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">${scoreLabel}</span>
+                                    ${s.open>0?`<span style="background:#ffebee;color:#c62828;border-radius:10px;padding:2px 8px;font-size:0.63rem;font-weight:700;border:1px solid #ef9a9a;">${s.open} Open</span>`:''}
+                                    ${s.closed>0?`<span style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:2px 8px;font-size:0.63rem;font-weight:700;border:1px solid #a5d6a7;">${s.closed} Closed</span>`:''}
+                                    <i class="fas fa-chevron-right" style="color:#bbb;font-size:0.7rem;"></i>
+                                </div>
+                            </div>`;
                         });
 
-                        envHtml += `</div>`; // close region-content
+                        envHtml += `</div></div>`;
                     });
 
                     envNovContainer.innerHTML = envHtml;
                 }
 
-                renderNovEnvTab();
+                // ── ENVI NOV Full-Screen Modal ─────────────────────────────────────────
+                window.openEnvNovModal = function(pName) {
+                    const allProjects = state.filteredProjects || state.projects || [];
+                    const p = allProjects.find(pr => pr.name === pName);
+                    if (!p) return;
+                    migrateNovEnvData(p);
+
+                    const userEmail = state.currentUser?.email || '';
+                    const canEdit = UserAccounts.canEdit(userEmail, p.region) && UserAccounts.canEditTab(userEmail, 'nov-env');
+                    const pnSafe = pName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                    const isWS = isProjectOnStoppage(p);
+
+                    const existing = document.getElementById('env-nov-modal');
+                    if (existing) existing.remove();
+
+                    function buildEnvNovTable(type, label, emoji, hdrClass, bodies, lawsList) {
+                        const key = type === 'internal' ? 'nov-env_internal_novs' : 'nov-env_external_novs';
+                        const novs = p.vals[key] || [];
+                        const secId = `envn-modal-${type}`;
+                        const dis = !(state.isEditing && canEdit) ? 'disabled' : '';
+                        const btnClass = type === 'internal' ? '' : ' external-btn';
+                        const openCount = novs.filter(n => { const vs=n.violations||[]; return vs.length===0||vs.some(v=>(v.status||'Open')!=='Closed'); }).length;
+                        const closedCount = novs.filter(n => { const vs=n.violations||[]; return vs.length>0&&vs.every(v=>(v.status||'Open')==='Closed'); }).length;
+                        const colCount = (state.isEditing && canEdit) ? 8 : 7;
+
+                        let t = `<div style="border:1px solid var(--border-color);border-radius:8px;overflow:hidden;margin-bottom:12px;">
+                            <div class="nov-modal-sec-hdr ${hdrClass}" onclick="toggleEnvNovModalSec('${secId}')">
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <span style="font-size:0.78rem;font-weight:800;">${emoji} ${label}</span>
+                                    <span style="background:${type==='internal'?'#e65100':'#c62828'};color:white;border-radius:10px;padding:1px 8px;font-size:0.62rem;font-weight:700;">${novs.length} NOV</span>
+                                    ${openCount>0?`<span style="background:#ffebee;color:#c62828;border-radius:10px;padding:1px 7px;font-size:0.6rem;font-weight:700;border:1px solid #ef9a9a;">${openCount} open</span>`:''}
+                                    ${closedCount>0?`<span style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:1px 7px;font-size:0.6rem;font-weight:700;border:1px solid #a5d6a7;">${closedCount} closed</span>`:''}
+                                </div>
+                                <i id="${secId}-icon" class="fas fa-chevron-down" style="font-size:0.7rem;color:#888;transition:transform 0.3s;"></i>
+                            </div>
+                            <div id="${secId}-content" class="nov-modal-sec-content" style="max-height:9999px;">
+                            <div style="overflow-x:auto;">
+                            <table class="nov-env-table">
+                                <thead><tr>
+                                    <th style="min-width:40px;">NOV #</th>
+                                    <th style="min-width:130px;">Date Issued</th>
+                                    <th style="min-width:130px;">Date Received</th>
+                                    <th style="min-width:160px;">Issuing Body</th>
+                                    <th style="min-width:120px;">Reference No.</th>
+                                    <th style="min-width:260px;">Violation Description per Envi Law</th>
+                                    <th style="min-width:90px;">Status</th>
+                                    ${(state.isEditing && canEdit)?'<th style="min-width:100px;">Action</th>':''}
+                                </tr></thead>
+                                <tbody>`;
+
+                        if (novs.length === 0) {
+                            t += `<tr><td colspan="${colCount}" class="nov-env-empty"><i class="fas fa-inbox" style="margin-right:6px;"></i>No ${label} NOV recorded.${(state.isEditing && canEdit)?' Click "+ Add NOV" to add.':''}</td></tr>`;
+                        }
+                        novs.forEach((nov, nIdx) => {
+                            const rowspan = Math.max(1, nov.violations.length);
+                            const ibOpts = bodies.map(opt => `<option value="${opt}" ${nov.issuingBody===opt?'selected':''}>${opt}</option>`).join('');
+                            if (nov.violations.length === 0) {
+                                t += `<tr>
+                                    <td class="nov-group-first nov-rowspan">${nIdx+1}</td>
+                                    <td class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateIssued||''}" ${dis} oninput="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'dateIssued',this.value)"></td>
+                                    <td class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateReceived||''}" ${dis} oninput="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'dateReceived',this.value)"></td>
+                                    <td class="nov-group-first nov-rowspan">${dis?`<span style="font-size:0.73rem;">${nov.issuingBody||''}</span>`:`<select onchange="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'issuingBody',this.value)"><option value="">— Select —</option>${ibOpts}</select>`}</td>
+                                    <td class="nov-group-first nov-rowspan"><input type="text" value="${nov.refNo||''}" ${dis} oninput="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'refNo',this.value)"></td>
+                                    <td class="nov-group-first"><span style="font-size:0.7rem;color:#aaa;font-style:italic;">No violations yet</span></td>
+                                    <td class="nov-group-first"></td>
+                                    ${(state.isEditing && canEdit)?`<td class="nov-group-first nov-rowspan" style="text-align:center;"><div style="display:flex;flex-direction:column;gap:4px;align-items:center;"><button class="nov-env-add-viol-btn" onclick="addNovEnvViolation('${pnSafe}','${type}',${nIdx});saveToFirebase();window.openEnvNovModal('${pnSafe}')"><i class="fas fa-plus"></i> Violation</button><button class="nov-env-del-btn" onclick="removeNovEnvNov('${pnSafe}','${type}',${nIdx});saveToFirebase();window.openEnvNovModal('${pnSafe}')"><i class="fas fa-trash"></i> NOV</button></div></td>`:''}
+                                </tr>`;
+                            } else {
+                                nov.violations.forEach((viol, vIdx) => {
+                                    const isFirst = vIdx === 0;
+                                    const statusClass = viol.status === 'Closed' ? 'status-closed' : 'status-open';
+                                    const vlOpts = ENV_NOV_VIOLATION_LAWS.map(o => `<option value="${o}" ${viol.violationLaw===o?'selected':''}>${o}</option>`).join('');
+                                    const stOpts = ['Open','Closed'].map(opt => `<option value="${opt}" ${viol.status===opt?'selected':''}>${opt}</option>`).join('');
+                                    const firstClass = isFirst ? 'class="nov-group-first"' : '';
+                                    t += `<tr>`;
+                                    if (isFirst) {
+                                        t += `<td rowspan="${rowspan}" class="nov-group-first nov-rowspan">${nIdx+1}</td>
+                                            <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateIssued||''}" ${dis} oninput="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'dateIssued',this.value)"></td>
+                                            <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="date" value="${nov.dateReceived||''}" ${dis} oninput="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'dateReceived',this.value)"></td>
+                                            <td rowspan="${rowspan}" class="nov-group-first nov-rowspan">${dis?`<span style="font-size:0.73rem;">${nov.issuingBody||''}</span>`:`<select onchange="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'issuingBody',this.value)"><option value="">— Select —</option>${ibOpts}</select>`}</td>
+                                            <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="text" value="${nov.refNo||''}" ${dis} oninput="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'refNo',this.value)"></td>`;
+                                    }
+                                    t += `<td ${firstClass}>${dis?`<span style="font-size:0.73rem;">${viol.violationLaw||''}</span>`:`<select onchange="updateNovEnvViolField('${pnSafe}','${type}',${nIdx},${vIdx},'violationLaw',this.value)">${vlOpts}</select>`}</td>
+                                        <td ${firstClass}>${dis?`<span class="${statusClass}">${viol.status||'Open'}</span>`:`<select onchange="updateNovEnvViolField('${pnSafe}','${type}',${nIdx},${vIdx},'status',this.value);saveToFirebase();if(typeof window.renderNovEnvTab==='function')window.renderNovEnvTab();" style="width:100%;">${stOpts}</select>`}</td>`;
+                                    if (state.isEditing && canEdit) {
+                                        if (isFirst) {
+                                            t += `<td class="nov-group-first nov-rowspan" rowspan="${rowspan}" style="text-align:center;vertical-align:middle;">
+                                                <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+                                                    <button class="nov-env-add-viol-btn" onclick="addNovEnvViolation('${pnSafe}','${type}',${nIdx});saveToFirebase();window.openEnvNovModal('${pnSafe}')"><i class="fas fa-plus"></i> Violation</button>
+                                                    <button class="nov-env-del-btn" onclick="removeNovEnvNov('${pnSafe}','${type}',${nIdx});saveToFirebase();window.openEnvNovModal('${pnSafe}')"><i class="fas fa-trash"></i> NOV</button>
+                                                </div></td>`;
+                                        } else {
+                                            t += `<td style="text-align:center;"><button class="nov-env-del-btn" onclick="removeNovEnvViolation('${pnSafe}','${type}',${nIdx},${vIdx});saveToFirebase();window.openEnvNovModal('${pnSafe}')"><i class="fas fa-times"></i></button></td>`;
+                                        }
+                                    }
+                                    t += `</tr>`;
+                                });
+                            }
+                        });
+                        t += `</tbody></table></div></div></div>`;
+                        return t;
+                    }
+
+                    const intNovs = p.vals['nov-env_internal_novs'] || [];
+                    const extNovs = p.vals['nov-env_external_novs'] || [];
+                    const totalNov = intNovs.length + extNovs.length;
+                    let totalOpen=0, totalClosed=0;
+                    [...intNovs,...extNovs].forEach(n => { const vs=n.violations||[]; const allC=vs.length>0&&vs.every(v=>(v.status||'Open')==='Closed'); if(allC) totalClosed++; else totalOpen++; });
+
+                    const modal = document.createElement('div');
+                    modal.id = 'env-nov-modal';
+                    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 10px;';
+                    modal.innerHTML = `<div style="background:var(--bg-card);border-radius:12px;width:min(1300px,98vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.45);overflow:hidden;">
+                        <div style="background:linear-gradient(90deg,#0d3311,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                            <div>
+                                <div style="color:white;font-weight:800;font-size:0.95rem;font-family:Poppins,sans-serif;">
+                                    <i class="fas fa-leaf" style="margin-right:8px;color:#a5d6a7;"></i>ENVI NOV — <span style="color:#fbc02d;">${p.name}</span>
+                                    ${isWS?'<span style="background:#e53935;color:white;border-radius:8px;padding:1px 8px;font-size:0.65rem;font-weight:700;margin-left:8px;">WORK STOPPAGE</span>':''}
+                                </div>
+                                <div style="color:#a5d6a7;font-size:0.67rem;margin-top:3px;">${p.region} &nbsp;·&nbsp; ${totalNov} NOV Total &nbsp;·&nbsp; <span style="color:#ff8a80;">${totalOpen} Open</span> &nbsp;·&nbsp; <span style="color:#69f0ae;">${totalClosed} Closed</span></div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                                ${(state.isEditing && canEdit)?`<button class="nov-env-add-btn" onclick="addNovEnvNov('${pnSafe}','internal');saveToFirebase();window.openEnvNovModal('${pnSafe}')"><i class="fas fa-plus"></i> Add NCR NOV</button>
+                                <button class="nov-env-add-btn external-btn" onclick="addNovEnvNov('${pnSafe}','external');saveToFirebase();window.openEnvNovModal('${pnSafe}')"><i class="fas fa-plus"></i> Add External NOV</button>`:''}
+                                <button onclick="document.getElementById('env-nov-modal').remove()" style="background:rgba(255,255,255,0.15);color:white;border:none;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:0.75rem;font-weight:700;"><i class="fas fa-times"></i> Close</button>
+                            </div>
+                        </div>
+                        <div style="background:#f1f8e9;border-bottom:1px solid #c8e6c9;padding:6px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <span style="font-size:0.63rem;color:#2e7d32;font-weight:600;"><i class="fas fa-leaf" style="margin-right:4px;"></i>ENVI REGULATORY ISSUED NOV</span>
+                            ${!canEdit?'<span style="font-size:0.6rem;color:#e65100;"><i class="fas fa-lock" style="margin-right:4px;"></i>View Only — Press ✏️ Edit button to enable editing</span>':''}
+                            <span style="font-size:0.6rem;color:#888;margin-left:auto;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll table horizontally if needed</span>
+                        </div>
+                        <div style="padding:16px 20px;overflow-y:auto;max-height:70vh;">
+                            ${buildEnvNovTable('internal','NCR (Client/SCIC Audit)','🔴','internal-hdr',ENV_NOV_INTERNAL_BODIES,ENV_NOV_VIOLATION_LAWS)}
+                            ${buildEnvNovTable('external','EXTERNAL NOV','🟠','external-hdr',ENV_NOV_EXTERNAL_BODIES,ENV_NOV_VIOLATION_LAWS)}
+                        </div>
+                    </div>`;
+                    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+                    document.body.appendChild(modal);
+                };
+
+                window.toggleEnvNovModalSec = function(secId) {
+                    const content = document.getElementById(secId + '-content');
+                    const icon = document.getElementById(secId + '-icon');
+                    if (!content) return;
+                    const isCollapsed = content.style.maxHeight === '0px';
+                    if (isCollapsed) { content.style.maxHeight = '9999px'; content.style.opacity = '1'; if(icon) icon.style.transform=''; }
+                    else { content.style.maxHeight = '0px'; content.style.opacity = '0'; if(icon) icon.style.transform='rotate(-90deg)'; }
+                };
+
+                // Updated toggleNovEnvRegion for new safeReg chevron ids
+                window.toggleNovEnvRegion = function(regionName, event) {
+                    if (event && (event.target.tagName === 'BUTTON' || event.target.closest('button'))) return;
+                    const safeReg = regionName.replace(/[^a-zA-Z0-9]/g,'_');
+                    const content = document.getElementById('nov-env-region-content-' + safeReg);
+                    const chev = document.getElementById('nov-env-chev-' + safeReg);
+                    if (!content) return;
+                    if (expandedRegions.has(regionName)) {
+                        expandedRegions.delete(regionName);
+                        content.style.display = 'none';
+                        if (chev) chev.style.transform = 'rotate(-90deg)';
+                    } else {
+                        expandedRegions.add(regionName);
+                        content.style.display = '';
+                        if (chev) chev.style.transform = '';
+                    }
+                    localStorage.setItem(_EXP_KEY, JSON.stringify([...expandedRegions]));
+                };
+
                 window.renderNovEnvTab = renderNovEnvTab;
-                return;
-            }
+                })(); // end _defineEnvNovFunctions
+
+                if (state.currentTab === 'nov-env') {
+                    const envNovContainer = document.getElementById('nov-env-view');
+                    if (!envNovContainer) { container.innerHTML = ''; return; }
+                    container.innerHTML = '';
+                    if (typeof window.renderNovEnvTab === 'function') window.renderNovEnvTab();
+                    return;
+                }
 
             if (state.currentTab === 'nov-monitoring') {
 }
@@ -21259,7 +21398,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     var dTotalSlots = 0, dFilled = 0, dOverdue = 0;
                     var dNow = new Date();
                     var dNowY = dNow.getFullYear(), dNowM = dNow.getMonth() + 1, dNowD = dNow.getDate();
-                    var dActiveProjs = displayProjects.filter(function(dp){ return !isProjectOnStoppage(dp) && dp.region !== 'CORPORATE' && dp.region !== 'PLANT OPERATIONS'; });
+                    var dActiveProjs = displayProjects.filter(function(dp){ return !isProjectOnStoppage(dp) && dp.region !== 'PLANT OPERATIONS'; });
                     // Count PROJECTS with at least one overdue slot (not total slots) — deadline-aware (due 20th of following month)
                     var dOverdueProjects = new Set();
                     dActiveProjs.forEach(function(dp){
@@ -21311,7 +21450,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     // ── Per-region rows ────────────────────────────────────────────────
                     REGIONS.forEach(function(reg) {
-                        if (reg === 'CORPORATE' || reg === 'PLANT OPERATIONS') return;
+                        if (reg === 'PLANT OPERATIONS') return;
                         var projs = displayProjects.filter(function(p){ return p.region === reg; });
                         if (!projs.length) return;
                         // Active (non-stoppage) projects — used for compliance counting
@@ -21319,6 +21458,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var canEditReg = state.isEditing && UserAccounts.canEdit(state.currentUser && state.currentUser.email, reg) && UserAccounts.canEditTab(state.currentUser && state.currentUser.email, 'dole');
                         var isCollapsed = isRegionCollapsed(reg);
                         var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
+                        var isCorporateDole = reg === 'CORPORATE';
 
                         // Count months where all ACTIVE projects have all 3 rows filled
                         var submittedCount = 0;
@@ -21335,9 +21475,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         html += '<div id="region-banner-' + reg + '" class="region-banner region-' + reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'') + ' ' + (isCollapsed?'collapsed':'') + '" onclick="toggleRegion(\'' + reg.replace(/'/g,"\\'") + '\',event)">'
                             + '<div class="region-banner-inner">'
                             + '<div class="region-banner-left">'
-                            + '<i class="fas fa-location-dot region-icon"></i>'
+                            + '<i class="fas ' + (isCorporateDole ? 'fa-building-columns' : 'fa-location-dot') + ' region-icon"></i>'
                             + '<span class="region-name">' + reg + '</span>'
-                            + (!canEditReg ? '<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="View Only"></i>' : '')
+                            + (isCorporateDole ? '<span class="rbadge rbadge-admin">ADMIN ONLY</span>' : '')
+                            + (!canEditReg && !isCorporateDole ? '<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="View Only"></i>' : '')
                             + '</div>'
                             + '<div class="region-banner-right">'
                             + '<span class="rbadge rbadge-count">' + projs.length + ' PROJ</span>'
@@ -24642,6 +24783,21 @@ document.addEventListener('click', closeAllStatusDropdowns);
 });
 function showDeleteDialog(itemLabel, itemName) {
     return new Promise((resolve) => {
+        // Temporarily lower any open full-screen modals so the confirmation
+        // dialog is never obscured (they create new stacking contexts)
+        const _modalsToLower = ['osh-nov-modal','env-nov-modal','got-compliance-modal','lta-modal'];
+        const _savedZIndex = {};
+        _modalsToLower.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { _savedZIndex[id] = el.style.zIndex; el.style.zIndex = '999'; }
+        });
+        const _restoreModals = () => {
+            _modalsToLower.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && _savedZIndex[id] !== undefined) el.style.zIndex = _savedZIndex[id];
+            });
+        };
+
         const overlay = document.createElement('div');
         overlay.className = 'delete-dialog-overlay';
         overlay.innerHTML = `
@@ -24665,9 +24821,9 @@ function showDeleteDialog(itemLabel, itemName) {
         const confirmBtn = overlay.querySelector('#dd-confirm');
         const cancelBtn  = overlay.querySelector('#dd-cancel');
 
-        cancelBtn.onclick = () => { overlay.remove(); resolve(false); };
-        confirmBtn.onclick = () => { overlay.remove(); resolve(true); };
-        overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); resolve(false); } };
+        cancelBtn.onclick  = () => { overlay.remove(); _restoreModals(); resolve(false); };
+        confirmBtn.onclick = () => { overlay.remove(); _restoreModals(); resolve(true); };
+        overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); _restoreModals(); resolve(false); } };
     });
 }
 
@@ -33564,8 +33720,8 @@ function applySnapshotChanges(changes, deepMergeVals) {
                 if (state.currentTab && dataTabs.includes(state.currentTab)) {
                     try {
                         if (typeof renderOshNovTab === 'function' && state.currentTab === 'nov') renderOshNovTab();
-                        else if (typeof renderNovEnvTab === 'function' && state.currentTab === 'nov-env') renderNovEnvTab();
-                        else if (typeof renderNovEnvTab === 'function' && state.currentTab === 'nov-monitoring') renderNovEnvTab();
+                        else if (typeof window.renderNovEnvTab === 'function' && state.currentTab === 'nov-env') window.renderNovEnvTab();
+                        else if (typeof window.renderNovEnvTab === 'function' && state.currentTab === 'nov-monitoring') window.renderNovEnvTab();
                         else if (typeof renderLtaRegistryTab === 'function' && state.currentTab === 'lta-registry') renderLtaRegistryTab();
                         else if (typeof renderHealthReportTab === 'function' && state.currentTab === 'health-report') renderHealthReportTab();
                         else if (typeof window.renderGotMonitoring === 'function' && state.currentTab === 'got-monitoring') window.renderGotMonitoring();
@@ -34080,8 +34236,8 @@ function tabNavProject(tabType, region, delta) {
         renderLtaRegistryTab();
     } else if (tabType === 'nov' && typeof renderOshNovTab === 'function') {
         renderOshNovTab();
-    } else if (tabType === 'nov-env' && typeof renderNovEnvTab === 'function') {
-        renderNovEnvTab();
+    } else if (tabType === 'nov-env' && typeof window.renderNovEnvTab === 'function') {
+        window.renderNovEnvTab();
     } else if (tabType === 'env-monitoring' && typeof envRenderRegions === 'function') {
         envRenderRegions();
     } else if (tabType === 'waste' && typeof wasteRenderRegions === 'function') {
