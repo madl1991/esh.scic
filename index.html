@@ -34183,10 +34183,11 @@ function eshCanEdit(tabType, projectRegion) {
     if (!email) return false;
     const info = UserAccounts.getUserInfo(email);
 
-    // Admin: write on CORPORATE region only — view-only for all other regions (per RBAC Matrix v2)
+    // Admin: write on CORPORATE region always; also allowed to set PLAN on esh-calendar-env for all regions
     if (info.role === 'admin') {
         const _adminReg = (projectRegion || '').trim().toUpperCase();
         if (tabType === 'esh-calendar-corp-drills') return true; // corp-drills is admin-managed
+        if (tabType === 'esh-calendar-env') return true;        // Admin can set PLAN on env trainings for all regions
         if (!projectRegion) return true;
         return _adminReg === 'CORPORATE';
     }
@@ -35260,7 +35261,8 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
     }
     const allProjects = (state && state.projects) ? state.projects : [];
     const proj = allProjects.find(p => p.name === projName);
-    if (proj && !eshCanEdit(tabType, proj.region)) {
+    // Admin bypass: Admin can always set PLAN — skip region/tab restriction
+    if (!state.isAdmin && proj && !eshCanEdit(tabType, proj.region)) {
         showToast('🔒 Read-Only — You cannot edit this region/tab.', 'warning', 3000);
         return;
     }
