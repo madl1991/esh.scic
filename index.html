@@ -7990,6 +7990,7 @@ function updateSessionTime() {
 
 function renderLogbook() {
     const container = document.getElementById('logbook-container');
+    if (!container) return; // panel not rendered — skip until it's visible
     const logs = state.loginLogbook.filter(entry => {
         if (!entry.email) return false;
         const _ua = window.UserAccounts ? window.UserAccounts.getUserInfo(entry.email) : {role:'admin'};
@@ -8088,6 +8089,7 @@ function getCountryFlag(country) {
 
 async function renderUserManagement() {
     const container = document.getElementById('user-management-container');
+    if (!container) return; // panel not open yet — skip
     const users = await AdminSystem.getAllUsers();
     
     if (users.length === 0) {
@@ -35395,9 +35397,9 @@ window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drill
         return;
     }
 
-    const storage = getEshStorage();
     const key = getEshKey(tabType, projName, ti, mi, 'plan');
-    const wasPlanned = !!(storage[key]) && storage[key] !== _ESH_TOMBSTONE_MARKER;
+    // ── Read plan state from Firebase cache (source of truth) — not localStorage ──
+    const wasPlanned = isPlanSet(key);
     const nowPlanned = !wasPlanned;
 
     const planTitle = nowPlanned ? 'Click to unschedule' : 'Click to schedule';
@@ -35431,21 +35433,54 @@ window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drill
         cell.style.background = nowPlanned ? c : '';
     });
 
+    // ── Optimistic Firebase cache update ─────────────────────────────────────
+    if (nowPlanned) { window._eshFirebasePlanCache[key] = true; }
+    else { delete window._eshFirebasePlanCache[key]; }
+
+    if (!window.firebaseRealtimeDb || !window.firebase?.dbRef || !window.firebase?.set) {
+        showToast('⚠️ Firebase not ready — please try again.', 'warning', 3000);
+        // Revert optimistic cache + UI
+        if (wasPlanned) window._eshFirebasePlanCache[key] = true; else delete window._eshFirebasePlanCache[key];
+        if (tdEl) { tdEl.classList.toggle('esh-planned', wasPlanned); tdEl.title = wasPlanned ? 'Click to unschedule' : 'Click to schedule'; tdEl.style.background = wasPlanned ? cellColor : ''; }
+        return;
+    }
+
+    const safeKey = _eshKeyToFirebasePath(key);
+
+    // Clear or write deletion record
     if (nowPlanned) {
-        storage[key] = true;
+        try { window.firebase.set(window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/deletions/' + safeKey), null); } catch(e) {}
     } else {
-        delete storage[key];
-        _eshMyWrites.set(key, Date.now()); // block orphan re-upload immediately
+        _eshWriteDeletionRecord(key);
+        _eshCacheDeletionRecords({ [key]: Date.now() });
     }
-    const _corpActualKey = getEshKey(tabType, projName, ti, mi, 'actual');
-    if (!nowPlanned) {
-        delete storage[_corpActualKey];
-    }
-    try { localStorage.setItem('esh_calendar_data', JSON.stringify(storage)); } catch(e) {}
-    _eshSaveKeyToFirebase(key, nowPlanned ? true : null);
-    if (!nowPlanned && storage[_corpActualKey] !== undefined) {
-        _eshSaveKeyToFirebase(_corpActualKey, null);
-    }
+
+    // ── DIRECT Firebase write (same pattern as eshSetPlan) ───────────────────
+    window.firebase.set(window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data/' + safeKey), nowPlanned ? true : null)
+        .then(function() {
+            console.log('✅ CORP PLAN saved to Firebase:', key, '=', nowPlanned ? true : null);
+            showToast(nowPlanned ? '📅 Scheduled!' : '🗑️ Unscheduled', 'success', 1500);
+            // Also clear actual from Firebase if unplanning
+            if (!nowPlanned) {
+                const _corpActualKey = getEshKey(tabType, projName, ti, mi, 'actual');
+                const _safeActual = _eshKeyToFirebasePath(_corpActualKey);
+                window.firebase.set(window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data/' + _safeActual), null).catch(function() {});
+            }
+        })
+        .catch(function(err) {
+            console.error('❌ CORP PLAN Firebase write failed:', err.message || err);
+            showToast('❌ Failed to save — ' + (err.message || 'Firebase error'), 'error', 4000);
+            // Revert optimistic cache + UI
+            if (wasPlanned) { window._eshFirebasePlanCache[key] = true; } else { delete window._eshFirebasePlanCache[key]; }
+            if (tdEl) { tdEl.classList.toggle('esh-planned', wasPlanned); tdEl.title = wasPlanned ? 'Click to unschedule' : 'Click to schedule'; tdEl.style.background = wasPlanned ? cellColor : ''; }
+            document.querySelectorAll(`.esh-td-plan[data-tabtype="${tabType}"][data-ti="${ti}"][data-mi="${mi}"]`).forEach(cell => {
+                if (cell === tdEl) return;
+                cell.classList.toggle('esh-planned', wasPlanned);
+                cell.title = wasPlanned ? 'Click to unschedule' : 'Click to schedule';
+                const c = drillColor || cell.dataset.drillcolor || '#43a047';
+                cell.style.background = wasPlanned ? c : '';
+            });
+        });
 };
 
 window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
