@@ -20886,7 +20886,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const dateIssued = p.vals[key] ? (p.vals[key][2] ?? "") : "";
                     const expiryDate = p.vals[key] ? (p.vals[key][3] ?? "") : "";
                     const _isNoExpiry = (window.NO_EXPIRY_PERMITS || []).includes(row);
-                    const _safeKey = key.replace(/'/g, "\'");
+                    const _safeKey = key.replace(/'/g, "\\'");
                     {
                         html += `<td style="min-width: 200px; padding: 8px 12px;"><input type="text" placeholder="Permit/Accreditation #" value="${permitNo}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${_safeKey}',1,this.value)" style="width: 100%;"></td>`;
                         html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${dateIssued}" ${naDisabled} oninput="updateVal('${p.name}','${_safeKey}',2,this.value)" style="width: 100%;"></td>`;
