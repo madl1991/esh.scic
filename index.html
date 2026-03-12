@@ -34906,10 +34906,10 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                     const _naBtnClick = _canSetNA
                         ? `onclick="event.stopPropagation();eshToggle8HrOshNA(event,'${tabType}','${proj.name.replace(/'/g,"\'")}',${storageIdx},${mi})"`
                         : '';
-                    html += `<td class="esh-td-plan${isPlanned8?' esh-planned':''}${!isAdmin?' esh-plan-locked':''}"
+                    html += `<td class="esh-td-plan${isPlanned8?' esh-planned':''}"
                         data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}"
                         onclick="event.stopPropagation();eshSetPlan('${tabType}','${proj.name}',${storageIdx},${mi},null,this)"
-                        title="${!isAdmin ? '🔒 Admin only — Cannot set Plan/Schedule' : isPlanned8 ? 'Click to unschedule' : 'Click to schedule'}">
+                        title="${isPlanned8 ? 'Click to unschedule' : 'Click to schedule'}">
                     </td>`;
                     const _editDisabled8 = (!(state && state.isEditing) && canEditActual) ? `disabled title="✏️ Press Edit button to enable input"` : '';
                     const dateDisabled8 = !canEditActual ? `disabled title="${isAdmin ? '🔒 Admin can only set Plan — Superintendent inputs Actual dates.' : '🔒 Read-only for your role/region'}"` : '';
@@ -34933,8 +34933,6 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                 const done = !!actualVal;
                 const maxDate = getMaxDateForMonth(mi);
                 const minDate = getMinDateForMonth(mi);
-                const planDisabled = !isAdmin ? 'disabled title="🔒 Admin only — Cannot set Plan/Schedule"' : '';
-
                 const dateDisabled = !canEditActual ? `disabled title="${isAdmin ? '🔒 Admin can only set Plan — Superintendent inputs Actual dates.' : '🔒 Read-only for your role/region'}"` : '';
                 const effectiveMax = '';
                 const effectiveMin = '';
@@ -34944,10 +34942,10 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                 else if (overdue) { actualClass += ' esh-overdue'; }
                 else if (!isPlanned) { actualClass += ' esh-not-planned'; }
 
-                html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}${!isAdmin?' esh-plan-locked':''}"
+                html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}"
                     data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}"
                     onclick="event.stopPropagation();eshSetPlan('${tabType}','${proj.name}',${storageIdx},${mi},null,this)"
-                    title="${!isAdmin ? '🔒 Admin only — Cannot set Plan/Schedule' : isPlanned ? 'Click to unschedule' : 'Click to schedule'}">
+                    title="${isPlanned ? 'Click to unschedule' : 'Click to schedule'}">
                 </td>`;
                 const _editDisabled2 = (!(state && state.isEditing) && !dateDisabled) ? `disabled title="✏️ Press Edit button to enable input"` : '';
                 html += `<td class="${actualClass}">` + (isPlanned
@@ -35063,11 +35061,11 @@ function buildDrillsSingleTable(projects, storage, col) {
                 let planCellStyle = isNaCell
                     ? 'background:#c8c8c8 !important;cursor:not-allowed;'
                     : '';
-                let planClass = `esh-td-plan${isPlanned?' esh-planned':''}${(!isAdmin||isNaCell)?' esh-plan-locked':''}`;
-                const planOnClick = (!isAdmin || isNaCell)
+                let planClass = `esh-td-plan${isPlanned?' esh-planned':''}${isNaCell?' esh-plan-locked':''}`;
+                const planOnClick = isNaCell
                     ? ''
                     : `onclick="event.stopPropagation();eshSetPlan('${tabType}','${proj.name}',${storageIdx},${mi},null,this)"`;
-                const planTitle = isNaCell ? 'N/A – not applicable' : (!isAdmin ? '🔒 Admin only' : isPlanned ? 'Click to unschedule' : 'Click to schedule');
+                const planTitle = isNaCell ? 'N/A – not applicable' : (isPlanned ? 'Click to unschedule' : 'Click to schedule');
 
                 const planFreqColor = {
                     'Quarterly':    '#43a047',
@@ -35287,14 +35285,6 @@ window.eshToggleDrillNA = function(e, tabType, projName, ti, mi) {
 };
 
 window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
-    if (!(state && state.isEditing)) {
-        showToast('✏️ Press the Edit button first to make changes.', 'info', 3000);
-        return;
-    }
-    if (!(state && state.isAdmin)) {
-        showToast('🔒 Admin only — Cannot set Plan/Schedule.', 'warning', 3000);
-        return;
-    }
 
     // ── FIREBASE-DIRECT PLAN TOGGLE ──────────────────────────────────────────
     // Read current plan state from _eshFirebasePlanCache (kept in sync by onValue).
@@ -35382,20 +35372,6 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
 };
 
 window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drillColor) {
-    if (!(state && state.isEditing)) {
-        showToast('✏️ Press the Edit button first to make changes.', 'info', 3000);
-        return;
-    }
-    if (!(state && state.isAdmin)) {
-        showToast('🔒 Admin only — Cannot set Plan/Schedule.', 'warning', 3000);
-        return;
-    }
-    const allProjects = (state && state.projects) ? state.projects : [];
-    const proj = allProjects.find(p => p.name === projName);
-    if (proj && !eshCanEdit(tabType, proj.region)) {
-        showToast('🔒 Read-Only — You cannot edit this region/tab.', 'warning', 3000);
-        return;
-    }
 
     const key = getEshKey(tabType, projName, ti, mi, 'plan');
     // ── Read plan state from Firebase cache (source of truth) — not localStorage ──
@@ -35807,13 +35783,13 @@ function renderCorpDrillsTab() {
 
             const planBgStyle = isPlanned ? `background:${drillColor} !important;` : '';
 
-            html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}${!canEdit?' esh-plan-locked':''}"
+            html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}"
                 style="${planBgStyle}"
                 data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}"
                 data-drillcolor="${drillColor}"
                 onclick="event.stopPropagation();eshCorpSetPlan('${tabType}','${projName}',${storageIdx},${mi},null,this,'${drillColor}')"
-                title="${!canEdit ? '🔒 Admin only' : isPlanned ? 'Click to unschedule' : 'Click to schedule'}"></td>`;
-            const _corpEditDisabled = (!canEdit || !(state && state.isEditing)) ? 'disabled' : '';
+                title="${isPlanned ? 'Click to unschedule' : 'Click to schedule'}"></td>`;
+            const _corpEditDisabled = !canEdit ? 'disabled' : '';
             html += `<td class="${actualClass}"><input type="date" value="${actualVal}" ${_corpEditDisabled}
                 onchange="eshSetActual('${tabType}','${projName}',${storageIdx},${mi},this.value,this.closest('td'))"></td>`;
         });
