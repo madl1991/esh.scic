@@ -33513,13 +33513,27 @@ function eshFetchAndRender(tabType) {
                 // FIX: If local has a tombstone for this key, Firebase must NOT overwrite it.
                 // This prevents deleted dates from reappearing on refresh when the Firebase
                 // delete hasn't propagated yet (async window between delete and confirmation).
-                if (local[k] === _ESH_TOMBSTONE_MARKER) return;
-                // Also respect the local deletions cache
-                if (_fetchDelCache.has(k)) return;
+                if (!isPlanKey && local[k] === _ESH_TOMBSTONE_MARKER) return;
+                // Also respect the local deletions cache — but NEVER block plan keys:
+                // if Firebase has the plan as true, that is the ground truth and must render.
+                if (!isPlanKey && _fetchDelCache.has(k)) return;
                 if (v === null || v === undefined) {
                     delete merged[k];
                 } else {
                     merged[k] = v;
+                }
+            });
+
+            // FIX: Optimistic plan key restore — re-inject in-flight plan writes so color
+            // doesn't revert while waiting for Firebase to confirm the write.
+            _eshMyWrites.forEach(function(writeTs, k) {
+                if (!k.includes('|GLOBAL_PLAN|') || !k.endsWith('|plan')) return;
+                if ((now - writeTs) >= 60000) return;
+                if (_fetchDelCache.has(k)) return;
+                if (remoteDecoded.hasOwnProperty(k) && remoteDecoded[k] !== null && remoteDecoded[k] !== undefined) return;
+                const _inFlightVal = local[k] !== undefined ? local[k] : true;
+                if (_inFlightVal && _inFlightVal !== _ESH_TOMBSTONE_MARKER) {
+                    merged[k] = _inFlightVal;
                 }
             });
 
@@ -33528,7 +33542,7 @@ function eshFetchAndRender(tabType) {
             });
 
             // Apply deletion records — permanently suppress any plan key that was intentionally deleted
-            _eshApplyDeletionFilter(merged);
+            _eshApplyDeletionFilter(merged, remoteDecoded);
 
             try { localStorage.setItem('esh_calendar_data', JSON.stringify(merged)); } catch(e) {}
             try { renderEshCalendar(tabType); } catch(e) {}
@@ -33860,13 +33874,30 @@ function startEshCalendarSync() {
             }
         });
 
+        // FIX: Optimistic plan key restore — if admin just set a plan and Firebase onValue fires
+        // before the write is confirmed (echo arrives with old/null value), the plan key would be
+        // missing from both remoteDecoded and merged (since local plan keys are excluded above).
+        // Re-inject any in-flight plan key writes so the color doesn't flash back to unplanned.
+        _eshMyWrites.forEach(function(writeTs, k) {
+            if (!k.includes('|GLOBAL_PLAN|') || !k.endsWith('|plan')) return; // only plan keys
+            if ((now - writeTs) >= 60000) return; // only within 60s write window
+            if (_syncDelCache.has(k)) return; // was intentionally deleted — don't restore
+            // Only restore if Firebase hasn't returned the value yet (null/missing in remote)
+            if (remoteDecoded.hasOwnProperty(k) && remoteDecoded[k] !== null && remoteDecoded[k] !== undefined) return;
+            // Re-inject the locally-stored value as optimistic placeholder
+            const _inFlightVal = local[k] !== undefined ? local[k] : true;
+            if (_inFlightVal && _inFlightVal !== _ESH_TOMBSTONE_MARKER) {
+                merged[k] = _inFlightVal;
+            }
+        });
+
         // Remove tombstone markers from merged (local-only — never render as real data)
         Object.keys(merged).forEach(function(k) {
             if (merged[k] === _ESH_TOMBSTONE_MARKER) delete merged[k];
         });
 
         // Apply deletion records — permanently suppress any plan key that was intentionally deleted
-        _eshApplyDeletionFilter(merged);
+        _eshApplyDeletionFilter(merged, remoteDecoded);
         // Build a set of recently-deleted actual keys to block orphan re-upload
         const _recentlyDeleted = new Set();
         _eshMyWrites.forEach(function(ts, k) {
@@ -34084,13 +34115,18 @@ window.eshPurgePlanKey = function(key) {
 // the written value. Since we can't know the write timestamp of the remote value,
 // we simply refuse to apply ANY remote plan key that has a deletion record at all.
 // Admin must explicitly click the plan cell again to re-enable a deleted plan.
-function _eshApplyDeletionFilter(merged) {
+function _eshApplyDeletionFilter(merged, remoteDecoded) {
     try {
         const deletions = JSON.parse(localStorage.getItem('esh_calendar_deletions') || '{}');
         Object.keys(deletions).forEach(function(k) {
-            if (deletions[k] && merged[k]) {
-                delete merged[k];
-            }
+            if (!deletions[k] || !merged[k]) return;
+            // FIX: Never suppress a plan key that Firebase has actively confirmed as true.
+            // Deletion records are stale when admin re-plans a previously deleted key.
+            // remoteDecoded is the authoritative Firebase snapshot — if the key exists
+            // there with a truthy value, the plan was intentionally (re)set and must show.
+            var isPlanKey = k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan');
+            if (isPlanKey && remoteDecoded && remoteDecoded[k]) return;
+            delete merged[k];
         });
     } catch(e) {}
     return merged;
@@ -35274,6 +35310,7 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
 
     const storage = getEshStorage();
     const key = getEshKey(tabType, projName, ti, mi, 'plan');
+    const actualKeyToRemove = getEshKey(tabType, projName, ti, mi, 'actual');
     const wasPlanned = !!(storage[key]) && storage[key] !== _ESH_TOMBSTONE_MARKER;
     const nowPlanned = !wasPlanned;
 
