@@ -33842,9 +33842,14 @@ function startEshCalendarSync() {
         const now = Date.now();
 
         // Decode Firebase-safe key names back to original ESH keys
+        // Also skip legacy keys that have no year prefix (old data format)
         const remoteDecoded = {};
+        const _curYear = String((state && state.selectedYear) || 2026);
         Object.entries(remoteData).forEach(function([k, v]) {
-            remoteDecoded[_eshFirebasePathToKey(k)] = v;
+            const decoded = _eshFirebasePathToKey(k);
+            // Skip legacy keys: GLOBAL_PLAN keys must start with the current year
+            if (decoded.includes('GLOBAL_PLAN') && !decoded.startsWith(_curYear + '|')) return;
+            remoteDecoded[decoded] = v;
         });
 
         // Load deletion cache — keys deleted by any admin (persisted in Firebase + localStorage)
