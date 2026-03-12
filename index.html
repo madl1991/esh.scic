@@ -10625,182 +10625,191 @@ debugCommands.help() - Show this help
         function updateNotifications() {
             const currentDate = new Date();
             const currentMonth = currentDate.getMonth(); // 0-11
+            const currentYear = currentDate.getFullYear();
+            const currentDay = currentDate.getDate();
             window.updateNotifications = updateNotifications; // expose globally
+
+            // Helper: days until expiry (negative = already expired)
+            function daysUntil(dateStr) {
+                if (!dateStr || dateStr.trim() === '') return null;
+                const d = new Date(dateStr);
+                if (isNaN(d)) return null;
+                return Math.floor((d - currentDate) / (1000 * 60 * 60 * 24));
+            }
+
+            // Helper: get permit entries (handles multi-entry and legacy single-entry)
+            function getPermitEntries(project, row) {
+                const key = 'permits_' + row;
+                const raw = project.vals && project.vals[key];
+                if (!raw) return [];
+                if (raw.entries && raw.entries.length) return raw.entries;
+                return [{ permitNo: raw[1] || '', dateIssued: raw[2] || '', expiryDate: raw[3] || '' }];
+            }
+
             let projectOverdues = {};
 
             state.projects.forEach(project => {
                 let overdueTabs = [];
 
+                // ── KPM: missing monthly entries ────────────────────────────────
                 let hasKpmOverdue = false;
-                const kpmRows = ['KPM&I'];
-                kpmRows.forEach(row => {
-                    const key = `kpm_${row}`;
-                    for (let month = 0; month < currentMonth; month++) {
-                        const value = project.vals[key] ? project.vals[key][month + 1] : '';
-                        if (!value || value.toString().trim() === '') {
-                            hasKpmOverdue = true;
-                            break;
-                        }
-                    }
-                });
-                if (hasKpmOverdue) {
-                    overdueTabs.push({ name: 'KPM', tab: 'kpm' });
+                const key_kpm = 'kpm_KPM&I';
+                for (let month = 0; month < currentMonth; month++) {
+                    const value = project.vals[key_kpm] ? project.vals[key_kpm][month + 1] : '';
+                    if (!value || value.toString().trim() === '') { hasKpmOverdue = true; break; }
                 }
+                if (hasKpmOverdue) overdueTabs.push({ name: 'KPM', tab: 'kpm' });
 
+                // ── Environmental Monthly Report: missing monthly entries ─────────
                 let hasEnvMonthlyOverdue = false;
-                const envMonthlyRows = ['Environmental Monthly Report (EMR)'];
-                envMonthlyRows.forEach(row => {
-                    const key = `env-monthly-report_${row}`;
-                    for (let month = 0; month < currentMonth; month++) {
-                        const value = project.vals[key] ? project.vals[key][month + 1] : '';
-                        if (!value || value.toString().trim() === '') {
-                            hasEnvMonthlyOverdue = true;
-                            break;
-                        }
-                    }
-                });
-                if (hasEnvMonthlyOverdue) {
-                    overdueTabs.push({ name: 'Environmental Monthly Report', tab: 'env-monthly-report' });
+                const key_emr = 'env-monthly-report_Environmental Monthly Report (EMR)';
+                for (let month = 0; month < currentMonth; month++) {
+                    const value = project.vals[key_emr] ? project.vals[key_emr][month + 1] : '';
+                    if (!value || value.toString().trim() === '') { hasEnvMonthlyOverdue = true; break; }
                 }
+                if (hasEnvMonthlyOverdue) overdueTabs.push({ name: 'Environmental Monthly Report', tab: 'env-monthly-report' });
 
-                let hasDoleOverdue = false;
-                const doleRows = ['WAIR', 'RSO', 'MOM'];
-                doleRows.forEach(row => {
+                // ── DOLE Monthly: WAIR, RSO, MOM ────────────────────────────────
+                let hasDoleMonthlyOverdue = false;
+                ['WAIR', 'RSO', 'MOM'].forEach(row => {
+                    if (hasDoleMonthlyOverdue) return;
                     const key = `dole_${row}`;
                     for (let month = 0; month < currentMonth; month++) {
                         const value = project.vals[key] ? project.vals[key][month + 1] : '';
-                        if (!value || value.toString().trim() === '') {
-                            hasDoleOverdue = true;
-                            break;
-                        }
+                        if (!value || value.toString().trim() === '') { hasDoleMonthlyOverdue = true; break; }
                     }
-                    if (hasDoleOverdue) return; // Exit early if found
                 });
-                if (hasDoleOverdue) {
-                    overdueTabs.push({ name: 'DOLE Reportorial', tab: 'dole' });
-                }
+                if (hasDoleMonthlyOverdue) overdueTabs.push({ name: 'DOLE Reportorial', tab: 'dole' });
 
+                // ── DOLE Annual: AEDR (due Jan 30) & AMR (due Mar 31) ───────────
+                // AEDR and AMR are stored at index [1] as a single date value
+                const _doleAnnual = [
+                    { row: 'AEDR', label: 'AEDR (Annual Exposure Data Report)', dlM: 0, dlD: 30 }, // Jan 30
+                    { row: 'AMR',  label: 'AMR (Annual Medical Report)',         dlM: 2, dlD: 31 }  // Mar 31
+                ];
+                const _doleSelYr = state.selectedYear || currentYear;
+                _doleAnnual.forEach(({ row, label, dlM, dlD }) => {
+                    // Deadline is within the selected year
+                    const isPastDue = currentYear > _doleSelYr ||
+                        (currentYear === _doleSelYr && (currentMonth > dlM || (currentMonth === dlM && currentDay > dlD)));
+                    if (!isPastDue) return;
+                    const val = project.vals[`dole_${row}`] ? (project.vals[`dole_${row}`][1] || '') : '';
+                    if (!val || val.trim() === '') {
+                        overdueTabs.push({ name: `${label} (Missing)`, tab: 'dole' });
+                    }
+                });
+
+                // ── EMB Reportorial: SMR quarterly ──────────────────────────────
                 let hasEmbOverdue = false;
-                const embRows = ['SMR (Quarterly) - Submission Date'];
-                const _embSelYr = state.selectedYear || currentDate.getFullYear();
-                const _embCurYr = currentDate.getFullYear();
-                const _embCurD  = currentDate.getDate();
-                embRows.forEach(row => {
-                    const key = `emb_${row}`;
-                    for (let quarter = 1; quarter <= 4; quarter++) {
-                        let isOverdue = false;
-
-                        if (quarter === 4) {
-                            const deadlineYear = _embSelYr + 1;
-                            if (_embCurYr > deadlineYear) {
-                                isOverdue = true;
-                            } else if (_embCurYr === deadlineYear) {
-                                if (currentMonth === 0 && _embCurD > 15) {
-                                    isOverdue = true;
-                                } else if (currentMonth > 0) {
-                                    isOverdue = true;
-                                }
-                            }
-                        } else {
-                            const deadlineMonth = quarter * 3; // Apr=3, Jul=6, Oct=9 (0-based)
-                            // Past year: all Q1-Q3 deadlines are past
-                            if (_embCurYr > _embSelYr) {
-                                isOverdue = true;
-                            } else if (_embCurYr === _embSelYr) {
-                                if (currentMonth > deadlineMonth || (currentMonth === deadlineMonth && _embCurD > 15)) {
-                                    isOverdue = true;
-                                }
-                            }
-                        }
-
-                        if (isOverdue) {
-                            const value = project.vals[key] ? project.vals[key][quarter] : '';
-                            if (!value || value.toString().trim() === '') {
-                                hasEmbOverdue = true;
-                                break;
-                            }
-                        }
+                const _embSelYr = state.selectedYear || currentYear;
+                const key_emb = 'emb_SMR (Quarterly) - Submission Date';
+                for (let quarter = 1; quarter <= 4; quarter++) {
+                    let isOverdue = false;
+                    if (quarter === 4) {
+                        const deadlineYear = _embSelYr + 1;
+                        if (currentYear > deadlineYear) isOverdue = true;
+                        else if (currentYear === deadlineYear && (currentMonth > 0 || (currentMonth === 0 && currentDay > 15))) isOverdue = true;
+                    } else {
+                        const deadlineMonth = quarter * 3; // Apr=3, Jul=6, Oct=9 (0-based)
+                        if (currentYear > _embSelYr) isOverdue = true;
+                        else if (currentYear === _embSelYr && (currentMonth > deadlineMonth || (currentMonth === deadlineMonth && currentDay > 15))) isOverdue = true;
                     }
-                });
-                if (hasEmbOverdue) {
-                    overdueTabs.push({ name: 'EMB Reportorial', tab: 'emb' });
+                    if (isOverdue) {
+                        const value = project.vals[key_emb] ? project.vals[key_emb][quarter] : '';
+                        if (!value || value.toString().trim() === '') { hasEmbOverdue = true; break; }
+                    }
                 }
+                if (hasEmbOverdue) overdueTabs.push({ name: 'EMB Reportorial', tab: 'emb' });
 
+                // ── DOE (Renewable only) ─────────────────────────────────────────
                 if (project.isRenewable === true) {
-                    // Client-Provided → exempt from compliance check
+                    // DOE Safety Officer Permit
                     if (!(project.vals && project.vals['doe-permit_client_provided'] === '1')) {
-                        const doePermitKey = 'doe-permit_DOE Safety Officer Permit';
-                        const doePermitVals = project.vals[doePermitKey];
-                        {
-                            const permitNumber = doePermitVals ? doePermitVals[1] : '';
-                            const validUntil = doePermitVals ? doePermitVals[2] : '';
-                            if (!permitNumber || permitNumber.trim() === '' || !validUntil || validUntil.trim() === '') {
-                                overdueTabs.push({ name: 'DOE Safety Officer Permit (Missing)', tab: 'doe-permit' });
-                            }
+                        const doePermitVals = project.vals['doe-permit_DOE Safety Officer Permit'];
+                        const permitNumber = doePermitVals ? doePermitVals[1] : '';
+                        const validUntil = doePermitVals ? doePermitVals[2] : '';
+                        if (!permitNumber || permitNumber.trim() === '') {
+                            overdueTabs.push({ name: 'DOE Safety Officer Permit (Missing)', tab: 'doe-permit' });
+                        } else if (validUntil && validUntil.trim() !== '') {
+                            const d = daysUntil(validUntil);
+                            if (d !== null && d < 0)   overdueTabs.push({ name: 'DOE Safety Officer Permit (Expired)', tab: 'doe-permit', isExpired: true });
+                            else if (d !== null && d <= 60) overdueTabs.push({ name: `DOE Safety Officer Permit (Expiring in ${d}d)`, tab: 'doe-permit', isExpiring: true });
                         }
                     }
-                }
-
-                if (project.isRenewable === true) {
-                    // Client-Provided → exempt from compliance check
-                    // Also exempt if DOE Safety Officer Permit is client-provided (linked)
+                    // DOE Quarterly Report
                     if (!(project.vals && (project.vals['doe_client_provided'] === '1' || project.vals['doe-permit_client_provided'] === '1'))) {
-                    {
                         const doeQKey = 'doe_DOE Quarterly Report Submission Date';
-                        const _doeNow = new Date();
-                        const _doeNowM = _doeNow.getMonth(); // 0-based
-                        const _doeNowD = _doeNow.getDate();
-                        const _doeNowY = _doeNow.getFullYear();
-                        const _doeSelY = state.selectedYear || _doeNowY;
+                        const _doeSelY = state.selectedYear || currentYear;
+                        const _doeDueMonths = { 1: [3,20], 2: [6,20], 3: [9,20], 4: [0,20] };
                         let hasDoeOverdue = false;
-                        // Q1 due Apr20, Q2 due Jul20, Q3 due Oct20, Q4 due Jan20 next year
-                        const _doeDueMonths = { 1: [3,20], 2: [6,20], 3: [9,20], 4: [0,20] }; // 0-based month
                         for (let q = 1; q <= 4; q++) {
                             const [dm, dd] = _doeDueMonths[q];
                             let isPastDue = false;
                             if (q === 4) {
                                 const dlY = _doeSelY + 1;
-                                if (_doeNowY > dlY) isPastDue = true;
-                                else if (_doeNowY === dlY && (_doeNowM > 0 || (_doeNowM === 0 && _doeNowD > dd))) isPastDue = true;
+                                if (currentYear > dlY) isPastDue = true;
+                                else if (currentYear === dlY && (currentMonth > 0 || (currentMonth === 0 && currentDay > dd))) isPastDue = true;
                             } else {
-                                // Q1-Q3: deadline is in same year as selected year
-                                if (_doeNowY > _doeSelY) {
-                                    isPastDue = true; // past year — deadline long gone
-                                } else if (_doeNowY === _doeSelY) {
-                                    if (_doeNowM > dm || (_doeNowM === dm && _doeNowD > dd)) isPastDue = true;
-                                }
+                                if (currentYear > _doeSelY) isPastDue = true;
+                                else if (currentYear === _doeSelY && (currentMonth > dm || (currentMonth === dm && currentDay > dd))) isPastDue = true;
                             }
                             if (isPastDue) {
                                 const val = project.vals[doeQKey] ? project.vals[doeQKey][q] : '';
-                                if (!val || val.toString().trim() === '') {
-                                    hasDoeOverdue = true;
-                                    break;
-                                }
+                                if (!val || val.toString().trim() === '') { hasDoeOverdue = true; break; }
                             }
                         }
-                        if (hasDoeOverdue) {
-                            overdueTabs.push({ name: 'DOE Reportorial (Overdue)', tab: 'doe' });
-                        }
+                        if (hasDoeOverdue) overdueTabs.push({ name: 'DOE Reportorial (Overdue)', tab: 'doe' });
                     }
-                    } // end if not client-provided
                 }
 
-                const certKey = 'permits_Certificate of Registration';
-                const certNumber = project.vals[certKey] ? project.vals[certKey][1] : '';
-                const certIssued = project.vals[certKey] ? project.vals[certKey][2] : '';
-                const certExpiry = project.vals[certKey] ? project.vals[certKey][3] : '';
-                
-                if (!certNumber || certNumber.trim() === '' || !certIssued || certIssued.trim() === '' || !certExpiry || certExpiry.trim() === '') {
-                    overdueTabs.push({ name: 'Certificate of Registration (Missing)', tab: 'permits' });
-                }
-
-                const cshpKey = 'cshp_CSHP Approval Date';
-                const cshpDate = project.vals[cshpKey] ? project.vals[cshpKey][1] : '';
-                
+                // ── CSHP ────────────────────────────────────────────────────────
+                const cshpDate = project.vals['cshp_CSHP Approval Date'] ? project.vals['cshp_CSHP Approval Date'][1] : '';
                 if (!cshpDate || cshpDate.trim() === '') {
                     overdueTabs.push({ name: 'CSHP (Missing)', tab: 'cshp' });
                 }
 
+                // ── PERMITS: expired / expiring soon / missing ──────────────────
+                // Uses actual SCHEMA permits list — no phantom "Certificate of Registration" check
+                const PERMIT_ROWS = (window.MULTI_ENTRY_PERMITS)
+                    ? ['ECC','Company Registration System (CRS)','CNC','Certificate of Accreditation (DENR-EMB)','Certificate of Accreditation (LLDA)','LLDA Clearance','Permit to Transport (PTT)','Permit to Operate (PTO)','Discharge Permit (DP)',"Hazardous Waste Generator's ID",'Permit to Transport (Haz Waste)','Permit to Transport (Logs)','Tree Cutting Permit (STCP or S/PLTP)','Permit to Cut Coconut Tree','NWRB Water Permit']
+                    : [];
+                const NO_EXPIRY = window.NO_EXPIRY_PERMITS || [];
+                let expiredPermits = [], expiringPermits = [], missingPermits = [];
+
+                PERMIT_ROWS.forEach(row => {
+                    const key = 'permits_' + row;
+                    const raw = project.vals && project.vals[key];
+                    // Skip if N/A or Client-Provided
+                    if (raw && (raw['__na'] === '1' || project.vals[key + '__na'] === '1')) return;
+                    if (raw && (raw['__cp'] === '1' || project.vals[key + '__cp'] === '1')) return;
+
+                    const entries = getPermitEntries(project, row);
+                    const noExpiry = NO_EXPIRY.includes(row);
+
+                    entries.forEach(entry => {
+                        if (!entry.permitNo || entry.permitNo.trim() === '') {
+                            missingPermits.push(row);
+                            return;
+                        }
+                        if (noExpiry) return; // No expiry to check
+                        if (!entry.expiryDate || entry.expiryDate.trim() === '') return; // No expiry date entered yet
+                        const d = daysUntil(entry.expiryDate);
+                        if (d !== null && d < 0)    expiredPermits.push(row);
+                        else if (d !== null && d <= 60) expiringPermits.push(row);
+                    });
+                });
+
+                if (expiredPermits.length > 0) {
+                    overdueTabs.push({ name: `Expired Permit(s): ${expiredPermits.slice(0,2).join(', ')}${expiredPermits.length > 2 ? ` +${expiredPermits.length-2} more` : ''}`, tab: 'permits', isExpired: true });
+                }
+                if (expiringPermits.length > 0) {
+                    overdueTabs.push({ name: `Expiring Soon (≤60d): ${expiringPermits.slice(0,2).join(', ')}${expiringPermits.length > 2 ? ` +${expiringPermits.length-2} more` : ''}`, tab: 'permits', isExpiring: true });
+                }
+                if (missingPermits.length > 0) {
+                    overdueTabs.push({ name: `Missing Permit(s): ${missingPermits.slice(0,2).join(', ')}${missingPermits.length > 2 ? ` +${missingPermits.length-2} more` : ''}`, tab: 'permits' });
+                }
+
+                // ── OSH Deficiency ───────────────────────────────────────────────
                 if (state.oshData && state.oshData[project.name]) {
                     const oshEntry = state.oshData[project.name];
                     const manpower = parseInt(oshEntry.manpower) || 0;
@@ -10809,18 +10818,13 @@ debugCommands.help() - Show this help
                         if (req) {
                             const actual = countActualOshPersonnel(project.name);
                             const deficiencies = [];
-                            if (req.firstAider   > 0 && actual.firstAider   < req.firstAider)   deficiencies.push(`First Aider (${actual.firstAider}/${req.firstAider})`);
+                            if (req.firstAider    > 0 && actual.firstAider    < req.firstAider)    deficiencies.push(`First Aider (${actual.firstAider}/${req.firstAider})`);
                             if (req.safetyOfficer > 0 && actual.safetyOfficer < req.safetyOfficer) deficiencies.push(`Safety Officer (${actual.safetyOfficer}/${req.safetyOfficer})`);
-                            if (req.ohNurse      > 0 && actual.ohNurse      < req.ohNurse)      deficiencies.push(`OH Nurse (${actual.ohNurse}/${req.ohNurse})`);
-                            if (req.ohDentist    > 0 && actual.ohDentist    < req.ohDentist)    deficiencies.push(`OH Dentist (${actual.ohDentist}/${req.ohDentist})`);
-                            if (req.ohPhysician  > 0 && actual.ohPhysician  < req.ohPhysician)  deficiencies.push(`OH Physician (${actual.ohPhysician}/${req.ohPhysician})`);
-
+                            if (req.ohNurse       > 0 && actual.ohNurse       < req.ohNurse)       deficiencies.push(`OH Nurse (${actual.ohNurse}/${req.ohNurse})`);
+                            if (req.ohDentist     > 0 && actual.ohDentist     < req.ohDentist)     deficiencies.push(`OH Dentist (${actual.ohDentist}/${req.ohDentist})`);
+                            if (req.ohPhysician   > 0 && actual.ohPhysician   < req.ohPhysician)   deficiencies.push(`OH Physician (${actual.ohPhysician}/${req.ohPhysician})`);
                             if (deficiencies.length > 0) {
-                                overdueTabs.push({
-                                    name: `OSH Deficiency: ${deficiencies.join(', ')}`,
-                                    tab: 'osh-requirement',
-                                    isOsh: true
-                                });
+                                overdueTabs.push({ name: `OSH Deficiency: ${deficiencies.join(', ')}`, tab: 'osh-requirement', isOsh: true });
                             }
                         }
                     }
@@ -10835,7 +10839,7 @@ debugCommands.help() - Show this help
             Object.keys(projectOverdues).forEach(projectName => {
                 totalIssues += projectOverdues[projectName].length;
             });
-            
+
             const badge = document.getElementById('notification-badge');
             if (totalIssues > 0) {
                 badge.textContent = totalIssues > 99 ? '99+' : totalIssues;
@@ -10845,7 +10849,6 @@ debugCommands.help() - Show this help
             }
 
             const notificationList = document.getElementById('notification-list');
-            const totalProjects = Object.keys(projectOverdues).length;
             if (totalIssues === 0) {
                 notificationList.innerHTML = `
                     <div class="notification-empty">
@@ -10856,28 +10859,26 @@ debugCommands.help() - Show this help
                 `;
             } else {
                 let html = '';
-                
-                html += `
-                    <style>
-                    </style>
-                `;
-                
                 const sortedProjectNames = Object.keys(projectOverdues).sort((a, b) => a.localeCompare(b));
-                
+
                 sortedProjectNames.forEach(projectName => {
                     const tabs = projectOverdues[projectName];
-                    
                     tabs.forEach(tabInfo => {
-                        const isMissing = tabInfo.name.includes('Missing');
-                        const isOsh = tabInfo.isOsh === true;
-                        const iconClass = isOsh ? 'fa-shield-halved' : isMissing ? 'fa-exclamation-triangle' : 'fa-file-circle-exclamation';
-                        const statusText = isOsh ? 'OSH Deficient' : isMissing ? 'Missing' : 'Overdue';
-                        const statusColor = isOsh ? '#e65100' : isMissing ? '#d32f2f' : '#ff6f00';
-                        const displayName = isOsh ? tabInfo.name.replace('OSH Deficiency: ', '') : tabInfo.name.replace(' (Missing)', '');
-                        
+                        const isOsh      = tabInfo.isOsh === true;
+                        const isExpired  = tabInfo.isExpired === true;
+                        const isExpiring = tabInfo.isExpiring === true;
+                        const isMissing  = !isOsh && !isExpired && !isExpiring;
+
+                        const iconClass  = isOsh ? 'fa-shield-halved' : isExpired ? 'fa-circle-xmark' : isExpiring ? 'fa-clock' : 'fa-exclamation-triangle';
+                        const statusText = isOsh ? 'OSH Deficient' : isExpired ? 'Expired' : isExpiring ? 'Expiring Soon' : 'Missing';
+                        const statusColor= isOsh ? '#e65100' : isExpired ? '#c62828' : isExpiring ? '#e65100' : '#d32f2f';
+                        const iconBg     = isOsh ? 'rgba(230,81,0,0.1)' : isExpired ? 'rgba(198,40,40,0.1)' : isExpiring ? 'rgba(230,81,0,0.1)' : '';
+                        const displayName = isOsh ? tabInfo.name.replace('OSH Deficiency: ', '') : tabInfo.name;
+
+                        const _pnSafe = projectName.replace(/'/g, "\\'");
                         html += `
-                            <div class="notification-item" onclick="redirectToProjectTable('${projectName}', '${tabInfo.tab}')">
-                                <div class="notif-icon-box" ${isOsh ? 'style="background:rgba(230,81,0,0.1);color:#e65100;"' : ''}>
+                            <div class="notification-item" onclick="redirectToProjectTable('${_pnSafe}', '${tabInfo.tab}')">
+                                <div class="notif-icon-box" style="background:${iconBg};color:${statusColor};">
                                     <i class="fas ${iconClass}"></i>
                                 </div>
                                 <div style="flex:1; min-width:0;">
@@ -10895,7 +10896,7 @@ debugCommands.help() - Show this help
                         `;
                     });
                 });
-                
+
                 notificationList.innerHTML = html;
             }
         }
