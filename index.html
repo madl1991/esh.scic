@@ -28340,6 +28340,9 @@ function setupAuthObserver() {
             });
             
             startEshCalendarSync();
+            // Self-heal cleanup: remove false values, legacy keys, stale deletion records from RTDB
+            // Runs once per session, admin-only writes. Safe to call even if Firebase isn't ready yet.
+            setTimeout(function() { if (typeof _eshRtdbSelfHealCleanup === 'function') _eshRtdbSelfHealCleanup(); }, 4000);
             setTimeout(startProjectsRealtimeSync, 1500); // slight delay so initial load completes first
 
             const _eshCalTabTypes = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
@@ -33221,58 +33224,57 @@ let _eshCalendarUnsubRTDB = null; // main data listener unsubscribe
 let _eshCalendarUnsubDels = null; // deletions listener (kept for backward compat cleanup)
 
 function _eshKeyToFirebasePath(key) {
+    // Firebase RTDB forbidden chars: . # $ [ ] /
+    // | is ALLOWED — do NOT encode it (keeps keys readable and avoids _PIPE_ vs | duplicates)
     return key
         .replace(/\./g, '_DOT_')
         .replace(/#/g, '_HASH_')
         .replace(/\$/g, '_DOLLAR_')
         .replace(/\[/g, '_LBRACKET_')
-        .replace(/\]/g, '_RBRACKET_')
-        .replace(/\|/g, '_PIPE_');
+        .replace(/\]/g, '_RBRACKET_');
+    // Note: | is intentionally NOT encoded — Firebase allows it in keys
 }
 
 function _eshFirebasePathToKey(safeName) {
+    // Decode legacy _PIPE_ encoded keys from old sync versions
     return safeName
+        .replace(/_PIPE_/g, '|')
         .replace(/_DOT_/g, '.')
         .replace(/_HASH_/g, '#')
         .replace(/_DOLLAR_/g, '$')
         .replace(/_LBRACKET_/g, '[')
-        .replace(/_RBRACKET_/g, ']')
-        .replace(/_PIPE_/g, '|');
+        .replace(/_RBRACKET_/g, ']');
 }
 
 // ── Simple localStorage helpers ───────────────────────────────────────────────
-function getEshStorage() {
+// _eshMemCache: in-memory ESH data store — immune to localStorage quota errors.
+// This is the PRIMARY source of truth for this session.
+// Firebase RTDB is the persistent source of truth across sessions/browsers.
+window._eshMemCache = window._eshMemCache || (function() {
     try { return JSON.parse(localStorage.getItem('esh_calendar_data') || '{}'); } catch(e) { return {}; }
+})();
+
+function getEshStorage() {
+    // Always return the in-memory cache — never read from localStorage directly
+    return window._eshMemCache || {};
 }
 
 function _eshSaveLocal(key, value) {
-    // Write a single key to localStorage — plan-key-priority on quota errors
+    // ALWAYS update in-memory cache first — immune to localStorage quota
+    if (!window._eshMemCache) window._eshMemCache = {};
+    if (value === null || value === undefined) { delete window._eshMemCache[key]; }
+    else { window._eshMemCache[key] = value; }
+    // Try to persist to localStorage (best-effort — not required for correctness)
     try {
-        const s = getEshStorage();
-        if (value === null || value === undefined) { delete s[key]; } else { s[key] = value; }
-        localStorage.setItem('esh_calendar_data', JSON.stringify(s));
+        localStorage.setItem('esh_calendar_data', JSON.stringify(window._eshMemCache));
     } catch(e) {
         if (e && e.name === 'QuotaExceededError') {
-            // Free space then retry with plan-keys-only
             try {
                 ['esh_login_logbook','esh_audit_log','esh_projects_cache'].forEach(function(k) {
                     try { localStorage.removeItem(k); } catch(e2) {}
                 });
-                const s2 = getEshStorage();
-                if (value === null || value === undefined) { delete s2[key]; } else { s2[key] = value; }
-                localStorage.setItem('esh_calendar_data', JSON.stringify(s2));
-            } catch(e2) {
-                // Truly full — save plan keys only so cells still render
-                try {
-                    const s3 = getEshStorage();
-                    const planOnly = {};
-                    Object.entries(s3).forEach(function(kv) {
-                        if (kv[0].includes('|GLOBAL_PLAN|') && kv[0].endsWith('|plan')) planOnly[kv[0]] = kv[1];
-                    });
-                    if (value !== null && value !== undefined && key.includes('|GLOBAL_PLAN|') && key.endsWith('|plan')) planOnly[key] = value;
-                    localStorage.setItem('esh_calendar_data', JSON.stringify(planOnly));
-                } catch(e3) {} // give up — Firebase is source of truth anyway
-            }
+                localStorage.setItem('esh_calendar_data', JSON.stringify(window._eshMemCache));
+            } catch(e2) {} // localStorage full — in-memory cache is still valid
         }
     }
 }
@@ -33293,27 +33295,20 @@ function _eshRtdbWrite(key, value) {
 
 // ── setEshStorage: kept for compatibility — just saves full object to localStorage ─
 function setEshStorage(data) {
+    // Update in-memory cache first (always succeeds)
+    window._eshMemCache = data || {};
+    // Best-effort localStorage persist
     try {
-        localStorage.setItem('esh_calendar_data', JSON.stringify(data));
+        localStorage.setItem('esh_calendar_data', JSON.stringify(window._eshMemCache));
     } catch(e) {
         if (e && e.name === 'QuotaExceededError') {
             try {
                 ['esh_login_logbook','esh_audit_log','esh_projects_cache'].forEach(function(k) {
                     try { localStorage.removeItem(k); } catch(e2) {} });
-                localStorage.setItem('esh_calendar_data', JSON.stringify(data));
-            } catch(e2) {
-                // Save plan keys only
-                try {
-                    const planOnly = {};
-                    Object.entries(data).forEach(function(kv) {
-                        if (kv[0].includes('|GLOBAL_PLAN|') && kv[0].endsWith('|plan')) planOnly[kv[0]] = kv[1];
-                    });
-                    localStorage.setItem('esh_calendar_data', JSON.stringify(planOnly));
-                } catch(e3) {}
-            }
+                localStorage.setItem('esh_calendar_data', JSON.stringify(window._eshMemCache));
+            } catch(e2) {} // localStorage full — in-memory cache still valid
         }
     }
-    // Note: bulk Firebase save not needed here — individual writes use _eshRtdbWrite
 }
 
 // ── eshFetchAndRender: fetch once and render (used on tab switch) ─────────────
@@ -33325,24 +33320,85 @@ function eshFetchAndRender(tabType) {
         window.firebase.get(ref).then(function(snapshot) {
             const remoteData = snapshot.val() || {};
             const curYear = String((state && state.selectedYear) || 2026);
-            const s = {};
+            const fromFb = {};
             Object.entries(remoteData).forEach(function(kv) {
                 const decoded = _eshFirebasePathToKey(kv[0]);
-                if (kv[1] === null || kv[1] === undefined) return;
-                s[decoded] = kv[1];
+                if (kv[1] === null || kv[1] === undefined || kv[1] === false) return;
+                if (!decoded.startsWith('20')) return; // skip legacy no-year-prefix keys
+                fromFb[decoded] = kv[1];
             });
-            // Merge into localStorage (remote wins for plan keys, local wins for actuals)
-            const local = getEshStorage();
-            Object.entries(s).forEach(function(kv) {
-                local[kv[0]] = kv[1];
+            // Merge into in-memory cache (remote wins for plan keys, keep local actuals)
+            if (!window._eshMemCache) window._eshMemCache = {};
+            Object.entries(fromFb).forEach(function(kv) {
+                window._eshMemCache[kv[0]] = kv[1];
             });
-            try { localStorage.setItem('esh_calendar_data', JSON.stringify(local)); } catch(e) {}
+            try { localStorage.setItem('esh_calendar_data', JSON.stringify(window._eshMemCache)); } catch(e) {}
             try { renderEshCalendar(tabType); } catch(e) {}
         }).catch(function(e) { console.warn('eshFetchAndRender get error:', e); });
     } catch(e) { console.warn('eshFetchAndRender error:', e); }
 }
 window.eshFetchAndRender = eshFetchAndRender;
 
+
+// ── ESH RTDB Self-Healing Cleanup (runs once per session) ────────────────────
+// Deletes: false-valued plan keys, legacy no-year-prefix keys, stale deletion records
+// This cleans up bad data left by previous sync versions.
+window._eshRtdbCleanupDone = false;
+function _eshRtdbSelfHealCleanup() {
+    if (window._eshRtdbCleanupDone) return;
+    if (!window.firebaseRealtimeDb || !window.firebase || !window.firebaseAuth?.currentUser) return;
+    const email = window.firebaseAuth.currentUser.email;
+    // Only admin can write to RTDB
+    if (!email || (!email.includes('esh@scic') && !email.includes('esh@staclara') && !email.includes('esh@wda'))) return;
+    window._eshRtdbCleanupDone = true;
+    console.log('🧹 ESH RTDB: starting self-heal cleanup...');
+
+    const dataRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
+    const delRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/deletions');
+
+    // Step 1: Clean data path — null out false values and legacy no-year keys
+    window.firebase.get(dataRef).then(function(snap) {
+        const allData = snap.val() || {};
+        const nullUpdates = {};
+        let cleaned = 0;
+        Object.entries(allData).forEach(function(kv) {
+            const k = kv[0], v = kv[1];
+            const decoded = k.replace(/_PIPE_/g, '|');
+            // Delete false values (should be null)
+            if (v === false || v === null) {
+                nullUpdates[k] = null;
+                cleaned++;
+            }
+            // Delete legacy keys without year prefix
+            else if (!decoded.startsWith('20')) {
+                nullUpdates[k] = null;
+                cleaned++;
+            }
+        });
+        if (cleaned > 0) {
+            window.firebase.update(dataRef, nullUpdates)
+                .then(function() { console.log('🧹 ESH RTDB: cleaned ' + cleaned + ' bad data keys (false/legacy)'); })
+                .catch(function(e) { console.warn('🧹 ESH RTDB cleanup data error:', e.message); });
+        } else {
+            console.log('🧹 ESH RTDB: data path already clean');
+        }
+    }).catch(function(e) { console.warn('🧹 ESH RTDB self-heal read error:', e.message); });
+
+    // Step 2: Clean deletion records — delete ALL (new architecture doesn't use them)
+    window.firebase.get(delRef).then(function(snap) {
+        const allDels = snap.val() || {};
+        const delCount = Object.keys(allDels).length;
+        if (delCount > 0) {
+            // Replace entire deletions path with null to wipe all records
+            window.firebase.set(delRef, null)
+                .then(function() { console.log('🧹 ESH RTDB: wiped ' + delCount + ' stale deletion records'); })
+                .catch(function(e) { console.warn('🧹 ESH RTDB cleanup deletions error:', e.message); });
+        } else {
+            console.log('🧹 ESH RTDB: deletions path already clean');
+        }
+    }).catch(function(e) { console.warn('🧹 ESH RTDB self-heal deletions error:', e.message); });
+}
+window._eshRtdbSelfHealCleanup = _eshRtdbSelfHealCleanup;
 // ── startEshCalendarSync: real-time RTDB listener → re-render on change ───────
 // KPM-style: Firebase pushes change → update local cache → re-render visible tab
 function startEshCalendarSync() {
@@ -33362,53 +33418,48 @@ function startEshCalendarSync() {
 
     _eshCalendarUnsubRTDB = window.firebase.onValue(ref, function(snapshot) {
         const remoteData = snapshot.val() || {};
-        // Decode all keys and build fresh storage from Firebase (source of truth)
+
+        // ── Build in-memory cache from Firebase snapshot (source of truth) ──
+        // Do NOT rely on localStorage — it may be full (QuotaExceededError).
+        // _eshMemCache is the authoritative in-memory store for this session.
         const fromFirebase = {};
         Object.entries(remoteData).forEach(function(kv) {
             const decoded = _eshFirebasePathToKey(kv[0]);
-            if (kv[1] === null || kv[1] === undefined) return;
+            // Skip null/undefined AND false — false means "unset" (legacy bad write), treat as deleted
+            if (kv[1] === null || kv[1] === undefined || kv[1] === false) return;
+            // Skip keys without year prefix (legacy migration artifacts)
+            if (!decoded.startsWith('20')) return;
             fromFirebase[decoded] = kv[1];
         });
 
-        // Merge: Firebase wins for plan keys; keep local actuals that Firebase doesn't have
-        const local = getEshStorage();
-        const merged = Object.assign({}, local);
-        // Always override with Firebase values (plan keys from Firebase are authoritative)
+        // Update the global in-memory cache — this is what getEshStorage() reads
+        // Preserve actual dates that aren't in Firebase yet (locally set but not yet synced)
+        const prevCache = window._eshMemCache || {};
+        const newCache = {};
+        // Start with previous actuals (non-plan keys)
+        Object.entries(prevCache).forEach(function(kv) {
+            if (!kv[0].includes('|GLOBAL_PLAN|')) newCache[kv[0]] = kv[1];
+        });
+        // Apply all Firebase values (authoritative)
         Object.entries(fromFirebase).forEach(function(kv) {
-            merged[kv[0]] = kv[1];
+            newCache[kv[0]] = kv[1];
         });
-        // Remove keys that Firebase has deleted (null) — plan keys specifically
-        Object.keys(local).forEach(function(k) {
-            if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan') && !fromFirebase[k]) {
-                delete merged[k];
-            }
-        });
+        window._eshMemCache = newCache;
 
         const planKeysRemote = Object.keys(fromFirebase).filter(function(k) {
             return k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan');
         }).length;
-        const planKeysLocal = Object.keys(merged).filter(function(k) {
-            return k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan');
-        }).length;
-        console.log('🔍 ESH sync — local plan keys:', planKeysLocal, '| remote plan keys:', planKeysRemote);
+        console.log('🔍 ESH sync — remote plan keys:', planKeysRemote);
 
-        // Save merged to localStorage
-        try { localStorage.setItem('esh_calendar_data', JSON.stringify(merged)); } catch(e) {
+        // Try to persist to localStorage (best-effort, non-blocking)
+        try { localStorage.setItem('esh_calendar_data', JSON.stringify(newCache)); } catch(e) {
             if (e && e.name === 'QuotaExceededError') {
                 try {
-                    ['esh_login_logbook','esh_audit_log','esh_projects_cache'].forEach(function(k) {
-                        try { localStorage.removeItem(k); } catch(e2) {}
-                    });
-                    localStorage.setItem('esh_calendar_data', JSON.stringify(merged));
+                    ['esh_login_logbook','esh_audit_log','esh_projects_cache'].forEach(function(k2) {
+                        try { localStorage.removeItem(k2); } catch(e2) {} });
+                    localStorage.setItem('esh_calendar_data', JSON.stringify(newCache));
                 } catch(e2) {
-                    // Save plan keys only
-                    try {
-                        const planOnly = {};
-                        Object.keys(merged).forEach(function(k) {
-                            if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) planOnly[k] = merged[k];
-                        });
-                        localStorage.setItem('esh_calendar_data', JSON.stringify(planOnly));
-                    } catch(e3) {}
+                    // localStorage full — in-memory cache is still the source of truth, that's fine
                 }
             }
         }
