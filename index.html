@@ -33210,159 +33210,16 @@ const TAB_COLORS = {
     'esh-calendar-drills': { header:'#2e7d32', light:'#e8f5e9', accent:'#388e3c', icon:'fa-person-running', label:'EMERGENCY DRILLS' },
 };
 
-let _eshCalendarUnsubscribe = null; // holds the onValue unsubscribe fn
+// Legacy _eshCalendarUnsubscribe replaced by _eshCalendarUnsubRTDB in simplified sync
 
-function getEshStorage() {
-    try { return JSON.parse(localStorage.getItem('esh_calendar_data') || '{}'); } catch(e) { return {}; }
-}
+// ── ESH CALENDAR SYNC — SIMPLIFIED (KPM-style direct RTDB write) ──────────────
+// Architecture mirrors KPM/RowSaveManager: click → direct Firebase write → onValue re-render.
+// No echo guards, no deletion cache, no tombstones, no pending queues.
+// Firebase RTDB is the single source of truth. onValue listener just re-renders.
 
-function setEshStorage(data) {
-    const _serialized = JSON.stringify(data);
-    try {
-        localStorage.setItem('esh_calendar_data', _serialized);
-    } catch(e) {
-        if (e && e.name === 'QuotaExceededError') {
-            console.warn('⚠️ localStorage quota exceeded — clearing old ESH cache and retrying...');
-            try {
-                const keysToRemove = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                    const k = localStorage.key(i);
-                    if (k && (
-                        k.startsWith('esh_dashboard_201') ||
-                        k.startsWith('esh_dashboard_') && !k.includes('_' + new Date().getFullYear() + '_') && !k.includes('_' + (new Date().getFullYear() - 1) + '_') ||
-                        k === 'esh_login_logbook' ||
-                        k === 'esh_audit_log' ||
-                        k === 'esh_projects_cache'
-                    )) keysToRemove.push(k);
-                }
-                keysToRemove.forEach(k => { try { localStorage.removeItem(k); } catch(e2){} });
-                localStorage.setItem('esh_calendar_data', _serialized);
-                console.log('✅ ESH storage saved after clearing old cache (' + keysToRemove.length + ' keys freed)');
-            } catch(e2) {
-                console.warn('⚠️ localStorage still full after cleanup — relying on Firebase sync only. Data is NOT lost.');
-            }
-        } else {
-            console.warn('setEshStorage localStorage error:', e);
-        }
-    }
+let _eshCalendarUnsubRTDB = null; // main data listener unsubscribe
+let _eshCalendarUnsubDels = null; // deletions listener (kept for backward compat cleanup)
 
-    _eshSaveToFirebase(data);
-}
-
-const _eshMyWrites = new Map(); // key -> timestamp of our write
-const _eshMyDeletes = new Set(); // plan keys we intentionally deleted this session
-let _eshLastLocalWrite = 0;     // timestamp of last local write (used by legacy code)
-
-// Write a deletion record for a GLOBAL_PLAN key to Firebase RTDB.
-// Path: esh-calendar/deletions/{safe_key} = unix timestamp
-// Other browsers read this on sync and discard any local value older than the deletion.
-function _eshWriteDeletionRecord(key) {
-    try {
-        if (!window.firebaseRealtimeDb || !window.firebase) return;
-        const safeKey = _eshKeyToFirebasePath(key);
-        const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/deletions/' + safeKey);
-        window.firebase.set(ref, Date.now()).catch(function(e) {
-            const errMsg = (e && (e.message || e.code || String(e))) || '';
-            if (!errMsg.includes('PERMISSION_DENIED') && !errMsg.includes('permission_denied')) {
-                console.warn('⚠️ ESH: deletion record write failed (non-permission):', key, errMsg);
-            }
-            // permission_denied on deletions path = silently ignore (rules may restrict)
-        });
-    } catch(e) {}
-}
-
-// Returns the deletion timestamp for a key from localStorage cache, or 0 if none.
-function _eshGetDeletionTs(key) {
-    try {
-        const cache = JSON.parse(localStorage.getItem('esh_calendar_deletions') || '{}');
-        return cache[key] || 0;
-    } catch(e) { return 0; }
-}
-
-// Cache deletion records locally so they survive page refresh.
-function _eshCacheDeletionRecords(deletions) {
-    try {
-        const existing = JSON.parse(localStorage.getItem('esh_calendar_deletions') || '{}');
-        Object.assign(existing, deletions);
-        localStorage.setItem('esh_calendar_deletions', JSON.stringify(existing));
-    } catch(e) {}
-}
-const _ESH_PENDING_KEY = 'esh_calendar_pending_writes'; // localStorage key for failed writes
-const _ESH_TOMBSTONE_MARKER = '__DELETED__'; // in-band tombstone value stored inside esh_calendar_data
-
-// Mark a key as intentionally deleted inside esh_calendar_data (no separate localStorage key needed)
-function _eshAddTombstone(key) {
-    try {
-        const storage = getEshStorage();
-        storage[key] = _ESH_TOMBSTONE_MARKER;
-        localStorage.setItem('esh_calendar_data', JSON.stringify(storage));
-    } catch(e) {}
-}
-
-// Check if a key is tombstoned
-function _eshIsTombstoned(key) {
-    try {
-        const storage = getEshStorage();
-        return storage[key] === _ESH_TOMBSTONE_MARKER;
-    } catch(e) { return false; }
-}
-
-// Remove a tombstone when a key is intentionally re-created
-function _eshRemoveTombstone(key) {
-    try {
-        const storage = getEshStorage();
-        if (storage[key] === _ESH_TOMBSTONE_MARKER) {
-            delete storage[key];
-            localStorage.setItem('esh_calendar_data', JSON.stringify(storage));
-        }
-    } catch(e) {}
-}
-
-// Load any pending writes from a previous session and re-attempt them
-function _eshFlushPendingWrites() {
-    try {
-        const pending = JSON.parse(localStorage.getItem(_ESH_PENDING_KEY) || '{}');
-        const keys = Object.keys(pending);
-        if (!keys.length) return;
-        console.log('🔄 ESH: flushing', keys.length, 'pending write(s) from previous session...');
-        keys.forEach(function(k) {
-            // FIX: Never flush GLOBAL_PLAN plan keys from a previous session.
-            // These are shared across all admin accounts — only the admin who
-            // actively clicks the plan cell should write. Flushing stale 'true'
-            // values from another session restores plans that were intentionally deleted.
-            if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) {
-                console.log('⏭️ ESH flush: skipping GLOBAL_PLAN key (shared — not safe to replay):', k);
-                return;
-            }
-            _eshSaveKeyToFirebase(k, pending[k]);
-        });
-        localStorage.removeItem(_ESH_PENDING_KEY);
-    } catch(e) {}
-}
-
-function _eshAddPendingWrite(key, value) {
-    try {
-        const pending = JSON.parse(localStorage.getItem(_ESH_PENDING_KEY) || '{}');
-        if (value === null || value === undefined || value === false) {
-            delete pending[key];
-        } else {
-            pending[key] = value;
-        }
-        localStorage.setItem(_ESH_PENDING_KEY, JSON.stringify(pending));
-    } catch(e) {}
-}
-
-function _eshRemovePendingWrite(key) {
-    try {
-        const pending = JSON.parse(localStorage.getItem(_ESH_PENDING_KEY) || '{}');
-        delete pending[key];
-        localStorage.setItem(_ESH_PENDING_KEY, JSON.stringify(pending));
-    } catch(e) {}
-}
-
-// Converts a raw ESH key (e.g. "2026|esh-calendar-drills|4.85MW Mat-I 1 HEPP|3|0|actual")
-// into a Firebase-safe path segment by replacing all invalid RTDB characters.
-// Firebase RTDB path segments cannot contain: . # $ [ ]
 function _eshKeyToFirebasePath(key) {
     return key
         .replace(/\./g, '_DOT_')
@@ -33373,8 +33230,6 @@ function _eshKeyToFirebasePath(key) {
         .replace(/\|/g, '_PIPE_');
 }
 
-// Reverse: converts a Firebase-safe node name back to the original ESH key
-// Handles both legacy (raw | in path) and new (_PIPE_ encoded) formats
 function _eshFirebasePathToKey(safeName) {
     return safeName
         .replace(/_DOT_/g, '.')
@@ -33383,599 +33238,178 @@ function _eshFirebasePathToKey(safeName) {
         .replace(/_LBRACKET_/g, '[')
         .replace(/_RBRACKET_/g, ']')
         .replace(/_PIPE_/g, '|');
-    // Note: raw '|' in legacy keys is already a pipe, no conversion needed
 }
 
-function _eshSaveKeyToFirebase(key, value) {
+// ── Simple localStorage helpers ───────────────────────────────────────────────
+function getEshStorage() {
+    try { return JSON.parse(localStorage.getItem('esh_calendar_data') || '{}'); } catch(e) { return {}; }
+}
+
+function _eshSaveLocal(key, value) {
+    // Write a single key to localStorage — plan-key-priority on quota errors
     try {
-        if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.set) {
-            // Firebase not ready — queue for later
-            _eshAddPendingWrite(key, value);
-            return;
-        }
-        const safeKey  = _eshKeyToFirebasePath(key);
-        const safePath = 'esh-calendar/data/' + safeKey;
-        _eshMyWrites.set(key, Date.now());
-        _eshLastLocalWrite = Date.now();
-
-        // Mark as pending until Firebase confirms
-        _eshAddPendingWrite(key, value);
-
-        const ref = window.firebase.dbRef(window.firebaseRealtimeDb, safePath);
-        const writeVal = (value === false || value === null || value === undefined) ? null : value;
-        window.firebase.set(ref, writeVal)
-            .then(function() {
-                console.log('✅ ESH key saved to Firebase:', key, '=', writeVal);
-                _eshRemovePendingWrite(key); // confirmed — remove from pending queue
-                if (writeVal === null) {
-                    // Intentional delete confirmed.
-                    // For plan keys: just ensure no stale value remains in localStorage (no tombstone needed)
-                    // For other keys: write tombstone to prevent orphaned re-upload
-                    if (key.endsWith('|plan')) {
-                        // Clean delete — remove any lingering value or tombstone
-                        try {
-                            const _s = getEshStorage();
-                            if (_s[key] !== undefined) {
-                                delete _s[key];
-                                localStorage.setItem('esh_calendar_data', JSON.stringify(_s));
-                            }
-                        } catch(e2) {}
-                    } else {
-                        _eshAddTombstone(key);
-                    }
-                }
-                // Keep deleted keys in _eshMyWrites longer to block orphan re-upload
-                // FIX: Extend to 60s for all plan keys (was 15s) — prevents other admin browsers
-                // from overwriting a freshly-saved plan during the sync echo window
-                const _isGlobalPlan = key.includes('|GLOBAL_PLAN|') && key.endsWith('|plan');
-                setTimeout(function() { _eshMyWrites.delete(key); }, writeVal === null ? 60000 : (_isGlobalPlan ? 60000 : 15000));
-            })
-            .catch(function(e) {
-                _eshMyWrites.delete(key);
-                const errMsg = (e && (e.message || e.code || String(e))) || '';
-                // PERMISSION_DENIED = a rule failure, not a network failure.
-                // Never queue for retry — it will never succeed and causes an infinite loop.
-                if (errMsg.includes('PERMISSION_DENIED') || errMsg.includes('permission_denied')) {
-                    _eshRemovePendingWrite(key); // drop from pending
-                    console.warn('⚠️ ESH Firebase: permission denied for key — dropped (not retried):', key);
-                    return;
-                }
-                // Network/transient failure — keep in pending queue for next session
-                console.warn('⚠️ ESH Firebase save failed (queued for retry):', key, errMsg);
-                if (typeof showToast === 'function') showToast('⚠️ Date saved locally — will sync to cloud when connection is restored.', 'warning', 4000);
-            });
+        const s = getEshStorage();
+        if (value === null || value === undefined) { delete s[key]; } else { s[key] = value; }
+        localStorage.setItem('esh_calendar_data', JSON.stringify(s));
     } catch(e) {
-        console.warn('ESH Firebase save error:', e);
-        _eshAddPendingWrite(key, value);
+        if (e && e.name === 'QuotaExceededError') {
+            // Free space then retry with plan-keys-only
+            try {
+                ['esh_login_logbook','esh_audit_log','esh_projects_cache'].forEach(function(k) {
+                    try { localStorage.removeItem(k); } catch(e2) {}
+                });
+                const s2 = getEshStorage();
+                if (value === null || value === undefined) { delete s2[key]; } else { s2[key] = value; }
+                localStorage.setItem('esh_calendar_data', JSON.stringify(s2));
+            } catch(e2) {
+                // Truly full — save plan keys only so cells still render
+                try {
+                    const s3 = getEshStorage();
+                    const planOnly = {};
+                    Object.entries(s3).forEach(function(kv) {
+                        if (kv[0].includes('|GLOBAL_PLAN|') && kv[0].endsWith('|plan')) planOnly[kv[0]] = kv[1];
+                    });
+                    if (value !== null && value !== undefined && key.includes('|GLOBAL_PLAN|') && key.endsWith('|plan')) planOnly[key] = value;
+                    localStorage.setItem('esh_calendar_data', JSON.stringify(planOnly));
+                } catch(e3) {} // give up — Firebase is source of truth anyway
+            }
+        }
     }
 }
 
-function _eshSaveToFirebase(data) {
-    try {
-        if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.update) return;
-        _eshLastLocalWrite = Date.now();
-        // Sanitize all keys before writing — Firebase RTDB does not allow . # $ [ ] in key names
-        const safeData = {};
-        Object.entries(data).forEach(function([k, v]) {
-            // FIX (ROOT CAUSE): Never include GLOBAL_PLAN|...|plan keys in bulk update().
-            // These keys are managed exclusively by _eshSaveKeyToFirebase (individual set/null).
-            // Including them here causes Firebase to re-create deleted plan keys because
-            // update() does NOT delete — it only adds/modifies. Any stale 'true' value in
-            // localStorage would silently restore a plan that was intentionally deleted.
-            if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) return;
-            // Also skip tombstone markers — these are local-only, never write to Firebase
-            if (v === '__DELETED__') return;
-            safeData[_eshKeyToFirebasePath(k)] = v;
-        });
-        if (!Object.keys(safeData).length) return;
-        const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
-        window.firebase.update(ref, safeData).catch(e => console.warn('ESH bulk save failed:', e));
-    } catch(e) { console.warn('ESH bulk save error:', e); }
+// ── Direct RTDB write — same as KPM's saveToFirebaseDebounced but for RTDB ───
+// value=true → set plan, value=null → delete plan
+function _eshRtdbWrite(key, value) {
+    if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.set) {
+        console.warn('⚠️ ESH: Firebase RTDB not ready — change not saved:', key);
+        showToast('⚠️ Firebase not ready. Please try again.', 'warning', 3000);
+        return Promise.reject('rtdb-not-ready');
+    }
+    const safePath = 'esh-calendar/data/' + _eshKeyToFirebasePath(key);
+    const ref = window.firebase.dbRef(window.firebaseRealtimeDb, safePath);
+    const writeVal = (value === null || value === undefined || value === false) ? null : value;
+    return window.firebase.set(ref, writeVal);
 }
 
-function eshFetchAndRender(tabType) {
-    try { renderEshCalendar(tabType); } catch(e) { console.error('❌ renderEshCalendar error:', e); }
+// ── setEshStorage: kept for compatibility — just saves full object to localStorage ─
+function setEshStorage(data) {
+    try {
+        localStorage.setItem('esh_calendar_data', JSON.stringify(data));
+    } catch(e) {
+        if (e && e.name === 'QuotaExceededError') {
+            try {
+                ['esh_login_logbook','esh_audit_log','esh_projects_cache'].forEach(function(k) {
+                    try { localStorage.removeItem(k); } catch(e2) {} });
+                localStorage.setItem('esh_calendar_data', JSON.stringify(data));
+            } catch(e2) {
+                // Save plan keys only
+                try {
+                    const planOnly = {};
+                    Object.entries(data).forEach(function(kv) {
+                        if (kv[0].includes('|GLOBAL_PLAN|') && kv[0].endsWith('|plan')) planOnly[kv[0]] = kv[1];
+                    });
+                    localStorage.setItem('esh_calendar_data', JSON.stringify(planOnly));
+                } catch(e3) {}
+            }
+        }
+    }
+    // Note: bulk Firebase save not needed here — individual writes use _eshRtdbWrite
+}
 
-    if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.onValue) return;
+// ── eshFetchAndRender: fetch once and render (used on tab switch) ─────────────
+function eshFetchAndRender(tabType) {
+    try { renderEshCalendar(tabType); } catch(e) { console.error('renderEshCalendar error:', e); }
+    if (!window.firebaseRealtimeDb || !window.firebase) return;
     try {
         const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
-        window.firebase.onValue(ref, function(snapshot) {
-            const remoteData = snapshot.val();
-            if (!remoteData || typeof remoteData !== 'object') return;
-
+        window.firebase.get(ref).then(function(snapshot) {
+            const remoteData = snapshot.val() || {};
+            const curYear = String((state && state.selectedYear) || 2026);
+            const s = {};
+            Object.entries(remoteData).forEach(function(kv) {
+                const decoded = _eshFirebasePathToKey(kv[0]);
+                if (kv[1] === null || kv[1] === undefined) return;
+                s[decoded] = kv[1];
+            });
+            // Merge into localStorage (remote wins for plan keys, local wins for actuals)
             const local = getEshStorage();
-            const now = Date.now();
-
-            // Same logic as startEshCalendarSync:
-            // GLOBAL_PLAN keys come from Firebase only — never from local cache.
-            const remoteDecoded = {};
-            Object.entries(remoteData).forEach(function([k, v]) {
-                remoteDecoded[_eshFirebasePathToKey(k)] = v;
+            Object.entries(s).forEach(function(kv) {
+                local[kv[0]] = kv[1];
             });
-
-            const merged = {};
-            Object.entries(local).forEach(function([k, v]) {
-                if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) return; // never from local
-                merged[k] = v;
-            });
-
-            // Build deletion cache set for fast lookup
-            const _fetchDelCache = new Set();
-            try {
-                const _dc = JSON.parse(localStorage.getItem('esh_calendar_deletions') || '{}');
-                Object.keys(_dc).forEach(function(k) { _fetchDelCache.add(k); });
-            } catch(e) {}
-
-            Object.entries(remoteDecoded).forEach(function([k, v]) {
-                const isPlanKey = k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan');
-                if (!isPlanKey) {
-                    const myWriteTime = _eshMyWrites.get(k);
-                    if (myWriteTime && (now - myWriteTime) < 15000) return;
-                    if (local[k] === _ESH_TOMBSTONE_MARKER) return;
-                    if (_fetchDelCache.has(k)) return;
-                } else if (isPlanKey) {
-                    // Same echo guard as main sync: block stale true echo if we just deleted
-                    if (_eshMyDeletes.has(k) && v === true) return;
-                }
-                if (v === null || v === undefined) {
-                    delete merged[k];
-                    // Do NOT clear _eshMyDeletes here — main persistent onValue may still
-                    // fire stale true echo. Let the 60s timeout handle cleanup instead.
-                } else {
-                    merged[k] = v;
-                }
-            });
-
-            // Optimistic plan key restore — only for SET operations, never for deletes
-            _eshMyWrites.forEach(function(writeTs, k) {
-                if (!k.includes('|GLOBAL_PLAN|') || !k.endsWith('|plan')) return;
-                if ((now - writeTs) >= 60000) return;
-                if (_eshMyDeletes.has(k)) return; // we deleted this — never restore
-                if (_fetchDelCache.has(k)) return;
-                if (remoteDecoded.hasOwnProperty(k) && remoteDecoded[k] !== null && remoteDecoded[k] !== undefined) return;
-                const _inFlightVal = local[k] !== undefined ? local[k] : true;
-                if (_inFlightVal && _inFlightVal !== _ESH_TOMBSTONE_MARKER) {
-                    merged[k] = _inFlightVal;
-                }
-            });
-
-            Object.keys(merged).forEach(function(k) {
-                if (merged[k] === _ESH_TOMBSTONE_MARKER) delete merged[k];
-            });
-
-            // Apply deletion records — permanently suppress any plan key that was intentionally deleted
-            _eshApplyDeletionFilter(merged, remoteDecoded);
-
-            try { localStorage.setItem('esh_calendar_data', JSON.stringify(merged)); } catch(e) {}
+            try { localStorage.setItem('esh_calendar_data', JSON.stringify(local)); } catch(e) {}
             try { renderEshCalendar(tabType); } catch(e) {}
-        }, { onlyOnce: true }); // one-time fetch — the persistent sync handles live updates
+        }).catch(function(e) { console.warn('eshFetchAndRender get error:', e); });
     } catch(e) { console.warn('eshFetchAndRender error:', e); }
 }
 window.eshFetchAndRender = eshFetchAndRender;
 
-let _projectsSnapshotUnsubscribe = null;
-let _pendingSnapshotChanges = [];
-
-function startProjectsRealtimeSync() {
-    if (!window.firebaseDb || !window.firebase || !window.firebase.collection || !window.firebase.onSnapshot) return;
-    if (_projectsSnapshotUnsubscribe) { try { _projectsSnapshotUnsubscribe(); } catch(e){} }
-
-    const dataUserId = getDataSourceUserId();
-    const year = state.selectedYear || new Date().getFullYear();
-    const projColRef = window.firebase.collection(
-        window.firebaseDb, 'users', dataUserId, 'years', year.toString(), 'projects'
-    );
-
-    const listenerStartTime = new Date().toISOString();
-    let _firstSnapshotProcessed = false;
-
-    _projectsSnapshotUnsubscribe = window.firebase.onSnapshot(projColRef, (snapshot) => {
-
-        function deepMergeVals(localVals, remoteVals, isOurEcho) {
-            const merged = Object.assign({}, localVals || {});
-            if (isOurEcho) {
-                Object.keys(remoteVals || {}).forEach(k => {
-                    if (merged[k] === undefined || merged[k] === null || merged[k] === '') {
-                        merged[k] = remoteVals[k];
-                    }
-                });
-                return merged;
-            }
-            Object.keys(remoteVals || {}).forEach(k => {
-                const rv = remoteVals[k];
-                const lv = merged[k];
-                if (rv && typeof rv === 'object' && !Array.isArray(rv) &&
-                    lv && typeof lv === 'object' && !Array.isArray(lv)) {
-                    merged[k] = Object.assign({}, lv, rv);
-                } else if (Array.isArray(rv) && Array.isArray(lv)) {
-                    const result = rv.slice();
-                    lv.forEach((v, i) => {
-                        if (v !== '' && v !== null && v !== undefined) {
-                            if (typeof v === 'object' && v !== null && v.url &&
-                                (rv[i] === null || rv[i] === undefined || rv[i] === '')) {
-                                result[i] = v; // local PDF data wins over remote empty
-                            } else {
-                                result[i] = v;
-                            }
-                        }
-                    });
-                    merged[k] = result;
-                } else {
-                    merged[k] = rv;
-                }
-            });
-            return merged;
-        }
-
-        const changesToApply = [];
-        snapshot.docChanges().forEach(change => {
-            if (!_firstSnapshotProcessed) {
-                if (change.type === 'added' || change.type === 'modified') {
-                    const docTime = change.doc.data()?._updatedAt || '';
-                    if (docTime <= listenerStartTime) return; // already loaded — skip
-                }
-            }
-            changesToApply.push(change);
-        });
-        if (!_firstSnapshotProcessed) _firstSnapshotProcessed = true;
-
-        if (changesToApply.length === 0) return;
-
-        if (window._isSaving) {
-            _pendingSnapshotChanges.push(...changesToApply);
-            clearTimeout(window._pendingSnapshotFlushTimer);
-            window._pendingSnapshotFlushTimer = setTimeout(() => {
-                if (!window._isSaving && _pendingSnapshotChanges.length > 0) {
-                    const queued = _pendingSnapshotChanges.splice(0);
-                    applySnapshotChanges(queued, deepMergeVals);
-                }
-            }, 3000);
-            return;
-        }
-
-        applySnapshotChanges(changesToApply, deepMergeVals);
-    }, (err) => {
-        console.warn('\u26a0\ufe0f Projects real-time sync error:', err.message);
-    });
-    console.log('\u2705 Projects real-time sync started (year ' + year + ')');
-}
-
-window._lastLocalSaveTime = window._lastLocalSaveTime || '';
-
-function applySnapshotChanges(changes, deepMergeVals) {
-    let changed = false;
-    const isOurEcho = !!window._isSavingEcho;
-    changes.forEach(change => {
-        if (change.type === 'added' || change.type === 'modified') {
-            const remoteProj = change.doc.data();
-            if (!remoteProj || !remoteProj.name) return;
-
-            const docIsOurEcho = isOurEcho || (window._lastLocalSaveTime && remoteProj._updatedAt && remoteProj._updatedAt <= window._lastLocalSaveTime);
-
-            const masterIdx = state.masterProjects.findIndex(p => p.name === remoteProj.name);
-            if (masterIdx >= 0) {
-                const existing = state.masterProjects[masterIdx];
-                state.masterProjects[masterIdx] = Object.assign({}, existing, remoteProj, {
-                    vals: deepMergeVals(existing.vals, remoteProj.vals, docIsOurEcho)
-                });
-            } else {
-                state.masterProjects.push(remoteProj);
-            }
-
-            const projIdx = state.projects.findIndex(p => p.name === remoteProj.name);
-            if (projIdx >= 0) {
-                const existing = state.projects[projIdx];
-                state.projects[projIdx] = Object.assign({}, existing, remoteProj, {
-                    vals: deepMergeVals(existing.vals, remoteProj.vals, docIsOurEcho)
-                });
-            } else {
-                state.projects.push(remoteProj);
-            }
-            changed = true;
-        }
-        if (change.type === 'removed') {
-            const removedName = change.doc.data()?.name;
-            if (removedName) {
-                state.masterProjects = state.masterProjects.filter(p => p.name !== removedName);
-                state.projects = state.projects.filter(p => p.name !== removedName);
-                changed = true;
-            }
-        }
-    });
-
-    if (changed) {
-        clearTimeout(window._snapshotRenderTimer);
-        window._snapshotRenderTimer = setTimeout(() => {
-            if (window._isSaving) return;
-            if (window._isSavingEcho) return;
-
-            function _isUserInteracting() {
-                const ae = document.activeElement;
-                if (!ae) return false;
-                const tag = ae.tagName;
-                if (tag === 'TEXTAREA' || ae.isContentEditable) return true;
-                if (tag === 'INPUT') {
-                    const t = (ae.type || '').toLowerCase();
-                    if (t === 'date' || t === 'time' || t === 'datetime-local') {
-                        const eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
-                        if (state && state.currentTab && eshCalTabs.includes(state.currentTab)) {
-                            return false; // ESH calendar: targeted updates, render is safe
-                        }
-                        return true; // Other tabs: protect picker state
-                    }
-                    if (t === 'file') return true;
-                    return true; // protect all text/number inputs from mid-type re-renders
-                }
-                return false;
-            }
-
-            if (_isUserInteracting()) {
-                // Keep deferring indefinitely while user is typing — no attempt limit
-                // Will render as soon as user leaves the input
-                function _tryDeferredRender() {
-                    if (window._isSaving || window._isSavingEcho) return;
-                    if (_isUserInteracting()) {
-                        clearTimeout(window._snapshotRenderTimer);
-                        window._snapshotRenderTimer = setTimeout(_tryDeferredRender, 800);
-                        return;
-                    }
-                    _doSnapshotRender();
-                }
-                clearTimeout(window._snapshotRenderTimer);
-                window._snapshotRenderTimer = setTimeout(_tryDeferredRender, 800);
-                return;
-            }
-            _doSnapshotRender();
-
-            function _doSnapshotRender() {
-                const _snapMc = document.getElementById("main-content"); const _snapScrollY = (_snapMc||{}).scrollTop || 0;
-                
-                console.log('\ud83d\udd04 Real-time project update received — re-rendering...');
-                try { render(); } catch(e) {}
-                try { renderPTable(); } catch(e) {}
-                const dataTabs = ['nov','nov-env','kpm','activities','exposures','rates','medical','dole','emb','permits',
-                                  'env-monitoring','lta-registry','health-report','cshp','reg','audit','env-monthly-report',
-                                  'nov-monitoring','tabulation','got-monitoring','osh-requirement'];
-                if (state.currentTab && dataTabs.includes(state.currentTab)) {
-                    try {
-                        if (typeof renderOshNovTab === 'function' && state.currentTab === 'nov') renderOshNovTab();
-                        else if (typeof window.renderNovEnvTab === 'function' && state.currentTab === 'nov-env') window.renderNovEnvTab();
-                        else if (typeof window.renderNovEnvTab === 'function' && state.currentTab === 'nov-monitoring') window.renderNovEnvTab();
-                        else if (typeof renderLtaRegistryTab === 'function' && state.currentTab === 'lta-registry') renderLtaRegistryTab();
-                        else if (typeof renderHealthReportTab === 'function' && state.currentTab === 'health-report') renderHealthReportTab();
-                        else if (typeof window.renderGotMonitoring === 'function' && state.currentTab === 'got-monitoring') window.renderGotMonitoring();
-                        else if (typeof renderOsh2 === 'function' && state.currentTab === 'osh-requirement') renderOsh2();
-                    } catch(e) {}
-                }
-                if (_snapScrollY > 0) { requestAnimationFrame(() => { if(_snapMc) _snapMc.scrollTop = _snapScrollY; }); }
-            }
-        }, 800);
-    }
-}
-
-window.startProjectsRealtimeSync = startProjectsRealtimeSync;
-
-const _origChangeYear = window.changeYear;
-window.changeYear = function(yr) {
-    if (typeof _origChangeYear === 'function') _origChangeYear(yr);
-    setTimeout(async () => {
-        startProjectsRealtimeSync(); // restart listener first
-        try {
-            const dataUserId = getDataSourceUserId();
-            const year = state.selectedYear || new Date().getFullYear();
-            const projColRef = window.firebase.collection(
-                window.firebaseDb, 'users', dataUserId, 'years', year.toString(), 'projects'
-            );
-            const snap = await window.firebase.getDocs(projColRef);
-            if (!snap.empty) {
-                snap.forEach(docSnap => {
-                    const remoteProj = docSnap.data();
-                    if (!remoteProj || !remoteProj.name) return;
-                    const masterIdx = state.masterProjects.findIndex(p => p.name === remoteProj.name);
-                    if (masterIdx >= 0) {
-                        state.masterProjects[masterIdx] = Object.assign({}, state.masterProjects[masterIdx], remoteProj);
-                    } else {
-                        state.masterProjects.push(remoteProj);
-                    }
-                    const projIdx = state.projects.findIndex(p => p.name === remoteProj.name);
-                    if (projIdx >= 0) {
-                        state.projects[projIdx] = Object.assign({}, state.projects[projIdx], remoteProj);
-                    } else {
-                        state.projects.push(remoteProj);
-                    }
-                });
-                console.log(`✅ Year-switch catch-up fetch complete for year ${year}`);
-            }
-        } catch(e) {
-            console.warn('⚠️ Year-switch catch-up fetch failed (non-critical):', e.message);
-        }
-    }, 500);
-};
-
+// ── startEshCalendarSync: real-time RTDB listener → re-render on change ───────
+// KPM-style: Firebase pushes change → update local cache → re-render visible tab
 function startEshCalendarSync() {
     if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.onValue) return;
     if (!window.firebaseAuth || !window.firebaseAuth.currentUser) {
         console.log('⏭️ ESH Calendar sync skipped — no authenticated user.');
         return;
     }
-    if (_eshCalendarUnsubscribe) { try { _eshCalendarUnsubscribe(); } catch(e){} }
+    // Detach any existing listeners
+    if (_eshCalendarUnsubRTDB) { try { _eshCalendarUnsubRTDB(); } catch(e) {} _eshCalendarUnsubRTDB = null; }
+    if (_eshCalendarUnsubDels) { try { _eshCalendarUnsubDels(); } catch(e) {} _eshCalendarUnsubDels = null; }
+    // Also clear legacy unsubscribe handle
+    if (window._eshCalendarUnsubscribe) { try { window._eshCalendarUnsubscribe(); } catch(e) {} window._eshCalendarUnsubscribe = null; }
 
-    setTimeout(_eshFlushPendingWrites, 2000);
-
-    // ── Deletion records: persistent real-time listener ──────────────────────
-    // NOT onlyOnce — when any admin deletes a plan, ALL open browsers receive
-    // the deletion record immediately and re-render to remove the plan color.
-    try {
-        const delRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/deletions');
-        window.firebase.onValue(delRef, function(snap) {
-            const dels = snap.val();
-            // Smart merge: add Firebase records + remove local records that Firebase no longer has
-            // (meaning admin re-set the plan and deletion record was cleared from Firebase).
-            // BUT keep very recent local-only entries (within 30s) that haven't propagated yet.
-            const decoded = {};
-            if (dels && typeof dels === 'object') {
-                Object.entries(dels).forEach(function([k, ts]) {
-                    decoded[_eshFirebasePathToKey(k)] = ts;
-                });
-            }
-            const _now = Date.now();
-            const prevCache = {};
-            try { Object.assign(prevCache, JSON.parse(localStorage.getItem('esh_calendar_deletions') || '{}')); } catch(e) {}
-            const prevCount = Object.keys(prevCache).length;
-
-            // Build new cache: start with Firebase records, then add recent local-only records
-            // IMPORTANT: skip deletion records for plan keys that currently exist as true
-            // in local merged data — these are stale records from plans that were re-set
-            // but whose deletion records couldn't be cleared (PERMISSION_DENIED on deletions path).
-            const _currentStorage = (function() { try { return JSON.parse(localStorage.getItem('esh_calendar_data') || '{}'); } catch(e) { return {}; } })();
-            const newCache = {};
-            Object.entries(decoded).forEach(function([k, ts]) {
-                // Skip stale deletion records for plan keys that are currently set as true
-                if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan') && _currentStorage[k] === true) return;
-                newCache[k] = ts;
-            });
-            Object.entries(prevCache).forEach(function([k, ts]) {
-                if (newCache[k]) return; // already included
-                if ((_now - ts) < 30000) newCache[k] = ts; // keep if written in last 30s (not yet propagated)
-                // else: drop it — Firebase no longer has it = plan was re-set by another admin
-            });
-            const newCount = Object.keys(newCache).length;
-
-            try { localStorage.setItem('esh_calendar_deletions', JSON.stringify(newCache)); } catch(e) {}
-
-            console.log('✅ ESH: deletion records synced from Firebase (' + newCount + ' records)');
-
-            // Re-render if deletions changed in either direction (added OR removed)
-            const _tabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
-            if (newCount !== prevCount && state && _tabs.includes(state.currentTab)) {
-                setTimeout(function() { try { renderEshCalendar(state.currentTab); } catch(e) {} }, 100);
-            }
-        }, function(err) {
-            console.log('ℹ️ ESH: deletions path not accessible — using local cache only');
-        });
-    } catch(e) {}
-
-    // ── Main data listener ────────────────────────────────────────────────────
-    // PLAN KEYS (GLOBAL_PLAN|*|plan): Firebase is the ONE source of truth.
-    //   - Never read from localStorage (stale across admin sessions)
-    //   - Never re-upload from local (would restore deleted plans)
-    //   - Apply deletion filter: if a deletion record exists, suppress the key
-    //     even if Firebase still has it (handles propagation lag)
-    // ACTUAL / OTHER keys: merge local + remote, remote wins on conflict.
+    const curYear = String((state && state.selectedYear) || 2026);
     const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
-    _eshCalendarUnsubscribe = window.firebase.onValue(ref, (snapshot) => {
+
+    _eshCalendarUnsubRTDB = window.firebase.onValue(ref, function(snapshot) {
         const remoteData = snapshot.val() || {};
+        // Decode all keys and build fresh storage from Firebase (source of truth)
+        const fromFirebase = {};
+        Object.entries(remoteData).forEach(function(kv) {
+            const decoded = _eshFirebasePathToKey(kv[0]);
+            if (kv[1] === null || kv[1] === undefined) return;
+            fromFirebase[decoded] = kv[1];
+        });
+
+        // Merge: Firebase wins for plan keys; keep local actuals that Firebase doesn't have
         const local = getEshStorage();
-        const now = Date.now();
-
-        // Decode Firebase-safe key names back to original ESH keys
-        // Also skip legacy keys that have no year prefix (old data format)
-        const remoteDecoded = {};
-        const _curYear = String((state && state.selectedYear) || 2026);
-        Object.entries(remoteData).forEach(function([k, v]) {
-            const decoded = _eshFirebasePathToKey(k);
-            // Skip legacy keys: GLOBAL_PLAN keys must start with the current year
-            if (decoded.includes('GLOBAL_PLAN') && !decoded.startsWith(_curYear + '|')) return;
-            remoteDecoded[decoded] = v;
+        const merged = Object.assign({}, local);
+        // Always override with Firebase values (plan keys from Firebase are authoritative)
+        Object.entries(fromFirebase).forEach(function(kv) {
+            merged[kv[0]] = kv[1];
         });
-
-        // Load deletion cache — keys deleted by any admin (persisted in Firebase + localStorage)
-        const deletionCache = {};
-        try { Object.assign(deletionCache, JSON.parse(localStorage.getItem('esh_calendar_deletions') || '{}')); } catch(e) {}
-
-        // ── Build merged object ───────────────────────────────────────────────
-        // Start with non-plan local keys (actual dates, na flags, etc.)
-        const merged = {};
-        Object.entries(local).forEach(function([k, v]) {
-            if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) return; // always from Firebase only
-            if (v === _ESH_TOMBSTONE_MARKER) return; // skip tombstoned keys
-            merged[k] = v;
-        });
-
-        // Apply remote data — GLOBAL_PLAN keys come exclusively from here
-        Object.entries(remoteDecoded).forEach(function([k, v]) {
-            const isPlanKey = k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan');
-
-            // ── Echo guard — applies to ALL keys including plan keys ──────────
-            // ROOT CAUSE FIX: plan keys had NO echo guard. When admin deletes a plan,
-            // onValue fires immediately with stale Firebase data (still true, before
-            // the delete propagates), which re-adds the plan to merged — restoring it.
-            const myWriteTs = _eshMyWrites.get(k);
-            const inEchoWindow = myWriteTs && (now - myWriteTs) < 60000;
-
-            if (!isPlanKey) {
-                if (inEchoWindow) return;
-                if (local[k] === _ESH_TOMBSTONE_MARKER) return;
-                if (deletionCache[k]) return;
-            } else if (isPlanKey) {
-                // Plan key: use _eshMyDeletes for unambiguous delete intent tracking.
-                // Only block stale TRUE echoes — always allow NULL (confirmed delete) through.
-                if (_eshMyDeletes.has(k) && v === true) {
-                    return; // stale Firebase echo of old true value — block it
-                }
-                // v === null = Firebase confirmed our delete — fall through to delete merged[k]
-                // v === true and NOT in _eshMyDeletes = legitimate set — fall through
-            }
-
-            if (v === null || v === undefined) {
-                delete merged[k];
-                // Do NOT clear _eshMyDeletes here — another onValue echo may still
-                // arrive with stale true. Let the 60s timeout handle cleanup.
-            } else {
-                merged[k] = v;
-            }
-        });
-
-        // ── Optimistic restore for in-flight SET writes ───────────────────────
-        // If admin just clicked SET and Firebase onValue fires before the write
-        // is confirmed, the key is temporarily missing from remoteDecoded.
-        // Re-inject it from _eshMyWrites so the color doesn't flash back.
-        _eshMyWrites.forEach(function(writeTs, k) {
-            if (!k.includes('|GLOBAL_PLAN|') || !k.endsWith('|plan')) return;
-            if ((now - writeTs) >= 60000) return;
-            if (_eshMyDeletes.has(k)) return; // we deleted this — NEVER restore
-            if (deletionCache[k]) return;
-            const localVal = local[k];
-            if (!localVal || localVal === _ESH_TOMBSTONE_MARKER) return;
-            if (!remoteDecoded[k]) {
-                merged[k] = true; // restore optimistically (SET in-flight only)
-            }
-        });
-
-        // ── Tombstone cleanup ─────────────────────────────────────────────────
-        Object.keys(merged).forEach(function(k) {
-            if (merged[k] === _ESH_TOMBSTONE_MARKER) delete merged[k];
-        });
-
-        // ── Orphan re-upload (non-plan keys only) ─────────────────────────────
-        // If a local actual-date key is missing from Firebase (e.g. network blip),
-        // re-upload it. NEVER re-upload plan keys — that would restore deleted plans.
+        // Remove keys that Firebase has deleted (null) — plan keys specifically
         Object.keys(local).forEach(function(k) {
-            if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) return; // never
-            if (!k.includes('|')) return;
-            if (remoteDecoded.hasOwnProperty(k)) return; // already in Firebase
-            if (_eshMyWrites.has(k)) return;
-            if (deletionCache[k]) return;
-            if (!merged[k] || merged[k] === _ESH_TOMBSTONE_MARKER) return;
-            if (_eshIsTombstoned(k)) return;
-            const _raw = getEshStorage();
-            if (_raw[k] === _ESH_TOMBSTONE_MARKER) return;
-            const whoAmI = window.firebaseAuth?.currentUser?.email || 'unknown';
-            console.warn('🔄 ESH sync: re-uploading orphaned key [' + whoAmI + ']:', k, '=', merged[k]);
-            _eshSaveKeyToFirebase(k, merged[k]);
+            if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan') && !fromFirebase[k]) {
+                delete merged[k];
+            }
         });
 
-        const planKeysRemote = Object.keys(remoteDecoded).filter(k => k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')).length;
-        const planKeysLocal  = Object.keys(merged).filter(k => k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')).length;
+        const planKeysRemote = Object.keys(fromFirebase).filter(function(k) {
+            return k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan');
+        }).length;
+        const planKeysLocal = Object.keys(merged).filter(function(k) {
+            return k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan');
+        }).length;
         console.log('🔍 ESH sync — local plan keys:', planKeysLocal, '| remote plan keys:', planKeysRemote);
 
-        // Save merged back to localStorage for offline/render use
+        // Save merged to localStorage
         try { localStorage.setItem('esh_calendar_data', JSON.stringify(merged)); } catch(e) {
             if (e && e.name === 'QuotaExceededError') {
                 try {
-                    ['esh_login_logbook','esh_audit_log','esh_projects_cache'].forEach(k => { try { localStorage.removeItem(k); } catch(e2){} });
+                    ['esh_login_logbook','esh_audit_log','esh_projects_cache'].forEach(function(k) {
+                        try { localStorage.removeItem(k); } catch(e2) {}
+                    });
                     localStorage.setItem('esh_calendar_data', JSON.stringify(merged));
-                } catch(e2) {}
+                } catch(e2) {
+                    // Save plan keys only
+                    try {
+                        const planOnly = {};
+                        Object.keys(merged).forEach(function(k) {
+                            if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) planOnly[k] = merged[k];
+                        });
+                        localStorage.setItem('esh_calendar_data', JSON.stringify(planOnly));
+                    } catch(e3) {}
+                }
             }
         }
 
@@ -33984,7 +33418,7 @@ function startEshCalendarSync() {
         const tabsToRefresh = (state && eshTabs.includes(state.currentTab)) ? [state.currentTab] : eshTabs;
         tabsToRefresh.forEach(function(tabType) {
             const allProjects = (state && state.projects) ? state.projects : [];
-            const regionOrder = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
+            const regionOrder = ['NCR', 'SOUTH LUZON', 'NORTH LUZON', 'VISAYAS & MINDANAO'];
             regionOrder.forEach(function(region) {
                 const regProjects = allProjects.filter(function(p) { return p.region === region; });
                 if (!regProjects.length) return;
@@ -33996,7 +33430,7 @@ function startEshCalendarSync() {
                 }
             });
         });
-    }, (err) => { console.warn('ESH calendar sync error:', err); });
+    }, function(err) { console.warn('ESH calendar sync error:', err); });
 
     console.log('✅ ESH Calendar real-time sync started');
 }
@@ -34066,189 +33500,48 @@ migrateEshAddYearPrefix();
     } catch(e) {}
 })();
 
-window.getEshStorage = getEshStorage;
+window.getEshStorage = getEshStorage; // re-exported for external callers
 
-// ── Admin utility: permanently purge a GLOBAL_PLAN key ───────────────────────
-// Usage from browser console: window.eshPurgePlanKey('2026|esh-calendar-drills|GLOBAL_PLAN|5|0|plan')
-// This writes null to Firebase AND writes a deletion record so it can never come back.
-// ── BULK PURGE: wipe ALL plan keys from Firebase + write deletion records ────
-// Run from browser console: window.eshPurgeAllPlanKeys()
-// This is a ONE-TIME reset tool. After running, admin can re-set plans fresh.
+// eshPurgeAllPlanKeys: admin console utility — bulk delete all plan keys from RTDB
 window.eshPurgeAllPlanKeys = async function(yearFilter) {
     const year = yearFilter || (state && state.selectedYear) || 2026;
-    if (!window.firebaseRealtimeDb || !window.firebase) {
-        console.error('Firebase not ready'); return;
-    }
-    if (!state || !state.isAdmin) {
-        console.error('Admin only'); return;
-    }
+    if (!window.firebaseRealtimeDb || !window.firebase) { console.error('Firebase not ready'); return; }
+    if (!state || !state.isAdmin) { console.error('Admin only'); return; }
     console.log('🗑️ ESH BULK PURGE: starting for year', year);
-    if (typeof showToast === 'function') showToast('🗑️ Purging all plan keys... please wait.', 'info', 5000);
-
-    // 1. Fetch all current data from Firebase
     const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
     const snap = await window.firebase.get(ref).catch(e => { console.error('Fetch failed:', e); return null; });
     if (!snap) return;
     const remoteData = snap.val() || {};
-
-    // 2. Find all plan keys for this year
     const planKeys = [];
     Object.keys(remoteData).forEach(function(safeK) {
         const k = _eshFirebasePathToKey(safeK);
-        if (k.startsWith(year + '|') && k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) {
-            planKeys.push(k);
-        }
+        if (k.startsWith(year + '|') && k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) planKeys.push(k);
     });
-
     console.log('🔍 Found', planKeys.length, 'plan keys to purge for year', year);
-    if (planKeys.length === 0) {
-        if (typeof showToast === 'function') showToast('✅ No plan keys found — already clean!', 'success', 4000);
-        return;
-    }
-
-    // 3. Delete each key from Firebase data path + write deletion record
-    let done = 0;
-    const delNow = Date.now();
-    const deletions = {};
-    const dataUpdates = {};
-
-    planKeys.forEach(function(k) {
-        const safeK = _eshKeyToFirebasePath(k);
-        dataUpdates[safeK] = null;          // delete from data
-        deletions[safeK] = delNow;          // write deletion record
-        _eshMyWrites.set(k, delNow);        // block echo re-add on this browser
-        setTimeout(function() { _eshMyWrites.delete(k); }, 120000);
-    });
-
-    // Bulk delete from esh-calendar/data
+    if (!planKeys.length) { showToast && showToast('✅ No plan keys found — already clean!', 'success', 4000); return; }
+    const updates = {};
+    planKeys.forEach(function(k) { updates[_eshKeyToFirebasePath(k)] = null; });
     try {
-        const dataRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
-        await window.firebase.update(dataRef, dataUpdates);
-        console.log('✅ Bulk deleted', planKeys.length, 'plan keys from Firebase data');
-    } catch(e) { console.error('Bulk data delete failed:', e); }
-
-    // Bulk write deletion records
-    try {
-        const delRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/deletions');
-        await window.firebase.update(delRef, deletions);
-        console.log('✅ Bulk wrote', planKeys.length, 'deletion records to Firebase');
-    } catch(e) { console.error('Bulk deletion record write failed:', e); }
-
-    // 4. Clear local localStorage plan keys + cache all deletions locally
-    try {
+        await window.firebase.update(ref, updates);
+        // Clear localStorage
         const s = getEshStorage();
         planKeys.forEach(function(k) { delete s[k]; });
-        localStorage.setItem('esh_calendar_data', JSON.stringify(s));
-    } catch(e) {}
-
-    const localDels = {};
-    planKeys.forEach(function(k) { localDels[k] = delNow; });
-    _eshCacheDeletionRecords(localDels);
-
-    console.log('✅ ESH BULK PURGE COMPLETE — all', planKeys.length, 'plan keys wiped for year', year);
-    if (typeof showToast === 'function') showToast('✅ All ' + planKeys.length + ' plan keys purged! You can now set fresh plans.', 'success', 6000);
-
-    // 5. Re-render
-    const tabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
-    if (state && tabs.includes(state.currentTab)) {
-        setTimeout(function() { try { renderEshCalendar(state.currentTab); } catch(e) {} }, 500);
-    }
+        try { localStorage.setItem('esh_calendar_data', JSON.stringify(s)); } catch(e) {}
+        console.log('✅ ESH BULK PURGE COMPLETE —', planKeys.length, 'keys');
+        showToast && showToast('✅ All ' + planKeys.length + ' plan keys purged!', 'success', 6000);
+        const tabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
+        if (state && tabs.includes(state.currentTab)) setTimeout(function() { try { renderEshCalendar(state.currentTab); } catch(e) {} }, 500);
+    } catch(e) { console.error('Purge failed:', e); }
 };
 
+// eshPurgePlanKey: admin console utility — delete a single plan key from RTDB
 window.eshPurgePlanKey = function(key) {
-    if (!key.includes('|GLOBAL_PLAN|') || !key.endsWith('|plan')) {
-        console.warn('eshPurgePlanKey: not a GLOBAL_PLAN key:', key);
-        return;
-    }
-    console.log('🗑️ eshPurgePlanKey: purging', key);
-
-    // 1. Remove from local localStorage
-    try {
-        const s = getEshStorage();
-        delete s[key];
-        localStorage.setItem('esh_calendar_data', JSON.stringify(s));
-    } catch(e) {}
-
-    // 2. Remove from pending writes
-    try {
-        const p = JSON.parse(localStorage.getItem('esh_calendar_pending_writes') || '{}');
-        delete p[key];
-        localStorage.setItem('esh_calendar_pending_writes', JSON.stringify(p));
-    } catch(e) {}
-
-    // 3. Write null to Firebase RTDB data path
-    try {
-        if (window.firebaseRealtimeDb && window.firebase && window.firebase.dbRef && window.firebase.set) {
-            const safeKey = _eshKeyToFirebasePath(key);
-            const dataRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data/' + safeKey);
-            window.firebase.set(dataRef, null).then(function() {
-                console.log('✅ eshPurgePlanKey: data path nulled in Firebase');
-            }).catch(function(e) {
-                const errMsg = (e && (e.message || e.code || String(e))) || '';
-                if (errMsg.includes('PERMISSION_DENIED') || errMsg.includes('permission_denied')) {
-                    console.warn('eshPurgePlanKey: permission denied on data path — key purged locally only. Ask Firebase admin to delete manually:', key);
-                    if (typeof showToast === 'function') showToast('⚠️ Permission denied on Firebase. Key purged locally — ask Firebase admin to delete the key manually from the database.', 'warning', 7000);
-                } else {
-                    console.warn('eshPurgePlanKey: data null failed:', errMsg);
-                }
-            });
-        }
-    } catch(e) {}
-
-    // 4. Write deletion record to Firebase (timestamp = now)
-    //    This is the critical step — future syncs will permanently skip this key
-    try {
-        if (window.firebaseRealtimeDb && window.firebase && window.firebase.dbRef && window.firebase.set) {
-            const safeKey = _eshKeyToFirebasePath(key);
-            const delRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/deletions/' + safeKey);
-            window.firebase.set(delRef, Date.now()).then(function() {
-                console.log('✅ eshPurgePlanKey: deletion record written to Firebase');
-            }).catch(function(e) {
-                const errMsg = (e && (e.message || e.code || String(e))) || '';
-                if (errMsg.includes('PERMISSION_DENIED') || errMsg.includes('permission_denied')) {
-                    console.warn('eshPurgePlanKey: permission denied on deletions path — deletion cached locally only.');
-                } else {
-                    console.warn('eshPurgePlanKey: deletion record write failed:', errMsg);
-                }
-            });
-        }
-    } catch(e) {}
-
-    // 5. Cache deletion record locally
-    _eshWriteDeletionRecord(key);
-    _eshCacheDeletionRecords({ [key]: Date.now() });
-
-    // 6. Track in _eshMyWrites to block echo re-add
-    _eshMyWrites.set(key, Date.now());
-    setTimeout(function() { _eshMyWrites.delete(key); }, 120000);
-
-    console.log('✅ eshPurgePlanKey: purge complete for', key);
-    if (typeof showToast === 'function') showToast('🗑️ Plan key permanently purged and deletion record written.', 'success', 4000);
+    if (!key.includes('|GLOBAL_PLAN|') || !key.endsWith('|plan')) { console.warn('Not a GLOBAL_PLAN key:', key); return; }
+    _eshRtdbWrite(key, null)
+        .then(function() { console.log('✅ eshPurgePlanKey: purged', key); showToast && showToast('🗑️ Plan key purged.', 'success', 3000); })
+        .catch(function(e) { console.error('eshPurgePlanKey failed:', e); });
+    _eshSaveLocal(key, null);
 };
-
-// ── Auto-purge: on every sync, filter out plan keys that have a deletion record ─
-// This is the ROOT FIX: even if a stale value sneaks into remoteData (e.g. from
-// a connected browser that re-wrote it before seeing the deletion), we check the
-// deletion timestamp and refuse to apply it if there's a deletion record newer than
-// the written value. Since we can't know the write timestamp of the remote value,
-// we simply refuse to apply ANY remote plan key that has a deletion record at all.
-// Admin must explicitly click the plan cell again to re-enable a deleted plan.
-function _eshApplyDeletionFilter(merged, remoteDecoded) {
-    try {
-        const deletions = JSON.parse(localStorage.getItem('esh_calendar_deletions') || '{}');
-        Object.keys(deletions).forEach(function(k) {
-            if (!deletions[k] || !merged[k]) return;
-            // FIX: Never suppress a plan key that Firebase has actively confirmed as true.
-            // Deletion records are stale when admin re-plans a previously deleted key.
-            // remoteDecoded is the authoritative Firebase snapshot — if the key exists
-            // there with a truthy value, the plan was intentionally (re)set and must show.
-            var isPlanKey = k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan');
-            if (isPlanKey && remoteDecoded && remoteDecoded[k]) return;
-            delete merged[k];
-        });
-    } catch(e) {}
-    return merged;
-}
 
 
 (function _eshLocalStorageHealthCheck() {
@@ -34261,7 +33554,7 @@ function _eshApplyDeletionFilter(merged, remoteDecoded) {
         const usedKB = Math.round(total / 1024);
         if (usedKB > 7000) { // over ~7MB of 10MB — be more aggressive before hitting the wall
             console.warn('⚠️ localStorage near quota (' + usedKB + 'KB used) — auto-cleaning old data...');
-            const yr = (window.state && window.state.selectedYear) || new Date().getFullYear();
+            const yr = String((window.state && window.state.selectedYear) || new Date().getFullYear());
             let freed = 0;
             for (let i = localStorage.length - 1; i >= 0; i--) {
                 const k = localStorage.key(i);
@@ -34274,6 +33567,31 @@ function _eshApplyDeletionFilter(merged, remoteDecoded) {
                 ) {
                     try { localStorage.removeItem(k); freed++; } catch(e){}
                 }
+            }
+            // FIX: If esh_calendar_data is huge and localStorage is still near quota,
+            // slim it down to plan keys + current-year keys only.
+            // Non-plan, non-current-year keys (old actuals, other years) can be dropped —
+            // they will be re-fetched from Firebase on the next onValue sync.
+            if (usedKB > 7000) {
+                try {
+                    const raw = JSON.parse(localStorage.getItem('esh_calendar_data') || '{}');
+                    const rawKeys = Object.keys(raw);
+                    const calSizeKB = Math.round(JSON.stringify(raw).length * 2 / 1024);
+                    if (calSizeKB > 2000) { // if calendar data alone is >2MB, slim it
+                        const slim = {};
+                        rawKeys.forEach(function(k) {
+                            // Always keep current-year keys (Firebase will fill gaps)
+                            if (k.startsWith(yr + '|')) { slim[k] = raw[k]; return; }
+                            // Always keep plan keys regardless of year (they are small)
+                            if (k.includes('|GLOBAL_PLAN|') && k.endsWith('|plan')) { slim[k] = raw[k]; return; }
+                            // Drop everything else (old year actuals, etc.)
+                        });
+                        const slimKB = Math.round(JSON.stringify(slim).length * 2 / 1024);
+                        localStorage.setItem('esh_calendar_data', JSON.stringify(slim));
+                        console.warn('⚠️ ESH health check: slimmed esh_calendar_data from ' + calSizeKB + 'KB to ' + slimKB + 'KB (' + rawKeys.length + ' → ' + Object.keys(slim).length + ' keys). Old-year actuals dropped — Firebase will restore.');
+                        freed += (rawKeys.length - Object.keys(slim).length);
+                    }
+                } catch(e2) { console.warn('ESH slim failed:', e2); }
             }
             console.log('✅ Auto-cleaned ' + freed + ' old localStorage keys (' + usedKB + 'KB was used)');
         }
@@ -35016,7 +34334,7 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                     // Normal month for 8-Hr OSH — render plan/actual + small N/A button inside actual cell
                     const planKey8 = getEshKey(tabType, proj.name, storageIdx, mi, 'plan');
                     const actualKey8 = getEshKey(tabType, proj.name, storageIdx, mi, 'actual');
-                    const isPlanned8 = !!(storage[planKey8]) && storage[planKey8] !== _ESH_TOMBSTONE_MARKER;
+                    const isPlanned8 = !!(storage[planKey8]) && storage[planKey8] !== '__DELETED__';
                     // Defensive: ignore actual if plan was cleared
                     const _rawActual8 = (storage[actualKey8] && storage[actualKey8] !== '__DELETED__') ? storage[actualKey8] : '';
                     const actualVal8 = isPlanned8 ? _rawActual8 : '';
@@ -35052,7 +34370,7 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
 
                 const planKey = getEshKey(tabType, proj.name, storageIdx, mi, 'plan');
                 const actualKey = getEshKey(tabType, proj.name, storageIdx, mi, 'actual');
-                const isPlanned = !!(storage[planKey]) && storage[planKey] !== _ESH_TOMBSTONE_MARKER;
+                const isPlanned = !!(storage[planKey]) && storage[planKey] !== '__DELETED__';
                 // Defensive: ignore actual if plan was cleared — prevents ghost green cells from stale Firebase data
                 const _rawActual = (storage[actualKey] && storage[actualKey] !== '__DELETED__') ? storage[actualKey] : '';
                 const actualVal = isPlanned ? _rawActual : '';
@@ -35183,7 +34501,7 @@ function buildDrillsSingleTable(projects, storage, col) {
 
                 const planKey = getEshKey(tabType, proj.name, storageIdx, mi, 'plan');
                 const actualKey = getEshKey(tabType, proj.name, storageIdx, mi, 'actual');
-                const isPlanned = !isNaCell && !!(storage[planKey]) && storage[planKey] !== _ESH_TOMBSTONE_MARKER;
+                const isPlanned = !isNaCell && !!(storage[planKey]) && storage[planKey] !== '__DELETED__';
                 // Defensive: ignore actual if plan was cleared or N/A cell
                 const _rawActualNa = !isNaCell ? ((storage[actualKey] && storage[actualKey] !== '__DELETED__') ? storage[actualKey] : '') : '';
                 const actualVal = isPlanned ? _rawActualNa : '';
@@ -35432,16 +34750,12 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
         return;
     }
 
-    const key = getEshKey(tabType, projName, ti, mi, 'plan');
+    const key       = getEshKey(tabType, projName, ti, mi, 'plan');
     const actualKey = getEshKey(tabType, projName, ti, mi, 'actual');
 
-    // ── Determine current state from DOM (always authoritative) ──────────────
-    // localStorage plan keys are excluded from local cache builds and may be stale.
-    // The rendered cell's esh-planned class is set directly from Firebase data — use it.
-    const _domCell = tdEl || document.querySelector(
-        `.esh-td-plan[data-tabtype="${tabType}"][data-ti="${ti}"][data-mi="${mi}"]`
-    );
-    const wasPlanned = _domCell ? _domCell.classList.contains('esh-planned') : false;
+    // ── Determine current state: localStorage (synced from Firebase) is source of truth ──
+    const _s = getEshStorage();
+    const wasPlanned = !!_s[key] && _s[key] !== '__DELETED__';
     const nowPlanned = !wasPlanned;
 
     const _drillColors = { 'Quarterly': '#43a047', 'Twice a year': '#fdd835', 'Once a year': '#42a5f5' };
@@ -35461,7 +34775,6 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
         } else {
             cell.style.background = nowPlanned ? '#f9a825' : '';
         }
-        // Update adjacent actual cell
         const actualSib = cell.nextElementSibling;
         if (!actualSib || !actualSib.classList.contains('esh-td-actual')) return;
         if (nowPlanned) {
@@ -35492,49 +34805,36 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
         }
     });
 
-    // ── Write to Firebase (single source of truth) ────────────────────────────
-    if (nowPlanned) {
-        // SET: write true to Firebase, clear any deletion record
-        _eshMyWrites.set(key, Date.now());
-        // Update localStorage optimistically so render reads it correctly
-        try {
-            const s = getEshStorage(); s[key] = true;
-            localStorage.setItem('esh_calendar_data', JSON.stringify(s));
-        } catch(e) {}
-        _eshMyDeletes.delete(key); // No longer deleted — admin is re-setting it
-        // Clear local deletion cache for this key FIRST (synchronous — before any Firebase callbacks fire)
-        try {
-            const dc = JSON.parse(localStorage.getItem('esh_calendar_deletions') || '{}');
-            delete dc[key];
-            localStorage.setItem('esh_calendar_deletions', JSON.stringify(dc));
-        } catch(e) {}
-        // Attempt to clear Firebase deletion record (may fail silently due to permissions — that's OK,
-        // the sync logic now handles stale deletion records by trusting Firebase plan data directly)
-        try {
-            const dRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/deletions/' + _eshKeyToFirebasePath(key));
-            window.firebase.set(dRef, null).catch(function() {}); // silent fail OK
-        } catch(e) {}
-        _eshRemoveTombstone(key);
-        _eshSaveKeyToFirebase(key, true);
-    } else {
-        // DELETE: write null to Firebase, broadcast deletion record to all browsers
-        _eshMyWrites.set(key, Date.now());
-        _eshMyDeletes.add(key); // Mark as intentionally deleted BEFORE localStorage ops
-        // Auto-clear after 75s (slightly longer than echo window) — ensures no stale block
-        setTimeout(function() { _eshMyDeletes.delete(key); }, 75000);
-        // Remove from localStorage immediately
-        try {
-            const s = getEshStorage(); delete s[key]; delete s[actualKey];
-            localStorage.setItem('esh_calendar_data', JSON.stringify(s));
-        } catch(e) {}
-        // Cache deletion record locally so this browser also suppresses it on next sync
-        _eshCacheDeletionRecords({ [key]: Date.now() });
-        // Write deletion record to Firebase so ALL other browsers suppress it immediately
-        _eshWriteDeletionRecord(key);
-        // Delete plan key and actual key from Firebase
-        _eshSaveKeyToFirebase(key, null);
-        _eshSaveKeyToFirebase(actualKey, null);
-    }
+    // ── Update localStorage optimistically ────────────────────────────────────
+    if (nowPlanned) { _s[key] = true; } else { delete _s[key]; delete _s[actualKey]; }
+    _eshSaveLocal(key, nowPlanned ? true : null);
+
+    // ── Write directly to Firebase RTDB (KPM-style) ───────────────────────────
+    _eshRtdbWrite(key, nowPlanned ? true : null)
+        .then(function() {
+            console.log('✅ ESH plan saved:', key, '=', nowPlanned ? true : null);
+            showToast(nowPlanned ? '✅ Month scheduled.' : '🗑️ Schedule removed.', 'success', 1500);
+            if (!nowPlanned) {
+                // Also delete actual key
+                _eshRtdbWrite(actualKey, null).catch(function() {});
+                _eshSaveLocal(actualKey, null);
+            }
+        })
+        .catch(function(e) {
+            const errMsg = (e && (e.message || e.code || String(e))) || '';
+            console.error('❌ ESH plan write failed:', key, errMsg);
+            showToast('❌ Save failed: ' + errMsg, 'error', 4000);
+            // Rollback optimistic UI and localStorage
+            if (nowPlanned) { delete _s[key]; } else { _s[key] = true; }
+            _eshSaveLocal(key, nowPlanned ? null : true);
+            // Rollback DOM
+            document.querySelectorAll(
+                `.esh-td-plan[data-tabtype="${tabType}"][data-ti="${ti}"][data-mi="${mi}"]`
+            ).forEach(function(cell) {
+                cell.classList.toggle('esh-planned', !nowPlanned);
+                cell.style.background = !nowPlanned ? planBg : '';
+            });
+        });
 };
 
 window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drillColor) {
@@ -35553,14 +34853,15 @@ window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drill
         return;
     }
 
-    const storage = getEshStorage();
-    const key = getEshKey(tabType, projName, ti, mi, 'plan');
-    const wasPlanned = !!(storage[key]) && storage[key] !== _ESH_TOMBSTONE_MARKER;
-    const nowPlanned = !wasPlanned;
+    const key           = getEshKey(tabType, projName, ti, mi, 'plan');
+    const actualKey     = getEshKey(tabType, projName, ti, mi, 'actual');
+    const _s            = getEshStorage();
+    const wasPlanned    = !!_s[key];
+    const nowPlanned    = !wasPlanned;
+    const cellColor     = drillColor || (tdEl && tdEl.dataset.drillcolor) || '#43a047';
+    const planTitle     = nowPlanned ? 'Click to unschedule' : 'Click to schedule';
 
-    const planTitle = nowPlanned ? 'Click to unschedule' : 'Click to schedule';
-    const cellColor = drillColor || (tdEl && tdEl.dataset.drillcolor) || '#43a047';
-
+    // ── Update DOM immediately ────────────────────────────────────────────────
     if (tdEl) {
         tdEl.classList.toggle('esh-planned', nowPlanned);
         tdEl.title = planTitle;
@@ -35569,72 +34870,50 @@ window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drill
         if (actualSib && actualSib.classList.contains('esh-td-actual')) {
             const inp = actualSib.querySelector('input[type="date"]');
             if (inp) {
-                if (nowPlanned) {
-                    inp.disabled = false; inp.title = ''; inp.style.opacity = '';
-                    actualSib.classList.remove('esh-not-planned');
-                } else {
-                    inp.value = ''; inp.disabled = true;
-                    actualSib.classList.remove('esh-done','esh-overdue');
-                    actualSib.classList.add('esh-not-planned');
-                }
+                if (nowPlanned) { inp.disabled = false; inp.title = ''; inp.style.opacity = ''; actualSib.classList.remove('esh-not-planned'); }
+                else { inp.value = ''; inp.disabled = true; actualSib.classList.remove('esh-done','esh-overdue'); actualSib.classList.add('esh-not-planned'); }
             }
         }
     }
-
     document.querySelectorAll(`.esh-td-plan[data-tabtype="${tabType}"][data-ti="${ti}"][data-mi="${mi}"]`).forEach(cell => {
         if (cell === tdEl) return;
         cell.classList.toggle('esh-planned', nowPlanned);
         cell.title = planTitle;
-        const c = drillColor || cell.dataset.drillcolor || '#43a047';
-        cell.style.background = nowPlanned ? c : '';
+        cell.style.background = nowPlanned ? (drillColor || cell.dataset.drillcolor || '#43a047') : '';
     });
 
-    if (nowPlanned) {
-        storage[key] = true;
-    } else {
-        delete storage[key];
-        _eshMyWrites.set(key, Date.now()); // block orphan re-upload immediately
-        _eshMyDeletes.add(key); // unambiguous delete intent — blocks stale Firebase echo
-        setTimeout(function() { _eshMyDeletes.delete(key); }, 75000); // auto-clear after echo window
-    }
-    const _corpActualKey = getEshKey(tabType, projName, ti, mi, 'actual');
-    if (!nowPlanned) {
-        // ── Fix: check BEFORE deleting from storage, then always sync to Firebase ──
-        delete storage[_corpActualKey];
-        try { localStorage.setItem('esh_calendar_data', JSON.stringify(storage)); } catch(e) {}
-        // Write deletion record so all browsers suppress this key (same as eshSetPlan)
-        _eshWriteDeletionRecord(key);
-        _eshCacheDeletionRecords({ [key]: Date.now() });
-        _eshSaveKeyToFirebase(key, null);
-        // Always delete actual from Firebase when plan is cleared
-        _eshSaveKeyToFirebase(_corpActualKey, null);
-    } else {
-        _eshMyDeletes.delete(key); // Admin re-setting — clear delete intent
-        // Clear local deletion cache for this key FIRST before Firebase callbacks fire
-        try {
-            const dc = JSON.parse(localStorage.getItem('esh_calendar_deletions') || '{}');
-            delete dc[key];
-            localStorage.setItem('esh_calendar_deletions', JSON.stringify(dc));
-        } catch(e) {}
-        // Clear Firebase deletion record so other browsers stop suppressing it
-        try {
-            const dRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/deletions/' + _eshKeyToFirebasePath(key));
-            window.firebase.set(dRef, null);
-        } catch(e) {}
-        try { localStorage.setItem('esh_calendar_data', JSON.stringify(storage)); } catch(e) {}
-        _eshSaveKeyToFirebase(key, true);
-    }
+    // ── Update localStorage optimistically ────────────────────────────────────
+    if (nowPlanned) { _s[key] = true; } else { delete _s[key]; delete _s[actualKey]; }
+    _eshSaveLocal(key, nowPlanned ? true : null);
+
+    // ── Write directly to Firebase RTDB ──────────────────────────────────────
+    _eshRtdbWrite(key, nowPlanned ? true : null)
+        .then(function() {
+            console.log('✅ ESH corp plan saved:', key, '=', nowPlanned);
+            showToast(nowPlanned ? '✅ Month scheduled.' : '🗑️ Schedule removed.', 'success', 1500);
+            if (!nowPlanned) {
+                _eshRtdbWrite(actualKey, null).catch(function() {});
+                _eshSaveLocal(actualKey, null);
+            }
+        })
+        .catch(function(e) {
+            const errMsg = (e && (e.message || e.code || String(e))) || '';
+            console.error('❌ ESH corp plan write failed:', key, errMsg);
+            showToast('❌ Save failed: ' + errMsg, 'error', 4000);
+            // Rollback
+            if (nowPlanned) { delete _s[key]; } else { _s[key] = true; }
+            _eshSaveLocal(key, nowPlanned ? null : true);
+            if (tdEl) { tdEl.classList.toggle('esh-planned', !nowPlanned); tdEl.style.background = !nowPlanned ? cellColor : ''; }
+        });
 };
 
 window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
-    // ── Guard: edit mode ──────────────────────────────────────────────────────
+    // ── Guards ────────────────────────────────────────────────────────────────
     if (!(state && state.isEditing)) {
         if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
         showToast('✏️ Press the Edit button first to make changes.', 'info', 3000);
         return;
     }
-
-    // ── Guard: RBAC ───────────────────────────────────────────────────────────
     const allProjects = (state && state.projects) ? state.projects : [];
     const proj = allProjects.find(p => p.name === projName);
     if (proj && !eshCanEdit(tabType, proj.region)) {
@@ -35642,7 +34921,6 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
         if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
         return;
     }
-    // Admin cannot write Actual dates on any ESH Calendar/Drills tab (except corp-drills which has no actual input)
     const _isAdminRole = !!(state && state.isAdmin);
     const _isCorp = tabType === 'esh-calendar-corp-drills';
     if (_isAdminRole && !_isCorp) {
@@ -35650,8 +34928,6 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
         if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
         return;
     }
-
-    // ── Guard: year validation ─────────────────────────────────────────────────
     if (value) {
         const expectedYear = (state && state.selectedYear) || 2026;
         if (!value.startsWith(String(expectedYear))) {
@@ -35660,17 +34936,13 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
             return;
         }
     }
-
-    // ── Confirm delete ────────────────────────────────────────────────────────
     if (!value) {
         const _storage = getEshStorage();
         const _key = getEshKey(tabType, projName, ti, mi, 'actual');
         const _existing = (_storage[_key] && _storage[_key] !== '__DELETED__') ? _storage[_key] : '';
         if (_existing) {
             const _mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            if (!confirm(`🗑️ Delete actual date "${_existing}" for ${projName} — ${_mn[mi] || 'Month '+(mi+1)}?
-
-This action cannot be undone.`)) {
+            if (!confirm(`🗑️ Delete actual date "${_existing}" for ${projName} — ${_mn[mi] || 'Month '+(mi+1)}?\n\nThis action cannot be undone.`)) {
                 if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = _existing; }
                 return;
             }
@@ -35679,20 +34951,13 @@ This action cannot be undone.`)) {
 
     const actualKey = getEshKey(tabType, projName, ti, mi, 'actual');
 
-    // ── DIRECT FIREBASE WRITE — single source of truth ───────────────────────
-    // Write value (date string) or null (delete) straight to Firebase RTDB.
-    // localStorage is updated as a secondary cache only — Firebase is authoritative.
     if (!window.firebaseRealtimeDb || !window.firebase || !window.firebase.dbRef || !window.firebase.set) {
         showToast('⚠️ Firebase not ready. Please try again.', 'warning', 3000);
         if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; }
         return;
     }
 
-    const safePath = 'esh-calendar/data/' + _eshKeyToFirebasePath(actualKey);
-    const ref = window.firebase.dbRef(window.firebaseRealtimeDb, safePath);
-    const writeVal = value || null;
-
-    // Update UI immediately (optimistic update)
+    // ── Update UI optimistically ──────────────────────────────────────────────
     if (tdEl) {
         tdEl.classList.remove('esh-done', 'esh-overdue', 'esh-not-planned');
         tdEl.style.background = '';
@@ -35702,67 +34967,32 @@ This action cannot be undone.`)) {
             tdEl.classList.add('esh-done');
             if (inp) { inp.style.color = '#fff'; inp.style.fontWeight = '700'; inp.disabled = false; inp.style.opacity = ''; inp.style.pointerEvents = ''; }
         } else {
-            if (isMonthOverdue(mi)) {
-                tdEl.classList.add('esh-overdue');
-                if (inp) { inp.style.color = '#fff'; inp.style.fontWeight = '700'; }
-            } else {
-                if (inp) { inp.style.color = ''; inp.style.fontWeight = ''; }
-            }
+            if (isMonthOverdue(mi)) { tdEl.classList.add('esh-overdue'); if (inp) { inp.style.color = '#fff'; inp.style.fontWeight = '700'; } }
+            else { if (inp) { inp.style.color = ''; inp.style.fontWeight = ''; } }
         }
     }
 
-    // Update localStorage cache to match
-    try {
-        const storage = getEshStorage();
-        if (value) {
-            storage[actualKey] = value;
-            // Clear any stale tombstone so the new value renders correctly
-            if (storage[actualKey] === _ESH_TOMBSTONE_MARKER) delete storage[actualKey];
-        } else {
-            // Write tombstone so the onValue merge loop never re-injects the old Firebase value
-            storage[actualKey] = _ESH_TOMBSTONE_MARKER;
-        }
-        localStorage.setItem('esh_calendar_data', JSON.stringify(storage));
-    } catch(e) {}
+    // ── Update localStorage ───────────────────────────────────────────────────
+    _eshSaveLocal(actualKey, value || null);
 
-    // For deletes: also write a Firebase deletion record so OTHER browsers
-    // learn this key was intentionally removed (not just absent from their cache)
-    if (!value) {
-        _eshWriteDeletionRecord(actualKey);
-        _eshCacheDeletionRecords({ [actualKey]: Date.now() });
-    }
-
-    // Write to Firebase — this is the only authoritative write
-    _eshMyWrites.set(actualKey, Date.now());
-    window.firebase.set(ref, writeVal)
+    // ── Write directly to Firebase RTDB ──────────────────────────────────────
+    const safePath = 'esh-calendar/data/' + _eshKeyToFirebasePath(actualKey);
+    const ref = window.firebase.dbRef(window.firebaseRealtimeDb, safePath);
+    window.firebase.set(ref, value || null)
         .then(function() {
             showToast(value ? '✅ Actual date saved.' : '🗑️ Actual date deleted.', 'success', 2000);
-            console.log('✅ eshSetActual: Firebase write confirmed —', actualKey, '=', writeVal);
-            // Keep the block window longer for deletes to prevent the Firebase
-            // onValue echo from immediately re-inserting the nulled-out value
-            setTimeout(function() { _eshMyWrites.delete(actualKey); }, value ? 30000 : 60000);
+            console.log('✅ eshSetActual saved:', actualKey, '=', value || null);
         })
         .catch(function(e) {
             const errMsg = (e && (e.message || e.code || String(e))) || '';
-            console.error('❌ eshSetActual: Firebase write failed —', actualKey, errMsg);
+            console.error('❌ eshSetActual failed:', actualKey, errMsg);
             showToast('❌ Save failed: ' + errMsg, 'error', 5000);
-            // Rollback localStorage and UI on failure
-            try {
-                const storage = getEshStorage();
-                // Only clear tombstone if this was a SAVE attempt, not a delete.
-                // If it was a delete that failed, leave the tombstone in place so
-                // the onValue merge loop doesn't re-inject the old value.
-                if (value) { delete storage[actualKey]; }
-                localStorage.setItem('esh_calendar_data', JSON.stringify(storage));
-            } catch(e2) {}
-            if (tdEl) {
-                const inp = tdEl.querySelector('input[type="date"]');
-                if (inp) inp.value = '';
-                tdEl.classList.remove('esh-done', 'esh-overdue');
-            }
-            _eshMyWrites.delete(actualKey);
+            _eshSaveLocal(actualKey, null);
+            if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; tdEl.classList.remove('esh-done', 'esh-overdue'); }
         });
 };
+
+
 
 const CORP_DRILLS = [
     { name:'Earthquake',                                                              freq:'Quarterly',    color:'#43a047' },
@@ -35940,7 +35170,7 @@ function renderCorpDrillsTab() {
         ESH_MONTHS.forEach((m, mi) => {
             const planKey = getEshKey(tabType, projName, storageIdx, mi, 'plan');
             const actualKey = getEshKey(tabType, projName, storageIdx, mi, 'actual');
-            const isPlanned = !!(storage[planKey]) && storage[planKey] !== _ESH_TOMBSTONE_MARKER;
+            const isPlanned = !!(storage[planKey]) && storage[planKey] !== '__DELETED__';
             // Defensive: ignore actual if plan was cleared
             const _rawActualCorp = (storage[actualKey] && storage[actualKey] !== '__DELETED__') ? storage[actualKey] : '';
             const actualVal = isPlanned ? _rawActualCorp : '';
