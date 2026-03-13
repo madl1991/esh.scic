@@ -3091,7 +3091,83 @@ body.dark-mode .modern-dialog-btn-cancel {
         }
         
         
-        .env-tbl { border-collapse: collapse; width: 100%; font-size: 0.7rem; }
+        /* ── PERMITS DETAIL MODAL ──────────────────────────────── */
+        #permit-detail-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9100;
+            background: rgba(0,0,0,0.52);
+            align-items: flex-start;
+            justify-content: center;
+            padding: 24px 12px;
+            overflow-y: auto;
+        }
+        #permit-detail-modal.open { display: flex; }
+        #permit-detail-modal .pdm-box {
+            background: var(--bg-card);
+            border-radius: 14px;
+            width: 100%;
+            max-width: 920px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.28);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            max-height: calc(100vh - 48px);
+        }
+        #permit-detail-modal .pdm-header {
+            background: linear-gradient(90deg,#1b5e20,#2e7d32);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        #permit-detail-modal .pdm-header .pdm-title {
+            flex: 1;
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #permit-detail-modal .pdm-header .pdm-close {
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #fff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.15s;
+        }
+        #permit-detail-modal .pdm-header .pdm-close:hover { background: rgba(255,255,255,0.3); }
+        #permit-detail-modal .pdm-subbar {
+            background: #e8f5e9;
+            border-bottom: 1px solid #c8e6c9;
+            padding: 7px 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.72rem;
+            color: #1b5e20;
+            flex-shrink: 0;
+        }
+        #permit-detail-modal .pdm-body {
+            overflow-y: auto;
+            overflow-x: auto;
+            flex: 1;
+            padding: 0;
+        }
+        /* ── END PERMITS DETAIL MODAL ──────────────────────────────── */
+
+                .env-tbl { border-collapse: collapse; width: 100%; font-size: 0.7rem; }
         .env-tbl th {
             background: #b7ddb5;
             color: #1b5e20;
@@ -12299,10 +12375,7 @@ debugCommands.help() - Show this help
                     border:1.5px solid #546e7a;border-radius:10px;
                     padding:11px 18px;font-size:0.82rem;color:#37474f;font-weight:600;
                     box-shadow:0 2px 8px rgba(84,110,122,0.1);">
-                    <div>
-                        <div style="margin-bottom:2px;">👁️ <strong>View-Only Access</strong> — Manager accounts can view all data but cannot make changes.</div>
-                        <div style="font-weight:400;font-size:0.76rem;opacity:0.85;">All tabs are read-only. Contact an Admin to request edit access.</div>
-                    </div>
+                    👁️ <strong>View-Only Access</strong> — Manager accounts can view all data but cannot make changes. All tabs are read-only. Contact an Admin to request edit access.
                 </div>`;
             }
 
@@ -12313,10 +12386,7 @@ debugCommands.help() - Show this help
                     border:1.5px solid #3949ab;border-radius:10px;
                     padding:11px 18px;font-size:0.82rem;color:#1a237e;font-weight:600;
                     box-shadow:0 2px 8px rgba(57,73,171,0.1);">
-                    <div>
-                        <div style="margin-bottom:2px;">👁️ <strong>View-Only Access</strong> — Document Controller accounts can view all data but cannot make changes.</div>
-                        <div style="font-weight:400;font-size:0.76rem;opacity:0.85;">All tabs are read-only. Document control functions are managed through the Admin panel.</div>
-                    </div>
+                    👁️ <strong>View-Only Access</strong> — Document Controller accounts can view all data but cannot make changes. All tabs are read-only. Document control functions are managed through the Admin panel.
                 </div>`;
             }
 
@@ -17898,7 +17968,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 .lta-empty-msg { padding:20px; text-align:center; color:#aaa; font-size:0.78rem; font-style:italic; }
                 .lta-summary-bar { display:flex; gap:12px; flex-wrap:wrap; margin:0 14px 10px; }
                 .lta-summary-pill { padding:4px 12px; border-radius:20px; font-size:0.65rem; font-weight:700; }
-                .lta-auto-sync-note { display:flex; align-items:center; gap:6px; padding:6px 12px; background:#e3f2fd; border-radius:0; border-bottom:1px solid #bbdefb; font-size:0.67rem; color:#1565c0; }
+                .lta-auto-sync-note { display:flex; align-items:flex-start; gap:6px; padding:6px 12px; background:#e3f2fd; border-radius:0; border-bottom:1px solid #bbdefb; font-size:0.67rem; color:#1565c0; }
                 body.dark-mode .lta-entry-card { background:#252525; border-color:#3a4a3a; }
                 body.dark-mode .lta-auto-sync-note { background:#0a1929; color:#90caf9; border-color:#1565c0; }
                 body.dark-mode .lta-computed-dl { background:#2a2000; border-color:#b8860b; }
@@ -19801,6 +19871,117 @@ function renderTabulation() {
                     </div>`;
                 }
 
+
+                // ── PERMITS TAB — Modal Launcher ────────────────────────────────────────
+                if (state.currentTab === 'permits') {
+                    // Build per-region accordion with project list; clicking a project opens the detail modal
+                    const _PERM_REGIONS = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO','PLANT OPERATIONS'];
+                    const _permDisplayProjects = displayProjects.filter(p => p.region !== 'CORPORATE');
+                    let _permHtml = '';
+
+                    // Summary bar
+                    let _pTotalProj = 0, _pFilled = 0, _pExpired = 0, _pExpiring = 0, _pMissing = 0;
+                    const _SCHEMA_P = SCHEMA['permits'] || [];
+                    const _NO_EXP = window.NO_EXPIRY_PERMITS || [];
+                    _permDisplayProjects.forEach(proj => {
+                        _pTotalProj++;
+                        _SCHEMA_P.forEach(row => {
+                            const key = 'permits_' + row;
+                            const raw = proj.vals && proj.vals[key];
+                            if (raw && raw.na) return;
+                            const entries = (raw && raw.entries && raw.entries.length) ? raw.entries : [{ permitNo:(raw&&raw[1])||'', dateIssued:(raw&&raw[2])||'', expiryDate:(raw&&raw[3])||'' }];
+                            entries.forEach(e => {
+                                if (e.permitNo || e.dateIssued) _pFilled++;
+                                if (!_NO_EXP.includes(row) && e.expiryDate) {
+                                    try {
+                                        const diff = (new Date(e.expiryDate) - new Date()) / 86400000;
+                                        if (diff < 0) _pExpired++;
+                                        else if (diff <= 60) _pExpiring++;
+                                    } catch(ex) {}
+                                } else if (!e.permitNo && !e.dateIssued) _pMissing++;
+                            });
+                        });
+                    });
+
+                    _permHtml += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
+                        <div style="flex:1;min-width:100px;background:#e8f5e9;border-radius:10px;padding:10px 14px;">
+                            <div style="font-size:0.6rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Total Projects</div>
+                            <div style="font-size:1.5rem;font-weight:900;color:#1b5e20;">${_pTotalProj}</div>
+                        </div>
+                        <div style="flex:1;min-width:100px;background:#e8f5e9;border-radius:10px;padding:10px 14px;">
+                            <div style="font-size:0.6rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Permits On File</div>
+                            <div style="font-size:1.5rem;font-weight:900;color:#1b5e20;">${_pFilled}</div>
+                        </div>
+                        <div style="flex:1;min-width:100px;background:${_pExpired>0?'#ffebee':'#e8f5e9'};border-radius:10px;padding:10px 14px;">
+                            <div style="font-size:0.6rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Expired</div>
+                            <div style="font-size:1.5rem;font-weight:900;color:${_pExpired>0?'#c62828':'#1b5e20'};">${_pExpired}</div>
+                        </div>
+                        <div style="flex:1;min-width:100px;background:${_pExpiring>0?'#fff3e0':'#e8f5e9'};border-radius:10px;padding:10px 14px;">
+                            <div style="font-size:0.6rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Expiring Soon</div>
+                            <div style="font-size:1.5rem;font-weight:900;color:${_pExpiring>0?'#e65100':'#1b5e20'};">${_pExpiring}</div>
+                        </div>
+                    </div>`;
+
+                    _PERM_REGIONS.forEach(reg => {
+                        const regProjs = _permDisplayProjects.filter(p => p.region === reg);
+                        if (!regProjs.length) return;
+                        const rc = window.REGION_COLORS[reg] || { bg:'#1b5e20', dark:'#0d3311', light:'#e8f5e9', badge:'#66bb6a' };
+                        const regSafe = reg.replace(/[^a-zA-Z0-9]/g,'_');
+
+                        _permHtml += `<div class="esh-region-block" style="margin-bottom:12px;">
+                            <div style="background:${rc.bg};color:white;border-radius:10px 10px 0 0;padding:11px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;" onclick="(function(el){var c=document.getElementById('pm-reg-${regSafe}');var ico=el.querySelector('.pm-chev');if(c.style.display==='none'){c.style.display='';ico.style.transform='';}else{c.style.display='none';ico.style.transform='rotate(-90deg)';};})(this)">
+                                <span style="font-weight:800;font-size:0.82rem;letter-spacing:.5px;">${reg}</span>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <span style="background:rgba(255,255,255,0.22);color:white;font-size:0.65rem;font-weight:700;padding:2px 10px;border-radius:20px;">${regProjs.length} project${regProjs.length!==1?'s':''}</span>
+                                    <i class="fas fa-chevron-down pm-chev" style="font-size:0.75rem;transition:transform 0.2s;"></i>
+                                </div>
+                            </div>
+                            <div id="pm-reg-${regSafe}" style="border:1px solid #c8e6c9;border-top:none;border-radius:0 0 10px 10px;overflow:hidden;">`;
+
+                        regProjs.forEach((proj, pi) => {
+                            const _pSchema = SCHEMA['permits'] || [];
+                            let _pProjFilled = 0, _pProjTotal = 0, _pProjExp = 0, _pProjExpiring = 0;
+                            _pSchema.forEach(row => {
+                                const key = 'permits_' + row;
+                                const raw = proj.vals && proj.vals[key];
+                                if (raw && raw.na) return;
+                                const entries = (raw && raw.entries && raw.entries.length) ? raw.entries : [{permitNo:(raw&&raw[1])||'',dateIssued:(raw&&raw[2])||'',expiryDate:(raw&&raw[3])||''}];
+                                entries.forEach(e => {
+                                    _pProjTotal++;
+                                    if (e.permitNo || e.dateIssued) _pProjFilled++;
+                                    if (!(window.NO_EXPIRY_PERMITS||[]).includes(row) && e.expiryDate) {
+                                        try {
+                                            const diff = (new Date(e.expiryDate) - new Date()) / 86400000;
+                                            if (diff < 0) _pProjExp++;
+                                            else if (diff <= 60) _pProjExpiring++;
+                                        } catch(ex) {}
+                                    }
+                                });
+                            });
+                            const _pct = _pProjTotal > 0 ? Math.round((_pProjFilled/_pProjTotal)*100) : 0;
+                            const _pctColor = _pct >= 80 ? '#2e7d32' : _pct >= 60 ? '#e65100' : '#c62828';
+                            const _pctBg = _pct >= 80 ? '#e8f5e9' : _pct >= 60 ? '#fff3e0' : '#ffebee';
+                            const _pnSafeJs = proj.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                            const _canEdit = UserAccounts.canEdit(state.currentUser?.email, proj.region) && UserAccounts.canEditTab(state.currentUser?.email, 'permits');
+                            _permHtml += `<div style="display:flex;align-items:center;gap:10px;padding:11px 16px;background:${pi%2===0?'var(--bg-card)':'#f9fbe7'};border-bottom:${pi<regProjs.length-1?'1px solid #e8f5e9':'none'};cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='#f1f8e9'" onmouseout="this.style.background='${pi%2===0?'var(--bg-card)':'#f9fbe7'}'" onclick="window.openPermitModal('${_pnSafeJs}')">
+                                <i class="fas fa-folder-open" style="color:${rc.bg};font-size:0.85rem;flex-shrink:0;"></i>
+                                <span style="flex:1;font-size:0.82rem;font-weight:600;color:var(--text-primary);">${proj.name}</span>
+                                ${_pProjExp>0?`<span style="background:#ffebee;color:#c62828;font-size:0.62rem;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;">⚠ ${_pProjExp} expired</span>`:''}
+                                ${_pProjExpiring>0?`<span style="background:#fff3e0;color:#e65100;font-size:0.62rem;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;">⏰ ${_pProjExpiring} expiring</span>`:''}
+                                <span style="background:${_pctBg};color:${_pctColor};font-size:0.68rem;font-weight:800;padding:3px 10px;border-radius:20px;white-space:nowrap;min-width:44px;text-align:center;">${_pct}%</span>
+                                <i class="fas fa-chevron-right" style="color:#aaa;font-size:0.72rem;flex-shrink:0;"></i>
+                            </div>`;
+                        });
+
+                        _permHtml += `</div></div>`;
+                    });
+
+                    container.innerHTML = _permHtml;
+                    if (_renderMc) _renderMc.scrollTop = _renderScroll;
+                    return;
+                }
+                // ── END PERMITS TAB ──────────────────────────────────────────────────────
+
                 REGIONS.forEach(reg => {
                 const CORPORATE_ALLOWED_TABS = ['overall', 'rates', 'exposures', 'medical', 'nov', 'nov-env', 'nov-monitoring', 'activities', 'dole']; // 'dole' included — CORPORATE region shown in DOLE Reportorial
                 if (reg === 'CORPORATE' && !CORPORATE_ALLOWED_TABS.includes(state.currentTab)) return;
@@ -19893,6 +20074,7 @@ function renderTabulation() {
                     const canDelete = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p.region, state.currentTab).allowed;
                     const isDeleteLocked = !canDelete;
 
+                    if (state.currentTab !== 'permits') {
                     html += `<div class="project-row ${isLocked ? 'project-locked' : ''}" style="${isWorkStopped ? 'opacity:0.7;' : ''}">
                         ${state.isEditing ? `<input type="checkbox" class="project-checkbox" ${p.selected ? 'checked' : ''} ${isLocked ? 'disabled' : ''} onchange="toggleProjectSelect('${p.name}')">` : ''}
                         <div class="circular-progress" style="--percentage: ${percDeg}deg;${isWorkStopped ? 'opacity:0.45;' : ''}">
@@ -19922,6 +20104,7 @@ function renderTabulation() {
                         ` : ''}
                     </div>
                     `;
+                    } // end skip project-row for permits
 
 
 if (state.currentTab === 'dole' && projs.length > 1) {
@@ -20743,7 +20926,7 @@ if (state.currentTab === 'audit') {
 
             if (state.currentTab === 'nov-monitoring') {
 }
-else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state.currentTab !== 'doe' && state.currentTab !== 'doe-permit' && state.currentTab !== 'lta-registry' && state.currentTab !== 'tabulation' && state.currentTab !== 'dole' && state.currentTab !== 'emb' && state.currentTab !== 'env-monthly-report') {
+else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state.currentTab !== 'doe' && state.currentTab !== 'doe-permit' && state.currentTab !== 'lta-registry' && state.currentTab !== 'tabulation' && state.currentTab !== 'dole' && state.currentTab !== 'emb' && state.currentTab !== 'env-monthly-report' && state.currentTab !== 'permits') {
     const isDateType = ['kpm','dole','permits','emb','cshp','reg','env-monthly-report'].includes(state.currentTab);
     const isCshp = state.currentTab === 'cshp' || state.currentTab === 'reg';
     const _curMonth = new Date().getMonth() + 1; // 1=Jan … 12=Dec — future months are locked
@@ -22749,7 +22932,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         html +=
                             '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">'
                             + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
-                            + '<i class="fas fa-table" style="font-size:1rem;color:#2e7d32;"></i>'
                             + '<div>'
                             + '<div style="font-family:Poppins,sans-serif;font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">📊 KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT</div>'
                             + '<div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Monthly ESH Consolidated KPM — FM-RNI-04-04 Rev.4 | Eff. Date: 06 Aug 2018 &bull; Overall weighted % per region per month &bull; Year: ' + selYear + '</div>'
@@ -22768,7 +22950,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '</div>'
                             + '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.08);border:1px solid #c8e6c9;border-left:5px solid #43a047;margin:0 16px 14px;">'
                             + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:8px;">'
-                            + '<i class="fas fa-lightbulb" style="font-size:1rem;color:#f9a825;"></i>'
                             + '<div style="font-family:Poppins,sans-serif;font-size:0.82rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">💡 Recommendations based on YTD Performance</div>'
                             + '</div>'
                             + '<div style="padding:12px 20px 14px;">'
@@ -31247,16 +31428,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var canEdit   = true;
         var userEmail = state.currentUser ? state.currentUser.email : '';
 
-        var html = '<div class="tab-info-bar">'
-          + '<div class="tib-icon"><i class="fas fa-bullseye"></i></div>'
-          + '<div class="tib-body">'
-          + '<p class="tib-title">Goals, Objectives &amp; Targets (GOT) Monitoring</p>'
-          + '<p class="tib-sub">IMS Corporate Goals, Objectives &amp; Targets — ESH Categories Only</p>'
-          + '</div>'
-          + '<div class="tib-badges">'
-          + '<span class="tib-pill tib-pill-green">' + allProjects.length + ' PROJECTS</span>'
-          + '<span class="tib-pill tib-pill-yellow">6 GOALS</span>'
-          + '</div></div>';
+        var html = '';
 
         (function buildGotSummary() {
             var targetRegs = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
@@ -31367,10 +31539,13 @@ document.addEventListener('DOMContentLoaded', function() {
             html +=
                 '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">'
                 + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
-                + '<i class="fas fa-bullseye" style="font-size:1rem;color:#2e7d32;"></i>'
-                + '<div>'
+                + '<div style="flex:1;min-width:0;">'
                 + '<div style="font-family:Poppins,sans-serif;font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">📊 GOT Monthly Performance by Region (Jan – Dec ' + (state.selectedYear || new Date().getFullYear()) + ')</div>'
                 + '<div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Overall average compliance rating per region per month &bull; Rating: 25%=Started | 50%=Partial | 75%=Mostly Done | 100%=Fully Implemented</div>'
+                + '</div>'
+                + '<div style="display:flex;gap:6px;margin-left:auto;flex-shrink:0;">'
+                + '<span style="background:#e8f5e9;color:#1b5e20;font-size:0.6rem;font-weight:700;padding:2px 9px;border-radius:20px;border:1px solid #a5d6a7;white-space:nowrap;">' + allProjects.length + ' PROJECTS</span>'
+                + '<span style="background:#fff8e1;color:#7a5c00;font-size:0.6rem;font-weight:700;padding:2px 9px;border-radius:20px;border:1px solid #ffe082;white-space:nowrap;">6 GOALS</span>'
                 + '</div></div>'
                 + '<div style="overflow-x:auto;padding:14px 16px 10px;position:relative;">'
                 + '<table style="border-collapse:collapse;width:100%;min-width:640px;">'
@@ -31387,7 +31562,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 + '</div>'
                 + '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.08);border:1px solid #c8e6c9;border-left:5px solid #43a047;margin:0 16px 14px;">'
                 + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:8px;">'
-                + '<i class="fas fa-lightbulb" style="font-size:1rem;color:#f9a825;"></i>'
                 + '<div style="font-family:Poppins,sans-serif;font-size:0.82rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">💡 Recommendations based on YTD GOT Performance</div>'
                 + '</div>'
                 + '<div style="padding:12px 20px 14px;">' + recsHtml + '</div>'
@@ -37882,4 +38056,242 @@ Do not include any other text, explanation, or markdown. JSON only.`
 })();
 </script>
 
+
+<!-- ── ENVIRONMENTAL PERMITS DETAIL MODAL ─────────────────────────────── -->
+<div id="permit-detail-modal" onclick="if(event.target===this)closePermitModal()">
+  <div class="pdm-box">
+    <div class="pdm-header">
+      <i class="fas fa-leaf" style="font-size:1rem;color:#a5d6a7;flex-shrink:0;"></i>
+      <div class="pdm-title" id="pdm-title-text">Environmental Permits / Licenses / Clearance</div>
+      <button class="pdm-close" onclick="closePermitModal()" title="Close">✕</button>
+    </div>
+    <div class="pdm-subbar" id="pdm-subbar">
+      <i class="fas fa-info-circle"></i>
+      <span id="pdm-subbar-text">Loading...</span>
+    </div>
+    <div class="pdm-body" id="pdm-body">
+    </div>
+  </div>
+</div>
+<!-- ── END PERMITS DETAIL MODAL ──────────────────────────────────────── -->
+
+<script>
+// ── PERMITS DETAIL MODAL ────────────────────────────────────────────────────
+window.openPermitModal = function(projName) {
+    const modal  = document.getElementById('permit-detail-modal');
+    const body   = document.getElementById('pdm-body');
+    const title  = document.getElementById('pdm-title-text');
+    const subbar = document.getElementById('pdm-subbar-text');
+    if (!modal || !body) return;
+
+    const p = (state.projects || []).find(x => x.name === projName);
+    if (!p) return;
+
+    const canEdit   = typeof UserAccounts !== 'undefined'
+        ? UserAccounts.canEdit(state.currentUser?.email, p.region) && UserAccounts.canEditTab(state.currentUser?.email, 'permits')
+        : false;
+    const inputsEditable = state.isEditing && canEdit;
+
+    title.textContent = projName;
+
+    // ── quick stats for subbar ────────────────────────────────────────────
+    const _SCHEMA_P  = (typeof SCHEMA !== 'undefined' && SCHEMA['permits']) ? SCHEMA['permits'] : [];
+    const _NO_EXP    = window.NO_EXPIRY_PERMITS || [];
+    let _sf = 0, _st = 0, _sExp = 0, _sExpiring = 0;
+    _SCHEMA_P.forEach(row => {
+        const key = 'permits_' + row;
+        const raw = p.vals && p.vals[key];
+        if (raw && raw.na) return;
+        const entries = (raw && raw.entries && raw.entries.length)
+            ? raw.entries
+            : [{ permitNo:(raw&&raw[1])||'', dateIssued:(raw&&raw[2])||'', expiryDate:(raw&&raw[3])||'' }];
+        entries.forEach(e => {
+            _st++;
+            if (e.permitNo || e.dateIssued) _sf++;
+            if (!_NO_EXP.includes(row) && e.expiryDate) {
+                try {
+                    const diff = (new Date(e.expiryDate) - new Date()) / 86400000;
+                    if (diff < 0) _sExp++;
+                    else if (diff <= 60) _sExpiring++;
+                } catch(ex) {}
+            }
+        });
+    });
+    const _spct = _st > 0 ? Math.round((_sf/_st)*100) : 0;
+    subbar.innerHTML =
+        '<strong>' + projName + '</strong>' +
+        ' &nbsp;|&nbsp; ' + _sf + '/' + _st + ' permits on file' +
+        ' &nbsp;|&nbsp; Compliance: <strong style="color:' + (_spct>=80?'#2e7d32':_spct>=60?'#e65100':'#c62828') + '">' + _spct + '%</strong>' +
+        (_sExp   > 0 ? ' &nbsp;<span style="background:#ffebee;color:#c62828;border-radius:12px;padding:1px 8px;font-size:0.65rem;font-weight:700;">&#9888; ' + _sExp + ' expired</span>' : '') +
+        (_sExpiring > 0 ? ' &nbsp;<span style="background:#fff3e0;color:#e65100;border-radius:12px;padding:1px 8px;font-size:0.65rem;font-weight:700;">&#9200; ' + _sExpiring + ' expiring soon</span>' : '') +
+        (inputsEditable ? ' &nbsp;<span style="background:#e3f2fd;color:#1565c0;border-radius:12px;padding:1px 8px;font-size:0.65rem;font-weight:700;"><i class=\'fas fa-pen\' style=\'font-size:0.55rem;\'></i> Edit Mode</span>' : '');
+
+    // ── build the permit table (same code as existing renderer) ──────────
+    body.innerHTML = buildPermitTableHTML(p, inputsEditable);
+
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+};
+
+window.closePermitModal = function() {
+    const modal = document.getElementById('permit-detail-modal');
+    if (modal) modal.classList.remove('open');
+    document.body.style.overflow = '';
+};
+
+window.buildPermitTableHTML = function(p, inputsEditable) {
+    const SCHEMA_P       = (typeof SCHEMA !== 'undefined' && SCHEMA['permits']) ? SCHEMA['permits'] : [];
+    const NO_EXP         = window.NO_EXPIRY_PERMITS || [];
+    const MULTI_ENTRY_P  = (typeof MULTI_ENTRY_PERMITS !== 'undefined') ? MULTI_ENTRY_PERMITS : [];
+    const MULTI_SHORT    = (typeof MULTI_ENTRY_SHORT   !== 'undefined') ? MULTI_ENTRY_SHORT   : {};
+    const typeColumnWidth = '280px';
+    let html = '';
+
+    html += '<div class="table-container"><table class="env-tbl">';
+    html += '<tr>';
+    html += '<th class="env-th-left env-th-sticky env-th-dark" style="width:' + typeColumnWidth + ';min-width:' + typeColumnWidth + ';max-width:' + typeColumnWidth + ';white-space:normal;padding:10px 12px;line-height:1.3;vertical-align:middle;">TYPE</th>';
+    html += '<th style="width:32px;min-width:32px;max-width:32px;text-align:center;white-space:nowrap;background:#e3f2fd;color:#1565c0;padding:6px 4px;"><i class="fas fa-building" style="display:block;margin:0 auto 3px;font-size:0.75rem;"></i><span style="font-size:0.6rem;">CLIENT-PROVIDED</span></th>';
+    html += '<th style="width:32px;min-width:32px;max-width:32px;text-align:center;white-space:nowrap;background:#f5f5f5;color:#757575;padding:6px 4px;"><i class="fas fa-ban" style="display:block;margin:0 auto 3px;font-size:0.75rem;"></i><span style="font-size:0.6rem;">N/A</span></th>';
+    html += '<th style="min-width:200px;white-space:normal;padding:10px 12px;">PERMIT NO. / ACCREDITATION NO.</th>';
+    html += '<th style="min-width:140px;white-space:nowrap;">DATE ISSUED</th>';
+    html += '<th style="min-width:140px;white-space:nowrap;">EXPIRY DATE</th>';
+    html += '</tr>';
+
+    SCHEMA_P.forEach(function(row) {
+        const key           = 'permits_' + row;
+        const _keySafe      = key.replace(/'/g, "\\'");
+        const isPermitNA    = !!(p.vals && p.vals[key + '__na'] === '1');
+        const isPermitCP    = !!(p.vals && p.vals[key + '__cp'] === '1');
+        const _pnSafe       = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        const _kSafe        = key.replace(/'/g,"\\'");
+        const rowStyle      = isPermitCP ? 'background:#e3f2fd;' : isPermitNA ? 'background:#eeeeee;' : '';
+        const naDisabled    = inputsEditable ? '' : 'disabled';
+
+        // ── TYPE cell ─────────────────────────────────────────────────────
+        html += '<tr style="' + rowStyle + '">';
+        html += '<td style="width:' + typeColumnWidth + ';min-width:' + typeColumnWidth + ';max-width:' + typeColumnWidth + ';text-align:left;font-weight:700;background:#e8f5e9;color:#1b5e20;position:sticky;left:0;z-index:5;white-space:normal;padding:10px 12px;line-height:1.3;vertical-align:middle;">';
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span style="flex:1;">' + row + '</span></div>';
+        html += '</td>';
+
+        // ── CLIENT-PROVIDED checkbox ──────────────────────────────────────
+        html += '<td style="text-align:center;background:' + (isPermitCP ? '#dceefb' : '') + ';">';
+        html += '<label style="display:inline-flex;align-items:center;justify-content:center;cursor:' + (inputsEditable ? 'pointer' : 'default') + ';">';
+        html += '<input type="checkbox" ' + (isPermitCP ? 'checked' : '') + ' ' + (inputsEditable ? '' : 'disabled') +
+            ' onchange="(function(chk){var proj=state.projects.find(function(x){return x.name===\'' + _pnSafe + '\';});if(!proj)return;if(!proj.vals)proj.vals={};proj.vals[\'' + _kSafe + '__cp\']=chk?\'1\':\'\';if(chk)proj.vals[\'' + _kSafe + '__na\']=\'\';if(typeof markPendingSync===\'function\')markPendingSync();if(typeof saveToFirebaseDebounced===\'function\')saveToFirebaseDebounced();render();openPermitModal(\'' + _pnSafe + '\');})(this.checked)"' +
+            ' style="accent-color:#1565c0;width:15px;height:15px;cursor:inherit;">';
+        html += '</label></td>';
+
+        // ── N/A checkbox ──────────────────────────────────────────────────
+        html += '<td style="text-align:center;background:' + (isPermitNA ? '#eeeeee' : '') + ';">';
+        html += '<label style="display:inline-flex;align-items:center;justify-content:center;cursor:' + (inputsEditable ? 'pointer' : 'default') + ';">';
+        html += '<input type="checkbox" ' + (isPermitNA ? 'checked' : '') + ' ' + (inputsEditable ? '' : 'disabled') +
+            ' onchange="(function(chk){var proj=state.projects.find(function(x){return x.name===\'' + _pnSafe + '\';});if(!proj)return;if(!proj.vals)proj.vals={};proj.vals[\'' + _kSafe + '__na\']=chk?\'1\':\'\';if(chk)proj.vals[\'' + _kSafe + '__cp\']=\'\';if(typeof markPendingSync===\'function\')markPendingSync();if(typeof saveToFirebaseDebounced===\'function\')saveToFirebaseDebounced();render();openPermitModal(\'' + _pnSafe + '\');})(this.checked)"' +
+            ' style="accent-color:#757575;width:15px;height:15px;cursor:inherit;">';
+        html += '</label></td>';
+
+        // ── Data cells ────────────────────────────────────────────────────
+        if (isPermitCP || isPermitNA) {
+            // Merged exempt cell
+            var _mc = isPermitCP ? '#1565c0' : '#616161';
+            var _mb = isPermitCP ? '#dceefb' : '#eeeeee';
+            var _mi = isPermitCP ? 'fa-building' : 'fa-ban';
+            var _mt = isPermitCP ? 'Client-Provided — Exempt from compliance tracking' : 'Not Applicable — Exempt from compliance tracking';
+            html += '<td colspan="3" style="text-align:center;background:' + _mb + ';white-space:nowrap;">';
+            html += '<span style="display:inline-flex;align-items:center;justify-content:center;gap:6px;color:' + _mc + ';font-size:0.75rem;font-style:italic;font-weight:700;">';
+            html += '<i class="fas ' + _mi + '" style="font-size:0.8rem;"></i>' + _mt;
+            html += '</span></td>';
+        } else if (row === 'ECC') {
+            var eccKey  = 'permits_ECC';
+            var rawVal  = p.vals && p.vals[eccKey];
+            var entries = rawVal && rawVal.entries;
+            if (!entries) {
+                var ln = rawVal ? (rawVal[1] || '') : '';
+                var li = rawVal ? (rawVal[2] || '') : '';
+                var le = rawVal ? (rawVal[3] || '') : '';
+                entries = (ln||li||le) ? [{ permitNo:ln,dateIssued:li,expiryDate:le }] : [];
+            }
+            if (!entries || entries.length === 0) entries = [{ permitNo:'',dateIssued:'',expiryDate:'' }];
+            entries.forEach(function(entry, idx) {
+                var isFirst = idx === 0;
+                if (!isFirst) {
+                    html += '</tr><tr style="' + rowStyle + '">';
+                    html += '<td style="width:' + typeColumnWidth + ';min-width:' + typeColumnWidth + ';max-width:' + typeColumnWidth + ';text-align:left;font-weight:700;background:#e8f5e9;color:#1b5e20;position:sticky;left:0;z-index:5;white-space:normal;padding:8px 12px;line-height:1.3;vertical-align:middle;">';
+                    html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">';
+                    html += '<span style="flex:1;font-size:0.78rem;color:#555;">ECC #' + (idx+1) + '</span>';
+                    if (inputsEditable) html += '<span onclick="removeEccEntry(\'' + _pnSafe + '\',' + idx + ');setTimeout(function(){openPermitModal(\'' + _pnSafe + '\');},50);" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;border:1.5px solid #ef5350;color:#ef5350;background:transparent;user-select:none;white-space:nowrap;">&#10005; Remove</span>';
+                    html += '</div></td>';
+                    html += '<td style="background:' + (isPermitCP?'#dceefb':isPermitNA?'#eeeeee':'') + '"></td>';
+                    html += '<td style="background:' + (isPermitCP?'#dceefb':isPermitNA?'#eeeeee':'') + '"></td>';
+                }
+                html += '<td style="min-width:200px;padding:8px 12px;"><input type="text" placeholder="Permit/Accreditation #" value="' + (entry.permitNo||'') + '" ' + naDisabled + ' oninput="updateEccEntry(\'' + _pnSafe + '\',' + idx + ',\'permitNo\',this.value)" style="width:100%;"></td>';
+                html += '<td style="min-width:140px;padding:8px 12px;"><input type="date" value="' + (entry.dateIssued||'') + '" ' + naDisabled + ' oninput="updateEccEntry(\'' + _pnSafe + '\',' + idx + ',\'dateIssued\',this.value)" style="width:100%;"></td>';
+                html += '<td style="min-width:140px;padding:8px 12px;position:relative;"><div style="display:flex;align-items:center;justify-content:center;height:100%;padding:4px 0;"><span style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:16px;padding:3px 10px;font-size:0.65rem;font-weight:700;white-space:nowrap;"><i class="fas fa-infinity" style="margin-right:4px;font-size:0.6rem;"></i>Until Project Completion</span></div>';
+                if (isFirst && inputsEditable) html += '<button onclick="addEccEntry(\'' + _pnSafe + '\');setTimeout(function(){openPermitModal(\'' + _pnSafe + '\');},50);" class="permit-add-btn" data-tooltip="Add ECC entry"><i class="fas fa-plus"></i></button>';
+                html += '</td>';
+            });
+        } else if (MULTI_ENTRY_P.includes(row)) {
+            var _mpKey     = 'permits_' + row;
+            var _mpRaw     = p.vals && p.vals[_mpKey];
+            var _mpShort   = MULTI_SHORT[row] || row;
+            var _mpEntries = (_mpRaw && _mpRaw.entries) ? _mpRaw.entries : null;
+            if (!_mpEntries) {
+                var _o1 = _mpRaw ? (_mpRaw[1]||'') : '';
+                var _o2 = _mpRaw ? (_mpRaw[2]||'') : '';
+                var _o3 = _mpRaw ? (_mpRaw[3]||'') : '';
+                _mpEntries = (_o1||_o2||_o3) ? [{permitNo:_o1,dateIssued:_o2,expiryDate:_o3}] : [];
+            }
+            if (!_mpEntries || _mpEntries.length === 0) _mpEntries = [{permitNo:'',dateIssued:'',expiryDate:''}];
+            _mpEntries.forEach(function(_mpEntry, _mpIdx) {
+                var _mpIsFirst = _mpIdx === 0;
+                var _mpPn  = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                var _mpRn  = row.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                var _mpNoExpiry = NO_EXP.includes(row);
+                if (!_mpIsFirst) {
+                    html += '</tr><tr style="' + rowStyle + '">';
+                    html += '<td style="width:' + typeColumnWidth + ';min-width:' + typeColumnWidth + ';max-width:' + typeColumnWidth + ';text-align:left;font-weight:700;background:#e8f5e9;color:#1b5e20;position:sticky;left:0;z-index:5;white-space:normal;padding:8px 12px;line-height:1.3;vertical-align:middle;">';
+                    html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">';
+                    html += '<span style="flex:1;font-size:0.78rem;color:#555;">' + _mpShort + ' #' + (_mpIdx+1) + '</span>';
+                    if (inputsEditable) html += '<span onclick="removeMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ');setTimeout(function(){openPermitModal(\'' + _mpPn + '\');},50);" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;border:1.5px solid #ef5350;color:#ef5350;background:transparent;user-select:none;">&#10005; Remove</span>';
+                    html += '</div></td>';
+                    html += '<td style="background:' + (isPermitCP?'#dceefb':isPermitNA?'#eeeeee':'') + '"></td>';
+                    html += '<td style="background:' + (isPermitCP?'#dceefb':isPermitNA?'#eeeeee':'') + '"></td>';
+                }
+                html += '<td style="min-width:200px;padding:8px 12px;"><input type="text" placeholder="Permit/Accreditation #" value="' + (_mpEntry.permitNo||'') + '" ' + naDisabled + ' oninput="updateMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ',\'permitNo\',this.value)" style="width:100%;"></td>';
+                html += '<td style="min-width:140px;padding:8px 12px;"><input type="date" value="' + (_mpEntry.dateIssued||'') + '" ' + naDisabled + ' oninput="updateMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ',\'dateIssued\',this.value)" style="width:100%;"></td>';
+                if (_mpNoExpiry) {
+                    html += '<td style="min-width:140px;padding:8px 12px;position:relative;text-align:center;vertical-align:middle;"><span style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:16px;padding:3px 10px;font-size:0.65rem;font-weight:700;white-space:nowrap;"><i class="fas fa-infinity" style="margin-right:4px;font-size:0.6rem;"></i>Until Project Completion</span>';
+                } else {
+                    html += '<td style="min-width:140px;padding:8px 12px;position:relative;"><input type="date" value="' + (_mpEntry.expiryDate||'') + '" data-allow-future ' + naDisabled + ' oninput="updateMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ',\'expiryDate\',this.value)" style="width:100%;">';
+                }
+                if (_mpIsFirst && inputsEditable) html += '<button onclick="addMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\');setTimeout(function(){openPermitModal(\'' + _mpPn + '\');},50);" class="permit-add-btn" data-tooltip="Add ' + _mpShort + ' entry"><i class="fas fa-plus"></i></button>';
+                html += '</td>';
+            });
+        } else {
+            var permitNo   = p.vals && p.vals[key] ? (p.vals[key][1] || '') : '';
+            var dateIssued = p.vals && p.vals[key] ? (p.vals[key][2] || '') : '';
+            var expiryDate = p.vals && p.vals[key] ? (p.vals[key][3] || '') : '';
+            var _isNoExpiry = NO_EXP.includes(row);
+            var _safeKey    = key.replace(/'/g,"\\'");
+            html += '<td style="min-width:200px;padding:8px 12px;"><input type="text" placeholder="Permit/Accreditation #" value="' + permitNo + '" ' + naDisabled + ' oninput="updateVal(\'' + _pnSafe + '\',\'' + _safeKey + '\',1,this.value)" style="width:100%;"></td>';
+            html += '<td style="min-width:140px;padding:8px 12px;"><input type="date" value="' + dateIssued + '" ' + naDisabled + ' oninput="updateVal(\'' + _pnSafe + '\',\'' + _safeKey + '\',2,this.value)" style="width:100%;"></td>';
+            if (_isNoExpiry) {
+                html += '<td style="min-width:140px;padding:8px 12px;text-align:center;vertical-align:middle;"><span style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:16px;padding:3px 10px;font-size:0.65rem;font-weight:700;white-space:nowrap;"><i class="fas fa-infinity" style="margin-right:4px;font-size:0.6rem;"></i>Until Project Completion</span></td>';
+            } else {
+                html += '<td style="min-width:140px;padding:8px 12px;"><input type="date" value="' + expiryDate + '" data-allow-future ' + naDisabled + ' oninput="updateVal(\'' + _pnSafe + '\',\'' + _safeKey + '\',3,this.value)" style="width:100%;"></td>';
+            }
+        }
+
+        html += '</tr>';
+    });
+
+    html += '</table></div>';
+    return html;
+};
+
+// Keyboard close
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closePermitModal();
+});
+// ── END PERMITS DETAIL MODAL ────────────────────────────────────────────────
+</script>
 </body>
