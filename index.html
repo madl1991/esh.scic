@@ -6867,10 +6867,6 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
     <div id="got-monitoring-container"></div>
 </div>
 
-<div id="permits-view" class="hidden" style="padding:10px 0 0 0;">
-    <div id="permits-container"></div>
-</div>
-
 <div id="health-report-view" class="hidden" style="padding:20px;">
 </div>
 
@@ -12422,12 +12418,11 @@ debugCommands.help() - Show this help
             document.getElementById('env-monitoring-view').classList.toggle('hidden', t !== 'env-monitoring');
             document.getElementById('health-report-view').classList.toggle('hidden', t !== 'health-report');
             document.getElementById('got-monitoring-view').classList.toggle('hidden', t !== 'got-monitoring');
-            document.getElementById('permits-view').classList.toggle('hidden', t !== 'permits');
             document.getElementById('nov-env-view').classList.toggle('hidden', t !== 'nov-env');
             document.getElementById('osh-nov-view').classList.toggle('hidden', t !== 'nov');
             document.getElementById('lta-registry-view').classList.toggle('hidden', t !== 'lta-registry');
             document.getElementById('tabulation-view').classList.toggle('hidden', t !== 'tabulation');
-            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel' || t === 'osh-requirement' || t === 'env-monitoring' || t === 'health-report' || t === 'got-monitoring' || t === 'permits' || t === 'nov-env' || t === 'nov' || t === 'lta-registry' || t === 'tabulation');
+            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel' || t === 'osh-requirement' || t === 'env-monitoring' || t === 'health-report' || t === 'got-monitoring' || t === 'nov-env' || t === 'nov' || t === 'lta-registry' || t === 'tabulation');
             
             const pcRates = document.getElementById('trend-chart-persistent-rates');
             const pcMedical = document.getElementById('trend-chart-persistent-medical');
@@ -12491,7 +12486,6 @@ debugCommands.help() - Show this help
             }
             if (t === 'health-report') { setTimeout(renderHealthReport, 100); setTimeout(function(){ if(typeof window.openHealthReportModal==='function') window.openHealthReportModal(); }, 200); }
             if (t === 'got-monitoring') { setTimeout(renderGotMonitoring, 100); }
-            if (t === 'permits') { setTimeout(function(){ if(window.renderPermitsView) window.renderPermitsView(); }, 100); }
             if (t === 'nov') { setTimeout(renderOshNovTab, 100); }
             if (t === 'tabulation') { setTimeout(renderTabulation, 100); }
             if (t === 'lta-registry') { setTimeout(renderLtaRegistryTab, 100); }
@@ -19280,7 +19274,7 @@ function renderTabulation() {
                 _pdfBtnEl.style.display = 'none';
             }
             const _eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
-            const _nonTableTabs = ['settings','personnel','env-monitoring','osh-requirement','nov','got-monitoring','permits'];
+            const _nonTableTabs = ['settings','personnel','env-monitoring','osh-requirement','nov','got-monitoring'];
 
             // LTA Registry has its own container — render it directly and return
             if (state.currentTab === 'lta-registry') {
@@ -19291,7 +19285,6 @@ function renderTabulation() {
             if (_nonTableTabs.includes(state.currentTab) || _eshCalTabs.includes(state.currentTab)) {
                 if (state.currentTab === 'personnel' && typeof renderPTable === 'function') { renderPTable(); return; }
                 if (state.currentTab === 'got-monitoring' && window.renderGotMonitoring) { window.renderGotMonitoring(); }
-                if (state.currentTab === 'permits' && window.renderPermitsView) { window.renderPermitsView(); }
                 if (state.currentTab === 'osh-requirement' && typeof renderOsh2 === 'function') { renderOsh2(); }
                 if (state.currentTab === 'nov' && typeof renderOshNovTab === 'function') { renderOshNovTab(); }
                 if (state.currentTab === 'nov-env' && typeof window.renderNovEnvTab === 'function') { window.renderNovEnvTab(); }
@@ -24991,7 +24984,7 @@ function showDeleteDialog(itemLabel, itemName) {
     return new Promise((resolve) => {
         // Temporarily lower any open full-screen modals so the confirmation
         // dialog is never obscured (they create new stacking contexts)
-        const _modalsToLower = ['osh-nov-modal','env-nov-modal','got-compliance-modal','lta-modal','permits-project-modal'];
+        const _modalsToLower = ['osh-nov-modal','env-nov-modal','got-compliance-modal','lta-modal'];
         const _savedZIndex = {};
         _modalsToLower.forEach(id => {
             const el = document.getElementById(id);
@@ -37885,486 +37878,6 @@ Do not include any other text, explanation, or markdown. JSON only.`
   // Backdrop clicks
   document.getElementById('pc-view-modal').addEventListener('click', e => { if(e.target===document.getElementById('pc-view-modal')) pcCloseView(); });
   document.getElementById('pc-upload-modal').addEventListener('click', e => { if(e.target===document.getElementById('pc-upload-modal')) pcCloseUpload(); });
-
-})();
-</script>
-
-<script>
-// ══════════════════════════════════════════════════════════════════════════════
-// ENVIRONMENTAL PERMITS — Region-grouped modal view (mirrors GOT Monitoring)
-// ══════════════════════════════════════════════════════════════════════════════
-(function () {
-
-    var PERMIT_REGION_ORDER = ['NCR','NORTH LUZON','SOUTH LUZON','VISAYAS & MINDANAO','PLANT OPERATIONS'];
-    var _permCollapsed = {};
-    PERMIT_REGION_ORDER.forEach(function(r){ _permCollapsed[r] = true; });
-
-    window.permitToggleRegion = function(reg) {
-        _permCollapsed[reg] = !_permCollapsed[reg];
-        var content  = document.getElementById('perm-rcontent-' + reg.replace(/[^a-zA-Z0-9]/g,'_'));
-        var chevron  = document.getElementById('perm-chevron-' + reg.replace(/[^a-zA-Z0-9]/g,'_'));
-        if (content)  content.style.display  = _permCollapsed[reg] ? 'none' : '';
-        if (chevron)  chevron.style.transform = _permCollapsed[reg] ? 'rotate(-90deg)' : 'rotate(0deg)';
-    };
-
-    // ── Status helpers ────────────────────────────────────────────────────────
-    function _permitStatus(proj) {
-        var SCHEMA   = window.SCHEMA || {};
-        var rows     = SCHEMA['permits'] || [];
-        var NO_EXP   = window.NO_EXPIRY_PERMITS || [];
-        var MULTI    = window.MULTI_ENTRY_PERMITS || [];
-        var today    = new Date(); today.setHours(0,0,0,0);
-        var soon     = new Date(today); soon.setDate(soon.getDate() + 60);
-        var expired  = 0, expiring = 0, missing = 0, valid = 0, exempt = 0;
-
-        rows.forEach(function(row) {
-            var key  = 'permits_' + row;
-            var val  = proj.vals && proj.vals[key];
-            var isNA = val && val.__na === '1';
-            var isCP = val && val.__cp === '1';
-            if (isNA || isCP) { exempt++; return; }
-
-            var entries = [];
-            if (row === 'ECC' || MULTI.includes(row)) {
-                var raw = val;
-                if (raw && raw.entries) { entries = raw.entries; }
-                else {
-                    var pn = raw ? (raw[1]||'') : '';
-                    var di = raw ? (raw[2]||'') : '';
-                    var ex = raw ? (raw[3]||'') : '';
-                    entries = [{ permitNo: pn, dateIssued: di, expiryDate: ex }];
-                }
-                if (!entries.length) entries = [{ permitNo:'', dateIssued:'', expiryDate:'' }];
-            } else {
-                var pn2 = val ? (val[1]||'') : '';
-                var di2 = val ? (val[2]||'') : '';
-                var ex2 = val ? (val[3]||'') : '';
-                entries = [{ permitNo: pn2, dateIssued: di2, expiryDate: ex2 }];
-            }
-
-            var noExpiry = NO_EXP.includes(row) || row === 'ECC';
-            var anyValid = false;
-            entries.forEach(function(e) {
-                if (!e.permitNo && !e.dateIssued && !e.expiryDate) { missing++; return; }
-                if (noExpiry) { valid++; anyValid = true; return; }
-                if (!e.expiryDate) { missing++; return; }
-                var exp = new Date(e.expiryDate); exp.setHours(0,0,0,0);
-                if (exp < today)      { expired++; }
-                else if (exp <= soon) { expiring++; anyValid = true; }
-                else                  { valid++;    anyValid = true; }
-            });
-        });
-
-        var total = expired + expiring + missing + valid + exempt;
-        if (total === 0) return { label: 'No Data', color: '#9e9e9e', bg: '#f5f5f5', icon: 'fa-circle-question' };
-        if (expired  > 0) return { label: expired + ' Expired',  color: '#c62828', bg: '#ffebee', icon: 'fa-times-circle' };
-        if (expiring > 0) return { label: expiring + ' Expiring', color: '#e65100', bg: '#fff3e0', icon: 'fa-exclamation-circle' };
-        if (missing  > 0) return { label: missing + ' Missing',   color: '#f9a825', bg: '#fffde7', icon: 'fa-exclamation-triangle' };
-        return { label: 'All Valid', color: '#2e7d32', bg: '#e8f5e9', icon: 'fa-check-circle' };
-    }
-
-    function _regionStatus(projs) {
-        var hasExpired=false, hasExpiring=false, hasMissing=false, allData=true;
-        projs.forEach(function(proj){
-            var s = _permitStatus(proj);
-            if (s.label === 'No Data')    allData = false;
-            if (s.label.includes('Expired'))  hasExpired  = true;
-            if (s.label.includes('Expiring')) hasExpiring = true;
-            if (s.label.includes('Missing'))  hasMissing  = true;
-        });
-        if (hasExpired)  return { label: 'Has Expired',  color: '#c62828', bg: '#ffebee' };
-        if (hasExpiring) return { label: 'Expiring Soon', color: '#e65100', bg: '#fff3e0' };
-        if (hasMissing)  return { label: 'Has Missing',  color: '#f9a825', bg: '#fffde7' };
-        return { label: 'All Valid', color: '#2e7d32', bg: '#e8f5e9' };
-    }
-
-    // ── Main render ───────────────────────────────────────────────────────────
-    window.renderPermitsView = function() {
-        var container = document.getElementById('permits-container');
-        if (!container) return;
-        var allProjects = (typeof getReportProjects === 'function') ? getReportProjects() : (state.projects || []);
-        var userEmail   = state && state.currentUser ? state.currentUser.email : '';
-
-        var html = '<div class="tab-info-bar">'
-            + '<div class="tib-icon"><i class="fas fa-leaf"></i></div>'
-            + '<div class="tib-body">'
-            + '<p class="tib-title">Environmental Permits / Licenses / Clearance</p>'
-            + '<p class="tib-sub">Per-project permit status — click a project to view or edit permits</p>'
-            + '</div>'
-            + '<div class="tib-badges">'
-            + '<span class="tib-pill tib-pill-green">' + allProjects.length + ' PROJECTS</span>'
-            + '<span class="tib-pill tib-pill-yellow">15 PERMIT TYPES</span>'
-            + '</div></div>';
-
-        var presentRegions = PERMIT_REGION_ORDER.filter(function(reg) {
-            return allProjects.some(function(p){ return p.region === reg; });
-        });
-
-        if (!presentRegions.length) {
-            html += '<div style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="fas fa-database" style="font-size:2rem;margin-bottom:10px;display:block;opacity:0.3;"></i>No projects loaded.</div>';
-            container.innerHTML = html;
-            return;
-        }
-
-        presentRegions.forEach(function(reg) {
-            var projs     = allProjects.filter(function(p){ return p.region === reg; });
-            if (!projs.length) return;
-
-            var isCollapsed = !!_permCollapsed[reg];
-            var safeReg     = reg.replace(/[^a-zA-Z0-9]/g,'_');
-            var chevronId   = 'perm-chevron-' + safeReg;
-            var RC          = (window.REGION_COLORS && window.REGION_COLORS[reg]) || { bg:'#2e7d32', dark:'#1b5020' };
-            var regSt       = _regionStatus(projs);
-
-            html += '<div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:0 16px 14px;">';
-
-            // Region banner
-            html += '<div id="perm-rbanner-' + reg + '" onclick="permitToggleRegion(\'' + reg.replace(/'/g,"\\'") + '\')"'
-                  + ' style="background:linear-gradient(135deg,' + RC.bg + ' 0%,' + (RC.dark||RC.bg) + ' 100%);box-shadow:0 3px 10px rgba(0,0,0,0.22);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">';
-            html += '<div style="display:flex;align-items:center;gap:10px;">';
-            html += '<i id="' + chevronId + '" class="fas fa-chevron-down" style="color:rgba(255,255,255,0.85);font-size:0.78rem;transition:transform 0.25s;' + (isCollapsed ? 'transform:rotate(-90deg);' : '') + '"></i>';
-            html += '<i class="fas fa-map-marker-alt" style="color:rgba(255,255,255,0.85);font-size:0.9rem;"></i>';
-            html += '<span style="font-weight:800;color:white;font-size:0.9rem;letter-spacing:0.05em;text-transform:uppercase;">' + reg + '</span>';
-            html += '</div>';
-            html += '<div style="display:flex;gap:8px;align-items:center;">';
-            html += '<span style="background:rgba(255,255,255,0.18);color:white;border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">' + projs.length + ' PROJECT' + (projs.length !== 1 ? 'S' : '') + '</span>';
-            html += '<span style="background:' + regSt.bg + ';color:' + regSt.color + ';border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">' + regSt.label + '</span>';
-            html += '</div>';
-            html += '</div>'; // end banner
-
-            // Region content
-            html += '<div id="perm-rcontent-' + safeReg + '" style="' + (isCollapsed ? 'display:none;' : '') + '">';
-
-            projs.forEach(function(proj, idx) {
-                var st       = _permitStatus(proj);
-                var pSafeQ   = proj.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-                var canEdit  = state && state.isAdmin ? true : (typeof UserAccounts !== 'undefined' && UserAccounts.canEdit(userEmail, proj.region) && UserAccounts.canEditTab(userEmail, 'permits'));
-
-                html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
-                      + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
-                      + ' onclick="window.openPermitsModal(\'' + pSafeQ + '\',false)">';
-                html += '<span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">' + (idx+1) + '</span>';
-                html += '<div style="flex:1;min-width:0;">';
-                html += '<div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + proj.name + '</div>';
-                html += '<div style="font-size:0.62rem;color:#888;margin-top:1px;">' + reg + '</div>';
-                html += '</div>';
-                html += '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">';
-                html += '<span style="background:' + st.bg + ';color:' + st.color + ';border-radius:10px;padding:3px 10px;font-size:0.65rem;font-weight:800;display:flex;align-items:center;gap:5px;"><i class="fas ' + st.icon + '"></i>' + st.label + '</span>';
-                if (canEdit) {
-                    html += '<button onclick="event.stopPropagation();window.openPermitsModal(\'' + pSafeQ + '\',true)"'
-                          + ' title="Edit Permits" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;">'
-                          + '<i class="fas fa-pen"></i></button>';
-                }
-                html += '</div>';
-                html += '</div>'; // end row
-            });
-
-            html += '</div>'; // end region content
-            html += '</div>'; // end card
-        });
-
-        container.innerHTML = html;
-    };
-
-    // ── Permits Modal ─────────────────────────────────────────────────────────
-    window.openPermitsModal = function(pName, editMode) {
-        var allProjects = (typeof getReportProjects === 'function') ? getReportProjects() : (state.projects || []);
-        var proj = allProjects.find(function(p){ return p.name === pName; });
-        if (!proj) return;
-
-        var userEmail    = state && state.currentUser ? state.currentUser.email : '';
-        var canEditModal = editMode && state && state.isEditing &&
-            (state.isAdmin || (typeof UserAccounts !== 'undefined' && UserAccounts.canEdit(userEmail, proj.region) && UserAccounts.canEditTab(userEmail, 'permits')));
-
-        // Auto-enable edit mode like GOT dialog
-        if (editMode && state && !state.isEditing) {
-            state.isEditing = true;
-            document.body.classList.add('is-editing');
-            var _fb = document.getElementById('floating-edit-btn');
-            var _fi = document.getElementById('floating-edit-icon');
-            var _ft = document.getElementById('floating-edit-tooltip');
-            if (_fb) { _fb.classList.add('save-mode'); _fb.setAttribute('onclick','saveData()'); }
-            if (_fi) _fi.className = 'fas fa-save';
-            if (_ft) _ft.textContent = 'Click to Save';
-        }
-
-        var existing = document.getElementById('permits-project-modal');
-        if (existing) existing.remove();
-
-        var SCHEMA   = window.SCHEMA || {};
-        var rows     = SCHEMA['permits'] || [];
-        var NO_EXP   = window.NO_EXPIRY_PERMITS || [];
-        var MULTI    = window.MULTI_ENTRY_PERMITS || [];
-        var MSHORT   = window.MULTI_ENTRY_SHORT   || {};
-        var inputsEditable = canEditModal;
-        var pSafeQ   = pName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-
-        var st = _permitStatus(proj);
-
-        // ── Build permit rows HTML ────────────────────────────────────────────
-        function _fmtDate(d) {
-            if (!d) return '';
-            try {
-                var parts = d.split('-');
-                if (parts.length === 3) return parts[1] + '/' + parts[2] + '/' + parts[0];
-            } catch(e) {}
-            return d;
-        }
-        function _expiryBadge(expiryDate, noExpiry) {
-            if (noExpiry || !expiryDate) {
-                return '<span style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:14px;padding:2px 9px;font-size:0.63rem;font-weight:700;white-space:nowrap;">'
-                     + '<i class="fas fa-infinity" style="margin-right:4px;font-size:0.58rem;"></i>Until Project Completion</span>';
-            }
-            var today = new Date(); today.setHours(0,0,0,0);
-            var soon  = new Date(today); soon.setDate(soon.getDate()+60);
-            var exp   = new Date(expiryDate); exp.setHours(0,0,0,0);
-            var bg='#e8f5e9', fg='#2e7d32', icon='fa-check-circle', label=_fmtDate(expiryDate);
-            if (exp < today)      { bg='#ffebee'; fg='#c62828'; icon='fa-times-circle'; label='EXPIRED ' + _fmtDate(expiryDate); }
-            else if (exp <= soon) { bg='#fff3e0'; fg='#e65100'; icon='fa-exclamation-circle'; label='Expiring ' + _fmtDate(expiryDate); }
-            if (inputsEditable) {
-                return '<input type="date" value="' + expiryDate + '" data-allow-future'
-                     + ' oninput="updatePermitModalCell(this,\'' + pSafeQ + '\',arguments[0])" style="width:100%;min-width:130px;">';
-            }
-            return '<span style="background:' + bg + ';color:' + fg + ';border-radius:14px;padding:2px 9px;font-size:0.63rem;font-weight:700;white-space:nowrap;">'
-                 + '<i class="fas ' + icon + '" style="margin-right:4px;font-size:0.58rem;"></i>' + label + '</span>';
-        }
-
-        var tableHtml = '<div style="overflow-x:auto;max-height:60vh;overflow-y:auto;">';
-        tableHtml += '<table style="width:100%;border-collapse:collapse;font-size:0.7rem;min-width:700px;">';
-        tableHtml += '<thead style="position:sticky;top:0;z-index:4;">';
-        tableHtml += '<tr>';
-        tableHtml += '<th style="background:#1b5e20;color:white;padding:8px 12px;text-align:left;font-size:0.66rem;white-space:nowrap;min-width:220px;position:sticky;left:0;z-index:5;">PERMIT / LICENSE TYPE</th>';
-        tableHtml += '<th style="background:#1565c0;color:white;padding:8px 8px;text-align:center;font-size:0.6rem;white-space:nowrap;width:36px;" title="Client-Provided"><i class="fas fa-building" style="display:block;margin:0 auto 2px;"></i>CP</th>';
-        tableHtml += '<th style="background:#616161;color:white;padding:8px 8px;text-align:center;font-size:0.6rem;white-space:nowrap;width:36px;" title="Not Applicable"><i class="fas fa-ban" style="display:block;margin:0 auto 2px;"></i>N/A</th>';
-        tableHtml += '<th style="background:#2e7d32;color:white;padding:8px 12px;text-align:left;font-size:0.66rem;white-space:nowrap;min-width:200px;">PERMIT NO. / ACCREDITATION NO.</th>';
-        tableHtml += '<th style="background:#2e7d32;color:white;padding:8px 12px;text-align:left;font-size:0.66rem;white-space:nowrap;min-width:130px;">DATE ISSUED</th>';
-        tableHtml += '<th style="background:#2e7d32;color:white;padding:8px 12px;text-align:left;font-size:0.66rem;white-space:nowrap;min-width:160px;">EXPIRY DATE</th>';
-        tableHtml += '</tr></thead><tbody>';
-
-        rows.forEach(function(row) {
-            var key   = 'permits_' + row;
-            var val   = proj.vals && proj.vals[key];
-            var isNA  = !!(val && val.__na === '1');
-            var isCP  = !!(val && val.__cp === '1');
-            var noExp = NO_EXP.includes(row) || row === 'ECC';
-            var rowBg = isCP ? 'background:#e3f2fd;' : isNA ? 'background:#f5f5f5;' : '';
-            var pnSafe = pName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-            var kSafe  = key.replace(/'/g,"\\'");
-
-            // CP checkbox
-            function _cpCell(show, colspan) {
-                if (!show) return '';
-                var cpHtml = '<td style="text-align:center;' + (isCP?'background:#dceefb;':'') + 'padding:6px 8px;">'
-                    + '<label style="display:inline-flex;align-items:center;justify-content:center;cursor:' + (inputsEditable?'pointer':'default') + ';">'
-                    + '<input type="checkbox" ' + (isCP?'checked':'') + ' ' + (inputsEditable?'':'disabled')
-                    + ' onchange="(function(chk){var p=state.projects.find(function(x){return x.name===\'' + pnSafe + '\';});if(!p)return;if(!p.vals)p.vals={};p.vals[\'' + kSafe + '__cp\']=chk?\'1\':\'\';if(chk)p.vals[\'' + kSafe + '__na\']=\'\';if(typeof markPendingSync===\'function\')markPendingSync();if(typeof saveToFirebaseDebounced===\'function\')saveToFirebaseDebounced();if(window.renderPermitsView)window.renderPermitsView();if(window.openPermitsModal)window.openPermitsModal(\'' + pnSafe + '\',true);})(this.checked)"'
-                    + ' style="accent-color:#1565c0;width:15px;height:15px;cursor:inherit;">'
-                    + '</label></td>';
-                var naHtml = '<td style="text-align:center;' + (isNA?'background:#eeeeee;':'') + 'padding:6px 8px;">'
-                    + '<label style="display:inline-flex;align-items:center;justify-content:center;cursor:' + (inputsEditable?'pointer':'default') + ';">'
-                    + '<input type="checkbox" ' + (isNA?'checked':'') + ' ' + (inputsEditable?'':'disabled')
-                    + ' onchange="(function(chk){var p=state.projects.find(function(x){return x.name===\'' + pnSafe + '\';});if(!p)return;if(!p.vals)p.vals={};p.vals[\'' + kSafe + '__na\']=chk?\'1\':\'\';if(chk)p.vals[\'' + kSafe + '__cp\']=\'\';if(typeof markPendingSync===\'function\')markPendingSync();if(typeof saveToFirebaseDebounced===\'function\')saveToFirebaseDebounced();if(window.renderPermitsView)window.renderPermitsView();if(window.openPermitsModal)window.openPermitsModal(\'' + pnSafe + '\',true);})(this.checked)"'
-                    + ' style="accent-color:#616161;width:15px;height:15px;cursor:inherit;">'
-                    + '</label></td>';
-                return cpHtml + naHtml;
-            }
-
-            if (isCP || isNA) {
-                var _mc = isCP ? '#1565c0' : '#616161';
-                var _mb = isCP ? '#dceefb' : '#eeeeee';
-                var _mi = isCP ? 'fa-building' : 'fa-ban';
-                var _mt = isCP ? 'Client-Provided — Exempt from compliance tracking' : 'Not Applicable — Exempt';
-                tableHtml += '<tr style="' + rowBg + '">';
-                tableHtml += '<td style="font-weight:700;color:#1b5e20;background:#e8f5e9;padding:8px 12px;position:sticky;left:0;z-index:2;white-space:normal;min-width:220px;">' + row + '</td>';
-                tableHtml += _cpCell(true, 0);
-                tableHtml += '<td colspan="3" style="background:' + _mb + ';text-align:center;">'
-                           + '<span style="display:inline-flex;align-items:center;gap:6px;color:' + _mc + ';font-size:0.72rem;font-style:italic;font-weight:700;">'
-                           + '<i class="fas ' + _mi + '"></i>' + _mt + '</span></td>';
-                tableHtml += '</tr>';
-                return;
-            }
-
-            // ECC — multi-entry
-            if (row === 'ECC') {
-                var eccRaw = val;
-                var eccEntries = eccRaw && eccRaw.entries ? eccRaw.entries : null;
-                if (!eccEntries) {
-                    var ep = eccRaw ? (eccRaw[1]||'') : '';
-                    var ed = eccRaw ? (eccRaw[2]||'') : '';
-                    var ee = eccRaw ? (eccRaw[3]||'') : '';
-                    eccEntries = (ep||ed||ee) ? [{permitNo:ep,dateIssued:ed,expiryDate:ee}] : [{permitNo:'',dateIssued:'',expiryDate:''}];
-                }
-                if (!eccEntries.length) eccEntries = [{permitNo:'',dateIssued:'',expiryDate:''}];
-
-                eccEntries.forEach(function(entry, idx) {
-                    var isFirst = idx === 0;
-                    tableHtml += '<tr style="' + (isFirst?rowBg:'') + '">';
-                    tableHtml += '<td style="font-weight:700;color:#1b5e20;background:#e8f5e9;padding:8px 12px;position:sticky;left:0;z-index:2;white-space:normal;min-width:220px;">';
-                    tableHtml += '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">';
-                    tableHtml += '<span>' + (isFirst ? row : 'ECC #'+(idx+1)) + '</span>';
-                    if (isFirst && inputsEditable) {
-                        tableHtml += '<button onclick="addEccEntry(\'' + pnSafe + '\')" style="background:#2e7d32;color:white;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:0.6rem;flex-shrink:0;" title="Add ECC entry"><i class="fas fa-plus"></i></button>';
-                    } else if (!isFirst && inputsEditable) {
-                        tableHtml += '<span onclick="removeEccEntry(\'' + pnSafe + '\',' + idx + ')" style="cursor:pointer;font-size:0.6rem;color:#ef5350;border:1px solid #ef5350;border-radius:12px;padding:1px 7px;">✕ Remove</span>';
-                    }
-                    tableHtml += '</div></td>';
-                    if (isFirst) { tableHtml += _cpCell(true, 0); } else { tableHtml += '<td></td><td></td>'; }
-                    tableHtml += '<td style="padding:7px 10px;">';
-                    if (inputsEditable) {
-                        tableHtml += '<input type="text" placeholder="ECC #" value="' + (entry.permitNo||'') + '" oninput="updateEccEntry(\'' + pnSafe + '\',' + idx + ',\'permitNo\',this.value)" style="width:100%;">';
-                    } else {
-                        tableHtml += '<span style="font-weight:600;">' + (entry.permitNo || '<span style="color:#bbb;">—</span>') + '</span>';
-                    }
-                    tableHtml += '</td>';
-                    tableHtml += '<td style="padding:7px 10px;">';
-                    if (inputsEditable) {
-                        tableHtml += '<input type="date" value="' + (entry.dateIssued||'') + '" oninput="updateEccEntry(\'' + pnSafe + '\',' + idx + ',\'dateIssued\',this.value)" style="width:100%;">';
-                    } else {
-                        tableHtml += '<span>' + (_fmtDate(entry.dateIssued)||'<span style="color:#bbb;">—</span>') + '</span>';
-                    }
-                    tableHtml += '</td>';
-                    tableHtml += '<td style="padding:7px 10px;">' + _expiryBadge('', true) + '</td>';
-                    tableHtml += '</tr>';
-                });
-                return;
-            }
-
-            // MULTI_ENTRY_PERMITS
-            if (MULTI.includes(row)) {
-                var mpRaw   = val;
-                var mpShort = MSHORT[row] || row;
-                var mpEnts  = (mpRaw && mpRaw.entries) ? mpRaw.entries : null;
-                if (!mpEnts) {
-                    var mp1 = mpRaw ? (mpRaw[1]||'') : '';
-                    var mp2 = mpRaw ? (mpRaw[2]||'') : '';
-                    var mp3 = mpRaw ? (mpRaw[3]||'') : '';
-                    mpEnts = (mp1||mp2||mp3) ? [{permitNo:mp1,dateIssued:mp2,expiryDate:mp3}] : [{permitNo:'',dateIssued:'',expiryDate:''}];
-                }
-                if (!mpEnts.length) mpEnts = [{permitNo:'',dateIssued:'',expiryDate:''}];
-
-                var mpRowSafe = row.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-                mpEnts.forEach(function(mpEntry, mpIdx) {
-                    var isFirst = mpIdx === 0;
-                    tableHtml += '<tr>';
-                    tableHtml += '<td style="font-weight:700;color:#1b5e20;background:#e8f5e9;padding:8px 12px;position:sticky;left:0;z-index:2;white-space:normal;min-width:220px;">';
-                    tableHtml += '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">';
-                    tableHtml += '<span>' + (isFirst ? row : mpShort+'#'+(mpIdx+1)) + '</span>';
-                    if (isFirst && inputsEditable) {
-                        tableHtml += '<button onclick="addMultiPermitEntry(\'' + pnSafe + '\',\'' + mpRowSafe + '\')" style="background:#2e7d32;color:white;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:0.6rem;flex-shrink:0;"><i class="fas fa-plus"></i></button>';
-                    } else if (!isFirst && inputsEditable) {
-                        tableHtml += '<span onclick="removeMultiPermitEntry(\'' + pnSafe + '\',\'' + mpRowSafe + '\',' + mpIdx + ')" style="cursor:pointer;font-size:0.6rem;color:#ef5350;border:1px solid #ef5350;border-radius:12px;padding:1px 7px;">✕ Remove</span>';
-                    }
-                    tableHtml += '</div></td>';
-                    if (isFirst) { tableHtml += _cpCell(true, 0); } else { tableHtml += '<td></td><td></td>'; }
-                    tableHtml += '<td style="padding:7px 10px;">';
-                    if (inputsEditable) {
-                        tableHtml += '<input type="text" placeholder="Permit #" value="' + (mpEntry.permitNo||'') + '" oninput="updateMultiPermitEntry(\'' + pnSafe + '\',\'' + mpRowSafe + '\',' + mpIdx + ',\'permitNo\',this.value)" style="width:100%;">';
-                    } else {
-                        tableHtml += '<span style="font-weight:600;">' + (mpEntry.permitNo || '<span style="color:#bbb;">—</span>') + '</span>';
-                    }
-                    tableHtml += '</td>';
-                    tableHtml += '<td style="padding:7px 10px;">';
-                    if (inputsEditable) {
-                        tableHtml += '<input type="date" value="' + (mpEntry.dateIssued||'') + '" oninput="updateMultiPermitEntry(\'' + pnSafe + '\',\'' + mpRowSafe + '\',' + mpIdx + ',\'dateIssued\',this.value)" style="width:100%;">';
-                    } else {
-                        tableHtml += '<span>' + (_fmtDate(mpEntry.dateIssued)||'<span style="color:#bbb;">—</span>') + '</span>';
-                    }
-                    tableHtml += '</td>';
-                    tableHtml += '<td style="padding:7px 10px;">';
-                    if (noExp) {
-                        tableHtml += _expiryBadge('', true);
-                    } else if (inputsEditable) {
-                        tableHtml += '<input type="date" value="' + (mpEntry.expiryDate||'') + '" data-allow-future oninput="updateMultiPermitEntry(\'' + pnSafe + '\',\'' + mpRowSafe + '\',' + mpIdx + ',\'expiryDate\',this.value)" style="width:100%;">';
-                    } else {
-                        tableHtml += _expiryBadge(mpEntry.expiryDate||'', false);
-                    }
-                    tableHtml += '</td></tr>';
-                });
-                return;
-            }
-
-            // Single-entry permit
-            var permitNo   = val ? (val[1]||'') : '';
-            var dateIssued = val ? (val[2]||'') : '';
-            var expiryDate = val ? (val[3]||'') : '';
-
-            tableHtml += '<tr style="' + rowBg + '">';
-            tableHtml += '<td style="font-weight:700;color:#1b5e20;background:#e8f5e9;padding:8px 12px;position:sticky;left:0;z-index:2;white-space:normal;min-width:220px;">' + row + '</td>';
-            tableHtml += _cpCell(true, 0);
-            tableHtml += '<td style="padding:7px 10px;">';
-            if (inputsEditable) {
-                tableHtml += '<input type="text" placeholder="Permit/Accreditation #" value="' + permitNo + '" oninput="updateVal(\'' + pnSafe + '\',\'' + kSafe + '\',1,this.value)" style="width:100%;">';
-            } else {
-                tableHtml += '<span style="font-weight:600;">' + (permitNo || '<span style="color:#bbb;">—</span>') + '</span>';
-            }
-            tableHtml += '</td>';
-            tableHtml += '<td style="padding:7px 10px;">';
-            if (inputsEditable) {
-                tableHtml += '<input type="date" value="' + dateIssued + '" oninput="updateVal(\'' + pnSafe + '\',\'' + kSafe + '\',2,this.value)" style="width:100%;">';
-            } else {
-                tableHtml += '<span>' + (_fmtDate(dateIssued)||'<span style="color:#bbb;">—</span>') + '</span>';
-            }
-            tableHtml += '</td>';
-            tableHtml += '<td style="padding:7px 10px;">';
-            if (noExp) {
-                tableHtml += _expiryBadge('', true);
-            } else if (inputsEditable) {
-                tableHtml += '<input type="date" value="' + expiryDate + '" data-allow-future oninput="updateVal(\'' + pnSafe + '\',\'' + kSafe + '\',3,this.value)" style="width:100%;">';
-            } else {
-                tableHtml += _expiryBadge(expiryDate, false);
-            }
-            tableHtml += '</td></tr>';
-        });
-
-        tableHtml += '</tbody></table></div>';
-
-        // ── Modal shell ───────────────────────────────────────────────────────
-        var RC     = (window.REGION_COLORS && window.REGION_COLORS[proj.region]) || { bg:'#2e7d32', dark:'#1b5020' };
-        var modal  = document.createElement('div');
-        modal.id   = 'permits-project-modal';
-        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.58);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;';
-
-        modal.innerHTML = '<div style="background:var(--bg-card);border-radius:12px;width:min(950px,97vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
-            // Header
-            + '<div style="background:linear-gradient(90deg,' + (RC.dark||RC.bg) + ',' + RC.bg + ',' + (RC.bg) + ');padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
-            + '<div>'
-            + '<div style="color:white;font-weight:800;font-size:0.95rem;font-family:Poppins,sans-serif;">'
-            + (editMode ? '✏️ Edit Permits' : '🔍 View Permits') + ' — <span style="color:#fbc02d;">' + pName + '</span>'
-            + '</div>'
-            + '<div style="color:#a5d6a7;font-size:0.67rem;margin-top:3px;">'
-            + proj.region
-            + ' · <span style="color:' + st.color + ';font-weight:700;">' + st.label + '</span>'
-            + '</div>'
-            + '</div>'
-            + '<button onclick="document.getElementById(\'permits-project-modal\').remove()" style="background:rgba(255,255,255,0.15);color:white;border:none;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:0.75rem;font-weight:700;"><i class="fas fa-times"></i> Close</button>'
-            + '</div>'
-            // Info bar
-            + '<div style="background:#f1f8e9;border-bottom:1px solid #c8e6c9;padding:6px 16px;display:flex;align-items:center;gap:10px;">'
-            + '<span style="font-size:0.64rem;color:#2e7d32;font-weight:600;"><i class="fas fa-leaf" style="margin-right:5px;"></i>Environmental Permits / Licenses / Clearance</span>'
-            + '<span style="font-size:0.6rem;color:#888;margin-left:auto;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll table horizontally if needed</span>'
-            + '</div>'
-            // Table
-            + tableHtml
-            // Legend
-            + '<div style="padding:7px 16px;background:#f9fdf9;border-top:1px solid #c8e6c9;display:flex;gap:16px;flex-wrap:wrap;align-items:center;">'
-            + '<span style="font-size:0.59rem;color:#2e7d32;font-weight:700;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-check-circle"></i> Valid</span>'
-            + '<span style="font-size:0.59rem;color:#e65100;font-weight:700;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-exclamation-circle"></i> Expiring ≤60 days</span>'
-            + '<span style="font-size:0.59rem;color:#c62828;font-weight:700;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-times-circle"></i> Expired</span>'
-            + '<span style="font-size:0.59rem;color:#1565c0;font-weight:700;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-building"></i> Client-Provided</span>'
-            + '<span style="font-size:0.59rem;color:#616161;font-weight:700;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-ban"></i> N/A</span>'
-            + '</div>'
-            // Footer
-            + '<div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;background:var(--bg-card);">'
-            + (!editMode
-                ? '<button onclick="document.getElementById(\'permits-project-modal\').remove();window.openPermitsModal(\'' + pSafeQ + '\',true)" style="background:#1565c0;color:white;border:none;border-radius:7px;padding:8px 22px;font-size:0.78rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen" style="margin-right:6px;"></i>Edit</button>'
-                : '')
-            + '<button onclick="document.getElementById(\'permits-project-modal\').remove()" style="background:var(--input-bg);color:var(--text-primary);border:1px solid var(--border-color);border-radius:7px;padding:8px 18px;font-size:0.78rem;font-weight:600;cursor:pointer;">Close</button>'
-            + '</div>'
-            + '</div>';
-
-        modal.addEventListener('click', function(e){ if(e.target===modal) modal.remove(); });
-        document.body.appendChild(modal);
-    };
 
 })();
 </script>
