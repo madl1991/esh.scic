@@ -2258,6 +2258,39 @@
             font-weight: 800;
         }
         
+        /* ── PADLOCK GHOST: centered silhouette on every region banner ──────
+           Uses ::after pseudo-element so no HTML changes needed across all
+           10 banner instances. The SVG is inlined as a data-URI background.
+           opacity: 0.28 gives the ghost silhouette look (Style A).
+           pointer-events: none ensures clicks still toggle the region.
+           ───────────────────────────────────────────────────────────────── */
+        .region-banner::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 28px;
+            height: 34px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 60'%3E%3Crect x='4' y='26' width='44' height='30' rx='5' fill='%23fbc02d'/%3E%3Cpath d='M12 26V18a14 14 0 0 1 28 0v8' fill='none' stroke='%23fbc02d' stroke-width='8' stroke-linecap='round'/%3E%3Ccircle cx='26' cy='41' r='5' fill='rgba(0,0,0,0.25)'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.28;
+            pointer-events: none;
+            z-index: 1;
+        }
+        /* Plant Operations and Corporate use white bg — hide padlock there */
+        .region-banner.region-plant-operations::after,
+        .region-banner[id*="PLANT"]::after,
+        #p-grp-banner-PLANT_OPERATIONS::after,
+        .region-banner.region-corporate::after,
+        .region-banner[id*="CORPORATE"]::after,
+        #p-grp-banner-CORPORATE::after,
+        #p-grp-banner-CORP_OFFICE::after {
+            display: none;
+        }
+
         .tab-info-bar {
             display: flex;
             align-items: center;
@@ -4718,7 +4751,54 @@ body.dark-mode .p-pos-badge { background: #1a3a52; color: #64b5f6; }
     letter-spacing: 0.06em; display: flex; align-items: center; gap: 10px;
     border-radius: 8px 8px 0 0; cursor: pointer; user-select: none;
     transition: filter 0.18s; box-shadow: 0 3px 10px rgba(0,0,0,0.22);
+    position: relative; overflow: hidden;
 }
+
+        /* ── PADLOCK GHOST: uniform on all non-.region-banner module banners ── */
+        /* Shared pseudo-element mixin — applied via individual selectors below  */
+        [id^="osh-nov-region-banner-"],
+        [id^="nov-env-region-banner-"],
+        [id^="got-rbanner-"],
+        [onclick^="toggleOsh2Region"],
+        [onclick^="envToggleRegion"],
+        [onclick^="waterToggleRegion"],
+        .esh-region-banner {
+            position: relative;
+            overflow: hidden;
+        }
+        [id^="osh-nov-region-banner-"]::after,
+        [id^="nov-env-region-banner-"]::after,
+        [id^="got-rbanner-"]::after,
+        [onclick^="toggleOsh2Region"]::after,
+        [onclick^="envToggleRegion"]::after,
+        [onclick^="waterToggleRegion"]::after,
+        .esh-region-banner::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 28px;
+            height: 34px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 52 60'%3E%3Crect x='4' y='26' width='44' height='30' rx='5' fill='%23fbc02d'/%3E%3Cpath d='M12 26V18a14 14 0 0 1 28 0v8' fill='none' stroke='%23fbc02d' stroke-width='8' stroke-linecap='round'/%3E%3Ccircle cx='26' cy='41' r='5' fill='rgba(0,0,0,0.25)'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.28;
+            pointer-events: none;
+            z-index: 1;
+        }
+        /* Hide padlock on white-bg banners (Plant Ops) */
+        .esh-region-banner.r-plantops::after { display: none; }
+        /* Hide padlock ONLY when in edit mode AND region is editable by current user */
+        body.is-editing .region-banner.rb-editable::after,
+        body.is-editing [id^="osh-nov-region-banner-"].rb-editable::after,
+        body.is-editing [id^="nov-env-region-banner-"].rb-editable::after,
+        body.is-editing [id^="got-rbanner-"].rb-editable::after,
+        body.is-editing [onclick^="toggleOsh2Region"].rb-editable::after,
+        body.is-editing [onclick^="envToggleRegion"].rb-editable::after,
+        body.is-editing [onclick^="waterToggleRegion"].rb-editable::after,
+        body.is-editing .esh-region-banner.rb-editable::after { display: none; }
 .esh-region-banner:hover { filter: brightness(1.12); }
 /* esh-region-banner colors — synced with applyRegionBannerColors() */
 .esh-region-banner.r-ncr        { background: linear-gradient(135deg, #1b5e20 0%, #0d3311 100%); }
@@ -9084,8 +9164,7 @@ function applyNumFmtToInputs() {
                         'activities', 'kpm', 'dole', 'doe', 'doe-permit', 'cshp', 'reg',
                         'personnel', 'osh-requirement', 'tabulation', 'got-monitoring',
                         'lta-registry', 'health-report',
-                        'esh-calendar-safety', 'esh-calendar-health', 'esh-calendar-drills',
-                        'esh-calendar-corp-drills'
+                        'esh-calendar-safety', 'esh-calendar-health', 'esh-calendar-drills'
                     ];
                     if (tab && !SUPER_EDITABLE_TABS.includes(tab)) {
                         return { allowed: false, reason: `🔒 Superintendent cannot edit "${tab}". Environmental tabs are managed by the assigned PCO.` };
@@ -10649,25 +10728,81 @@ debugCommands.help() - Show this help
             let projectOverdues = {};
 
             state.projects.forEach(project => {
+                // ── Skip work-stoppage projects entirely — they are exempt ──────
+                if (project.status === 'work-stoppage') return;
+
                 let overdueTabs = [];
 
-                // ── KPM: missing monthly entries ────────────────────────────────
+                // ── KPM: missing monthly dateSubmitted entries ───────────────────
+                // Uses kpm_v3_{month}_dateSubmitted — the actual submission key.
+                // A month is only overdue if past, not N/A, and no dateSubmitted.
                 let hasKpmOverdue = false;
-                const key_kpm = 'kpm_KPM&I';
-                for (let month = 0; month < currentMonth; month++) {
-                    const value = project.vals[key_kpm] ? project.vals[key_kpm][month + 1] : '';
-                    if (!value || value.toString().trim() === '') { hasKpmOverdue = true; break; }
+                const _kpmNa = project.vals && project.vals['kpm_na'] === '1';
+                if (!_kpmNa) {
+                    const _KPM_MO_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                    for (let month = 0; month < currentMonth; month++) {
+                        const _moName = _KPM_MO_NAMES[month];
+                        const _dateKey = 'kpm_v3_' + _moName + '_dateSubmitted';
+                        const _dateVal = project.vals && project.vals[_dateKey];
+                        if (!_dateVal || _dateVal.toString().trim() === '') { hasKpmOverdue = true; break; }
+                    }
                 }
                 if (hasKpmOverdue) overdueTabs.push({ name: 'KPM', tab: 'kpm' });
 
-                // ── Environmental Monthly Report: missing monthly entries ─────────
+                // ── ENVI REPORTORIAL (Environmental Monthly Report): missing monthly entries ──
                 let hasEnvMonthlyOverdue = false;
                 const key_emr = 'env-monthly-report_Environmental Monthly Report (EMR)';
                 for (let month = 0; month < currentMonth; month++) {
                     const value = project.vals[key_emr] ? project.vals[key_emr][month + 1] : '';
                     if (!value || value.toString().trim() === '') { hasEnvMonthlyOverdue = true; break; }
                 }
-                if (hasEnvMonthlyOverdue) overdueTabs.push({ name: 'Environmental Monthly Report', tab: 'env-monthly-report' });
+                if (hasEnvMonthlyOverdue) overdueTabs.push({ name: 'ENVI Reportorial (EMR)', tab: 'env-monthly-report' });
+
+                // ── GOT MONITORING: no GOT data entered for any past month ───────
+                // Goals: E1, E2, E3, S1, S2, S3 — each has 1 measure (index 0).
+                // Fires only if ALL past months have zero rating across all goals.
+                // If even one month/goal has a rating, the project is considered active.
+                {
+                    const _gotGoalIds = ['E1','E2','E3','S1','S2','S3'];
+                    const _selYrGot   = state.selectedYear || currentYear;
+                    let hasAnyGotData = false;
+                    outer_got: for (const goalId of _gotGoalIds) {
+                        const k = 'got_' + goalId + '_0';
+                        const raw = project.vals && project.vals[k];
+                        if (!raw) continue;
+                        for (let month = 1; month <= currentMonth; month++) {
+                            if (typeof isMonthBlacklistedForProject === 'function' &&
+                                isMonthBlacklistedForProject(project, month, _selYrGot)) continue;
+                            const cell = raw[month];
+                            const rVal = cell && (typeof cell === 'object' ? cell.r : cell);
+                            if (rVal && rVal.toString().trim() !== '') { hasAnyGotData = true; break outer_got; }
+                        }
+                    }
+                    if (!hasAnyGotData && currentMonth > 0) overdueTabs.push({ name: 'GOT Monitoring (No Data Entered)', tab: 'got-monitoring' });
+                }
+
+                // ── ESH CALENDAR & DRILLS: planned drills with no actual recorded ─
+                // Checks the in-memory ESH cache for planned drill months with missing actuals
+                {
+                    const _eshStor = (typeof getEshStorage === 'function') ? getEshStorage() : (window._eshMemCache || {});
+                    const _eshSelYr = state.selectedYear || currentYear;
+                    let hasEshDrillOverdue = false;
+                    // Look for any GLOBAL_PLAN drill entries in past months with no actual for this project
+                    outer_drills: for (const [storKey, planVal] of Object.entries(_eshStor)) {
+                        if (!planVal) continue;
+                        // Key format: {year}|esh-calendar-drills|GLOBAL_PLAN|{di}|{mi}|plan
+                        if (!storKey.startsWith(_eshSelYr + '|esh-calendar-drills|GLOBAL_PLAN|')) continue;
+                        const parts = storKey.split('|');
+                        if (parts.length < 6 || parts[5] !== 'plan') continue;
+                        const di = parts[3], mi = parseInt(parts[4]);
+                        if (mi < 1 || mi > currentMonth) continue; // only past months
+                        const naCellKey = _eshSelYr + '|esh-calendar-drills|' + project.name + '|' + di + '|' + mi + '|na';
+                        if (_eshStor[naCellKey]) continue; // marked N/A — skip
+                        const actualKey = _eshSelYr + '|esh-calendar-drills|' + project.name + '|' + di + '|' + mi + '|actual';
+                        if (!_eshStor[actualKey]) { hasEshDrillOverdue = true; break outer_drills; }
+                    }
+                    if (hasEshDrillOverdue) overdueTabs.push({ name: 'ESH Calendar & Drills (Pending Actual)', tab: 'esh-calendar-drills' });
+                }
 
                 // ── DOLE Monthly: WAIR, RSO, MOM ────────────────────────────────
                 let hasDoleMonthlyOverdue = false;
@@ -10924,7 +11059,9 @@ debugCommands.help() - Show this help
                 'kpm': 'KPM',
                 'dole': 'DOLE Reportorial',
                 'emb': 'EMB Reportorial',
-                'env-monthly-report': 'Environmental Monthly Report'
+                'env-monthly-report': 'ENVI Reportorial',
+                'got-monitoring': 'GOT Monitoring',
+                'esh-calendar-drills': 'ESH Calendar & Drills'
             };
             return labels[tabName] || tabName;
         }
@@ -10938,9 +11075,11 @@ debugCommands.help() - Show this help
                 'kpm': 'KPM',
                 'dole': 'DOLE Reportorial',
                 'emb': 'EMB Reportorial',
-                'env-monthly-report': 'Environmental Monthly Report'
+                'env-monthly-report': 'ENVI Reportorial',
+                'got-monitoring': 'GOT Monitoring',
+                'esh-calendar-drills': 'ESH Calendar & Drills'
             };
-            showToast(`📋 Viewing ${tabLabels[tabName]} - Check overdue reports`, 'info');
+            showToast(`📋 Viewing ${tabLabels[tabName] || tabName} - Check overdue reports`, 'info');
         }
 
         function closeNotificationAndView(projectName) {
@@ -11857,8 +11996,7 @@ debugCommands.help() - Show this help
             }
 
             state.isEditing = true;
-
-            // Re-render ESH calendar if currently on that tab — so inputs become enabled immediately
+            document.body.classList.add('is-editing');
             const _eshEditTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
             if (_eshEditTabs.includes(state.currentTab)) {
                 try { eshFetchAndRender(state.currentTab); } catch(e) {}
@@ -11902,8 +12040,7 @@ debugCommands.help() - Show this help
             const floatingTooltip = document.getElementById('floating-edit-tooltip');
 
             state.isEditing = false;
-
-            // Re-render LTA Registry immediately so inputs reflect isEditing=false
+            document.body.classList.remove('is-editing');
             // BEFORE disabling the button — prevents visible freeze
             if (state.currentTab === 'lta-registry' && typeof renderLtaRegistryTab === 'function') {
                 renderLtaRegistryTab();
@@ -12078,7 +12215,6 @@ debugCommands.help() - Show this help
                     border:1.5px solid #2e7d32;border-radius:10px;
                     padding:11px 18px;font-size:0.82rem;color:#1b5e20;font-weight:600;
                     box-shadow:0 2px 8px rgba(46,125,50,0.1);">
-                    <i class="fas fa-shield-halved" style="font-size:1.1rem;color:#2e7d32;flex-shrink:0;"></i>
                     <div>
                         <div style="margin-bottom:2px;">🛡️ <strong>Admin — CORPORATE Region</strong> — Read access to all regions. Write access to CORPORATE projects only.</div>
                         <div style="font-weight:400;font-size:0.76rem;opacity:0.85;">Includes Settings, Personnel, User Management, Audit. For other regions, coordinate with the assigned Superintendent or PCO.</div>
@@ -12092,9 +12228,9 @@ debugCommands.help() - Show this help
                     'activities','kpm','dole','doe','doe-permit','cshp','reg',
                     'personnel','osh-requirement','tabulation','got-monitoring',
                     'lta-registry','health-report',
-                    'esh-calendar-safety','esh-calendar-health','esh-calendar-drills',
-                    'esh-calendar-corp-drills'
+                    'esh-calendar-safety','esh-calendar-health','esh-calendar-drills'
                 ].includes(tab);
+                const isCorpDrillsTab = tab === 'esh-calendar-corp-drills';
                 bannerHtml = `
                 <div style="display:flex;align-items:center;gap:14px;
                     background:linear-gradient(135deg,#fff8e1,#fffde7);
@@ -12102,12 +12238,13 @@ debugCommands.help() - Show this help
                     padding:11px 18px;
                     font-size:0.82rem;color:#e65100;font-weight:600;
                     box-shadow:0 2px 8px rgba(249,168,37,0.1);">
-                    <i class="fas fa-${isSuperEditableTab ? 'pen-to-square' : 'lock'}" style="font-size:1.1rem;color:#f9a825;flex-shrink:0;"></i>
                     <div>
                         <div style="margin-bottom:2px;">
                             ${isSuperEditableTab
                                 ? `✏️ <strong>Editable</strong> — This tab is within your Superintendent access. Region: <strong>${info.region}</strong>`
-                                : `🔒 <strong>Read-Only</strong> — This tab is not editable for Superintendent.`}
+                                : isCorpDrillsTab
+                                    ? `🔒 <strong>Read-Only</strong> — Corporate HQ Drills is managed by Admin only. Superintendents have view access only.`
+                                    : `🔒 <strong>Read-Only</strong> — This tab is not editable for Superintendent.`}
                         </div>
                         <div style="font-weight:400;font-size:0.76rem;opacity:0.85;">
                             Can write to Safety &amp; Health tabs within region: <strong>${info.region}</strong>. Environmental tabs are managed by the assigned PCO. Settings is read-only.
@@ -12125,7 +12262,6 @@ debugCommands.help() - Show this help
                     padding:11px 18px;
                     font-size:0.82rem;color:#0d47a1;font-weight:600;
                     box-shadow:0 2px 8px rgba(25,118,210,0.1);">
-                    <i class="fas fa-${isPcoEditableTab ? 'pen-to-square' : 'lock'}" style="font-size:1.1rem;color:#1976d2;flex-shrink:0;"></i>
                     <div>
                         <div style="margin-bottom:2px;">
                             ${isPcoEditableTab
@@ -12146,7 +12282,6 @@ debugCommands.help() - Show this help
                     border:1.5px solid #546e7a;border-radius:10px;
                     padding:11px 18px;font-size:0.82rem;color:#37474f;font-weight:600;
                     box-shadow:0 2px 8px rgba(84,110,122,0.1);">
-                    <i class="fas fa-eye" style="font-size:1.1rem;color:#546e7a;flex-shrink:0;"></i>
                     <div>
                         <div style="margin-bottom:2px;">👁️ <strong>View-Only Access</strong> — Manager accounts can view all data but cannot make changes.</div>
                         <div style="font-weight:400;font-size:0.76rem;opacity:0.85;">All tabs are read-only. Contact an Admin to request edit access.</div>
@@ -12161,7 +12296,6 @@ debugCommands.help() - Show this help
                     border:1.5px solid #3949ab;border-radius:10px;
                     padding:11px 18px;font-size:0.82rem;color:#1a237e;font-weight:600;
                     box-shadow:0 2px 8px rgba(57,73,171,0.1);">
-                    <i class="fas fa-eye" style="font-size:1.1rem;color:#3949ab;flex-shrink:0;"></i>
                     <div>
                         <div style="margin-bottom:2px;">👁️ <strong>View-Only Access</strong> — Document Controller accounts can view all data but cannot make changes.</div>
                         <div style="font-weight:400;font-size:0.76rem;opacity:0.85;">All tabs are read-only. Document control functions are managed through the Admin panel.</div>
@@ -12177,7 +12311,6 @@ debugCommands.help() - Show this help
                     border:1.5px solid #00695c;border-radius:10px;
                     padding:11px 18px;font-size:0.82rem;color:#004d40;font-weight:600;
                     box-shadow:0 2px 8px rgba(0,105,92,0.1);">
-                    <i class="fas fa-${isEnviTab ? 'pen-to-square' : 'lock'}" style="font-size:1.1rem;color:#00695c;flex-shrink:0;"></i>
                     <div>
                         <div style="margin-bottom:2px;">
                             ${isEnviTab
@@ -12196,7 +12329,6 @@ debugCommands.help() - Show this help
                     border:1.5px solid #ad1457;border-radius:10px;
                     padding:11px 18px;font-size:0.82rem;color:#880e4f;font-weight:600;
                     box-shadow:0 2px 8px rgba(173,20,87,0.1);">
-                    <i class="fas fa-eye" style="font-size:1.1rem;color:#ad1457;flex-shrink:0;"></i>
                     <div>
                         <div style="margin-bottom:2px;">👁️ <strong>View-Only</strong> — Corporate Nurse has read-only access to all tabs.</div>
                         <div style="font-weight:400;font-size:0.76rem;opacity:0.85;">Health data entry is handled by the assigned Superintendent. Coordinate with them for any data changes.</div>
@@ -17097,6 +17229,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             if (_isPastYr && !state.isAdmin) return; // past year — non-admin view-only
             if (!state.isEditing) {
                 state.isEditing = true;
+                document.body.classList.add('is-editing');
                 const _fb = document.getElementById('floating-edit-btn');
                 const _fi = document.getElementById('floating-edit-icon');
                 const _ft = document.getElementById('floating-edit-tooltip');
@@ -17800,12 +17933,11 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         return `<span class="rbadge" style="background:${cfg.bg};color:${cfg.color};">${cnt} ${shortLabel}</span>`;
                     }).join('');
 
-                html += `<div id="lta-region-banner-${reg}" class="lta-region-banner region-banner region-${reg.toLowerCase()} ${isCollapsed?'collapsed':''}" onclick="toggleLtaRegion('${reg}',event)">
+                html += `<div id="lta-region-banner-${reg}" class="lta-region-banner region-banner region-${reg.toLowerCase()} ${isCollapsed?'collapsed':''} ${canEditReg?'rb-editable':''}" onclick="toggleLtaRegion('${reg}',event)">
                     <div class="region-banner-inner">
                         <div class="region-banner-left">
                             <i class="fas fa-location-dot region-icon"></i>
                             <span class="region-name">${reg}</span>
-                            ${!canEditReg?'<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="View Only"></i>':''}
                         </div>
                         <div class="region-banner-right">
                             <span class="rbadge rbadge-count">${regProjs.length} PROJ</span>
@@ -18027,6 +18159,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             if (_isPastYr && !state.isAdmin) return; // past year — non-admin view-only
             if (!state.isEditing) {
                 state.isEditing = true;
+                document.body.classList.add('is-editing');
                 const _fb = document.getElementById('floating-edit-btn');
                 const _fi = document.getElementById('floating-edit-icon');
                 const _ft = document.getElementById('floating-edit-tooltip');
@@ -18830,13 +18963,13 @@ function renderTabulation() {
                 const _closedBadgeBg = _isWhite ? 'background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;' : 'background:rgba(46,125,50,0.5);color:white;';
 
                 html += `<div class="nov-region-card">
-                    <div id="osh-nov-region-banner-${safeReg}" onclick="toggleOshNovRegion('${reg}',event)"
+                    <div id="osh-nov-region-banner-${safeReg}" class="${canEdit?'rb-editable':''}" onclick="toggleOshNovRegion('${reg}',event)"
                         style="background:linear-gradient(135deg,${_rc.a} 0%,${_rc.b} 100%);${_bannerBorder}padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
                         <div style="display:flex;align-items:center;gap:10px;">
                             <i id="osh-nov-chev-${safeReg}" class="fas fa-chevron-down" style="color:${_iconClr};font-size:0.78rem;transition:transform 0.25s;${isCollapsed?'transform:rotate(-90deg);':''}"></i>
                             <i class="fas fa-map-marker-alt" style="color:${_iconClr};"></i>
                             <span style="font-weight:800;color:${_txtClr};font-size:0.9rem;letter-spacing:0.05em;">${reg}</span>
-                            ${!canEdit?`<i class="fas fa-lock" style="color:${_isWhite?'#e65100':'#fbc02d'};font-size:0.7rem;" title="View Only"></i>`:''}
+
                         </div>
                         <div style="display:flex;gap:8px;align-items:center;">
                             <span style="${_projBadgeBg}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regProjs.length} PROJ</span>
@@ -19674,14 +19807,13 @@ function renderTabulation() {
                 const isCorporateDataTab = isCorporateReg && CORP_DATA_TABS.includes(state.currentTab);
                 const regIcon = isCorporateReg ? 'fa-building-columns' : (isPlantReg ? 'fa-industry' : 'fa-location-dot');
                 const regLabel = reg;
-                html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)">
+                html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''} ${canEditRegion ? 'rb-editable' : ''}" onclick="toggleRegion('${reg}', event)">
                     <div class="region-banner-inner">
                         <div class="region-banner-left">
                             <i class="fas ${regIcon} region-icon"></i>
                             <span class="region-name">${regLabel}</span>
                             ${isCorporateReg ? `<span class="rbadge rbadge-admin">ADMIN ONLY</span>` : ''}
                             ${isPlantReg ? `<span class="rbadge" style="background:rgba(255,255,255,0.2);color:white;font-size:0.55rem;padding:2px 8px;border-radius:10px;font-weight:700;">🏭 MONITORING ONLY</span>` : ''}
-                            ${!canEditRegion && !isCorporateReg && !isPlantReg ? `<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="🔒 View Only"></i>` : ''}
                         </div>
                         <div class="region-banner-right">
                             ${(!isCorporateReg || isCorporateDataTab) ? (isCorporateReg ? `<span class="rbadge rbadge-count">${projs.length} OFFICE</span>` : isPlantReg ? `<span class="rbadge rbadge-count">${projs.length} PLANT${projs.length!==1?'S':''}</span>` : `<span class="rbadge rbadge-count">${projs.length} PROJECT${projs.length!==1?'S':''}</span>`) : ''}
@@ -20113,6 +20245,7 @@ if (state.currentTab === 'audit') {
                     if (_isPastYr && !state.isAdmin) return; // past year — non-admin view-only
                     if (!state.isEditing) {
                         state.isEditing = true;
+                        document.body.classList.add('is-editing');
                         const _fb = document.getElementById('floating-edit-btn');
                         const _fi = document.getElementById('floating-edit-icon');
                         const _ft = document.getElementById('floating-edit-tooltip');
@@ -20365,13 +20498,13 @@ if (state.currentTab === 'audit') {
                         const _closedBadgeBgE = _isWhiteE ? 'background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;' : 'background:rgba(46,125,50,0.5);color:white;';
 
                         envHtml += `<div class="nov-region-card">
-                            <div id="nov-env-region-banner-${safeReg}" onclick="toggleNovEnvRegion('${reg}',event)"
+                            <div id="nov-env-region-banner-${safeReg}" class="${canEdit?'rb-editable':''}" onclick="toggleNovEnvRegion('${reg}',event)"
                                 style="background:linear-gradient(135deg,${_rc.a} 0%,${_rc.b} 100%);${_bannerBorderE}padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
                                 <div style="display:flex;align-items:center;gap:10px;">
                                     <i id="nov-env-chev-${safeReg}" class="fas fa-chevron-down" style="color:${_iconClrE};font-size:0.78rem;transition:transform 0.25s;${isCollapsed?'transform:rotate(-90deg);':''}"></i>
                                     <i class="fas fa-map-marker-alt" style="color:${_iconClrE};"></i>
                                     <span style="font-weight:800;color:${_txtClrE};font-size:0.9rem;letter-spacing:0.05em;">${reg}</span>
-                                    ${!canEdit?`<i class="fas fa-lock" style="color:${_isWhiteE?'#e65100':'#fbc02d'};font-size:0.7rem;" title="View Only"></i>`:''}
+
                                 </div>
                                 <div style="display:flex;gap:8px;align-items:center;">
                                     <span style="${_projBadgeBgE}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regProjs.length} PROJ</span>
@@ -21477,13 +21610,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             if (allFilled) submittedCount++;
                         }
 
-                        html += '<div id="region-banner-' + reg + '" class="region-banner region-' + reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'') + ' ' + (isCollapsed?'collapsed':'') + '" onclick="toggleRegion(\'' + reg.replace(/'/g,"\\'") + '\',event)">'
+                        html += '<div id="region-banner-' + reg + '" class="region-banner region-' + reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'') + ' ' + (isCollapsed?'collapsed':'') + ' ' + (canEditReg?'rb-editable':'') + '" onclick="toggleRegion(\'' + reg.replace(/'/g,"\\'") + '\',event)">'
                             + '<div class="region-banner-inner">'
                             + '<div class="region-banner-left">'
                             + '<i class="fas ' + (isCorporateDole ? 'fa-building-columns' : 'fa-location-dot') + ' region-icon"></i>'
                             + '<span class="region-name">' + reg + '</span>'
                             + (isCorporateDole ? '<span class="rbadge rbadge-admin">ADMIN ONLY</span>' : '')
-                            + (!canEditReg && !isCorporateDole ? '<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="View Only"></i>' : '')
+                            
                             + '</div>'
                             + '<div class="region-banner-right">'
                             + '<span class="rbadge rbadge-count">' + projs.length + ' PROJ</span>'
@@ -21586,6 +21719,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         if (canEdit && !state.isEditing) {
                             state.isEditing = true;
+                            document.body.classList.add('is-editing');
                             var _fb = document.getElementById('floating-edit-btn');
                             var _fi = document.getElementById('floating-edit-icon');
                             var _ft = document.getElementById('floating-edit-tooltip');
@@ -21882,6 +22016,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 function _activateEditMode() {
                     if (!state.isEditing) {
                         state.isEditing = true;
+                        document.body.classList.add('is-editing');
                         var fb=document.getElementById('floating-edit-btn'), fi=document.getElementById('floating-edit-icon'), ft=document.getElementById('floating-edit-tooltip');
                         if(fb){fb.classList.add('save-mode');fb.setAttribute('onclick','saveData()');}
                         if(fi) fi.className='fas fa-save';
@@ -22028,10 +22163,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             if(hOk) embComplete++;
                         }
 
-                        html += '<div id="region-banner-'+reg+'" class="region-banner region-'+reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+' '+(isCollapsed?'collapsed':'')+'" onclick="toggleRegion(\''+reg.replace(/'/g,"\\'")+'\',event)">'
+                        html += '<div id="region-banner-'+reg+'" class="region-banner region-'+reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+' '+(isCollapsed?'collapsed':'')+' '+(canEditReg?'rb-editable':'')+'" onclick="toggleRegion(\''+reg.replace(/'/g,"\\'")+'\',event)">'
                             +'<div class="region-banner-inner"><div class="region-banner-left">'
                             +'<i class="fas fa-location-dot region-icon"></i><span class="region-name">'+reg+'</span>'
-                            +(!canEditReg?'<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="View Only"></i>':'')
+                            
                             +'</div><div class="region-banner-right">'
                             +'<span class="rbadge rbadge-count">'+projs.length+' PROJ</span>'
                             +'<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">'+embComplete+'/'+embTotal2+' complete</span>'
@@ -22176,10 +22311,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var doeComplete = 0;
                         for(var q=1;q<=doeCurQ;q++){ var qOk=regProjs.every(function(p){ return p.vals[DOE_KEY]&&p.vals[DOE_KEY][q]; }); if(qOk) doeComplete++; }
 
-                        html += '<div id="region-banner-'+reg+'" class="region-banner region-'+reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+' '+(isCollapsed?'collapsed':'')+'" onclick="toggleRegion(\''+reg.replace(/'/g,"\\'")+'\',event)">'
+                        html += '<div id="region-banner-'+reg+'" class="region-banner region-'+reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+' '+(isCollapsed?'collapsed':'')+' '+(canEditReg?'rb-editable':'')+'" onclick="toggleRegion(\''+reg.replace(/'/g,"\\'")+'\',event)">'
                             +'<div class="region-banner-inner"><div class="region-banner-left">'
                             +'<i class="fas fa-location-dot region-icon"></i><span class="region-name">'+reg+'</span>'
-                            +(!canEditReg?'<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;"></i>':'')
                             +'</div><div class="region-banner-right">'
                             +'<span class="rbadge rbadge-count">'+regProjs.length+' PROJ</span>'
                             +'<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">'+doeComplete+'/'+doeCurQ+' complete</span>'
@@ -22309,10 +22443,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var emrComplete = 0;
                         for(var m=1;m<=emrCurMoIdx+1;m++){ var mOk=activeProjs.every(function(p){ return p.vals[EMR_KEY]&&p.vals[EMR_KEY][m]; }); if(mOk && activeProjs.length > 0) emrComplete++; }
 
-                        html += '<div id="region-banner-'+reg+'" class="region-banner region-'+reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+' '+(isCollapsed?'collapsed':'')+'" onclick="toggleRegion(\''+reg.replace(/'/g,"\\'")+'\',event)">'
+                        html += '<div id="region-banner-'+reg+'" class="region-banner region-'+reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+' '+(isCollapsed?'collapsed':'')+' '+(canEditReg?'rb-editable':'')+'" onclick="toggleRegion(\''+reg.replace(/'/g,"\\'")+'\',event)">'
                             +'<div class="region-banner-inner"><div class="region-banner-left">'
                             +'<i class="fas fa-location-dot region-icon"></i><span class="region-name">'+reg+'</span>'
-                            +(!canEditReg?'<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;"></i>':'')
                             +'</div><div class="region-banner-right">'
                             +'<span class="rbadge rbadge-count">'+projs.length+' PROJ</span>'
                             +'<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">'+emrComplete+'/'+(emrCurMoIdx+1)+' complete</span>'
@@ -22980,12 +23113,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             if (anySubm) submittedCount++;
                         });
 
-                        html += '<div id="region-banner-' + reg + '" class="region-banner region-' + reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'') + ' ' + (isCollapsed?'collapsed':'') + '" onclick="toggleRegion(\'' + reg + '\',event)">'
+                        html += '<div id="region-banner-' + reg + '" class="region-banner region-' + reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'') + ' ' + (isCollapsed?'collapsed':'') + ' ' + (canEditReg?'rb-editable':'') + '" onclick="toggleRegion(\'' + reg + '\',event)">'
                             + '<div class="region-banner-inner">'
                             + '<div class="region-banner-left">'
                             + '<i class="fas fa-location-dot region-icon"></i>'
                             + '<span class="region-name">' + reg + '</span>'
-                            + (!state.isEditing ? '<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="Press ✏️ Edit button to enable input"></i>' : (!canEditReg ? '<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="View Only"></i>' : ''))
+                            + (!state.isEditing ? '' : '')
                             + '</div>'
                             + '<div class="region-banner-right">'
                             + '<span class="rbadge rbadge-count">' + projs.length + ' PROJ</span>'
@@ -23087,6 +23220,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         // Auto-enable edit mode
                         if (canEdit && !state.isEditing) {
                             state.isEditing = true;
+                            document.body.classList.add('is-editing');
                             var _fb = document.getElementById('floating-edit-btn');
                             var _fi = document.getElementById('floating-edit-icon');
                             var _ft = document.getElementById('floating-edit-tooltip');
@@ -23459,13 +23593,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const isCorporateReg2 = reg === 'CORPORATE';
                     const regIcon2 = isCorporateReg2 ? 'fa-building-columns' : 'fa-location-dot';
                     const regLabel2 = isCorporateReg2 ? 'CORPORATE' : reg;
-                    html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)">
+                    html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''} ${canEditRegion ? 'rb-editable' : ''}" onclick="toggleRegion('${reg}', event)">
                         <div class="region-banner-inner">
                             <div class="region-banner-left">
                                 <i class="fas ${regIcon2} region-icon"></i>
                                 <span class="region-name">${regLabel2}</span>
                                 ${isCorporateReg2 ? `<span class="rbadge rbadge-admin">ADMIN ONLY</span>` : ''}
-                                ${!canEditRegion && !isCorporateReg2 ? `<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="🔒 View Only"></i>` : ''}
+                                ${!canEditRegion && !isCorporateReg2 ? `` : ''}
                             </div>
                             <div class="region-banner-right">
                                 <span class="rbadge rbadge-count">${projs.length} PROJ</span>
@@ -23728,12 +23862,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         const canEditRegion = UserAccounts.canEdit(state.currentUser?.email, reg) && UserAccounts.canEditTab(state.currentUser?.email, state.currentTab);
                         const isCollapsed = isRegionCollapsed(reg);
                         
-                        html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)">
+                        html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''} ${canEditRegion ? 'rb-editable' : ''}" onclick="toggleRegion('${reg}', event)">
                             <div class="region-banner-inner">
                                 <div class="region-banner-left">
                                     <i class="fas fa-location-dot region-icon"></i>
                                     <span class="region-name">${reg}</span>
-                                    ${!canEditRegion ? `<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="🔒 View Only"></i>` : ''}
                                 </div>
                                 <div class="region-banner-right">
                                     <span class="rbadge rbadge-count">${regProjects.length} PROJ</span>
@@ -23952,12 +24085,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         const canEditRegion = UserAccounts.canEdit(state.currentUser?.email, reg) && UserAccounts.canEditTab(state.currentUser?.email, state.currentTab);
                         const isCollapsed = isRegionCollapsed(reg);
                         
-                        html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)">
+                        html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''} ${canEditRegion ? 'rb-editable' : ''}" onclick="toggleRegion('${reg}', event)">
                             <div class="region-banner-inner">
                                 <div class="region-banner-left">
                                     <i class="fas fa-location-dot region-icon"></i>
                                     <span class="region-name">${reg}</span>
-                                    ${!canEditRegion ? `<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="🔒 View Only"></i>` : ''}
                                 </div>
                                 <div class="region-banner-right">
                                     <span class="rbadge rbadge-count">${regProjects.length} PROJ</span>
@@ -24286,12 +24418,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const canEditRegion = UserAccounts.canEdit(state.currentUser?.email, reg) && UserAccounts.canEditTab(state.currentUser?.email, state.currentTab);
                     const isCollapsed = isRegionCollapsed(reg);
                     
-                    html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''}" onclick="toggleRegion('${reg}', event)">
+                    html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''} ${canEditRegion ? 'rb-editable' : ''}" onclick="toggleRegion('${reg}', event)">
                         <div class="region-banner-inner">
                             <div class="region-banner-left">
                                 <i class="fas fa-location-dot region-icon"></i>
                                 <span class="region-name">${reg}</span>
-                                ${!canEditRegion ? `<i class="fas fa-lock" style="color:#fbc02d;font-size:0.7rem;" title="🔒 View Only"></i>` : ''}
                             </div>
                             <div class="region-banner-right">
                                 <span class="rbadge rbadge-count">${projs.length} PROJ</span>
@@ -25925,7 +26056,7 @@ function confirmEditPersonnel() {
 
 const _pCollapsedProjects = new Set();
 
-const _pCollapsedGroups = new Set();
+const _pCollapsedGroups = new Set(['NCR','NORTH_LUZON','SOUTH_LUZON','VISAYAS___MINDANAO','PLANT_OPERATIONS','CORPORATE','CORP_OFFICE']);
 
 function _pToggleProjectBySafeKey(safeKey) {
     const body = document.getElementById('p-proj-body-' + safeKey);
@@ -26225,8 +26356,9 @@ function renderPTable() {
             </tr>`;
         });
         const _corpCollapsed = _pCollapsedGroups.has(grpSafe);
+        const _corpCanEdit = UserAccounts.canEdit(state.currentUser?.email, 'CORPORATE');
         html += `
-        <div id="p-grp-banner-${grpSafe}" class="region-banner${_corpCollapsed?' collapsed':''}" onclick="pToggleGroup('CORP_OFFICE')" style="margin-bottom:${_corpCollapsed?'6px':'0'};">
+        <div id="p-grp-banner-${grpSafe}" class="region-banner${_corpCollapsed?' collapsed':''}${_corpCanEdit?' rb-editable':''}" onclick="pToggleGroup('CORP_OFFICE')" style="margin-bottom:${_corpCollapsed?'6px':'0'};">
             <div class="region-banner-inner">
                 <div class="region-banner-left">
                     <i class="fas fa-building-columns region-icon"></i>
@@ -26283,8 +26415,9 @@ function renderPTable() {
             </div>` : '';
 
         const grpIsCollapsed = _pCollapsedGroups.has(grpSafe);
+        const grpCanEdit = UserAccounts.canEdit(state.currentUser?.email, region);
         html += `
-        <div id="p-grp-banner-${grpSafe}" class="region-banner${grpIsCollapsed?' collapsed':''}" onclick="pToggleGroupSafe('${grpSafe}')" style="margin-bottom:${grpIsCollapsed?'6px':'0'};">
+        <div id="p-grp-banner-${grpSafe}" class="region-banner${grpIsCollapsed?' collapsed':''}${grpCanEdit?' rb-editable':''}" onclick="pToggleGroupSafe('${grpSafe}')" style="margin-bottom:${grpIsCollapsed?'6px':'0'};">
             <div class="region-banner-inner">
                 <div class="region-banner-left">
                     <i class="fas fa-location-dot region-icon"></i>
@@ -29610,13 +29743,12 @@ function renderOsh2() {
         html += `
         <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:16px;">
             
-            <div style="background:linear-gradient(90deg,${rColor} 0%,${rColor}dd 100%);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="toggleOsh2Region(this,'osh2-region-${region.replace(/[^a-z0-9]/gi,'_')}')">
+            <div class="${canEditRegion?'rb-editable':''}" style="background:linear-gradient(90deg,${rColor} 0%,${rColor}dd 100%);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;position:relative;overflow:hidden;" onclick="toggleOsh2Region(this,'osh2-region-${region.replace(/[^a-z0-9]/gi,'_')}')">
                 <div style="display:flex;align-items:center;gap:10px;">
-                    <i class="fas fa-chevron-down" style="color:rgba(255,255,255,0.7);font-size:0.65rem;transition:transform 0.3s;"></i>
+                    <i class="fas fa-chevron-right" style="color:rgba(255,255,255,0.7);font-size:0.65rem;transition:transform 0.3s;"></i>
                     <i class="fas fa-map-marker-alt" style="color:rgba(255,255,255,0.8);font-size:0.8rem;"></i>
                     <span style="font-weight:800;color:white;font-size:0.85rem;letter-spacing:0.5px;">${region}</span>
                     <span style="background:rgba(255,255,255,0.18);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${projects.length} project${projects.length!==1?'s':''}</span>
-                    ${!canEditRegion ? `<span style="background:rgba(0,0,0,0.25);color:rgba(255,255,255,0.7);padding:2px 10px;border-radius:12px;font-size:0.63rem;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-lock" style="font-size:0.55rem;"></i> View Only</span>` : ''}
                 </div>
                 <div style="display:flex;gap:8px;align-items:center;">
                     <span style="background:rgba(76,175,80,0.3);color:#a5d6a7;padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rCompliant} OK</span>
@@ -29627,7 +29759,7 @@ function renderOsh2() {
             </div>
 
             
-            <div id="osh2-region-${region.replace(/[^a-z0-9]/gi,'_')}" style="overflow-x:auto;">
+            <div id="osh2-region-${region.replace(/[^a-z0-9]/gi,'_')}" style="overflow-x:auto;display:none;">
                 <table class="env-tbl" style="width:100%;font-size:0.72rem;">
                     <thead>
                         <tr>
@@ -30302,7 +30434,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var GOT_REGION_ORDER = ["CORPORATE","PLANT OPERATIONS","NCR","NORTH LUZON","SOUTH LUZON","VISAYAS & MINDANAO"];
     var GOT_M = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
     var _gotTab = "tab3";
-    var _gotCollapsed = {};
+    var _gotCollapsed = {'NCR':true,'NORTH LUZON':true,'SOUTH LUZON':true,'VISAYAS & MINDANAO':true,'PLANT OPERATIONS':true,'CORPORATE':true};
     var _gotRegionProjIdx = {}; // tracks current project index per region in Compliance tab
 
     window.gotSetTab = function (t) { _gotTab = t; window.renderGotMonitoring(); };
@@ -30778,13 +30910,13 @@ document.addEventListener('DOMContentLoaded', function() {
             h += '<div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:0 16px 14px;">';
 
             // Region banner
-            h += '<div id="got-rbanner-' + reg + '" onclick="gotToggleRegion(\'' + escQ(reg) + '\',event)"'
+            h += '<div id="got-rbanner-' + reg + '" class="' + (canEditReg?'rb-editable':'') + '" onclick="gotToggleRegion(\'' + escQ(reg) + '\',event)"'
                + ' style="background:linear-gradient(135deg,' + _rc.a + ' 0%,' + _rc.b + ' 100%);box-shadow:0 3px 10px rgba(0,0,0,0.22);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">';
             h += '<div style="display:flex;align-items:center;gap:10px;">';
             h += '<i id="' + chevronId + '" class="fas fa-chevron-down" style="color:rgba(255,255,255,0.85);font-size:0.78rem;transition:transform 0.25s;' + (isCollapsed ? 'transform:rotate(-90deg);' : '') + '"></i>';
             h += '<i class="fas fa-map-marker-alt" style="color:rgba(255,255,255,0.85);font-size:0.9rem;"></i>';
             h += '<span style="font-weight:800;color:white;font-size:0.9rem;letter-spacing:0.05em;text-transform:uppercase;">' + reg + '</span>';
-            if (!state.isEditing) h += '<span style="background:rgba(0,0,0,0.20);color:rgba(255,255,255,0.8);padding:2px 10px;border-radius:12px;font-size:0.63rem;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-lock" style="font-size:0.6rem;"></i></span>';
+            if (!state.isEditing) h += '';
             h += '</div>';
             h += '<div style="display:flex;gap:8px;align-items:center;">';
             h += '<span style="background:rgba(255,255,255,0.18);color:white;border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">' + projs.length + ' PROJECT' + (projs.length !== 1 ? 'S' : '') + '</span>';
@@ -30851,6 +30983,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Auto-enable edit mode
         if (editMode && !state.isEditing) {
             state.isEditing = true;
+            document.body.classList.add('is-editing');
             var _fb = document.getElementById('floating-edit-btn');
             var _fi = document.getElementById('floating-edit-icon');
             var _ft = document.getElementById('floating-edit-tooltip');
@@ -32131,13 +32264,12 @@ document.addEventListener('DOMContentLoaded', function() {
             <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:14px;">
 
                 
-                <div onclick="envToggleRegion('${region}')" style="${rc.white?'background:#ffffff;border-bottom:1.5px solid #c8e6c9;':'background:linear-gradient(90deg,'+rc.bg+' 0%,'+rc.bg+'dd 100%);'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;box-shadow:${rc.white?'0 2px 8px rgba(0,0,0,0.10)':'none'};">
+                <div class="${canEditRegionEnv?'rb-editable':''}" onclick="envToggleRegion('${region}')" style="${rc.white?'background:#ffffff;border-bottom:1.5px solid #c8e6c9;':'background:linear-gradient(90deg,'+rc.bg+' 0%,'+rc.bg+'dd 100%);'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;box-shadow:${rc.white?'0 2px 8px rgba(0,0,0,0.10)':'none'};">
                     <div style="display:flex;align-items:center;gap:8px;">
                         <i id="env-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:${rc.white?'#2e7d32':'rgba(255,255,255,0.7)'};font-size:0.65rem;"></i>
                         <i class="fas fa-map-marker-alt" style="color:${rc.white?'#1b5e20':'rgba(255,255,255,0.8)'};font-size:0.8rem;"></i>
                         <span style="font-weight:800;color:${rc.white?'#1b5e20':'white'};font-size:0.85rem;letter-spacing:0.5px;">${region}</span>
                         <span style="background:${rc.white?'#e8f5e9':'rgba(255,255,255,0.18)'};color:${rc.white?'#1b5e20':'white'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${projs.length} project${projs.length!==1?'s':''}</span>
-                        ${!canEditRegionEnv ? `<span style="background:${rc.white?'rgba(0,0,0,0.06)':'rgba(0,0,0,0.25)'};color:${rc.white?'#555':'rgba(255,255,255,0.75)'};padding:2px 10px;border-radius:12px;font-size:0.63rem;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-lock" style="font-size:0.55rem;"></i> View Only</span>` : ''}
                     </div>
                     <div style="display:flex;gap:6px;align-items:center;">
                         ${rKwh>0?`<span style="background:${rc.white?'#e8f5e9':'rgba(255,255,255,0.2)'};color:${rc.white?'#1b5e20':'white'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rKwh.toLocaleString()} kWh</span>`:''}
@@ -32685,13 +32817,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             html += `
             <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:14px;">
-                <div onclick="waterToggleRegion('${region}')" style="${rc.white?'background:#ffffff;border-bottom:1.5px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.10);':'background:linear-gradient(90deg,'+rc.bg+' 0%,'+rc.bg+'dd 100%);'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
+                <div class="${canEditReg?'rb-editable':''}" onclick="waterToggleRegion('${region}')" style="${rc.white?'background:#ffffff;border-bottom:1.5px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.10);':'background:linear-gradient(90deg,'+rc.bg+' 0%,'+rc.bg+'dd 100%);'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
                     <div style="display:flex;align-items:center;gap:8px;">
                         <i id="wtr-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:${rc.white?'#2e7d32':'rgba(255,255,255,0.7)'};font-size:0.65rem;"></i>
                         <i class="fas fa-droplet" style="color:${rc.white?'#1b5e20':'rgba(255,255,255,0.8)'};font-size:0.8rem;"></i>
                         <span style="font-weight:800;color:${rc.white?'#1b5e20':'white'};font-size:0.85rem;letter-spacing:0.5px;">${region}</span>
                         <span style="background:${rc.white?'#e8f5e9':'rgba(255,255,255,0.18)'};color:${rc.white?'#1b5e20':'white'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${projs.length} project${projs.length!==1?'s':''}</span>
-                        ${!canEditReg ? `<span style="background:${rc.white?'rgba(0,0,0,0.06)':'rgba(0,0,0,0.25)'};color:${rc.white?'#555':'rgba(255,255,255,0.75)'};padding:2px 10px;border-radius:12px;font-size:0.63rem;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-lock" style="font-size:0.55rem;"></i> View Only</span>` : ''}
                     </div>
                     <div style="display:flex;gap:6px;align-items:center;">
                         ${rDomM3>0?`<span style="background:${rc.white?'#e8f5e9':'rgba(255,255,255,0.2)'};color:${rc.white?'#1b5e20':'white'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rDomM3.toLocaleString()} m³ Dom</span>`:''}
@@ -34219,14 +34350,7 @@ function renderEshCalendar(tabType) {
                 _rbacSub = `Your account does not have edit access to this tab. Contact an Admin if you need write access.`;
             }
 
-            return `<div style="display:flex;align-items:center;gap:14px;background:${_rbacBg};border:1.5px solid ${_rbacBorder};border-radius:10px;padding:11px 18px;margin:0 0 12px;font-size:0.82rem;color:${_rbacColor};font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-                <i class="fas ${_rbacIcon}" style="font-size:1.1rem;color:${_rbacColor};flex-shrink:0;"></i>
-                <div>
-                    <div style="margin-bottom:2px;">${_rbacTitle}</div>
-                    <div style="font-weight:400;font-size:0.76rem;opacity:0.9;">${_rbacSub}</div>
-                </div>
-                <div style="margin-left:auto;background:${_rbacColor};color:white;border-radius:6px;padding:3px 12px;font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">${_rbacInfo.role.replace('_',' ').toUpperCase()}</div>
-            </div>`;
+            return '';
         })()}
         <div class="esh-cal-legend" style="flex-wrap:wrap;gap:10px 18px;">
             <span style="font-weight:700;color:var(--text-primary);font-size:0.72rem;">FREQUENCY:</span>
@@ -34265,12 +34389,10 @@ function renderEshCalendar(tabType) {
 
         const _eshRegionClass = {'NCR':'r-ncr','NORTH LUZON':'r-northluzon','SOUTH LUZON':'r-southluzon','VISAYAS & MINDANAO':'r-vismin','PLANT OPERATIONS':'r-plantops'}[region] || '';
         const _eshCanEditRegion = eshCanEdit(tabType, region);
-        const _eshAccessBadge = _eshCanEditRegion
-            ? `<span style="background:rgba(255,255,255,0.22);color:white;font-size:0.55rem;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;"><i class="fas fa-pen" style="margin-right:3px;font-size:0.5rem;"></i>EDITABLE</span>`
-            : `<span style="background:rgba(0,0,0,0.25);color:#ffd54f;font-size:0.55rem;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;"><i class="fas fa-lock" style="margin-right:3px;font-size:0.5rem;"></i>VIEW ONLY</span>`;
+        const _eshAccessBadge = '';
         html += `
         <div class="esh-region-block">
-            <div class="esh-region-banner ${_eshRegionClass}" onclick="eshToggleRegion('${regionContentId}')" style="border-radius:8px;">
+            <div class="esh-region-banner ${_eshRegionClass} ${_eshCanEditRegion?'rb-editable':''}" onclick="eshToggleRegion('${regionContentId}')" style="border-radius:8px;">
                 <i class="fas fa-location-dot"></i> ${region}
                 <span style="background:rgba(255,255,255,0.18);padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;margin-left:8px;">${regProjects.length} PROJECT${regProjects.length!==1?'S':''}</span>
                 ${_eshAccessBadge}
