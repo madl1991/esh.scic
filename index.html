@@ -5143,6 +5143,22 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
 #osh-nov-region-banner-VISAYAS\ &\ MINDANAO .region-name::before   { content: "VISMIN"; font-size: 0.92rem; }
 #lta-region-banner-VISAYAS\ &\ MINDANAO .region-name::after,
 #osh-nov-region-banner-VISAYAS\ &\ MINDANAO .region-name::after    { content: "Visayas & Mindanao Region"; font-size: 0.60rem; }
+
+/* ── FOOTER ── */
+.esh-footer {
+  background: transparent;
+  border: none;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  flex-shrink: 0;
+}
+.esh-footer .footer-shield { width: 18px; height: 18px; flex-shrink: 0; }
+.esh-footer span { font-size: 0.78rem; color: #888; font-weight: 400; font-family: 'Inter', Arial, sans-serif; }
+.esh-footer strong { color: #555; font-weight: 600; }
 </style>
 
 </head>
@@ -7511,6 +7527,21 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
   </div>
 </div>
             
+<!-- ── FOOTER ── -->
+<footer class="esh-footer">
+  <svg class="footer-shield" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="footer-g1" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#2e7d32"/>
+        <stop offset="100%" stop-color="#1b5e20"/>
+      </linearGradient>
+    </defs>
+    <path d="M16 2 L28 7 L28 17 C28 23 22 28 16 30 C10 28 4 23 4 17 L4 7 Z" fill="url(#footer-g1)"/>
+    <text x="16" y="19.5" text-anchor="middle" font-family="Arial" font-weight="900" font-size="8" fill="white">ESH</text>
+  </svg>
+  <span>Powered by <strong>ESH Compliance Dashboard</strong> · SCIC</span>
+</footer>
+
     </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -25602,6 +25633,25 @@ function confirmAddPersonnel() {
             return;
         }
     }
+
+    // ── DUPLICATE CHECK ─────────────────────────────────────────────────────
+    if (state.personnelData) {
+        const dupName = state.personnelData.find(p =>
+            p.name && p.name.trim().toLowerCase() === fullName.trim().toLowerCase()
+        );
+        if (dupName) {
+            errorEl.textContent = '⚠️ Personnel "' + fullName + '" already exists in the registry';
+            return;
+        }
+        if (id && !toUpdate.includes('id')) {
+            const dupId = state.personnelData.find(p => p.id && p.id.trim() === id.trim());
+            if (dupId) {
+                errorEl.textContent = '⚠️ ID Number "' + id + '" is already assigned to ' + dupId.name;
+                return;
+            }
+        }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     const len = calculateYearsOfService(hired);
     
