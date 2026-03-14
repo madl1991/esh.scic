@@ -19,7 +19,7 @@
         'SOUTH LUZON':        { bg: '#24692a', dark: '#133816', light: '#f9fbe7', badge: '#a5d6a7' },
         'VISAYAS & MINDANAO': { bg: '#388e3c', dark: '#215c26', light: '#f1f8e9', badge: '#c8e6c9' },
         'PLANT OPERATIONS':   { bg: '#00695c', dark: '#004d40', light: '#e0f2f1', badge: '#80cbc4', white: true },
-        'CORPORATE':          { bg: '#0d3d0f', dark: '#061a07', light: '#e8f5e9', badge: '#4caf50' }
+        'CORPORATE':          { bg: '#0d3d0f', dark: '#061a07', light: '#e8f5e9', badge: '#4caf50', white: true }
     };
     </script>
     <script>
@@ -9215,10 +9215,11 @@ function applyNumFmtToInputs() {
                         return { allowed: false, reason: `🔒 Environmental Head can only edit environmental modules. "${tab}" is read-only.` };
                     }
                     const _enviProjReg = (projectRegion || '').trim().toUpperCase();
-                    if (projectRegion && _enviProjReg !== 'PLANT OPERATIONS') {
-                        return { allowed: false, reason: `🔒 Environmental Head can only edit PLANT OPERATIONS records. For ${projectRegion} corrections, coordinate with the assigned PCO.` };
+                    const _enviAllowed = ['PLANT OPERATIONS', 'CORPORATE'];
+                    if (projectRegion && !_enviAllowed.includes(_enviProjReg)) {
+                        return { allowed: false, reason: `🔒 Environmental Head can only edit PLANT OPERATIONS and CORPORATE records. For ${projectRegion} corrections, coordinate with the assigned PCO.` };
                     }
-                    return { allowed: true, reason: 'Envi Head: env tab + PLANT OPERATIONS match' };
+                    return { allowed: true, reason: 'Envi Head: env tab + PLANT OPERATIONS/CORPORATE match' };
                 }
 
                 return { allowed: false, reason: '403: Unauthorized Action' };
@@ -10720,10 +10721,34 @@ debugCommands.help() - Show this help
 
         function updateNotifications() {
             const currentDate = new Date();
-            const currentMonth = currentDate.getMonth(); // 0-11
+            const currentMonth = currentDate.getMonth(); // 0-11, real today's month
             const currentYear = currentDate.getFullYear();
             const currentDay = currentDate.getDate();
             window.updateNotifications = updateNotifications; // expose globally
+
+            // ── Selected year (the year the dashboard is viewing) ──────────────
+            const _notifSelYr = (state && state.selectedYear) || currentYear;
+
+            // For monthly overdue checks:
+            // • If viewing a PAST year  → all 12 months are "past" (limit = 12)
+            // • If viewing CURRENT year → only months strictly before today (limit = currentMonth, 0-based index)
+            // • If viewing a FUTURE year → nothing is past yet (limit = 0)
+            const _pastMonthLimit = (_notifSelYr < currentYear) ? 12
+                                  : (_notifSelYr === currentYear) ? currentMonth
+                                  : 0;
+
+            // Helper: return the 0-based month index when this project started
+            // within the selected year (0 = Jan). Returns 0 if started before or
+            // during Jan of the selected year (all months apply).
+            function _projectStartMonth0(project) {
+                if (!project.dateStarted) return 0;
+                const parts = project.dateStarted.split('-');
+                const pYear = parseInt(parts[0]);
+                const pMonth0 = parseInt(parts[1]) - 1; // 0-based
+                if (pYear < _notifSelYr) return 0;   // started before this year → all months
+                if (pYear > _notifSelYr) return 12;  // starts after this year → no months
+                return pMonth0; // started mid-year → only from that month onward
+            }
 
             // Helper: days until expiry (negative = already expired)
             function daysUntil(dateStr) {
@@ -10744,34 +10769,78 @@ debugCommands.help() - Show this help
 
             let projectOverdues = {};
 
+            // ── KPM: pre-build region -> projects map ─────────────────────────
+            // dateSubmitted is saved on projs[0] (the first project per region),
+            // NOT on every project individually. So we must check region-wide:
+            // a month is "submitted" if ANY non-N/A, non-stopped project in the
+            // same region has kpm_v3_{month}_dateSubmitted set.
+            // This mirrors the anySubm pattern used in the KPM summary view.
+            const _KPM_MO_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            const _kpmRegionProjects = {};
+            state.projects.forEach(p => {
+                if (p.status === 'work-stoppage') return;
+                if (p.vals && p.vals['kpm_na'] === '1') return;
+                const reg = (p.region || 'UNKNOWN').toUpperCase();
+                if (!_kpmRegionProjects[reg]) _kpmRegionProjects[reg] = [];
+                _kpmRegionProjects[reg].push(p);
+            });
+            // For each region, pre-compute which past months are missing dateSubmitted
+            const _kpmRegionOverdueMonths = {};
+            Object.entries(_kpmRegionProjects).forEach(([reg, regProjs]) => {
+                const missingMonths = [];
+                for (let month = 0; month < _pastMonthLimit; month++) {
+                    const mo = _KPM_MO_NAMES[month];
+                    const _dateKey = 'kpm_v3_' + mo + '_dateSubmitted';
+                    const anySubmitted = regProjs.some(p => {
+                        const v = p.vals && p.vals[_dateKey];
+                        return v && v.toString().trim() !== '';
+                    });
+                    if (!anySubmitted) missingMonths.push(month);
+                }
+                _kpmRegionOverdueMonths[reg] = missingMonths;
+            });
+
             state.projects.forEach(project => {
                 // ── Skip work-stoppage projects entirely — they are exempt ──────
                 if (project.status === 'work-stoppage') return;
 
                 let overdueTabs = [];
 
-                // ── KPM: missing monthly dateSubmitted entries ───────────────────
-                // Uses kpm_v3_{month}_dateSubmitted — the actual submission key.
-                // A month is only overdue if past, not N/A, and no dateSubmitted.
-                let hasKpmOverdue = false;
-                const _kpmNa = project.vals && project.vals['kpm_na'] === '1';
-                if (!_kpmNa) {
-                    const _KPM_MO_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-                    for (let month = 0; month < currentMonth; month++) {
-                        const _moName = _KPM_MO_NAMES[month];
-                        const _dateKey = 'kpm_v3_' + _moName + '_dateSubmitted';
-                        const _dateVal = project.vals && project.vals[_dateKey];
-                        if (!_dateVal || _dateVal.toString().trim() === '') { hasKpmOverdue = true; break; }
-                    }
+                // Project start month within the selected year (0-based).
+                // Months before this index are skipped — project didn't exist yet.
+                const _projStartMo0 = _projectStartMonth0(project);
+
+                // ── KPM: check region-wide dateSubmitted (not per-project) ────────
+                // dateSubmitted is stored only on projs[0] per region, so checking
+                // each project's own vals gives false positives for projects 2, 3, etc.
+                // Instead, flag a project only if its region has an unsubmitted past month
+                // AND this project was active in that month (not N/A, not blacklisted).
+                {
+                    const _kpmNa = project.vals && project.vals['kpm_na'] === '1';
+                    const _reg = (project.region || 'UNKNOWN').toUpperCase();
+                    const _regionMissingMonths = _kpmRegionOverdueMonths[_reg] || [];
+                    const _effectiveMissing = _kpmNa ? [] : _regionMissingMonths.filter(month => {
+                        if (month < _projStartMo0) return false;
+                        if (typeof isMonthBlacklistedForProject === 'function' &&
+                            isMonthBlacklistedForProject(project, month + 1, _notifSelYr)) return false;
+                        return true;
+                    });
+                    if (_effectiveMissing.length > 0) overdueTabs.push({ name: 'KPM', tab: 'kpm' });
                 }
-                if (hasKpmOverdue) overdueTabs.push({ name: 'KPM', tab: 'kpm' });
 
                 // ── ENVI REPORTORIAL (Environmental Monthly Report): missing monthly entries ──
                 let hasEnvMonthlyOverdue = false;
                 const key_emr = 'env-monthly-report_Environmental Monthly Report (EMR)';
-                for (let month = 0; month < currentMonth; month++) {
-                    const value = project.vals[key_emr] ? project.vals[key_emr][month + 1] : '';
-                    if (!value || value.toString().trim() === '') { hasEnvMonthlyOverdue = true; break; }
+                if (_pastMonthLimit > 0) {
+                    for (let month = 0; month < _pastMonthLimit; month++) {
+                        // Skip months before the project started this year
+                        if (month < _projStartMo0) continue;
+                        // Skip blacklisted months (work-stoppage periods)
+                        if (typeof isMonthBlacklistedForProject === 'function' &&
+                            isMonthBlacklistedForProject(project, month + 1, _notifSelYr)) continue;
+                        const value = project.vals[key_emr] ? project.vals[key_emr][month + 1] : '';
+                        if (!value || value.toString().trim() === '') { hasEnvMonthlyOverdue = true; break; }
+                    }
                 }
                 if (hasEnvMonthlyOverdue) overdueTabs.push({ name: 'ENVI Reportorial (EMR)', tab: 'env-monthly-report' });
 
@@ -10781,13 +10850,15 @@ debugCommands.help() - Show this help
                 // If even one month/goal has a rating, the project is considered active.
                 {
                     const _gotGoalIds = ['E1','E2','E3','S1','S2','S3'];
-                    const _selYrGot   = state.selectedYear || currentYear;
+                    const _selYrGot   = _notifSelYr;
                     let hasAnyGotData = false;
                     outer_got: for (const goalId of _gotGoalIds) {
                         const k = 'got_' + goalId + '_0';
                         const raw = project.vals && project.vals[k];
                         if (!raw) continue;
-                        for (let month = 1; month <= currentMonth; month++) {
+                        for (let month = 1; month <= _pastMonthLimit; month++) {
+                            // Skip months before the project started this year
+                            if ((month - 1) < _projStartMo0) continue;
                             if (typeof isMonthBlacklistedForProject === 'function' &&
                                 isMonthBlacklistedForProject(project, month, _selYrGot)) continue;
                             const cell = raw[month];
@@ -10795,14 +10866,14 @@ debugCommands.help() - Show this help
                             if (rVal && rVal.toString().trim() !== '') { hasAnyGotData = true; break outer_got; }
                         }
                     }
-                    if (!hasAnyGotData && currentMonth > 0) overdueTabs.push({ name: 'GOT Monitoring (No Data Entered)', tab: 'got-monitoring' });
+                    if (!hasAnyGotData && _pastMonthLimit > 0) overdueTabs.push({ name: 'GOT Monitoring (No Data Entered)', tab: 'got-monitoring' });
                 }
 
                 // ── ESH CALENDAR & DRILLS: planned drills with no actual recorded ─
                 // Checks the in-memory ESH cache for planned drill months with missing actuals
                 {
                     const _eshStor = (typeof getEshStorage === 'function') ? getEshStorage() : (window._eshMemCache || {});
-                    const _eshSelYr = state.selectedYear || currentYear;
+                    const _eshSelYr = _notifSelYr;
                     let hasEshDrillOverdue = false;
                     // Look for any GLOBAL_PLAN drill entries in past months with no actual for this project
                     outer_drills: for (const [storKey, planVal] of Object.entries(_eshStor)) {
@@ -10812,7 +10883,9 @@ debugCommands.help() - Show this help
                         const parts = storKey.split('|');
                         if (parts.length < 6 || parts[5] !== 'plan') continue;
                         const di = parts[3], mi = parseInt(parts[4]);
-                        if (mi < 1 || mi > currentMonth) continue; // only past months
+                        if (mi < 1 || mi > _pastMonthLimit) continue; // only past months
+                        // Skip months before the project started this year
+                        if ((mi - 1) < _projStartMo0) continue;
                         const naCellKey = _eshSelYr + '|esh-calendar-drills|' + project.name + '|' + di + '|' + mi + '|na';
                         if (_eshStor[naCellKey]) continue; // marked N/A — skip
                         const actualKey = _eshSelYr + '|esh-calendar-drills|' + project.name + '|' + di + '|' + mi + '|actual';
@@ -10823,14 +10896,21 @@ debugCommands.help() - Show this help
 
                 // ── DOLE Monthly: WAIR, RSO, MOM ────────────────────────────────
                 let hasDoleMonthlyOverdue = false;
-                ['WAIR', 'RSO', 'MOM'].forEach(row => {
-                    if (hasDoleMonthlyOverdue) return;
-                    const key = `dole_${row}`;
-                    for (let month = 0; month < currentMonth; month++) {
-                        const value = project.vals[key] ? project.vals[key][month + 1] : '';
-                        if (!value || value.toString().trim() === '') { hasDoleMonthlyOverdue = true; break; }
-                    }
-                });
+                if (_pastMonthLimit > 0) {
+                    ['WAIR', 'RSO', 'MOM'].forEach(row => {
+                        if (hasDoleMonthlyOverdue) return;
+                        const key = `dole_${row}`;
+                        for (let month = 0; month < _pastMonthLimit; month++) {
+                            // Skip months before the project started this year
+                            if (month < _projStartMo0) continue;
+                            // Skip blacklisted months (work-stoppage periods)
+                            if (typeof isMonthBlacklistedForProject === 'function' &&
+                                isMonthBlacklistedForProject(project, month + 1, _notifSelYr)) continue;
+                            const value = project.vals[key] ? project.vals[key][month + 1] : '';
+                            if (!value || value.toString().trim() === '') { hasDoleMonthlyOverdue = true; break; }
+                        }
+                    });
+                }
                 if (hasDoleMonthlyOverdue) overdueTabs.push({ name: 'DOLE Reportorial', tab: 'dole' });
 
                 // ── DOLE Annual: AEDR (due Jan 30) & AMR (due Mar 31) ───────────
@@ -10839,7 +10919,7 @@ debugCommands.help() - Show this help
                     { row: 'AEDR', label: 'AEDR (Annual Exposure Data Report)', dlM: 0, dlD: 30 }, // Jan 30
                     { row: 'AMR',  label: 'AMR (Annual Medical Report)',         dlM: 2, dlD: 31 }  // Mar 31
                 ];
-                const _doleSelYr = state.selectedYear || currentYear;
+                const _doleSelYr = _notifSelYr;
                 _doleAnnual.forEach(({ row, label, dlM, dlD }) => {
                     // Deadline is within the selected year
                     const isPastDue = currentYear > _doleSelYr ||
@@ -10853,7 +10933,7 @@ debugCommands.help() - Show this help
 
                 // ── EMB Reportorial: SMR quarterly ──────────────────────────────
                 let hasEmbOverdue = false;
-                const _embSelYr = state.selectedYear || currentYear;
+                const _embSelYr = _notifSelYr;
                 const key_emb = 'emb_SMR (Quarterly) - Submission Date';
                 for (let quarter = 1; quarter <= 4; quarter++) {
                     let isOverdue = false;
@@ -10891,7 +10971,7 @@ debugCommands.help() - Show this help
                     // DOE Quarterly Report
                     if (!(project.vals && (project.vals['doe_client_provided'] === '1' || project.vals['doe-permit_client_provided'] === '1'))) {
                         const doeQKey = 'doe_DOE Quarterly Report Submission Date';
-                        const _doeSelY = state.selectedYear || currentYear;
+                        const _doeSelY = _notifSelYr;
                         const _doeDueMonths = { 1: [3,20], 2: [6,20], 3: [9,20], 4: [0,20] };
                         let hasDoeOverdue = false;
                         for (let q = 1; q <= 4; q++) {
@@ -29594,7 +29674,7 @@ function saveOshData() {
     const _oshUserInfo = UserAccounts.getUserInfo(state.currentUser?.email);
     const _oshAllowedRegion = (() => {
         if (_oshUserInfo.role === 'admin')       return 'CORPORATE';
-        if (_oshUserInfo.role === 'envi_head')   return 'PLANT OPERATIONS';
+        if (_oshUserInfo.role === 'envi_head')   return ['PLANT OPERATIONS', 'CORPORATE'];
         if (_oshUserInfo.role === 'corp_nurse')  return '__NONE__';
         if (_oshUserInfo.region && _oshUserInfo.region !== 'ALL') return _oshUserInfo.region;
         return null;
@@ -29607,7 +29687,7 @@ function saveOshData() {
         const project = (state.masterProjects || state.projects || []).find(p => p.name === projectName);
         if (!project) return;
 
-        if (_oshAllowedRegion && project.region !== _oshAllowedRegion) {
+        if (_oshAllowedRegion && !(Array.isArray(_oshAllowedRegion) ? _oshAllowedRegion.includes(project.region) : project.region === _oshAllowedRegion)) {
             _oshSkipped++;
             return;
         }
@@ -31394,12 +31474,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const GHG_FACTOR = 0.000694;   // tCO2 per kWh
     const TREE_FACTOR = 0.02177;   // tCO2 absorbed per tree per year
 
-    const ENV_REGIONS = ['PLANT OPERATIONS', 'NCR', 'SOUTH LUZON', 'NORTH LUZON', 'VISAYAS & MINDANAO'];
+    const ENV_REGIONS = ['CORPORATE', 'PLANT OPERATIONS', 'NCR', 'SOUTH LUZON', 'NORTH LUZON', 'VISAYAS & MINDANAO'];
     const ENV_MONTHS  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
     // Use global color source of truth — see window.REGION_COLORS declared at top of file
     const REGION_COLORS = window.REGION_COLORS;
-    const PIE_COLORS = ['#1b5e20','#2e7d32','#558b2f','#43a047','#00695c'];
+    const PIE_COLORS = ['#0d3d0f','#1b5e20','#2e7d32','#558b2f','#43a047','#00695c'];
 
     let envData = [];
     let waterData = [];
@@ -31608,9 +31688,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.warn(`🔒 saveEnvRowToFirebase: blocked — PCO region "${_envInfo.region}" ≠ row region "${row.region}"`);
                 return;
             }
-            // envi_head can only write PLANT OPERATIONS rows
-            if (_role === 'envi_head' && row.region && row.region !== 'PLANT OPERATIONS') {
-                console.warn(`🔒 saveEnvRowToFirebase: blocked — envi_head can only write PLANT OPERATIONS rows`);
+            // envi_head can write PLANT OPERATIONS and CORPORATE rows
+            if (_role === 'envi_head' && row.region && !['PLANT OPERATIONS', 'CORPORATE'].includes(row.region)) {
+                console.warn(`🔒 saveEnvRowToFirebase: blocked — envi_head can only write PLANT OPERATIONS / CORPORATE rows`);
                 return;
             }
         }
@@ -31643,7 +31723,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.warn(`🔒 deleteEnvRowFromFirebase: blocked — PCO region mismatch`);
                 return;
             }
-            if (_role === 'envi_head' && row.region && row.region !== 'PLANT OPERATIONS') {
+            if (_role === 'envi_head' && row.region && !['PLANT OPERATIONS', 'CORPORATE'].includes(row.region)) {
                 console.warn(`🔒 deleteEnvRowFromFirebase: blocked — envi_head region mismatch`);
                 return;
             }
@@ -36554,7 +36634,7 @@ const ESHDataSync = (() => {
 
         if (role === 'admin')          return rk === 'CORPORATE' && !isEnv;
         if (role === 'superintendent') return rk === userRegion  && !isEnv;
-        if (role === 'envi_head')      return rk === 'PLANT_OPS' && isEnv;
+        if (role === 'envi_head')      return (rk === 'PLANT_OPS' || rk === 'CORPORATE') && isEnv;
         if (role === 'pco')            return rk === userRegion  && isEnv;
 
         return false;
