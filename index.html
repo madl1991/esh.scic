@@ -6265,7 +6265,222 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
                 
             </div>
         </header>
-       
+
+<!-- ── GREETING RIBBON ───────────────────────────────────────────────────── -->
+<div id="greeting-ribbon" style="display:none;">
+    <style>
+        #greeting-ribbon {
+            background: #e8f5e9;
+            border-bottom: 1.5px solid #c8e6c9;
+            padding: 7px 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: greetingSlideDown 0.4s ease;
+            position: relative;
+            z-index: 10;
+        }
+        @keyframes greetingSlideDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        body.dark-mode #greeting-ribbon {
+            background: #1a2e1a;
+            border-bottom-color: #2a5a2a;
+        }
+        #greeting-ribbon-icon {
+            font-size: 1rem;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        #greeting-ribbon-text {
+            font-size: 0.75rem;
+            color: #1b5e20;
+            font-weight: 500;
+            flex: 1;
+            font-family: 'Inter', sans-serif;
+        }
+        body.dark-mode #greeting-ribbon-text { color: #a5d6a7; }
+        #greeting-ribbon-text strong { font-weight: 700; }
+        #greeting-ribbon-badge {
+            font-size: 0.6rem;
+            font-weight: 700;
+            background: #fbc02d;
+            color: #4a2e00;
+            padding: 2px 9px;
+            border-radius: 20px;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+            display: none;
+            animation: greetingBadgePop 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.25s both;
+        }
+        @keyframes greetingBadgePop {
+            from { opacity: 0; transform: scale(0.7); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+        #greeting-ribbon-dismiss {
+            font-size: 0.65rem;
+            color: #aaa;
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 4px;
+            line-height: 1;
+            background: none;
+            border: none;
+            transition: background 0.15s, color 0.15s;
+            flex-shrink: 0;
+        }
+        #greeting-ribbon-dismiss:hover { background: rgba(0,0,0,0.07); color: #555; }
+        body.dark-mode #greeting-ribbon-dismiss:hover { background: rgba(255,255,255,0.08); color: #ccc; }
+    </style>
+    <span id="greeting-ribbon-icon">🌤</span>
+    <span id="greeting-ribbon-text">Welcome back!</span>
+    <span id="greeting-ribbon-badge"></span>
+    <button id="greeting-ribbon-dismiss" title="Dismiss" onclick="(function(){document.getElementById('greeting-ribbon').style.display='none'; try{sessionStorage.setItem('esh_greeting_dismissed','1');}catch(e){}})()">✕</button>
+</div>
+<script>
+(function() {
+    // ── PHILIPPINE OCCASION DETECTOR ────────────────────────────────────────
+    function getEasterDate(year) {
+        // Anonymous Gregorian algorithm
+        var a = year % 19, b = Math.floor(year/100), c = year % 100;
+        var d = Math.floor(b/4), e = b % 4, f = Math.floor((b+8)/25);
+        var g = Math.floor((b-f+1)/3), h = (19*a+b-d-g+15) % 30;
+        var i = Math.floor(c/4), k = c % 4;
+        var l = (32+2*e+2*i-h-k) % 7;
+        var m = Math.floor((a+11*h+22*l)/451);
+        var month = Math.floor((h+l-7*m+114)/31);
+        var day = ((h+l-7*m+114) % 31) + 1;
+        return new Date(year, month-1, day);
+    }
+
+    function getPhilippineOccasion(date) {
+        var m = date.getMonth() + 1; // 1-12
+        var d = date.getDate();
+        var y = date.getFullYear();
+
+        // Fixed PH holidays
+        var fixed = [
+            { m:1,  d:1,  icon:'🎉', badge:"New Year's Day",    msg:"Happy New Year! Wishing you a great year ahead." },
+            { m:2,  d:14, icon:'💝', badge:"Valentine's Day",   msg:"Happy Valentine's Day! Spread kindness today." },
+            { m:4,  d:9,  icon:'🦅', badge:"Araw ng Kagitingan",msg:"Araw ng Kagitingan — salute to Filipino heroes." },
+            { m:5,  d:1,  icon:'👷', badge:"Labor Day",         msg:"Happy Labor Day! Your hard work matters." },
+            { m:6,  d:12, icon:'🇵🇭', badge:"Independence Day",  msg:"Happy Independence Day! Mabuhay ang Pilipinas!" },
+            { m:8,  d:21, icon:'🦸', badge:"Ninoy Aquino Day",  msg:"Remembering Ninoy Aquino's courage and sacrifice." },
+            { m:8,  d:26, icon:'🏆', badge:"National Heroes Day",msg:"Happy National Heroes Day! Honor our brave heroes." },
+            { m:11, d:1,  icon:'🕯', badge:"All Saints Day",    msg:"All Saints Day — a time to honor and remember." },
+            { m:11, d:2,  icon:'🕯', badge:"All Souls Day",     msg:"All Souls Day — remembering those who came before us." },
+            { m:12, d:24, icon:'🎄', badge:"Christmas Eve",     msg:"Merry Christmas Eve! Enjoy the celebration tonight." },
+            { m:12, d:25, icon:'🎄', badge:"Christmas Day",     msg:"Merry Christmas! Wishing you joy and peace today." },
+            { m:12, d:30, icon:'✍️', badge:"Rizal Day",         msg:"Rizal Day — honoring the great Jose Rizal." },
+            { m:12, d:31, icon:'🎆', badge:"New Year's Eve",    msg:"Happy New Year's Eve! See you on the other side." },
+        ];
+
+        for (var i = 0; i < fixed.length; i++) {
+            if (fixed[i].m === m && fixed[i].d === d) return fixed[i];
+        }
+
+        // Buwan ng Wika — entire August
+        if (m === 8) return { icon:'📚', badge:'Buwan ng Wika', msg:"Buwan ng Wika — celebrate the Filipino language!" };
+
+        // Easter-based Holy Week (computed per year)
+        var easter     = getEasterDate(y);
+        var easterTime = easter.getTime();
+        var DAY        = 86400000;
+        var palmSunday     = new Date(easterTime - 7 * DAY);
+        var maundyThursday = new Date(easterTime - 3 * DAY);
+        var goodFriday     = new Date(easterTime - 2 * DAY);
+        var blackSaturday  = new Date(easterTime - 1 * DAY);
+
+        function sameDay(a, b) { return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+        if (sameDay(date, palmSunday))     return { icon:'✝️', badge:'Palm Sunday',       msg:"Palm Sunday — the start of Holy Week. Blessed week ahead." };
+        if (sameDay(date, maundyThursday)) return { icon:'✝️', badge:'Maundy Thursday',   msg:"Maundy Thursday — a day of reflection and gratitude." };
+        if (sameDay(date, goodFriday))     return { icon:'✝️', badge:'Good Friday',        msg:"Good Friday — a solemn day of prayer and reflection." };
+        if (sameDay(date, blackSaturday))  return { icon:'✝️', badge:'Black Saturday',     msg:"Black Saturday — a day of quiet and anticipation." };
+        if (sameDay(date, easter))         return { icon:'🌸', badge:'Easter Sunday',      msg:"Happy Easter Sunday! He is risen." };
+
+        // Approximate Eid dates (lunar — fixed approximation, good for ~2025-2027)
+        var eidFitr  = [[2025,3,31],[2026,3,20],[2027,3,10]];
+        var eidAdha  = [[2025,6,7],[2026,5,27],[2027,5,17]];
+        for (var j = 0; j < eidFitr.length; j++) {
+            if (y===eidFitr[j][0] && m===eidFitr[j][1] && d===eidFitr[j][2])
+                return { icon:'🕌', badge:"Eid'l Fitr", msg:"Eid Mubarak! Wishing everyone a blessed celebration." };
+        }
+        for (var k = 0; k < eidAdha.length; k++) {
+            if (y===eidAdha[k][0] && m===eidAdha[k][1] && d===eidAdha[k][2])
+                return { icon:'🕌', badge:"Eid'l Adha", msg:"Eid Mubarak! Wishing everyone a blessed Eid al-Adha." };
+        }
+
+        return null;
+    }
+
+    // ── TIME-BASED GREETING ─────────────────────────────────────────────────
+    function getTimeGreeting() {
+        var h = new Date().getHours();
+        if (h >= 5  && h < 12) return 'Good morning';
+        if (h >= 12 && h < 18) return 'Good afternoon';
+        if (h >= 18 && h < 22) return 'Good evening';
+        return 'Working late';
+    }
+
+    // ── DAY NAME ────────────────────────────────────────────────────────────
+    var DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+    // ── SHOW RIBBON ─────────────────────────────────────────────────────────
+    window._showGreetingRibbon = function() {
+        try {
+            if (sessionStorage.getItem('esh_greeting_dismissed') === '1') return;
+        } catch(e) {}
+
+        var ribbon = document.getElementById('greeting-ribbon');
+        var iconEl = document.getElementById('greeting-ribbon-icon');
+        var textEl = document.getElementById('greeting-ribbon-text');
+        var badge  = document.getElementById('greeting-ribbon-badge');
+        if (!ribbon || !textEl) return;
+
+        var displayName = (window.state && window.state.currentUser && window.state.currentUser.displayName)
+            ? window.state.currentUser.displayName
+            : '';
+        // Extract first name only
+        var firstName = displayName ? displayName.split(' ')[0] : '';
+
+        var now      = new Date();
+        var dayName  = DAYS[now.getDay()];
+        var occasion = getPhilippineOccasion(now);
+        var timeGreet = getTimeGreeting();
+
+        var nameHtml = firstName ? ', <strong>' + firstName + '!</strong>' : '!';
+
+        if (occasion) {
+            iconEl.textContent = occasion.icon;
+            textEl.innerHTML   = occasion.msg.replace(/\.$/, '') + nameHtml;
+            badge.textContent  = occasion.badge;
+            badge.style.display = 'inline-block';
+        } else {
+            // Day-specific friendly messages
+            var dayMsg = {
+                'Monday':    'Start the week strong.',
+                'Tuesday':   'Keep the momentum going.',
+                'Wednesday': 'Halfway through the week!',
+                'Thursday':  "Almost Friday — hang in there.",
+                'Friday':    'Have a great end to the week!',
+                'Saturday':  'Happy Saturday!',
+                'Sunday':    'Happy Sunday!'
+            };
+            var dayIcon = {
+                'Monday':'💼','Tuesday':'📋','Wednesday':'⚡',
+                'Thursday':'🔥','Friday':'🎯','Saturday':'🌤','Sunday':'☀️'
+            };
+            iconEl.textContent = dayIcon[dayName] || '🌤';
+            textEl.innerHTML   = timeGreet + nameHtml + ' ' + (dayMsg[dayName] || '');
+            badge.style.display = 'none';
+        }
+
+        ribbon.style.display = 'flex';
+    };
+})();
+</script>
+<!-- ── END GREETING RIBBON ────────────────────────────────────────────────── -->
 
 <div id="global-rbac-banner" style="display:none;margin:10px 20px 0;"></div>
 
@@ -28581,6 +28796,13 @@ function setupAuthObserver() {
             }
             
             if (window._isNewLogin) { playLoginSound(); window._isNewLogin = false; }
+
+            // ── GREETING RIBBON ──────────────────────────────────────────────
+            try { sessionStorage.removeItem('esh_greeting_dismissed'); } catch(e) {}
+            setTimeout(function() {
+                if (typeof window._showGreetingRibbon === 'function') window._showGreetingRibbon();
+            }, 400);
+            // ─────────────────────────────────────────────────────────────────
             
             OfflineManager.init();
             
@@ -28666,6 +28888,11 @@ function setupAuthObserver() {
             state.userRole = null;
             state.userRegion = null;
             state.isAdmin = false;
+
+            // Hide greeting ribbon on logout
+            var _gr = document.getElementById('greeting-ribbon');
+            if (_gr) _gr.style.display = 'none';
+            try { sessionStorage.removeItem('esh_greeting_dismissed'); } catch(e) {}
 
             const loginOverlay = document.getElementById('login-overlay');
             if (loginOverlay) {
