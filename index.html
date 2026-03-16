@@ -7011,17 +7011,7 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
           </button>
           
           
-          <div style="margin-top: 12px; padding: 10px; background: rgba(25, 118, 210, 0.05); border-left: 3px solid #1976d2; border-radius: 4px;">
-            <strong style="color: #1976d2; display: block; margin-bottom: 4px; font-size: 12px;">
-              <i class="fas fa-envelope"></i> Forgot your current password?
-            </strong>
-            <p style="margin: 0 0 8px 0; font-size: 11px; color: #666;">
-              We'll send a password reset link to your email
-            </p>
-            <button class="settings-btn settings-btn-outline" style="margin-top:0;" onclick="sendPasswordReset()">
-              <i class="fas fa-paper-plane"></i> SEND RESET EMAIL
-            </button>
-          </div>
+
 
           
           <div id="settings-message" class="settings-msg"></div>
@@ -7786,7 +7776,6 @@ window.pGlobalSave = pGlobalSave;
 
 const RBAC_ACCOUNTS = [
     { uid: 'fUnXsvKnRYMpuySRbeVYJk7TO452', email: 'esh@scic.com.ph',      role: 'admin',          displayName: 'ESH Admin',                      region: 'CORPORATE',           module_access: [] },
-    { uid: 'StaClara2AdminUID000000000001', email: 'esh@staclara.com.ph',  role: 'admin',          displayName: 'Sta. Clara Admin',               region: 'CORPORATE',           module_access: [] },
     { uid: 'hcnqoDM72cQhesbmJpM9SMMGsQb2', email: 'esh@ncr.com.ph',       role: 'superintendent', displayName: 'NCR Superintendent',             region: 'NCR',                 module_access: [] },
     { uid: 'ZkaQ1QiZQSPKfO1VbFk5uW5eldI2', email: 'esh@north.com.ph',     role: 'superintendent', displayName: 'North Luzon Superintendent',     region: 'NORTH LUZON',         module_access: [] },
     { uid: 'TNR2IlOdLreZNM4AXn7ejTPVXLZ2', email: 'esh@south.com.ph',     role: 'superintendent', displayName: 'South Luzon Superintendent',     region: 'SOUTH LUZON',         module_access: [] },
@@ -8824,13 +8813,6 @@ function applyNumFmtToInputs() {
                     displayName: 'ESH Admin',
                     region: 'CORPORATE',
                     color: '#D32F2F'
-                },
-                'esh@staclara.com.ph': {
-                    password: '*** (auth via Firebase Auth)',
-                    role: 'admin',
-                    displayName: 'Sta. Clara Admin',
-                    region: 'CORPORATE',
-                    color: '#b71c1c'
                 },
                 'esh@ncr.com.ph': {
                     password: '*** (auth via Firebase Auth)',
@@ -23001,7 +22983,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var status = impProj.vals[impKey + '_st'] || '';
 
                             tableRows += '<tr style="background:' + (row.kpm ? '#edf7ed' : '#f9fdf9') + ';border-bottom:1px solid #c8e6c9;">'
-                                + '<td style="text-align:center;font-weight:800;color:#1b5e20;padding:3px 2px;border:1px solid #c8e6c9;font-size:0.73rem;width:22px;min-width:22px;max-width:22px;">' + row.kpm + '</td>'
+                                + '<td style="text-align:center;font-weight:800;color:#1b5e20;padding:3px 2px;border:1px solid #c8e6c9;font-size:0.73rem;width:26px;min-width:26px;max-width:26px;white-space:nowrap;overflow:hidden;">' + row.kpm + '</td>'
                                 + '<td class="kpm-cc-' + regKey + '" style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;font-weight:' + (row.wp?'700':'400') + ';min-width:130px;word-wrap:break-word;white-space:normal;max-width:140px;">' + row.wp + '</td>'
                                 + '<td class="kpm-cc-' + regKey + '" style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;min-width:130px;word-wrap:break-word;white-space:normal;max-width:140px;">' + row.del + '</td>'
                                 + '<td class="kpm-cc-' + regKey + '" style="text-align:center;padding:4px 5px;border:1px solid #c8e6c9;font-size:0.72rem;font-weight:800;color:#c62828;min-width:46px;">' + dwDisplay + '</td>'
@@ -23109,10 +23091,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<i id="kpm-col-tog-icon-' + regKey + '" class="fas fa-eye-slash" style="font-size:0.58rem;"></i>&nbsp;KPM &amp; KPI Columns</button>'
                             + '</div>'
                             + '<div style="overflow-x:auto;overflow-y:auto;max-height:600px;cursor:grab;" onmousedown="this.style.cursor=\'grabbing\'" onmouseup="this.style.cursor=\'grab\'">'
-                            + '<table style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
+                            + '<table style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;table-layout:fixed;">'
                             + '<thead>'
                             + '<tr style="background:#9ecf9b;color:#1b5e20;font-size:0.67rem;font-weight:800;text-align:center;">'
-                            + '<th rowspan="3" style="padding:4px 2px;border:1px solid #c8e6c9;vertical-align:middle;width:22px;min-width:22px;max-width:22px;text-align:center;">#</th>'
+                            + '<th rowspan="3" style="padding:4px 3px;border:1px solid #c8e6c9;vertical-align:middle;width:26px;min-width:26px;max-width:26px;text-align:center;white-space:nowrap;overflow:hidden;">#</th>'
                             + '<th colspan="4" class="kpm-cc-' + regKey + '" style="padding:6px 4px;border:1px solid #c8e6c9;">KEY PERFORMANCE MEASURES</th>'
                             + '<th colspan="5" class="kpm-cc-' + regKey + '" style="padding:6px 4px;border:1px solid #c8e6c9;">KEY PERFORMANCE INDICATORS</th>'
                             + '<th colspan="' + projs.length + '" style="padding:6px 4px;border:1px solid #c8e6c9;background:#1b5e20;color:#ffffff;font-weight:800;">ACTUAL PERFORMANCE RATING \u2014 EQUIVALENT PERCENTAGE (EP)</th>'
@@ -23148,7 +23130,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '</tr></thead>'
                             + '<tbody>' + tableRows + '</tbody>'
                             + '<tfoot><tr style="background:#b7ddb5;font-weight:800;border-top:2px solid #2e7d32;">'
-                            + '<td style="border:1px solid #c8e6c9;padding:3px 2px;width:22px;min-width:22px;max-width:22px;"></td>'
+                            + '<td style="border:1px solid #c8e6c9;padding:3px 2px;width:26px;min-width:26px;max-width:26px;white-space:nowrap;overflow:hidden;"></td>'
                             + '<td colspan="2" class="kpm-cc-' + regKey + '" style="border:1px solid #c8e6c9;padding:6px 8px;font-size:0.7rem;color:#1b5e20;">TOTAL</td>'
                             + '<td class="kpm-cc-' + regKey + '" style="text-align:center;color:#c62828;font-size:0.75rem;font-weight:800;border:1px solid #c8e6c9;">' + (totalDW*100).toFixed(0) + '%</td>'
                             + '<td colspan="' + (5 + projs.length + 1) + '" id="kpm-foot-sp-' + regKey + '" class="kpm-cc-' + regKey + '" style="border:1px solid #c8e6c9;"></td>'
@@ -23487,7 +23469,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var status = impProj.vals[impKey+'_st']||'';
 
                             tableRows += '<tr style="background:'+(row.kpm?'#edf7ed':'#f9fdf9')+';border-bottom:1px solid #c8e6c9;">'
-                                + '<td style="text-align:center;font-weight:800;color:#1b5e20;padding:3px 2px;border:1px solid #c8e6c9;font-size:0.73rem;width:22px;">' + row.kpm + '</td>'
+                                + '<td style="text-align:center;font-weight:800;color:#1b5e20;padding:3px 2px;border:1px solid #c8e6c9;font-size:0.73rem;width:26px;min-width:26px;max-width:26px;white-space:nowrap;overflow:hidden;">' + row.kpm + '</td>'
                                 + '<td style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;font-weight:'+(row.wp?'700':'400')+';min-width:120px;white-space:normal;max-width:130px;">' + row.wp + '</td>'
                                 + '<td style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;min-width:120px;white-space:normal;max-width:130px;">' + row.del + '</td>'
                                 + '<td style="text-align:center;padding:4px 5px;border:1px solid #c8e6c9;font-size:0.72rem;font-weight:800;color:#c62828;min-width:40px;">' + dwDisplay + '</td>'
@@ -23520,10 +23502,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             return '<th style="padding:4px 2px;border:1px solid #c8e6c9;color:' + (isFrozen?'#bbb':'#1b5e20') + ';font-size:0.6rem;font-style:italic;text-align:center;background:' + (isFrozen?'#eeeeee':'#c5e8c3') + ';">EP (%)</th>';
                         }).join('');
 
-                        return '<table style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
+                        return '<table style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;table-layout:fixed;">'
                             + '<thead>'
                             + '<tr style="background:#9ecf9b;color:#1b5e20;font-size:0.67rem;font-weight:800;text-align:center;">'
-                            + '<th rowspan="3" style="padding:4px 2px;border:1px solid #c8e6c9;vertical-align:middle;width:22px;">#</th>'
+                            + '<th rowspan="3" style="padding:4px 2px;border:1px solid #c8e6c9;vertical-align:middle;width:26px;min-width:26px;max-width:26px;text-align:center;white-space:nowrap;overflow:hidden;">#</th>'
                             + '<th colspan="4" style="padding:6px 4px;border:1px solid #c8e6c9;">KEY PERFORMANCE MEASURES</th>'
                             + '<th colspan="5" style="padding:6px 4px;border:1px solid #c8e6c9;">KEY PERFORMANCE INDICATORS</th>'
                             + '<th colspan="' + regProjs.length + '" style="padding:6px 4px;border:1px solid #c8e6c9;background:#1b5e20;color:#fff;font-weight:800;">ACTUAL PERFORMANCE RATING — EP</th>'
@@ -23559,7 +23541,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '</tr></thead>'
                             + '<tbody>' + tableRows + '</tbody>'
                             + '<tfoot><tr style="background:#b7ddb5;font-weight:800;border-top:2px solid #2e7d32;">'
-                            + '<td style="border:1px solid #c8e6c9;padding:3px 2px;width:22px;"></td>'
+                            + '<td style="border:1px solid #c8e6c9;padding:3px 2px;width:26px;min-width:26px;max-width:26px;white-space:nowrap;overflow:hidden;"></td>'
                             + '<td colspan="2" style="border:1px solid #c8e6c9;padding:6px 8px;font-size:0.7rem;color:#1b5e20;">TOTAL</td>'
                             + '<td style="text-align:center;color:#c62828;font-size:0.75rem;font-weight:800;border:1px solid #c8e6c9;">' + (totalDW*100).toFixed(0) + '%</td>'
                             + '<td colspan="' + (5 + regProjs.length + 1) + '" style="border:1px solid #c8e6c9;"></td>'
@@ -34136,7 +34118,7 @@ function _eshRtdbSelfHealCleanup() {
     if (!window.firebaseRealtimeDb || !window.firebase || !window.firebaseAuth?.currentUser) return;
     const email = window.firebaseAuth.currentUser.email;
     // Only admin can write to RTDB
-    if (!email || (!email.includes('esh@scic') && !email.includes('esh@staclara') && !email.includes('esh@wda'))) return;
+    if (!email || (!email.includes('esh@scic') && !email.includes('esh@wda'))) return;
     window._eshRtdbCleanupDone = true;
     console.log('🧹 ESH RTDB: starting self-heal cleanup...');
 
