@@ -13664,7 +13664,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         }
         function _num(n) { return (n||0).toLocaleString('en-PH'); }
 
-        const _PML = 12, _PMR = 12, _HEADER_H = 30;
+        const _PML = 12, _PMR = 12, _HEADER_H = 22;
 
         function _pdfHeader(doc, title, year) {
             const W = doc.internal.pageSize.getWidth();
@@ -13676,32 +13676,32 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             doc.setDrawColor(200, 230, 200);
             doc.setLineWidth(0.4);
             doc.line(4, _HEADER_H, W, _HEADER_H);
-            // Logo: fits snugly in header, not too big
-            const logoW = 44, logoH = 9;
+            // Logo: compact in tighter header
+            const logoW = 38, logoH = 7.5;
             const logoX = _PML + 4;
-            const logoY = (_HEADER_H - logoH) / 2;
+            const logoY = (_HEADER_H - logoH) / 2 - 1.5;
             try { doc.addImage(_SCIC_LOGO_B64, 'PNG', logoX, logoY, logoW, logoH); }
             catch(e) {
-                doc.setFont('helvetica','bold'); doc.setFontSize(10.5);
+                doc.setFont('helvetica','bold'); doc.setFontSize(10);
                 doc.setTextColor(27,94,32);
-                doc.text(_EXPORT_COMPANY, logoX, 11);
+                doc.text(_EXPORT_COMPANY, logoX, 10);
             }
-            // ESH dept text — below logo (logoY + logoH + 2.5)
-            const deptY = logoY + logoH + 3;
+            // ESH dept text — below logo
+            const deptY = logoY + logoH + 2;
             doc.setFont('helvetica','normal');
-            doc.setFontSize(6.5);
+            doc.setFontSize(6);
             doc.setTextColor(100, 100, 100);
             doc.text(_EXPORT_DEPT, logoX, deptY);
-            // Report title — centered vertically in header
+            // Report title — centered, large and prominent
             doc.setFont('helvetica','bold');
-            doc.setFontSize(8.5);
-            doc.setTextColor(46, 125, 50);
-            doc.text(title + '  \u00b7  ' + year, W / 2, _HEADER_H / 2 + 1, {align:'center'});
+            doc.setFontSize(13);
+            doc.setTextColor(27, 94, 32);
+            doc.text(title + '  \u00b7  ' + year, W / 2, _HEADER_H / 2 + 2.5, {align:'center'});
             // Generated date — top right
             doc.setFont('helvetica','normal');
-            doc.setFontSize(6.5);
+            doc.setFontSize(6);
             doc.setTextColor(130);
-            doc.text('Generated: ' + _today(), W - _PMR, 7, {align:'right'});
+            doc.text('Generated: ' + _today(), W - _PMR, 5.5, {align:'right'});
         }
 
         function _pdfFooter(doc) {
@@ -14943,11 +14943,11 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         function _pdfPersonnel(doc, projs, sy, bs, hs, ar, mg, onPage) {
             const W = doc.internal.pageSize.getWidth();
             const H = doc.internal.pageSize.getHeight();
-            const title = 'PERSONNEL MONITORING';
+            const title = 'ESH PERSONNEL MONITORING';
             const year  = state.selectedYear || new Date().getFullYear();
 
             // ── Helpers ──────────────────────────────────────────────────────
-            const REGION_ORDER = ['NCR','NORTH LUZON','SOUTH LUZON','VISAYAS & MINDANAO','PLANT OPERATIONS','CORPORATE'];
+            const REGION_ORDER = ['CORPORATE','NCR','NORTH LUZON','SOUTH LUZON','VISAYAS & MINDANAO','PLANT OPERATIONS'];
             const REGION_COLORS_PDF = {
                 'NCR':                [27,94,32],
                 'NORTH LUZON':        [46,125,50],
@@ -14968,7 +14968,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 'ESH Superintendent':'DOLE_OSH','ESH Head':'DOLE_OSH'
             };
             const CERT_LABELS_MAP = {
-                'COSH':'COSH','PCO_ACCRED':'PCO Accred.','BLS':'BLS','OHNAP':'OHNAP','DOLE_OSH':'DOLE OSH'
+                'COSH':'COSH','PCO_ACCRED':'PCO Accred.','BLS':'BLS','OHNAP':'OHNAP','DOLE_OSH':'DOLE OSHP'
             };
             function fmtDate(d) {
                 if (!d) return '—';
@@ -14986,10 +14986,18 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             }
             function fmtLen(len) {
                 if (!len) return '—';
-                const n = parseFloat(len);
-                if (isNaN(n)) return len;
-                if (n >= 12) { const yrs = Math.floor(n/12); const mos = n%12; return mos>0 ? `${yrs}yr ${mos}mo` : `${yrs} yr${yrs!==1?'s':''}`; }
-                return `${n} mo${n!==1?'s':''}`;
+                const s = String(len).trim();
+                // calculateYearsOfService returns "X mos." string for < 1 year
+                if (s.toLowerCase().includes('mo')) {
+                    const m = parseFloat(s);
+                    if (isNaN(m)) return s;
+                    return `${m} mo${m !== 1 ? 's' : ''}`;
+                }
+                // Otherwise it returns a plain integer = years
+                const yrs = parseFloat(s);
+                if (isNaN(yrs)) return s;
+                if (yrs === 0) return '< 1 mo';
+                return yrs === 1 ? '1 yr' : `${yrs} yrs`;
             }
 
             // ── Group personnel: region → project → [persons] ────────────────
@@ -14997,10 +15005,22 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const regionGroups = {};
             allPersonnel.forEach(p => {
                 const proj   = _s(p.current || p.projectAssignment || p.project || '');
-                const region = (projRegionMap[proj] || _s(p.region||p._region||'') || 'OTHER').toUpperCase();
+                // Treat 'Corporate Office' assignment as CORPORATE region (mirrors dashboard logic)
+                const isCorp = proj === 'Corporate Office' || (projRegionMap[proj]||'').toUpperCase() === 'CORPORATE';
+                const region = isCorp ? 'CORPORATE' : (projRegionMap[proj] || _s(p.region||p._region||'') || 'OTHER').toUpperCase();
                 if (!regionGroups[region]) regionGroups[region] = {};
                 if (!regionGroups[region][proj || 'Unassigned']) regionGroups[region][proj || 'Unassigned'] = [];
                 regionGroups[region][proj || 'Unassigned'].push(p);
+            });
+
+            // ── Apply dashboard position-rank sort per project group ──────────
+            const CORP_POS_ORDER_PDF = ['QESH Group Manager','QESH Deputy Manager','ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation','Environmental and Sustainability Head','Corporate Physician','Corporate Nurse','Corporate Dentist','QESH Corp. DC','Others'];
+            const PROJ_POS_ORDER_PDF = ['ESH Superintendent','ESH Head','Safety Officer IV','Safety Officer III','Safety Officer II','Safety Officer I','PCO','Project Physician','Project Nurse','First Aider','Others'];
+            const projPosRankPDF = pos => { const i = PROJ_POS_ORDER_PDF.indexOf(pos); return i >= 0 ? i : PROJ_POS_ORDER_PDF.length; };
+            const corpPosRankPDF = pos => { const i = CORP_POS_ORDER_PDF.indexOf(pos); return i >= 0 ? i : CORP_POS_ORDER_PDF.length; };
+            Object.entries(regionGroups).forEach(([reg, projMap]) => {
+                const rankFn = reg === 'CORPORATE' ? corpPosRankPDF : projPosRankPDF;
+                Object.values(projMap).forEach(arr => arr.sort((a,b) => rankFn(a.pos||a.position||'') - rankFn(b.pos||b.position||'')));
             });
 
             // Summary counts
@@ -15024,30 +15044,31 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             doc.text('As of ' + _today(), W-_PMR-6, curY+10, {align:'right'});
             curY += 21;
 
-            // Region summary cards (2 per row)
+            // Region summary cards — single column, full width (matches PERSONNEL SUMMARY banner)
             const sortedRegions = REGION_ORDER.filter(r => regionGroups[r]);
-            const cardW = (W - _PML - _PMR - 4) / 2;
-            let col = 0;
+            const fullCardW = W - _PML - _PMR;
             sortedRegions.forEach(region => {
                 const rc  = REGION_COLORS_PDF[region] || [46,125,50];
                 const cnt = regionCounts[region] || 0;
-                const cx  = _PML + col * (cardW + 4);
-                const cy  = curY;
-                // Card background
-                doc.setFillColor(rc[0], rc[1], rc[2]);
-                doc.roundedRect(cx, cy, cardW, 14, 1.5, 1.5, 'F');
-                doc.setFillColor(255,255,255,0.15);
-                // Region label
-                doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(255,255,255);
-                doc.text(region, cx+4, cy+6);
-                doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(200,230,200);
+                const isCorpCard = region === 'CORPORATE';
+                if (isCorpCard) {
+                    doc.setFillColor(255,255,255);
+                    doc.setDrawColor(27,94,32); doc.setLineWidth(0.4);
+                    doc.roundedRect(_PML, curY, fullCardW, 12, 1.5, 1.5, 'FD');
+                } else {
+                    doc.setFillColor(rc[0], rc[1], rc[2]);
+                    doc.roundedRect(_PML, curY, fullCardW, 12, 1.5, 1.5, 'F');
+                }
+                doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+                doc.setTextColor(isCorpCard ? 27 : 255, isCorpCard ? 94 : 255, isCorpCard ? 32 : 255);
+                doc.text(region, _PML+5, curY+5.5);
+                doc.setFont('helvetica','normal'); doc.setFontSize(7);
+                doc.setTextColor(isCorpCard ? 27 : 200, isCorpCard ? 94 : 230, isCorpCard ? 32 : 200);
                 const projCount = Object.keys(regionGroups[region]).length;
-                doc.text(cnt + ' personnel  ·  ' + projCount + ' project'+(projCount!==1?'s':''), cx+4, cy+11);
-                col++;
-                if (col === 2) { col = 0; curY += 18; }
+                doc.text(isCorpCard ? String(cnt) + ' total personnel' : cnt + ' personnel  ·  ' + projCount + ' project'+(projCount!==1?'s':''), _PML+5, curY+10);
+                curY += 15;
             });
-            if (col !== 0) curY += 18;
-            curY += 4;
+            curY += 3;
 
             // Gender summary
             const males   = allPersonnel.filter(p => (p.gen||p.gender||'').toLowerCase().startsWith('m')).length;
@@ -15092,16 +15113,16 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const COL_HEAD = ['#','FULL NAME','POSITION','EMP ID','GENDER','AGE','DATE HIRED','LENGTH OF SERVICE','CERTIFICATION','CERT EXPIRY','STATUS'];
             const COL_STYLES = {
                 0:  {cellWidth:7,   halign:'center'},
-                1:  {cellWidth:67,  fontStyle:'bold', overflow:'ellipsis'},
-                2:  {cellWidth:38,  overflow:'ellipsis'},
-                3:  {cellWidth:17,  halign:'center'},
-                4:  {cellWidth:17,  halign:'center'},
-                5:  {cellWidth:12,  halign:'center'},
-                6:  {cellWidth:23,  halign:'center'},
-                7:  {cellWidth:23,  halign:'center'},
-                8:  {cellWidth:26,  halign:'center'},
+                1:  {cellWidth:73,  fontStyle:'bold', overflow:'ellipsis'},
+                2:  {cellWidth:34,  overflow:'ellipsis'},
+                3:  {cellWidth:16,  halign:'center'},
+                4:  {cellWidth:19,  halign:'center'},
+                5:  {cellWidth:10,  halign:'center'},
+                6:  {cellWidth:20,  halign:'center'},
+                7:  {cellWidth:21,  halign:'center'},
+                8:  {cellWidth:24,  halign:'center'},
                 9:  {cellWidth:22,  halign:'center'},
-                10: {cellWidth:21,  halign:'center'}
+                10: {cellWidth:27,  halign:'center', overflow:'linebreak'}
             };
 
             sortedRegions.forEach(region => {
@@ -15115,22 +15136,39 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     let pY = _HEADER_H + 4;
 
                     // ── Region banner ─────────────────────────────────────
-                    doc.setFillColor(rc[0], rc[1], rc[2]);
-                    doc.roundedRect(_PML, pY, W-_PML-_PMR, 12, 2, 2, 'F');
-                    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(255,255,255);
-                    doc.text('REGION: ' + region, _PML+5, pY+5);
+                    const isCorpRegion = region === 'CORPORATE';
+                    if (isCorpRegion) {
+                        doc.setFillColor(255,255,255);
+                        doc.setDrawColor(27,94,32); doc.setLineWidth(0.5);
+                        doc.roundedRect(_PML, pY, W-_PML-_PMR, 12, 2, 2, 'FD');
+                    } else {
+                        doc.setFillColor(rc[0], rc[1], rc[2]);
+                        doc.roundedRect(_PML, pY, W-_PML-_PMR, 12, 2, 2, 'F');
+                    }
+                    doc.setFont('helvetica','bold'); doc.setFontSize(9);
+                    doc.setTextColor(isCorpRegion ? 27 : 255, isCorpRegion ? 94 : 255, isCorpRegion ? 32 : 255);
+                    doc.text(isCorpRegion ? region : 'REGION: ' + region, _PML+5, pY+5);
                     doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-                    doc.text(regionCounts[region] + ' total personnel in this region', _PML+5, pY+10);
+                    doc.setTextColor(isCorpRegion ? 27 : 200, isCorpRegion ? 94 : 230, isCorpRegion ? 32 : 200);
+                    doc.text(regionCounts[region] + (isCorpRegion ? ' total personnel' : ' total personnel in this region'), _PML+5, pY+10);
                     pY += 16;
 
                     // ── Project sub-banner ────────────────────────────────
-                    doc.setFillColor(rc[0]+30 > 255 ? 255 : rc[0]+30,
-                                     rc[1]+20 > 255 ? 255 : rc[1]+20,
-                                     rc[2]+20 > 255 ? 255 : rc[2]+20);
-                    doc.roundedRect(_PML, pY, W-_PML-_PMR, 10, 1.5, 1.5, 'F');
-                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255);
-                    doc.text('PROJECT: ' + (projName || 'Unassigned'), _PML+5, pY+4.5);
+                    if (isCorpRegion) {
+                        doc.setFillColor(240,248,240);
+                        doc.setDrawColor(27,94,32); doc.setLineWidth(0.4);
+                        doc.roundedRect(_PML, pY, W-_PML-_PMR, 10, 1.5, 1.5, 'FD');
+                    } else {
+                        doc.setFillColor(rc[0]+30 > 255 ? 255 : rc[0]+30,
+                                         rc[1]+20 > 255 ? 255 : rc[1]+20,
+                                         rc[2]+20 > 255 ? 255 : rc[2]+20);
+                        doc.roundedRect(_PML, pY, W-_PML-_PMR, 10, 1.5, 1.5, 'F');
+                    }
+                    doc.setFont('helvetica','bold'); doc.setFontSize(8);
+                    doc.setTextColor(isCorpRegion ? 27 : 255, isCorpRegion ? 94 : 255, isCorpRegion ? 32 : 255);
+                    doc.text((isCorpRegion ? '' : 'PROJECT: ') + (projName || 'Unassigned'), _PML+5, pY+4.5);
                     doc.setFont('helvetica','normal'); doc.setFontSize(7);
+                    doc.setTextColor(isCorpRegion ? 60 : 220, isCorpRegion ? 60 : 240, isCorpRegion ? 60 : 220);
                     doc.text(members.length + ' personnel assigned', W-_PMR-6, pY+4.5, {align:'right'});
 
                     // Project info line (dates/status from projs)
@@ -15151,18 +15189,24 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     const body = members.map(p => {
                         rowNum++;
                         const pos      = _s(p.pos || p.position || '');
+                        const POS_ABBREV = {
+                            'ESH Manager for Regulation & Compliance': 'ESH Mgr (Reg & Comp)',
+                            'ESH Manager for Project Implementation':  'ESH Mgr (Proj Impl)',
+                            'Environmental and Sustainability Head':   'Env. & Sust. Head'
+                        };
+                        const posDisp  = POS_ABBREV[pos] || pos;
                         const certKey  = CERT_KEYS_MAP[pos] || null;
                         const pid      = p._pid || p.id || '';
                         const certData = certKey && window._pcCertData && pid
                                          ? (window._pcCertData[pid]||{})[certKey] : null;
                         const st       = certKey ? certStatus(certData && certData.expiry) : '—';
                         const certLabel = certKey ? (CERT_LABELS_MAP[certKey]||certKey) : '—';
-                        const expiryStr = certData && certData.expiry ? fmtDate(certData.expiry) : (certKey ? 'Not uploaded' : '—');
-                        const statusDisp = st === 'VALID' ? '✓ VALID' : st === 'EXPIRING' ? '⚠ EXPIRING' : st === 'EXPIRED' ? '✗ EXPIRED' : st;
+                        const expiryStr = certData && certData.expiry ? fmtDate(certData.expiry) : certData && certData.pdfUrl ? 'No expiry set' : (certKey ? 'Not uploaded' : '—');
+                        const statusDisp = st === 'VALID' ? 'VALID' : st === 'EXPIRING' ? 'EXPIRING' : st === 'EXPIRED' ? 'EXPIRED' : st;
                         return [
                             rowNum,
                             _s(p.name),
-                            pos,
+                            posDisp,
                             _s(p.id || '—'),
                             (_s(p.gen||p.gender||'')||'—'),
                             _s(p.age||'—'),
@@ -15178,7 +15222,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         head: [COL_HEAD],
                         body: body,
                         startY: pY,
-                        margin: mg,
+                        margin: { left: _PML, right: _PMR, bottom: 12 },
                         tableWidth: W - _PML - _PMR,
                         styles: { ...bs, fontSize: 6.8, cellPadding: 2.2 },
                         headStyles: { fillColor: rc, textColor: [255,255,255], fontStyle:'bold', fontSize:7, halign:'center', cellPadding:2.5 },
