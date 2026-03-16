@@ -12246,7 +12246,7 @@ debugCommands.help() - Show this help
                     pdfBtn.style.display = 'none';
                 } else if (t === 'personnel' && !state.isAdmin && state.userRole !== 'manager') {
                     pdfBtn.style.display = 'none';
-                } else if (t === 'got-monitoring' || t === 'kpm') {
+                } else if (t === 'got-monitoring') {
                     pdfBtn.style.display = 'none';
                 } else {
                     pdfBtn.style.display = 'inline-block';
@@ -22621,7 +22621,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 } // end env-monthly-report
 
                 if (state.currentTab === 'kpm') {
-                    const KPM_ESH_ROWS = [
+                    window.KPM_ESH_ROWS = [
                         { id:'e1',  kpm:'1', wp:'ESH Program Implementation ', del:'ESH Meetings',
                           dw:0.10, measure:'Conduct of ESH Meetings (ESH and ESH Committee)',
                           kpi:['75%',null,'85%','90%',null] },
