@@ -31643,10 +31643,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         } else if (module === 'env_waste') {
                             row.bioGen    = parseFloat(row.bioGen)    || 0;
                             row.bioDisp   = parseFloat(row.bioDisp)   || 0;
+                            row.bioDiverted = parseFloat(row.bioDiverted) || 0;
                             row.nonbioGen = parseFloat(row.nonbioGen) || 0;
                             row.nonbioDisp= parseFloat(row.nonbioDisp)|| 0;
+                            row.nonbioDiverted = parseFloat(row.nonbioDiverted) || 0;
                             row.recGen    = parseFloat(row.recGen)    || 0;
                             row.recDisp   = parseFloat(row.recDisp)   || 0;
+                            row.recDiverted = parseFloat(row.recDiverted) || 0;
                             row.hazGen    = parseFloat(row.hazGen)    || 0;
                             row.hazDisp   = parseFloat(row.hazDisp)   || 0;
                             row.septage   = parseFloat(row.septage)   || 0;
@@ -31728,10 +31731,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     ...row,
                     bioGen:     parseFloat(row.bioGen)     || 0,
                     bioDisp:    parseFloat(row.bioDisp)    || 0,
+                    bioDiverted: parseFloat(row.bioDiverted) || 0,
                     nonbioGen:  parseFloat(row.nonbioGen)  || 0,
                     nonbioDisp: parseFloat(row.nonbioDisp) || 0,
+                    nonbioDiverted: parseFloat(row.nonbioDiverted) || 0,
                     recGen:     parseFloat(row.recGen)     || 0,
                     recDisp:    parseFloat(row.recDisp)    || 0,
+                    recDiverted: parseFloat(row.recDiverted) || 0,
                     hazGen:     parseFloat(row.hazGen)     || 0,
                     hazDisp:    parseFloat(row.hazDisp)    || 0,
                     septage:    parseFloat(row.septage)    || 0,
@@ -33493,16 +33499,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const loc   = (document.getElementById('waste-loc-'+suffix)?.value || '').trim() || '—';
         const bioGen    = parseFloat(document.getElementById('waste-bio-gen-'+suffix)?.value) || 0;
         const bioDisp   = parseFloat(document.getElementById('waste-bio-disp-'+suffix)?.value) || 0;
+        const bioDiverted = parseFloat(document.getElementById('waste-bio-div-'+suffix)?.value) || 0;
         const nonbioGen = parseFloat(document.getElementById('waste-nonbio-gen-'+suffix)?.value) || 0;
         const nonbioDisp= parseFloat(document.getElementById('waste-nonbio-disp-'+suffix)?.value) || 0;
+        const nonbioDiverted = parseFloat(document.getElementById('waste-nonbio-div-'+suffix)?.value) || 0;
         const recGen    = parseFloat(document.getElementById('waste-rec-gen-'+suffix)?.value) || 0;
         const recDisp   = parseFloat(document.getElementById('waste-rec-disp-'+suffix)?.value) || 0;
+        const recDiverted = parseFloat(document.getElementById('waste-rec-div-'+suffix)?.value) || 0;
         const hazGen    = parseFloat(document.getElementById('waste-haz-gen-'+suffix)?.value) || 0;
         const hazDisp   = parseFloat(document.getElementById('waste-haz-disp-'+suffix)?.value) || 0;
         const septage   = parseFloat(document.getElementById('waste-sep-'+suffix)?.value) || 0;
         const remarks   = (document.getElementById('waste-rem-'+suffix)?.value || '').trim();
 
-        wasteData.push({ id: Date.now() + Math.random(), region: regionRaw, project: projName || '', month, location: loc, bioGen, bioDisp, nonbioGen, nonbioDisp, recGen, recDisp, hazGen, hazDisp, septage, remarks });
+        wasteData.push({ id: Date.now() + Math.random(), region: regionRaw, project: projName || '', month, location: loc, bioGen, bioDisp, bioDiverted, nonbioGen, nonbioDisp, nonbioDiverted, recGen, recDisp, recDiverted, hazGen, hazDisp, septage, remarks });
 
         const _newWasteRow = wasteData[wasteData.length - 1];
         if (window.ESHDataSync) {
@@ -33511,7 +33520,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // ─── Persist single row to Firestore sub-collection (atomic, no overwrite) ──
         if (typeof saveEnvRowToFirebase === 'function') saveEnvRowToFirebase('env_waste_rows', _newWasteRow);
 
-        ['waste-loc-','waste-bio-gen-','waste-bio-disp-','waste-nonbio-gen-','waste-nonbio-disp-','waste-rec-gen-','waste-rec-disp-','waste-haz-gen-','waste-haz-disp-','waste-sep-','waste-rem-'].forEach(p => {
+        ['waste-loc-','waste-bio-gen-','waste-bio-disp-','waste-bio-div-','waste-nonbio-gen-','waste-nonbio-disp-','waste-nonbio-div-','waste-rec-gen-','waste-rec-disp-','waste-rec-div-','waste-haz-gen-','waste-haz-disp-','waste-sep-','waste-rem-'].forEach(p => {
             const el = document.getElementById(p+suffix);
             if (el) el.value = '';
         });
@@ -33656,16 +33665,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function wasteProjectTableHTML(projRows, colors, canEdit) {
-        // Col widths: Month=7%, Location=22%, 8 data cols=5.5% each(44%), Septage=6%, Remarks=9%, [Delete=3%]
+        // Col widths: Month=6%, Location=13%, 11 data cols=4.5% each, Haz 2 cols=4.5%, Septage=6.5%, Remarks=7%, [Delete=3%]
         const colgroup = `<colgroup>
-            <col style="width:7%">
-            <col style="width:${canEdit?'19%':'22%'}">
-            <col style="width:5.5%"><col style="width:5.5%">
-            <col style="width:5.5%"><col style="width:5.5%">
-            <col style="width:5.5%"><col style="width:5.5%">
-            <col style="width:5.5%"><col style="width:5.5%">
             <col style="width:6%">
-            <col style="width:${canEdit?'8%':'9%'}">
+            <col style="width:${canEdit?'13%':'15%'}">
+            <col style="width:4.5%"><col style="width:4.5%"><col style="width:4.5%">
+            <col style="width:4.5%"><col style="width:4.5%"><col style="width:4.5%">
+            <col style="width:4.5%"><col style="width:4.5%"><col style="width:4.5%">
+            <col style="width:4.5%"><col style="width:4.5%">
+            <col style="width:6.5%">
+            <col style="width:${canEdit?'7%':'8%'}">
             ${canEdit ? '<col style="width:3%">' : ''}
         </colgroup>`;
         const thS = 'padding:5px 4px;text-align:center;border:1px solid #ddd;white-space:nowrap;overflow:hidden;';
@@ -33675,11 +33684,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 <tr>
                     <th style="background:${colors.bg};color:white;${thS}">Month</th>
                     <th style="background:${colors.bg};color:white;${thS}text-align:left;padding-left:8px;">Location</th>
-                    <th style="background:#2e7d32;color:white;${thS}" colspan="2">Biodegradable (MT)</th>
-                    <th style="background:#1565c0;color:white;${thS}" colspan="2">Non-Biodeg. (MT)</th>
-                    <th style="background:#e65100;color:white;${thS}" colspan="2">Recyclable (MT)</th>
+                    <th style="background:#2e7d32;color:white;${thS}" colspan="3">Biodegradable (MT)</th>
+                    <th style="background:#1565c0;color:white;${thS}" colspan="3">Non-Biodeg. (MT)</th>
+                    <th style="background:#e65100;color:white;${thS}" colspan="3">Recyclable (MT)</th>
                     <th style="background:#b71c1c;color:white;${thS}" colspan="2">Hazardous (MT)</th>
-                    <th style="background:#2e7d32;color:white;${thS}">Septage (m³)</th>
+                    <th style="background:#2e7d32;color:white;${thS}white-space:normal;line-height:1.2;">Septage (m³)</th>
                     <th style="background:#546e7a;color:white;${thS}">Remarks</th>
                     ${canEdit ? '<th style="background:#546e7a;color:white;'+thS+'"></th>' : ''}
                 </tr>
@@ -33688,10 +33697,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     <th style="background:#388e3c;color:white;${thS}"></th>
                     <th style="background:#388e3c;color:#c8e6c9;${thS}font-size:0.6rem;">Gen</th>
                     <th style="background:#388e3c;color:#c8e6c9;${thS}font-size:0.6rem;">Disp</th>
+                    <th style="background:#388e3c;color:#c8e6c9;${thS}font-size:0.6rem;">Div</th>
                     <th style="background:#1976d2;color:#bbdefb;${thS}font-size:0.6rem;">Gen</th>
                     <th style="background:#1976d2;color:#bbdefb;${thS}font-size:0.6rem;">Disp</th>
+                    <th style="background:#1976d2;color:#bbdefb;${thS}font-size:0.6rem;">Div</th>
                     <th style="background:#f57c00;color:#ffe0b2;${thS}font-size:0.6rem;">Gen</th>
                     <th style="background:#f57c00;color:#ffe0b2;${thS}font-size:0.6rem;">Disp</th>
+                    <th style="background:#f57c00;color:#ffe0b2;${thS}font-size:0.6rem;">Div</th>
                     <th style="background:#c62828;color:#ffcdd2;${thS}font-size:0.6rem;">Gen</th>
                     <th style="background:#c62828;color:#ffcdd2;${thS}font-size:0.6rem;">Disp</th>
                     <th style="background:#388e3c;color:#c8e6c9;${thS}font-size:0.6rem;"></th>
@@ -33701,7 +33713,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </thead>
             <tbody>`;
         if (!projRows.length) {
-            const colCount = canEdit ? 13 : 12;
+            const colCount = canEdit ? 16 : 15;
             t += `<tr><td colspan="${colCount}" style="padding:18px;text-align:center;color:var(--text-secondary);font-size:0.72rem;font-style:italic;"><i class="fas fa-trash-alt" style="opacity:0.2;margin-right:5px;"></i>No entries yet${canEdit ? ' — use the form above' : ''}.</td></tr>`;
         } else {
             const grouped = {};
@@ -33718,10 +33730,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td style="${tdL}">${r.location}</td>
                         <td style="${tdN}">${r.bioGen||''}</td>
                         <td style="${tdN}">${r.bioDisp||''}</td>
+                        <td style="${tdN}">${r.bioDiverted||''}</td>
                         <td style="${tdN}">${r.nonbioGen||''}</td>
                         <td style="${tdN}">${r.nonbioDisp||''}</td>
+                        <td style="${tdN}">${r.nonbioDiverted||''}</td>
                         <td style="${tdN}">${r.recGen||''}</td>
                         <td style="${tdN}">${r.recDisp||''}</td>
+                        <td style="${tdN}">${r.recDiverted||''}</td>
                         <td style="${tdN}">${r.hazGen||''}</td>
                         <td style="${tdN}">${r.hazDisp||''}</td>
                         <td style="${tdN}">${r.septage||''}</td>
@@ -33752,14 +33767,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     <input id="waste-bio-gen-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:90px;"></div>
                 <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#2e7d32;">Bio Disp (MT)</label>
                     <input id="waste-bio-disp-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:90px;"></div>
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#2e7d32;">Bio Div (MT)</label>
+                    <input id="waste-bio-div-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:90px;"></div>
                 <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#1565c0;">Non-Bio Gen (MT)</label>
                     <input id="waste-nonbio-gen-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:90px;"></div>
                 <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#1565c0;">Non-Bio Disp (MT)</label>
                     <input id="waste-nonbio-disp-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:90px;"></div>
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#1565c0;">Non-Bio Div (MT)</label>
+                    <input id="waste-nonbio-div-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:90px;"></div>
                 <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#e65100;">Rec Gen (MT)</label>
                     <input id="waste-rec-gen-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;"></div>
                 <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#e65100;">Rec Disp (MT)</label>
                     <input id="waste-rec-disp-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;"></div>
+                <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#e65100;">Rec Div (MT)</label>
+                    <input id="waste-rec-div-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;"></div>
                 <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#b71c1c;">Haz Gen (MT)</label>
                     <input id="waste-haz-gen-${suffix}" type="number" min="0" step="0.0001" placeholder="0" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);width:80px;"></div>
                 <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:0.6rem;font-weight:600;color:#b71c1c;">Haz Disp (MT)</label>
