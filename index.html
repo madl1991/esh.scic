@@ -1236,7 +1236,6 @@
 
         
         .year-dropdown,
-        .device-dropdown,
         .users-dropdown,
         .notification-dropdown,
         .settings-dropdown {
@@ -1253,7 +1252,6 @@
         }
 
         body.dark-mode .year-dropdown,
-        body.dark-mode .device-dropdown,
         body.dark-mode .users-dropdown,
         body.dark-mode .notification-dropdown,
         body.dark-mode .settings-dropdown {
@@ -1419,7 +1417,6 @@
             /* Styling handled by .na-dot — see Style A injection above */
         }
 
-        .device-dropdown,
         .users-dropdown { min-width: 300px; max-width: 380px; }
 
         .dropdown-list {
@@ -1622,13 +1619,11 @@
         }
 
         
-        .device-counter-container,
         .active-users-container {
             position: relative;
             display: inline-block;
         }
 
-        .device-counter-btn,
         .active-users-btn {
             background: none;
             border: none;
@@ -1643,7 +1638,6 @@
             font-weight: 600;
         }
 
-        .device-count,
         .users-count {
             background: #2e7d32;
             color: white;
@@ -1653,7 +1647,6 @@
             font-weight: 700;
         }
 
-        .device-dropdown,
         .active-users-dropdown {
             position: absolute;
             top: calc(100% + 8px);
@@ -1669,7 +1662,6 @@
             animation: dropdownSlideIn 0.2s ease-out;
         }
 
-        .device-dropdown-header,
         .active-users-dropdown-header {
             background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
             color: white;
@@ -1681,38 +1673,20 @@
             gap: 8px;
         }
 
-        .device-list,
         .active-users-list {
             max-height: 350px;
             overflow-y: auto;
             padding: 5px;
         }
 
-        .device-item,
         .active-user-item {
             padding: 12px;
             border-bottom: 1px solid var(--border-color);
             transition: background 0.2s;
         }
 
-        .device-item:last-child,
         .active-user-item:last-child {
             border-bottom: none;
-        }
-
-        .device-platform {
-            font-weight: 600;
-            font-size: 0.85rem;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .device-details {
-            font-size: 0.7rem;
-            color: var(--text-secondary);
         }
 
         .user-status-indicator {
@@ -5828,30 +5802,6 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
 
                 
                 
-                <div class="device-counter-container" id="device-counter-container" style="display: none;">
-                    <span class="na-badge">
-                      <button class="na-icon device-counter-btn" onclick="toggleDeviceDropdown()" id="device-counter-btn" title="Active Devices">
-                        <svg><use href="#ic-monitor"/></svg>
-                      </button>
-                      <span class="na-dot counter-badge" id="device-count-badge">0</span>
-                    </span>
-                    <div class="device-dropdown hidden" id="device-dropdown">
-                        <div class="ud-header">
-                            <div class="ud-header-icon"><i class="fas fa-laptop"></i></div>
-                            <div>
-                                <div class="ud-header-text">Active Devices</div>
-                                <div class="ud-header-sub">Connected sessions</div>
-                            </div>
-                        </div>
-                        <div class="dropdown-list" id="device-list"></div>
-                        <div style="padding: 8px 12px; border-top: 1px solid var(--border-color);">
-                            <button onclick="clearStalePresenceData()" style="width:100%; padding:7px; background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
-                                <i class="fas fa-broom"></i> Clear Stale Data
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
                 
                 <div class="active-users-container" id="active-users-container" style="display: none;">
                     <span class="na-badge">
@@ -5869,6 +5819,11 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
                             </div>
                         </div>
                         <div class="dropdown-list" id="users-list"></div>
+                        <div style="padding: 8px 12px; border-top: 1px solid var(--border-color);">
+                            <button onclick="clearStalePresenceData()" style="width:100%; padding:7px; background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">
+                                <i class="fas fa-broom"></i> Clear Stale Data
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -7195,6 +7150,27 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
       </div>
 
       
+      <div class="settings-card settings-card-full" id="force-logout-section" style="display:none;">
+        <div class="settings-card-header">
+          <div class="settings-card-header-icon" style="border-color:rgba(198,40,40,0.4);background:rgba(255,235,238,0.9);"><i class="fas fa-power-off" style="color:#c62828;"></i></div>
+          <div class="settings-card-header-text">
+            <span class="settings-card-title">FORCE LOGOUT</span>
+            <span class="settings-card-subtitle">Remotely terminate active sessions of any account</span>
+          </div>
+        </div>
+        <div class="settings-card-body">
+          <div style="background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:0.76rem; color:#5d4037;">
+            <i class="fas fa-triangle-exclamation" style="color:#f9a825; margin-right:6px;"></i>
+            This will immediately sign out the selected user from <strong>all devices</strong>. Use this when an account is compromised or when a user has resigned.
+          </div>
+          <div id="force-logout-user-list" style="display:flex; flex-direction:column; gap:8px;">
+            <div style="text-align:center; padding:18px; color:var(--text-secondary); font-size:0.8rem;">
+              <i class="fas fa-spinner fa-spin"></i> Loading online users...
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="settings-card settings-card-full danger-zone-card" id="danger-zone-section" style="display:none;">
         <div class="settings-card-header">
           <div class="settings-card-header-icon" style="border-color:rgba(255,100,100,0.5);background:rgba(255,255,255,0.15);"><i class="fas fa-triangle-exclamation" style="color:#ff8a80;"></i></div>
@@ -8357,7 +8333,7 @@ function applyNumFmtToInputs() {
             userColor: '#FF0000', // Color for user identification
             deviceFingerprint: null, // Unique device identifier
             activeUsers: {}, // Real-time presence tracking {userId: {status, activity, ...}}
-            activeDevices: [], // List of active devices
+            
             presenceListener: null, // Firebase listener for presence updates
             deviceListener: null // Firebase listener for device updates
         };
@@ -9148,7 +9124,6 @@ function applyNumFmtToInputs() {
         const PresenceTracker = {
             myPresenceRef: null,
             usersPresenceRef: null,
-            devicesRef: null,
             activityTimeout: null,
             lastActivityTime: Date.now(),
             
@@ -9169,11 +9144,6 @@ function applyNumFmtToInputs() {
                 this.usersPresenceRef = window.firebase.dbRef(
                     window.firebaseRealtimeDb,
                     'presence'
-                );
-                
-                this.devicesRef = window.firebase.dbRef(
-                    window.firebaseRealtimeDb,
-                    `devices/${userId}`
                 );
                 
                 const resolvedDisplayName = userInfo.displayName && userInfo.displayName !== 'Administrator'
@@ -9226,40 +9196,13 @@ function applyNumFmtToInputs() {
                 const disconnectRef = window.firebase.onDisconnect(this.myPresenceRef);
                 disconnectRef.remove();
                 
-                await this.registerDevice(userId, userEmail, deviceInfo);
-                
                 if (userInfo.role === 'admin') {
                     this.startPresenceListener();
-                    this.startDeviceListener();
                 }
                 
                 this.setupActivityTracking();
                 
                 console.log('✅ Presence tracking initialized');
-            },
-            
-            async registerDevice(userId, userEmail, deviceInfo) {
-                const deviceData = {
-                    userId: userId,
-                    email: userEmail,
-                    fingerprint: state.deviceFingerprint,
-                    platform: deviceInfo.platform,
-                    browser: deviceInfo.browser,
-                    firstSeen: Date.now(),
-                    lastSeen: Date.now(),
-                    status: 'active'
-                };
-                
-                try {
-                    await window.firebase.set(this.devicesRef, deviceData);
-                    console.log('✅ Device registered in Firebase:', userEmail);
-                } catch (err) {
-                    console.error('❌ Firebase PERMISSION DENIED — registerDevice failed!', err.message);
-                    console.error('👉 Fix: Update Firebase Realtime Database Rules in Firebase Console.');
-                }
-                
-                const disconnectRef = window.firebase.onDisconnect(this.devicesRef);
-                disconnectRef.remove();
             },
             
             startPresenceListener() {
@@ -9269,7 +9212,7 @@ function applyNumFmtToInputs() {
 
                     if (state.isAdmin && state.isLoggedIn) {
                         this.updateActiveUsersUI();
-                        this.updateDeviceCounterUI();
+                        if (typeof renderForceLogoutList === 'function') renderForceLogoutList();
                         console.log('🔄 Presence updated:', Object.keys(presenceData).length, 'users in Firebase');
                     }
                 });
@@ -9295,30 +9238,12 @@ function applyNumFmtToInputs() {
                     if (isTimedOut || isUnknown || isOffline) {
                         try {
                             await window.firebase.remove(window.firebase.dbRef(window.firebaseRealtimeDb, 'presence/' + uid));
-                            await window.firebase.remove(window.firebase.dbRef(window.firebaseRealtimeDb, 'devices/' + uid));
                             console.log('🧹 Auto-cleaned stale presence: ' + (data.email || data.displayName || uid));
                         } catch(e) {  }
                     }
                 }
             },
 
-            startDeviceListener() {
-                const allDevicesRef = window.firebase.dbRef(
-                    window.firebaseRealtimeDb,
-                    'devices'
-                );
-                
-                window.firebase.onValue(allDevicesRef, (snapshot) => {
-                    const devicesData = snapshot.val() || {};
-                    state.activeDevices = Object.values(devicesData);
-                    
-                    if (state.isAdmin && state.isLoggedIn) {
-                        this.updateDeviceCounterUI();
-                        console.log('🔄 Devices updated:', state.activeDevices.length, 'devices in Firebase');
-                    }
-                });
-            },
-            
             setupActivityTracking() {
                 const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
                 
@@ -9348,7 +9273,6 @@ function applyNumFmtToInputs() {
 
                     if (state.isAdmin && state.isLoggedIn) {
                         this.updateActiveUsersUI();
-                        this.updateDeviceCounterUI();
                     }
                 }, 15000);
             },
@@ -9449,79 +9373,6 @@ function applyNumFmtToInputs() {
                 }).join('');
             },
             
-            updateDeviceCounterUI() {
-                if (!state.isAdmin) return;
-                
-                const deviceList = document.getElementById('device-list');
-                const deviceBadge = document.getElementById('device-count-badge');
-                const container = document.getElementById('device-counter-container');
-                
-                if (!deviceList || !deviceBadge || !container) {
-                    console.warn('⚠️ Device counter UI elements not found');
-                    return;
-                }
-                
-                container.style.display = 'inline-block';
-                console.log('🖥️ Device counter container shown');
-                
-                const devices = state.activeDevices || [];
-                const activeDevices = devices.filter(d => d.status === 'active');
-                
-                const now = Date.now();
-                const STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes — entries are auto-cleaned after this
-                const presenceOnline = Object.values(state.activeUsers || {})
-                    .filter(u => {
-                        if (u.status !== 'online') return false;
-                        if (u.lastSeen && (now - u.lastSeen) > STALE_THRESHOLD) return false;
-                        return true;
-                    }).length;
-                
-                const displayCount = presenceOnline;
-                
-                deviceBadge.textContent = displayCount;
-                
-                if (activeDevices.length === 0) {
-                    deviceList.innerHTML = `
-                        <div class="dropdown-empty">
-                            <i class="fas fa-laptop"></i>
-                            <div>No devices connected</div>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                activeDevices.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
-                
-                deviceList.innerHTML = activeDevices.map(device => {
-                    const iconObj = this.getDeviceIcon(device.platform);
-                    const timeSince = this.getTimeSince(device.lastSeen);
-                    
-                    return `
-                        <div class="dropdown-item">
-                            <div class="device-info">
-                                <div class="device-icon-box">
-                                    <i class="device-icon ${iconObj.prefix} ${iconObj.icon}"></i>
-                                </div>
-                                <div class="device-details">
-                                    <div class="device-name">${device.platform || 'Unknown'} — ${device.browser || 'Browser'}</div>
-                                    <div class="device-meta"><i class="fas fa-clock" style="font-size:0.6rem"></i> ${timeSince}</div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            },
-            
-            getDeviceIcon(platform) {
-                const p = (platform || '').toLowerCase();
-                if (p.includes('windows')) return { prefix: 'fab', icon: 'fa-windows' };
-                if (p.includes('mac')) return { prefix: 'fab', icon: 'fa-apple' };
-                if (p.includes('linux')) return { prefix: 'fab', icon: 'fa-linux' };
-                if (p.includes('android')) return { prefix: 'fab', icon: 'fa-android' };
-                if (p.includes('iphone') || p.includes('ipad')) return { prefix: 'fab', icon: 'fa-apple' };
-                return { prefix: 'fas', icon: 'fa-laptop' };
-            },
-            
             getTimeSince(timestamp) {
                 if (!timestamp) return 'Unknown';
                 
@@ -9570,22 +9421,14 @@ function applyNumFmtToInputs() {
             },
 
             async cleanup() {
-                const tasks = [];
                 if (this.myPresenceRef) {
-                    tasks.push(
-                        window.firebase.remove(this.myPresenceRef)
-                            .then(() => console.log('✅ Presence removed from Firebase'))
-                            .catch(e => console.warn('⚠️ Could not remove presence:', e.message))
-                    );
+                    try {
+                        await window.firebase.remove(this.myPresenceRef);
+                        console.log('✅ Presence removed from Firebase');
+                    } catch(e) {
+                        console.warn('⚠️ Could not remove presence:', e.message);
+                    }
                 }
-                if (this.devicesRef) {
-                    tasks.push(
-                        window.firebase.remove(this.devicesRef)
-                            .then(() => console.log('✅ Device removed from Firebase'))
-                            .catch(e => console.warn('⚠️ Could not remove device:', e.message))
-                    );
-                }
-                await Promise.all(tasks);
             }
         };
         
@@ -10214,7 +10057,7 @@ debugCommands.help() - Show this help
         async function clearStalePresenceData() {
             if (!state.isAdmin) return;
 
-            const STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes
+            const STALE_THRESHOLD = 2 * 60 * 1000;
             const now = Date.now();
             let clearedCount = 0;
 
@@ -10232,59 +10075,16 @@ debugCommands.help() - Show this help
                     }
                 }
 
-                const devicesData = state.activeDevices || [];
-                for (const device of devicesData) {
-                    const isStale = device.status === 'offline' ||
-                        (device.lastSeen && (now - device.lastSeen) > STALE_THRESHOLD);
-                    if (isStale && device.userId) {
-                        const ref = window.firebase.dbRef(window.firebaseRealtimeDb, `devices/${device.userId}`);
-                        await window.firebase.remove(ref);
-                        clearedCount++;
-                    }
-                }
-
                 showToast(`🧹 Cleared ${clearedCount} stale entr${clearedCount === 1 ? 'y' : 'ies'} from Firebase`, 'success');
-                console.log(`✅ Cleared ${clearedCount} stale presence/device entries`);
+                console.log(`✅ Cleared ${clearedCount} stale presence entries`);
             } catch (err) {
                 console.error('❌ Failed to clear stale data:', err);
                 showToast('❌ Failed to clear stale data', 'error');
             }
         }
 
-        function toggleDeviceDropdown() {
-            const dropdown = document.getElementById('device-dropdown');
-            const usersDropdown = document.getElementById('users-dropdown');
-            
-            if (usersDropdown && !usersDropdown.classList.contains('hidden')) {
-                usersDropdown.classList.add('hidden');
-            }
-            
-            dropdown.classList.toggle('hidden');
-            
-            if (!dropdown.classList.contains('hidden')) {
-                setTimeout(() => {
-                    document.addEventListener('click', closeDeviceDropdownOnClickOutside);
-                }, 0);
-            }
-        }
-        
-        function closeDeviceDropdownOnClickOutside(e) {
-            const dropdown = document.getElementById('device-dropdown');
-            const btn = document.getElementById('device-counter-btn');
-            
-            if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
-                dropdown.classList.add('hidden');
-                document.removeEventListener('click', closeDeviceDropdownOnClickOutside);
-            }
-        }
-        
         function toggleUsersDropdown() {
             const dropdown = document.getElementById('users-dropdown');
-            const deviceDropdown = document.getElementById('device-dropdown');
-            
-            if (deviceDropdown && !deviceDropdown.classList.contains('hidden')) {
-                deviceDropdown.classList.add('hidden');
-            }
             
             dropdown.classList.toggle('hidden');
             
@@ -25181,6 +24981,7 @@ document.addEventListener('click', closeAllStatusDropdowns);
             const auditTrailSection = document.getElementById('audit-trail-section');
             const dangerZoneSection = document.getElementById('danger-zone-section');
             const backupRecoveryCard = document.getElementById('backup-recovery-card');
+            const forceLogoutSection = document.getElementById('force-logout-section');
 
             if (!isAdmin) {
                 if (forceSyncSection) forceSyncSection.style.display = 'none';
@@ -25188,12 +24989,14 @@ document.addEventListener('click', closeAllStatusDropdowns);
                 if (auditTrailSection) auditTrailSection.style.display = 'none';
                 if (dangerZoneSection) dangerZoneSection.style.display = 'none';
                 if (backupRecoveryCard) backupRecoveryCard.style.display = 'none';
+                if (forceLogoutSection) forceLogoutSection.style.display = 'none';
             } else {
                 if (forceSyncSection) forceSyncSection.style.display = 'block';
                 if (yearManagementSection) yearManagementSection.style.display = 'block';
                 if (auditTrailSection) auditTrailSection.style.display = 'block';
                 if (dangerZoneSection) dangerZoneSection.style.display = 'block';
                 if (backupRecoveryCard) backupRecoveryCard.style.display = 'block';
+                if (forceLogoutSection) { forceLogoutSection.style.display = 'block'; renderForceLogoutList(); }
             }
         }
 
@@ -28541,6 +28344,158 @@ async function firebaseSignup(email, password) {
     }
 }
 
+// ── FORCE LOGOUT SYSTEM ────────────────────────────────────────────────────
+// Admin writes to force_logout/{targetUid} → target user's onValue listener
+// fires → they get signed out immediately from ALL open sessions/devices.
+// ───────────────────────────────────────────────────────────────────────────
+
+function renderForceLogoutList() {
+    const container = document.getElementById('force-logout-user-list');
+    if (!container) return;
+
+    const presenceData = state.activeUsers || {};
+    const allAccounts = Object.entries(UserAccounts.superintendents || {});
+    const now = Date.now();
+    const STALE_MS = 2 * 60 * 1000;
+
+    // 1) Build email→uid map from PRESENCE (currently online users)
+    const onlineByEmail = {};
+    Object.entries(presenceData).forEach(([uid, data]) => {
+        const isOnline = data.status === 'online' && data.lastSeen && (now - data.lastSeen) < STALE_MS;
+        if (isOnline && data.email) onlineByEmail[data.email] = uid;
+    });
+
+    // 2) Build email→uid fallback from LOGIN LOGBOOK (covers offline accounts)
+    //    Use the most recent login entry per email so we always have a UID.
+    const uidByEmail = {};
+    (state.loginLogbook || []).forEach(entry => {
+        if (entry.email && entry.uid) {
+            if (!uidByEmail[entry.email] ||
+                new Date(entry.timestamp) > new Date(uidByEmail[entry.email].timestamp)) {
+                uidByEmail[entry.email] = { uid: entry.uid, timestamp: entry.timestamp };
+            }
+        }
+    });
+
+    if (allAccounts.length === 0) {
+        container.innerHTML = `<div style="text-align:center;padding:18px;color:var(--text-secondary);font-size:0.8rem;">No accounts configured.</div>`;
+        return;
+    }
+
+    const myEmail = state.currentUser?.email;
+
+    const rows = allAccounts
+        .filter(([email]) => email !== myEmail)
+        .map(([email, info]) => {
+            // Prefer live presence UID, fall back to logbook UID
+            const uid = onlineByEmail[email] || uidByEmail[email]?.uid || null;
+            const isOnline = !!onlineByEmail[email];
+            const hasUid  = !!uid;
+
+            const roleLabel  = (info.role || 'user').toUpperCase();
+            const region     = info.region || '—';
+            const displayName = info.displayName || email;
+
+            // Status badge
+            const badgeColor = isOnline ? '#4caf50' : '#9e9e9e';
+            const dotGlow    = isOnline ? `0 0 5px ${badgeColor}` : 'none';
+            const statusText = isOnline ? 'ONLINE' : 'OFFLINE';
+
+            // Button — enabled whenever we have a UID (online OR offline)
+            // Offline = flag queued in RTDB, fires the moment they reopen the app
+            let btnStyle, btnTitle, btnDisabled = '';
+            if (isOnline) {
+                btnStyle = 'background:#c62828;color:#fff;border:none;cursor:pointer;';
+                btnTitle = 'Immediately signs out this user';
+            } else if (hasUid) {
+                btnStyle = 'background:#e65100;color:#fff;border:none;cursor:pointer;';
+                btnTitle = 'User is offline — logout flag will fire the moment they reopen the dashboard';
+            } else {
+                btnStyle = 'background:#e0e0e0;color:#9e9e9e;border:none;cursor:not-allowed;';
+                btnTitle = 'Cannot force logout — this account has never logged in';
+                btnDisabled = 'disabled';
+            }
+
+            return `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-card);gap:10px;flex-wrap:wrap;">
+                <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                    <div style="width:9px;height:9px;border-radius:50%;background:${badgeColor};flex-shrink:0;box-shadow:${dotGlow};"></div>
+                    <div style="min-width:0;">
+                        <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${displayName}</div>
+                        <div style="font-size:0.68rem;color:var(--text-secondary);">${email} &nbsp;·&nbsp; ${roleLabel} &nbsp;·&nbsp; ${region}</div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                    <span style="font-size:0.65rem;font-weight:700;color:${badgeColor};letter-spacing:0.5px;">${statusText}</span>
+                    <button ${btnDisabled} onclick="executeForceLogout('${uid}','${email}')"
+                        title="${btnTitle}"
+                        style="padding:6px 14px;border-radius:6px;font-size:0.72rem;font-weight:700;${btnStyle}transition:opacity 0.2s;">
+                        <i class="fas fa-power-off"></i> Force Logout
+                    </button>
+                </div>
+            </div>`;
+        });
+
+    container.innerHTML = rows.join('') || `<div style="text-align:center;padding:18px;color:var(--text-secondary);font-size:0.8rem;"><i class="fas fa-circle-check" style="color:#4caf50;margin-right:6px;"></i>No other accounts to manage.</div>`;
+}
+
+async function executeForceLogout(targetUid, targetEmail) {
+    if (!state.isAdmin) return;
+    if (!targetUid || targetUid === 'null') { showToast('⚠️ Cannot force logout — UID not found. Account may never have logged in.', 'warning'); return; }
+
+    const presenceData = state.activeUsers || {};
+    const isCurrentlyOnline = Object.values(presenceData).some(d => d.email === targetEmail && d.status === 'online');
+
+    const offlineNote = isCurrentlyOnline ? '' : '<br><br><small style="color:#888;">They are currently offline — the logout will trigger the moment they reopen the dashboard.</small>';
+
+    const confirmed = await showModernDialog(
+        'Force Logout',
+        `Are you sure you want to force logout <strong>${targetEmail}</strong>?<br><br>They will be immediately signed out from all active sessions.${offlineNote}`
+    );
+    if (!confirmed) return;
+
+    try {
+        const flagRef = window.firebase.dbRef(window.firebaseRealtimeDb, `force_logout/${targetUid}`);
+        await window.firebase.set(flagRef, {
+            timestamp: Date.now(),
+            by: state.currentUser.email,
+            reason: 'admin_force_logout'
+        });
+
+        AuditLogger.log('FORCE_LOGOUT', { targetUid, targetEmail, by: state.currentUser.email });
+
+        const msg = isCurrentlyOnline
+            ? `✅ Force logout signal sent — ${targetEmail} is being signed out now.`
+            : `⏳ Force logout queued — ${targetEmail} will be signed out when they next open the dashboard.`;
+        showToast(msg, 'success', 5000);
+        console.log(`✅ Force logout flag written for uid=${targetUid} (${targetEmail})`);
+
+        setTimeout(renderForceLogoutList, 3000);
+    } catch (err) {
+        console.error('❌ Force logout failed:', err);
+        showToast('❌ Failed to send force logout signal: ' + err.message, 'error');
+    }
+}
+
+// Called once on login — listens for admin writing to force_logout/{myUid}
+function startForceLogoutListener(userId) {
+    if (!window.firebaseRealtimeDb || !window.firebase?.onValue) return;
+    const flagRef = window.firebase.dbRef(window.firebaseRealtimeDb, `force_logout/${userId}`);
+    window.firebase.onValue(flagRef, async (snapshot) => {
+        if (!snapshot.exists()) return; // flag not set or already cleared
+        console.warn('🚨 Force logout signal received — signing out...');
+        try {
+            // Clean up flag first so it doesn't re-fire after re-login
+            await window.firebase.remove(flagRef);
+        } catch(e) { /* non-critical */ }
+        showToast('🔒 Your session has been terminated by an administrator.', 'error', 5000);
+        setTimeout(async () => {
+            await firebaseLogout();
+        }, 1500);
+    });
+    console.log('✅ Force logout listener active for uid:', userId);
+}
+
 async function firebaseLogout() {
     if (!window.firebase) {
         return;
@@ -28757,13 +28712,14 @@ function setupAuthObserver() {
             
             try { await user.getIdToken(true); } catch(e) { console.warn('⚠️ Token refresh failed:', e.message); }
             await PresenceTracker.initialize(user.uid, user.email);
+            startForceLogoutListener(user.uid);
             console.log('🟢 Presence tracking active');
             
             if (state.isAdmin) {
                 loadLogbookFromFirebase();
                 setTimeout(() => {
-                    PresenceTracker.updateDeviceCounterUI();
                     PresenceTracker.updateActiveUsersUI();
+                    renderForceLogoutList();
                 }, 500);
                 setTimeout(async () => {
                     const users = state.activeUsers || {};
