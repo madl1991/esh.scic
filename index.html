@@ -14930,23 +14930,273 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         }
 
         function _pdfPersonnel(doc, projs, sy, bs, hs, ar, mg, onPage) {
-            const personnel = state.personnelData || [];
-            const head = ['#','FULL NAME','POSITION / DESIGNATION','GENDER','REGION','PROJECT ASSIGNMENT'];
-            const body = personnel.map((p,i) => [
-                i+1, _s(p.name), _s(p.position), _s(p.gender||''), _s(p.region||''), _s(p.projectAssignment||p.project||'')
-            ]);
-            if (!body.length) body.push(['—','No personnel records available','','','','']);
-            doc.autoTable({
-                head:[head], body, startY: sy, margin: mg,
-                styles: {...bs, fontSize:7},
-                headStyles: hs, alternateRowStyles: ar,
-                columnStyles: {
-                    0:{cellWidth:8,halign:'center'}, 1:{fontStyle:'bold',cellWidth:52},
-                    2:{cellWidth:52}, 3:{cellWidth:16,halign:'center'},
-                    4:{cellWidth:28,halign:'center'}, 5:{cellWidth:'auto'}
-                },
-                didDrawPage: onPage
+            const W = doc.internal.pageSize.getWidth();
+            const H = doc.internal.pageSize.getHeight();
+            const title = 'PERSONNEL MONITORING';
+            const year  = state.selectedYear || new Date().getFullYear();
+
+            // ── Helpers ──────────────────────────────────────────────────────
+            const REGION_ORDER = ['NCR','NORTH LUZON','SOUTH LUZON','VISAYAS & MINDANAO','PLANT OPERATIONS','CORPORATE'];
+            const REGION_COLORS_PDF = {
+                'NCR':                [27,94,32],
+                'NORTH LUZON':        [46,125,50],
+                'SOUTH LUZON':        [36,105,42],
+                'VISAYAS & MINDANAO': [56,142,60],
+                'PLANT OPERATIONS':   [0,105,92],
+                'CORPORATE':          [13,61,15]
+            };
+
+            // Build project→region map from state.projects
+            const projRegionMap = {};
+            (state.projects || []).forEach(p => { if (p.name) projRegionMap[p.name] = (p.region||'').toUpperCase(); });
+
+            // Cert helper
+            const CERT_KEYS_MAP = {
+                'Safety Officer I':'COSH','Safety Officer II':'COSH','Safety Officer III':'COSH','Safety Officer IV':'COSH',
+                'PCO':'PCO_ACCRED','First Aider':'BLS','Project Nurse':'OHNAP',
+                'ESH Superintendent':'DOLE_OSH','ESH Head':'DOLE_OSH'
+            };
+            const CERT_LABELS_MAP = {
+                'COSH':'COSH','PCO_ACCRED':'PCO Accred.','BLS':'BLS','OHNAP':'OHNAP','DOLE_OSH':'DOLE OSH'
+            };
+            function fmtDate(d) {
+                if (!d) return '—';
+                try { const dt = new Date(d); return isNaN(dt)?d:dt.toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'2-digit'}); }
+                catch(e){ return d; }
+            }
+            function certStatus(expiry) {
+                if (!expiry) return 'NONE';
+                const now = new Date(); now.setHours(0,0,0,0);
+                const exp = new Date(expiry); exp.setHours(0,0,0,0);
+                const days = Math.round((exp - now) / 86400000);
+                if (days < 0) return 'EXPIRED';
+                if (days <= 60) return 'EXPIRING';
+                return 'VALID';
+            }
+            function fmtLen(len) {
+                if (!len) return '—';
+                const n = parseFloat(len);
+                if (isNaN(n)) return len;
+                if (n >= 12) { const yrs = Math.floor(n/12); const mos = n%12; return mos>0 ? `${yrs}yr ${mos}mo` : `${yrs} yr${yrs!==1?'s':''}`; }
+                return `${n} mo${n!==1?'s':''}`;
+            }
+
+            // ── Group personnel: region → project → [persons] ────────────────
+            const allPersonnel = state.personnelData || [];
+            const regionGroups = {};
+            allPersonnel.forEach(p => {
+                const proj   = _s(p.current || p.projectAssignment || p.project || '');
+                const region = (projRegionMap[proj] || _s(p.region||p._region||'') || 'OTHER').toUpperCase();
+                if (!regionGroups[region]) regionGroups[region] = {};
+                if (!regionGroups[region][proj || 'Unassigned']) regionGroups[region][proj || 'Unassigned'] = [];
+                regionGroups[region][proj || 'Unassigned'].push(p);
             });
+
+            // Summary counts
+            const totalCount = allPersonnel.length;
+            const regionCounts = {};
+            Object.keys(regionGroups).forEach(r => {
+                regionCounts[r] = Object.values(regionGroups[r]).reduce((s,arr) => s+arr.length, 0);
+            });
+
+            // ── PAGE 1: Summary ───────────────────────────────────────────────
+            let curY = sy;
+
+            // Summary banner
+            doc.setFillColor(27,94,32);
+            doc.roundedRect(_PML, curY, W-_PML-_PMR, 16, 2, 2, 'F');
+            doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(255,255,255);
+            doc.text('PERSONNEL SUMMARY', _PML+6, curY+7);
+            doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+            doc.text('Total Headcount: ' + totalCount + ' personnel', _PML+6, curY+13);
+            doc.setFontSize(7.5);
+            doc.text('As of ' + _today(), W-_PMR, curY+10, {align:'right'});
+            curY += 21;
+
+            // Region summary cards (2 per row)
+            const sortedRegions = REGION_ORDER.filter(r => regionGroups[r]);
+            const cardW = (W - _PML - _PMR - 4) / 2;
+            let col = 0;
+            sortedRegions.forEach(region => {
+                const rc  = REGION_COLORS_PDF[region] || [46,125,50];
+                const cnt = regionCounts[region] || 0;
+                const cx  = _PML + col * (cardW + 4);
+                const cy  = curY;
+                // Card background
+                doc.setFillColor(rc[0], rc[1], rc[2]);
+                doc.roundedRect(cx, cy, cardW, 14, 1.5, 1.5, 'F');
+                doc.setFillColor(255,255,255,0.15);
+                // Region label
+                doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(255,255,255);
+                doc.text(region, cx+4, cy+6);
+                doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(200,230,200);
+                const projCount = Object.keys(regionGroups[region]).length;
+                doc.text(cnt + ' personnel  ·  ' + projCount + ' project'+(projCount!==1?'s':''), cx+4, cy+11);
+                col++;
+                if (col === 2) { col = 0; curY += 18; }
+            });
+            if (col !== 0) curY += 18;
+            curY += 4;
+
+            // Gender summary
+            const males   = allPersonnel.filter(p => (p.gen||p.gender||'').toLowerCase().startsWith('m')).length;
+            const females = allPersonnel.filter(p => (p.gen||p.gender||'').toLowerCase().startsWith('f')).length;
+            doc.setFillColor(240,248,240); doc.setDrawColor(200,230,200); doc.setLineWidth(0.3);
+            doc.roundedRect(_PML, curY, W-_PML-_PMR, 11, 1.5, 1.5, 'FD');
+            doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(27,94,32);
+            doc.text('GENDER BREAKDOWN:', _PML+5, curY+7);
+            doc.setFont('helvetica','normal'); doc.setTextColor(60,60,60);
+            doc.text('Male: '+males+'   Female: '+females+'   Other/Not specified: '+(totalCount-males-females), _PML+45, curY+7);
+            curY += 16;
+
+            // ── Cert compliance summary ───────────────────────────────────────
+            let certTotal=0, certValid=0, certExpiring=0, certExpired=0, certNone=0;
+            allPersonnel.forEach(p => {
+                const certKey = CERT_KEYS_MAP[_s(p.pos||p.position||'')];
+                if (!certKey) return;
+                certTotal++;
+                const pid      = p._pid || p.id || '';
+                const certData = window._pcCertData && pid ? (window._pcCertData[pid]||{})[certKey] : null;
+                const st       = certStatus(certData && certData.expiry);
+                if (st==='VALID')    certValid++;
+                else if (st==='EXPIRING') certExpiring++;
+                else if (st==='EXPIRED')  certExpired++;
+                else certNone++;
+            });
+            if (certTotal > 0) {
+                doc.setFillColor(240,248,240); doc.setDrawColor(200,230,200); doc.setLineWidth(0.3);
+                doc.roundedRect(_PML, curY, W-_PML-_PMR, 11, 1.5, 1.5, 'FD');
+                doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(27,94,32);
+                doc.text('CERTIFICATION STATUS:', _PML+5, curY+7);
+                doc.setFont('helvetica','normal'); doc.setTextColor(60,60,60);
+                doc.setTextColor(27,94,32);  doc.text('Valid: '+certValid,       _PML+52, curY+7);
+                doc.setTextColor(180,90,0);  doc.text('Expiring: '+certExpiring, _PML+78, curY+7);
+                doc.setTextColor(183,28,28); doc.text('Expired: '+certExpired,   _PML+112, curY+7);
+                doc.setTextColor(100,100,100); doc.text('No cert: '+certNone,    _PML+146, curY+7);
+                curY += 16;
+            }
+            _pdfFooter(doc);
+
+            // ── PAGES 2+: Detail by Region → Project ─────────────────────────
+            const COL_HEAD = ['#','FULL NAME','POSITION','EMP ID','GENDER','AGE','DATE HIRED','LENGTH OF SVC','CERTIFICATION','CERT EXPIRY','STATUS'];
+            const COL_STYLES = {
+                0:  {cellWidth:7,  halign:'center'},
+                1:  {cellWidth:44, fontStyle:'bold'},
+                2:  {cellWidth:38},
+                3:  {cellWidth:18, halign:'center'},
+                4:  {cellWidth:14, halign:'center'},
+                5:  {cellWidth:10, halign:'center'},
+                6:  {cellWidth:22, halign:'center'},
+                7:  {cellWidth:18, halign:'center'},
+                8:  {cellWidth:22, halign:'center'},
+                9:  {cellWidth:22, halign:'center'},
+                10: {cellWidth:'auto', halign:'center'}
+            };
+
+            sortedRegions.forEach(region => {
+                const projectMap = regionGroups[region];
+                const rc = REGION_COLORS_PDF[region] || [46,125,50];
+
+                Object.keys(projectMap).sort().forEach(projName => {
+                    const members = projectMap[projName];
+                    doc.addPage();
+                    _pdfHeader(doc, title, year);
+                    let pY = _HEADER_H + 4;
+
+                    // ── Region banner ─────────────────────────────────────
+                    doc.setFillColor(rc[0], rc[1], rc[2]);
+                    doc.roundedRect(_PML, pY, W-_PML-_PMR, 12, 2, 2, 'F');
+                    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(255,255,255);
+                    doc.text('REGION: ' + region, _PML+5, pY+5);
+                    doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+                    doc.text(regionCounts[region] + ' total personnel in this region', _PML+5, pY+10);
+                    pY += 16;
+
+                    // ── Project sub-banner ────────────────────────────────
+                    doc.setFillColor(rc[0]+30 > 255 ? 255 : rc[0]+30,
+                                     rc[1]+20 > 255 ? 255 : rc[1]+20,
+                                     rc[2]+20 > 255 ? 255 : rc[2]+20);
+                    doc.roundedRect(_PML, pY, W-_PML-_PMR, 10, 1.5, 1.5, 'F');
+                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255);
+                    doc.text('PROJECT: ' + (projName || 'Unassigned'), _PML+5, pY+4.5);
+                    doc.setFont('helvetica','normal'); doc.setFontSize(7);
+                    doc.text(members.length + ' personnel assigned', W-_PMR, pY+4.5, {align:'right'});
+
+                    // Project info line (dates/status from projs)
+                    const projInfo = (state.projects||[]).find(pr => pr.name === projName);
+                    if (projInfo) {
+                        const statusLabel = (projInfo.status||'').replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+                        doc.setTextColor(220,240,220); doc.setFontSize(6.5);
+                        let infoTxt = '';
+                        if (projInfo.dateStarted) infoTxt += 'Started: ' + fmtDate(projInfo.dateStarted);
+                        if (projInfo.dateFinished) infoTxt += '  Finished: ' + fmtDate(projInfo.dateFinished);
+                        if (statusLabel) infoTxt += '  Status: ' + statusLabel;
+                        if (infoTxt) doc.text(infoTxt, _PML+5, pY+9);
+                    }
+                    pY += 14;
+
+                    // ── Personnel table ───────────────────────────────────
+                    let rowNum = 0;
+                    const body = members.map(p => {
+                        rowNum++;
+                        const pos      = _s(p.pos || p.position || '');
+                        const certKey  = CERT_KEYS_MAP[pos] || null;
+                        const pid      = p._pid || p.id || '';
+                        const certData = certKey && window._pcCertData && pid
+                                         ? (window._pcCertData[pid]||{})[certKey] : null;
+                        const st       = certKey ? certStatus(certData && certData.expiry) : '—';
+                        const certLabel = certKey ? (CERT_LABELS_MAP[certKey]||certKey) : '—';
+                        const expiryStr = certData && certData.expiry ? fmtDate(certData.expiry) : (certKey ? 'Not uploaded' : '—');
+                        const statusDisp = st === 'VALID' ? '✓ VALID' : st === 'EXPIRING' ? '⚠ EXPIRING' : st === 'EXPIRED' ? '✗ EXPIRED' : st;
+                        return [
+                            rowNum,
+                            _s(p.name),
+                            pos,
+                            _s(p.id || '—'),
+                            (_s(p.gen||p.gender||'')||'—'),
+                            _s(p.age||'—'),
+                            p.hired ? fmtDate(p.hired) : '—',
+                            fmtLen(p.len),
+                            certLabel,
+                            expiryStr,
+                            statusDisp
+                        ];
+                    });
+
+                    doc.autoTable({
+                        head: [COL_HEAD],
+                        body: body,
+                        startY: pY,
+                        margin: mg,
+                        styles: { ...bs, fontSize: 6.8, cellPadding: 2.2 },
+                        headStyles: { fillColor: rc, textColor: [255,255,255], fontStyle:'bold', fontSize:7, halign:'center', cellPadding:2.5 },
+                        alternateRowStyles: ar,
+                        columnStyles: COL_STYLES,
+                        didParseCell: function(data) {
+                            if (data.section === 'body' && data.column.index === 10) {
+                                const v = String(data.cell.text);
+                                if (v.includes('VALID'))    data.cell.styles.textColor = [27,94,32];
+                                else if (v.includes('EXPIRING')) data.cell.styles.textColor = [180,90,0];
+                                else if (v.includes('EXPIRED'))  data.cell.styles.textColor = [183,28,28];
+                            }
+                        },
+                        didDrawPage: function(data) {
+                            _pdfHeader(doc, title, year);
+                            _pdfFooter(doc);
+                        }
+                    });
+                    _pdfFooter(doc);
+                });
+            });
+
+            // If no personnel at all
+            if (!allPersonnel.length) {
+                doc.addPage();
+                _pdfHeader(doc, title, year);
+                doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(150);
+                doc.text('No personnel records available.', _PML, sy + 12);
+                _pdfFooter(doc);
+            }
         }
 
         function _pdfDOM(doc, sy, bs, hs, ar, mg, onPage) {
