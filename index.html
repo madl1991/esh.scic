@@ -12246,7 +12246,7 @@ debugCommands.help() - Show this help
                     pdfBtn.style.display = 'none';
                 } else if (t === 'personnel' && !state.isAdmin && state.userRole !== 'manager') {
                     pdfBtn.style.display = 'none';
-                } else if (t === 'got-monitoring') {
+                } else if (false && t === 'got-monitoring') {
                     pdfBtn.style.display = 'none';
                 } else {
                     pdfBtn.style.display = 'inline-block';
@@ -13567,7 +13567,8 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             }
 
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+            const _pdfFormat = (tab === 'got-monitoring') ? 'a3' : 'a4';
+            const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:_pdfFormat });
             const W = doc.internal.pageSize.getWidth();
             const H = doc.internal.pageSize.getHeight();
 
@@ -15511,259 +15512,333 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         }
 
         function _pdfGotMonitoring(doc, year, projs, sy, W, H, bs, hs, ar, mg) {
-            const title   = 'GOALS, OBJECTIVES & TARGETS (GOT) MONITORING';
-            const REGIONS = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+            const title   = 'COMPLIANCE MONITORING REPORT';
             const MO      = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-            if (typeof COMPLIANCE_GOALS === 'undefined' || typeof gotGetCell === 'undefined') {
+            const REGIONS = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+
+            if (typeof window.COMPLIANCE_GOALS === 'undefined' || typeof window.gotGetCell === 'undefined') {
                 doc.setFont('helvetica','italic'); doc.setFontSize(9); doc.setTextColor(150);
-                doc.text('GOT data unavailable for export.', _PML, sy+12);
+                doc.text('Compliance Monitoring data unavailable for export.', _PML, sy+12);
                 return;
             }
 
-            function getScore(proj, goalId, mIdx, month) {
-                const raw = gotGetCell(proj, goalId, mIdx, month).r;
-                const v   = parseFloat(raw);
-                return isNaN(v) ? null : v / 100; // stored as 0-100, normalise to 0-1
+            const COMPLIANCE_GOALS = window.COMPLIANCE_GOALS;
+            const GOAL_MEASURES    = window.GOAL_MEASURES || {};
+            const gotGetCell       = window.gotGetCell;
+            const tW = W - mg.left - mg.right;
+
+            function fmtRating(raw) {
+                if (!raw || raw === '') return '—';
+                const v = parseFloat(raw);
+                return isNaN(v) ? '—' : Math.round(v * 100) + '%';
             }
-            function fmtPct(v) { return v === null ? '—' : Math.round(v * 100) + '%'; }
-            function projOverallAvg(proj) {
+            function goalAvg(proj, gId) {
+                const measures = GOAL_MEASURES[gId] || [''];
                 const vals = [];
-                COMPLIANCE_GOALS.forEach(function(g) {
-                    const measures = GOAL_MEASURES[g.id] || [''];
-                    measures.forEach(function(_, mIdx) {
-                        for (let m = 1; m <= 12; m++) {
-                            const s = getScore(proj, g.id, mIdx, m);
-                            if (s !== null) vals.push(s);
-                        }
-                    });
+                measures.forEach(function(_, mi) {
+                    for (let m = 1; m <= 12; m++) {
+                        const v = parseFloat(gotGetCell(proj, gId, mi, m).r);
+                        if (!isNaN(v)) vals.push(v);
+                    }
                 });
                 return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
             }
-            function hasAnyGotData(proj) { return projOverallAvg(proj) !== null; }
-
-            const tW = W - mg.left - mg.right;
-
-            const total    = projs.length;
-            const withData = projs.filter(hasAnyGotData).length;
-            const pct      = total > 0 ? Math.round((withData / total) * 100) : 0;
-
-            const allProjAvgs = projs.map(projOverallAvg).filter(function(v){return v!==null;});
-            const companyAvg  = allProjAvgs.length ? allProjAvgs.reduce(function(a,b){return a+b;},0)/allProjAvgs.length : null;
-
-            let curY = sy;
-
-            doc.setFillColor(46,125,50);
-            doc.roundedRect(_PML, curY, W-_PML-_PMR, 14, 2, 2, 'F');
-            doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(255,255,255);
-            doc.text('OVERALL SUMMARY  ·  GOALS, OBJECTIVES & TARGETS  (' + year + ')', _PML+6, curY+6);
-            doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-            doc.text('As of ' + _today(), _PML+6, curY+12);
-            doc.setFont('helvetica','bold'); doc.setFontSize(11);
-            const compAvgV = companyAvg !== null ? Math.round(companyAvg*100) : null;
-            const bannerRgb = compAvgV===null?[200,200,200]:compAvgV>=75?[152,255,152]:compAvgV>=50?[255,235,150]:[255,170,170];
-            doc.setTextColor(bannerRgb[0],bannerRgb[1],bannerRgb[2]);
-            doc.text(companyAvg !== null ? fmtPct(companyAvg) + ' Company Avg' : 'No Data', W-_PMR-4, curY+9, {align:'right'});
-            curY += 18;
-
-            const cardW = (W-_PML-_PMR-12)/5;
-            const compAvgPct = companyAvg !== null ? Math.round(companyAvg*100) : null;
-            [
-                {label:'TOTAL PROJECTS', value:String(total), bg:[232,245,233], tc:[27,94,32]},
-                {label:'WITH GOT DATA',  value:String(withData), bg:[232,245,233], tc:[27,94,32]},
-                {label:'NO DATA',        value:String(total-withData), bg:(total-withData)>0?[255,235,238]:[232,245,233], tc:(total-withData)>0?[183,28,28]:[27,94,32]},
-                {label:'INPUT RATE',     value:pct+'%', bg:pct>=80?[232,245,233]:pct>=60?[255,253,231]:[255,235,238], tc:pct>=80?[27,94,32]:pct>=60?[230,81,0]:[183,28,28]},
-                {label:'COMPANY AVG',    value:compAvgPct!==null?compAvgPct+'%':'—', bg:compAvgPct===null?[245,245,245]:compAvgPct>=75?[232,245,233]:compAvgPct>=50?[255,253,231]:[255,235,238], tc:compAvgPct===null?[150,150,150]:compAvgPct>=75?[27,94,32]:compAvgPct>=50?[230,81,0]:[183,28,28]},
-            ].forEach(function(c,i){
-                const cx = _PML + i*(cardW+3);
-                doc.setFillColor(c.bg[0],c.bg[1],c.bg[2]); doc.roundedRect(cx,curY,cardW,18,2,2,'F');
-                doc.setDrawColor(200,230,200); doc.setLineWidth(0.3); doc.roundedRect(cx,curY,cardW,18,2,2,'S');
-                doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(100,100,100);
-                doc.text(c.label, cx+cardW/2, curY+5.5, {align:'center'});
-                doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(c.tc[0],c.tc[1],c.tc[2]);
-                doc.text(c.value, cx+cardW/2, curY+15, {align:'center'});
-            });
-            curY += 24;
-
-            doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(27,94,32);
-            doc.text('SUMMARY BY REGION', _PML, curY); curY += 4;
-
-            const regSumBody = [];
-            REGIONS.forEach(function(region){
-                const rP = projs.filter(function(p){return p.region===region;});
-                if (!rP.length) return;
-                const rWith  = rP.filter(hasAnyGotData).length;
-                const rPct   = Math.round((rWith/rP.length)*100);
-                const goalAvgs = COMPLIANCE_GOALS.map(function(g){
-                    const vals = [];
-                    rP.forEach(function(proj){
-                        const measures = GOAL_MEASURES[g.id] || [''];
-                        measures.forEach(function(_, mIdx){
-                            for (let m=1;m<=12;m++){
-                                const s=getScore(proj,g.id,mIdx,m);
-                                if(s!==null) vals.push(s);
-                            }
-                        });
-                    });
-                    return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+            function overallAvg(proj) {
+                const vals = [];
+                COMPLIANCE_GOALS.forEach(function(g) {
+                    const a = goalAvg(proj, g.id);
+                    if (a !== null) vals.push(a);
                 });
-                const rAvgAll = goalAvgs.filter(function(v){return v!==null;});
-                const rOverall = rAvgAll.length ? rAvgAll.reduce(function(a,b){return a+b;},0)/rAvgAll.length : null;
-                regSumBody.push([
-                    _s(region), String(rP.length), String(rWith), rPct+'%',
-                    ...goalAvgs.map(fmtPct),
-                    fmtPct(rOverall)
-                ]);
+                return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+            }
+            function fmtPct(v) { return v === null ? '—' : Math.round(v*100) + '%'; }
+            function scoreColor(v) {
+                if (v === null) return [245,245,245];
+                return v >= 1.0 ? [200,230,201] : v >= 0.75 ? [220,237,200] : v >= 0.5 ? [255,249,196] : [255,205,210];
+            }
+            function scoreTextColor(v) {
+                if (v === null) return [150,150,150];
+                return v >= 0.75 ? [27,94,32] : v >= 0.5 ? [130,80,0] : [183,28,28];
+            }
+            function companyAvgFn() {
+                const vals = [];
+                projs.forEach(function(p) { const a = overallAvg(p); if (a !== null) vals.push(a); });
+                return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+            }
+            function hasData(proj) { return overallAvg(proj) !== null; }
+
+            // ══════════════════════════════════════════════════════════════════
+            // PAGE 1 — EXECUTIVE SUMMARY
+            // ══════════════════════════════════════════════════════════════════
+            let curY = sy;
+            const coAvg    = companyAvgFn();
+            const total    = projs.length;
+            const withD    = projs.filter(hasData).length;
+            const inputPct = total > 0 ? Math.round(withD/total*100) : 0;
+
+            // KPI cards
+            const cards = [
+                { label:'TOTAL PROJECTS', value:String(total),       bg:[232,245,233], tc:[27,94,32] },
+                { label:'WITH DATA',       value:String(withD),       bg:[232,245,233], tc:[27,94,32] },
+                { label:'NO DATA',         value:String(total-withD), bg:(total-withD)>0?[255,235,238]:[232,245,233], tc:(total-withD)>0?[183,28,28]:[27,94,32] },
+                { label:'INPUT RATE',      value:inputPct+'%',        bg:inputPct>=80?[232,245,233]:inputPct>=60?[255,253,231]:[255,235,238], tc:inputPct>=80?[27,94,32]:inputPct>=60?[230,81,0]:[183,28,28] },
+                { label:'COMPANY AVG',     value:fmtPct(coAvg),       bg:coAvg===null?[245,245,245]:scoreColor(coAvg), tc:scoreTextColor(coAvg) }
+            ];
+            const cardW = (tW - 4*3) / 5;
+            cards.forEach(function(c, i) {
+                const cx = _PML + i*(cardW+3);
+                doc.setFillColor(c.bg[0],c.bg[1],c.bg[2]);
+                doc.roundedRect(cx, curY, cardW, 20, 2, 2, 'F');
+                doc.setDrawColor(200,230,200); doc.setLineWidth(0.25);
+                doc.roundedRect(cx, curY, cardW, 20, 2, 2, 'S');
+                doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(100,100,100);
+                doc.text(c.label, cx+cardW/2, curY+5.5, {align:'center'});
+                doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(c.tc[0],c.tc[1],c.tc[2]);
+                doc.text(c.value, cx+cardW/2, curY+16, {align:'center'});
             });
+            curY += 26;
 
-            const goalShortIds  = COMPLIANCE_GOALS.map(function(g){return g.id;});
-            const regSumHead    = ['REGION','PROJECTS','WITH DATA','INPUT %', ...goalShortIds, 'OVERALL AVG'];
-            const rRegColW      = tW * 0.22;
-            const rFixedColW    = tW * 0.07;
-            const rGoalColW     = (tW - rRegColW - rFixedColW*3) / (goalShortIds.length + 1);
-            const regSumColSt   = {0:{halign:'left',fontStyle:'bold',cellWidth:rRegColW},1:{halign:'center',cellWidth:rFixedColW},2:{halign:'center',cellWidth:rFixedColW},3:{halign:'center',fontStyle:'bold',cellWidth:rFixedColW}};
-            goalShortIds.forEach(function(_,i){ regSumColSt[4+i] = {halign:'center',cellWidth:rGoalColW}; });
-            regSumColSt[4+goalShortIds.length] = {halign:'center',fontStyle:'bold',cellWidth:rGoalColW};
+            // Color legend
+            const legend = [
+                {color:[200,230,201], tc:[27,94,32],   label:'100%'},
+                {color:[220,237,200], tc:[27,94,32],   label:'75-99%'},
+                {color:[255,249,196], tc:[130,80,0],   label:'50-74%'},
+                {color:[255,205,210], tc:[183,28,28],  label:'<50%'},
+                {color:[245,245,245], tc:[150,150,150],label:'No Data'}
+            ];
+            doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(100,100,100);
+            doc.text('COMPLIANCE LEGEND:', _PML, curY+3.5);
+            let lx = _PML + 28;
+            legend.forEach(function(l) {
+                doc.setFillColor(l.color[0],l.color[1],l.color[2]);
+                doc.roundedRect(lx, curY, 6, 5, 1, 1, 'F');
+                doc.setTextColor(l.tc[0],l.tc[1],l.tc[2]);
+                doc.setFont('helvetica','normal'); doc.setFontSize(6);
+                doc.text(l.label, lx+7, curY+3.8);
+                lx += 22;
+            });
+            curY += 10;
 
+            // ── Goal Reference table (first, before summary) ──────────────────
+            doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(27,94,32);
+            doc.text('GOAL REFERENCE', _PML, curY); curY += 3;
+            const refCatW=tW*0.16, refGoalW=tW*0.40, refTgtW=tW*0.44;
+            const refBody=COMPLIANCE_GOALS.map(function(g){
+                const gCat=g.id.startsWith('E')?'Environmental':'Occ. Health & Safety';
+                return [
+                    {content:gCat},
+                    {content:_s(g.goal),styles:{fontStyle:'bold'}},
+                    {content:_s(g.target||'')}
+                ];
+            });
             doc.autoTable({
-                head:[regSumHead], body:regSumBody, startY:curY, margin:mg,
-                tableWidth:tW,
-                styles:{...bs, fontSize:8.5, cellPadding:4, valign:'middle'},
-                headStyles:{...hs, fontSize:8.5, cellPadding:5},
+                head:[['CATEGORY','GOAL','TARGET']],body:refBody,startY:curY,margin:mg,tableWidth:tW,
+                styles:{...bs,fontSize:9,cellPadding:4,overflow:'linebreak'},
+                headStyles:{...hs,fontSize:9,cellPadding:5},
                 alternateRowStyles:ar,
-                columnStyles:regSumColSt,
+                columnStyles:{0:{cellWidth:refCatW},1:{cellWidth:refGoalW},2:{cellWidth:refTgtW}},
                 didParseCell:function(d){
-                    if(d.section!=='body'||d.column.index<=2) return;
-                    const raw = d.cell.raw; if(raw==='—'||!raw) return;
-                    const v = parseInt(raw);
-                    if(!isNaN(v)){
-                        d.cell.styles.fillColor = v>=100?[200,230,201]:v>=75?[220,237,200]:v>=50?[255,249,196]:[255,205,210];
-                        d.cell.styles.textColor = v>=75?[27,94,32]:v>=50?[130,80,0]:[183,28,28];
-                        if(d.column.index===3||d.column.index===4+goalShortIds.length) d.cell.styles.fontStyle='bold';
+                    if(d.section!=='body') return;
+                    const txt=d.row.cells[0]?d.row.cells[0].text[0]:'';
+                    const isEnv=txt.toLowerCase().indexOf('env')!==-1;
+                    if(d.column.index===0){
+                        d.cell.styles.textColor=isEnv?[27,94,32]:[230,81,0];
+                        d.cell.styles.fontStyle='bold';
                     }
                 },
-                didDrawPage:function(d){if(d.pageNumber>1){_pdfHeader(doc,title,year);} _pdfFooter(doc);}
+                didDrawPage:function(d){if(d.pageNumber>1){_pdfHeader(doc,title,year);}_pdfFooter(doc);}
+            });
+            curY = doc.lastAutoTable.finalY + 8;
+
+            // ── Summary table by region ───────────────────────────────────────
+            doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(27,94,32);
+            doc.text('COMPLIANCE SUMMARY BY REGION', _PML, curY); curY += 3;
+
+            const gIds   = COMPLIANCE_GOALS.map(function(g){return g.id;});
+            const regPW  = 48;
+            const projPW = tW*0.28;
+            const gColW2 = (tW - regPW - projPW) / (gIds.length+1);
+            const sumCS  = {0:{halign:'left',fontStyle:'bold',cellWidth:regPW},
+                            1:{halign:'left',cellWidth:projPW}};
+            gIds.forEach(function(_,i){sumCS[2+i]={halign:'center',cellWidth:gColW2};});
+            sumCS[2+gIds.length]={halign:'center',fontStyle:'bold',cellWidth:gColW2};
+
+            const sumBody=[];
+            REGIONS.forEach(function(reg) {
+                const rProjs = projs.filter(function(p){return p.region===reg;});
+                if (!rProjs.length) return;
+                const gAvgsR = gIds.map(function(gId){
+                    const vals=[];
+                    rProjs.forEach(function(p){const a=goalAvg(p,gId);if(a!==null)vals.push(a);});
+                    return vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:null;
+                });
+                const rAll = gAvgsR.filter(function(v){return v!==null;});
+                const rOv  = rAll.length?rAll.reduce(function(a,b){return a+b;},0)/rAll.length:null;
+                sumBody.push([
+                    {content:reg,colSpan:2,styles:{fontStyle:'bold',fontSize:10,fillColor:[27,94,32],textColor:[255,255,255],cellPadding:5}},
+                    ...gAvgsR.map(function(v){return {content:fmtPct(v),styles:{fontStyle:'bold',fontSize:10,fillColor:[27,94,32],textColor:[255,255,255],halign:'center',cellPadding:5}};}),
+                    {content:fmtPct(rOv),styles:{fontStyle:'bold',fontSize:10,fillColor:[27,94,32],textColor:[255,255,255],halign:'center',cellPadding:5}}
+                ]);
+                rProjs.forEach(function(proj) {
+                    const pGAvgs = gIds.map(function(gId){return goalAvg(proj,gId);});
+                    const pAll   = pGAvgs.filter(function(v){return v!==null;});
+                    const pOv    = pAll.length?pAll.reduce(function(a,b){return a+b;},0)/pAll.length:null;
+                    sumBody.push([
+                        {content:''},
+                        {content:_s(proj.name),styles:{fontSize:10,fontStyle:'bold'}},
+                        ...pGAvgs.map(function(v){return {content:fmtPct(v),styles:{halign:'center',fontSize:10}};}),
+                        {content:fmtPct(pOv),styles:{halign:'center',fontSize:10,fontStyle:'bold'}}
+                    ]);
+                });
             });
 
-            REGIONS.forEach(function(region){
-                const regProjs = projs.filter(function(p){return p.region===region;});
+            doc.autoTable({
+                head:[['REGION','PROJECT',...gIds,'OVERALL']],
+                body:sumBody, startY:curY, margin:mg, tableWidth:tW,
+                styles:{...bs,fontSize:10,cellPadding:4,valign:'middle'},
+                headStyles:{...hs,fontSize:10,cellPadding:5},
+                columnStyles:sumCS,
+                didParseCell:function(d){
+                    if(d.section!=='body') return;
+                    if(typeof d.cell.raw==='object'&&d.cell.raw!==null) return;
+                    if(d.column.index>=2){
+                        const txt=d.cell.text?d.cell.text[0]:'';
+                        if(txt&&txt!=='--'&&txt!==''){
+                            const v=parseInt(txt)/100;
+                            d.cell.styles.fillColor=scoreColor(v);
+                            d.cell.styles.textColor=scoreTextColor(v);
+                        }
+                    }
+                },
+                didDrawPage:function(d){if(d.pageNumber>1){_pdfHeader(doc,title,year);}_pdfFooter(doc);}
+            });
+
+            // ══════════════════════════════════════════════════════════════════
+            // PER-REGION SECTIONS
+            // ══════════════════════════════════════════════════════════════════
+            const detGoalW = tW * 0.38;
+            const detMoW   = (tW - detGoalW - tW*0.08) / 12;
+            const detCompW = tW * 0.08;
+            const detCS = {0:{halign:'left',cellWidth:detGoalW}};
+            for (let i=1; i<=12; i++) detCS[i] = {halign:'center',cellWidth:detMoW};
+            detCS[13] = {halign:'center',fontStyle:'bold',cellWidth:detCompW};
+            const detHEAD = [['GOAL & DESCRIPTION',...MO,'% COMPLIANCE']];
+
+            REGIONS.forEach(function(region) {
+                const regProjs = projs.filter(function(p){ return p.region === region; });
                 if (!regProjs.length) return;
-                doc.addPage(); _pdfHeader(doc,title,year); _pdfFooter(doc);
+
+                // ── Region divider page (first project included) ──────────────
+                doc.addPage(); _pdfHeader(doc, title, year); _pdfFooter(doc);
                 let rY = sy;
 
-                doc.setFillColor(27,94,32); doc.roundedRect(_PML,rY,W-_PML-_PMR,10,2,2,'F');
-                doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(255,255,255);
-                doc.text(region, _PML+5, rY+7);
-                doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-                doc.text(regProjs.length+' project'+(regProjs.length>1?'s':''), W-_PMR-2, rY+7, {align:'right'});
-                rY += 13;
+                // Banner — tight height, just fits the text
+                const regAvgArr = regProjs.map(overallAvg).filter(function(v){return v!==null;});
+                const regOv = regAvgArr.length ? regAvgArr.reduce(function(a,b){return a+b;},0)/regAvgArr.length : null;
+                doc.setFillColor(27,94,32);
+                doc.roundedRect(_PML, rY, W-_PML-_PMR, 13, 2, 2, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(255,255,255);
+                doc.text(region, _PML+6, rY+9.5);
+                doc.setFontSize(11);
+                doc.text(fmtPct(regOv)+' Region Avg  |  '+regProjs.length+' Project'+(regProjs.length>1?'s':''),
+                         W-_PMR-5, rY+9.5, {align:'right'});
+                rY += 17;
 
-                doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(27,94,32);
-                doc.text('COMPLIANCE SUMMARY BY PROJECT', _PML, rY); rY += 4;
+                // Helper: build and draw project table at a given Y
+                function drawProjTable(proj, startY, isNewPage) {
+                    let pY = startY;
+                    if (isNewPage) {
+                        doc.addPage(); _pdfHeader(doc, title, year); _pdfFooter(doc);
+                        pY = sy;
+                    }
+                    const projAvg = overallAvg(proj);
+                    const barFill = projAvg===null?[80,80,80]:projAvg>=0.75?[27,94,32]:projAvg>=0.5?[200,60,0]:[183,28,28];
+                    doc.setFillColor(barFill[0],barFill[1],barFill[2]);
+                    doc.roundedRect(_PML, pY, W-_PML-_PMR, 15, 2, 2, 'F');
+                    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(255,255,255);
+                    doc.text(_s(proj.name), _PML+6, pY+10.5);
+                    doc.setFontSize(11);
+                    doc.text(fmtPct(projAvg)+' Overall Compliance', W-_PMR-5, pY+10.5, {align:'right'});
+                    pY += 20;
 
-                const sumHead = ['PROJECT', ...COMPLIANCE_GOALS.map(function(g){return g.id;}), 'OVERALL AVG'];
-                const sumBody = regProjs.map(function(proj){
-                    const gAvgs = COMPLIANCE_GOALS.map(function(g){
-                        const measures = GOAL_MEASURES[g.id] || [''];
-                        const vals = [];
-                        measures.forEach(function(_, mIdx){
-                            for (let m=1;m<=12;m++){ const s=getScore(proj,g.id,mIdx,m); if(s!==null) vals.push(s); }
-                        });
-                        return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
-                    });
-                    const allV = gAvgs.filter(function(v){return v!==null;});
-                    const ov   = allV.length ? allV.reduce(function(a,b){return a+b;},0)/allV.length : null;
-                    return [_s(proj.name), ...gAvgs.map(fmtPct), fmtPct(ov)];
-                });
+                    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(100,100,100);
+                    doc.text(region+'   |   Year: '+year, _PML, pY);
+                    pY += 7;
 
-                const pColW  = tW * 0.28;
-                const gColW  = (tW - pColW) / (COMPLIANCE_GOALS.length + 1);
-                const sumCS  = {0:{halign:'left',fontStyle:'bold',cellWidth:pColW}};
-                COMPLIANCE_GOALS.forEach(function(_,i){ sumCS[1+i]={halign:'center',cellWidth:gColW}; });
-                sumCS[1+COMPLIANCE_GOALS.length] = {halign:'center',fontStyle:'bold',cellWidth:gColW};
-
-                doc.autoTable({
-                    head:[sumHead], body:sumBody, startY:rY, margin:mg,
-                    tableWidth:tW,
-                    styles:{...bs, fontSize:8, cellPadding:3.5, valign:'middle'},
-                    headStyles:{...hs, fontSize:8, cellPadding:4},
-                    alternateRowStyles:ar,
-                    columnStyles:sumCS,
-                    didParseCell:function(d){
-                        if(d.section!=='body'||d.column.index===0) return;
-                        const raw=d.cell.raw; if(raw==='—'||!raw) return;
-                        const v=parseInt(raw);
-                        if(!isNaN(v)){
-                            d.cell.styles.fillColor = v>=100?[200,230,201]:v>=75?[220,237,200]:v>=50?[255,249,196]:[255,205,210];
-                            d.cell.styles.textColor = v>=75?[27,94,32]:v>=50?[130,80,0]:[183,28,28];
-                            if(d.column.index===1+COMPLIANCE_GOALS.length) d.cell.styles.fontStyle='bold';
+                    const body = [];
+                    let prevCat = '';
+                    COMPLIANCE_GOALS.forEach(function(g) {
+                        const gCat  = g.id.startsWith('E') ? 'ENVIRONMENTAL' : 'OCCUPATIONAL HEALTH & SAFETY';
+                        const cFill = g.id.startsWith('E') ? [224,242,224] : [255,240,220];
+                        const cTc   = g.id.startsWith('E') ? [27,94,32]    : [180,60,0];
+                        if (gCat !== prevCat) {
+                            prevCat = gCat;
+                            body.push([{content:gCat,colSpan:14,
+                                styles:{fontStyle:'bold',fontSize:8.5,fillColor:cFill,textColor:cTc,cellPadding:4}}]);
                         }
-                    },
-                    didDrawPage:function(d){if(d.pageNumber>1){_pdfHeader(doc,title,year);} _pdfFooter(doc);}
-                });
-
-                rY = doc.lastAutoTable.finalY + 8;
-
-                doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(27,94,32);
-                doc.text('MONTHLY COMPLIANCE BREAKDOWN BY PROJECT & GOAL', _PML, rY); rY += 4;
-
-                const gHead = ['PROJECT', 'GOAL', ...MO, 'AVG'];
-                const gBody = [];
-                regProjs.forEach(function(proj){
-                    COMPLIANCE_GOALS.forEach(function(g, gi){
-                        const measures = GOAL_MEASURES[g.id] || [''];
-                        measures.forEach(function(_, mIdx){
-                            const label = gi===0&&mIdx===0 ? _s(proj.name) : '';
-                            const goalLabel = g.id + ': ' + _s(g.goal).substring(0,45) + (g.goal.length>45?'…':'');
-                            const row = [label, goalLabel];
-                            const monthVals = [];
-                            MO.forEach(function(m, mi){
-                                const s = getScore(proj, g.id, mIdx, mi+1);
-                                row.push(s===null?'—':Math.round(s*100)+'%');
-                                if(s!==null) monthVals.push(s);
-                            });
-                            const avg = monthVals.length ? monthVals.reduce(function(s,v){return s+v;},0)/monthVals.length : null;
-                            row.push(fmtPct(avg));
-                            gBody.push(row);
-                        });
+                        const mR = [];
+                        for (let m=1; m<=12; m++) mR.push(gotGetCell(proj,g.id,0,m).r||'');
+                        const gAv = goalAvg(proj, g.id);
+                        const shortGoal = _s(g.goal).length > 90 ? _s(g.goal).substring(0,90)+'...' : _s(g.goal);
+                        body.push([
+                            {content:shortGoal,styles:{fontStyle:'bold',fontSize:8.5,
+                                                       textColor:g.id.startsWith('E')?[27,94,32]:[180,60,0]}},
+                            ...mR.map(function(r){return {content:fmtRating(r),styles:{fontSize:9,halign:'center'}};}),
+                            {content:fmtPct(gAv),styles:{fontStyle:'bold',fontSize:10,halign:'center'}}
+                        ]);
                     });
-                    gBody.push(Array(gHead.length).fill(''));
-                });
-                if (gBody.length && gBody[gBody.length-1].every(function(c){return c==='';} )) gBody.pop();
 
-                const pW2   = tW * 0.15;
-                const goalW = tW * 0.28;
-                const moW   = (tW - pW2 - goalW) / 13; // 12 months + avg
-                const gCS   = {0:{fontStyle:'bold',cellWidth:pW2}, 1:{fontStyle:'italic',cellWidth:goalW}};
-                for (let i=2; i<=14; i++) gCS[i] = {halign:'center', cellWidth:moW};
+                    const ovAv = overallAvg(proj);
+                    const ovMo = [];
+                    for (let m=1; m<=12; m++) {
+                        const vals=[];
+                        COMPLIANCE_GOALS.forEach(function(g){
+                            const v=parseFloat(gotGetCell(proj,g.id,0,m).r);
+                            if(!isNaN(v)) vals.push(v);
+                        });
+                        ovMo.push(vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:null);
+                    }
+                    body.push([
+                        {content:'OVERALL AVERAGE',colSpan:1,
+                         styles:{fontStyle:'bold',fontSize:9,halign:'right',fillColor:[27,94,32],textColor:[255,255,255]}},
+                        ...ovMo.map(function(v){return {content:fmtPct(v),
+                            styles:{fontStyle:'bold',fontSize:9,
+                                    fillColor:scoreColor(v),textColor:scoreTextColor(v),halign:'center'}};}),
+                        {content:fmtPct(ovAv),
+                         styles:{fontStyle:'bold',fontSize:11,
+                                 fillColor:scoreColor(ovAv),textColor:scoreTextColor(ovAv),halign:'center'}}
+                    ]);
 
-                doc.autoTable({
-                    head:[gHead], body:gBody, startY:rY, margin:mg,
-                    tableWidth:tW,
-                    styles:{...bs, fontSize:6.5, cellPadding:2},
-                    headStyles:{...hs, fontSize:6.5, cellPadding:2.5},
-                    alternateRowStyles:ar,
-                    columnStyles:gCS,
-                    didParseCell:function(d){
-                        if(d.section==='body'){
-                            if(d.column.index>=2){
-                                const raw=d.cell.raw; if(raw==='—'||!raw) return;
-                                const v=parseInt(raw);
-                                if(!isNaN(v)){
-                                    d.cell.styles.fillColor = v>=100?[200,230,201]:v>=75?[220,237,200]:v>=50?[255,249,196]:[255,205,210];
-                                    d.cell.styles.textColor = v>=75?[27,94,32]:v>=50?[130,80,0]:[183,28,28];
-                                    if(d.column.index===14) d.cell.styles.fontStyle='bold';
-                                }
+                    doc.autoTable({
+                        head:detHEAD, body:body, startY:pY, margin:mg, tableWidth:tW,
+                        styles:{...bs,fontSize:8.5,cellPadding:4,overflow:'linebreak',valign:'middle'},
+                        headStyles:{...hs,fontSize:9,cellPadding:5},
+                        alternateRowStyles:ar,
+                        columnStyles:detCS,
+                        didParseCell:function(d){
+                            if(d.section!=='body'||d.column.index<1||d.column.index>12) return;
+                            if(typeof d.cell.raw==='object'&&d.cell.raw!==null) return;
+                            const txt=d.cell.text?d.cell.text[0]:'';
+                            if(txt&&txt!=='--'){
+                                const v=parseInt(txt)/100;
+                                d.cell.styles.fillColor=scoreColor(v);
+                                d.cell.styles.textColor=scoreTextColor(v);
+                                d.cell.styles.fontStyle='bold';
                             }
-                            if(d.row.cells&&Object.values(d.row.cells).every(function(c){return c.raw==='';})){
-                                d.cell.styles.fillColor=[255,255,255]; d.cell.styles.minCellHeight=1.5;
-                            }
-                        }
-                    },
-                    didDrawPage:function(d){if(d.pageNumber>1){_pdfHeader(doc,title,year);} _pdfFooter(doc);}
-                });
+                        },
+                        didDrawPage:function(d){if(d.pageNumber>1){_pdfHeader(doc,title,year);}_pdfFooter(doc);}
+                    });
+                }
+
+                // First project: same page as banner
+                drawProjTable(regProjs[0], rY, false);
+
+                // Remaining projects: each on its own new page
+                for (var pi=1; pi<regProjs.length; pi++) {
+                    drawProjTable(regProjs[pi], sy, true);
+                }
             });
         }
-
         function _pdfKpm(doc, year, projs, sy, W, H, bs, hs, ar, mg) {
             const title   = 'KEY PERFORMANCE MEASURES REPORT';
             const REGIONS = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
@@ -30873,7 +30948,7 @@ document.addEventListener('DOMContentLoaded', function() {
         { no: 6,  workProcess: 'Sustain the occupational safety & health performance',                     deliverables: 'ZERO Lost Time Accidents/Illnesses resulting to fatality or Total Disability',                                                        measure: 'Consolidated ESH Statistics showing the LTA or fatality, if any',                                           d025: 'with record of LTA/I resulting to fatality',  d050: '',                      d075: '',                                                                                                                                               d100: 'without record of LTA/I resulting to fatality', rating: 1 }
     ];
 
-    var COMPLIANCE_GOALS = [
+    window.COMPLIANCE_GOALS = [
         { cat: 'ENVIRONMENTAL',               id: 'E1', goal: 'E1.   Enhance the established environmental programs by promoting sustainable resource management', target: '100% Implemention of environmental programs focused on sustainability such as waste minimization, energy consumption reduction, water conservation, renewable energy utilization and proper waste management.', responsible: 'Project Management Team (PCO)', evidence: 'Consolidated implementation of environmental programs in all project sites' },
         { cat: '',                             id: 'E2', goal: 'E2. Ensure compliance to applicable Environmental regulations', target: '100% compliance to Environmental regulations in every project sites, offices and facilities', responsible: 'Project Management Team (PCO)', evidence: 'No issuance of Notice of Violations from DENR/LGU or any regulatory bodies on Environmental Compliance.\n\nConsolidated masterlist of ALOR (Environmental) with percentage of compliance' },
         { cat: '',                             id: 'E3', goal: 'E3. Enhance awareness on environmental sustainability', target: 'Conduct an awareness/seminar on Environmental Sustainability for at least 70% of the SCIC workforce within 12 months.', responsible: 'Project Management Team (PCO)', evidence: 'Records of participation in sustainability programs such as clean-up drive, tree planting, circular economy strategies, as well as trainings.\nMemorandum of Understanding (MOU), Memorandum of Agreement (MOA) with NGO/LGU/Community for sustainable projects involving SCIC.' },
@@ -30882,7 +30957,7 @@ document.addEventListener('DOMContentLoaded', function() {
         { cat: '',                             id: 'S3', goal: 'S3. Sustain the occupational safety & health performance', target: 'ZERO Lost Time Accidents/Illnesses resulting to fatality or Total Disability', responsible: 'Project Management Team (Safety Officers, Health Personnel)', evidence: 'Consolidated ESH Statistics showing the LTA or fatality, if any' }
     ];
 
-    var GOAL_MEASURES = {
+    window.GOAL_MEASURES = {
         E1: ['Consolidated implementation of environmental programs in all project sites'],
         E2: ['No issuance of Notice of Violations from DENR/LGU or any regulatory bodies on Environmental Compliance.'],
         E3: ['Records of participation in sustainability programs (clean-up drive, tree planting, etc.) MOU/MOA with NGO/LGU/Community.'],
@@ -30892,7 +30967,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     function gotKey(goalId, mIdx) { return 'got_' + goalId + '_' + mIdx; }
-    function gotGetCell(proj, goalId, mIdx, month) {
+    window.gotGetCell = function gotGetCell(proj, goalId, mIdx, month) {
         var k = gotKey(goalId, mIdx);
         if (!proj.vals[k]) return { r: '', rem: '' };
         var raw = proj.vals[k][month];
