@@ -18017,6 +18017,24 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         window._ltaModalUpdateInjuryType = function(newType, pName, idx) {
             const modal = document.getElementById('lta-entry-modal');
             if (!modal) return;
+
+            // ── Update label visual styles for all radio options ──────────────
+            const injuryTypeDefs = typeof LTA_INJURY_TYPES !== 'undefined' ? LTA_INJURY_TYPES : [];
+            modal.querySelectorAll('[name="ltamod-injuryType"]').forEach(radio => {
+                const lbl = radio.closest('label');
+                if (!lbl) return;
+                const isSel = radio.value === newType;
+                const def = injuryTypeDefs.find(t => t.value === radio.value);
+                const useScheduled = def ? def.useScheduled : false;
+                lbl.style.border = isSel
+                    ? `1.5px solid ${useScheduled ? '#c62828' : '#2e7d32'}`
+                    : '1.5px solid var(--border-color)';
+                lbl.style.background = isSel
+                    ? (useScheduled ? '#fff0f0' : '#f1f8f1')
+                    : 'var(--input-bg)';
+            });
+            // ─────────────────────────────────────────────────────────────────
+
             const doa = modal.querySelector('[name="ltamod-dateOfAccident"]')?.value || '';
             const rtw = modal.querySelector('[name="ltamod-dateRTW"]')?.value || '';
             const sc  = modal.querySelector('[name="ltamod-scheduledChargeItem"]')?.value || '';
@@ -18447,12 +18465,24 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     'Dangerous Occurrences':  { bg: 'rgba(1,87,155,0.35)',     color: '#bbdefb' },
                     'Unclassified':           { bg: 'rgba(97,97,97,0.35)',     color: '#f5f5f5' },
                 };
+                const _classifInitials = {
+                    'LTA':                     'LTA',
+                    'Fatality':                'FAT',
+                    'Medical Treatment':       'MT',
+                    'First Aid':               'FA',
+                    'High-Potential incident': 'HP',
+                    'Dangerous Occurrences':   'DO',
+                    'Near Miss':               'NM',
+                    'Restricted Work Case':    'RWC',
+                    'Confinement':             'CONF',
+                    'Unclassified':            'N/C',
+                };
                 const _classifBadgesHtml = Object.entries(_classifCounts)
                     .filter(([,cnt]) => cnt > 0)
                     .map(([cls, cnt]) => {
                         const cfg = _classifBadgeConfig[cls] || { bg: 'rgba(97,97,97,0.35)', color: '#f5f5f5' };
-                        const shortLabel = cls === 'High-Potential incident' ? 'Hi-Po' : cls === 'Dangerous Occurrences' ? 'Dang. Occ.' : cls === 'Medical Treatment' ? 'Med. Treat.' : cls;
-                        return `<span class="rbadge" style="background:${cfg.bg};color:${cfg.color};">${cnt} ${shortLabel}</span>`;
+                        const abbr = _classifInitials[cls] || cls.substring(0, 3).toUpperCase();
+                        return `<span class="rbadge" style="background:${cfg.bg};color:${cfg.color};" title="${cls}">${cnt} ${abbr}</span>`;
                     }).join('');
 
                 html += `<div id="lta-region-banner-${reg}" class="lta-region-banner region-banner region-${reg.toLowerCase()} ${isCollapsed?'collapsed':''} ${canEditReg?'rb-editable':''}" onclick="toggleLtaRegion('${reg}',event)">
