@@ -18606,7 +18606,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
 
                             </div>
                             <div style="display:flex;align-items:center;gap:8px;">
-                                ${canEdit ? `<button class="lta-add-btn" onclick="event.stopPropagation();window._addLtaEntryViaModal('${pnSafe}')"><i class="fas fa-plus"></i> Add Entry</button>` : ''}
+                                ${(state.isEditing && canEdit) ? `<button class="lta-add-btn" onclick="event.stopPropagation();window._addLtaEntryViaModal('${pnSafe}')"><i class="fas fa-plus"></i> Add Entry</button>` : ''}
                                 <span style="background:rgba(198,40,40,0.8);color:white;border-radius:10px;padding:2px 8px;font-size:0.62rem;font-weight:700;">${entries.length} entries</span>
                                 <span style="background:rgba(255,160,0,0.8);color:white;border-radius:10px;padding:2px 8px;font-size:0.62rem;font-weight:700;">${totalDL} days charged</span>
                                 <i id="lta-proj-${pId}-icon" class="fas fa-chevron-down" style="color:rgba(255,255,255,0.7);font-size:0.8rem;transition:transform 0.3s;"></i>
@@ -18615,7 +18615,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         <div id="lta-proj-${pId}-content" class="lta-project-body">`;
 
                     if (entries.length === 0) {
-                        html += `<div class="lta-empty-msg"><i class="fas fa-inbox" style="margin-right:6px;"></i>No LTA entries recorded for this project.${canEdit ? ' Click "+ Add LTA Entry" to begin.' : ''}</div>`;
+                        html += `<div class="lta-empty-msg"><i class="fas fa-inbox" style="margin-right:6px;"></i>No LTA entries recorded for this project.${(state.isEditing && canEdit) ? ' Click "+ Add Entry" to begin.' : ''}</div>`;
                     } else {
                         const openCount = entries.filter(e => e.status === 'Open').length;
                         const ongoingCount = entries.filter(e => e.status === 'Ongoing').length;
@@ -18680,7 +18680,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                                         padding:2px 8px;font-size:0.63rem;font-weight:800;">${dlLabel}</span>
                                     <span style="background:${statusBg};color:${statusColor};border-radius:8px;
                                         padding:2px 8px;font-size:0.63rem;font-weight:700;">${e.status||'Open'}</span>
-                                    ${canEdit ? `
+                                    ${(state.isEditing && canEdit) ? `
                                     <button onclick="event.stopPropagation();openLtaModal('${pnSafe}',${origIdx},true)"
                                         title="Edit entry"
                                         style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;
