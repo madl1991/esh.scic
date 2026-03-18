@@ -33266,7 +33266,7 @@ document.addEventListener('DOMContentLoaded', function() {
             mRows.forEach((r, i) => {
                 html += `<tr style="background:${i%2===0?'var(--bg-card)':'var(--input-bg)'};">
                     ${i===0 ? `<td rowspan="${mRows.length}" style="padding:6px 11px;text-align:center;font-weight:700;color:#1b5e20;border:1px solid #e8f5e9;vertical-align:middle;white-space:nowrap;">${month}</td>` : ''}
-                    <td style="padding:6px 11px;border:1px solid #e8f5e9;color:var(--text-primary);">${r.location}</td>
+                    <td style="padding:6px 11px;border:1px solid #e8f5e9;color:var(--text-primary);text-align:center;vertical-align:middle;font-weight:700;">${r.location}</td>
                     <td style="padding:6px 11px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);">${r.kwh.toLocaleString()}</td>
                     <td style="padding:6px 11px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);">${r.amount.toLocaleString()}</td>
                     <td style="padding:6px 11px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);">${r.ghg.toFixed(4)}</td>
