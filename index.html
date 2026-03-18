@@ -14349,7 +14349,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 const body = regEntries.map((e,i) => [
                     i+1, _s(e._proj.name), _s(e.aiirNo||''), _s(e.dateOfAccident||''),
                     _s(e.incidentClassification||''), _s(e.injuredPersonName||''),
-                    _s(e.natureOfInjury||''), _s(e.bodyPartsAffected||''),
+                    _s(Array.isArray(e.natureOfInjury)?e.natureOfInjury.join(', '):(e.natureOfInjury||'')), _s(Array.isArray(e.bodyPartsAffected)?e.bodyPartsAffected.join(', '):(e.bodyPartsAffected||'')),
                     getDl(e), _s((e.rootCause||'').substring(0,100))
                 ]);
                 doc.autoTable({
@@ -17452,13 +17452,13 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 aiirNo: '', dateReported: '', locationOfIncident: '',
                 natureOfIncident: '', incidentClassification: 'LTA',
                 incidentMechanism: '',
-                factor_PEOPLE: 'N/A', factor_EQUIPMENT: 'N/A',
-                factor_MATERIALS: 'N/A', factor_ENVIRONMENT: 'N/A',
-                factor_ORGANIZATIONAL: 'N/A',
+                factor_PEOPLE: [], factor_EQUIPMENT: [],
+                factor_MATERIALS: [], factor_ENVIRONMENT: [],
+                factor_ORGANIZATIONAL: [],
                 factorCategory: '', factorSubItem: '',
                 detailsFacts: '', injuredPersonName: '', natureOfInjury: '',
                 bodyPartsAffected: '', occupation: '', rootCause: '',
-                correctiveAction: '', responsible: '', timeline: '',
+                correctiveActions: [], correctiveAction: '', responsible: '', timeline: '',
                 followUp1: '', followUp2: '', followUp3: '',
                 dateOfAccident: '', dateRTW: '',
                 injuryType: 'temporary',        // 'temporary'|'permanent'|'amputation'|'vision'|'hearing'|'fatality'|'confinement'
@@ -17556,10 +17556,10 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const e = isNew ? {
                 aiirNo:'', dateReported:'', locationOfIncident:'', natureOfIncident:'',
                 incidentClassification:'LTA', incidentMechanism:'',
-                factor_PEOPLE:'N/A', factor_EQUIPMENT:'N/A', factor_MATERIALS:'N/A',
-                factor_ENVIRONMENT:'N/A', factor_ORGANIZATIONAL:'N/A',
+                factor_PEOPLE:[], factor_EQUIPMENT:[], factor_MATERIALS:[],
+                factor_ENVIRONMENT:[], factor_ORGANIZATIONAL:[],
                 detailsFacts:'', injuredPersonName:'', natureOfInjury:'', bodyPartsAffected:'',
-                occupation:'', rootCause:'', correctiveAction:'', responsible:'', timeline:'',
+                occupation:'', rootCause:'', correctiveActions:[], correctiveAction:'', responsible:'', timeline:'',
                 followUp1:'', followUp2:'', followUp3:'',
                 dateOfAccident:'', dateRTW:'', injuryType:'temporary', scheduledChargeItem:'',
                 dateClosed:'', cparNo:'', status:'Open', remarks:''
@@ -17571,7 +17571,11 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const pnSafe = pName.replace(/'/g,"\\'");
             const entryNum = isNew ? (entries.length + 1) : (idx + 1);
 
-            const mkOpts = (arr, val) => arr.map(o => `<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('');
+            const mkOpts = (arr, val) => {
+                // Support both single string (legacy) and array (multi-select)
+                const selArr = Array.isArray(val) ? val : (val ? val.split(',').map(v=>v.trim()).filter(Boolean) : []);
+                return arr.map(o => `<option value="${o}" ${selArr.includes(o)?'selected':''}>${o}</option>`).join('');
+            };
 
             // Build injury type radios
             const injuryRadios = (typeof LTA_INJURY_TYPES !== 'undefined' ? LTA_INJURY_TYPES : []).map(t => {
@@ -17588,18 +17592,59 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     </div></label>`;
             }).join('');
 
-            // Build factor dropdowns
+            // Build factor checkbox dropdowns (multi-select)
             const factorCats = ['PEOPLE','EQUIPMENT','MATERIALS','ENVIRONMENT','ORGANIZATIONAL'];
-            const catColors = {PEOPLE:'#1565c0',EQUIPMENT:'#6a1b9a',MATERIALS:'#e65100',ENVIRONMENT:'#2e7d32',ORGANIZATIONAL:'#c62828'};
+            const catColors  = {PEOPLE:'#1565c0',EQUIPMENT:'#6a1b9a',MATERIALS:'#e65100',ENVIRONMENT:'#2e7d32',ORGANIZATIONAL:'#c62828'};
+            const catIcons   = {PEOPLE:'fa-user',EQUIPMENT:'fa-wrench',MATERIALS:'fa-boxes-stacked',ENVIRONMENT:'fa-leaf',ORGANIZATIONAL:'fa-sitemap'};
             const factorsHtml = factorCats.map(cat => {
-                const fKey = 'factor_' + cat;
-                const curVal = e[fKey] !== undefined ? e[fKey] : 'N/A';
+                const fKey   = 'factor_' + cat;
+                const raw    = e[fKey] !== undefined ? e[fKey] : [];
+                // Normalize: legacy 'N/A' string → [], legacy single string → [str], array stays array
+                const selArr = Array.isArray(raw) ? raw
+                    : (raw === 'N/A' || raw === '' ? [] : [raw]);
+                const opts   = (typeof LTA_FACTOR_CATEGORIES !== 'undefined' ? LTA_FACTOR_CATEGORIES[cat] || [] : []);
+                const ddId   = `ltamod-fac-dd-${pId}-${cat}`;
+                const prvId  = `ltamod-fac-prv-${pId}-${cat}`;
+                const panId  = `ltamod-fac-pan-${pId}-${cat}`;
+                const color  = catColors[cat];
+                const icon   = catIcons[cat];
+
+                if (!canEdit) {
+                    // View mode: chips, or N/A if nothing selected
+                    return `<div class="lta-field">
+                        <label style="color:${color};font-weight:800;"><i class="fas ${icon}" style="margin-right:3px;"></i>${cat}</label>
+                        ${selArr.length
+                            ? `<div style="display:flex;flex-wrap:wrap;gap:3px;padding:3px 0;">${selArr.map(s=>`<span style="background:${color}18;color:${color};border:1px solid ${color}44;border-radius:10px;padding:2px 7px;font-size:0.66rem;font-weight:600;">${s}</span>`).join('')}</div>`
+                            : `<span style="color:#bbb;font-size:0.72rem;font-style:italic;">N/A</span>`}
+                    </div>`;
+                }
+
                 return `<div class="lta-field">
-                    <label style="color:${catColors[cat]};font-weight:800;"><i class="fas fa-tag" style="margin-right:3px;"></i>${cat}</label>
-                    <select name="ltamod-${fKey}" ${dis}>
-                        <option value="N/A" ${curVal==='N/A'?'selected':''}>N/A</option>
-                        ${(typeof LTA_FACTOR_CATEGORIES!=='undefined'?LTA_FACTOR_CATEGORIES[cat]||[]:[]).map(sub=>`<option value="${sub}" ${curVal===sub?'selected':''}>${sub}</option>`).join('')}
-                    </select></div>`;
+                    <label style="color:${color};font-weight:800;"><i class="fas ${icon}" style="margin-right:3px;"></i>${cat}</label>
+                    <div class="lta-cb-dropdown" id="${ddId}">
+                        <button type="button" class="lta-cb-trigger" style="border-color:${color}55;"
+                            onclick="window._ltaToggleCbDd('${ddId}',event)">
+                            <span class="lta-cb-preview" id="${prvId}">${selArr.length ? selArr.join(', ') : 'N/A'}</span>
+                            <i class="fas fa-chevron-down" style="font-size:0.6rem;flex-shrink:0;color:${color};"></i>
+                        </button>
+                        <div class="lta-cb-panel" id="${panId}" style="display:none;">
+                            <div class="lta-cb-list">
+                                <label class="lta-cb-item">
+                                    <input type="checkbox" value="__CLEAR__"
+                                        onchange="window._ltaClearFactorCb('${ddId}','${prvId}',this)">
+                                    <span style="color:#888;font-style:italic;">N/A (clear all)</span>
+                                </label>
+                                <div style="height:1px;background:#e8f5e9;margin:2px 0;"></div>
+                                ${opts.map(o => `
+                                <label class="lta-cb-item">
+                                    <input type="checkbox" value="${o}" ${selArr.includes(o)?'checked':''}
+                                        onchange="window._ltaUpdateCbPreview('${ddId}','${prvId}')">
+                                    <span>${o}</span>
+                                </label>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
             }).join('');
 
             // Scheduled charges section
@@ -17705,17 +17750,66 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         </div>
                         <div class="lta-field">
                             <label>Nature of Injury</label>
-                            <select name="ltamod-natureOfInjury" ${dis}>
-                                <option value="">— Select —</option>
-                                ${typeof LTA_NATURE_OF_INJURY !== 'undefined' ? mkOpts(LTA_NATURE_OF_INJURY, e.natureOfInjury) : ''}
-                            </select>
+                            ${(()=>{
+                                const selArr = Array.isArray(e.natureOfInjury) ? e.natureOfInjury
+                                    : (e.natureOfInjury ? e.natureOfInjury.split(',').map(v=>v.trim()).filter(Boolean) : []);
+                                if (!canEdit) {
+                                    // View mode: show selected as chips
+                                    return selArr.length
+                                        ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 0;">${selArr.map(s=>`<span style="background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;border-radius:10px;padding:2px 8px;font-size:0.68rem;font-weight:600;">${s}</span>`).join('')}</div>`
+                                        : `<span style="color:#bbb;font-size:0.72rem;font-style:italic;">—</span>`;
+                                }
+                                return `<div class="lta-cb-dropdown" id="ltamod-ni-dd-${pId}">
+                                    <button type="button" class="lta-cb-trigger" onclick="window._ltaToggleCbDd('ltamod-ni-dd-${pId}',event)">
+                                        <span class="lta-cb-preview" id="ltamod-ni-preview-${pId}">${selArr.length ? selArr.join(', ') : '— Select —'}</span>
+                                        <i class="fas fa-chevron-down" style="font-size:0.6rem;flex-shrink:0;"></i>
+                                    </button>
+                                    <div class="lta-cb-panel" id="ltamod-ni-panel-${pId}" style="display:none;">
+                                        <div class="lta-cb-search-wrap"><input type="text" class="lta-cb-search" placeholder="Search..." oninput="window._ltaFilterCb(this,'ltamod-ni-panel-${pId}')"></div>
+                                        <div class="lta-cb-list">
+                                        ${(typeof LTA_NATURE_OF_INJURY !== 'undefined' ? LTA_NATURE_OF_INJURY : []).map(o=>`
+                                            <label class="lta-cb-item">
+                                                <input type="checkbox" value="${o}" ${selArr.includes(o)?'checked':''}
+                                                    data-dd="ltamod-ni-dd-${pId}"
+                                                    data-preview="ltamod-ni-preview-${pId}"
+                                                    onchange="window._ltaUpdateCbPreview('ltamod-ni-dd-${pId}','ltamod-ni-preview-${pId}')">
+                                                <span>${o}</span>
+                                            </label>`).join('')}
+                                        </div>
+                                    </div>
+                                </div>`;
+                            })()}
                         </div>
                         <div class="lta-field">
                             <label>Body Parts Affected</label>
-                            <select name="ltamod-bodyPartsAffected" ${dis}>
-                                <option value="">— Select —</option>
-                                ${typeof LTA_BODY_PARTS !== 'undefined' ? mkOpts(LTA_BODY_PARTS, e.bodyPartsAffected) : ''}
-                            </select>
+                            ${(()=>{
+                                const selArr = Array.isArray(e.bodyPartsAffected) ? e.bodyPartsAffected
+                                    : (e.bodyPartsAffected ? e.bodyPartsAffected.split(',').map(v=>v.trim()).filter(Boolean) : []);
+                                if (!canEdit) {
+                                    return selArr.length
+                                        ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 0;">${selArr.map(s=>`<span style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:10px;padding:2px 8px;font-size:0.68rem;font-weight:600;">${s}</span>`).join('')}</div>`
+                                        : `<span style="color:#bbb;font-size:0.72rem;font-style:italic;">—</span>`;
+                                }
+                                return `<div class="lta-cb-dropdown" id="ltamod-bp-dd-${pId}">
+                                    <button type="button" class="lta-cb-trigger" onclick="window._ltaToggleCbDd('ltamod-bp-dd-${pId}',event)">
+                                        <span class="lta-cb-preview" id="ltamod-bp-preview-${pId}">${selArr.length ? selArr.join(', ') : '— Select —'}</span>
+                                        <i class="fas fa-chevron-down" style="font-size:0.6rem;flex-shrink:0;"></i>
+                                    </button>
+                                    <div class="lta-cb-panel" id="ltamod-bp-panel-${pId}" style="display:none;">
+                                        <div class="lta-cb-search-wrap"><input type="text" class="lta-cb-search" placeholder="Search body part..." oninput="window._ltaFilterCb(this,'ltamod-bp-panel-${pId}')"></div>
+                                        <div class="lta-cb-list">
+                                        ${(typeof LTA_BODY_PARTS !== 'undefined' ? LTA_BODY_PARTS : []).map(o=>`
+                                            <label class="lta-cb-item">
+                                                <input type="checkbox" value="${o}" ${selArr.includes(o)?'checked':''}
+                                                    data-dd="ltamod-bp-dd-${pId}"
+                                                    data-preview="ltamod-bp-preview-${pId}"
+                                                    onchange="window._ltaUpdateCbPreview('ltamod-bp-dd-${pId}','ltamod-bp-preview-${pId}')">
+                                                <span>${o}</span>
+                                            </label>`).join('')}
+                                        </div>
+                                    </div>
+                                </div>`;
+                            })()}
                         </div>
                         <div class="lta-field">
                             <label>Occupation</label>
@@ -17728,17 +17822,67 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                             <label>Root Cause</label>
                             <textarea name="ltamod-rootCause" ${dis} style="min-height:60px;">${e.rootCause||''}</textarea>
                         </div>
-                        <div class="lta-field lta-field-full">
-                            <label>Corrective / Preventive Action</label>
-                            <textarea name="ltamod-correctiveAction" ${dis} style="min-height:60px;">${e.correctiveAction||''}</textarea>
-                        </div>
-                        <div class="lta-field">
-                            <label>Responsible</label>
-                            <input type="text" name="ltamod-responsible" value="${e.responsible||''}" ${dis}>
-                        </div>
-                        <div class="lta-field">
-                            <label>Timeline</label>
-                            <input type="text" name="ltamod-timeline" value="${e.timeline||''}" ${dis} placeholder="e.g. 1 Month, Immediate">
+                        <div class="lta-field lta-field-full" style="margin-top:2px;">
+                            <label style="margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
+                                <span>Corrective / Preventive Action</span>
+                                ${canEdit ? `<button type="button" onclick="window._ltaAddCARow('${pId}')"
+                                    style="display:flex;align-items:center;gap:5px;padding:4px 11px;border-radius:6px;
+                                    border:1.5px solid #2e7d32;background:#e8f5e9;color:#1b5e20;font-size:0.72rem;
+                                    font-weight:700;cursor:pointer;font-family:inherit;">
+                                    <i class="fas fa-plus"></i> Add Row
+                                </button>` : ''}
+                            </label>
+                            <div style="border:1.5px solid #c8e6c9;border-radius:8px;overflow:hidden;">
+                                <table style="width:100%;border-collapse:collapse;font-size:0.76rem;font-family:inherit;">
+                                    <thead>
+                                        <tr style="background:#2e7d32;">
+                                            <th style="padding:7px 10px;text-align:left;font-weight:700;color:#fff;border-right:1px solid #6aad6e;width:60%;">CORRECTIVE / PREVENTIVE ACTION</th>
+                                            <th style="padding:7px 10px;text-align:left;font-weight:700;color:#fff;border-right:1px solid #6aad6e;width:22%;">RESPONSIBLE</th>
+                                            <th style="padding:7px 10px;text-align:left;font-weight:700;color:#fff;${canEdit?'border-right:1px solid #6aad6e;':''}width:18%;">TIMELINE</th>
+                                            ${canEdit ? `<th style="padding:7px 6px;width:28px;"></th>` : ''}
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ltamod-ca-tbody-${pId}">
+                                        ${(()=>{
+                                            // Normalize data: support new array format & legacy single-field format
+                                            const rows = Array.isArray(e.correctiveActions) && e.correctiveActions.length
+                                                ? e.correctiveActions
+                                                : (e.correctiveAction||e.responsible||e.timeline
+                                                    ? [{action: e.correctiveAction||'', responsible: e.responsible||'', timeline: e.timeline||''}]
+                                                    : [{action:'',responsible:'',timeline:''}]);
+                                            return rows.map((r,ri)=>`
+                                            <tr data-ri="${ri}" style="border-top:${ri>0?'1px solid #e8f5e9':'none'};">
+                                                <td style="padding:5px 7px;border-right:1px solid #e8f5e9;vertical-align:top;">
+                                                    <textarea rows="2" ${dis} data-ca-field="action"
+                                                        style="width:100%;border:none;outline:none;resize:vertical;font-size:0.75rem;
+                                                        font-family:inherit;background:transparent;padding:2px;"
+                                                        placeholder="Describe corrective/preventive action...">${r.action||''}</textarea>
+                                                </td>
+                                                <td style="padding:5px 7px;border-right:1px solid #e8f5e9;vertical-align:top;">
+                                                    <textarea rows="2" ${dis} data-ca-field="responsible"
+                                                        style="width:100%;border:none;outline:none;resize:vertical;font-size:0.75rem;
+                                                        font-family:inherit;background:transparent;padding:2px;"
+                                                        placeholder="e.g. Safety Officer">${r.responsible||''}</textarea>
+                                                </td>
+                                                <td style="padding:5px 7px;${canEdit?'border-right:1px solid #e8f5e9;':''}vertical-align:top;">
+                                                    <textarea rows="2" ${dis} data-ca-field="timeline"
+                                                        style="width:100%;border:none;outline:none;resize:vertical;font-size:0.75rem;
+                                                        font-family:inherit;background:transparent;padding:2px;"
+                                                        placeholder="e.g. Immediate">${r.timeline||''}</textarea>
+                                                </td>
+                                                ${canEdit ? `<td style="padding:4px 4px;vertical-align:middle;text-align:center;">
+                                                    <button type="button" onclick="window._ltaRemoveCARow('${pId}',this)"
+                                                        style="width:22px;height:22px;border-radius:50%;border:1.5px solid #ef9a9a;
+                                                        background:#fff8f8;color:#c62828;font-size:0.75rem;cursor:pointer;
+                                                        display:flex;align-items:center;justify-content:center;margin:auto;">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </td>` : ''}
+                                            </tr>`).join('');
+                                        })()}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
 
                         <div class="lta-section-label" style="grid-column:1/-1;"><i class="fas fa-list-check" style="margin-right:5px;"></i>Monitoring & Follow-up Results</div>
@@ -17902,6 +18046,149 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             }
         };
 
+        // ── Corrective Action table row helpers ────────────────────────────────
+
+        // ── Checkbox dropdown CSS (injected once) ─────────────────────────────
+        if (!document.getElementById('lta-cb-style')) {
+            const _cbStyle = document.createElement('style');
+            _cbStyle.id = 'lta-cb-style';
+            _cbStyle.textContent = `
+                .lta-cb-dropdown { position:relative; width:100%; }
+                .lta-cb-trigger {
+                    width:100%; display:flex; align-items:center; justify-content:space-between; gap:6px;
+                    padding:5px 8px; border:1px solid #ddd; border-radius:5px; background:var(--input-bg);
+                    font-size:0.72rem; color:var(--text-primary); cursor:pointer; font-family:inherit;
+                    text-align:left; transition:border-color 0.2s;
+                }
+                .lta-cb-trigger:hover { border-color:#2e7d32; }
+                .lta-cb-preview { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+                .lta-cb-panel {
+                    position:absolute; z-index:9999; top:calc(100% + 3px); left:0; right:0;
+                    background:#fff; border:1.5px solid #a5d6a7; border-radius:7px;
+                    box-shadow:0 6px 24px rgba(0,0,0,0.13); overflow:hidden;
+                }
+                .lta-cb-search-wrap { padding:6px 8px; border-bottom:1px solid #e8f5e9; }
+                .lta-cb-search {
+                    width:100%; padding:4px 8px; border:1px solid #ddd; border-radius:4px;
+                    font-size:0.71rem; font-family:inherit; box-sizing:border-box;
+                }
+                .lta-cb-search:focus { outline:none; border-color:#2e7d32; }
+                .lta-cb-list { max-height:200px; overflow-y:auto; padding:4px 0; }
+                .lta-cb-item {
+                    display:flex; align-items:center; gap:7px; padding:5px 10px;
+                    cursor:pointer; font-size:0.72rem; font-family:inherit;
+                    transition:background 0.12s;
+                }
+                .lta-cb-item:hover { background:#e8f5e9; }
+                .lta-cb-item input[type=checkbox] { width:13px; height:13px; accent-color:#2e7d32; flex-shrink:0; }
+                .lta-cb-item.hidden { display:none !important; }
+            `;
+            document.head.appendChild(_cbStyle);
+        }
+
+        // Close all checkbox dropdowns when clicking outside
+        if (!window._ltaCbOutsideListenerAdded) {
+            window._ltaCbOutsideListenerAdded = true;
+            document.addEventListener('click', function(ev) {
+                document.querySelectorAll('.lta-cb-panel').forEach(panel => {
+                    if (!panel.closest('.lta-cb-dropdown').contains(ev.target)) {
+                        panel.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        window._ltaToggleCbDd = function(ddId, ev) {
+            ev.stopPropagation();
+            const dd = document.getElementById(ddId);
+            if (!dd) return;
+            const panel = dd.querySelector('.lta-cb-panel');
+            document.querySelectorAll('.lta-cb-panel').forEach(p => { if (p !== panel) p.style.display = 'none'; });
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            if (panel.style.display === 'block') setTimeout(() => panel.querySelector('.lta-cb-search')?.focus(), 50);
+        };
+
+        window._ltaUpdateCbPreview = function(ddId, previewId) {
+            const dd = document.getElementById(ddId);
+            const preview = document.getElementById(previewId);
+            if (!dd || !preview) return;
+            const checked = Array.from(dd.querySelectorAll('input[type=checkbox]:checked')).map(c => c.value);
+            preview.textContent = checked.length ? checked.join(', ') : '— Select —';
+        };
+
+        window._ltaFilterCb = function(input, panelId) {
+            const q = input.value.toLowerCase();
+            const panel = document.getElementById(panelId);
+            if (!panel) return;
+            panel.querySelectorAll('.lta-cb-item').forEach(item => {
+                item.classList.toggle('hidden', !item.querySelector('span').textContent.toLowerCase().includes(q));
+            });
+        };
+
+        window._ltaClearFactorCb = function(ddId, previewId, clearChk) {
+            // When "N/A (clear all)" is clicked, uncheck all real options
+            const dd = document.getElementById(ddId);
+            const preview = document.getElementById(previewId);
+            if (!dd || !preview) return;
+            dd.querySelectorAll('input[type=checkbox]').forEach(c => {
+                if (c.value !== '__CLEAR__') c.checked = false;
+            });
+            clearChk.checked = false; // uncheck the N/A box itself too (it's a trigger, not a state)
+            preview.textContent = 'N/A';
+        };
+        // ─────────────────────────────────────────────────────────────────────
+
+                window._ltaAddCARow = function(pId) {
+            const tbody = document.getElementById('ltamod-ca-tbody-' + pId);
+            if (!tbody) return;
+            const ri = tbody.querySelectorAll('tr').length;
+            const tr = document.createElement('tr');
+            tr.dataset.ri = ri;
+            tr.style.borderTop = '1px solid #e8f5e9';
+            tr.innerHTML = `
+                <td style="padding:5px 7px;border-right:1px solid #e8f5e9;vertical-align:top;">
+                    <textarea rows="2" data-ca-field="action"
+                        style="width:100%;border:none;outline:none;resize:vertical;font-size:0.75rem;
+                        font-family:inherit;background:transparent;padding:2px;"
+                        placeholder="Describe corrective/preventive action..."></textarea>
+                </td>
+                <td style="padding:5px 7px;border-right:1px solid #e8f5e9;vertical-align:top;">
+                    <textarea rows="2" data-ca-field="responsible"
+                        style="width:100%;border:none;outline:none;resize:vertical;font-size:0.75rem;
+                        font-family:inherit;background:transparent;padding:2px;"
+                        placeholder="e.g. Safety Officer"></textarea>
+                </td>
+                <td style="padding:5px 7px;border-right:1px solid #e8f5e9;vertical-align:top;">
+                    <textarea rows="2" data-ca-field="timeline"
+                        style="width:100%;border:none;outline:none;resize:vertical;font-size:0.75rem;
+                        font-family:inherit;background:transparent;padding:2px;"
+                        placeholder="e.g. Immediate"></textarea>
+                </td>
+                <td style="padding:4px 4px;vertical-align:middle;text-align:center;">
+                    <button type="button" onclick="window._ltaRemoveCARow('${pId}',this)"
+                        style="width:22px;height:22px;border-radius:50%;border:1.5px solid #ef9a9a;
+                        background:#fff8f8;color:#c62828;font-size:0.75rem;cursor:pointer;
+                        display:flex;align-items:center;justify-content:center;margin:auto;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>`;
+            tbody.appendChild(tr);
+            tr.querySelector('[data-ca-field="action"]').focus();
+        };
+
+        window._ltaRemoveCARow = function(pId, btn) {
+            const tbody = document.getElementById('ltamod-ca-tbody-' + pId);
+            if (!tbody) return;
+            const tr = btn.closest('tr');
+            // Never remove the last row — just clear it instead
+            if (tbody.querySelectorAll('tr').length <= 1) {
+                tr.querySelectorAll('textarea').forEach(ta => ta.value = '');
+                return;
+            }
+            tr.remove();
+        };
+        // ──────────────────────────────────────────────────────────────────────
+
         window.saveLtaModal = function(pName, idx) {
             const modal = document.getElementById('lta-entry-modal');
             if (!modal) return;
@@ -17926,17 +18213,51 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const fields = [
                 'aiirNo','dateReported','locationOfIncident','natureOfIncident',
                 'incidentClassification','detailsFacts','injuredPersonName',
-                'natureOfInjury','bodyPartsAffected','occupation',
-                'rootCause','correctiveAction','responsible','timeline',
+                'occupation',
+                'rootCause',
                 'followUp1','followUp2','followUp3',
                 'dateOfAccident','dateRTW','scheduledChargeItem',
-                'dateClosed','cparNo','status','remarks',
-                'factor_PEOPLE','factor_EQUIPMENT','factor_MATERIALS','factor_ENVIRONMENT','factor_ORGANIZATIONAL'
+                'dateClosed','cparNo','status','remarks'
             ];
             fields.forEach(f => {
                 const el = modal.querySelector(`[name="ltamod-${f}"]`);
                 if (el) entry[f] = el.value;
             });
+
+            // Read checkbox dropdown values for nature of injury & body parts
+            const niDd = document.getElementById('ltamod-ni-dd-' + pId);
+            if (niDd) {
+                entry.natureOfInjury = Array.from(niDd.querySelectorAll('input[type=checkbox]:checked')).map(c => c.value);
+            }
+            const bpDd = document.getElementById('ltamod-bp-dd-' + pId);
+            if (bpDd) {
+                entry.bodyPartsAffected = Array.from(bpDd.querySelectorAll('input[type=checkbox]:checked')).map(c => c.value);
+            }
+
+            // Read factor checkbox dropdowns (PEOPLE, EQUIPMENT, MATERIALS, ENVIRONMENT, ORGANIZATIONAL)
+            ['PEOPLE','EQUIPMENT','MATERIALS','ENVIRONMENT','ORGANIZATIONAL'].forEach(cat => {
+                const facDd = document.getElementById(`ltamod-fac-dd-${pId}-${cat}`);
+                if (facDd) {
+                    const checked = Array.from(facDd.querySelectorAll('input[type=checkbox]:checked'))
+                        .map(c => c.value).filter(v => v !== '__CLEAR__');
+                    entry['factor_' + cat] = checked.length ? checked : [];
+                }
+            });
+
+            // Read corrective action rows from table
+            const caTbody = document.getElementById('ltamod-ca-tbody-' + pId);
+            if (caTbody) {
+                const caRows = Array.from(caTbody.querySelectorAll('tr')).map(tr => ({
+                    action:      (tr.querySelector('[data-ca-field="action"]')?.value || '').trim(),
+                    responsible: (tr.querySelector('[data-ca-field="responsible"]')?.value || '').trim(),
+                    timeline:    (tr.querySelector('[data-ca-field="timeline"]')?.value || '').trim()
+                })).filter(r => r.action || r.responsible || r.timeline);
+                entry.correctiveActions = caRows.length ? caRows : [];
+                // Keep legacy fields in sync (first row) for backward compat with old PDF/reports
+                entry.correctiveAction = caRows.map(r=>r.action).filter(Boolean).join('\n');
+                entry.responsible      = caRows.map(r=>r.responsible).filter(Boolean).join(', ');
+                entry.timeline         = caRows.map(r=>r.timeline).filter(Boolean).join(', ');
+            }
             if (injpersonIsNA) entry.injuredPersonName = 'N/A';
 
             // Injury type from radio
@@ -18196,8 +18517,18 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                             <span class="lta-summary-pill" style="background:#fff8e1;color:#f57f17;">Total: ${totalDL} Days Charged</span>
                         </div>`;
 
-                        // ── Compact list rows (new modal-based UI) ────────────────────────
-                        entries.forEach((e, idx) => {
+                        // ── Compact list rows — sorted by date of accident ────────────────
+                        const sortedEntries = [...entries].sort((a,b) => {
+                            const da = a.dateOfAccident || a.dateReported || '';
+                            const db = b.dateOfAccident || b.dateReported || '';
+                            if (!da && !db) return 0;
+                            if (!da) return 1;
+                            if (!db) return -1;
+                            return new Date(da) - new Date(db);
+                        });
+                        sortedEntries.forEach((e, idx) => {
+                            // Find original index for edit/delete operations
+                            const origIdx = entries.indexOf(e);
                             const { daysCharged: dl, method: dlMethod } = computeDaysCharged(e);
                             const dlLabel = dlMethod === 'na' ? 'N/A' : (dlMethod === 'scheduled' ? dl + ' (SC)' : dl + ' day' + (dl !== 1 ? 's' : ''));
                             const dlBg = dlMethod === 'na' ? '#e0e0e0' : (dl > 0 ? '#c62828' : '#e8f5e9');
@@ -18216,7 +18547,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                                 cursor:pointer;"
                                 onmouseenter="this.style.background='var(--hover-bg,#f5f9f5)'"
                                 onmouseleave="this.style.background='var(--bg-card)'"
-                                onclick="openLtaModal('${pnSafe}',${idx},false)">
+                                onclick="openLtaModal('${pnSafe}',${origIdx},false)">
 
                                 <span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;
                                     display:inline-flex;align-items:center;justify-content:center;
@@ -18240,13 +18571,13 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                                     <span style="background:${statusBg};color:${statusColor};border-radius:8px;
                                         padding:2px 8px;font-size:0.63rem;font-weight:700;">${e.status||'Open'}</span>
                                     ${canEdit ? `
-                                    <button onclick="event.stopPropagation();openLtaModal('${pnSafe}',${idx},true)"
+                                    <button onclick="event.stopPropagation();openLtaModal('${pnSafe}',${origIdx},true)"
                                         title="Edit entry"
                                         style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;
                                             padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;">
                                         <i class="fas fa-pen"></i>
                                     </button>
-                                    <button onclick="event.stopPropagation();removeLtaEntry('${pnSafe}',${idx})"
+                                    <button onclick="event.stopPropagation();removeLtaEntry('${pnSafe}',${origIdx})"
                                         title="Delete entry"
                                         style="background:transparent;color:#ef5350;border:1px solid #ef5350;border-radius:5px;
                                             padding:3px 8px;font-size:0.62rem;cursor:pointer;">
@@ -18254,7 +18585,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                                     </button>` : ''}
                                 </div>
                             </div>`;
-                        }); // end entries.forEach
+                        }); // end sortedEntries.forEach
                     }
 
                     html += `</div></div>`; // end lta-project-body + lta-project-card
