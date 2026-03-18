@@ -18969,8 +18969,7 @@ function renderTabulation() {
                 let open = 0, closed = 0;
                 [...intNovs, ...extNovs].forEach(n => {
                     const vs = n.violations || [];
-                    const allClosed = vs.length > 0 && vs.every(v => (v.status||'Open') === 'Closed');
-                    if (allClosed) closed++; else open++;
+                    if (vs.length === 0) { open++; } else { vs.forEach(v => { if ((v.status||'Open') === 'Closed') closed++; else open++; }); }
                 });
                 return { total: intNovs.length + extNovs.length, int: intNovs.length, ext: extNovs.length, open, closed };
             }
@@ -18986,8 +18985,7 @@ function renderTabulation() {
                     const vs = n.violations||[];
                     _gtViol += vs.length;
                     vs.forEach(v => { if((v.status||'Open')==='Closed') _gtViolClosed++; else _gtViolOpen++; });
-                    const allClosed = vs.length>0 && vs.every(v=>(v.status||'Open')==='Closed');
-                    if(allClosed) _gtClosed++; else _gtOpen++;
+                    if(vs.length===0){ _gtOpen++; } else { vs.forEach(v => { if((v.status||'Open')==='Closed') _gtClosed++; else _gtOpen++; }); }
                 });
             });
             _gtTotal = _gtInt + _gtExt;
@@ -19253,7 +19251,7 @@ function renderTabulation() {
             const extNovs = p.vals['osh-nov_external_novs'] || [];
             const totalNov = intNovs.length + extNovs.length;
             let totalOpen=0, totalClosed=0;
-            [...intNovs,...extNovs].forEach(n => { const vs=n.violations||[]; const allC=vs.length>0&&vs.every(v=>(v.status||'Open')==='Closed'); if(allC) totalClosed++; else totalOpen++; });
+            [...intNovs,...extNovs].forEach(n => { const vs=n.violations||[]; if(vs.length===0){ totalOpen++; } else { vs.forEach(v => { if((v.status||'Open')==='Closed') totalClosed++; else totalOpen++; }); } });
 
             const modal = document.createElement('div');
             modal.id = 'osh-nov-modal';
@@ -20481,8 +20479,7 @@ if (state.currentTab === 'audit') {
                         let open = 0, closed = 0;
                         [...intNovs, ...extNovs].forEach(n => {
                             const vs = n.violations || [];
-                            const allClosed = vs.length > 0 && vs.every(v => (v.status||'Open') === 'Closed');
-                            if (allClosed) closed++; else open++;
+                            if (vs.length === 0) { open++; } else { vs.forEach(v => { if ((v.status||'Open') === 'Closed') closed++; else open++; }); }
                         });
                         return { total: intNovs.length + extNovs.length, int: intNovs.length, ext: extNovs.length, open, closed };
                     }
@@ -20497,8 +20494,7 @@ if (state.currentTab === 'audit') {
                         [...intNovs,...extNovs].forEach(n => {
                             const vs = n.violations||[];
                             _gtViol += vs.length;
-                            const allClosed = vs.length>0 && vs.every(v=>(v.status||'Open')==='Closed');
-                            if(allClosed) _gtClosed++; else _gtOpen++;
+                            if(vs.length===0){ _gtOpen++; } else { vs.forEach(v => { if((v.status||'Open')==='Closed') _gtClosed++; else _gtOpen++; }); }
                         });
                     });
                     _gtTotal = _gtInt + _gtExt;
@@ -20756,7 +20752,7 @@ if (state.currentTab === 'audit') {
                     const extNovs = p.vals['nov-env_external_novs'] || [];
                     const totalNov = intNovs.length + extNovs.length;
                     let totalOpen=0, totalClosed=0;
-                    [...intNovs,...extNovs].forEach(n => { const vs=n.violations||[]; const allC=vs.length>0&&vs.every(v=>(v.status||'Open')==='Closed'); if(allC) totalClosed++; else totalOpen++; });
+                    [...intNovs,...extNovs].forEach(n => { const vs=n.violations||[]; if(vs.length===0){ totalOpen++; } else { vs.forEach(v => { if((v.status||'Open')==='Closed') totalClosed++; else totalOpen++; }); } });
 
                     const modal = document.createElement('div');
                     modal.id = 'env-nov-modal';
