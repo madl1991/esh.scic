@@ -13242,6 +13242,18 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 });
             }
 
+            // ── DOE Safety Officer Permit (Renewable Energy projects only) ────────
+            // Only counted if the project is marked as renewable AND permit is not
+            // client-provided. 2 slots: permit number (index 1) + validity date (index 2).
+            if (proj.isRenewable === true &&
+                !(proj.vals && proj.vals['doe-permit_client_provided'] === '1')) {
+                const _doePermKey = 'doe-permit_DOE Safety Officer Permit';
+                total += 2; // permit number + valid until
+                const _doeVals = proj.vals && proj.vals[_doePermKey];
+                if (_doeVals && _doeVals[1] && _doeVals[1] !== '') filled++;
+                if (_doeVals && _doeVals[2] && _doeVals[2] !== '') filled++;
+            }
+
             // ── GOT Monitoring (Goals, Objectives & Targets) ─────────────────────
             // 6 goals × 12 months; filled when a rating/value is entered for the month
             const _GOT_GOALS = ['E1','E2','E3','S1','S2','S3'];
@@ -24875,8 +24887,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         </span>
                                     </span>
                                 </td>` : `
-                                <td>${'<input type="text" placeholder="e.g., HOEMD-2025-486" value="' + permitNumber + '" ' + ((state.isEditing && canEditRegion) ? '' : 'disabled') + ' oninput="updateVal(\'${p.name}\',\'${key}\',1,this.value)" style="width: 100%;">'}</td>
-                                <td>${'<input type="date" value="' + validUntil + '" data-allow-future ' + ((state.isEditing && canEditRegion) ? '' : 'disabled') + ' onchange="updateVal(\'${p.name}\',\'${key}\',2,this.value)" style="width: 100%;">'}</td>
+                                <td>${'<input type="text" placeholder="e.g., HOEMD-2025-486" value="' + permitNumber + '" ' + ((state.isEditing && canEditRegion) ? '' : 'disabled') + ' oninput="updateVal(\'' + _dpPnSafe + '\',\'${key}\',1,this.value)" style="width: 100%;">'}</td>
+                                <td>${'<input type="date" value="' + validUntil + '" data-allow-future ' + ((state.isEditing && canEditRegion) ? '' : 'disabled') + ' onchange="updateVal(\'' + _dpPnSafe + '\',\'${key}\',2,this.value)" style="width: 100%;">'}</td>
                                 <td style="text-align: center;">${pdfCell}</td>`}
                             </tr>`;
                         });
@@ -29259,8 +29271,8 @@ function setupAuthObserver() {
 
             window._appInitializing = true;
             await loadAllProjectsAndFilter();
-            // Hold _appInitializing for 3.5s to cover startProjectsRealtimeSync
-            // (called 1.5s later) so its initial snapshot doesn't trigger auto-saves.
+            // Hold _appInitializing for 3.5s so the initial RowSaveManager snapshot
+            // doesn't trigger auto-saves immediately after login.
             setTimeout(() => { window._appInitializing = false; }, 3500);
 
             // Attach real-time onSnapshot listener for collaborative sync
@@ -29334,7 +29346,6 @@ function setupAuthObserver() {
             // Self-heal cleanup: remove false values, legacy keys, stale deletion records from RTDB
             // Runs once per session, admin-only writes. Safe to call even if Firebase isn't ready yet.
             setTimeout(function() { if (typeof _eshRtdbSelfHealCleanup === 'function') _eshRtdbSelfHealCleanup(); }, 4000);
-            setTimeout(startProjectsRealtimeSync, 1500); // slight delay so initial load completes first
 
             const _eshCalTabTypes = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
             if (_eshCalTabTypes.includes(state.currentTab)) {
