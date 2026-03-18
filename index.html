@@ -24887,8 +24887,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         </span>
                                     </span>
                                 </td>` : `
-                                <td>${'<input type="text" placeholder="e.g., HOEMD-2025-486" value="' + permitNumber + '" ' + ((state.isEditing && canEditRegion) ? '' : 'disabled') + ' oninput="updateVal(\'' + _dpPnSafe + '\',\'${key}\',1,this.value)" style="width: 100%;">'}</td>
-                                <td>${'<input type="date" value="' + validUntil + '" data-allow-future ' + ((state.isEditing && canEditRegion) ? '' : 'disabled') + ' onchange="updateVal(\'' + _dpPnSafe + '\',\'${key}\',2,this.value)" style="width: 100%;">'}</td>
+                                <td><input type="text" placeholder="e.g., HOEMD-2025-486" value="${permitNumber}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'} oninput="updateVal('${_dpPnSafe}','${key}',1,this.value)" style="width: 100%;"></td>
+                                <td><input type="date" value="${validUntil}" data-allow-future ${(state.isEditing && canEditRegion) ? '' : 'disabled'} onchange="updateVal('${_dpPnSafe}','${key}',2,this.value)" style="width: 100%;"></td>
                                 <td style="text-align: center;">${pdfCell}</td>`}
                             </tr>`;
                         });
