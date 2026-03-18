@@ -18023,16 +18023,11 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         style="background:#2e7d32;color:white;border:none;border-radius:7px;
                             padding:8px 22px;font-size:0.78rem;font-weight:700;cursor:pointer;">
                         <i class="fas fa-save" style="margin-right:6px;"></i>${isNew ? 'Add Entry' : 'Save Changes'}
-                    </button>` : `
-                    <button onclick="openLtaModal('${pnSafe}',${idx},true)"
-                        style="background:#1565c0;color:white;border:none;border-radius:7px;
-                            padding:8px 22px;font-size:0.78rem;font-weight:700;cursor:pointer;">
-                        <i class="fas fa-pen" style="margin-right:6px;"></i>Edit Entry
-                    </button>`}
+                    </button>` : ``}
                     <button onclick="document.getElementById('lta-entry-modal').remove()"
                         style="background:var(--input-bg);color:var(--text-primary);border:1px solid var(--border-color);
                             border-radius:7px;padding:8px 18px;font-size:0.78rem;font-weight:600;cursor:pointer;">
-                        Cancel
+                        ${canEdit ? 'Cancel' : 'Close'}
                     </button>
                 </div>
             </div>`;
@@ -22536,7 +22531,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;background:var(--bg-card);">'
                             + (canEdit
                                 ? '<button onclick="window.saveDoleModal()" style="background:#2e7d32;color:white;border:none;border-radius:7px;padding:8px 22px;font-size:0.78rem;font-weight:700;cursor:pointer;"><i class="fas fa-save" style="margin-right:6px;"></i>Save Changes</button>'
-                                : '<button onclick="window.openDoleDialog(\'' + regKey.replace(/'/g,"\\'") + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + activeMo.replace(/'/g,"\\'") + '\',true)" style="background:#1565c0;color:white;border:none;border-radius:7px;padding:8px 22px;font-size:0.78rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen" style="margin-right:6px;"></i>Edit Entry</button>')
+                                : '')
                             + '<button onclick="document.getElementById(\'dole-month-modal\').remove()" style="background:var(--input-bg);color:var(--text-primary);border:1px solid var(--border-color);border-radius:7px;padding:8px 18px;font-size:0.78rem;font-weight:600;cursor:pointer;">Close</button>'
                             + '</div></div>';
 
@@ -22650,7 +22645,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     return '<div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;background:var(--bg-card);">'
                         + (saveCall
                             ? '<button onclick="' + saveCall + '" style="background:#2e7d32;color:white;border:none;border-radius:7px;padding:8px 22px;font-size:0.78rem;font-weight:700;cursor:pointer;"><i class="fas fa-save" style="margin-right:6px;"></i>Save Changes</button>'
-                            : '<button onclick="' + openEditCall + '" style="background:#1565c0;color:white;border:none;border-radius:7px;padding:8px 22px;font-size:0.78rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen" style="margin-right:6px;"></i>Edit Entry</button>')
+                            : '')
                         + '<button onclick="document.getElementById(\'' + closeId + '\').remove()" style="background:var(--input-bg);color:var(--text-primary);border:1px solid var(--border-color);border-radius:7px;padding:8px 18px;font-size:0.78rem;font-weight:600;cursor:pointer;">Close</button>'
                         + '</div>';
                 }
@@ -23996,7 +23991,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;background:var(--bg-card);">'
                             + (canEdit
                                 ? '<button onclick="window.saveKpmModal()" style="background:#2e7d32;color:white;border:none;border-radius:7px;padding:8px 22px;font-size:0.78rem;font-weight:700;cursor:pointer;"><i class="fas fa-save" style="margin-right:6px;"></i>Save Changes</button>'
-                                : '<button onclick="window.openKpmDialog(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + activeMo + '\',true)" style="background:#1565c0;color:white;border:none;border-radius:7px;padding:8px 22px;font-size:0.78rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen" style="margin-right:6px;"></i>Edit Entry</button>')
+                                : '')
                             + '<button onclick="document.getElementById(\'kpm-month-modal\').remove()" style="background:var(--input-bg);color:var(--text-primary);border:1px solid var(--border-color);border-radius:7px;padding:8px 18px;font-size:0.78rem;font-weight:600;cursor:pointer;">Close</button>'
                             + '</div>'
                             + '</div>';
@@ -31900,9 +31895,6 @@ document.addEventListener('DOMContentLoaded', function() {
             + '</div>'
             // Footer
             + '<div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;background:var(--bg-card);">'
-            + (!editMode
-                ? '<button onclick="window.openGotComplianceDialog(\'' + pSafeQ + '\',true)" style="background:#1565c0;color:white;border:none;border-radius:7px;padding:8px 22px;font-size:0.78rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen" style="margin-right:6px;"></i>Edit</button>'
-                : '')
             + '<button onclick="document.getElementById(\'got-compliance-modal\').remove()" style="background:var(--input-bg);color:var(--text-primary);border:1px solid var(--border-color);border-radius:7px;padding:8px 18px;font-size:0.78rem;font-weight:600;cursor:pointer;">Close</button>'
             + '</div>'
             + '</div>';
