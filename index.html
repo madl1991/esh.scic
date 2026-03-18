@@ -6605,6 +6605,9 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
                     </button>
                 </div>
 
+                <button onclick="openEnvPdfModal()" style="padding:6px 16px;background:rgba(255,255,255,0.18);color:white;border:1.5px solid rgba(255,255,255,0.5);border-radius:20px;font-size:0.7rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.18)'">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </button>
 
             </div>
         </div>
@@ -6676,6 +6679,75 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
         <div id="env-fuel-regions-container"></div>
     </div>
 
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     ENV MONITORING — PDF EXPORT MODAL
+══════════════════════════════════════════════════════════ -->
+<div id="env-pdf-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:min(520px,94vw);box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0d3d0f,#1b6e1f,#2e7d32);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="fas fa-file-pdf" style="color:#a5d6a7;font-size:1.2rem;"></i>
+        <div>
+          <div style="color:white;font-weight:800;font-size:0.95rem;">Export Environmental Monitoring</div>
+          <div style="color:#a5d6a7;font-size:0.65rem;margin-top:1px;">Select tabs to include in PDF</div>
+        </div>
+      </div>
+      <button onclick="closeEnvPdfModal()" style="background:rgba(255,255,255,0.15);color:white;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:0.75rem;font-weight:700;">
+        <i class="fas fa-times"></i> Close
+      </button>
+    </div>
+    <!-- Body -->
+    <div style="padding:20px 24px;">
+      <div style="font-size:0.75rem;font-weight:700;color:#1b5e20;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px;">Choose tabs to export:</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+        <label id="envpdf-chk-elec"   style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid #c8e6c9;cursor:pointer;background:#f1f8e9;user-select:none;">
+          <input type="checkbox" id="envpdf-cb-elec"   checked style="width:16px;height:16px;accent-color:#1b5e20;cursor:pointer;">
+          <span style="font-size:0.75rem;font-weight:700;color:#1b5e20;">⚡ Electricity Consumption</span>
+          <span style="margin-left:auto;font-size:0.65rem;color:#888;">kWh · Amount · GHG · Trees</span>
+        </label>
+        <label id="envpdf-chk-water"  style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid #c8e6c9;cursor:pointer;background:#f1f8e9;user-select:none;">
+          <input type="checkbox" id="envpdf-cb-water"  checked style="width:16px;height:16px;accent-color:#1b5e20;cursor:pointer;">
+          <span style="font-size:0.75rem;font-weight:700;color:#1b5e20;">💧 Water Consumption</span>
+          <span style="margin-left:auto;font-size:0.65rem;color:#888;">Domestic · Potable · Industrial</span>
+        </label>
+        <label id="envpdf-chk-waste"  style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid #c8e6c9;cursor:pointer;background:#f1f8e9;user-select:none;">
+          <input type="checkbox" id="envpdf-cb-waste"  checked style="width:16px;height:16px;accent-color:#1b5e20;cursor:pointer;">
+          <span style="font-size:0.75rem;font-weight:700;color:#1b5e20;">🗑️ Waste Generation</span>
+          <span style="margin-left:auto;font-size:0.65rem;color:#888;">Bio · Non-Bio · Recyclable · Hazardous</span>
+        </label>
+        <label id="envpdf-chk-appl"   style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid #c8e6c9;cursor:pointer;background:#f1f8e9;user-select:none;">
+          <input type="checkbox" id="envpdf-cb-appl"   checked style="width:16px;height:16px;accent-color:#1b5e20;cursor:pointer;">
+          <span style="font-size:0.75rem;font-weight:700;color:#1b5e20;">🔌 Appliance Inventory</span>
+          <span style="margin-left:auto;font-size:0.65rem;color:#888;">A · A1 · B · C sections</span>
+        </label>
+        <label id="envpdf-chk-fuel"   style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid #c8e6c9;cursor:pointer;background:#f1f8e9;user-select:none;">
+          <input type="checkbox" id="envpdf-cb-fuel"   checked style="width:16px;height:16px;accent-color:#1b5e20;cursor:pointer;">
+          <span style="font-size:0.75rem;font-weight:700;color:#1b5e20;">⛽ Fuel Consumption</span>
+          <span style="margin-left:auto;font-size:0.65rem;color:#888;">Diesel · Gasoline · GHG</span>
+        </label>
+      </div>
+      <!-- Select All / None -->
+      <div style="display:flex;gap:8px;margin-bottom:18px;">
+        <button onclick="envPdfSelectAll(true)"  style="flex:1;padding:6px;background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;border-radius:6px;font-size:0.7rem;font-weight:700;cursor:pointer;">✓ Select All</button>
+        <button onclick="envPdfSelectAll(false)" style="flex:1;padding:6px;background:#fafafa;color:#666;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;font-weight:700;cursor:pointer;">✕ Deselect All</button>
+      </div>
+      <!-- Year info -->
+      <div style="background:#f9fbe7;border:1px solid #c8e6c9;border-radius:8px;padding:8px 12px;margin-bottom:18px;display:flex;align-items:center;gap:8px;">
+        <i class="fas fa-calendar-check" style="color:#2e7d32;font-size:0.85rem;"></i>
+        <span style="font-size:0.72rem;color:#2e7d32;font-weight:600;">Report Year: <strong id="envpdf-year-label">—</strong> &nbsp;·&nbsp; All Regions &amp; Projects</span>
+      </div>
+      <!-- Generate button -->
+      <button onclick="generateEnvPDF()" id="envpdf-generate-btn"
+        style="width:100%;padding:11px;background:linear-gradient(135deg,#1b5e20,#2e7d32);color:white;border:none;border-radius:8px;font-size:0.82rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:0.3px;"
+        onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
+        <i class="fas fa-download"></i> Generate &amp; Download PDF
+      </button>
+    </div>
+  </div>
 </div>
 
 <div id="got-monitoring-view" class="hidden" style="padding:10px 0 0 0;">
@@ -12246,7 +12318,7 @@ debugCommands.help() - Show this help
                     pdfBtn.style.display = 'none';
                 } else if (t === 'personnel' && !state.isAdmin && state.userRole !== 'manager') {
                     pdfBtn.style.display = 'none';
-                } else if (false && t === 'got-monitoring') {
+                } else if (t === 'env-monitoring') {
                     pdfBtn.style.display = 'none';
                 } else {
                     pdfBtn.style.display = 'inline-block';
@@ -33048,6 +33120,744 @@ document.addEventListener('DOMContentLoaded', function() {
     window.envRenderRegions = envRenderRegions;
     Object.defineProperty(window, '_envData', { get: () => envData, set: v => { envData = v; }, configurable: true });
     Object.defineProperty(window, '_wasteData', { get: () => wasteData, set: v => { wasteData = v; }, configurable: true });
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  ENV MONITORING — PDF EXPORT  (Electricity · Water · Waste · Appliances · Fuel)
+    // ══════════════════════════════════════════════════════════════════════════
+    const _ENV_TABS = ['elec','water','waste','appl','fuel'];
+
+    window.openEnvPdfModal = function() {
+        const yr = (typeof state !== 'undefined' && state.selectedYear) ? state.selectedYear : new Date().getFullYear();
+        const lbl = document.getElementById('envpdf-year-label');
+        if (lbl) lbl.textContent = yr;
+        const modal = document.getElementById('env-pdf-modal');
+        if (modal) { modal.style.display = 'flex'; }
+    };
+
+    window.closeEnvPdfModal = function() {
+        const modal = document.getElementById('env-pdf-modal');
+        if (modal) modal.style.display = 'none';
+    };
+
+    window.envPdfSelectAll = function(val) {
+        _ENV_TABS.forEach(t => {
+            const cb = document.getElementById('envpdf-cb-' + t);
+            if (cb) cb.checked = val;
+        });
+    };
+
+    // Close modal on backdrop click
+    document.addEventListener('click', function(e) {
+        const modal = document.getElementById('env-pdf-modal');
+        if (modal && e.target === modal) window.closeEnvPdfModal();
+    });
+
+    window.generateEnvPDF = async function() {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            if (typeof showToast === 'function') showToast('❌ PDF library not loaded. Refresh and try again.','error');
+            return;
+        }
+        const selected = _ENV_TABS.filter(t => {
+            const cb = document.getElementById('envpdf-cb-' + t);
+            return cb && cb.checked;
+        });
+        if (!selected.length) { if (typeof showToast === 'function') showToast('⚠️ Please select at least one tab to export.','warning'); return; }
+
+        const btn = document.getElementById('envpdf-generate-btn');
+        const origHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF...';
+        btn.disabled = true;
+
+        try {
+            const { jsPDF } = window.jspdf;
+            const yr  = (typeof state !== 'undefined' && state.selectedYear) ? state.selectedYear : new Date().getFullYear();
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            const PW  = doc.internal.pageSize.getWidth();
+            const PH  = doc.internal.pageSize.getHeight();
+            const MID_GREEN = [46, 125, 50];
+            const LT_GREEN  = [232, 245, 233];
+            const HDR_GREEN = [27, 94, 32];
+            const SUB_TXT   = [100, 100, 100];
+            let isFirstPage = true;
+
+            const allProjects = (typeof state !== 'undefined' && state.projects) ? state.projects : [];
+            const ENV_MONTHS_LIST = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            const REGIONS_LIST    = ['CORPORATE','PLANT OPERATIONS','NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+
+            const TAB_TITLES = {
+                elec: 'ENVIRONMENTAL MONITORING — Electricity',
+                water: 'ENVIRONMENTAL MONITORING — Water',
+                waste: 'ENVIRONMENTAL MONITORING — Waste',
+                appl: 'ENVIRONMENTAL MONITORING — Appliances',
+                fuel: 'ENVIRONMENTAL MONITORING — Fuel',
+            };
+
+            // ── Helper: draw overall summary banner + cards ──────────────
+            function drawSummarySection(y, cards, regionRows, tabKey) {
+                const W = doc.internal.pageSize.getWidth();
+                // Green banner
+                doc.setFillColor(46, 125, 50);
+                doc.roundedRect(_PML, y, W - _PML - _PMR, 14, 2, 2, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(255, 255, 255);
+                doc.text('OVERALL SUMMARY', _PML + 6, y + 6);
+                doc.setFont('helvetica','normal'); doc.setFontSize(8);
+                doc.setTextColor(200, 230, 200);
+                doc.text('Report Year: ' + yr + '  |  All Regions & Projects  |  ' + _today(), _PML + 6, y + 12);
+                y += 18;
+
+                // Stat cards
+                const cardW = (W - _PML - _PMR - (cards.length - 1) * 3) / cards.length;
+                cards.forEach((c, i) => {
+                    const cx = _PML + i * (cardW + 3);
+                    doc.setFillColor(c.bg[0], c.bg[1], c.bg[2]);
+                    doc.roundedRect(cx, y, cardW, 18, 2, 2, 'F');
+                    doc.setDrawColor(200, 230, 200); doc.setLineWidth(0.3);
+                    doc.roundedRect(cx, y, cardW, 18, 2, 2, 'S');
+                    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(100, 100, 100);
+                    doc.text(c.label, cx + cardW / 2, y + 6, { align: 'center' });
+                    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(c.tc[0], c.tc[1], c.tc[2]);
+                    doc.text(c.value, cx + cardW / 2, y + 15, { align: 'center' });
+                });
+                y += 22;
+
+                // Region summary table
+                doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(27, 94, 32);
+                doc.text('SUMMARY BY REGION', _PML, y); y += 4;
+                return y;
+            }
+
+            // ── Helper: region section title bar ─────────────────────────────
+            function drawRegionBar(y, regionName) {
+                doc.setFillColor(...MID_GREEN);
+                doc.rect(_PML, y, PW - _PML - _PMR, 7, 'F');
+                doc.setFontSize(8.5);
+                doc.setFont('helvetica','bold');
+                doc.setTextColor(255,255,255);
+                doc.text(regionName, _PML + 3, y + 5);
+                return y + 7;
+            }
+
+            // ── Helper: add new section page ─────────────────────────────────
+            function newSectionPage(tabKey) {
+                doc.addPage();
+                _pdfHeader(doc, TAB_TITLES[tabKey], yr);
+                _pdfFooter(doc);
+                return _HEADER_H + 4;
+            }
+
+            function ensureSpace(curY, needed, tabKey) {
+                if (curY + needed > PH - 14) {
+                    return newSectionPage(tabKey);
+                }
+                return curY;
+            }
+
+            // ════════════════════════════════════════════════════════
+            //  TAB 1 — ELECTRICITY
+            // ════════════════════════════════════════════════════════
+            if (selected.includes('elec')) {
+                if (!isFirstPage) doc.addPage(); else isFirstPage = false;
+                _pdfHeader(doc, TAB_TITLES['elec'], yr);
+                _pdfFooter(doc);
+                let y = _HEADER_H + 4;
+
+                // Overall summary
+                {
+                    const allElec = window._envData || [];
+                    const gtKwh   = allElec.reduce((s,r)=>s+(r.kwh||0),0);
+                    const gtAmt   = allElec.reduce((s,r)=>s+(r.amount||0),0);
+                    const gtGhg   = allElec.reduce((s,r)=>s+(r.ghg||0),0);
+                    const gtTree  = allElec.reduce((s,r)=>s+(r.trees||0),0);
+                    const elecCards = [
+                        { label:'Total kWh',        value: gtKwh.toLocaleString(undefined,{maximumFractionDigits:2}),  bg:[232,245,233], tc:[27,94,32] },
+                        { label:'Total Amount (Php)',value: gtAmt.toLocaleString(undefined,{maximumFractionDigits:2}),  bg:[232,245,233], tc:[27,94,32] },
+                        { label:'Total GHG (tCO2)',  value: gtGhg.toFixed(4),                                          bg:[232,245,233], tc:[46,125,50] },
+                        { label:'Offset (Trees)',    value: gtTree.toFixed(4),                                         bg:[232,245,233], tc:[27,94,32] },
+                    ];
+                    y = ensureSpace(y, 60, 'elec');
+                    y = drawSummarySection(y, elecCards, allElec, 'elec');
+                    // Region summary table
+                    const elecRegBody = REGIONS_LIST.map(reg => {
+                        const rRows = allElec.filter(r=>r.region===reg);
+                        if (!rRows.length) return null;
+                        return [ reg,
+                            rRows.reduce((s,r)=>s+(r.kwh||0),0).toLocaleString(undefined,{maximumFractionDigits:2}),
+                            rRows.reduce((s,r)=>s+(r.amount||0),0).toLocaleString(undefined,{maximumFractionDigits:2}),
+                            rRows.reduce((s,r)=>s+(r.ghg||0),0).toFixed(4),
+                            rRows.reduce((s,r)=>s+(r.trees||0),0).toFixed(4),
+                        ];
+                    }).filter(Boolean);
+                    doc.autoTable({
+                        startY: y, head:[['Region','kWh','Amount (Php)','GHG (tCO2)','Offset (Trees)']],
+                        body: elecRegBody, margin:{ left:_PML, right:_PMR, bottom:14 },
+                        styles:{ fontSize:8, cellPadding:3, halign:'center', lineColor:[200,230,200], lineWidth:0.2 },
+                        headStyles:{ fillColor:[27,94,32], textColor:255, fontStyle:'bold', fontSize:8 },
+                        columnStyles:{ 0:{halign:'left',fontStyle:'bold',cellWidth:60}, 1:{halign:'right'}, 2:{halign:'right'}, 3:{halign:'right'}, 4:{halign:'right'} },
+                        didDrawPage: d => { if(d.pageNumber>1){_pdfHeader(doc,TAB_TITLES['elec'],yr);} _pdfFooter(doc); }
+                    });
+                    y = doc.lastAutoTable.finalY + 10;
+                }
+
+                REGIONS_LIST.forEach(region => {
+                    const regionProjs = allProjects.filter(p => p.region === region);
+                    if (!regionProjs.length) return;
+                    const regionRows = (window._envData || []).filter(r => r.region === region);
+                    if (!regionRows.length) return;
+
+                    y = ensureSpace(y, 20, 'elec');
+                    y = drawRegionBar(y, region);
+
+                    regionProjs.forEach(proj => {
+                        const projRows = regionRows.filter(r => r.project === proj.name);
+                        if (!projRows.length) return;
+                        y = ensureSpace(y, 16, 'elec');
+
+                        // Project sub-header
+                        doc.setFillColor(...LT_GREEN);
+                        doc.rect(10, y, PW - 20, 6, 'F');
+                        doc.setFontSize(7.5);
+                        doc.setFont('helvetica','bold');
+                        doc.setTextColor(...HDR_GREEN);
+                        doc.text(proj.name, 13, y + 4.3);
+                        y += 6;
+
+                        // Group rows by month
+                        const tableBody = [];
+                        ENV_MONTHS_LIST.forEach(month => {
+                            const mRows = projRows.filter(r => r.month === month);
+                            mRows.forEach((r, i) => {
+                                tableBody.push([
+                                    i === 0 ? month : '',
+                                    r.location || '—',
+                                    (r.kwh||0).toLocaleString(undefined,{maximumFractionDigits:2}),
+                                    (r.amount||0).toLocaleString(undefined,{maximumFractionDigits:2}),
+                                    (r.ghg||0).toFixed(4),
+                                    (r.trees||0).toFixed(4),
+                                ]);
+                            });
+                        });
+                        // Totals row
+                        const tKwh   = projRows.reduce((s,r)=>s+(r.kwh||0),0);
+                        const tAmt   = projRows.reduce((s,r)=>s+(r.amount||0),0);
+                        const tGhg   = projRows.reduce((s,r)=>s+(r.ghg||0),0);
+                        const tTrees = projRows.reduce((s,r)=>s+(r.trees||0),0);
+                        tableBody.push(['TOTAL','',tKwh.toLocaleString(undefined,{maximumFractionDigits:2}),tAmt.toLocaleString(undefined,{maximumFractionDigits:2}),tGhg.toFixed(4),tTrees.toFixed(4)]);
+
+                        doc.autoTable({
+                            startY: y,
+                            head: [['Month','Office/Building','kWh','Amount (Php)','GHG (tCO2)','Offset (Trees)']],
+                            body: tableBody,
+                            margin: { left: 10, right: 10 },
+                            styles: { fontSize: 7, cellPadding: 2, halign: 'center', valign: 'middle', lineColor:[200,230,200], lineWidth: 0.2 },
+                            headStyles: { fillColor: [78,160,82], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
+                            columnStyles: {
+                                0: { cellWidth: 24, fontStyle: 'bold', fillColor: [241,248,233] },
+                                1: { cellWidth: 52 },
+                                2: { halign: 'right' },
+                                3: { halign: 'right' },
+                                4: { halign: 'right' },
+                                5: { halign: 'right' },
+                            },
+                            didParseCell: function(data) {
+                                if (data.row.index === tableBody.length - 1) {
+                                    data.cell.styles.fontStyle = 'bold';
+                                    data.cell.styles.fillColor = LT_GREEN;
+                                    data.cell.styles.textColor = HDR_GREEN;
+                                }
+                            },
+                        });
+                        y = doc.lastAutoTable.finalY + 4;
+                    });
+                    y += 3;
+                });
+            }
+
+            // ════════════════════════════════════════════════════════
+            //  TAB 2 — WATER
+            // ════════════════════════════════════════════════════════
+            if (selected.includes('water')) {
+                if (!isFirstPage) doc.addPage(); else isFirstPage = false;
+                _pdfHeader(doc, TAB_TITLES['water'], yr);
+                _pdfFooter(doc);
+                let y = _HEADER_H + 4;
+
+                // Overall summary
+                {
+                    const allWater = window._waterData || [];
+                    const gtDomM3  = allWater.reduce((s,r)=>s+(r.domM3||0),0);
+                    const gtPotLit = allWater.reduce((s,r)=>s+(r.potLit||0),0);
+                    const gtIndM3  = allWater.reduce((s,r)=>s+(r.indM3||0),0);
+                    const gtWAmt   = allWater.reduce((s,r)=>s+(r.domAmt||0)+(r.potAmt||0)+(r.indAmt||0),0);
+                    const waterCards = [
+                        { label:'Domestic (m3)',    value: gtDomM3.toLocaleString(undefined,{maximumFractionDigits:3}),  bg:[232,245,233], tc:[27,94,32] },
+                        { label:'Potable (L)',       value: gtPotLit.toLocaleString(undefined,{maximumFractionDigits:3}), bg:[232,245,233], tc:[27,94,32] },
+                        { label:'Industrial (m3)',   value: gtIndM3.toLocaleString(undefined,{maximumFractionDigits:3}),  bg:[232,245,233], tc:[46,125,50] },
+                        { label:'Total Amount (Php)',value: gtWAmt.toLocaleString(undefined,{maximumFractionDigits:2}),   bg:[232,245,233], tc:[27,94,32] },
+                    ];
+                    y = ensureSpace(y, 60, 'water');
+                    y = drawSummarySection(y, waterCards, allWater, 'water');
+                    const waterRegBody = REGIONS_LIST.map(reg => {
+                        const rRows = allWater.filter(r=>r.region===reg);
+                        if (!rRows.length) return null;
+                        return [ reg,
+                            rRows.reduce((s,r)=>s+(r.domM3||0),0).toLocaleString(undefined,{maximumFractionDigits:3}),
+                            rRows.reduce((s,r)=>s+(r.potLit||0),0).toLocaleString(undefined,{maximumFractionDigits:3}),
+                            rRows.reduce((s,r)=>s+(r.indM3||0),0).toLocaleString(undefined,{maximumFractionDigits:3}),
+                            (rRows.reduce((s,r)=>s+(r.domAmt||0)+(r.potAmt||0)+(r.indAmt||0),0)).toLocaleString(undefined,{maximumFractionDigits:2}),
+                        ];
+                    }).filter(Boolean);
+                    doc.autoTable({
+                        startY: y, head:[['Region','Domestic (m3)','Potable (L)','Industrial (m3)','Total Amt (Php)']],
+                        body: waterRegBody, margin:{ left:_PML, right:_PMR, bottom:14 },
+                        styles:{ fontSize:8, cellPadding:3, halign:'center', lineColor:[200,230,200], lineWidth:0.2 },
+                        headStyles:{ fillColor:[27,94,32], textColor:255, fontStyle:'bold', fontSize:8 },
+                        columnStyles:{ 0:{halign:'left',fontStyle:'bold',cellWidth:60}, 1:{halign:'right'}, 2:{halign:'right'}, 3:{halign:'right'}, 4:{halign:'right'} },
+                        didDrawPage: d => { if(d.pageNumber>1){_pdfHeader(doc,TAB_TITLES['water'],yr);} _pdfFooter(doc); }
+                    });
+                    y = doc.lastAutoTable.finalY + 10;
+                }
+
+                REGIONS_LIST.forEach(region => {
+                    const regionProjs = allProjects.filter(p => p.region === region);
+                    if (!regionProjs.length) return;
+                    const regionRows = (window._waterData || []).filter(r => r.region === region);
+                    if (!regionRows.length) return;
+
+                    y = ensureSpace(y, 20, 'water');
+                    y = drawRegionBar(y, region);
+
+                    regionProjs.forEach(proj => {
+                        const projRows = regionRows.filter(r => r.project === proj.name);
+                        if (!projRows.length) return;
+                        y = ensureSpace(y, 16, 'water');
+
+                        doc.setFillColor(...LT_GREEN);
+                        doc.rect(10, y, PW - 20, 6, 'F');
+                        doc.setFontSize(7.5);
+                        doc.setFont('helvetica','bold');
+                        doc.setTextColor(...HDR_GREEN);
+                        doc.text(proj.name, 13, y + 4.3);
+                        y += 6;
+
+                        const tableBody = [];
+                        ENV_MONTHS_LIST.forEach(month => {
+                            const mRows = projRows.filter(r => r.month === month);
+                            mRows.forEach((r, i) => {
+                                tableBody.push([
+                                    i === 0 ? month : '',
+                                    (r.domM3||0).toLocaleString(undefined,{maximumFractionDigits:3}),
+                                    (r.domAmt||0).toLocaleString(undefined,{maximumFractionDigits:2}),
+                                    (r.potLit||0).toLocaleString(undefined,{maximumFractionDigits:3}),
+                                    (r.potAmt||0).toLocaleString(undefined,{maximumFractionDigits:2}),
+                                    (r.indM3||0).toLocaleString(undefined,{maximumFractionDigits:3}),
+                                    (r.indAmt||0).toLocaleString(undefined,{maximumFractionDigits:2}),
+                                ]);
+                            });
+                        });
+                        const tDomM3  = projRows.reduce((s,r)=>s+(r.domM3||0),0);
+                        const tDomAmt = projRows.reduce((s,r)=>s+(r.domAmt||0),0);
+                        const tPotLit = projRows.reduce((s,r)=>s+(r.potLit||0),0);
+                        const tPotAmt = projRows.reduce((s,r)=>s+(r.potAmt||0),0);
+                        const tIndM3  = projRows.reduce((s,r)=>s+(r.indM3||0),0);
+                        const tIndAmt = projRows.reduce((s,r)=>s+(r.indAmt||0),0);
+                        tableBody.push(['TOTAL',tDomM3.toLocaleString(undefined,{maximumFractionDigits:3}),tDomAmt.toLocaleString(undefined,{maximumFractionDigits:2}),tPotLit.toLocaleString(undefined,{maximumFractionDigits:3}),tPotAmt.toLocaleString(undefined,{maximumFractionDigits:2}),tIndM3.toLocaleString(undefined,{maximumFractionDigits:3}),tIndAmt.toLocaleString(undefined,{maximumFractionDigits:2})]);
+
+                        doc.autoTable({
+                            startY: y,
+                            head: [['Month','Dom. (m³)','Dom. Amt (Php)','Potable (L)','Pot. Amt (Php)','Ind. (m³)','Ind. Amt (Php)']],
+                            body: tableBody,
+                            margin: { left: 10, right: 10 },
+                            styles: { fontSize: 7, cellPadding: 2, halign: 'center', valign: 'middle', lineColor:[200,230,200], lineWidth: 0.2 },
+                            headStyles: { fillColor: [78,160,82], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
+                            columnStyles: {
+                                0: { cellWidth: 24, fontStyle: 'bold', fillColor: [241,248,233] },
+                                1: { halign: 'right' }, 2: { halign: 'right' },
+                                3: { halign: 'right' }, 4: { halign: 'right' },
+                                5: { halign: 'right' }, 6: { halign: 'right' },
+                            },
+                            didParseCell: function(data) {
+                                if (data.row.index === tableBody.length - 1) {
+                                    data.cell.styles.fontStyle = 'bold';
+                                    data.cell.styles.fillColor = LT_GREEN;
+                                    data.cell.styles.textColor = HDR_GREEN;
+                                }
+                            },
+                        });
+                        y = doc.lastAutoTable.finalY + 4;
+                    });
+                    y += 3;
+                });
+            }
+
+            // ════════════════════════════════════════════════════════
+            //  TAB 3 — WASTE
+            // ════════════════════════════════════════════════════════
+            if (selected.includes('waste')) {
+                if (!isFirstPage) doc.addPage(); else isFirstPage = false;
+                _pdfHeader(doc, TAB_TITLES['waste'], yr);
+                _pdfFooter(doc);
+                let y = _HEADER_H + 4;
+
+                const wData = window._wasteData || [];
+                // Overall summary
+                {
+                    const gtBioGen  = wData.reduce((s,r)=>s+(r.bioGen||0),0);
+                    const gtNonbio  = wData.reduce((s,r)=>s+(r.nonbioGen||0),0);
+                    const gtRec     = wData.reduce((s,r)=>s+(r.recGen||0),0);
+                    const gtHaz     = wData.reduce((s,r)=>s+(r.hazGen||0),0);
+                    const gtSeptage = wData.reduce((s,r)=>s+(r.septage||0),0);
+                    const wasteCards = [
+                        { label:'Bio-degradable (kg)', value: gtBioGen.toFixed(4),  bg:[232,245,233], tc:[27,94,32] },
+                        { label:'Non-biodegradable',   value: gtNonbio.toFixed(4),  bg:[232,245,233], tc:[27,94,32] },
+                        { label:'Recyclable (kg)',      value: gtRec.toFixed(4),     bg:[232,245,233], tc:[46,125,50] },
+                        { label:'Hazardous (kg)',       value: gtHaz.toFixed(4),     bg:gtHaz>0?[255,235,238]:[232,245,233], tc:gtHaz>0?[183,28,28]:[27,94,32] },
+                        { label:'Septage (kg)',         value: gtSeptage.toFixed(4), bg:[232,245,233], tc:[27,94,32] },
+                    ];
+                    y = ensureSpace(y, 60, 'waste');
+                    y = drawSummarySection(y, wasteCards, wData, 'waste');
+                    const wasteRegBody = REGIONS_LIST.map(reg => {
+                        const rRows = wData.filter(r=>r.region===reg);
+                        if (!rRows.length) return null;
+                        return [ reg,
+                            rRows.reduce((s,r)=>s+(r.bioGen||0),0).toFixed(4),
+                            rRows.reduce((s,r)=>s+(r.nonbioGen||0),0).toFixed(4),
+                            rRows.reduce((s,r)=>s+(r.recGen||0),0).toFixed(4),
+                            rRows.reduce((s,r)=>s+(r.hazGen||0),0).toFixed(4),
+                            rRows.reduce((s,r)=>s+(r.septage||0),0).toFixed(4),
+                        ];
+                    }).filter(Boolean);
+                    doc.autoTable({
+                        startY: y, head:[['Region','Bio-degrad.','Non-biodeg.','Recyclable','Hazardous','Septage']],
+                        body: wasteRegBody, margin:{ left:_PML, right:_PMR, bottom:14 },
+                        styles:{ fontSize:8, cellPadding:3, halign:'center', lineColor:[200,230,200], lineWidth:0.2 },
+                        headStyles:{ fillColor:[27,94,32], textColor:255, fontStyle:'bold', fontSize:8 },
+                        columnStyles:{ 0:{halign:'left',fontStyle:'bold',cellWidth:55}, 1:{halign:'right'}, 2:{halign:'right'}, 3:{halign:'right'}, 4:{halign:'right'}, 5:{halign:'right'} },
+                        didDrawPage: d => { if(d.pageNumber>1){_pdfHeader(doc,TAB_TITLES['waste'],yr);} _pdfFooter(doc); }
+                    });
+                    y = doc.lastAutoTable.finalY + 10;
+                }
+
+                REGIONS_LIST.forEach(region => {
+                    const regionProjs = allProjects.filter(p => p.region === region);
+                    if (!regionProjs.length) return;
+                    const regionRows = wData.filter(r => r.region === region);
+                    if (!regionRows.length) return;
+
+                    y = ensureSpace(y, 20, 'waste');
+                    y = drawRegionBar(y, region);
+
+                    regionProjs.forEach(proj => {
+                        const projRows = regionRows.filter(r => r.project === proj.name);
+                        if (!projRows.length) return;
+                        y = ensureSpace(y, 16, 'waste');
+
+                        doc.setFillColor(...LT_GREEN);
+                        doc.rect(10, y, PW - 20, 6, 'F');
+                        doc.setFontSize(7.5);
+                        doc.setFont('helvetica','bold');
+                        doc.setTextColor(...HDR_GREEN);
+                        doc.text(proj.name, 13, y + 4.3);
+                        y += 6;
+
+                        const tableBody = [];
+                        ENV_MONTHS_LIST.forEach(month => {
+                            const mRows = projRows.filter(r => r.month === month);
+                            mRows.forEach((r, i) => {
+                                tableBody.push([
+                                    i === 0 ? month : '',
+                                    r.location || '—',
+                                    (r.bioGen||0).toFixed(4),
+                                    (r.bioDisp||0).toFixed(4),
+                                    (r.nonbioGen||0).toFixed(4),
+                                    (r.nonbioDisp||0).toFixed(4),
+                                    (r.recGen||0).toFixed(4),
+                                    (r.hazGen||0).toFixed(4),
+                                    (r.hazDisp||0).toFixed(4),
+                                    (r.septage||0).toFixed(4),
+                                ]);
+                            });
+                        });
+                        const tot = (f) => projRows.reduce((s,r)=>s+(r[f]||0),0);
+                        tableBody.push(['TOTAL','',tot('bioGen').toFixed(4),tot('bioDisp').toFixed(4),tot('nonbioGen').toFixed(4),tot('nonbioDisp').toFixed(4),tot('recGen').toFixed(4),tot('hazGen').toFixed(4),tot('hazDisp').toFixed(4),tot('septage').toFixed(4)]);
+
+                        doc.autoTable({
+                            startY: y,
+                            head: [['Month','Location','Bio Gen','Bio Disp','Non-Bio Gen','Non-Bio Disp','Rec. Gen','Haz Gen','Haz Disp','Septage']],
+                            body: tableBody,
+                            margin: { left: 10, right: 10 },
+                            styles: { fontSize: 6.5, cellPadding: 1.8, halign: 'center', valign: 'middle', lineColor:[200,230,200], lineWidth: 0.2 },
+                            headStyles: { fillColor: [78,160,82], textColor: 255, fontStyle: 'bold', fontSize: 7 },
+                            columnStyles: {
+                                0: { cellWidth: 22, fontStyle: 'bold', fillColor: [241,248,233] },
+                                1: { cellWidth: 30 },
+                                2: { halign: 'right' }, 3: { halign: 'right' },
+                                4: { halign: 'right' }, 5: { halign: 'right' },
+                                6: { halign: 'right' }, 7: { halign: 'right' },
+                                8: { halign: 'right' }, 9: { halign: 'right' },
+                            },
+                            didParseCell: function(data) {
+                                if (data.row.index === tableBody.length - 1) {
+                                    data.cell.styles.fontStyle = 'bold';
+                                    data.cell.styles.fillColor = LT_GREEN;
+                                    data.cell.styles.textColor = HDR_GREEN;
+                                }
+                            },
+                        });
+                        y = doc.lastAutoTable.finalY + 4;
+                    });
+                    y += 3;
+                });
+            }
+
+            // ════════════════════════════════════════════════════════
+            //  TAB 4 — APPLIANCES
+            // ════════════════════════════════════════════════════════
+            if (selected.includes('appl')) {
+                if (!isFirstPage) doc.addPage(); else isFirstPage = false;
+                _pdfHeader(doc, TAB_TITLES['appl'], yr);
+                _pdfFooter(doc);
+                let y = _HEADER_H + 4;
+
+                const APPL_FIELDS_SNAP   = typeof APPL_FIELDS !== 'undefined' ? APPL_FIELDS : [];
+                const APPL_SEC_META_SNAP = typeof APPL_SECTION_META !== 'undefined' ? APPL_SECTION_META : {};
+                const APPL_MONS_SNAP     = typeof APPL_MONTHS !== 'undefined' ? APPL_MONTHS : ENV_MONTHS_LIST;
+                const applData           = (typeof appliancesData !== 'undefined') ? appliancesData : {};
+
+                // Overall summary
+                {
+                    const allVals = Object.values(applData);
+                    const secTotals = { A: 0, A1: 0, B: 0, C: 0 };
+                    allVals.forEach(entry => {
+                        APPL_FIELDS_SNAP.forEach(f => { secTotals[f.section] = (secTotals[f.section]||0) + (parseFloat(entry[f.id])||0); });
+                    });
+                    const totalItems = Object.values(secTotals).reduce((s,v)=>s+v,0);
+                    const applCards = [
+                        { label:'Total Items (All)',        value: totalItems.toLocaleString(), bg:[232,245,233], tc:[27,94,32] },
+                        { label:'Section A — Electrical',   value: secTotals['A'].toLocaleString(), bg:[232,245,233], tc:[27,94,32] },
+                        { label:'Section A1 — Aircon',      value: secTotals['A1'].toLocaleString(), bg:[232,245,233], tc:[46,125,50] },
+                        { label:'Section B — IT/Other',     value: secTotals['B'].toLocaleString(), bg:[232,245,233], tc:[27,94,32] },
+                        { label:'Section C — Lighting',     value: secTotals['C'].toLocaleString(), bg:[232,245,233], tc:[27,94,32] },
+                    ];
+                    y = ensureSpace(y, 60, 'appl');
+                    y = drawSummarySection(y, applCards, allVals, 'appl');
+                    y += 4;
+                }
+
+                function applKeyFn(region, projName, month, building) {
+                    const b = (building || 'Main Building').trim();
+                    return (region + ':' + projName + ':' + month + ':' + b).replace(/[^a-z0-9:]/gi,'_');
+                }
+
+                REGIONS_LIST.forEach(region => {
+                    const regionProjs = allProjects.filter(p => p.region === region);
+                    if (!regionProjs.length) return;
+
+                    const hasData = regionProjs.some(proj =>
+                        APPL_MONS_SNAP.some(month =>
+                            Object.keys(applData).some(k => k.startsWith(applKeyFn(region, proj.name, month, 'Main Building').split(':').slice(0,2).join(':')))
+                        )
+                    );
+                    if (!hasData) return;
+
+                    y = ensureSpace(y, 20, 'appl');
+                    y = drawRegionBar(y, region);
+
+                    regionProjs.forEach(proj => {
+                        // Collect all keys for this project
+                        const projKeyPrefix = applKeyFn(region, proj.name, '', '').replace(/::/g,':').split(':').slice(0,2).join('_').replace(/[^a-z0-9_]/gi,'_').toLowerCase() + '_';
+                        const projKeys = Object.keys(applData).filter(k => {
+                            const normalized = k.toLowerCase();
+                            const prefixNorm = (region + ':' + proj.name).replace(/[^a-z0-9:]/gi,'_').toLowerCase();
+                            return normalized.startsWith(prefixNorm.replace(/:/g,'_') + '_') || normalized.startsWith(prefixNorm + '_');
+                        });
+                        if (!projKeys.length) return;
+
+                        y = ensureSpace(y, 16, 'appl');
+                        doc.setFillColor(...LT_GREEN);
+                        doc.rect(10, y, PW - 20, 6, 'F');
+                        doc.setFontSize(7.5);
+                        doc.setFont('helvetica','bold');
+                        doc.setTextColor(...HDR_GREEN);
+                        doc.text(proj.name, 13, y + 4.3);
+                        y += 6;
+
+                        // Build one summary table: Item | total qty across all months/buildings
+                        const sectionOrder = ['A','A1','B','C'];
+                        sectionOrder.forEach(sec => {
+                            const secFields = APPL_FIELDS_SNAP.filter(f => f.section === sec);
+                            if (!secFields.length) return;
+                            const secMeta = APPL_SEC_META_SNAP[sec] || { label: 'Section ' + sec };
+
+                            // Sum values across all keys for this project
+                            const tableBody = secFields.map(field => {
+                                const total = projKeys.reduce((sum, k) => sum + ((applData[k] && applData[k][field.id]) ? parseFloat(applData[k][field.id]) || 0 : 0), 0);
+                                return [field.label, total > 0 ? total.toLocaleString(undefined,{maximumFractionDigits:2}) : '—'];
+                            }).filter(row => row[1] !== '—');
+
+                            if (!tableBody.length) return;
+
+                            y = ensureSpace(y, 14 + tableBody.length * 5.5, 'appl');
+
+                            // Section label
+                            doc.setFontSize(7);
+                            doc.setFont('helvetica','bold');
+                            doc.setTextColor(...SUB_TXT);
+                            doc.text(secMeta.label, 13, y + 3.5);
+                            y += 5;
+
+                            doc.autoTable({
+                                startY: y,
+                                head: [['Appliance / Equipment', 'Qty / Count']],
+                                body: tableBody,
+                                margin: { left: 13, right: 13 },
+                                tableWidth: 100,
+                                styles: { fontSize: 7, cellPadding: 2, valign: 'middle', lineColor:[200,230,200], lineWidth: 0.2 },
+                                headStyles: { fillColor: [78,160,82], textColor: 255, fontStyle: 'bold', fontSize: 7 },
+                                columnStyles: {
+                                    0: { cellWidth: 75 },
+                                    1: { halign: 'center', cellWidth: 25 },
+                                },
+                            });
+                            y = doc.lastAutoTable.finalY + 3;
+                        });
+                        y += 2;
+                    });
+                    y += 3;
+                });
+            }
+
+            // ════════════════════════════════════════════════════════
+            //  TAB 5 — FUEL
+            // ════════════════════════════════════════════════════════
+            if (selected.includes('fuel')) {
+                if (!isFirstPage) doc.addPage(); else isFirstPage = false;
+                _pdfHeader(doc, TAB_TITLES['fuel'], yr);
+                _pdfFooter(doc);
+                let y = _HEADER_H + 4;
+
+                const fData = (typeof fuelData !== 'undefined') ? fuelData : [];
+                // Overall summary
+                {
+                    const gtDiesel = fData.reduce((s,r)=>s+(r.dieselLit||0),0);
+                    const gtGas    = fData.reduce((s,r)=>s+(r.gasLit||0),0);
+                    const gtFGhg   = fData.reduce((s,r)=>s+(r.ghg||0),0);
+                    const fuelCards = [
+                        { label:'Total Diesel (L)',   value: gtDiesel.toLocaleString(undefined,{maximumFractionDigits:2}), bg:[232,245,233], tc:[27,94,32] },
+                        { label:'Total Gasoline (L)', value: gtGas.toLocaleString(undefined,{maximumFractionDigits:2}),    bg:[232,245,233], tc:[27,94,32] },
+                        { label:'Combined Fuel (L)',  value: (gtDiesel+gtGas).toLocaleString(undefined,{maximumFractionDigits:2}), bg:[232,245,233], tc:[46,125,50] },
+                        { label:'Total GHG (tCO2e)', value: gtFGhg.toFixed(4),                                             bg:[232,245,233], tc:[27,94,32] },
+                    ];
+                    y = ensureSpace(y, 60, 'fuel');
+                    y = drawSummarySection(y, fuelCards, fData, 'fuel');
+                    const fuelRegBody = REGIONS_LIST.map(reg => {
+                        const rRows = fData.filter(r=>r.region===reg);
+                        if (!rRows.length) return null;
+                        return [ reg,
+                            rRows.reduce((s,r)=>s+(r.dieselLit||0),0).toLocaleString(undefined,{maximumFractionDigits:2}),
+                            rRows.reduce((s,r)=>s+(r.gasLit||0),0).toLocaleString(undefined,{maximumFractionDigits:2}),
+                            rRows.reduce((s,r)=>s+(r.ghg||0),0).toFixed(4),
+                        ];
+                    }).filter(Boolean);
+                    doc.autoTable({
+                        startY: y, head:[['Region','Diesel (L)','Gasoline (L)','GHG (tCO2e)']],
+                        body: fuelRegBody, margin:{ left:_PML, right:_PMR, bottom:14 },
+                        styles:{ fontSize:8, cellPadding:3, halign:'center', lineColor:[200,230,200], lineWidth:0.2 },
+                        headStyles:{ fillColor:[27,94,32], textColor:255, fontStyle:'bold', fontSize:8 },
+                        columnStyles:{ 0:{halign:'left',fontStyle:'bold',cellWidth:70}, 1:{halign:'right'}, 2:{halign:'right'}, 3:{halign:'right'} },
+                        didDrawPage: d => { if(d.pageNumber>1){_pdfHeader(doc,TAB_TITLES['fuel'],yr);} _pdfFooter(doc); }
+                    });
+                    y = doc.lastAutoTable.finalY + 10;
+                }
+
+                REGIONS_LIST.forEach(region => {
+                    const regionProjs = allProjects.filter(p => p.region === region);
+                    if (!regionProjs.length) return;
+                    const regionRows = fData.filter(r => r.region === region);
+                    if (!regionRows.length) return;
+
+                    y = ensureSpace(y, 20, 'fuel');
+                    y = drawRegionBar(y, region);
+
+                    regionProjs.forEach(proj => {
+                        const projRows = regionRows.filter(r => r.project === proj.name);
+                        if (!projRows.length) return;
+                        y = ensureSpace(y, 16, 'fuel');
+
+                        doc.setFillColor(...LT_GREEN);
+                        doc.rect(10, y, PW - 20, 6, 'F');
+                        doc.setFontSize(7.5);
+                        doc.setFont('helvetica','bold');
+                        doc.setTextColor(...HDR_GREEN);
+                        doc.text(proj.name, 13, y + 4.3);
+                        y += 6;
+
+                        const tableBody = [];
+                        ENV_MONTHS_LIST.forEach(month => {
+                            const mRows = projRows.filter(r => r.month === month);
+                            mRows.forEach((r, i) => {
+                                tableBody.push([
+                                    i === 0 ? month : '',
+                                    (r.dieselLit||0).toLocaleString(undefined,{maximumFractionDigits:2}),
+                                    (r.gasLit||0).toLocaleString(undefined,{maximumFractionDigits:2}),
+                                    (r.ghg||0).toFixed(4),
+                                ]);
+                            });
+                        });
+                        const tDiesel = projRows.reduce((s,r)=>s+(r.dieselLit||0),0);
+                        const tGas    = projRows.reduce((s,r)=>s+(r.gasLit||0),0);
+                        const tGhg    = projRows.reduce((s,r)=>s+(r.ghg||0),0);
+                        tableBody.push(['TOTAL', tDiesel.toLocaleString(undefined,{maximumFractionDigits:2}), tGas.toLocaleString(undefined,{maximumFractionDigits:2}), tGhg.toFixed(4)]);
+
+                        doc.autoTable({
+                            startY: y,
+                            head: [['Month','Diesel (L)','Gasoline (L)','GHG (tCO2e)']],
+                            body: tableBody,
+                            margin: { left: 10, right: 10 },
+                            tableWidth: 130,
+                            styles: { fontSize: 7, cellPadding: 2, halign: 'center', valign: 'middle', lineColor:[200,230,200], lineWidth: 0.2 },
+                            headStyles: { fillColor: [78,160,82], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
+                            columnStyles: {
+                                0: { cellWidth: 28, fontStyle: 'bold', fillColor: [241,248,233] },
+                                1: { halign: 'right', cellWidth: 32 },
+                                2: { halign: 'right', cellWidth: 32 },
+                                3: { halign: 'right', cellWidth: 35 },
+                            },
+                            didParseCell: function(data) {
+                                if (data.row.index === tableBody.length - 1) {
+                                    data.cell.styles.fontStyle = 'bold';
+                                    data.cell.styles.fillColor = LT_GREEN;
+                                    data.cell.styles.textColor = HDR_GREEN;
+                                }
+                            },
+                        });
+                        y = doc.lastAutoTable.finalY + 4;
+                    });
+                    y += 3;
+                });
+            }
+
+            // ── Save ──────────────────────────────────────────────────────────
+            const tabLabels = { elec:'Electricity', water:'Water', waste:'Waste', appl:'Appliances', fuel:'Fuel' };
+            const selectedLabels = selected.map(t => tabLabels[t]).join('-');
+            const fname = `SCIC_EnvMonitoring_${selectedLabels}_${yr}.pdf`;
+            if (doc.putTotalPages) doc.putTotalPages('{total_pages}');
+            doc.save(fname);
+            window.closeEnvPdfModal();
+            if (typeof showToast === 'function') showToast('✅ PDF saved: ' + fname, 'success');
+
+        } catch(err) {
+            console.error('generateEnvPDF error:', err);
+            alert('Error generating PDF: ' + err.message);
+        } finally {
+            btn.innerHTML = origHtml;
+            btn.disabled  = false;
+        }
+    };
+
+    // Expose waterData for PDF
+    Object.defineProperty(window, '_waterData', { get: () => waterData, set: v => { waterData = v; }, configurable: true });
+    // ══════════════════════════════════════════════════════════════════════════
+
 
     // ── Water overall summary ──────────────────────────────────────────────────
     function waterUpdateSummary() {
