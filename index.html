@@ -13241,6 +13241,64 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     if (_kpmDate && _kpmDate !== '') filled++;
                 });
             }
+
+            // ── GOT Monitoring (Goals, Objectives & Targets) ─────────────────────
+            // 6 goals × 12 months; filled when a rating/value is entered for the month
+            const _GOT_GOALS = ['E1','E2','E3','S1','S2','S3'];
+            if (typeof window.gotGetCell === 'function') {
+                _GOT_GOALS.forEach(goalId => {
+                    for (let i = 1; i <= 12; i++) {
+                        if (isMonthBlacklisted(i)) continue;
+                        total += 1;
+                        const _gotVal = window.gotGetCell(proj, goalId, 0, i).r;
+                        if (_gotVal && _gotVal.toString().trim() !== '') filled++;
+                    }
+                });
+            }
+
+            // ── ESH Training Calendars (env, safety, health) ──────────────────────
+            // Each training row × each month = 1 slot; filled when actual date is entered.
+            // Rows marked N/A (via na_row key) are excluded from the current month onwards.
+            const _calYear  = selectedYear;
+            const _calStor  = (typeof getEshStorage === 'function') ? getEshStorage() : {};
+            const _ESH_CAL_TYPES = ['esh-calendar-env', 'esh-calendar-safety', 'esh-calendar-health'];
+            const _ESH_DEF_ROWS  = (typeof ESH_DEFAULT_ROWS !== 'undefined') ? ESH_DEFAULT_ROWS : {};
+
+            _ESH_CAL_TYPES.forEach(tt => {
+                const rows = _ESH_DEF_ROWS[tt] || [];
+                rows.forEach((_, ti) => {
+                    // Check N/A: na_row key stores the 0-based month index from which the row is N/A
+                    const naRowKey  = `${_calYear}|${tt}|${proj.name}|${ti}|na_row`;
+                    const naFrom    = _calStor[naRowKey] !== undefined ? parseInt(_calStor[naRowKey]) : -1;
+                    for (let mi = 0; mi < 12; mi++) {
+                        const monthIdx1 = mi + 1;
+                        if (isMonthBlacklisted(monthIdx1)) continue;
+                        if (naFrom >= 0 && mi >= naFrom) continue; // excluded by N/A
+                        total += 1;
+                        const actualKey = `${_calYear}|${tt}|${proj.name}|${ti}|${mi}|actual`;
+                        if (_calStor[actualKey] && _calStor[actualKey] !== '') filled++;
+                    }
+                });
+            });
+
+            // ── Emergency Drills ──────────────────────────────────────────────────
+            // Only count months where a GLOBAL_PLAN date exists for that drill.
+            // Filled when actual date is entered; N/A cells (na key = true) are skipped.
+            const _ESH_DRILLS_LIST = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
+            _ESH_DRILLS_LIST.forEach(drill => {
+                for (let mi = 0; mi < 12; mi++) {
+                    const monthIdx1 = mi + 1;
+                    if (isMonthBlacklisted(monthIdx1)) continue;
+                    const planKey = `${_calYear}|esh-calendar-drills|GLOBAL_PLAN|${drill.id}|${mi}|plan`;
+                    if (!_calStor[planKey]) continue; // not planned this month — don't count
+                    const naCellKey = `${_calYear}|esh-calendar-drills|${proj.name}|${drill.id}|${mi}|na`;
+                    if (_calStor[naCellKey]) continue; // marked N/A — skip
+                    total += 1;
+                    const actualKey = `${_calYear}|esh-calendar-drills|${proj.name}|${drill.id}|${mi}|actual`;
+                    if (_calStor[actualKey] && _calStor[actualKey] !== '') filled++;
+                }
+            });
+
             return total > 0 ? Math.round((filled / total) * 100) : 0;
         }
 
