@@ -14432,21 +14432,31 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
             const rows = {
-                fatality: new Array(14).fill(0), lta: new Array(14).fill(0),
-                firstAid: new Array(14).fill(0), medical: new Array(14).fill(0),
-                oshNov:   new Array(14).fill(0), envNov:  new Array(14).fill(0),
+                fatality:           new Array(14).fill(0), lta: new Array(14).fill(0),
+                firstAid:           new Array(14).fill(0), medical: new Array(14).fill(0),
+                highPotential:      new Array(14).fill(0),
+                dangerousOccurrence:new Array(14).fill(0),
+                oshNov:             new Array(14).fill(0), envNov: new Array(14).fill(0),
             };
             projs.forEach(p => {
                 if (!p.vals) return;
                 for (let i = 0; i <= 13; i++) {
-                    rows.fatality[i] += parseFloat(p.vals['medical_Fatality']?.[i]) || 0;
-                    rows.lta[i]      += parseFloat(p.vals['medical_LTA']?.[i]) || 0;
-                    rows.firstAid[i] += parseFloat(p.vals['medical_First Aid']?.[i]) || 0;
-                    rows.medical[i]  += parseFloat(p.vals['medical_Medical Treatment']?.[i]) || 0;
+                    rows.fatality[i]            += parseFloat(p.vals['medical_Fatality']?.[i]) || 0;
+                    rows.lta[i]                 += parseFloat(p.vals['medical_LTA']?.[i]) || 0;
+                    rows.firstAid[i]            += parseFloat(p.vals['medical_First Aid']?.[i]) || 0;
+                    rows.medical[i]             += parseFloat(p.vals['medical_Medical Treatment']?.[i]) || 0;
+                    rows.highPotential[i]       += parseFloat(p.vals['medical_High-Potential incident']?.[i]) || 0;
+                    rows.dangerousOccurrence[i] += parseFloat(p.vals['medical_Dangerous Occurrences']?.[i]) || 0;
                 }
-                const oshNovs = [...(p.vals['osh-nov_external_novs'] || [])];
+                const oshNovs = [
+                    ...(p.vals['osh-nov_internal_novs'] || []),
+                    ...(p.vals['osh-nov_external_novs'] || []),
+                ];
                 oshNovs.forEach(nov => { const m = nov.dateIssued ? parseInt((nov.dateIssued+'').split('-')[1]) : null; if (m >= 1 && m <= 12) rows.oshNov[m]++; });
-                const envNovs = [...(p.vals['nov-env_external_novs'] || [])];
+                const envNovs = [
+                    ...(p.vals['nov-env_internal_novs'] || []),
+                    ...(p.vals['nov-env_external_novs'] || []),
+                ];
                 envNovs.forEach(nov => { const m = nov.dateIssued ? parseInt((nov.dateIssued+'').split('-')[1]) : null; if (m >= 1 && m <= 12) rows.envNov[m]++; });
             });
 
@@ -14461,8 +14471,10 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 buildRow('LTA', rows.lta),
                 buildRow('First Aid', rows.firstAid),
                 buildRow('Medical Treatment', rows.medical),
+                buildRow('High-Potential Incident', rows.highPotential),
+                buildRow('Dangerous Occurrences', rows.dangerousOccurrence),
                 buildRow('OSH Regulatory Issued NOV', rows.oshNov),
-                buildRow('External Environmental Incident (ENVI NOV)', rows.envNov),
+                buildRow('ENVI Regulatory Issued NOV', rows.envNov),
             ];
             const colCount = 16; // label + prev + 12mo + total + accum
             const grandTotal = new Array(colCount).fill(0);
@@ -14536,6 +14548,8 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                                     if (label.includes('fatality')) { d.cell.styles.textColor = [183, 28, 28]; d.cell.styles.fontStyle = 'bold'; }
                                     else if (label.includes('lta'))  { d.cell.styles.textColor = [56, 142, 60]; d.cell.styles.fontStyle = 'bold'; }
                                     else if (label.includes('medical')) { d.cell.styles.textColor = [230, 81, 0]; }
+                                    else if (label.includes('high-potential')) { d.cell.styles.textColor = [156, 39, 176]; d.cell.styles.fontStyle = 'bold'; }
+                                    else if (label.includes('dangerous')) { d.cell.styles.textColor = [230, 81, 0]; d.cell.styles.fontStyle = 'bold'; }
                                 }
                             }
                             if (d.column.index === 14 || d.column.index === 15) {
@@ -14668,13 +14682,21 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             ];
             const subCounts = {};
             FACTOR_STRUCTURE.forEach(([, sub]) => { subCounts[sub] = new Array(13).fill(0); });
+            const FACTOR_CATS_PDF = ['PEOPLE','EQUIPMENT','MATERIALS','ENVIRONMENT','ORGANIZATIONAL'];
             projs.forEach(p => {
                 const entries = p.vals?.['lta-registry_entries'] || [];
                 entries.forEach(e => {
-                    const sub = e.factorSubItem;
-                    if (!sub || !subCounts[sub]) return;
                     const mo = e.dateOfAccident ? new Date(e.dateOfAccident).getMonth() + 1 : null;
-                    if (mo >= 1 && mo <= 12) subCounts[sub][mo]++;
+                    if (!mo || mo < 1 || mo > 12) return;
+                    // Read from factor_CATEGORY arrays (current multi-select UI)
+                    FACTOR_CATS_PDF.forEach(cat => {
+                        const arr = e['factor_' + cat];
+                        if (Array.isArray(arr)) {
+                            arr.forEach(sub => { if (sub && subCounts[sub] !== undefined) subCounts[sub][mo]++; });
+                        }
+                    });
+                    // Fallback: legacy single factorSubItem field
+                    if (e.factorSubItem && subCounts[e.factorSubItem] !== undefined) subCounts[e.factorSubItem][mo]++;
                 });
             });
             const factMonthTotals = Array.from({ length: 12 }, (_, i) => FACTOR_STRUCTURE.reduce((s, [, sub]) => s + subCounts[sub][i + 1], 0));
@@ -19004,6 +19026,7 @@ function computeFactorsFromLta(projects) {
         ['',              'Failure to Maintain Equipment'],
     ];
     const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const FACTOR_CATS  = ['PEOPLE','EQUIPMENT','MATERIALS','ENVIRONMENT','ORGANIZATIONAL'];
 
     const subCounts = {};
     FACTOR_STRUCTURE.forEach(([,sub]) => { subCounts[sub] = new Array(13).fill(0); });
@@ -19011,10 +19034,23 @@ function computeFactorsFromLta(projects) {
     (projects || []).forEach(p => {
         const entries = p.vals?.['lta-registry_entries'] || [];
         entries.forEach(e => {
-            const sub = e.factorSubItem;
-            if (!sub || !subCounts[sub]) return;
             const month = e.dateOfAccident ? new Date(e.dateOfAccident).getMonth() + 1 : null;
-            if (month >= 1 && month <= 12) subCounts[sub][month]++;
+            if (!month || month < 1 || month > 12) return;
+
+            // Read from factor_CATEGORY arrays (current multi-select UI)
+            FACTOR_CATS.forEach(cat => {
+                const arr = e['factor_' + cat];
+                if (Array.isArray(arr)) {
+                    arr.forEach(sub => {
+                        if (sub && subCounts[sub] !== undefined) subCounts[sub][month]++;
+                    });
+                }
+            });
+
+            // Fallback: legacy single factorSubItem field
+            if (e.factorSubItem && subCounts[e.factorSubItem] !== undefined) {
+                subCounts[e.factorSubItem][month]++;
+            }
         });
     });
 
@@ -19258,25 +19294,30 @@ function renderTabulation() {
         }
 
         const rows = {
-            fatality:    new Array(14).fill(0),
-            lta:         new Array(14).fill(0),
-            firstAid:    new Array(14).fill(0),
-            medical:     new Array(14).fill(0),
-            oshNov:      new Array(14).fill(0),
-            envNov:      new Array(14).fill(0),
+            fatality:           new Array(14).fill(0),
+            lta:                new Array(14).fill(0),
+            firstAid:           new Array(14).fill(0),
+            medical:            new Array(14).fill(0),
+            highPotential:      new Array(14).fill(0),
+            dangerousOccurrence:new Array(14).fill(0),
+            oshNov:             new Array(14).fill(0),
+            envNov:             new Array(14).fill(0),
         };
 
         projects.forEach(p => {
             if (!p.vals) return;
 
             for (let i = 0; i <= 13; i++) {
-                rows.fatality[i] += parseFloat(p.vals['medical_Fatality']?.[i]) || 0;
-                rows.lta[i]      += parseFloat(p.vals['medical_LTA']?.[i]) || 0;
-                rows.firstAid[i] += parseFloat(p.vals['medical_First Aid']?.[i]) || 0;
-                rows.medical[i]  += parseFloat(p.vals['medical_Medical Treatment']?.[i]) || 0;
+                rows.fatality[i]            += parseFloat(p.vals['medical_Fatality']?.[i]) || 0;
+                rows.lta[i]                 += parseFloat(p.vals['medical_LTA']?.[i]) || 0;
+                rows.firstAid[i]            += parseFloat(p.vals['medical_First Aid']?.[i]) || 0;
+                rows.medical[i]             += parseFloat(p.vals['medical_Medical Treatment']?.[i]) || 0;
+                rows.highPotential[i]       += parseFloat(p.vals['medical_High-Potential incident']?.[i]) || 0;
+                rows.dangerousOccurrence[i] += parseFloat(p.vals['medical_Dangerous Occurrences']?.[i]) || 0;
             }
 
             const oshNovs = [
+                ...(p.vals['osh-nov_internal_novs'] || []),
                 ...(p.vals['osh-nov_external_novs'] || []),
             ];
             oshNovs.forEach(nov => {
@@ -19285,6 +19326,7 @@ function renderTabulation() {
             });
 
             const envNovs = [
+                ...(p.vals['nov-env_internal_novs'] || []),
                 ...(p.vals['nov-env_external_novs'] || []),
             ];
             envNovs.forEach(nov => {
@@ -19313,8 +19355,10 @@ function renderTabulation() {
             buildRow('LTA', rows.lta),
             buildRow('First Aid', rows.firstAid),
             buildRow('Medical Treatment', rows.medical),
+            buildRow('High-Potential Incident', rows.highPotential),
+            buildRow('Dangerous Occurrences', rows.dangerousOccurrence),
             buildRow('OSH Regulatory Issued NOV', rows.oshNov),
-            buildRow('External Environmental Incident (ENVI NOV)', rows.envNov),
+            buildRow('ENVI Regulatory Issued NOV', rows.envNov),
         ];
 
         // totalRow layout (after slice(1) consumed by renderer):
