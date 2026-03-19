@@ -28042,6 +28042,7 @@ const PersonnelDB = {
             num:      person.num      || '',
             addr:     person.addr     || '',
             len:      person.len      || '',
+            oic:      person.oic      || false,
             toUpdate: Array.isArray(person.toUpdate) && person.toUpdate.length > 0 ? person.toUpdate : null,
             _updatedBy: state.currentUser?.email || '',
             _updatedAt: new Date().toISOString()
@@ -39526,27 +39527,25 @@ Do not include any other text, explanation, or markdown. JSON only.`
           text-align:center; margin-bottom:14px; letter-spacing:0.5px;"></div>
 
       <!-- Personnel section -->
-      <div id="os-modal-personnel" style="margin-bottom:14px; display:none;
-          background:#f0faf1; border:1.5px solid #c8e6c9; border-radius:10px; padding:11px 14px;">
-        <div style="font-size:0.65rem; font-weight:700; color:#1b5e20; text-transform:uppercase;
-            letter-spacing:0.4px; margin-bottom:8px;">ESH Personnel</div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <div id="os-modal-personnel" style="margin-bottom:8px; display:none;
+          background:#f0faf1; border:1.5px solid #c8e6c9; border-radius:8px; padding:6px 12px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
           <div id="os-modal-head-card" style="flex:1; min-width:140px; background:white;
-              border-radius:8px; padding:9px 12px; border:1px solid #e0f2e1; display:none;">
-            <div style="font-size:0.6rem; color:#888; font-weight:600; text-transform:uppercase;
-                letter-spacing:0.3px; margin-bottom:3px;" id="os-modal-head-pos"></div>
-            <div style="font-size:0.82rem; font-weight:800; color:#1b5e20;" id="os-modal-head-name"></div>
+              border-radius:6px; padding:5px 10px; border:1px solid #e0f2e1; display:none;">
+            <div style="font-size:0.55rem; color:#888; font-weight:600; text-transform:uppercase;
+                letter-spacing:0.3px; margin-bottom:1px;" id="os-modal-head-pos"></div>
+            <div style="font-size:0.78rem; font-weight:800; color:#1b5e20;" id="os-modal-head-name"></div>
           </div>
-          <div id="os-modal-esh-count-card" style="background:white; border-radius:8px;
-              padding:9px 12px; border:1px solid #e0f2e1; display:none; align-items:center; gap:10px;">
-            <div style="width:32px; height:32px; border-radius:8px; background:#1b5e2018;
+          <div id="os-modal-esh-count-card" style="background:white; border-radius:6px;
+              padding:5px 10px; border:1px solid #e0f2e1; display:none; align-items:center; gap:7px;">
+            <div style="width:24px; height:24px; border-radius:6px; background:#1b5e2018;
                 display:flex; align-items:center; justify-content:center;">
-              <i class="fas fa-users" style="color:#1b5e20; font-size:0.85rem;"></i>
+              <i class="fas fa-users" style="color:#1b5e20; font-size:0.75rem;"></i>
             </div>
             <div>
-              <div style="font-size:1rem; font-weight:800; color:#1b5e20; line-height:1;"
+              <div style="font-size:0.9rem; font-weight:800; color:#1b5e20; line-height:1;"
                 id="os-modal-esh-count"></div>
-              <div style="font-size:0.6rem; color:#888; font-weight:600; margin-top:2px;">ESH Personnel</div>
+              <div style="font-size:0.55rem; color:#888; font-weight:600; margin-top:1px;">ESH Personnel</div>
             </div>
           </div>
         </div>
@@ -39556,27 +39555,8 @@ Do not include any other text, explanation, or markdown. JSON only.`
       <div id="os-modal-stats" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"></div>
 
       <!-- Monthly manhours chart -->
-      <div style="margin-top:18px;">
-        <div style="font-size:0.72rem; font-weight:700; color:#1b5e20; margin-bottom:8px;
-            letter-spacing:0.3px; text-transform:uppercase;">Monthly Man-Hours Exposure</div>
-        <div style="display:flex; align-items:flex-end; gap:3px; height:70px; padding:0 2px;">
-          <div id="os-modal-chart" style="display:flex; align-items:flex-end; gap:3px; height:100%; width:100%;"></div>
-        </div>
-        <div style="display:flex; justify-content:space-between; margin-top:4px;">
-          <span style="font-size:0.58rem; color:#aaa;">Jan</span>
-          <span style="font-size:0.58rem; color:#aaa;">Feb</span>
-          <span style="font-size:0.58rem; color:#aaa;">Mar</span>
-          <span style="font-size:0.58rem; color:#aaa;">Apr</span>
-          <span style="font-size:0.58rem; color:#aaa;">May</span>
-          <span style="font-size:0.58rem; color:#aaa;">Jun</span>
-          <span style="font-size:0.58rem; color:#aaa;">Jul</span>
-          <span style="font-size:0.58rem; color:#aaa;">Aug</span>
-          <span style="font-size:0.58rem; color:#aaa;">Sep</span>
-          <span style="font-size:0.58rem; color:#aaa;">Oct</span>
-          <span style="font-size:0.58rem; color:#aaa;">Nov</span>
-          <span style="font-size:0.58rem; color:#aaa;">Dec</span>
-        </div>
-      </div>
+      <!-- hidden chart element kept for script compatibility -->
+      <div id="os-modal-chart" style="display:none;"></div>
 
     </div>
   </div>
@@ -39779,17 +39759,26 @@ function osOpenModal(projectName) {
         personnelSection.style.display = 'none';
     }
 
+    // Total Manpower from OSH Personnel Requirement Monitoring (Manpower Input column)
+    const totalManpower = (state.oshData && state.oshData[project.name] && parseInt(state.oshData[project.name].manpower)) || 0;
+
+    const dangOcc  = sumYear('medical_Dangerous Occurrences');
+    const nearMiss = sumYear('activities_No. of Identified Near-Miss');
+
     // Stat cards
     const stats = [
-        { label: `Total Man-Hours (${mhLabel})`, value: manhoursAll.toLocaleString(), icon: 'fa-clock', color: '#1b5e20' },
-        { label: 'LTA Cases',           value: lta,      icon: 'fa-person-falling',       color: lta > 0 ? '#c62828' : '#2e7d32' },
-        { label: 'Medical Treatment',   value: medTreat, icon: 'fa-kit-medical',           color: medTreat > 0 ? '#e65100' : '#2e7d32' },
-        { label: 'First Aid',           value: firstAid, icon: 'fa-band-aid',              color: '#0277bd' },
-        { label: 'High-Potential Inc.', value: highPot,  icon: 'fa-triangle-exclamation',  color: highPot > 0 ? '#f9a825' : '#2e7d32' },
-        { label: 'Fatality',            value: fatality, icon: 'fa-skull',                 color: fatality > 0 ? '#b71c1c' : '#2e7d32' },
-        { label: 'Days Lost/Charged',   value: daysLost, icon: 'fa-calendar-xmark',        color: daysLost > 0 ? '#6a1b9a' : '#2e7d32' },
-        { label: 'Frequency Rate',      value: fr,       icon: 'fa-chart-line',            color: '#00695c' },
-        { label: 'Severity Rate',       value: sr,       icon: 'fa-gauge',                 color: '#37474f' },
+        { label: `Total Man-Hours (${mhLabel})`, value: manhoursAll.toLocaleString(),                               icon: 'fa-clock',             color: '#1b5e20' },
+        { label: 'Total Manpower',               value: totalManpower > 0 ? totalManpower.toLocaleString() : '—',   icon: 'fa-hard-hat',          color: '#5d4037' },
+        { label: 'LTA Cases',                    value: lta,      icon: 'fa-person-falling',      color: lta > 0 ? '#c62828' : '#2e7d32' },
+        { label: 'Medical Treatment',            value: medTreat, icon: 'fa-kit-medical',          color: medTreat > 0 ? '#e65100' : '#2e7d32' },
+        { label: 'First Aid',                    value: firstAid, icon: 'fa-band-aid',             color: '#0277bd' },
+        { label: 'High-Potential Inc.',          value: highPot,  icon: 'fa-triangle-exclamation', color: highPot > 0 ? '#f9a825' : '#2e7d32' },
+        { label: 'Dangerous Occurrence',         value: dangOcc,  icon: 'fa-bolt',                 color: dangOcc > 0 ? '#e65100' : '#2e7d32' },
+        { label: 'Near Miss',                    value: nearMiss, icon: 'fa-eye',                  color: nearMiss > 0 ? '#6a1b9a' : '#2e7d32' },
+        { label: 'Fatality',                     value: fatality, icon: 'fa-skull',                color: fatality > 0 ? '#b71c1c' : '#2e7d32' },
+        { label: 'Days Lost/Charged',            value: daysLost, icon: 'fa-calendar-xmark',       color: daysLost > 0 ? '#6a1b9a' : '#2e7d32' },
+        { label: 'Frequency Rate',               value: fr,       icon: 'fa-chart-line',           color: '#00695c' },
+        { label: 'Severity Rate',                value: sr,       icon: 'fa-gauge',                color: '#37474f' },
     ];
 
     document.getElementById('os-modal-stats').innerHTML = stats.map(s => `
@@ -39805,21 +39794,6 @@ function osOpenModal(projectName) {
             </div>
         </div>
     `).join('');
-
-    // Monthly manhours bar chart
-    const monthlyMH = [];
-    for (let i = 1; i <= 12; i++) monthlyMH.push(parseFloat(vals['exposures_Total Exposed Manhour']?.[i]) || 0);
-    const maxMH = Math.max(...monthlyMH, 1);
-    document.getElementById('os-modal-chart').innerHTML = monthlyMH.map(v => {
-        const pct = Math.round((v / maxMH) * 100);
-        const hasVal = v > 0;
-        return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;"
-            title="${v.toLocaleString()} manhours">
-            <div style="width:100%; border-radius:3px 3px 0 0;
-                background:${hasVal ? 'linear-gradient(180deg,#4caf50,#1b5e20)' : '#e0e0e0'};
-                height:${pct}%; min-height:${hasVal ? '3' : '2'}px; transition:height 0.3s;"></div>
-        </div>`;
-    }).join('');
 
     // Show modal
     const modal = document.getElementById('os-project-modal');
