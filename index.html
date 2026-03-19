@@ -6434,7 +6434,17 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
                     <option value="current">Project</option>
                     <option value="gen">Gender</option>
                 </select>
-                <input type="text" id="p-filter-value" placeholder="Search personnel..." onkeyup="filterPTable()" style="flex:1; padding:8px 12px; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:0.75rem;">
+                <div style="position:relative; flex:1;">
+                    <input type="text" id="p-filter-value" placeholder="Search personnel..."
+                        autocomplete="off"
+                        oninput="filterPTable(); pcShowSearchDropdown(this.value)"
+                        onkeyup="filterPTable()"
+                        style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:0.75rem; box-sizing:border-box;">
+                    <div id="pc-search-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:9999;
+                        background:white; border:1.5px solid #c8e6c9; border-radius:8px; box-shadow:0 4px 18px rgba(0,0,0,0.13);
+                        max-height:260px; overflow-y:auto; margin-top:3px;">
+                    </div>
+                </div>
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
                 <button id="p-add-personnel-btn" class="btn btn-primary" onclick="openAddPersonnelModal()" style="padding:8px 16px; display:none; align-items:center; gap:6px; font-size:0.78rem; border-radius:6px;">
@@ -27316,6 +27326,72 @@ function pRowDelete(i) {
 
     });
 }
+
+function pcShowSearchDropdown(val) {
+    const dropdown = document.getElementById('pc-search-dropdown');
+    if (!dropdown) return;
+
+    const query = (val || '').trim().toLowerCase();
+    if (!query || !state.personnelData || state.personnelData.length === 0) {
+        dropdown.style.display = 'none';
+        return;
+    }
+
+    const column = (document.getElementById('p-filter-column')?.value) || 'all';
+    const fields = column === 'all' ? ['name','pos','id','current','gen','mail','num','addr'] : [column];
+
+    // Region restriction: superintendents only see their own region (mirrors renderPTable logic)
+    const _isManagerRole = state.userRole === 'manager';
+    const _userRegion = state.userRegion || '';
+    let allowedProjects = null;
+    if (!state.isAdmin && !_isManagerRole && _userRegion) {
+        allowedProjects = new Set(
+            (state.masterProjects || state.projects || [])
+                .filter(p => p.region === _userRegion)
+                .map(p => p.name)
+        );
+    }
+
+    const matches = [];
+    state.personnelData.forEach((p, idx) => {
+        if (!p) return;
+        if (allowedProjects !== null) {
+            if (p.current === 'Corporate Office') return;
+            if (!allowedProjects.has(p.current)) return;
+        }
+        const isMatch = fields.some(k => (p[k] || '').toLowerCase().includes(query));
+        if (isMatch) matches.push({ idx, p });
+    });
+
+    if (matches.length === 0) {
+        dropdown.innerHTML = '<div style="padding:10px 14px; color:#aaa; font-size:0.75rem;">No results found.</div>';
+        dropdown.style.display = 'block';
+        return;
+    }
+
+    const items = matches.slice(0, 10).map(({ idx, p }) => {
+        const name = (p.name || '').toUpperCase();
+        const pos  = p.pos  ? `<span style="color:#888; font-size:0.65rem; margin-left:5px;">${p.pos}</span>` : '';
+        const proj = p.current ? `<span style="font-size:0.65rem; color:#2e7d32; background:#e8f5e9; padding:1px 7px; border-radius:20px; margin-left:4px;">${p.current}</span>` : '';
+        return `<div onclick="document.getElementById('pc-search-dropdown').style.display='none'; document.getElementById('p-filter-value').value=''; filterPTable(); pcViewPersonnel(${idx});"
+            style="padding:9px 14px; cursor:pointer; border-bottom:1px solid #f0f0f0; display:flex; align-items:center; gap:4px; flex-wrap:wrap;"
+            onmouseover="this.style.background='#f1f8e9'" onmouseout="this.style.background='white'">
+            <i class="fas fa-user" style="color:#c8e6c9; font-size:0.72rem; margin-right:4px;"></i>
+            <span style="font-weight:700; font-size:0.78rem; color:#1b5e20;">${name}</span>${pos}${proj}
+        </div>`;
+    });
+
+    dropdown.innerHTML = items.join('');
+    dropdown.style.display = 'block';
+}
+
+document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('pc-search-dropdown');
+    const wrapper  = document.getElementById('p-filter-value');
+    if (dropdown && wrapper && !wrapper.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.style.display = 'none';
+    }
+});
 
 function filterPTable() {
     const column = document.getElementById('p-filter-column').value;
