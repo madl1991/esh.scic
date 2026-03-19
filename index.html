@@ -8135,11 +8135,10 @@ async function loadLogbookFromFirebase() {
                         entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                         state.loginLogbook = entries;
                         LoginLogbook.saveToStorage();
-                        if (state.isAdmin) {
-                            updateAdminStats();
-                            renderLogbook();
-                            renderUserManagement();
-                        }
+                        // Always refresh UI when Firebase data arrives — device-agnostic
+                        updateAdminStats();
+                        renderLogbook();
+                        renderUserManagement();
                     }
                     resolve();
                 }); // removed onlyOnce — now real-time!
@@ -25551,6 +25550,11 @@ document.addEventListener('click', closeAllStatusDropdowns);
                 if (dangerZoneSection) dangerZoneSection.style.display = 'block';
                 if (backupRecoveryCard) backupRecoveryCard.style.display = 'block';
                 if (forceLogoutSection) { forceLogoutSection.style.display = 'block'; renderForceLogoutList(); }
+                // ── CROSS-DEVICE FIX: Always pull fresh logbook from Firebase when
+                // admin opens Settings — ensures logins from other devices appear here.
+                if (typeof loadLogbookFromFirebase === 'function') {
+                    loadLogbookFromFirebase();
+                }
             }
         }
 
