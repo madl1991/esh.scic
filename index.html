@@ -24674,6 +24674,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         </div>
                     `;
                 } else {
+                    html += `<div style="margin: 0 16px;">`;
                     html += `
                         <div style="background:#1b5e20;border-radius:10px 10px 0 0;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
                             <div style="display:flex;align-items:center;gap:10px;">
@@ -25185,6 +25186,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     html += `</tbody></table></div>`;
                     html += `</div>`; // Close region-content
                 });
+                    html += `</div>`; // Close horizontal offset wrapper
             }
 
             container.innerHTML = html;
