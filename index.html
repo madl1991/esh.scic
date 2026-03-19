@@ -6426,14 +6426,6 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
         
         <div style="padding: 14px 20px; background: var(--bg-card); border-bottom: 1px solid var(--border-color); display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <div style="display:flex; gap:8px; flex:1; min-width:280px;">
-                <select id="p-filter-column" style="padding:8px 10px; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:0.75rem; min-width:150px;">
-                    <option value="all">🔍 Filter: All Columns</option>
-                    <option value="name">Full Name</option>
-                    <option value="pos">Position</option>
-                    <option value="id">ID Number</option>
-                    <option value="current">Project</option>
-                    <option value="gen">Gender</option>
-                </select>
                 <div style="position:relative; flex:1;">
                     <input type="text" id="p-filter-value" placeholder="Search personnel..."
                         autocomplete="off"
@@ -6451,9 +6443,6 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
                     <i class="fas fa-user-plus"></i> Add Personnel
                 </button>
                 <div id="p-global-action" style="display:none; gap:6px;">
-                    <button class="p-edit-btn" id="p-global-edit-btn" onclick="pGlobalEdit()" style="padding:8px 14px; border-radius:6px; display:flex; align-items:center; gap:5px; font-size:0.78rem;">
-                        <i class="fas fa-edit"></i> Edit All
-                    </button>
                     <button class="p-save-btn" id="p-global-save-btn" onclick="pGlobalSave()" style="padding:8px 14px; border-radius:6px; display:flex; align-items:center; gap:5px; font-size:0.78rem; display:none;">
                         <i class="fas fa-save"></i> Save All
                     </button>
@@ -11716,14 +11705,9 @@ debugCommands.help() - Show this help
                 const searchInput = document.getElementById('search-input');
                 const regionFilter = document.getElementById('region-filter');
                 const statusFilter = document.getElementById('status-filter');
-                
-                if (!searchInput || !regionFilter || !statusFilter) {
-                    return;
-                }
-                
-                const activeElement = document.activeElement;
-                const cursorPosition = searchInput.selectionStart;
-                
+
+                if (!searchInput || !regionFilter || !statusFilter) return;
+
                 const search = searchInput.value.toLowerCase().trim();
                 const region = regionFilter.value;
                 const status = statusFilter.value;
@@ -11733,25 +11717,31 @@ debugCommands.help() - Show this help
                 state.statusFilter = status;
 
                 let filtered = [...state.projects];
-                
-                if (search) {
-                    filtered = filtered.filter(p => 
-                        p.name.toLowerCase().includes(search)
-                    );
-                }
-                
-                if (region && region !== '') {
-                    filtered = filtered.filter(p => p.region === region);
-                }
-                
-                if (status && status !== '') {
-                    filtered = filtered.filter(p => p.status === status);
-                }
-                
+                if (search)  filtered = filtered.filter(p => p.name.toLowerCase().includes(search));
+                if (region)  filtered = filtered.filter(p => p.region === region);
+                if (status)  filtered = filtered.filter(p => p.status === status);
                 state.filteredProjects = filtered;
-                
+
+                // ── Overall tab: pure DOM filter — no render() so search bar & dropdown stay intact ──
+                if (state.currentTab === 'overall') {
+                    const names = new Set(filtered.map(p => p.name));
+                    document.querySelectorAll('.project-row[data-pname]').forEach(row => {
+                        row.style.display = names.has(row.getAttribute('data-pname')) ? '' : 'none';
+                    });
+                    // Hide region sections that become fully empty after filter
+                    document.querySelectorAll('[id^="region-content-"]').forEach(sec => {
+                        const hasVisible = sec.querySelector('.project-row[data-pname]:not([style*="display: none"]):not([style*="display:none"])');
+                        const header = sec.previousElementSibling;
+                        if (header) header.style.display = hasVisible ? '' : 'none';
+                        sec.style.display = hasVisible ? '' : 'none';
+                    });
+                    return;
+                }
+
+                // All other tabs: full re-render (original behaviour)
+                const activeElement = document.activeElement;
+                const cursorPosition = searchInput.selectionStart;
                 render();
-                
                 if (activeElement && activeElement.id === 'search-input') {
                     const newSearchInput = document.getElementById('search-input');
                     if (newSearchInput) {
@@ -19934,28 +19924,12 @@ function renderTabulation() {
                 <div style="background: var(--bg-card); padding: 8px 16px; margin: 0 20px 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid var(--border-color);">
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <div style="flex: 1; min-width: 250px;">
-                            <input type="text" id="search-input" placeholder="🔍 Search projects..." onkeyup="handleSearch()" 
+                            <input type="text" id="search-input" placeholder="Search projects..."
+                                   autocomplete="off"
+                                   oninput="handleSearch(); osShowSearchDropdown(this.value, this)"
+                                   onkeyup=""
                                    value="${state.searchTerm || ''}"
-                                   style="width: 100%; padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary);">
-                        </div>
-                        <div>
-                            <select id="region-filter" onchange="handleFilter()" 
-                                    style="padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary); min-width: 180px;">
-                                <option value="" ${state.regionFilter === '' ? 'selected' : ''}>📍 All Regions</option>
-                                <option value="NCR" ${state.regionFilter === 'NCR' ? 'selected' : ''}>NCR</option>
-                                <option value="SOUTH LUZON" ${state.regionFilter === 'SOUTH LUZON' ? 'selected' : ''}>South Luzon</option>
-                                <option value="NORTH LUZON" ${state.regionFilter === 'NORTH LUZON' ? 'selected' : ''}>North Luzon</option>
-                                <option value="VISAYAS & MINDANAO" ${state.regionFilter === 'VISAYAS & MINDANAO' ? 'selected' : ''}>Visayas & Mindanao</option>
-                            </select>
-                        </div>
-                        <div>
-                            <select id="status-filter" onchange="handleFilter()" 
-                                    style="padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary); min-width: 160px;">
-                                <option value="" ${state.statusFilter === '' ? 'selected' : ''}>📊 All Status</option>
-                                <option value="on-going" ${state.statusFilter === 'on-going' ? 'selected' : ''}>On-Going</option>
-                                <option value="work-stoppage" ${state.statusFilter === 'work-stoppage' ? 'selected' : ''}>Work Stoppage</option>
-                                <option value="finished" ${state.statusFilter === 'finished' ? 'selected' : ''}>Finished</option>
-                            </select>
+                                   style="width: 100%; padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary); box-sizing: border-box;">
                         </div>
                     </div>
                 </div>
@@ -20498,7 +20472,7 @@ function renderTabulation() {
                     const canDelete = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p.region, state.currentTab).allowed;
                     const isDeleteLocked = !canDelete;
 
-                    html += `<div class="project-row ${isLocked ? 'project-locked' : ''}" style="${isWorkStopped ? 'opacity:0.7;' : ''}">
+                    html += `<div class="project-row ${isLocked ? 'project-locked' : ''}" data-pname="${(p.name||'').replace(/"/g,'&quot;')}" data-region="${(p.region||'').replace(/"/g,'&quot;')}" data-status="${_derivedStatus}" style="${isWorkStopped ? 'opacity:0.7;' : ''}">
                         ${state.isEditing ? `<input type="checkbox" class="project-checkbox" ${p.selected ? 'checked' : ''} ${isLocked ? 'disabled' : ''} onchange="toggleProjectSelect('${p.name}')">` : ''}
                         <div class="circular-progress" style="--percentage: ${percDeg}deg;${isWorkStopped ? 'opacity:0.45;' : ''}">
                             <div class="circular-progress-inner" style="${isWorkStopped ? 'font-size:0.62rem;color:#bf360c;' : ''}">${percDisplay}${percDisplay !== '—' ? '%' : ''}</div>
@@ -27337,8 +27311,8 @@ function pcShowSearchDropdown(val) {
         return;
     }
 
-    const column = (document.getElementById('p-filter-column')?.value) || 'all';
-    const fields = column === 'all' ? ['name','pos','id','current','gen','mail','num','addr'] : [column];
+    const column = 'all';
+    const fields = ['name','pos','id','current','gen','mail','num','addr'];
 
     // Region restriction: superintendents only see their own region (mirrors renderPTable logic)
     const _isManagerRole = state.userRole === 'manager';
@@ -27394,7 +27368,7 @@ document.addEventListener('click', function(e) {
 });
 
 function filterPTable() {
-    const column = document.getElementById('p-filter-column').value;
+    const column = 'all';
     const filterValue = (document.getElementById('p-filter-value').value || '').toLowerCase();
     const container = document.getElementById('p-cards-container');
     if (!container || !state.personnelData) return;
@@ -39473,6 +39447,255 @@ Do not include any other text, explanation, or markdown. JSON only.`
   // pc-upload-modal backdrop click disabled — use × button to close
 
 })();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     OVERALL SUMMARY — FIXED DROPDOWN (outside re-render zone)
+═══════════════════════════════════════════════════════════════ -->
+<div id="os-search-dropdown" style="display:none; position:fixed; z-index:99999;
+    background:white; border:1.5px solid #c8e6c9; border-radius:8px;
+    box-shadow:0 4px 18px rgba(0,0,0,0.15); max-height:280px; overflow-y:auto;">
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     OVERALL SUMMARY — PROJECT DETAILS MODAL
+═══════════════════════════════════════════════════════════════ -->
+<div id="os-project-modal" style="display:none; position:fixed; inset:0; z-index:10000;
+    background:rgba(0,0,0,0.6); backdrop-filter:blur(4px);
+    align-items:center; justify-content:center;">
+  <div style="background:white; border-radius:14px; width:92%; max-width:560px;
+      max-height:88vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.22);
+      display:flex; flex-direction:column;">
+
+    <!-- Header -->
+    <div id="os-modal-header" style="padding:16px 20px 14px; border-radius:14px 14px 0 0;
+        background:linear-gradient(135deg,#1b5e20,#2e7d32); display:flex; align-items:flex-start; justify-content:space-between;">
+      <div>
+        <div id="os-modal-title" style="font-size:1rem; font-weight:800; color:white; letter-spacing:0.2px;"></div>
+        <div style="display:flex; gap:6px; margin-top:5px; flex-wrap:wrap;">
+          <span id="os-modal-region" style="font-size:0.62rem; background:rgba(255,255,255,0.2);
+              color:white; padding:2px 9px; border-radius:20px; font-weight:700;"></span>
+          <span id="os-modal-status" style="font-size:0.62rem; background:rgba(255,255,255,0.15);
+              color:white; padding:2px 9px; border-radius:20px; font-weight:600;"></span>
+        </div>
+      </div>
+      <button onclick="osCloseModal()" style="background:rgba(255,255,255,0.15); border:none;
+          color:white; border-radius:50%; width:30px; height:30px; font-size:1rem;
+          cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-left:10px;">×</button>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:18px 20px 22px;">
+
+      <!-- Year label -->
+      <div id="os-modal-year-label" style="font-size:0.7rem; color:#888; font-weight:600;
+          text-align:center; margin-bottom:14px; letter-spacing:0.5px;"></div>
+
+      <!-- Stats grid -->
+      <div id="os-modal-stats" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"></div>
+
+      <!-- Monthly manhours chart -->
+      <div style="margin-top:18px;">
+        <div style="font-size:0.72rem; font-weight:700; color:#1b5e20; margin-bottom:8px;
+            letter-spacing:0.3px; text-transform:uppercase;">Monthly Man-Hours Exposure</div>
+        <div style="display:flex; align-items:flex-end; gap:3px; height:70px; padding:0 2px;">
+          <div id="os-modal-chart" style="display:flex; align-items:flex-end; gap:3px; height:100%; width:100%;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:4px;">
+          <span style="font-size:0.58rem; color:#aaa;">Jan</span>
+          <span style="font-size:0.58rem; color:#aaa;">Feb</span>
+          <span style="font-size:0.58rem; color:#aaa;">Mar</span>
+          <span style="font-size:0.58rem; color:#aaa;">Apr</span>
+          <span style="font-size:0.58rem; color:#aaa;">May</span>
+          <span style="font-size:0.58rem; color:#aaa;">Jun</span>
+          <span style="font-size:0.58rem; color:#aaa;">Jul</span>
+          <span style="font-size:0.58rem; color:#aaa;">Aug</span>
+          <span style="font-size:0.58rem; color:#aaa;">Sep</span>
+          <span style="font-size:0.58rem; color:#aaa;">Oct</span>
+          <span style="font-size:0.58rem; color:#aaa;">Nov</span>
+          <span style="font-size:0.58rem; color:#aaa;">Dec</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── OVERALL SUMMARY SEARCH DROPDOWN ──────────────────────────────────────────
+
+function osShowSearchDropdown(val, inputEl) {
+    const dropdown = document.getElementById('os-search-dropdown');
+    if (!dropdown) return;
+
+    const query = (val || '').trim().toLowerCase();
+    if (!query || !state.projects || state.projects.length === 0) {
+        dropdown.style.display = 'none';
+        return;
+    }
+
+    // Role-based filter: superintendents only see their own region
+    const _userRegion = state.userRegion || '';
+    let projects = [...state.projects];
+    if (!state.isAdmin && _userRegion) {
+        projects = projects.filter(p => p.region === _userRegion);
+    }
+
+    const matches = projects.filter(p =>
+        (p.name || '').toLowerCase().includes(query)
+    );
+
+    if (matches.length === 0) {
+        dropdown.innerHTML = '<div style="padding:10px 14px; color:#aaa; font-size:0.75rem;">No projects found.</div>';
+    } else {
+        const REGION_COLORS = window.REGION_COLORS || {};
+        const items = matches.slice(0, 10).map(p => {
+            const rc = REGION_COLORS[p.region] || { badge: '#aaa', bg: '#888' };
+            const statusColor = p.status === 'finished' ? '#757575'
+                : p.status === 'work-stoppage' ? '#e65100' : '#1b5e20';
+            const statusLabel = p.status === 'finished' ? 'Finished'
+                : p.status === 'work-stoppage' ? 'Work Stoppage' : 'On-Going';
+            const safeName = (p.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            return `<div onclick="osOpenModal('${safeName}'); document.getElementById('os-search-dropdown').style.display='none'; document.getElementById('search-input').value=''; handleSearch();"
+                style="padding:10px 14px; cursor:pointer; border-bottom:1px solid #f0f0f0; display:flex; align-items:center; gap:8px;"
+                onmouseover="this.style.background='#f1f8e9'" onmouseout="this.style.background='white'">
+                <i class="fas fa-hard-hat" style="color:#c8e6c9; font-size:0.75rem; flex-shrink:0;"></i>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:700; font-size:0.78rem; color:#1b5e20; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</div>
+                    <div style="display:flex; gap:5px; margin-top:2px; flex-wrap:wrap;">
+                        <span style="font-size:0.6rem; background:${rc.badge}22; color:${rc.bg}; padding:1px 7px; border-radius:20px; font-weight:700; border:1px solid ${rc.badge}55;">${p.region || ''}</span>
+                        <span style="font-size:0.6rem; color:${statusColor}; font-weight:600;">${statusLabel}</span>
+                    </div>
+                </div>
+            </div>`;
+        });
+        dropdown.innerHTML = items.join('');
+    }
+
+    // Position the dropdown using fixed coords from the input element
+    const src = inputEl || document.getElementById('search-input');
+    if (src) {
+        const rect = src.getBoundingClientRect();
+        dropdown.style.top    = (rect.bottom + 4) + 'px';
+        dropdown.style.left   = rect.left + 'px';
+        dropdown.style.width  = rect.width + 'px';
+    }
+    dropdown.style.display = 'block';
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('os-search-dropdown');
+    const input    = document.getElementById('search-input');
+    if (dropdown && !dropdown.contains(e.target) && (!input || !input.contains(e.target))) {
+        dropdown.style.display = 'none';
+    }
+});
+
+// Reposition dropdown on scroll/resize so it tracks the input
+window.addEventListener('scroll', function() {
+    const dropdown = document.getElementById('os-search-dropdown');
+    if (!dropdown || dropdown.style.display === 'none') return;
+    const input = document.getElementById('search-input');
+    if (input) {
+        const rect = input.getBoundingClientRect();
+        dropdown.style.top  = (rect.bottom + 4) + 'px';
+        dropdown.style.left = rect.left + 'px';
+        dropdown.style.width = rect.width + 'px';
+    }
+}, true);
+
+// ── OVERALL SUMMARY PROJECT DETAILS MODAL ────────────────────────────────────
+
+function osOpenModal(projectName) {
+    const project = (state.projects || []).find(p => p.name === projectName);
+    if (!project) return;
+
+    const year = state.selectedYear || new Date().getFullYear();
+    const vals = project.vals || {};
+
+    // Stat helper: sum months 1–12
+    function sumYear(key) {
+        let total = 0;
+        for (let i = 1; i <= 12; i++) total += parseFloat(vals[key]?.[i]) || 0;
+        return total;
+    }
+
+    const manhours   = sumYear('exposures_Total Exposed Manhour');
+    const fatality   = sumYear('medical_Fatality');
+    const lta        = sumYear('medical_LTA');
+    const medTreat   = sumYear('medical_Medical Treatment');
+    const firstAid   = sumYear('medical_First Aid');
+    const highPot    = sumYear('medical_High-Potential incident');
+    const daysLost   = sumYear('medical_Days Lost/Charged');
+
+    // Frequency Rate = (LTA / manhours) * 1,000,000
+    const fr = manhours > 0 ? ((lta / manhours) * 1000000).toFixed(2) : '—';
+    const sr = manhours > 0 ? ((daysLost / manhours) * 1000000).toFixed(2) : '—';
+
+    // Status label & color
+    const statusLabel = project.status === 'finished' ? 'Finished'
+        : project.status === 'work-stoppage' ? 'Work Stoppage' : 'On-Going';
+
+    document.getElementById('os-modal-title').textContent = project.name;
+    document.getElementById('os-modal-region').textContent = project.region || '';
+    document.getElementById('os-modal-status').textContent = statusLabel;
+    document.getElementById('os-modal-year-label').textContent = `Full Year Summary — ${year}`;
+
+    // Stat cards
+    const stats = [
+        { label: 'Total Man-Hours',     value: manhours.toLocaleString(), icon: 'fa-clock',          color: '#1b5e20' },
+        { label: 'LTA Cases',           value: lta,                        icon: 'fa-person-falling', color: lta > 0 ? '#c62828' : '#2e7d32' },
+        { label: 'Medical Treatment',   value: medTreat,                   icon: 'fa-kit-medical',    color: medTreat > 0 ? '#e65100' : '#2e7d32' },
+        { label: 'First Aid',           value: firstAid,                   icon: 'fa-band-aid',       color: '#0277bd' },
+        { label: 'High-Potential Inc.', value: highPot,                    icon: 'fa-triangle-exclamation', color: highPot > 0 ? '#f9a825' : '#2e7d32' },
+        { label: 'Fatality',            value: fatality,                   icon: 'fa-skull',          color: fatality > 0 ? '#b71c1c' : '#2e7d32' },
+        { label: 'Days Lost/Charged',   value: daysLost,                   icon: 'fa-calendar-xmark', color: daysLost > 0 ? '#6a1b9a' : '#2e7d32' },
+        { label: 'Frequency Rate',      value: fr,                         icon: 'fa-chart-line',     color: '#00695c' },
+        { label: 'Severity Rate',       value: sr,                         icon: 'fa-gauge',          color: '#37474f' },
+    ];
+
+    document.getElementById('os-modal-stats').innerHTML = stats.map(s => `
+        <div style="background:#f8fffe; border:1.5px solid #e8f5e9; border-radius:10px;
+            padding:10px 12px; display:flex; align-items:center; gap:10px;">
+            <div style="width:32px; height:32px; border-radius:8px; background:${s.color}18;
+                display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <i class="fas ${s.icon}" style="color:${s.color}; font-size:0.85rem;"></i>
+            </div>
+            <div>
+                <div style="font-size:1rem; font-weight:800; color:${s.color}; line-height:1;">${s.value}</div>
+                <div style="font-size:0.6rem; color:#888; font-weight:600; margin-top:2px;">${s.label}</div>
+            </div>
+        </div>
+    `).join('');
+
+    // Monthly manhours bar chart
+    const monthlyMH = [];
+    for (let i = 1; i <= 12; i++) monthlyMH.push(parseFloat(vals['exposures_Total Exposed Manhour']?.[i]) || 0);
+    const maxMH = Math.max(...monthlyMH, 1);
+    document.getElementById('os-modal-chart').innerHTML = monthlyMH.map(v => {
+        const pct = Math.round((v / maxMH) * 100);
+        const hasVal = v > 0;
+        return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;"
+            title="${v.toLocaleString()} manhours">
+            <div style="width:100%; border-radius:3px 3px 0 0;
+                background:${hasVal ? 'linear-gradient(180deg,#4caf50,#1b5e20)' : '#e0e0e0'};
+                height:${pct}%; min-height:${hasVal ? '3' : '2'}px; transition:height 0.3s;"></div>
+        </div>`;
+    }).join('');
+
+    // Show modal
+    const modal = document.getElementById('os-project-modal');
+    modal.style.display = 'flex';
+    setTimeout(() => modal.style.opacity = '1', 10);
+}
+
+function osCloseModal() {
+    const modal = document.getElementById('os-project-modal');
+    modal.style.display = 'none';
+}
+
+// os-project-modal backdrop click disabled — use × button to close
 </script>
 
 </body>
