@@ -3463,7 +3463,7 @@ table input[type="date"]:not(:focus)[value=""] {
 }
         
         #grand-stats {
-            margin: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;
+            margin: 0 20px 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;
         }
         
         .stat-card {
@@ -3522,7 +3522,7 @@ table input[type="date"]:not(:focus)[value=""] {
 
         .charts-container {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;
-            padding: 20px; margin-top: 0;
+            padding: 10px 20px 20px; margin-top: 0;
         }
         .chart-box {
             background: var(--bg-card); padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
@@ -5433,6 +5433,15 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
                     <option value="">Select Assignment</option>
                     <option value="Corporate Office">Corporate Office</option>
                 </select>
+            </div>
+            <div class="form-group" style="background:#fff8e1; border:1.5px solid #ffe082; border-radius:8px; padding:10px 14px;">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer; margin:0;">
+                    <input type="checkbox" id="editPersonnelOicInput" style="width:16px; height:16px; accent-color:#f57f17; cursor:pointer; flex-shrink:0;">
+                    <div>
+                        <div style="font-weight:700; color:#e65100; font-size:0.82rem;">Officer In-Charge (OIC)</div>
+                        <div style="font-size:0.68rem; color:#888; margin-top:2px;">Check if this personnel is the acting head of the project. OIC takes priority over position rank.</div>
+                    </div>
+                </label>
             </div>
             <div class="form-group">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -11483,8 +11492,8 @@ debugCommands.help() - Show this help
             const dateStarted = document.getElementById('projectDateStarted').value;
             const dateFinished = document.getElementById('projectDateFinished').value;
             const region = document.getElementById('projectRegion').value;
-            const isRenewable = document.getElementById('projectIsRenewable').checked;
             const address = document.getElementById('projectAddressInput').value.trim();
+            const isRenewable = document.getElementById('projectIsRenewable').checked;
             const errorDiv = document.getElementById('projectModalError');
 
             errorDiv.innerText = '';
@@ -11601,8 +11610,8 @@ debugCommands.help() - Show this help
             const dateStarted = document.getElementById('editProjectDateStarted').value;
             const dateFinished = document.getElementById('editProjectDateFinished').value;
             const newRegion = document.getElementById('editProjectRegion').value;
-            const isRenewable = document.getElementById('editProjectIsRenewable').checked;
             const address = document.getElementById('editProjectAddressInput').value.trim();
+            const isRenewable = document.getElementById('editProjectIsRenewable').checked;
             const errorDiv = document.getElementById('editProjectModalError');
 
             errorDiv.innerText = '';
@@ -13332,28 +13341,32 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     
                     const gradients = [];
                     
+                    // NCR — deep purple
                     const gradient1 = ctx.createLinearGradient(0, 0, 0, 300);
-                    gradient1.addColorStop(0, '#ec407a');
-                    gradient1.addColorStop(0.5, '#e91e63');
-                    gradient1.addColorStop(1, '#c2185b');
+                    gradient1.addColorStop(0, '#5e35b1');
+                    gradient1.addColorStop(0.5, '#4527a0');
+                    gradient1.addColorStop(1, '#311b92');
                     gradients.push(gradient1);
                     
+                    // South Luzon — dark teal
                     const gradient2 = ctx.createLinearGradient(0, 0, 0, 300);
-                    gradient2.addColorStop(0, '#42a5f5');
-                    gradient2.addColorStop(0.5, '#2196f3');
-                    gradient2.addColorStop(1, '#1976d2');
+                    gradient2.addColorStop(0, '#00897b');
+                    gradient2.addColorStop(0.5, '#00695c');
+                    gradient2.addColorStop(1, '#004d40');
                     gradients.push(gradient2);
                     
+                    // North Luzon — deep brown
                     const gradient3 = ctx.createLinearGradient(0, 0, 0, 300);
-                    gradient3.addColorStop(0, '#66bb6a');
-                    gradient3.addColorStop(0.5, '#4caf50');
-                    gradient3.addColorStop(1, '#388e3c');
+                    gradient3.addColorStop(0, '#6d4c41');
+                    gradient3.addColorStop(0.5, '#4e342e');
+                    gradient3.addColorStop(1, '#3e2723');
                     gradients.push(gradient3);
                     
+                    // Visayas & Mindanao — slate gray
                     const gradient4 = ctx.createLinearGradient(0, 0, 0, 300);
-                    gradient4.addColorStop(0, '#ffa726');
-                    gradient4.addColorStop(0.5, '#ff9800');
-                    gradient4.addColorStop(1, '#f57c00');
+                    gradient4.addColorStop(0, '#546e7a');
+                    gradient4.addColorStop(0.5, '#37474f');
+                    gradient4.addColorStop(1, '#263238');
                     gradients.push(gradient4);
                     
                     state.charts.region = new Chart(regionCtx, {
@@ -19937,7 +19950,7 @@ function renderTabulation() {
 
             if (state.currentTab === 'overall') {
                 html += `
-                <div style="background: var(--bg-card); padding: 8px 16px; margin: 0 20px 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid var(--border-color);">
+                <div style="background: var(--bg-card); padding: 8px 16px; margin: 0 20px 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid var(--border-color);">
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <div style="flex: 1; min-width: 250px;">
                             <input type="text" id="search-input" placeholder="Search projects..."
@@ -20488,8 +20501,7 @@ function renderTabulation() {
                     const canDelete = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p.region, state.currentTab).allowed;
                     const isDeleteLocked = !canDelete;
 
-                    html += `<div class="project-row ${isLocked ? 'project-locked' : ''}" data-pname="${(p.name||'').replace(/"/g,'&quot;')}" data-region="${(p.region||'').replace(/"/g,'&quot;')}" data-status="${_derivedStatus}" style="${isWorkStopped ? 'opacity:0.7;' : ''}">
-                        ${state.isEditing ? `<input type="checkbox" class="project-checkbox" ${p.selected ? 'checked' : ''} ${isLocked ? 'disabled' : ''} onchange="toggleProjectSelect('${p.name}')">` : ''}
+                    html += `<div class="project-row ${isLocked ? 'project-locked' : ''}" data-pname="${(p.name||'').replace(/"/g,'&quot;')}" data-region="${(p.region||'').replace(/"/g,'&quot;')}" data-status="${_derivedStatus}" style="${isWorkStopped ? 'opacity:0.7;' : ''}${state.currentTab === 'overall' ? 'cursor:pointer;' : ''}" ${state.currentTab === 'overall' ? `onclick="osOpenModal('${p.name.replace(/'/g, "\\'")}')"`  : ''}>\n                        ${state.isEditing ? `<input type="checkbox" class="project-checkbox" ${p.selected ? 'checked' : ''} ${isLocked ? 'disabled' : ''} onclick="event.stopPropagation()" onchange="toggleProjectSelect('${p.name}')">` : ''}
                         <div class="circular-progress" style="--percentage: ${percDeg}deg;${isWorkStopped ? 'opacity:0.45;' : ''}">
                             <div class="circular-progress-inner" style="${isWorkStopped ? 'font-size:0.62rem;color:#bf360c;' : ''}">${percDisplay}${percDisplay !== '—' ? '%' : ''}</div>
                         </div>
@@ -20508,12 +20520,12 @@ function renderTabulation() {
                             ${p.workStoppageDate ? `<div style="color:#757575;font-size:0.7rem;"><span class="date-label" style="color:#757575;">Stoppage:</span> ${formatDateDMY(p.workStoppageDate)}</div>` : ''}
                             ${p.workResumeDate ? `<div style="color:#2e7d32;font-size:0.7rem;"><span class="date-label" style="color:#2e7d32;">Resume:</span> ${formatDateDMY(p.workResumeDate)}</div>` : ''}
                         </div>`}
-                        <span class="status-badge ${statusClass}" onclick="${isLocked ? 'showLockedMessage()' : `changeProjectStatus('${p.name}', event)`}">${statusLabel}</span>
+                        <span class="status-badge ${statusClass}" onclick="event.stopPropagation(); ${isLocked ? 'showLockedMessage()' : `changeProjectStatus('${p.name}', event)`}">${statusLabel}</span>
                         ${state.isEditing ? `
-                            <button ${isLocked ? 'disabled' : ''} onclick="${isLocked ? 'showLockedMessage()' : `openEditProjectModal('${p.name.replace(/'/g, "\\'")}', '${p.region}')`}" style="background:none;border:none;cursor:pointer;color:#555;font-size:1rem;padding:4px 6px;margin-right:2px;opacity:${isLocked ? '0.5' : '1'};" title="${isLocked ? 'View Only - Contact admin to edit' : 'Edit Project Details'}">
+                            <button ${isLocked ? 'disabled' : ''} onclick="event.stopPropagation(); ${isLocked ? 'showLockedMessage()' : `openEditProjectModal('${p.name.replace(/'/g, "\\'")}', '${p.region}')`}" style="background:none;border:none;cursor:pointer;color:#555;font-size:1rem;padding:4px 6px;margin-right:2px;opacity:${isLocked ? '0.5' : '1'};" title="${isLocked ? 'View Only - Contact admin to edit' : 'Edit Project Details'}">
                                 <i class="fas fa-pen"></i>
                             </button>
-                            <button ${isDeleteLocked ? 'disabled' : ''} onclick="${isDeleteLocked ? 'showLockedMessage()' : `deleteProject('${p.name}')`}" style="background:none;border:none;cursor:pointer;color:#d32f2f;font-size:1rem;padding:4px 6px;opacity:${isDeleteLocked ? '0.5' : '1'};" title="${isDeleteLocked ? 'View Only - Contact admin to delete' : 'Delete Project'}"><i class="fas fa-trash"></i></button>
+                            <button ${isDeleteLocked ? 'disabled' : ''} onclick="event.stopPropagation(); ${isDeleteLocked ? 'showLockedMessage()' : `deleteProject('${p.name}')`}" style="background:none;border:none;cursor:pointer;color:#d32f2f;font-size:1rem;padding:4px 6px;opacity:${isDeleteLocked ? '0.5' : '1'};" title="${isDeleteLocked ? 'View Only - Contact admin to delete' : 'Delete Project'}"><i class="fas fa-trash"></i></button>
                         ` : ''}
                     </div>
                     `;
@@ -26121,6 +26133,7 @@ function openEditPersonnelModal(index) {
     document.getElementById('editPersonnelIdInput').value = person.id || '';
     document.getElementById('editPersonnelHiredInput').value = person.hired || '';
     document.getElementById('editPersonnelAssignmentInput').value = person.current || '';
+    document.getElementById('editPersonnelOicInput').checked = person.oic || false;
     document.getElementById('editPersonnelAgeInput').value = person.age || '';
     document.getElementById('editPersonnelGenderInput').value = person.gen || '';
     document.getElementById('editPersonnelEmailInput').value = person.mail || '';
@@ -26619,6 +26632,7 @@ function confirmEditPersonnel() {
     const id = document.getElementById('editPersonnelIdInput').value.trim();
     const hired = document.getElementById('editPersonnelHiredInput').value;
     const current = document.getElementById('editPersonnelAssignmentInput').value;
+    const oic = document.getElementById('editPersonnelOicInput').checked;
     const age = document.getElementById('editPersonnelAgeInput').value;
     const gen = document.getElementById('editPersonnelGenderInput').value;
     const mail = document.getElementById('editPersonnelEmailInput').value.trim();
@@ -26696,6 +26710,7 @@ function confirmEditPersonnel() {
         num: num || '',
         addr: addr || '',
         len: len || '',
+        oic: oic || false,
         toUpdate: toUpdate.length > 0 ? toUpdate : null
     };
     updatedPerson._pid = existingPid || PersonnelDB.getPersonId(updatedPerson);
@@ -26814,7 +26829,8 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
         if (!p) return;
         displayIndexRef.n++;
         const di = displayIndexRef.n;
-        const posDisplay = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>` : '<span style="color:#bbb;font-size:0.7rem;">—</span>';
+        const oicBadge = p.oic ? `<span style="display:inline-block;font-size:0.55rem;font-weight:800;color:#e65100;background:#fff3e0;border:1px solid #ffcc80;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle;letter-spacing:0.3px;">OIC</span>` : '';
+        const posDisplay = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>${oicBadge}` : '<span style="color:#bbb;font-size:0.7rem;">—</span>';
         const hasToUpdate = p.toUpdate && p.toUpdate.length > 0;
         const rowBg = hasToUpdate ? 'background:#ffebee;' : (di % 2 === 0 ? 'background:#ffffff;' : 'background:#f4f6f8;');
         const stickyBg = hasToUpdate ? 'background:#ffebee;' : (di%2===1?'background:#f4f6f8;':'background:#ffffff;');
@@ -27009,7 +27025,8 @@ function renderPTable() {
             if (!p) return;
             displayIndexRef.n++;
             const di = displayIndexRef.n;
-            const posDisplay = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>` : '<span style="color:#bbb;font-size:0.7rem;">—</span>';
+            const _oicBadge = p.oic ? `<span style="display:inline-block;font-size:0.55rem;font-weight:800;color:#e65100;background:#fff3e0;border:1px solid #ffcc80;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle;letter-spacing:0.3px;">OIC</span>` : '';
+            const posDisplay = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>${_oicBadge}` : '<span style="color:#bbb;font-size:0.7rem;">—</span>';
             const _hasToUpdate = p.toUpdate && p.toUpdate.length > 0;
             const _rowBg = _hasToUpdate ? 'background:#ffebee;' : (di%2===0?'background:#ffffff;':'background:#f4f6f8;');
             const _stickyBg = _hasToUpdate ? 'background:#ffebee;' : (di%2===1?'background:#f4f6f8;':'background:#ffffff;');
@@ -39479,7 +39496,7 @@ Do not include any other text, explanation, or markdown. JSON only.`
 <div id="os-project-modal" style="display:none; position:fixed; inset:0; z-index:10000;
     background:rgba(0,0,0,0.6); backdrop-filter:blur(4px);
     align-items:center; justify-content:center;">
-  <div style="border-radius:14px; width:92%; max-width:560px;
+  <div onclick="event.stopPropagation()" style="border-radius:14px; width:92%; max-width:560px;
       max-height:88vh; display:flex; flex-direction:column; overflow:hidden;
       box-shadow:0 8px 40px rgba(0,0,0,0.22);">
 
@@ -39488,6 +39505,7 @@ Do not include any other text, explanation, or markdown. JSON only.`
         background:linear-gradient(135deg,#1b5e20,#2e7d32); display:flex; align-items:flex-start; justify-content:space-between; flex-shrink:0;">
       <div style="flex:1; min-width:0;">
         <div id="os-modal-title" style="font-size:1rem; font-weight:800; color:white; letter-spacing:0.2px;"></div>
+        <div id="os-modal-address" style="font-size:0.68rem; color:rgba(255,255,255,0.75); margin-top:3px; display:none;"><i class="fas fa-map-marker-alt" style="margin-right:4px; font-size:0.6rem;"></i><span id="os-modal-address-text"></span></div>
         <div style="display:flex; gap:6px; margin-top:5px; flex-wrap:wrap; align-items:center;">
           <span id="os-modal-region" style="font-size:0.62rem; background:rgba(255,255,255,0.2);
               color:white; padding:2px 9px; border-radius:20px; font-weight:700;"></span>
@@ -39509,31 +39527,38 @@ Do not include any other text, explanation, or markdown. JSON only.`
       <div id="os-modal-year-label" style="font-size:0.7rem; color:#888; font-weight:600;
           text-align:center; margin-bottom:14px; letter-spacing:0.5px;"></div>
 
+      <!-- Personnel section -->
+      <div id="os-modal-personnel" style="margin-bottom:14px; display:none;
+          background:#f0faf1; border:1.5px solid #c8e6c9; border-radius:10px; padding:11px 14px;">
+        <div style="font-size:0.65rem; font-weight:700; color:#1b5e20; text-transform:uppercase;
+            letter-spacing:0.4px; margin-bottom:8px;">ESH Personnel</div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <div id="os-modal-head-card" style="flex:1; min-width:140px; background:white;
+              border-radius:8px; padding:9px 12px; border:1px solid #e0f2e1; display:none;">
+            <div style="font-size:0.6rem; color:#888; font-weight:600; text-transform:uppercase;
+                letter-spacing:0.3px; margin-bottom:3px;" id="os-modal-head-pos"></div>
+            <div style="font-size:0.82rem; font-weight:800; color:#1b5e20;" id="os-modal-head-name"></div>
+          </div>
+          <div id="os-modal-esh-count-card" style="background:white; border-radius:8px;
+              padding:9px 12px; border:1px solid #e0f2e1; display:none; align-items:center; gap:10px;">
+            <div style="width:32px; height:32px; border-radius:8px; background:#1b5e2018;
+                display:flex; align-items:center; justify-content:center;">
+              <i class="fas fa-users" style="color:#1b5e20; font-size:0.85rem;"></i>
+            </div>
+            <div>
+              <div style="font-size:1rem; font-weight:800; color:#1b5e20; line-height:1;"
+                id="os-modal-esh-count"></div>
+              <div style="font-size:0.6rem; color:#888; font-weight:600; margin-top:2px;">ESH Personnel</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Stats grid -->
       <div id="os-modal-stats" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"></div>
 
-      <!-- Monthly manhours chart -->
-      <div style="margin-top:18px;">
-        <div style="font-size:0.72rem; font-weight:700; color:#1b5e20; margin-bottom:8px;
-            letter-spacing:0.3px; text-transform:uppercase;">Monthly Man-Hours Exposure</div>
-        <div style="display:flex; align-items:flex-end; gap:3px; height:70px; padding:0 2px;">
-          <div id="os-modal-chart" style="display:flex; align-items:flex-end; gap:3px; height:100%; width:100%;"></div>
-        </div>
-        <div style="display:flex; justify-content:space-between; margin-top:4px;">
-          <span style="font-size:0.58rem; color:#aaa;">Jan</span>
-          <span style="font-size:0.58rem; color:#aaa;">Feb</span>
-          <span style="font-size:0.58rem; color:#aaa;">Mar</span>
-          <span style="font-size:0.58rem; color:#aaa;">Apr</span>
-          <span style="font-size:0.58rem; color:#aaa;">May</span>
-          <span style="font-size:0.58rem; color:#aaa;">Jun</span>
-          <span style="font-size:0.58rem; color:#aaa;">Jul</span>
-          <span style="font-size:0.58rem; color:#aaa;">Aug</span>
-          <span style="font-size:0.58rem; color:#aaa;">Sep</span>
-          <span style="font-size:0.58rem; color:#aaa;">Oct</span>
-          <span style="font-size:0.58rem; color:#aaa;">Nov</span>
-          <span style="font-size:0.58rem; color:#aaa;">Dec</span>
-        </div>
-      </div>
+      <!-- hidden chart element kept for script compatibility -->
+      <div id="os-modal-chart" style="display:none;"></div>
 
     </div>
   </div>
@@ -39672,6 +39697,14 @@ function osOpenModal(projectName) {
 
     document.getElementById('os-modal-title').textContent = project.name;
     document.getElementById('os-modal-region').textContent = project.region || '';
+    const addrDiv = document.getElementById('os-modal-address');
+    const addrText = document.getElementById('os-modal-address-text');
+    if (project.address) {
+        addrText.textContent = project.address;
+        addrDiv.style.display = '';
+    } else {
+        addrDiv.style.display = 'none';
+    }
     document.getElementById('os-modal-status').textContent = statusLabel;
     document.getElementById('os-modal-year-label').textContent = `Full Year Summary — ${year}`;
 
@@ -39687,17 +39720,67 @@ function osOpenModal(projectName) {
         complianceBadge.style.display = 'none';
     }
 
+    // Personnel section
+    const POS_RANK = [
+        'ESH Superintendent','ESH Head',
+        'Safety Officer IV','Safety Officer III','Safety Officer II','Safety Officer I',
+        'PCO','Project Physician','Project Nurse','First Aider','Others'
+    ];
+    const projectPersonnel = (state.personnelData || []).filter(p =>
+        p.current && p.current.trim().toLowerCase() === project.name.trim().toLowerCase()
+    );
+    const personnelSection = document.getElementById('os-modal-personnel');
+    const headCard = document.getElementById('os-modal-head-card');
+    const headName = document.getElementById('os-modal-head-name');
+    const headPos  = document.getElementById('os-modal-head-pos');
+    const countCard = document.getElementById('os-modal-esh-count-card');
+    const countEl  = document.getElementById('os-modal-esh-count');
+
+    if (projectPersonnel.length > 0) {
+        personnelSection.style.display = '';
+        // OIC takes priority; fallback to position rank
+        let topPerson = projectPersonnel.find(p => p.oic) || null;
+        if (!topPerson) {
+            let topRank = 9999;
+            projectPersonnel.forEach(p => {
+                const rank = POS_RANK.indexOf(p.pos);
+                const r = rank === -1 ? 9998 : rank;
+                if (r < topRank) { topRank = r; topPerson = p; }
+            });
+        }
+        if (topPerson) {
+            headCard.style.display = '';
+            headPos.textContent = topPerson.oic ? `OIC — ${topPerson.pos || 'ESH Personnel'}` : (topPerson.pos || 'ESH Personnel');
+            headName.textContent = topPerson.name || '—';
+        } else {
+            headCard.style.display = 'none';
+        }
+        countCard.style.display = 'flex';
+        countEl.textContent = projectPersonnel.length;
+    } else {
+        personnelSection.style.display = 'none';
+    }
+
+    // Total Manpower from OSH Personnel Requirement Monitoring (Manpower Input column)
+    const totalManpower = (state.oshData && state.oshData[project.name] && parseInt(state.oshData[project.name].manpower)) || 0;
+
+    const dangOcc  = sumYear('medical_Dangerous Occurrences');
+    const nearMiss = sumYear('activities_No. of Identified Near-Miss');
+
     // Stat cards
     const stats = [
-        { label: `Total Man-Hours (${mhLabel})`, value: manhoursAll.toLocaleString(), icon: 'fa-clock', color: '#1b5e20' },
-        { label: 'LTA Cases',           value: lta,      icon: 'fa-person-falling',       color: lta > 0 ? '#c62828' : '#2e7d32' },
-        { label: 'Medical Treatment',   value: medTreat, icon: 'fa-kit-medical',           color: medTreat > 0 ? '#e65100' : '#2e7d32' },
-        { label: 'First Aid',           value: firstAid, icon: 'fa-band-aid',              color: '#0277bd' },
-        { label: 'High-Potential Inc.', value: highPot,  icon: 'fa-triangle-exclamation',  color: highPot > 0 ? '#f9a825' : '#2e7d32' },
-        { label: 'Fatality',            value: fatality, icon: 'fa-skull',                 color: fatality > 0 ? '#b71c1c' : '#2e7d32' },
-        { label: 'Days Lost/Charged',   value: daysLost, icon: 'fa-calendar-xmark',        color: daysLost > 0 ? '#6a1b9a' : '#2e7d32' },
-        { label: 'Frequency Rate',      value: fr,       icon: 'fa-chart-line',            color: '#00695c' },
-        { label: 'Severity Rate',       value: sr,       icon: 'fa-gauge',                 color: '#37474f' },
+        { label: `Total Man-Hours (${mhLabel})`, value: manhoursAll.toLocaleString(), icon: 'fa-clock',             color: '#1b5e20' },
+        { label: 'Total Manpower',               value: totalManpower > 0 ? totalManpower.toLocaleString() : '—',   icon: 'fa-hard-hat',            color: '#5d4037' },
+        { label: 'LTA Cases',                    value: lta,      icon: 'fa-person-falling',      color: lta > 0 ? '#c62828' : '#2e7d32' },
+        { label: 'Medical Treatment',            value: medTreat, icon: 'fa-kit-medical',          color: medTreat > 0 ? '#e65100' : '#2e7d32' },
+        { label: 'First Aid',                    value: firstAid, icon: 'fa-band-aid',             color: '#0277bd' },
+        { label: 'High-Potential Inc.',          value: highPot,  icon: 'fa-triangle-exclamation', color: highPot > 0 ? '#f9a825' : '#2e7d32' },
+        { label: 'Dangerous Occurrence',         value: dangOcc,  icon: 'fa-bolt',                 color: dangOcc > 0 ? '#e65100' : '#2e7d32' },
+        { label: 'Near Miss',                    value: nearMiss, icon: 'fa-eye',                  color: nearMiss > 0 ? '#6a1b9a' : '#2e7d32' },
+        { label: 'Fatality',                     value: fatality, icon: 'fa-skull',                color: fatality > 0 ? '#b71c1c' : '#2e7d32' },
+        { label: 'Days Lost/Charged',            value: daysLost, icon: 'fa-calendar-xmark',       color: daysLost > 0 ? '#6a1b9a' : '#2e7d32' },
+        { label: 'Frequency Rate',               value: fr,       icon: 'fa-chart-line',           color: '#00695c' },
+        { label: 'Severity Rate',                value: sr,       icon: 'fa-gauge',                color: '#37474f' },
     ];
 
     document.getElementById('os-modal-stats').innerHTML = stats.map(s => `
@@ -39713,21 +39796,6 @@ function osOpenModal(projectName) {
             </div>
         </div>
     `).join('');
-
-    // Monthly manhours bar chart
-    const monthlyMH = [];
-    for (let i = 1; i <= 12; i++) monthlyMH.push(parseFloat(vals['exposures_Total Exposed Manhour']?.[i]) || 0);
-    const maxMH = Math.max(...monthlyMH, 1);
-    document.getElementById('os-modal-chart').innerHTML = monthlyMH.map(v => {
-        const pct = Math.round((v / maxMH) * 100);
-        const hasVal = v > 0;
-        return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;"
-            title="${v.toLocaleString()} manhours">
-            <div style="width:100%; border-radius:3px 3px 0 0;
-                background:${hasVal ? 'linear-gradient(180deg,#4caf50,#1b5e20)' : '#e0e0e0'};
-                height:${pct}%; min-height:${hasVal ? '3' : '2'}px; transition:height 0.3s;"></div>
-        </div>`;
-    }).join('');
 
     // Show modal
     const modal = document.getElementById('os-project-modal');
