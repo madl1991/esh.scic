@@ -5162,6 +5162,11 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
             </div>
             
             <div class="form-group">
+                <label>Project Address <span style="color:#aaa;font-weight:400;font-size:0.75rem;">(optional)</span></label>
+                <input type="text" id="projectAddressInput" placeholder="e.g. Brgy. Sto. Niño, Cagayan de Oro City">
+            </div>
+
+            <div class="form-group">
                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                     <input type="checkbox" id="projectIsRenewable" style="width: auto; cursor: pointer;">
                     <span>Renewable Energy Project</span>
@@ -5612,6 +5617,11 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
                 </select>
             </div>
             
+            <div class="form-group">
+                <label>Project Address <span style="color:#aaa;font-weight:400;font-size:0.75rem;">(optional)</span></label>
+                <input type="text" id="editProjectAddressInput" placeholder="e.g. Brgy. Sto. Niño, Cagayan de Oro City">
+            </div>
+
             <div class="form-group">
                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                     <input type="checkbox" id="editProjectIsRenewable" style="width: auto; cursor: pointer;">
@@ -11342,6 +11352,7 @@ debugCommands.help() - Show this help
             document.getElementById('projectDateFinished').max = today;
             document.getElementById('projectRegion').value = region || '';
             document.getElementById('projectModalError').innerText = '';
+            document.getElementById('projectAddressInput').value = '';
             onProjectRegionChange(region || ''); // Show/hide date fields based on region
             document.getElementById('addProjectModal').classList.add('show');
         }
@@ -11473,6 +11484,7 @@ debugCommands.help() - Show this help
             const dateFinished = document.getElementById('projectDateFinished').value;
             const region = document.getElementById('projectRegion').value;
             const isRenewable = document.getElementById('projectIsRenewable').checked;
+            const address = document.getElementById('projectAddressInput').value.trim();
             const errorDiv = document.getElementById('projectModalError');
 
             errorDiv.innerText = '';
@@ -11504,7 +11516,8 @@ debugCommands.help() - Show this help
 
             const newProject = {
     name, region, status: 'on-going',
-    dateStarted, dateFinished, 
+    dateStarted, dateFinished,
+    address: address,
     isRenewable: isRenewable,
     vals: {}, selected: false,
     doePdfFiles: {},
@@ -11569,6 +11582,7 @@ debugCommands.help() - Show this help
             document.getElementById('editProjectDateFinished').value = project.dateFinished || '';
             document.getElementById('editProjectRegion').value = project.region;
             document.getElementById('editProjectIsRenewable').checked = project.isRenewable || false;
+            document.getElementById('editProjectAddressInput').value = project.address || '';
             document.getElementById('editProjectWorkStoppageDate').value = project.workStoppageDate || '';
             document.getElementById('editProjectWorkResumeDate').value = project.workResumeDate || '';
             document.getElementById('editProjectWorkStoppageFields').style.display = (project.region === 'CORPORATE') ? 'none' : '';
@@ -11588,6 +11602,7 @@ debugCommands.help() - Show this help
             const dateFinished = document.getElementById('editProjectDateFinished').value;
             const newRegion = document.getElementById('editProjectRegion').value;
             const isRenewable = document.getElementById('editProjectIsRenewable').checked;
+            const address = document.getElementById('editProjectAddressInput').value.trim();
             const errorDiv = document.getElementById('editProjectModalError');
 
             errorDiv.innerText = '';
@@ -11628,6 +11643,7 @@ debugCommands.help() - Show this help
                 project.name = newName;
                 project.region = newRegion;
                 project.isRenewable = isRenewable;
+                project.address = address;
 
                 if (newRegion === 'CORPORATE') {
                     project.dateStarted = '';
@@ -20484,7 +20500,7 @@ function renderTabulation() {
 
                                 ${(p.workStoppageDate && p.workResumeDate) ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;padding:2px 8px;border-radius:12px;font-size:0.68rem;font-weight:700;margin-left:8px;"><i class="fas fa-play-circle" style="font-size:0.65rem;"></i> RESUMED — Counting from ${formatDateDMY(p.workResumeDate)}</span>` : ''}
                             </div>
-                            <div class="project-meta">${p.region === 'CORPORATE' ? 'Main Office' : p.region === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : 'Safety Compliance'} • ${p.region || 'No Region'}</div>
+                            <div class="project-meta">${p.region === 'CORPORATE' ? 'Main Office' : p.region === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')} • ${p.region || 'No Region'}</div>
                         </div>
                         ${p.region === 'CORPORATE' ? '' : `<div class="project-dates">
                             <div><span class="date-label">Started:</span> ${p.dateStarted ? formatDateDMY(p.dateStarted) : 'Not set'}</div>
@@ -39463,20 +39479,22 @@ Do not include any other text, explanation, or markdown. JSON only.`
 <div id="os-project-modal" style="display:none; position:fixed; inset:0; z-index:10000;
     background:rgba(0,0,0,0.6); backdrop-filter:blur(4px);
     align-items:center; justify-content:center;">
-  <div style="background:white; border-radius:14px; width:92%; max-width:560px;
-      max-height:88vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.22);
-      display:flex; flex-direction:column;">
+  <div style="border-radius:14px; width:92%; max-width:560px;
+      max-height:88vh; display:flex; flex-direction:column; overflow:hidden;
+      box-shadow:0 8px 40px rgba(0,0,0,0.22);">
 
     <!-- Header -->
-    <div id="os-modal-header" style="padding:16px 20px 14px; border-radius:14px 14px 0 0;
-        background:linear-gradient(135deg,#1b5e20,#2e7d32); display:flex; align-items:flex-start; justify-content:space-between;">
-      <div>
+    <div id="os-modal-header" style="padding:16px 20px 14px;
+        background:linear-gradient(135deg,#1b5e20,#2e7d32); display:flex; align-items:flex-start; justify-content:space-between; flex-shrink:0;">
+      <div style="flex:1; min-width:0;">
         <div id="os-modal-title" style="font-size:1rem; font-weight:800; color:white; letter-spacing:0.2px;"></div>
-        <div style="display:flex; gap:6px; margin-top:5px; flex-wrap:wrap;">
+        <div style="display:flex; gap:6px; margin-top:5px; flex-wrap:wrap; align-items:center;">
           <span id="os-modal-region" style="font-size:0.62rem; background:rgba(255,255,255,0.2);
               color:white; padding:2px 9px; border-radius:20px; font-weight:700;"></span>
           <span id="os-modal-status" style="font-size:0.62rem; background:rgba(255,255,255,0.15);
               color:white; padding:2px 9px; border-radius:20px; font-weight:600;"></span>
+          <span id="os-modal-compliance" style="font-size:0.62rem; background:rgba(255,255,255,0.15);
+              color:white; padding:2px 9px; border-radius:20px; font-weight:700; display:none;"></span>
         </div>
       </div>
       <button onclick="osCloseModal()" style="background:rgba(255,255,255,0.15); border:none;
@@ -39484,8 +39502,8 @@ Do not include any other text, explanation, or markdown. JSON only.`
           cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-left:10px;">×</button>
     </div>
 
-    <!-- Body -->
-    <div style="padding:18px 20px 22px;">
+    <!-- Scrollable body -->
+    <div style="padding:18px 20px 22px; overflow-y:auto; flex:1; background:white;">
 
       <!-- Year label -->
       <div id="os-modal-year-label" style="font-size:0.7rem; color:#888; font-weight:600;
@@ -39621,7 +39639,16 @@ function osOpenModal(projectName) {
         return total;
     }
 
-    const manhours   = sumYear('exposures_Total Exposed Manhour');
+    // Total Man-Hours: same formula as RUNNING YTD in Total Exposures tab
+    // = vals['exposures_Total Exposed Man-hour to date'][0]  (carry-over prev years)
+    //   + sum of vals['exposures_Total Exposed Manhour'][1..12]  (current year months)
+    const _prevBase  = parseFloat(vals['exposures_Total Exposed Man-hour to date']?.[0]) || 0;
+    let manhoursAll  = _prevBase;
+    for (let _i = 1; _i <= 12; _i++) {
+        manhoursAll += parseFloat(vals['exposures_Total Exposed Manhour']?.[_i]) || 0;
+    }
+    const manhoursYTD = sumYear('exposures_Total Exposed Manhour'); // current year only (for bar chart)
+
     const fatality   = sumYear('medical_Fatality');
     const lta        = sumYear('medical_LTA');
     const medTreat   = sumYear('medical_Medical Treatment');
@@ -39629,9 +39656,15 @@ function osOpenModal(projectName) {
     const highPot    = sumYear('medical_High-Potential incident');
     const daysLost   = sumYear('medical_Days Lost/Charged');
 
-    // Frequency Rate = (LTA / manhours) * 1,000,000
-    const fr = manhours > 0 ? ((lta / manhours) * 1000000).toFixed(2) : '—';
-    const sr = manhours > 0 ? ((daysLost / manhours) * 1000000).toFixed(2) : '—';
+    // Rates use cumulative manhours (same basis as DOLE reporting)
+    const fr = manhoursAll > 0 ? ((lta / manhoursAll) * 1000000).toFixed(2) : '—';
+    const sr = manhoursAll > 0 ? ((daysLost / manhoursAll) * 1000000).toFixed(2) : '—';
+
+    // Project start year for label
+    const startYear = project.dateStarted ? project.dateStarted.split('-')[0] : null;
+    const mhLabel   = startYear && parseInt(startYear) < year
+        ? `Since ${startYear}`
+        : `${year} Total`;
 
     // Status label & color
     const statusLabel = project.status === 'finished' ? 'Finished'
@@ -39642,17 +39675,29 @@ function osOpenModal(projectName) {
     document.getElementById('os-modal-status').textContent = statusLabel;
     document.getElementById('os-modal-year-label').textContent = `Full Year Summary — ${year}`;
 
+    // Compliance %
+    const complianceBadge = document.getElementById('os-modal-compliance');
+    const perc = typeof getPerc === 'function' ? getPerc(project) : null;
+    if (perc !== null) {
+        const percColor = perc >= 90 ? 'rgba(255,255,255,0.25)' : perc >= 75 ? 'rgba(255,193,7,0.35)' : 'rgba(244,67,54,0.35)';
+        complianceBadge.textContent = `✔ ${perc}% Compliant`;
+        complianceBadge.style.background = percColor;
+        complianceBadge.style.display = '';
+    } else {
+        complianceBadge.style.display = 'none';
+    }
+
     // Stat cards
     const stats = [
-        { label: 'Total Man-Hours',     value: manhours.toLocaleString(), icon: 'fa-clock',          color: '#1b5e20' },
-        { label: 'LTA Cases',           value: lta,                        icon: 'fa-person-falling', color: lta > 0 ? '#c62828' : '#2e7d32' },
-        { label: 'Medical Treatment',   value: medTreat,                   icon: 'fa-kit-medical',    color: medTreat > 0 ? '#e65100' : '#2e7d32' },
-        { label: 'First Aid',           value: firstAid,                   icon: 'fa-band-aid',       color: '#0277bd' },
-        { label: 'High-Potential Inc.', value: highPot,                    icon: 'fa-triangle-exclamation', color: highPot > 0 ? '#f9a825' : '#2e7d32' },
-        { label: 'Fatality',            value: fatality,                   icon: 'fa-skull',          color: fatality > 0 ? '#b71c1c' : '#2e7d32' },
-        { label: 'Days Lost/Charged',   value: daysLost,                   icon: 'fa-calendar-xmark', color: daysLost > 0 ? '#6a1b9a' : '#2e7d32' },
-        { label: 'Frequency Rate',      value: fr,                         icon: 'fa-chart-line',     color: '#00695c' },
-        { label: 'Severity Rate',       value: sr,                         icon: 'fa-gauge',          color: '#37474f' },
+        { label: `Total Man-Hours (${mhLabel})`, value: manhoursAll.toLocaleString(), icon: 'fa-clock', color: '#1b5e20' },
+        { label: 'LTA Cases',           value: lta,      icon: 'fa-person-falling',       color: lta > 0 ? '#c62828' : '#2e7d32' },
+        { label: 'Medical Treatment',   value: medTreat, icon: 'fa-kit-medical',           color: medTreat > 0 ? '#e65100' : '#2e7d32' },
+        { label: 'First Aid',           value: firstAid, icon: 'fa-band-aid',              color: '#0277bd' },
+        { label: 'High-Potential Inc.', value: highPot,  icon: 'fa-triangle-exclamation',  color: highPot > 0 ? '#f9a825' : '#2e7d32' },
+        { label: 'Fatality',            value: fatality, icon: 'fa-skull',                 color: fatality > 0 ? '#b71c1c' : '#2e7d32' },
+        { label: 'Days Lost/Charged',   value: daysLost, icon: 'fa-calendar-xmark',        color: daysLost > 0 ? '#6a1b9a' : '#2e7d32' },
+        { label: 'Frequency Rate',      value: fr,       icon: 'fa-chart-line',            color: '#00695c' },
+        { label: 'Severity Rate',       value: sr,       icon: 'fa-gauge',                 color: '#37474f' },
     ];
 
     document.getElementById('os-modal-stats').innerHTML = stats.map(s => `
