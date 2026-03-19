@@ -26797,22 +26797,24 @@ window.pToggleGroupSafe = function(safeKey) {
     else _pCollapsedGroups.delete(safeKey);
 };
 
-const P_TABLE_THEAD = `
-<tr style="background:linear-gradient(90deg,#1b5e20 0%,#388e3c 100%);">
+function P_TABLE_THEAD() {
+    return `<tr style="background:linear-gradient(90deg,#1b5e20 0%,#388e3c 100%);">
     <th style="padding:7px 10px 7px 12px;color:white;text-align:left;font-weight:700;letter-spacing:0.3px;border:none;position:sticky;left:0;z-index:10;background:#1b5e20;width:320px;min-width:320px;">#&nbsp;&nbsp;Full Name</th>
     <th style="padding:7px 14px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Position</th>
     <th style="padding:7px 14px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">ID No.</th>
     <th style="padding:7px 14px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Cert. Expiry</th>
-    <th style="padding:7px 12px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Action</th>
+    ${state.isEditing ? '<th style="padding:7px 12px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Action</th>' : ''}
 </tr>`;
+}
 
-const P_CORP_TABLE_THEAD = `
-<tr style="background:linear-gradient(90deg,#1b5e20 0%,#388e3c 100%);">
+function P_CORP_TABLE_THEAD() {
+    return `<tr style="background:linear-gradient(90deg,#1b5e20 0%,#388e3c 100%);">
     <th style="padding:7px 10px 7px 12px;color:white;text-align:left;font-weight:700;letter-spacing:0.3px;border:none;position:sticky;left:0;z-index:10;background:#1b5e20;width:320px;min-width:320px;">#&nbsp;&nbsp;Full Name</th>
     <th style="padding:7px 14px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Position</th>
     <th style="padding:7px 14px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">ID No.</th>
-    <th style="padding:7px 12px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Action</th>
+    ${state.isEditing ? '<th style="padding:7px 12px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Action</th>' : ''}
 </tr>`;
+}
 
 function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isCorporateCard) {
     const safeKey = projName.replace(/[^a-zA-Z0-9]/g, '_');
@@ -26863,9 +26865,7 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
             <td style="text-align:center;padding:5px 8px;white-space:nowrap;">${posDisplay}</td>
             <td style="text-align:center;padding:5px 14px;white-space:nowrap;font-size:0.72rem;color:#555;font-weight:600;">${p.id||'—'}</td>
             ${_certCell}
-            <td style="text-align:center;padding:5px 12px;white-space:nowrap;">
-                ${personnelEditBtn(origIdx, (window._pRegionMap||{})[p.current] || 'OTHER')}
-            </td>
+            ${state.isEditing ? `<td style="text-align:center;padding:5px 12px;white-space:nowrap;">${personnelEditBtn(origIdx, (window._pRegionMap||{})[p.current] || 'OTHER')}</td>` : ''}
         </tr>`;
     });
 
@@ -26881,7 +26881,7 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
         </div>
         <div id="p-proj-body-${safeKey}" style="overflow-x:auto;display:${isCollapsed?'none':''};">
             <table style="width:100%;border-collapse:collapse;font-size:0.72rem;table-layout:fixed;">
-                <thead>${P_TABLE_THEAD}</thead>
+                <thead>${P_TABLE_THEAD()}</thead>
                 <tbody>${rows}</tbody>
             </table>
         </div>
@@ -27039,9 +27039,7 @@ function renderPTable() {
                 </td>
                 <td style="text-align:center;padding:5px 8px;white-space:nowrap;">${posDisplay}</td>
                 <td style="text-align:center;padding:5px 14px;white-space:nowrap;font-size:0.72rem;color:#555;font-weight:600;">${p.id||'—'}</td>
-                <td style="text-align:center;padding:5px 12px;white-space:nowrap;">
-                    ${personnelEditBtn(origIdx, 'CORPORATE')}
-                </td>
+                ${state.isEditing ? `<td style="text-align:center;padding:5px 12px;white-space:nowrap;">${personnelEditBtn(origIdx, 'CORPORATE')}</td>` : ''}
             </tr>`;
         });
         const _corpCollapsed = _pCollapsedGroups.has(grpSafe);
@@ -27064,7 +27062,7 @@ function renderPTable() {
         </div>
         <div id="p-grp-body-${grpSafe}" class="region-content${_corpCollapsed?' collapsed':''}" style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;font-size:0.72rem;table-layout:fixed;">
-                <thead>${P_CORP_TABLE_THEAD}</thead>
+                <thead>${P_CORP_TABLE_THEAD()}</thead>
                 <tbody>${_corpRows}</tbody>
             </table>
         </div>`;
@@ -39557,8 +39555,28 @@ Do not include any other text, explanation, or markdown. JSON only.`
       <!-- Stats grid -->
       <div id="os-modal-stats" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"></div>
 
-      <!-- hidden chart element kept for script compatibility -->
-      <div id="os-modal-chart" style="display:none;"></div>
+      <!-- Monthly manhours chart -->
+      <div style="margin-top:18px;">
+        <div style="font-size:0.72rem; font-weight:700; color:#1b5e20; margin-bottom:8px;
+            letter-spacing:0.3px; text-transform:uppercase;">Monthly Man-Hours Exposure</div>
+        <div style="display:flex; align-items:flex-end; gap:3px; height:70px; padding:0 2px;">
+          <div id="os-modal-chart" style="display:flex; align-items:flex-end; gap:3px; height:100%; width:100%;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:4px;">
+          <span style="font-size:0.58rem; color:#aaa;">Jan</span>
+          <span style="font-size:0.58rem; color:#aaa;">Feb</span>
+          <span style="font-size:0.58rem; color:#aaa;">Mar</span>
+          <span style="font-size:0.58rem; color:#aaa;">Apr</span>
+          <span style="font-size:0.58rem; color:#aaa;">May</span>
+          <span style="font-size:0.58rem; color:#aaa;">Jun</span>
+          <span style="font-size:0.58rem; color:#aaa;">Jul</span>
+          <span style="font-size:0.58rem; color:#aaa;">Aug</span>
+          <span style="font-size:0.58rem; color:#aaa;">Sep</span>
+          <span style="font-size:0.58rem; color:#aaa;">Oct</span>
+          <span style="font-size:0.58rem; color:#aaa;">Nov</span>
+          <span style="font-size:0.58rem; color:#aaa;">Dec</span>
+        </div>
+      </div>
 
     </div>
   </div>
@@ -39761,26 +39779,17 @@ function osOpenModal(projectName) {
         personnelSection.style.display = 'none';
     }
 
-    // Total Manpower from OSH Personnel Requirement Monitoring (Manpower Input column)
-    const totalManpower = (state.oshData && state.oshData[project.name] && parseInt(state.oshData[project.name].manpower)) || 0;
-
-    const dangOcc  = sumYear('medical_Dangerous Occurrences');
-    const nearMiss = sumYear('activities_No. of Identified Near-Miss');
-
     // Stat cards
     const stats = [
-        { label: `Total Man-Hours (${mhLabel})`, value: manhoursAll.toLocaleString(), icon: 'fa-clock',             color: '#1b5e20' },
-        { label: 'Total Manpower',               value: totalManpower > 0 ? totalManpower.toLocaleString() : '—',   icon: 'fa-hard-hat',            color: '#5d4037' },
-        { label: 'LTA Cases',                    value: lta,      icon: 'fa-person-falling',      color: lta > 0 ? '#c62828' : '#2e7d32' },
-        { label: 'Medical Treatment',            value: medTreat, icon: 'fa-kit-medical',          color: medTreat > 0 ? '#e65100' : '#2e7d32' },
-        { label: 'First Aid',                    value: firstAid, icon: 'fa-band-aid',             color: '#0277bd' },
-        { label: 'High-Potential Inc.',          value: highPot,  icon: 'fa-triangle-exclamation', color: highPot > 0 ? '#f9a825' : '#2e7d32' },
-        { label: 'Dangerous Occurrence',         value: dangOcc,  icon: 'fa-bolt',                 color: dangOcc > 0 ? '#e65100' : '#2e7d32' },
-        { label: 'Near Miss',                    value: nearMiss, icon: 'fa-eye',                  color: nearMiss > 0 ? '#6a1b9a' : '#2e7d32' },
-        { label: 'Fatality',                     value: fatality, icon: 'fa-skull',                color: fatality > 0 ? '#b71c1c' : '#2e7d32' },
-        { label: 'Days Lost/Charged',            value: daysLost, icon: 'fa-calendar-xmark',       color: daysLost > 0 ? '#6a1b9a' : '#2e7d32' },
-        { label: 'Frequency Rate',               value: fr,       icon: 'fa-chart-line',           color: '#00695c' },
-        { label: 'Severity Rate',                value: sr,       icon: 'fa-gauge',                color: '#37474f' },
+        { label: `Total Man-Hours (${mhLabel})`, value: manhoursAll.toLocaleString(), icon: 'fa-clock', color: '#1b5e20' },
+        { label: 'LTA Cases',           value: lta,      icon: 'fa-person-falling',       color: lta > 0 ? '#c62828' : '#2e7d32' },
+        { label: 'Medical Treatment',   value: medTreat, icon: 'fa-kit-medical',           color: medTreat > 0 ? '#e65100' : '#2e7d32' },
+        { label: 'First Aid',           value: firstAid, icon: 'fa-band-aid',              color: '#0277bd' },
+        { label: 'High-Potential Inc.', value: highPot,  icon: 'fa-triangle-exclamation',  color: highPot > 0 ? '#f9a825' : '#2e7d32' },
+        { label: 'Fatality',            value: fatality, icon: 'fa-skull',                 color: fatality > 0 ? '#b71c1c' : '#2e7d32' },
+        { label: 'Days Lost/Charged',   value: daysLost, icon: 'fa-calendar-xmark',        color: daysLost > 0 ? '#6a1b9a' : '#2e7d32' },
+        { label: 'Frequency Rate',      value: fr,       icon: 'fa-chart-line',            color: '#00695c' },
+        { label: 'Severity Rate',       value: sr,       icon: 'fa-gauge',                 color: '#37474f' },
     ];
 
     document.getElementById('os-modal-stats').innerHTML = stats.map(s => `
@@ -39796,6 +39805,21 @@ function osOpenModal(projectName) {
             </div>
         </div>
     `).join('');
+
+    // Monthly manhours bar chart
+    const monthlyMH = [];
+    for (let i = 1; i <= 12; i++) monthlyMH.push(parseFloat(vals['exposures_Total Exposed Manhour']?.[i]) || 0);
+    const maxMH = Math.max(...monthlyMH, 1);
+    document.getElementById('os-modal-chart').innerHTML = monthlyMH.map(v => {
+        const pct = Math.round((v / maxMH) * 100);
+        const hasVal = v > 0;
+        return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;"
+            title="${v.toLocaleString()} manhours">
+            <div style="width:100%; border-radius:3px 3px 0 0;
+                background:${hasVal ? 'linear-gradient(180deg,#4caf50,#1b5e20)' : '#e0e0e0'};
+                height:${pct}%; min-height:${hasVal ? '3' : '2'}px; transition:height 0.3s;"></div>
+        </div>`;
+    }).join('');
 
     // Show modal
     const modal = document.getElementById('os-project-modal');
