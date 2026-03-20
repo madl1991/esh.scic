@@ -26825,12 +26825,14 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
     const badgeBg = 'rgba(251,192,45,0.25)';
 
     let rows = '';
+    let _projRowNum = 0;
     personnel.forEach(item => {
         const origIdx = item._origIdx;
         const p = state.personnelData[origIdx];
         if (!p) return;
+        _projRowNum++;
         displayIndexRef.n++;
-        const di = displayIndexRef.n;
+        const di = _projRowNum;
         const oicBadge = p.oic ? `<span style="display:inline-block;font-size:0.55rem;font-weight:800;color:#e65100;background:#fff3e0;border:1px solid #ffcc80;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle;letter-spacing:0.3px;">OIC</span>` : '';
         const posDisplay = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>${oicBadge}` : '<span style="color:#bbb;font-size:0.7rem;">—</span>';
         const hasToUpdate = p.toUpdate && p.toUpdate.length > 0;
@@ -27019,12 +27021,14 @@ function renderPTable() {
     if (corpPersonnel.length > 0) {
         const grpSafe = 'CORP_OFFICE';
         let _corpRows = '';
+        let _corpRowNum = 0;
         corpPersonnel.forEach(item => {
             const origIdx = item._origIdx;
             const p = state.personnelData[origIdx];
             if (!p) return;
+            _corpRowNum++;
             displayIndexRef.n++;
-            const di = displayIndexRef.n;
+            const di = _corpRowNum;
             const _oicBadge = p.oic ? `<span style="display:inline-block;font-size:0.55rem;font-weight:800;color:#e65100;background:#fff3e0;border:1px solid #ffcc80;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle;letter-spacing:0.3px;">OIC</span>` : '';
             const posDisplay = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>${_oicBadge}` : '<span style="color:#bbb;font-size:0.7rem;">—</span>';
             const _hasToUpdate = p.toUpdate && p.toUpdate.length > 0;
