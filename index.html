@@ -3908,6 +3908,7 @@ body.dark-mode .toast-close:hover { color: #aaa; }
     backdrop-filter: blur(4px);
 }
 @keyframes fadeInOverlay { from{opacity:0} to{opacity:1} }
+@keyframes fadeInDown { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
 
 .delete-dialog {
     background: white; border-radius: 20px; padding: 32px 28px 24px;
@@ -17225,6 +17226,17 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             'Near Miss'
         ];
 
+        const LTA_INCIDENT_CLASSIFICATION_DESC = {
+            'LTA':                      'Lost Time Accident — An injury that prevents the worker from returning to work on the next scheduled work shift. Results in days lost/charged.',
+            'Restricted Work Case (RWC)': 'Restricted Work Case — The injured worker can still report to work but is temporarily assigned to lighter or restricted duties due to the injury.',
+            'Medical Treatment':        'An injury requiring treatment beyond first aid by a physician or medical professional, but does not result in lost workdays.',
+            'First Aid':                'A minor injury treated on-site with basic medical supplies. The worker can return to work immediately with no lost time.',
+            'Fatality':                 'An incident resulting in the death of one or more workers, either immediately or as a consequence of a work-related injury or illness.',
+            'High-Potential Incident':  'An incident that did not result in injury but had the potential to cause a serious or fatal injury under different circumstances.',
+            'Dangerous Occurrence':     'A near-disaster event (e.g., collapse, explosion, fire) required to be reported to DOLE under the OSH Law, even if no injury occurred.',
+            'Near Miss':                'An unplanned event that did not result in injury or damage but could have, under slightly different circumstances.'
+        };
+
         const LTA_FACTOR_CATEGORIES = {
             'PEOPLE': [
                 'Lack of Awareness or Training',
@@ -17782,10 +17794,33 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         </div>
                         <div class="lta-field">
                             <label>Incident Classification</label>
-                            <select name="ltamod-incidentClassification" ${dis}>
-                                <option value="">— Select —</option>
-                                ${typeof LTA_INCIDENT_CLASSIFICATION !== 'undefined' ? mkOpts(LTA_INCIDENT_CLASSIFICATION, e.incidentClassification) : ''}
-                            </select>
+                            <div style="position:relative;">
+                                <select name="ltamod-incidentClassification" ${dis}
+                                    style="width:100%;"
+                                    onchange="(function(sel){
+                                        const desc = (typeof LTA_INCIDENT_CLASSIFICATION_DESC !== 'undefined') ? LTA_INCIDENT_CLASSIFICATION_DESC[sel.value] : null;
+                                        const box = sel.parentElement.querySelector('.ic-desc-box');
+                                        if(box){ if(desc){ box.textContent=desc; box.style.display='block'; } else { box.style.display='none'; } }
+                                    })(this)"
+                                    onmouseover="(function(sel){
+                                        const desc = (typeof LTA_INCIDENT_CLASSIFICATION_DESC !== 'undefined') ? LTA_INCIDENT_CLASSIFICATION_DESC[sel.value] : null;
+                                        const box = sel.parentElement.querySelector('.ic-desc-box');
+                                        if(box && desc){ box.textContent=desc; box.style.display='block'; }
+                                    })(this)">
+                                    <option value="">— Select —</option>
+                                    ${typeof LTA_INCIDENT_CLASSIFICATION !== 'undefined' ? LTA_INCIDENT_CLASSIFICATION.map(o => {
+                                        const desc = (typeof LTA_INCIDENT_CLASSIFICATION_DESC !== 'undefined') ? LTA_INCIDENT_CLASSIFICATION_DESC[o] || '' : '';
+                                        const selArr = Array.isArray(e.incidentClassification) ? e.incidentClassification : (e.incidentClassification ? [e.incidentClassification] : []);
+                                        return `<option value="${o}" title="${desc}" ${selArr.includes(o)?'selected':''}>${o}</option>`;
+                                    }).join('') : ''}
+                                </select>
+                                <div class="ic-desc-box" style="display:${e.incidentClassification && (typeof LTA_INCIDENT_CLASSIFICATION_DESC !== 'undefined') && LTA_INCIDENT_CLASSIFICATION_DESC[e.incidentClassification] ? 'block':'none'};
+                                    margin-top:5px; padding:7px 10px; background:#e8f5e9; border-left:3px solid #2e7d32;
+                                    border-radius:0 5px 5px 0; font-size:0.68rem; color:#2e7d32; line-height:1.5;
+                                    animation: fadeInDown 0.2s ease;">
+                                    ${e.incidentClassification && (typeof LTA_INCIDENT_CLASSIFICATION_DESC !== 'undefined') ? (LTA_INCIDENT_CLASSIFICATION_DESC[e.incidentClassification]||'') : ''}
+                                </div>
+                            </div>
                         </div>
                         <div class="lta-field lta-field-full">
                             <label>Details / Facts of Incident</label>
@@ -18585,7 +18620,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     const dis = (state.isEditing && canEdit) ? '' : 'disabled';
 
                     const _ltaIsWS = isProjectOnStoppage(p);
-                    html += `<div class="lta-project-card" style="${_ltaIsWS ? 'opacity:0.85;border-left:4px solid #bf360c;' : ''}">
+                    html += `<div class="lta-project-card" style="${_ltaIsWS ? 'opacity:0.85;' : ''}">
                         <div class="lta-project-header" onclick="toggleLtaProject('lta-proj-${pId}')" style="${_ltaIsWS ? 'background:linear-gradient(90deg,#bf360c,#8d1c0a);' : ''}">
                             <div style="display:flex;align-items:center;gap:8px;">
                                 <span class="lta-project-name">${p.name}</span>
