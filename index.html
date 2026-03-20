@@ -6428,7 +6428,7 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
 
 
 <div id="personnel-view" class="hidden" style="padding: 20px; max-height: calc(100vh - 70px); overflow-y: auto;">
-    <div style="background: var(--bg-card); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid var(--border-color);">
+    <div style="border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid var(--border-color);">
 
         
         <div style="background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 25%, #2e7d32 50%, #43a047 75%, #66bb6a 100%); padding: 18px 24px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:space-between; box-shadow: 0 4px 15px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1); position: relative; overflow: hidden;">
@@ -17746,7 +17746,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             modal.id = 'lta-entry-modal';
             modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;';
             modal.innerHTML = `
-            <div style="background:var(--bg-card);border-radius:12px;width:min(860px,96vw);margin:auto;
+            <div style="border-radius:12px;width:min(860px,96vw);margin:auto;
                 box-shadow:0 24px 80px rgba(0,0,0,0.35);overflow:hidden;position:relative;">
 
                 <!-- Header -->
@@ -17768,7 +17768,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 </div>
 
                 <!-- Body -->
-                <div style="padding:18px 20px;max-height:70vh;overflow-y:auto;" id="lta-modal-body">
+                <div style="padding:18px 20px;max-height:70vh;overflow-y:auto;background:var(--bg-card);" id="lta-modal-body">
                     <div class="lta-grid">
 
                         <div class="lta-section-label" style="grid-column:1/-1;"><i class="fas fa-file-alt" style="margin-right:5px;"></i>Incident Information</div>
@@ -19811,7 +19811,7 @@ function renderTabulation() {
             const modal = document.createElement('div');
             modal.id = 'osh-nov-modal';
             modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 10px;';
-            modal.innerHTML = `<div style="background:var(--bg-card);border-radius:12px;width:min(1300px,98vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.45);overflow:hidden;">
+            modal.innerHTML = `<div style="border-radius:12px;width:min(1300px,98vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.45);overflow:hidden;">
                 <div style="background:linear-gradient(90deg,#0d3311,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
                     <div>
                         <div style="color:white;font-weight:800;font-size:0.95rem;font-family:Poppins,sans-serif;">
@@ -19831,7 +19831,7 @@ function renderTabulation() {
                     ${!canEdit?'<span style="font-size:0.6rem;color:#e65100;"><i class="fas fa-lock" style="margin-right:4px;"></i>View Only — Press ✏️ Edit button to enable editing</span>':''}
                     <span style="font-size:0.6rem;color:#888;margin-left:auto;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll table horizontally if needed</span>
                 </div>
-                <div style="padding:16px 20px;overflow-y:auto;max-height:70vh;">
+                <div style="padding:16px 20px;overflow-y:auto;max-height:70vh;background:var(--bg-card);">
                     ${buildNovTable('internal','INTERNAL NOV','🔴','internal-hdr',OSH_NOV_INTERNAL_BODIES)}
                     ${buildNovTable('external','EXTERNAL NOV','🟠','external-hdr',OSH_NOV_EXTERNAL_BODIES)}
                 </div>
@@ -21311,7 +21311,7 @@ if (state.currentTab === 'audit') {
                     const modal = document.createElement('div');
                     modal.id = 'env-nov-modal';
                     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 10px;';
-                    modal.innerHTML = `<div style="background:var(--bg-card);border-radius:12px;width:min(1300px,98vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.45);overflow:hidden;">
+                    modal.innerHTML = `<div style="border-radius:12px;width:min(1300px,98vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.45);overflow:hidden;">
                         <div style="background:linear-gradient(90deg,#0d3311,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
                             <div>
                                 <div style="color:white;font-weight:800;font-size:0.95rem;font-family:Poppins,sans-serif;">
@@ -21331,7 +21331,7 @@ if (state.currentTab === 'audit') {
                             ${!canEdit?'<span style="font-size:0.6rem;color:#e65100;"><i class="fas fa-lock" style="margin-right:4px;"></i>View Only — Press ✏️ Edit button to enable editing</span>':''}
                             <span style="font-size:0.6rem;color:#888;margin-left:auto;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll table horizontally if needed</span>
                         </div>
-                        <div style="padding:16px 20px;overflow-y:auto;max-height:70vh;">
+                        <div style="padding:16px 20px;overflow-y:auto;max-height:70vh;background:var(--bg-card);">
                             ${buildEnvNovTable('internal','NCR (Client/SCIC Audit)','🔴','internal-hdr',ENV_NOV_INTERNAL_BODIES,ENV_NOV_VIOLATION_LAWS)}
                             ${buildEnvNovTable('external','EXTERNAL NOV','🟠','external-hdr',ENV_NOV_EXTERNAL_BODIES,ENV_NOV_VIOLATION_LAWS)}
                         </div>
@@ -22520,7 +22520,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + annualRows
                             + '</tbody></table>';
 
-                        modal.innerHTML = '<div style="background:var(--bg-card);border-radius:12px;width:min(900px,97vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
+                        modal.innerHTML = '<div style="border-radius:12px;width:min(900px,97vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
                             // Header
                             + '<div style="background:linear-gradient(90deg,#0d3d0f,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
                             + '<div>'
@@ -22552,7 +22552,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<span style="font-size:0.6rem;color:#888;margin-left:auto;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll horizontally if needed</span>'
                             + '</div>'
                             // Table
-                            + '<div style="overflow-x:auto;max-height:55vh;overflow-y:auto;">' + tableHtml + '</div>'
+                            + '<div style="overflow-x:auto;max-height:55vh;overflow-y:auto;background:var(--bg-card);">' + tableHtml + '</div>'
                             // Footer
                             + '<div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;background:var(--bg-card);">'
                             + (canEdit
@@ -22600,10 +22600,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     var modal = document.createElement('div');
                     modal.id = id;
                     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.58);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;';
-                    modal.innerHTML = '<div style="background:var(--bg-card);border-radius:12px;width:min(960px,97vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
+                    modal.innerHTML = '<div style="border-radius:12px;width:min(960px,97vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
                         + headerHtml
                         + infoBar
-                        + '<div style="overflow-x:auto;max-height:58vh;overflow-y:auto;">' + tableHtml + '</div>'
+                        + '<div style="overflow-x:auto;max-height:58vh;overflow-y:auto;background:var(--bg-card);">' + tableHtml + '</div>'
                         + footerHtml
                         + '</div>';
                     // backdrop click disabled — use × button to close
@@ -23983,7 +23983,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         // Build KPM table
                         var tableHtml = window._kpmBuildModalTable(regProjs, activeMo, dis, regKey);
 
-                        modal.innerHTML = '<div style="background:var(--bg-card);border-radius:12px;width:min(1120px,97vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
+                        modal.innerHTML = '<div style="border-radius:12px;width:min(1120px,97vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
                             // Header
                             + '<div style="background:linear-gradient(90deg,#0d3d0f,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
                             + '<div>'
@@ -24001,7 +24001,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             // Per-project submission meta
                             + metaHtml
                             // Table
-                            + '<div style="overflow-x:auto;max-height:58vh;overflow-y:auto;">'
+                            + '<div style="overflow-x:auto;max-height:58vh;overflow-y:auto;background:var(--bg-card);">'
                             + tableHtml
                             + '</div>'
                             // Legend
@@ -31958,7 +31958,7 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.id = 'got-compliance-modal';
         modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.58);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;';
 
-        modal.innerHTML = '<div style="background:var(--bg-card);border-radius:12px;width:min(1200px,97vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
+        modal.innerHTML = '<div style="border-radius:12px;width:min(1200px,97vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
             // Header
             + '<div style="background:linear-gradient(90deg,#0d3311,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
             + '<div>'
@@ -31978,7 +31978,7 @@ document.addEventListener('DOMContentLoaded', function() {
             + '<span style="font-size:0.6rem;color:#888;margin-left:auto;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll table horizontally</span>'
             + '</div>'
             // Table
-            + '<div style="overflow-x:auto;max-height:60vh;overflow-y:auto;">'
+            + '<div style="overflow-x:auto;max-height:60vh;overflow-y:auto;background:var(--bg-card);">'
             + tableHtml
             + '</div>'
             // Legend
@@ -38844,7 +38844,7 @@ window.RowSaveManager = (function() {
 
 <!-- ══ HEALTH REPORTORIAL — PENDING MODAL ══ -->
 <div id="health-report-pending-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.55); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
-  <div style="background:var(--bg-card,#fff); border-radius:20px; max-width:500px; width:90%; padding:0; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.25); animation:slideUp 0.3s ease-out;">
+  <div style="border-radius:20px; max-width:500px; width:90%; padding:0; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.25); animation:slideUp 0.3s ease-out;">
     <!-- Header -->
     <div style="background:linear-gradient(135deg,#0a2e10 0%,#1b5e20 60%,#2e7d32 100%); padding:28px 30px 22px; position:relative;">
       <div style="display:flex; align-items:center; gap:14px;">
@@ -38861,7 +38861,7 @@ window.RowSaveManager = (function() {
       </button>
     </div>
     <!-- Body -->
-    <div style="padding:28px 30px 30px;">
+    <div style="padding:28px 30px 30px; background:var(--bg-card,#fff);">
       <div style="display:flex; align-items:flex-start; gap:14px; background:#e3f2fd; border:1.5px solid #90caf9; border-radius:12px; padding:18px 20px; margin-bottom:22px;">
         <i class="fas fa-hourglass-half" style="color:#1976d2; font-size:1.4rem; margin-top:2px; flex-shrink:0;"></i>
         <div>
