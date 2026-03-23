@@ -6800,32 +6800,67 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
       animation: pulse 2s infinite;
     }
 
-    /* ── Full-width Icon Sections layout ── */
-    .settings-grid { display: flex; flex-direction: column; gap: 14px; }
+    /* ── Accordion Layout D ── */
+    .settings-grid { display: flex; flex-direction: column; gap: 0; }
 
-    .settings-card {
-      background: var(--bg-card); border-radius: 14px; overflow: hidden;
+    /* Accordion shell */
+    .settings-accordion {
       border: 1px solid var(--border-color);
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06); transition: box-shadow 0.2s;
+      border-radius: 14px; overflow: hidden;
+      background: var(--bg-card);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    /* Each accordion section */
+    .settings-card {
+      border-bottom: 1px solid var(--border-color);
       width: 100%;
     }
+    .settings-card:last-child { border-bottom: none; }
     .settings-card-full { width: 100%; }
-    .settings-card-header {
-      background: linear-gradient(90deg, #1b5e20 0%, #2e7d32 100%);
-      padding: 16px 22px; display: flex; align-items: center; gap: 14px;
-    }
-    .settings-card-header-icon {
-      width: 42px; height: 42px; border-radius: 10px;
-      background: rgba(255,255,255,0.15); border: 1.5px solid rgba(251,192,45,0.4);
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .settings-card-header-icon i { color: #fbc02d; font-size: 1.15rem; }
-    .settings-card-header-text { flex: 1; }
-    .settings-card-title { color: white; font-weight: 700; font-size: 0.9rem; letter-spacing: 0.5px; display: block; }
-    .settings-card-subtitle { color: #a5d6a7; font-size: 0.7rem; margin-top: 2px; display: block; }
-    .settings-card-body { padding: 22px; }
 
+    /* Clickable header row */
+    .settings-card-header {
+      padding: 15px 20px;
+      display: flex; align-items: center; gap: 14px;
+      cursor: pointer; user-select: none;
+      transition: background 0.15s;
+      background: var(--bg-card);
+    }
+    .settings-card-header:hover { background: #f6faf6; }
+    body.dark-mode .settings-card-header:hover { background: rgba(46,125,50,0.06); }
+
+    .settings-card-header-icon {
+      width: 36px; height: 36px; border-radius: 9px;
+      background: #e8f5e9; border: 1px solid #c8e6c9;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .settings-card-header-icon i { color: #1b5e20; font-size: 0.95rem; }
+
+    .settings-card-header-text { flex: 1; }
+    .settings-card-title {
+      color: var(--text-primary); font-weight: 700; font-size: 0.85rem;
+      letter-spacing: 0.3px; display: block;
+    }
+    .settings-card-subtitle { color: var(--text-secondary); font-size: 0.69rem; margin-top: 2px; display: block; }
+
+    /* Chevron */
+    .settings-card-chevron {
+      font-size: 0.7rem; color: var(--text-secondary);
+      transition: transform 0.2s ease; flex-shrink: 0;
+    }
+    .settings-card-chevron.open { transform: rotate(90deg); }
+
+    /* Collapsible body */
+    .settings-card-body {
+      padding: 0 20px 20px 70px;
+      display: none;
+      border-top: 1px solid var(--border-color);
+    }
+    .settings-card-body.open { display: block; }
+    .settings-card-body-inner { padding-top: 18px; }
+
+    /* Form elements */
     .settings-input-group { margin-bottom: 14px; position: relative; }
     .settings-input-group:last-child { margin-bottom: 0; }
     .settings-label {
@@ -6834,7 +6869,7 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
       text-transform: uppercase; margin-bottom: 6px;
     }
     .settings-input {
-      width: 100%; padding: 11px 14px; border: 1.5px solid var(--border-color);
+      width: 100%; padding: 10px 13px; border: 1.5px solid var(--border-color);
       border-radius: 8px; font-size: 0.85rem; background: var(--input-bg);
       color: var(--text-primary); transition: border-color 0.2s, box-shadow 0.2s;
       box-sizing: border-box;
@@ -6843,9 +6878,7 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
       outline: none; border-color: #2e7d32;
       box-shadow: 0 0 0 3px rgba(46,125,50,0.15);
     }
-    .settings-input:disabled {
-      opacity: 0.65; cursor: not-allowed; background: var(--border-color);
-    }
+    .settings-input:disabled { opacity: 0.65; cursor: not-allowed; background: var(--border-color); }
     .settings-input-icon { position: relative; }
     .settings-input-icon .settings-input { padding-right: 42px; }
     .settings-input-icon .icon-btn {
@@ -6855,21 +6888,17 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
     }
 
     .settings-btn {
-      width: 100%; padding: 11px; border: none; border-radius: 8px;
+      width: 100%; padding: 10px; border: none; border-radius: 8px;
       font-size: 0.82rem; font-weight: 700; cursor: pointer;
       letter-spacing: 0.5px; display: flex; align-items: center;
       justify-content: center; gap: 8px; transition: all 0.2s; margin-top: 4px;
     }
-    .settings-btn-primary {
-      background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
-      color: white; box-shadow: 0 3px 10px rgba(27,94,32,0.3);
-    }
-    .settings-btn-primary:disabled { opacity: 0.6; cursor: wait; transform: none; }
+    .settings-btn-primary { background: #1b5e20; color: white; }
+    .settings-btn-primary:hover { background: #2e7d32; }
+    .settings-btn-primary:disabled { opacity: 0.6; cursor: wait; }
     .settings-btn-danger { background: #ffebee; color: #c62828; border: 1.5px solid #ffcdd2; }
-    .settings-btn-outline {
-      background: transparent; color: #1b5e20;
-      border: 1.5px solid #2e7d32;
-    }
+    .settings-btn-secondary { background: var(--bg-body); color: var(--text-secondary); border: 1.5px solid var(--border-color); }
+    .settings-btn-outline { background: transparent; color: #1b5e20; border: 1.5px solid #2e7d32; }
     .settings-btn + .settings-btn { margin-top: 8px; }
 
     .settings-msg {
@@ -6882,18 +6911,6 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
     .settings-msg.loading { background: #f3e5f5; color: #6a1b9a; border-left: 4px solid #9c27b0; display: flex; align-items: center; gap: 8px; }
 
     .settings-divider { height: 1px; background: var(--border-color); margin: 14px 0; }
-
-    .danger-zone-card .settings-card-header { background: linear-gradient(90deg, #b71c1c 0%, #d32f2f 100%); }
-
-    .theme-options { display: flex; gap: 10px; margin-bottom: 14px; }
-    .theme-option {
-      flex: 1; padding: 12px 8px; border-radius: 10px; cursor: pointer;
-      border: 2px solid var(--border-color); text-align: center;
-      transition: all 0.2s; font-size: 0.75rem; font-weight: 600;
-    }
-    .theme-option.active { border-color: #2e7d32; background: #e8f5e9; color: #1b5e20; }
-    body.dark-mode .theme-option.active { background: rgba(46,125,50,0.2); }
-    .theme-option .theme-icon { font-size: 1.5rem; margin-bottom: 5px; }
 
     .info-row {
       display: flex; justify-content: space-between; align-items: center;
@@ -6920,6 +6937,22 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
       color: #1976D2; font-size: 0.75rem; font-weight: 600;
       display: flex; align-items: center; gap: 4px;
     }
+
+    /* Section badge */
+    .sec-badge {
+      font-size: 0.62rem; padding: 2px 8px; border-radius: 20px;
+      font-weight: 700; margin-left: 8px; vertical-align: middle;
+    }
+    .sec-badge-green { background: #e8f5e9; color: #1b5e20; }
+    .sec-badge-blue  { background: #e3f2fd; color: #1565c0; }
+
+    /* Admin-only top label strip */
+    .settings-admin-strip {
+      font-size: 0.68rem; font-weight: 700; color: #1b5e20;
+      letter-spacing: 0.5px; text-transform: uppercase;
+      padding: 8px 20px; background: #f1f8f1;
+      border-bottom: 1px solid var(--border-color);
+    }
   </style>
 
   <div class="settings-page">
@@ -6939,321 +6972,147 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
     </div>
 
     <div class="settings-grid">
+      <div class="settings-accordion">
 
-      
-      <div class="settings-card">
-        <div class="settings-card-header">
-          <div class="settings-card-header-icon"><i class="fas fa-id-badge"></i></div>
-          <div class="settings-card-header-text">
-            <span class="settings-card-title">DISPLAY NAME</span>
-            <span class="settings-card-subtitle">Update how your name appears across the system</span>
+        <!-- DISPLAY NAME -->
+        <div class="settings-card">
+          <div class="settings-card-header" onclick="settingsToggle(this)">
+            <div class="settings-card-header-icon"><i class="fas fa-id-badge"></i></div>
+            <div class="settings-card-header-text">
+              <span class="settings-card-title">Display Name</span>
+              <span class="settings-card-subtitle">Update how your name appears across the system</span>
+            </div>
+            <i class="fas fa-chevron-right settings-card-chevron"></i>
           </div>
-        </div>
-        <div class="settings-card-body">
-          <div class="settings-input-group">
-            <label class="settings-label">Current Display Name</label>
-            <div class="username-display">
-              <span class="username-display-text" id="current-display-name-text">—</span>
-              <button class="username-edit-btn" onclick="toggleUsernameEdit()">
-                <i class="fas fa-pencil"></i> Edit
-              </button>
+          <div class="settings-card-body">
+            <div class="settings-card-body-inner">
+              <div class="settings-input-group">
+                <label class="settings-label">Current Display Name</label>
+                <div class="username-display">
+                  <span class="username-display-text" id="current-display-name-text">—</span>
+                  <button class="username-edit-btn" onclick="toggleUsernameEdit()">
+                    <i class="fas fa-pencil"></i> Edit
+                  </button>
+                </div>
+              </div>
+              <div id="username-edit-fields" style="display:none;">
+                <div class="settings-input-group">
+                  <label class="settings-label">New Display Name</label>
+                  <input type="text" id="new-display-name" class="settings-input" placeholder="Enter display name" maxlength="40">
+                </div>
+                <button class="settings-btn settings-btn-primary" id="save-name-btn" onclick="saveDisplayName()">
+                  <i class="fas fa-save"></i> SAVE NAME
+                </button>
+              </div>
+              <div id="name-msg" class="settings-msg"></div>
             </div>
           </div>
-          <div id="username-edit-fields" style="display:none;">
-            <div class="settings-input-group">
-              <label class="settings-label">New Display Name</label>
-              <input type="text" id="new-display-name" class="settings-input" placeholder="Enter display name" maxlength="40">
+        </div>
+
+        <!-- ACCOUNT INFO -->
+        <div class="settings-card">
+          <div class="settings-card-header" onclick="settingsToggle(this)">
+            <div class="settings-card-header-icon"><i class="fas fa-circle-info"></i></div>
+            <div class="settings-card-header-text">
+              <span class="settings-card-title">Account Info</span>
+              <span class="settings-card-subtitle">Connection status and account details</span>
             </div>
-            <button class="settings-btn settings-btn-primary" id="save-name-btn" onclick="saveDisplayName()">
-              <i class="fas fa-save"></i> SAVE NAME
-            </button>
+            <i class="fas fa-chevron-right settings-card-chevron"></i>
           </div>
-          <div id="name-msg" class="settings-msg"></div>
-        </div>
-      </div>
-
-      
-      <div class="settings-card">
-        <div class="settings-card-header">
-          <div class="settings-card-header-icon"><i class="fas fa-circle-info"></i></div>
-          <div class="settings-card-header-text">
-            <span class="settings-card-title">ACCOUNT INFO</span>
-            <span class="settings-card-subtitle">Firebase connection status and account details</span>
-          </div>
-        </div>
-        <div class="settings-card-body">
-          <div class="info-row">
-            <span class="info-row-label">Email</span>
-            <span class="info-row-value" id="current-email" style="font-size:0.75rem; word-break:break-all;">—</span>
-          </div>
-          <div class="info-row">
-            <span class="info-row-label">Firebase UID</span>
-            <span class="info-row-value" id="settings-uid" style="font-size:0.65rem; font-family:monospace; color:var(--text-secondary);">—</span>
-          </div>
-          <div class="info-row">
-            <span class="info-row-label">Firebase Status</span>
-            <span id="settings-firebase-status" class="firebase-status-badge connected">
-              <i class="fas fa-wifi"></i> Connected
-            </span>
-          </div>
-          <div class="info-row">
-            <span class="info-row-label">Last Sync</span>
-            <span class="info-row-value" id="settings-last-sync">—</span>
-          </div>
-          <div class="info-row">
-            <span class="info-row-label">Total Projects</span>
-            <span class="info-row-value" id="settings-total-projects">—</span>
-          </div>
-        </div>
-      </div>
-
-      
-      <div class="settings-card">
-        <div class="settings-card-header">
-          <div class="settings-card-header-icon"><i class="fas fa-lock"></i></div>
-          <div class="settings-card-header-text">
-            <span class="settings-card-title">CHANGE PASSWORD</span>
-            <span class="settings-card-subtitle">🔐 Enhanced Security — requires current password to verify identity</span>
-          </div>
-        </div>
-        <div class="settings-card-body">
-          
-          
-          <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; color: white;">
-            <div style="display: flex; align-items: start; gap: 10px;">
-              <i class="fas fa-shield-alt" style="font-size: 20px; margin-top: 2px;"></i>
-              <div style="flex: 1;">
-                <strong style="display: block; margin-bottom: 6px; font-size: 13px;">🔒 Security Requirements:</strong>
-                <ul style="margin: 0; padding-left: 18px; font-size: 11px; line-height: 1.5;">
-                  <li>Must enter your <strong>current password</strong> to verify identity</li>
-                  <li>New password: <strong>8+ characters</strong>, include <strong>numbers & special chars</strong></li>
-                  <li>All devices will be <strong>logged out automatically</strong></li>
-                  <li>You'll receive an <strong>email confirmation</strong></li>
-                </ul>
+          <div class="settings-card-body">
+            <div class="settings-card-body-inner">
+              <div class="info-row">
+                <span class="info-row-label">Email</span>
+                <span class="info-row-value" id="current-email" style="font-size:0.75rem;word-break:break-all;">—</span>
+              </div>
+              <div class="info-row">
+                <span class="info-row-label">Firebase UID</span>
+                <span class="info-row-value" id="settings-uid" style="font-size:0.65rem;font-family:monospace;color:var(--text-secondary);">—</span>
+              </div>
+              <div class="info-row">
+                <span class="info-row-label">Firebase Status</span>
+                <span id="settings-firebase-status" class="firebase-status-badge connected"><i class="fas fa-wifi"></i> Connected</span>
+              </div>
+              <div class="info-row">
+                <span class="info-row-label">Last Sync</span>
+                <span class="info-row-value" id="settings-last-sync">—</span>
+              </div>
+              <div class="info-row">
+                <span class="info-row-label">Total Projects</span>
+                <span class="info-row-value" id="settings-total-projects">—</span>
               </div>
             </div>
           </div>
+        </div>
 
-          
-          <div class="settings-input-group">
-            <label class="settings-label">
-              <i class="fas fa-lock"></i> Current Password
-              <span style="color: #e53935; font-size: 11px; font-weight: normal;">(Required for verification)</span>
-            </label>
-            <div class="settings-input-icon">
-              <input type="password" id="current-password" class="settings-input" placeholder="Enter your current password">
-              <button class="icon-btn" onclick="togglePwd('current-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+        <!-- CHANGE PASSWORD -->
+        <div class="settings-card">
+          <div class="settings-card-header" onclick="settingsToggle(this)">
+            <div class="settings-card-header-icon"><i class="fas fa-lock"></i></div>
+            <div class="settings-card-header-text">
+              <span class="settings-card-title">Change Password</span>
+              <span class="settings-card-subtitle">Requires current password to verify identity</span>
             </div>
+            <i class="fas fa-chevron-right settings-card-chevron"></i>
           </div>
-
-          
-          <div class="settings-input-group">
-            <label class="settings-label">
-              <i class="fas fa-key"></i> New Password
-              <span style="color: #666; font-size: 11px; font-weight: normal;">(Min. 8 characters)</span>
-            </label>
-            <div class="settings-input-icon">
-              <input type="password" id="new-password" class="settings-input" placeholder="Min. 8 chars, include numbers & special chars">
-              <button class="icon-btn" onclick="togglePwd('new-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
-            </div>
-          </div>
-          
-          
-          <div id="pwd-strength" style="margin-bottom:10px; font-size:0.75rem; min-height:16px; font-weight: 500;"></div>
-
-          
-          <div class="settings-input-group">
-            <label class="settings-label">
-              <i class="fas fa-check-double"></i> Confirm New Password
-            </label>
-            <div class="settings-input-icon">
-              <input type="password" id="confirm-password" class="settings-input" placeholder="Re-enter new password">
-              <button class="icon-btn" onclick="togglePwd('confirm-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
-            </div>
-          </div>
-
-          
-          <button class="settings-btn settings-btn-primary" id="update-pwd-btn" onclick="updatePasswordSecure()">
-            <i class="fas fa-key"></i> UPDATE PASSWORD
-          </button>
-          
-          
-
-
-          
-          <div id="settings-message" class="settings-msg"></div>
-        </div>
-      </div>
-
-      
-      <div class="settings-card" id="force-sync-section" style="display:none;">
-        <div class="settings-card-header">
-          <div class="settings-card-header-icon"><i class="fas fa-cloud-upload-alt"></i></div>
-          <div class="settings-card-header-text">
-            <span class="settings-card-title">FIREBASE CLOUD SYNC</span>
-            <span class="settings-card-subtitle">Force sync all local data to the Firebase cloud</span>
-          </div>
-        </div>
-        <div class="settings-card-body">
-          <div class="settings-input-group" style="margin-bottom:0;">
-            <label class="settings-label">Force sync all data to Firebase cloud</label>
-            <button class="settings-btn settings-btn-primary" onclick="saveToFirebaseMain()">
-              <i class="fas fa-cloud-upload-alt"></i> FORCE SYNC TO CLOUD
-            </button>
-          </div>
-        </div>
-      </div>
-
-      
-      <div class="settings-card settings-card-full" id="year-management-section" style="display:none;">
-        <div class="settings-card-header">
-          <div class="settings-card-header-icon"><i class="fas fa-calendar-check"></i></div>
-          <div class="settings-card-header-text">
-            <span class="settings-card-title">YEAR DATA MANAGEMENT</span>
-            <span class="settings-card-subtitle">Copy or manage data across different compliance years</span>
-          </div>
-        </div>
-        <div class="settings-card-body">
-          <div style="background: #e8f5e9; border-left: 4px solid #2e7d32; padding: 14px; border-radius: 6px; margin-bottom: 16px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <i class="fas fa-info-circle" style="color: #2e7d32;"></i>
-              <strong style="color: #1b5e20; font-size: 0.85rem;">Current Year: <span id="settings-current-year">2026</span></strong>
-            </div>
-            <p style="margin: 0; font-size: 0.75rem; color: #2e7d32;">
-              Each year's data is stored separately. You can copy data from previous years to save time.
-            </p>
-          </div>
-          
-          <div class="settings-input-group">
-            <label class="settings-label">Copy Data From Previous Year</label>
-            <div style="display: flex; gap: 10px;">
-              <select id="source-year-select" class="settings-input" style="flex: 1;">
-                <option value="">Select source year...</option>
-              </select>
-              <button class="settings-btn settings-btn-primary" style="width: auto; padding: 11px 20px; margin: 0;" onclick="copyDataFromYear()">
-                <i class="fas fa-copy"></i> Copy Data
-              </button>
-            </div>
-            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 6px;">
-              <i class="fas fa-lightbulb" style="color: #fbc02d;"></i>
-              This will copy projects, personnel, and incident data from the selected year to <strong id="target-year-display">2026</strong>.
-            </div>
-          </div>
-          
-
-        </div>
-      </div>
-
-      
-      <div class="settings-card settings-card-full" id="backup-recovery-card" style="display:none;">
-        <div class="settings-card-header">
-          <div class="settings-card-header-icon"><i class="fas fa-database"></i></div>
-          <div class="settings-card-header-text">
-            <span class="settings-card-title">BACKUP &amp; RECOVERY</span>
-            <span class="settings-card-subtitle">Auto-save snapshots and restore previous data states</span>
-          </div>
-        </div>
-        <div class="settings-card-body">
-          <div id="backup-recovery-section"></div>
-        </div>
-      </div>
-
-      
-      <div class="settings-card settings-card-full" id="audit-trail-section" style="display:none;">
-        <div class="settings-card-header">
-          <div class="settings-card-header-icon"><i class="fas fa-history"></i></div>
-          <div class="settings-card-header-text">
-            <span class="settings-card-title">AUDIT TRAIL</span>
-            <span class="settings-card-subtitle">📝 Activity Log — all system actions tracked for security & compliance</span>
-          </div>
-        </div>
-        <div class="settings-card-body">
-          <p style="margin: 0 0 15px 0; font-size: 0.85rem; color: var(--text-secondary);">
-            Complete log of all actions performed in the system. Changes are tracked automatically for security and compliance.
-          </p>
-          
-          <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-            <button class="settings-btn settings-btn-secondary" onclick="viewAuditLog()">
-              <i class="fas fa-list"></i> VIEW LOG
-            </button>
-            <button class="settings-btn settings-btn-secondary" onclick="exportAuditLog()">
-              <i class="fas fa-download"></i> EXPORT CSV
-            </button>
-            <button class="settings-btn settings-btn-secondary" onclick="clearAuditLog()">
-              <i class="fas fa-trash"></i> CLEAR LOG
-            </button>
-          </div>
-          
-          <div style="background: linear-gradient(135deg, #1976d2 0%, #2196f3 100%); padding: 12px 15px; border-radius: 8px; color: white;">
-            <div style="display: flex; align-items: start; gap: 10px;">
-              <i class="fas fa-info-circle" style="font-size: 20px; margin-top: 2px;"></i>
-              <div style="flex: 1;">
-                <strong style="display: block; margin-bottom: 6px; font-size: 13px;">What's Logged:</strong>
-                <ul style="margin: 0; padding-left: 18px; font-size: 11px; line-height: 1.5;">
-                  <li>Project additions, edits, and deletions</li>
-                  <li>Data changes and updates</li>
-                  <li>User login and logout activities</li>
-                  <li>Settings modifications</li>
-                  <li>File uploads and downloads</li>
-                </ul>
+          <div class="settings-card-body">
+            <div class="settings-card-body-inner">
+              <div style="background:#e8f5e9;border-left:3px solid #2e7d32;padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:0.75rem;color:#1b5e20;line-height:1.6;">
+                <strong>Requirements:</strong> 8+ characters &middot; include numbers &amp; special chars &middot; all devices will be logged out after update.
               </div>
+              <div class="settings-input-group">
+                <label class="settings-label"><i class="fas fa-lock"></i> Current Password <span style="color:#e53935;font-size:11px;font-weight:normal;">(required)</span></label>
+                <div class="settings-input-icon">
+                  <input type="password" id="current-password" class="settings-input" placeholder="Enter your current password">
+                  <button class="icon-btn" onclick="togglePwd('current-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+                </div>
+              </div>
+              <div class="settings-input-group">
+                <label class="settings-label"><i class="fas fa-key"></i> New Password <span style="color:#666;font-size:11px;font-weight:normal;">(min. 8 characters)</span></label>
+                <div class="settings-input-icon">
+                  <input type="password" id="new-password" class="settings-input" placeholder="Min. 8 chars, include numbers &amp; special chars">
+                  <button class="icon-btn" onclick="togglePwd('new-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+                </div>
+              </div>
+              <div id="pwd-strength" style="margin-bottom:10px;font-size:0.75rem;min-height:16px;font-weight:500;"></div>
+              <div class="settings-input-group">
+                <label class="settings-label"><i class="fas fa-check-double"></i> Confirm New Password</label>
+                <div class="settings-input-icon">
+                  <input type="password" id="confirm-password" class="settings-input" placeholder="Re-enter new password">
+                  <button class="icon-btn" onclick="togglePwd('confirm-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+                </div>
+              </div>
+              <button class="settings-btn settings-btn-primary" id="update-pwd-btn" onclick="updatePasswordSecure()">
+                <i class="fas fa-key"></i> UPDATE PASSWORD
+              </button>
+              <div id="settings-message" class="settings-msg"></div>
             </div>
           </div>
-          
-          <div id="audit-log-preview" style="margin-top: 15px; max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background: var(--input-bg); display: none;">
-            
-          </div>
         </div>
-      </div>
 
-      
-      <div class="settings-card settings-card-full" id="force-logout-section" style="display:none;">
-        <div class="settings-card-header">
-          <div class="settings-card-header-icon" style="border-color:rgba(198,40,40,0.4);background:rgba(255,235,238,0.9);"><i class="fas fa-power-off" style="color:#c62828;"></i></div>
-          <div class="settings-card-header-text">
-            <span class="settings-card-title">FORCE LOGOUT</span>
-            <span class="settings-card-subtitle">Remotely terminate active sessions of any account</span>
+        <!-- BACKUP & RECOVERY (admin only) -->
+        <div class="settings-card settings-card-full" id="backup-recovery-card" style="display:none;">
+          <div class="settings-card-header" onclick="settingsToggle(this)">
+            <div class="settings-card-header-icon"><i class="fas fa-database"></i></div>
+            <div class="settings-card-header-text">
+              <span class="settings-card-title">Backup &amp; Recovery</span>
+              <span class="settings-card-subtitle">Auto-save snapshots and restore previous data states</span>
+            </div>
+            <i class="fas fa-chevron-right settings-card-chevron"></i>
           </div>
-        </div>
-        <div class="settings-card-body">
-          <div style="background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:0.76rem; color:#5d4037;">
-            <i class="fas fa-triangle-exclamation" style="color:#f9a825; margin-right:6px;"></i>
-            This will immediately sign out the selected user from <strong>all devices</strong>. Use this when an account is compromised or when a user has resigned.
-          </div>
-          <div id="force-logout-user-list" style="display:flex; flex-direction:column; gap:8px;">
-            <div style="text-align:center; padding:18px; color:var(--text-secondary); font-size:0.8rem;">
-              <i class="fas fa-spinner fa-spin"></i> Loading online users...
+          <div class="settings-card-body">
+            <div class="settings-card-body-inner">
+              <div id="backup-recovery-section"></div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="settings-card settings-card-full danger-zone-card" id="danger-zone-section" style="display:none;">
-        <div class="settings-card-header">
-          <div class="settings-card-header-icon" style="border-color:rgba(255,100,100,0.5);background:rgba(255,255,255,0.15);"><i class="fas fa-triangle-exclamation" style="color:#ff8a80;"></i></div>
-          <div class="settings-card-header-text">
-            <span class="settings-card-title">DANGER ZONE</span>
-            <span class="settings-card-subtitle">Session logout and irreversible data actions</span>
-          </div>
-        </div>
-        <div class="settings-card-body">
-          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-            <div>
-              <div style="font-size:0.85rem; font-weight:700; color:var(--text-primary); margin-bottom:3px;">Sign Out of All Sessions</div>
-              <div style="font-size:0.75rem; color:var(--text-secondary);">Logs you out and clears local session data.</div>
-            </div>
-            <button class="settings-btn settings-btn-danger" style="width:auto; padding:10px 22px;" onclick="handleLogout()">
-              <i class="fas fa-right-from-bracket"></i> LOGOUT SESSION
-            </button>
-          </div>
-          
-          
-          <div style="text-align: center; padding: 30px 20px 10px; margin-top: 20px; border-top: 1px solid var(--border-color);">
-            <div style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.8;">
-              <div style="opacity: 0.9;">© <span id="copyright-year">2026</span> Sta. Clara International Corporation. All rights reserved.</div>
-              <div style="opacity: 0.8; font-size: 0.72rem;">Environmental Safety & Health Department</div>
-            </div>
-          </div>
+      </div><!-- /.settings-accordion -->
+
+      <div style="text-align:center;padding:28px 20px 10px;">
+        <div style="font-size:0.73rem;color:var(--text-secondary);line-height:1.9;">
+          <div>© <span id="copyright-year">2026</span> Sta. Clara International Corporation. All rights reserved.</div>
+          <div style="font-size:0.68rem;opacity:0.75;">Environmental Safety &amp; Health Department</div>
         </div>
       </div>
 
@@ -25274,6 +25133,18 @@ document.addEventListener('click', closeAllStatusDropdowns);
             if (project) project.selected = !project.selected;
         }
 
+        function settingsToggle(headerEl) {
+            const body = headerEl.nextElementSibling;
+            const chevron = headerEl.querySelector('.settings-card-chevron');
+            const isOpen = body.classList.contains('open');
+            document.querySelectorAll('.settings-card-body').forEach(b => b.classList.remove('open'));
+            document.querySelectorAll('.settings-card-chevron').forEach(c => c.classList.remove('open'));
+            if (!isOpen) {
+                body.classList.add('open');
+                if (chevron) chevron.classList.add('open');
+            }
+        }
+
         function togglePwd(fieldId, btn) {
             const input = document.getElementById(fieldId);
             const icon = btn.querySelector('i');
@@ -25576,27 +25447,12 @@ document.addEventListener('click', closeAllStatusDropdowns);
             const copyrightYear = document.getElementById('copyright-year');
             if (copyrightYear) copyrightYear.textContent = new Date().getFullYear();
             
-            const forceSyncSection = document.getElementById('force-sync-section');
-            const yearManagementSection = document.getElementById('year-management-section');
-            const auditTrailSection = document.getElementById('audit-trail-section');
-            const dangerZoneSection = document.getElementById('danger-zone-section');
             const backupRecoveryCard = document.getElementById('backup-recovery-card');
-            const forceLogoutSection = document.getElementById('force-logout-section');
 
             if (!isAdmin) {
-                if (forceSyncSection) forceSyncSection.style.display = 'none';
-                if (yearManagementSection) yearManagementSection.style.display = 'none';
-                if (auditTrailSection) auditTrailSection.style.display = 'none';
-                if (dangerZoneSection) dangerZoneSection.style.display = 'none';
                 if (backupRecoveryCard) backupRecoveryCard.style.display = 'none';
-                if (forceLogoutSection) forceLogoutSection.style.display = 'none';
             } else {
-                if (forceSyncSection) forceSyncSection.style.display = 'block';
-                if (yearManagementSection) yearManagementSection.style.display = 'block';
-                if (auditTrailSection) auditTrailSection.style.display = 'block';
-                if (dangerZoneSection) dangerZoneSection.style.display = 'block';
                 if (backupRecoveryCard) backupRecoveryCard.style.display = 'block';
-                if (forceLogoutSection) { forceLogoutSection.style.display = 'block'; renderForceLogoutList(); }
                 // ── CROSS-DEVICE FIX: Always pull fresh logbook from Firebase when
                 // admin opens Settings — ensures logins from other devices appear here.
                 if (typeof loadLogbookFromFirebase === 'function') {
