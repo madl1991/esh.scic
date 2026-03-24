@@ -40,7 +40,7 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, sendPasswordResetEmail, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, getDocs, deleteDoc, collection, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
@@ -69,6 +69,16 @@
         window.firebaseDb = db;
         window.firebaseStorage = storage;
         window.firebaseRealtimeDb = realtimeDb;
+
+        // ── SESSION PERSISTENCE: auto-logout kapag nagsara ng tab/browser ─────
+        try {
+            await setPersistence(auth, browserSessionPersistence);
+            console.log('🔒 Auth persistence: SESSION (auto-logout on tab/browser close)');
+        } catch(e) {
+            console.warn('⚠️ Could not set session persistence:', e.message);
+        }
+        // ──────────────────────────────────────────────────────────────────────
+
         window.firebase = {
             signInWithEmailAndPassword,
             createUserWithEmailAndPassword,
@@ -76,6 +86,8 @@
             onAuthStateChanged,
             updatePassword,
             sendPasswordResetEmail,
+            setPersistence,
+            browserSessionPersistence,
             doc,
             setDoc,
             getDoc,
@@ -25332,6 +25344,25 @@ document.addEventListener('click', closeAllStatusDropdowns);
                 await window.firebase.updatePassword(user, newPass);
                 console.log('✅ Password updated successfully');
 
+                // ── FORCE LOGOUT ALL OTHER DEVICES ────────────────────────────
+                // Write a passwordChanged flag in Realtime DB.
+                // All other active sessions are listening to this node and will
+                // auto-logout when they detect it. The current device clears it
+                // after writing so it doesn't log itself out too.
+                try {
+                    const pwChangedRef = window.firebase.dbRef(
+                        window.firebaseRealtimeDb, `password_changed/${user.uid}`
+                    );
+                    await window.firebase.set(pwChangedRef, {
+                        changedAt: Date.now(),
+                        changedBy: state.deviceFingerprint || 'unknown'
+                    });
+                    console.log('🔒 passwordChanged flag written — all other sessions will be logged out');
+                } catch(e) {
+                    console.warn('⚠️ Could not write passwordChanged flag:', e.message);
+                }
+                // ──────────────────────────────────────────────────────────────
+
                 showSettingsMsg('settings-message', '✅ Step 3/3: Password updated! Logging out all sessions...', 'success');
                 
                 document.getElementById('current-password').value = '';
@@ -29029,6 +29060,30 @@ function startForceLogoutListener(userId) {
         }, 1500);
     });
     console.log('✅ Force logout listener active for uid:', userId);
+
+    // ── PASSWORD CHANGED LISTENER ─────────────────────────────────────────
+    // Kapag nagbago ang password ng account (mula sa ibang device), auto-logout
+    // ang lahat ng ibang sessions para masiguro ang security.
+    const pwChangedRef = window.firebase.dbRef(window.firebaseRealtimeDb, `password_changed/${userId}`);
+    window.firebase.onValue(pwChangedRef, async (snapshot) => {
+        if (!snapshot.exists()) return;
+        const data = snapshot.val();
+        // Skip kung tayo mismo ang nagbago — ito ang device na nag-update
+        if (data && data.changedBy && state.deviceFingerprint &&
+            data.changedBy === state.deviceFingerprint) {
+            // Ito ang device na nagbago ng password — huwag i-logout, burahin lang ang flag
+            try { await window.firebase.remove(pwChangedRef); } catch(e) {}
+            return;
+        }
+        console.warn('🔑 Password changed on another device — signing out for security...');
+        try { await window.firebase.remove(pwChangedRef); } catch(e) {}
+        showToast('🔑 Password was changed. Please log in again for security.', 'error', 6000);
+        setTimeout(async () => {
+            await firebaseLogout();
+        }, 2000);
+    });
+    console.log('✅ Password-change listener active for uid:', userId);
+    // ──────────────────────────────────────────────────────────────────────
 }
 
 async function firebaseLogout() {
@@ -29052,6 +29107,7 @@ async function firebaseLogout() {
         // Detach all real-time listeners cleanly before sign-out
         if (window.RowSaveManager) window.RowSaveManager.detachAll();
         if (window.ESHDataSync)    window.ESHDataSync.detachAll();
+        if (window._roleUnsubscribe) { try { window._roleUnsubscribe(); } catch(e) {} window._roleUnsubscribe = null; }
         
         await window.firebase.signOut(window.firebaseAuth);
         
@@ -29220,6 +29276,28 @@ function setupAuthObserver() {
                 const _rsmYear = state.selectedYear || new Date().getFullYear();
                 window.RowSaveManager.attachRealtimeSync(_rsmYear);
             }
+
+            // ── AUTO-REFRESH: i-listen ang role changes para walang need ng hard refresh ──
+            // Kapag binago ng admin ang role/displayName ng user sa Firestore,
+            // automatic na ma-detect ito at mare-reload ang page para ma-apply agad.
+            try {
+                const roleDocRef = window.firebase.doc(window.firebaseDb, 'roles', user.uid);
+                window._roleUnsubscribe = window.firebase.onSnapshot(roleDocRef, (snap) => {
+                    if (!snap.exists() || !state.isLoggedIn) return;
+                    const rd = snap.data();
+                    const currentRole = state.userRole;
+                    const currentRegion = state.userRegion;
+                    if (rd.role && (rd.role !== currentRole || rd.region !== currentRegion)) {
+                        console.log(`🔄 Role updated: ${currentRole} → ${rd.role}. Reloading...`);
+                        showToast('🔄 Your account permissions were updated. Refreshing...', 'info', 3000);
+                        setTimeout(() => { window.location.reload(); }, 2500);
+                    }
+                });
+                console.log('✅ Role change listener active — no hard refresh needed');
+            } catch(e) {
+                console.warn('⚠️ Could not attach role listener:', e.message);
+            }
+            // ─────────────────────────────────────────────────────────────────
             
             if (window._isNewLogin) { playLoginSound(); window._isNewLogin = false; }
 
@@ -29354,33 +29432,153 @@ waitForFirebase().then(async () => {
     setupInactivityTimer();
 });
 
-let inactivityTimer = null;
-const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+// ── AUTO-LOGOUT (IDLE TIMEOUT) ───────────────────────────────────────────────
+// Total session: 15 minutes idle → logout
+// Warning shown at 14 minutes (1 minute countdown before forced logout)
+// ─────────────────────────────────────────────────────────────────────────────
+
+let inactivityTimer      = null;
+let warningTimer         = null;
+let warningCountdownInterval = null;
+
+const IDLE_WARNING_MS  = 14 * 60 * 1000; // show warning after 14 min idle
+const IDLE_LOGOUT_MS   = 15 * 60 * 1000; // force logout after 15 min idle
+const WARNING_SECS     = 60;             // countdown seconds shown in popup
+
+// ── Inject warning modal HTML (once) ──────────────────────────────────────
+(function injectIdleWarningModal() {
+    if (document.getElementById('idle-warning-modal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'idle-warning-modal';
+    modal.innerHTML = `
+        <div id="idle-warning-backdrop" style="
+            display:none; position:fixed; inset:0; z-index:99999;
+            background:rgba(0,0,0,0.55); backdrop-filter:blur(3px);
+            align-items:center; justify-content:center;">
+            <div style="
+                background:#fff; border-radius:16px; padding:36px 32px 28px;
+                max-width:380px; width:90%; text-align:center;
+                box-shadow:0 20px 60px rgba(0,0,0,0.35);
+                border-top:5px solid #e65100; animation:idleFadeIn .25s ease;">
+                <div style="
+                    width:64px; height:64px; border-radius:50%;
+                    background:#fff3e0; margin:0 auto 16px;
+                    display:flex; align-items:center; justify-content:center;">
+                    <i class="fas fa-clock" style="font-size:1.8rem; color:#e65100;"></i>
+                </div>
+                <h3 style="margin:0 0 8px; font-size:1.15rem; color:#bf360c; font-family:inherit; font-weight:700;">
+                    Session About to Expire
+                </h3>
+                <p style="margin:0 0 20px; color:#555; font-size:0.875rem; line-height:1.5;">
+                    You've been inactive for <strong>14 minutes</strong>.<br>
+                    You will be automatically logged out in:
+                </p>
+                <div id="idle-countdown-display" style="
+                    font-size:2.5rem; font-weight:900; color:#e65100;
+                    font-family:'Poppins',sans-serif; line-height:1;
+                    margin-bottom:24px; letter-spacing:-1px;">
+                    60
+                </div>
+                <div style="display:flex; gap:10px; justify-content:center;">
+                    <button id="idle-stay-btn" onclick="window.idleTimerReset()" style="
+                        padding:10px 28px; border-radius:8px; border:none; cursor:pointer;
+                        background:linear-gradient(135deg,#1b5e20,#2e7d32); color:#fff;
+                        font-weight:700; font-size:0.9rem; font-family:inherit;
+                        transition:opacity .15s;">
+                        <i class="fas fa-check"></i> Stay Logged In
+                    </button>
+                    <button onclick="window.idleForceLogout()" style="
+                        padding:10px 20px; border-radius:8px; border:2px solid #ccc;
+                        cursor:pointer; background:#fff; color:#666;
+                        font-weight:600; font-size:0.9rem; font-family:inherit;
+                        transition:opacity .15s;">
+                        Logout Now
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    // Inject keyframe animation
+    const style = document.createElement('style');
+    style.textContent = `@keyframes idleFadeIn { from { opacity:0; transform:scale(.94); } to { opacity:1; transform:scale(1); } }`;
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+})();
 
 function setupInactivityTimer() {
-    console.log('⏰ Inactivity timer initialized (30 minutes)');
-    
-    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    
+    console.log('⏰ Inactivity timer initialized (15 min idle → logout, warning at 14 min)');
+
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'keydown', 'scroll', 'touchstart', 'click'];
+
+    function hideWarningModal() {
+        const backdrop = document.getElementById('idle-warning-backdrop');
+        if (backdrop) backdrop.style.display = 'none';
+        if (warningCountdownInterval) {
+            clearInterval(warningCountdownInterval);
+            warningCountdownInterval = null;
+        }
+    }
+
+    function showWarningModal() {
+        const backdrop = document.getElementById('idle-warning-backdrop');
+        if (!backdrop) return;
+        backdrop.style.display = 'flex';
+
+        let secs = WARNING_SECS;
+        const display = document.getElementById('idle-countdown-display');
+        if (display) display.textContent = secs;
+
+        warningCountdownInterval = setInterval(() => {
+            secs--;
+            if (display) display.textContent = secs;
+            if (secs <= 0) {
+                clearInterval(warningCountdownInterval);
+                warningCountdownInterval = null;
+            }
+        }, 1000);
+    }
+
     function resetAutoLogoutTimer() {
         if (!state.isLoggedIn) return;
-        
-        if (inactivityTimer) {
-            clearTimeout(inactivityTimer);
-        }
-        
+
+        // Clear existing timers
+        if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
+        if (warningTimer)    { clearTimeout(warningTimer);    warningTimer    = null; }
+        hideWarningModal();
+
+        // Set warning timer (14 min)
+        warningTimer = setTimeout(() => {
+            if (!state.isLoggedIn) return;
+            showWarningModal();
+        }, IDLE_WARNING_MS);
+
+        // Set logout timer (15 min)
         inactivityTimer = setTimeout(() => {
+            if (!state.isLoggedIn) return;
             handleInactivityLogout();
-        }, INACTIVITY_TIMEOUT);
+        }, IDLE_LOGOUT_MS);
     }
-    
+
     async function handleInactivityLogout() {
-        console.log('⏰ User inactive for 30 minutes - logging out...');
-        
-        showToast('⏰ You have been logged out due to inactivity (30 minutes)', 'warning');
-        
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
+        console.log('⏰ User inactive for 15 minutes — logging out...');
+        hideWarningModal();
+
+        // Flush any unsaved rows
+        if (window.RowSaveManager?.hasDirty()) {
+            try { await window.RowSaveManager.saveAllDirty(); } catch(e) {}
+        }
+
+        showToast('⏰ You have been logged out due to 15 minutes of inactivity.', 'warning');
+        await new Promise(resolve => setTimeout(resolve, 1800));
+
+        if (state.currentUser) {
+            try { await LoginLogbook.logLogout(state.currentUser); } catch(e) {}
+        }
+
+        localStorage.removeItem('esh_session_start');
+        localStorage.removeItem('esh_last_tab');
+        if (window.backupManager) backupManager.stopAutoSave();
+
         if (window.firebaseAuth) {
             try {
                 await window.firebase.signOut(window.firebaseAuth);
@@ -29390,13 +29588,26 @@ function setupInactivityTimer() {
             }
         }
     }
-    
+
+    // Expose for "Stay Logged In" button and "Logout Now" button
+    window.idleTimerReset = function() {
+        resetAutoLogoutTimer();
+    };
+
+    window.idleForceLogout = function() {
+        hideWarningModal();
+        if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
+        if (warningTimer)    { clearTimeout(warningTimer);    warningTimer    = null; }
+        handleInactivityLogout();
+    };
+
     activityEvents.forEach(event => {
-        document.addEventListener(event, resetAutoLogoutTimer, true);
+        document.addEventListener(event, resetAutoLogoutTimer, { passive: true, capture: true });
     });
-    
+
     resetAutoLogoutTimer();
 }
+// ── END AUTO-LOGOUT ──────────────────────────────────────────────────────────
 
 window.addEventListener('beforeunload', () => {
     if (state.currentUser && state.currentUser.uid) {
