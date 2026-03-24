@@ -20319,7 +20319,7 @@ function renderTabulation() {
                 const CORPORATE_ALLOWED_TABS = ['overall', 'rates', 'exposures', 'medical', 'nov', 'nov-env', 'nov-monitoring', 'activities', 'dole']; // 'dole' included — CORPORATE region shown in DOLE Reportorial
                 if (reg === 'CORPORATE' && !CORPORATE_ALLOWED_TABS.includes(state.currentTab)) return;
 
-                const PLANT_ALLOWED_TABS = ['overall', 'permits', 'env-monitoring', 'env-monthly-report'];
+                const PLANT_ALLOWED_TABS = ['overall', 'permits', 'emb', 'env-monitoring', 'env-monthly-report'];
                 if (reg === 'PLANT OPERATIONS' && !PLANT_ALLOWED_TABS.includes(state.currentTab)) return;
 
                 const projs = displayProjects.filter(p => p.region === reg);
