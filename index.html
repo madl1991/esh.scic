@@ -11756,6 +11756,12 @@ debugCommands.help() - Show this help
             }
             
             saveUserData(state.currentUser.email);
+
+            // Save all appliances data together with main data
+            if (typeof window.appliancesSaveAll === 'function') {
+                window.appliancesSaveAll();
+            }
+
             markPendingSync();
 
             showSyncPill('syncing', 'Syncing to cloud...');
@@ -19982,20 +19988,39 @@ function renderTabulation() {
                                         const ak = `${_eshYear1}|esh-calendar-drills|${p.name}|${_dsi1}|${mi}|actual`;
                                         if (eshStor[ak]) monthTotal++;
                                     });
-                                } else {
-                                    const _8HR_LABEL1 = '8-Hr Mandatory OSH Training';
-                                    ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
-                                        (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
-                                            // Skip 8-Hr OSH N/A months
-                                            if (tr === _8HR_LABEL1) {
-                                                const _naK1 = `${_eshYear1}|${tt}|${p.name}|${ti}|na_row`;
-                                                const _naF1 = eshStor[_naK1] !== undefined ? parseInt(eshStor[_naK1]) : -1;
-                                                if (_naF1 >= 0 && mi >= _naF1) return;
-                                            }
-                                            const ak = `${_eshYear1}|${tt}|${p.name}|${ti}|${mi}|actual`;
-                                            if (eshStor[ak]) monthTotal++;
+                                    // ── CORPORATE HQ Drills: also count corp-drills actuals for CORPORATE project ──
+                                    if (p.region === 'CORPORATE') {
+                                        const _corpBase1 = window.CORP_DRILLS || [];
+                                        const _corpCustom1 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
+                                        _corpBase1.forEach((_cd1, _cdi1) => {
+                                            const _cak1 = `${_eshYear1}|esh-calendar-corp-drills|${p.name}|${_cdi1}|${mi}|actual`;
+                                            if (eshStor[_cak1]) monthTotal++;
                                         });
-                                    });
+                                        _corpCustom1.forEach((_ccr1, _cci1) => {
+                                            const _cak1c = `${_eshYear1}|esh-calendar-corp-drills|${p.name}|${1000 + _cci1}|${mi}|actual`;
+                                            if (eshStor[_cak1c]) monthTotal++;
+                                        });
+                                    }
+                                } else {
+                                    // ── CORPORATE Training Conducted: read from manually entered vals ──
+                                    if (p.region === 'CORPORATE') {
+                                        const _mIdx1 = mi + 1; // vals array is 1-based
+                                        monthTotal += parseFloat(p.vals[key] ? (p.vals[key][_mIdx1] ?? '') : '') || 0;
+                                    } else {
+                                        const _8HR_LABEL1 = '8-Hr Mandatory OSH Training';
+                                        ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
+                                            (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
+                                                // Skip 8-Hr OSH N/A months
+                                                if (tr === _8HR_LABEL1) {
+                                                    const _naK1 = `${_eshYear1}|${tt}|${p.name}|${ti}|na_row`;
+                                                    const _naF1 = eshStor[_naK1] !== undefined ? parseInt(eshStor[_naK1]) : -1;
+                                                    if (_naF1 >= 0 && mi >= _naF1) return;
+                                                }
+                                                const ak = `${_eshYear1}|${tt}|${p.name}|${ti}|${mi}|actual`;
+                                                if (eshStor[ak]) monthTotal++;
+                                            });
+                                        });
+                                    }
                                 }
                             });
                             const _n = new Date(); const _cy = _n.getFullYear(); const _cm = _n.getMonth();
@@ -20081,20 +20106,40 @@ function renderTabulation() {
                                             const ak = `${_eshYear2}|esh-calendar-drills|${p.name}|${_dsi2}|${mi}|actual`;
                                             if (eshStor[ak]) ytdTotal++;
                                         });
-                                    } else {
-                                        const _8HR_LABEL2 = '8-Hr Mandatory OSH Training';
-                                        ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
-                                            (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
-                                                // Skip 8-Hr OSH N/A months
-                                                if (tr === _8HR_LABEL2) {
-                                                    const _naK2 = `${_eshYear2}|${tt}|${p.name}|${ti}|na_row`;
-                                                    const _naF2 = eshStor[_naK2] !== undefined ? parseInt(eshStor[_naK2]) : -1;
-                                                    if (_naF2 >= 0 && mi >= _naF2) return;
-                                                }
-                                                const ak = `${_eshYear2}|${tt}|${p.name}|${ti}|${mi}|actual`;
-                                                if (eshStor[ak]) ytdTotal++;
+                                        // ── CORPORATE HQ Drills: also count corp-drills actuals for CORPORATE project ──
+                                        if (p.region === 'CORPORATE') {
+                                            const _corpBase2 = window.CORP_DRILLS || [];
+                                            const _corpCustom2 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
+                                            _corpBase2.forEach((_cd2, _cdi2) => {
+                                                const _cak2 = `${_eshYear2}|esh-calendar-corp-drills|${p.name}|${_cdi2}|${mi}|actual`;
+                                                if (eshStor[_cak2]) ytdTotal++;
                                             });
-                                        });
+                                            _corpCustom2.forEach((_ccr2, _cci2) => {
+                                                const _cak2c = `${_eshYear2}|esh-calendar-corp-drills|${p.name}|${1000 + _cci2}|${mi}|actual`;
+                                                if (eshStor[_cak2c]) ytdTotal++;
+                                            });
+                                        }
+                                    } else {
+                                        // ── CORPORATE Training Conducted: read from manually entered vals ──
+                                        if (p.region === 'CORPORATE') {
+                                            for (let _mIdx2 = 1; _mIdx2 <= 12; _mIdx2++) {
+                                                ytdTotal += parseFloat(p.vals[key] ? (p.vals[key][_mIdx2] ?? '') : '') || 0;
+                                            }
+                                        } else {
+                                            const _8HR_LABEL2 = '8-Hr Mandatory OSH Training';
+                                            ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
+                                                (ESH_TRAININGS[tt] || []).forEach((tr, ti) => {
+                                                    // Skip 8-Hr OSH N/A months
+                                                    if (tr === _8HR_LABEL2) {
+                                                        const _naK2 = `${_eshYear2}|${tt}|${p.name}|${ti}|na_row`;
+                                                        const _naF2 = eshStor[_naK2] !== undefined ? parseInt(eshStor[_naK2]) : -1;
+                                                        if (_naF2 >= 0 && mi >= _naF2) return;
+                                                    }
+                                                    const ak = `${_eshYear2}|${tt}|${p.name}|${ti}|${mi}|actual`;
+                                                    if (eshStor[ak]) ytdTotal++;
+                                                });
+                                            });
+                                        }
                                     }
                                 }
                             });
@@ -21633,6 +21678,21 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const v = p.vals[key] ? (p.vals[key][1] ?? "") : "";
                     html += `<td colspan="12" style="text-align: center;"><input type="date" value="${v}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;"></td>`;
                 } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
+                    // ── CORPORATE Training Conducted: manual input (no training calendar to source from) ──
+                    if (row === 'Training Conducted' && p.region === 'CORPORATE') {
+                        const _now = new Date();
+                        const _curYear = _now.getFullYear();
+                        const _selYear = state.selectedYear || _curYear;
+                        for (let mi = 0; mi < 12; mi++) {
+                            const _mIdx = mi + 1; // vals array is 1-based for months
+                            const vRaw = p.vals[key] ? (p.vals[key][_mIdx] ?? '') : '';
+                            const vFmt = vRaw !== '' && !isNaN(vRaw) ? (parseFloat(vRaw) === 0 ? '0' : fmtNum(parseFloat(vRaw))) : (vRaw || '');
+                            const _isFutureMo = _selYear > _curYear || (_selYear === _curYear && mi > _now.getMonth());
+                            const _cellDis = (!inputsEditable || _isFutureMo) ? 'disabled' : '';
+                            const _futureSt = _isFutureMo ? 'style="background:#f5f5f5;opacity:0.65;"' : '';
+                            html += `<td class="monthly-data" ${_futureSt}><input type="text" inputmode="decimal" data-num value="${vFmt}" ${_cellDis} oninput="numFmtInput(this, function(v){updateVal('${p.name}','${key}',${_mIdx},v)})" title="Training Conducted — manual input for Corporate Region"></td>`;
+                        }
+                    } else {
                     const eshStor = getEshStorage();
                     const projName = p.name;
                     const _now = new Date();
@@ -21651,6 +21711,19 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 const ak = `${_eshYear3}|esh-calendar-drills|${projName}|${_dsi3}|${mi}|actual`;
                                 if (eshStor[ak]) count++;
                             });
+                            // ── CORPORATE HQ Drills: also count corp-drills actuals for CORPORATE project ──
+                            if (p.region === 'CORPORATE') {
+                                const _corpBase3 = window.CORP_DRILLS || [];
+                                const _corpCustom3 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
+                                _corpBase3.forEach((_cd3, _cdi3) => {
+                                    const _cak3 = `${_eshYear3}|esh-calendar-corp-drills|${projName}|${_cdi3}|${mi}|actual`;
+                                    if (eshStor[_cak3]) count++;
+                                });
+                                _corpCustom3.forEach((_ccr3, _cci3) => {
+                                    const _cak3c = `${_eshYear3}|esh-calendar-corp-drills|${projName}|${1000 + _cci3}|${mi}|actual`;
+                                    if (eshStor[_cak3c]) count++;
+                                });
+                            }
                         } else {
                             const _8HR_LABEL3 = '8-Hr Mandatory OSH Training';
                             ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
@@ -21682,6 +21755,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             </span>
                         </td>`;
                     }
+                    } // end CORPORATE Training Conducted manual / auto branch
                 } else if (state.currentTab === 'activities' && row === 'No. of Identified Near-Miss') {
                     const _nmEntries = p.vals['lta-registry_entries'] || [];
                     const _nmYear = state.selectedYear || new Date().getFullYear();
@@ -21863,6 +21937,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     ytdValue = calculateAverage(p.vals[key], rowIdx);
                     html += `<td class="average-cell">${fmtNum(ytdValue)}</td>`;
                 } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
+                    // ── CORPORATE Training Conducted: YTD = sum of manually entered monthly vals ──
+                    if (row === 'Training Conducted' && p.region === 'CORPORATE') {
+                        for (let _mIdx = 1; _mIdx <= 12; _mIdx++) {
+                            const _v = parseFloat(p.vals[key] ? (p.vals[key][_mIdx] ?? '') : '') || 0;
+                            ytdValue += _v;
+                        }
+                    } else {
                     const eshStor = getEshStorage();
                     const _eshYear4 = state.selectedYear || new Date().getFullYear();
                     for (let mi = 0; mi < 12; mi++) {
@@ -21873,6 +21954,19 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 if (eshStor[naCellKey4]) return; // skip N/A cells
                                 if (eshStor[`${_eshYear4}|esh-calendar-drills|${p.name}|${_dsi4}|${mi}|actual`]) ytdValue++;
                             });
+                            // ── CORPORATE HQ Drills: also count corp-drills actuals for CORPORATE project ──
+                            if (p.region === 'CORPORATE') {
+                                const _corpBase4 = window.CORP_DRILLS || [];
+                                const _corpCustom4 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
+                                _corpBase4.forEach((_cd4, _cdi4) => {
+                                    const _cak4 = `${_eshYear4}|esh-calendar-corp-drills|${p.name}|${_cdi4}|${mi}|actual`;
+                                    if (eshStor[_cak4]) ytdValue++;
+                                });
+                                _corpCustom4.forEach((_ccr4, _cci4) => {
+                                    const _cak4c = `${_eshYear4}|esh-calendar-corp-drills|${p.name}|${1000 + _cci4}|${mi}|actual`;
+                                    if (eshStor[_cak4c]) ytdValue++;
+                                });
+                            }
                         } else {
                             const _8HR_LABEL4 = '8-Hr Mandatory OSH Training';
                             ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
@@ -21888,6 +21982,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             });
                         }
                     }
+                    } // end CORPORATE Training Conducted YTD branch
                     html += `<td class="ytd-cell" style="color:${ytdValue>0?'#2e7d32':''};">${ytdValue > 0 ? fmtNum(ytdValue) : ''}</td>`;
                 } else if (state.currentTab === 'activities' && row === 'No. of Identified Near-Miss') {
                     const _nmYtdEntries = p.vals['lta-registry_entries'] || [];
@@ -33294,12 +33389,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     style="padding:4px 10px;border:1px solid var(--border-color);border-radius:5px;font-size:0.72rem;background:var(--input-bg);color:var(--text-primary);min-width:180px;"
                                     oninput="appliancesRefreshSections('${pn}','${reg}','${monthInputId}','${buildingInputId}',${pi},'${rk}')">
                             </div>
-                            ${canEditRg ? `
-                            <button onclick="appliancesSaveFromInputs('${pn}','${reg}','${monthInputId}','${buildingInputId}')"
-                                style="margin-left:auto;padding:5px 14px;background:${rc.bg};color:white;border:none;border-radius:5px;font-size:0.68rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;"
-                                onmouseover="this.style.opacity=0.82" onmouseout="this.style.opacity=1">
-                                <i class="fas fa-save"></i> Save
-                            </button>` : ''}
+
                         </div>
                         
                         <div id="appl-sections-${rk}-${pi}">
@@ -33345,6 +33435,29 @@ document.addEventListener('DOMContentLoaded', function() {
             applSectionRows('A1', key, canEditRg) +
             applSectionRows('B',  key, canEditRg) +
             applSectionRows('C',  key, canEditRg);
+    };
+
+    // Save ALL currently loaded appliances data — called by global saveData()
+    window.appliancesSaveAll = function() {
+        const db2 = window.firebaseDb;
+        if (!db2 || !window.firebaseAuth?.currentUser) return;
+        const ADMIN_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
+        Object.entries(appliancesData).forEach(([key, data]) => {
+            if (!data || Object.keys(data).length === 0) return;
+            // key format: region:project:month:building (normalized)
+            const parts = key.split(':');
+            if (parts.length < 4) return;
+            const [regionRaw, projName, month, building] = parts;
+            const docId  = appliancesDocId(regionRaw, projName, month, building);
+            const docRef = window.firebase.doc(db2, 'users', ADMIN_UID, 'appliancesData', docId);
+            window.firebase.setDoc(docRef, {
+                key, region: regionRaw, project: projName,
+                month: month || 'January',
+                building: building || 'Main Building',
+                data: data,
+                updatedAt: new Date().toISOString()
+            }, { merge: true }).catch(e => console.warn('appliancesSaveAll error:', e.message));
+        });
     };
 
     window.appliancesSaveFromInputs = function(projName, region, monthInputId, buildingInputId) {
