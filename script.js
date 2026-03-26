@@ -7693,48 +7693,306 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         }
 
         function _pdfOverall(doc, year, projs, sy, W, H, bs, hs, ar, mg, onPage) {
-            const totalMH  = projs.reduce((s,p)=>{let v=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'exposures_Total Exposed Manhour',m));if(!isNaN(x))v+=x;}return s+v;},0);
-            const totalMp  = projs.reduce((s,p)=>{const x=parseFloat(_v(p,'exposures_Total Manpower',new Date().getMonth()+1));return s+(isNaN(x)?0:x);},0);
-            const totalLTA = projs.reduce((s,p)=>{let v=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'medical_LTA',m));if(!isNaN(x))v+=x;}return s+v;},0);
-            const totalMed = projs.reduce((s,p)=>{let v=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'medical_Medical Treatment',m));if(!isNaN(x))v+=x;}return s+v;},0);
-            const totalFa  = projs.reduce((s,p)=>{let v=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'medical_Fatality',m));if(!isNaN(x))v+=x;}return s+v;},0);
-            const totalFA  = projs.reduce((s,p)=>{let v=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'medical_First Aid',m));if(!isNaN(x))v+=x;}return s+v;},0);
-            const totalDL  = projs.reduce((s,p)=>{let v=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'medical_Days Lost/Charged',m));if(!isNaN(x))v+=x;}return s+v;},0);
-            const totalHI  = projs.reduce((s,p)=>{let v=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'medical_High-Potential incident',m));if(!isNaN(x))v+=x;}return s+v;},0);
-            const noWS     = projs.reduce((s,p)=>{let maxV=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'exposures_No. of Days w/o LTA',m));if(!isNaN(x)&&x>maxV)maxV=x;}return s+maxV;},0);
+            // ── Aggregate totals ──────────────────────────────────────────────
+            const REGIONS_ORDER = ['NCR','NORTH LUZON','SOUTH LUZON','VISAYAS & MINDANAO'];
+            const curMonth = new Date().getMonth() + 1;
+
+            function ytdSum(p, key) { let v=0; for(let m=1;m<=12;m++){const x=parseFloat(_v(p,key,m));if(!isNaN(x))v+=x;} return v; }
+
+            const activeProjs  = projs.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS');
+            const ongoingProjs = activeProjs.filter(p => !p.dateFinished && p.status !== 'work-stoppage');
+            const finishedProjs= activeProjs.filter(p => !!p.dateFinished);
+            const stoppedProjs = activeProjs.filter(p => p.status === 'work-stoppage' && !p.dateFinished);
+
+            const totalMH  = activeProjs.reduce((s,p)=>s+ytdSum(p,'exposures_Total Exposed Manhour'),0);
+            const totalMp  = activeProjs.reduce((s,p)=>{const x=parseFloat(_v(p,'exposures_Total Manpower',curMonth));return s+(isNaN(x)?0:x);},0);
+            const totalLTA = activeProjs.reduce((s,p)=>s+ytdSum(p,'medical_LTA'),0);
+            const totalMed = activeProjs.reduce((s,p)=>s+ytdSum(p,'medical_Medical Treatment'),0);
+            const totalFa  = activeProjs.reduce((s,p)=>s+ytdSum(p,'medical_Fatality'),0);
+            const totalFA  = activeProjs.reduce((s,p)=>s+ytdSum(p,'medical_First Aid'),0);
+            const totalDL  = activeProjs.reduce((s,p)=>s+ytdSum(p,'medical_Days Lost/Charged'),0);
+            const totalHI  = activeProjs.reduce((s,p)=>s+ytdSum(p,'medical_High-Potential incident'),0);
+            const totalDO  = activeProjs.reduce((s,p)=>s+ytdSum(p,'medical_Dangerous Occurrences'),0);
+            const totalNM  = activeProjs.reduce((s,p)=>s+ytdSum(p,'activities_No. of Identified Near-Miss'),0);
+
+            // Compliance
+            const percVals = activeProjs.map(p => typeof getPerc === 'function' ? getPerc(p) : null).filter(v=>v!==null);
+            const grandAvg = percVals.length ? Math.round(percVals.reduce((s,v)=>s+v,0)/percVals.length) : null;
+            const compliantCount   = activeProjs.filter(p=>{ const v=typeof getPerc==='function'?getPerc(p):null; return v!==null&&v>=90; }).length;
+            const partialCount     = activeProjs.filter(p=>{ const v=typeof getPerc==='function'?getPerc(p):null; return v!==null&&v>=75&&v<90; }).length;
+            const nonCompliantCount= activeProjs.filter(p=>{ const v=typeof getPerc==='function'?getPerc(p):null; return v!==null&&v<75; }).length;
+
+            // Frequency & Severity Rates (per 1,000,000 manhours)
+            const cumMH = activeProjs.reduce((s,p)=>{
+                const prev = parseFloat((p.vals||{})['exposures_Total Exposed Man-hour to date']?.[0]) || 0;
+                return s + prev + ytdSum(p,'exposures_Total Exposed Manhour');
+            },0);
+            const freqRate = cumMH > 0 ? ((totalLTA / cumMH) * 1000000).toFixed(2) : '—';
+            const sevRate  = cumMH > 0 ? ((totalDL  / cumMH) * 1000000).toFixed(2) : '—';
+
+            let curY = sy;
+
+            // ── PAGE 1: Executive Summary ──────────────────────────────────────
+
+            // Main banner
+            doc.setFillColor(27,94,32);
+            doc.roundedRect(_PML, curY, W-_PML-_PMR, 16, 2, 2, 'F');
+            doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(255,255,255);
+            doc.text('OVERALL SUMMARY — ESH COMPLIANCE REPORT', _PML+6, curY+7);
+            doc.setFont('helvetica','normal'); doc.setFontSize(8);
+            doc.text('Year ' + year + '  ·  As of ' + _today() + '  ·  All Active Projects', _PML+6, curY+13);
+            // Compliance badge on right
+            const avgBg = grandAvg !== null ? (grandAvg>=90?[152,255,152]:grandAvg>=75?[255,235,150]:[255,170,170]) : [200,200,200];
+            doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(...avgBg);
+            doc.text((grandAvg!==null?grandAvg+'%':'—') + ' Overall Compliance', W-_PMR-4, curY+10, {align:'right'});
+            curY += 20;
+
+            // ── KPI Summary Cards (2 rows × 5 cards) ─────────────────────────
+            const kpiCards = [
+                { label:'TOTAL PROJECTS',       val:String(activeProjs.length),  sub:'All regions',         color:[27,94,32],  bg:[232,245,233] },
+                { label:'TOTAL MANPOWER',        val:_num(totalMp),               sub:'Current month',       color:[33,101,174], bg:[227,242,253] },
+                { label:'MANHOURS (YTD)',         val:_num(totalMH),               sub:'Exposed this year',   color:[0,105,92],  bg:[224,242,241] },
+                { label:'COMPLIANT ≥90%',        val:String(compliantCount),      sub:'Projects',            color:[27,94,32],  bg:[200,230,201] },
+                { label:'NON-COMPLIANT',         val:String(nonCompliantCount),   sub:'Projects <75%',       color:[183,28,28], bg:[255,205,210] },
+                { label:'LTA CASES',             val:String(totalLTA),            sub:'Lost Time Accidents',  color: totalLTA>0?[183,28,28]:[46,125,50], bg: totalLTA>0?[255,235,238]:[232,245,233] },
+                { label:'MED. TREATMENT',        val:String(totalMed),            sub:'Cases (YTD)',          color: totalMed>0?[230,81,0]:[46,125,50],  bg: totalMed>0?[255,243,224]:[232,245,233] },
+                { label:'FATALITIES',            val:String(totalFa),             sub:'Cases (YTD)',          color: totalFa>0?[183,28,28]:[46,125,50],  bg: totalFa>0?[255,235,238]:[232,245,233] },
+                { label:'HIGH-POTENTIAL INC.',   val:String(totalHI),             sub:'Cases (YTD)',          color: totalHI>0?[230,81,0]:[46,125,50],   bg: totalHI>0?[255,243,224]:[232,245,233] },
+                { label:'DAYS LOST/CHARGED',     val:String(totalDL),             sub:'Days (YTD)',           color: totalDL>0?[183,28,28]:[46,125,50],  bg: totalDL>0?[255,235,238]:[232,245,233] },
+            ];
+            const cols = 5;
+            const cW = (W-_PML-_PMR - (cols-1)*3) / cols;
+            kpiCards.forEach((c, i) => {
+                const row = Math.floor(i/cols), col = i%cols;
+                const cx = _PML + col*(cW+3);
+                const cy = curY + row*22;
+                doc.setFillColor(...c.bg); doc.roundedRect(cx, cy, cW, 19, 2, 2, 'F');
+                doc.setDrawColor(200,225,200); doc.setLineWidth(0.25); doc.roundedRect(cx, cy, cW, 19, 2, 2, 'S');
+                doc.setFont('helvetica','normal'); doc.setFontSize(5); doc.setTextColor(100,100,100);
+                doc.text(c.label, cx+cW/2, cy+4.5, {align:'center'});
+                doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...c.color);
+                doc.text(c.val, cx+cW/2, cy+13, {align:'center'});
+                doc.setFont('helvetica','normal'); doc.setFontSize(5); doc.setTextColor(130,130,130);
+                doc.text(c.sub, cx+cW/2, cy+18, {align:'center'});
+            });
+            curY += 2*22 + 4;
+
+            // ── Rates & Status row ────────────────────────────────────────────
+            const rateCards = [
+                { label:'FREQUENCY RATE', val:freqRate, sub:'per 1,000,000 MH', color:[0,105,92], bg:[224,242,241] },
+                { label:'SEVERITY RATE',  val:sevRate,  sub:'per 1,000,000 MH', color:[55,71,79], bg:[236,239,241] },
+                { label:'ON-GOING',       val:String(ongoingProjs.length),  sub:'Projects', color:[21,101,192], bg:[227,242,253] },
+                { label:'FINISHED',       val:String(finishedProjs.length), sub:'Projects', color:[46,125,50],  bg:[232,245,233] },
+                { label:'WORK STOPPAGE',  val:String(stoppedProjs.length),  sub:'Projects', color:[183,28,28],  bg: stoppedProjs.length>0?[255,235,238]:[245,245,245] },
+                { label:'FIRST AID',      val:String(totalFA),  sub:'Cases (YTD)', color:[2,119,189],  bg:[225,245,254] },
+                { label:'NEAR MISS',      val:String(totalNM),  sub:'Identified (YTD)', color:[106,27,154], bg:[243,229,245] },
+                { label:'DANG. OCC.',     val:String(totalDO),  sub:'Cases (YTD)', color: totalDO>0?[230,81,0]:[46,125,50], bg: totalDO>0?[255,243,224]:[232,245,233] },
+                { label:'PARTIAL 75–89%', val:String(partialCount),       sub:'Projects', color:[180,60,0],   bg:[255,243,224] },
+                { label:'CUM. MANHOURS',  val:_num(Math.round(cumMH)),     sub:'All-time total', color:[0,105,92], bg:[224,242,241] },
+            ];
+            rateCards.forEach((c, i) => {
+                const col = i%cols, row2 = Math.floor(i/cols);
+                const cx = _PML + col*(cW+3);
+                const cy = curY + row2*22;
+                doc.setFillColor(...c.bg); doc.roundedRect(cx, cy, cW, 19, 2, 2, 'F');
+                doc.setDrawColor(200,225,200); doc.setLineWidth(0.25); doc.roundedRect(cx, cy, cW, 19, 2, 2, 'S');
+                doc.setFont('helvetica','normal'); doc.setFontSize(5); doc.setTextColor(100,100,100);
+                doc.text(c.label, cx+cW/2, cy+4.5, {align:'center'});
+                doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...c.color);
+                doc.text(String(c.val), cx+cW/2, cy+13, {align:'center'});
+                doc.setFont('helvetica','normal'); doc.setFontSize(5); doc.setTextColor(130,130,130);
+                doc.text(c.sub, cx+cW/2, cy+18, {align:'center'});
+            });
+            curY += 2*22 + 6;
+
+            // ── Regional Breakdown Table ──────────────────────────────────────
+            doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(27,94,32);
+            doc.text('REGIONAL BREAKDOWN', _PML, curY); curY += 4;
+
+            const regBody = REGIONS_ORDER.map(reg => {
+                const rp = activeProjs.filter(p=>p.region===reg);
+                if (!rp.length) return null;
+                const rMH  = rp.reduce((s,p)=>s+ytdSum(p,'exposures_Total Exposed Manhour'),0);
+                const rMP  = rp.reduce((s,p)=>{const x=parseFloat(_v(p,'exposures_Total Manpower',curMonth));return s+(isNaN(x)?0:x);},0);
+                const rLTA = rp.reduce((s,p)=>s+ytdSum(p,'medical_LTA'),0);
+                const rMed = rp.reduce((s,p)=>s+ytdSum(p,'medical_Medical Treatment'),0);
+                const rFa  = rp.reduce((s,p)=>s+ytdSum(p,'medical_Fatality'),0);
+                const rDL  = rp.reduce((s,p)=>s+ytdSum(p,'medical_Days Lost/Charged'),0);
+                const rPV  = rp.map(p=>typeof getPerc==='function'?getPerc(p):null).filter(v=>v!==null);
+                const rAvg = rPV.length ? Math.round(rPV.reduce((s,v)=>s+v,0)/rPV.length) : null;
+                const rComp= rp.filter(p=>{const v=typeof getPerc==='function'?getPerc(p):null;return v!==null&&v>=90;}).length;
+                const rOngo= rp.filter(p=>p.status!=='work-stoppage'&&!p.dateFinished).length;
+                const rStop= rp.filter(p=>p.status==='work-stoppage').length;
+                return [reg, String(rp.length), String(rOngo), String(rStop), _num(rMP), _num(Math.round(rMH)),
+                    rLTA>0?String(rLTA):'0', rMed>0?String(rMed):'0', rFa>0?String(rFa):'0', rDL>0?String(rDL):'0',
+                    rAvg!==null?rAvg+'%':'—', String(rComp)+'/'+rp.length];
+            }).filter(Boolean);
+            // Totals row
+            regBody.push([
+                'GRAND TOTAL',
+                String(activeProjs.length),
+                String(ongoingProjs.length),
+                String(stoppedProjs.length),
+                _num(totalMp),
+                _num(Math.round(totalMH)),
+                totalLTA>0?String(totalLTA):'0',
+                totalMed>0?String(totalMed):'0',
+                totalFa>0?String(totalFa):'0',
+                totalDL>0?String(totalDL):'0',
+                grandAvg!==null?grandAvg+'%':'—',
+                String(compliantCount)+'/'+activeProjs.length
+            ]);
 
             doc.autoTable({
-                head:[['KEY PERFORMANCE INDICATOR','VALUE (YTD ' + year + ')']],
-                body:[
-                    ['Total Active Projects', String(projs.length)],
-                    ['Total Manpower (Current Month)',_num(totalMp)],
-                    ['Total Exposed Manhours (YTD)', _num(totalMH)],
-                    ['Lost Time Accidents (LTA)', String(totalLTA)],
-                    ['Medical Treatment Cases', String(totalMed)],
-                    ['First Aid Cases', String(totalFA)],
-                    ['Fatalities', String(totalFa)],
-                    ['High-Potential Incidents', String(totalHI)],
-                    ['Total Days Lost / Charged', String(totalDL)],
-                ],
-                startY: sy, margin: {...mg, right: mg.left + (W-mg.left-mg.right)*0.52},
-                styles: {...bs, fontSize:8, cellPadding:3},
-                headStyles: {...hs, fontSize:8},
+                head:[['REGION','TOTAL\nPROJ','ON-\nGOING','WORK\nSTOP','MANPOWER\n(Current Mo.)','MANHOURS\n(YTD)','LTA','MTC','FAT.','DAYS\nLOST','AVG\nCOMPL.','COMPLIANT\n(≥90%)']],
+                body: regBody, startY: curY, margin: mg,
+                tableWidth: W-mg.left-mg.right,
+                styles: {...bs, fontSize:7.5, cellPadding:3, valign:'middle', halign:'center'},
+                headStyles: {...hs, fontSize:7, cellPadding:3, valign:'middle'},
                 alternateRowStyles: ar,
-                columnStyles: { 0:{fontStyle:'bold',cellWidth:80}, 1:{halign:'right',fontStyle:'bold'} },
+                columnStyles: {
+                    0:{halign:'left',fontStyle:'bold',cellWidth:52},
+                    1:{cellWidth:14},2:{cellWidth:14},3:{cellWidth:14},
+                    4:{halign:'right',cellWidth:26},5:{halign:'right',cellWidth:28},
+                    6:{cellWidth:13},7:{cellWidth:13},8:{cellWidth:13},9:{cellWidth:16},
+                    10:{fontStyle:'bold',cellWidth:18},11:{cellWidth:22}
+                },
+                didParseCell: d => {
+                    if (d.section==='body') {
+                        const isTotal = d.row.index === regBody.length-1;
+                        if (isTotal) { d.cell.styles.fillColor=[232,245,233]; d.cell.styles.fontStyle='bold'; d.cell.styles.textColor=[27,94,32]; }
+                        // LTA col
+                        if (d.column.index===6 && d.cell.raw!=='0' && !isTotal) { d.cell.styles.fillColor=[255,235,238]; d.cell.styles.textColor=[183,28,28]; d.cell.styles.fontStyle='bold'; }
+                        // MTC col
+                        if (d.column.index===7 && d.cell.raw!=='0' && !isTotal) { d.cell.styles.fillColor=[255,243,224]; d.cell.styles.textColor=[230,81,0]; d.cell.styles.fontStyle='bold'; }
+                        // Fatality col
+                        if (d.column.index===8 && d.cell.raw!=='0' && !isTotal) { d.cell.styles.fillColor=[183,28,28]; d.cell.styles.textColor=[255,255,255]; d.cell.styles.fontStyle='bold'; }
+                        // Days Lost
+                        if (d.column.index===9 && d.cell.raw!=='0' && !isTotal) { d.cell.styles.fillColor=[255,235,238]; d.cell.styles.textColor=[183,28,28]; d.cell.styles.fontStyle='bold'; }
+                        // Avg compliance
+                        if (d.column.index===10 && !isTotal) {
+                            const v=parseInt(d.cell.raw);
+                            if (!isNaN(v)) {
+                                d.cell.styles.fillColor = v>=90?[232,245,233]:v>=75?[255,253,231]:[255,235,238];
+                                d.cell.styles.textColor = v>=90?[27,94,32]:v>=75?[230,81,0]:[183,28,28];
+                                d.cell.styles.fontStyle = 'bold';
+                            }
+                        }
+                    }
+                },
                 didDrawPage: onPage
             });
 
-            const after = doc.lastAutoTable.finalY + 7;
-            doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(27,94,32);
-            doc.text('PROJECT STATUS OVERVIEW  (' + projs.length + ' projects)', _PML, after);
+            // ── PAGE 2: Detailed Project List ─────────────────────────────────
+            doc.addPage();
+            onPage({ pageNumber: 2 });
+
+            let p2Y = sy;
+            doc.setFillColor(27,94,32); doc.roundedRect(_PML, p2Y, W-_PML-_PMR, 10, 2, 2, 'F');
+            doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(255,255,255);
+            doc.text('PROJECT STATUS OVERVIEW — DETAILED LIST  (' + projs.length + ' projects)', _PML+5, p2Y+7);
+            p2Y += 14;
+
+            const detailBody = projs.map(p => {
+                const mh = ytdSum(p,'exposures_Total Exposed Manhour');
+                const mp = parseFloat(_v(p,'exposures_Total Manpower',curMonth));
+                const lta= ytdSum(p,'medical_LTA');
+                const mtc= ytdSum(p,'medical_Medical Treatment');
+                const fa = ytdSum(p,'medical_First Aid');
+                const dl = ytdSum(p,'medical_Days Lost/Charged');
+                const fat= ytdSum(p,'medical_Fatality');
+                const hi = ytdSum(p,'medical_High-Potential incident');
+                const pv = typeof getPerc==='function'?getPerc(p):null;
+                const cat = pv===null?'N/A':pv>=90?'COMPLIANT':pv>=75?'PARTIAL':'NON-COMPLIANT';
+                const cumMhP = (parseFloat((p.vals||{})['exposures_Total Exposed Man-hour to date']?.[0])||0) + mh;
+                const fr2 = cumMhP>0 ? ((lta/cumMhP)*1000000).toFixed(2) : '0.00';
+                const sr2 = cumMhP>0 ? ((dl /cumMhP)*1000000).toFixed(2) : '0.00';
+                const status = p.dateFinished?'FINISHED':p.status==='work-stoppage'?'WORK STOP':'ON-GOING';
+                return [
+                    _s(p.name),
+                    _s(p.region),
+                    status,
+                    _s(p.dateStarted||'—'),
+                    _s(p.dateFinished||'—'),
+                    isNaN(mp)?'—':_num(mp),
+                    mh>0?_num(Math.round(mh)):'—',
+                    fat>0?String(fat):'0',
+                    lta>0?String(lta):'0',
+                    mtc>0?String(mtc):'0',
+                    fa>0?String(fa):'0',
+                    hi>0?String(hi):'0',
+                    dl>0?String(dl):'0',
+                    fr2,
+                    pv!==null?pv+'%':'—',
+                    cat
+                ];
+            });
+
             doc.autoTable({
-                head:[['PROJECT','REGION','STATUS','DATE STARTED','DATE FINISHED']],
-                body: projs.map(p=>[_s(p.name),_s(p.region),_s(p.status||'On-Going'),_s(p.dateStarted||''),_s(p.dateFinished||'')]),
-                startY: after + 3, margin: mg,
-                styles: bs, headStyles: hs, alternateRowStyles: ar,
-                columnStyles: { 0:{fontStyle:'bold',cellWidth:70}, 1:{cellWidth:30,halign:'center'}, 2:{cellWidth:24,halign:'center'}, 3:{cellWidth:24,halign:'center'}, 4:{cellWidth:24,halign:'center'} },
+                head:[['PROJECT','REGION','STATUS','DATE\nSTARTED','DATE\nFINISHED','MANPOWER\n(Curr.Mo.)','MANHOURS\n(YTD)','FAT.','LTA','MTC','FAC','HI\nPOT.','DAYS\nLOST','FREQ.\nRATE','COMPLIANCE\n%','RATING']],
+                body: detailBody, startY: p2Y, margin: mg,
+                tableWidth: W-mg.left-mg.right,
+                styles: {...bs, fontSize:6.5, cellPadding:2.5, halign:'center', valign:'middle'},
+                headStyles: {...hs, fontSize:6.5, cellPadding:3, valign:'middle'},
+                alternateRowStyles: ar,
+                columnStyles: {
+                    0:{halign:'left',fontStyle:'bold',cellWidth:'auto'},
+                    1:{cellWidth:26,halign:'center'},
+                    2:{cellWidth:20,halign:'center'},
+                    3:{cellWidth:20,halign:'center'},
+                    4:{cellWidth:20,halign:'center'},
+                    5:{cellWidth:20,halign:'right'},
+                    6:{cellWidth:22,halign:'right'},
+                    7:{cellWidth:11,halign:'center'},
+                    8:{cellWidth:11,halign:'center'},
+                    9:{cellWidth:11,halign:'center'},
+                    10:{cellWidth:11,halign:'center'},
+                    11:{cellWidth:11,halign:'center'},
+                    12:{cellWidth:14,halign:'center'},
+                    13:{cellWidth:16,halign:'center'},
+                    14:{cellWidth:20,halign:'center',fontStyle:'bold'},
+                    15:{cellWidth:26,halign:'center'}
+                },
+                didParseCell: d => {
+                    if (d.section==='body') {
+                        // Status coloring
+                        if (d.column.index===2) {
+                            if (d.cell.raw==='WORK STOP') { d.cell.styles.fillColor=[255,235,238]; d.cell.styles.textColor=[183,28,28]; d.cell.styles.fontStyle='bold'; }
+                            if (d.cell.raw==='FINISHED')  { d.cell.styles.fillColor=[232,245,233]; d.cell.styles.textColor=[27,94,32]; }
+                        }
+                        // Fatality
+                        if (d.column.index===7 && d.cell.raw!=='0') { d.cell.styles.fillColor=[183,28,28]; d.cell.styles.textColor=[255,255,255]; d.cell.styles.fontStyle='bold'; }
+                        // LTA
+                        if (d.column.index===8 && d.cell.raw!=='0') { d.cell.styles.fillColor=[255,205,210]; d.cell.styles.textColor=[183,28,28]; d.cell.styles.fontStyle='bold'; }
+                        // MTC
+                        if (d.column.index===9 && d.cell.raw!=='0') { d.cell.styles.fillColor=[255,243,224]; d.cell.styles.textColor=[230,81,0]; d.cell.styles.fontStyle='bold'; }
+                        // Hi-Pot
+                        if (d.column.index===11 && d.cell.raw!=='0') { d.cell.styles.fillColor=[255,243,224]; d.cell.styles.textColor=[153,50,0]; d.cell.styles.fontStyle='bold'; }
+                        // Days Lost
+                        if (d.column.index===12 && d.cell.raw!=='0') { d.cell.styles.fillColor=[255,235,238]; d.cell.styles.textColor=[183,28,28]; d.cell.styles.fontStyle='bold'; }
+                        // Compliance %
+                        if (d.column.index===14) {
+                            const v=parseInt(d.cell.raw);
+                            if (!isNaN(v)) {
+                                d.cell.styles.fillColor = v>=90?[232,245,233]:v>=75?[255,253,231]:[255,235,238];
+                                d.cell.styles.textColor = v>=90?[27,94,32]:v>=75?[230,81,0]:[183,28,28];
+                            }
+                        }
+                        // Rating
+                        if (d.column.index===15) {
+                            if (d.cell.raw==='COMPLIANT')     { d.cell.styles.fillColor=[232,245,233]; d.cell.styles.textColor=[27,94,32]; d.cell.styles.fontStyle='bold'; }
+                            if (d.cell.raw==='PARTIAL')       { d.cell.styles.fillColor=[255,253,231]; d.cell.styles.textColor=[230,81,0]; d.cell.styles.fontStyle='bold'; }
+                            if (d.cell.raw==='NON-COMPLIANT') { d.cell.styles.fillColor=[255,235,238]; d.cell.styles.textColor=[183,28,28]; d.cell.styles.fontStyle='bold'; }
+                        }
+                    }
+                },
                 didDrawPage: onPage
             });
+
+            // Legend
+            const legY = doc.lastAutoTable.finalY + 4;
+            doc.setFont('helvetica','italic'); doc.setFontSize(6); doc.setTextColor(130,130,130);
+            doc.text('FAT. = Fatality  ·  LTA = Lost Time Accident  ·  MTC = Medical Treatment Case  ·  FAC = First Aid Case  ·  HI POT. = High-Potential Incident  ·  FREQ. RATE = per 1,000,000 manhours', _PML, legY);
         }
 
         // ── Monthly Compliance PDF ────────────────────────────────────────────
@@ -7941,17 +8199,112 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 doc.text(regProjs.length+' project'+(regProjs.length>1?'s':'') + (regAvg!==null?'   |   Avg: '+regAvg+'%':''), W-_PMR-2, rY+7, {align:'right'});
                 rY += 14;
 
-                // Build rows
-                const head = monthIdx === 0
-                    ? ['PROJECT','STATUS','OVERALL\nCOMPLIANCE','CATEGORY']
-                    : ['PROJECT','STATUS',MONTH_FULL[monthIdx-1].toUpperCase()+'\nCOMPLIANCE','CATEGORY'];
+                // ── Region stats summary bar ──────────────────────────────────
+                const regTotMH  = regProjs.reduce((s,p)=>{let v=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'exposures_Total Exposed Manhour',m));if(!isNaN(x))v+=x;}return s+v;},0);
+                const regTotMP  = regProjs.reduce((s,p)=>{const mo=monthIdx||new Date().getMonth()+1;const x=parseFloat(_v(p,'exposures_Total Manpower',mo));return s+(isNaN(x)?0:x);},0);
+                const regTotLTA = regProjs.reduce((s,p)=>{let v=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'medical_LTA',m));if(!isNaN(x))v+=x;}return s+v;},0);
+                const regTotMed = regProjs.reduce((s,p)=>{let v=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'medical_Medical Treatment',m));if(!isNaN(x))v+=x;}return s+v;},0);
+                const regTotFA  = regProjs.reduce((s,p)=>{let v=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'medical_First Aid',m));if(!isNaN(x))v+=x;}return s+v;},0);
+                const regTotDL  = regProjs.reduce((s,p)=>{let v=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'medical_Days Lost/Charged',m));if(!isNaN(x))v+=x;}return s+v;},0);
+                const regTotHI  = regProjs.reduce((s,p)=>{let v=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'medical_High-Potential incident',m));if(!isNaN(x))v+=x;}return s+v;},0);
+                const regCompliant   = regProjs.filter(p=>{const v=getProjCompliance(p,monthIdx);return v!==null&&v>=90;}).length;
+                const regPartial     = regProjs.filter(p=>{const v=getProjCompliance(p,monthIdx);return v!==null&&v>=75&&v<90;}).length;
+                const regNonCompliant= regProjs.filter(p=>{const v=getProjCompliance(p,monthIdx);return v!==null&&v<75;}).length;
+
+                // Mini stat cards row
+                const statCards = [
+                    {label:'TOTAL MANPOWER', val:_num(regTotMP), icon:'👷'},
+                    {label:'MANHOURS (YTD)',  val:_num(regTotMH), icon:'⏱'},
+                    {label:'LTA',             val:String(regTotLTA), icon:'🔴', warn: regTotLTA>0},
+                    {label:'MED. TREATMENT',  val:String(regTotMed), icon:'🏥', warn: regTotMed>0},
+                    {label:'FIRST AID',       val:String(regTotFA),  icon:'🩹'},
+                    {label:'DAYS LOST',       val:String(regTotDL),  icon:'📅', warn: regTotDL>0},
+                    {label:'HI POTENTIAL',    val:String(regTotHI),  icon:'⚠️', warn: regTotHI>0},
+                    {label:'COMPLIANT ≥90%',  val:String(regCompliant), icon:'✅', good:true},
+                ];
+                const scW = (W-_PML-_PMR - (statCards.length-1)*2) / statCards.length;
+                statCards.forEach((sc, i) => {
+                    const cx = _PML + i*(scW+2);
+                    const bg = sc.good ? [232,245,233] : sc.warn ? [255,235,238] : [245,250,245];
+                    const tc = sc.good ? [27,94,32] : sc.warn ? [183,28,28] : [50,80,50];
+                    doc.setFillColor(...bg);
+                    doc.roundedRect(cx, rY, scW, 14, 1.5, 1.5, 'F');
+                    doc.setDrawColor(200,230,200); doc.setLineWidth(0.2);
+                    doc.roundedRect(cx, rY, scW, 14, 1.5, 1.5, 'S');
+                    doc.setFont('helvetica','normal'); doc.setFontSize(4.8); doc.setTextColor(100,100,100);
+                    doc.text(sc.label, cx+scW/2, rY+4.5, {align:'center'});
+                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...tc);
+                    doc.text(sc.val, cx+scW/2, rY+11, {align:'center'});
+                });
+                rY += 18;
+
+                // ── Compliance breakdown bar ──────────────────────────────────
+                doc.setFillColor(232,245,233); doc.roundedRect(_PML, rY, scW*2+2, 8, 1.5, 1.5, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(27,94,32);
+                doc.text('✅ COMPLIANT: '+regCompliant, _PML+4, rY+5.5);
+                doc.setFillColor(255,253,231); doc.roundedRect(_PML+scW*2+4, rY, scW*2, 8, 1.5, 1.5, 'F');
+                doc.setTextColor(180,60,0);
+                doc.text('⚡ PARTIAL: '+regPartial, _PML+scW*2+8, rY+5.5);
+                doc.setFillColor(255,235,238); doc.roundedRect(_PML+scW*4+6, rY, scW*2, 8, 1.5, 1.5, 'F');
+                doc.setTextColor(183,28,28);
+                doc.text('❌ NON-COMPLIANT: '+regNonCompliant, _PML+scW*4+10, rY+5.5);
+                rY += 12;
+
+                // ── Detailed project table with full data ─────────────────────
+                const complianceLabel = monthIdx === 0 ? 'OVERALL\nCOMPLIANCE' : MONTH_FULL[monthIdx-1].toUpperCase()+'\nCOMPLIANCE';
+                const head = [
+                    'PROJECT NAME',
+                    'STATUS',
+                    'DATE\nSTARTED',
+                    'MANPOWER\n(Current)',
+                    'MANHOURS\n(YTD)',
+                    'LTA',
+                    'MTC',
+                    'FAC',
+                    'DAYS\nLOST',
+                    complianceLabel,
+                    'RATING'
+                ];
 
                 const body = regProjs.map(p => {
+                    // Compliance
                     const pv = getProjCompliance(p, monthIdx);
                     const cat = pv === null ? 'N/A' : pv >= 90 ? 'COMPLIANT' : pv >= 75 ? 'PARTIAL' : 'NON-COMPLIANT';
+
+                    // Manpower for selected month or current month
+                    const mpMonth = monthIdx > 0 ? monthIdx : new Date().getMonth()+1;
+                    const mp  = parseFloat(_v(p,'exposures_Total Manpower', mpMonth));
+                    const mpStr = isNaN(mp) ? '—' : _num(mp);
+
+                    // Manhours YTD
+                    let mhSum = 0;
+                    const mhEnd = monthIdx > 0 ? monthIdx : 12;
+                    for (let m=1; m<=mhEnd; m++) { const x=parseFloat(_v(p,'exposures_Total Exposed Manhour',m)); if(!isNaN(x)) mhSum+=x; }
+                    const mhStr = mhSum > 0 ? _num(mhSum) : '—';
+
+                    // Incidents (YTD or selected month)
+                    function incVal(key) {
+                        if (monthIdx > 0) { const x=parseFloat(_v(p,key,monthIdx)); return isNaN(x)?0:x; }
+                        let s=0; for(let m=1;m<=12;m++){const x=parseFloat(_v(p,key,m));if(!isNaN(x))s+=x;} return s;
+                    }
+                    const lta = incVal('medical_LTA');
+                    const mtc = incVal('medical_Medical Treatment');
+                    const fac = incVal('medical_First Aid');
+                    const dl  = incVal('medical_Days Lost/Charged');
+
+                    // Date started
+                    const ds = p.dateStarted ? p.dateStarted : '—';
+
                     return [
                         _s(p.name),
-                        _s(p.status || 'on-going'),
+                        _s(p.status || 'On-Going').toUpperCase(),
+                        ds,
+                        mpStr,
+                        mhStr,
+                        lta > 0 ? String(lta) : '0',
+                        mtc > 0 ? String(mtc) : '0',
+                        fac > 0 ? String(fac) : '0',
+                        dl  > 0 ? String(dl)  : '0',
                         pv !== null ? pv+'%' : '—',
                         cat
                     ];
@@ -7960,34 +8313,150 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 doc.autoTable({
                     head: [head], body, startY: rY, margin: mg,
                     tableWidth: W-mg.left-mg.right,
-                    styles: {...bs, fontSize:8.5, cellPadding:3, halign:'center'},
-                    headStyles: {...hs, fontSize:8.5},
+                    styles: {...bs, fontSize:7.2, cellPadding:2.8, halign:'center', valign:'middle'},
+                    headStyles: {...hs, fontSize:7, cellPadding:3, valign:'middle'},
                     alternateRowStyles: ar,
                     columnStyles: {
-                        0:{halign:'left', fontStyle:'bold', cellWidth:'auto'},
-                        1:{halign:'center', cellWidth:28},
-                        2:{halign:'center', fontStyle:'bold', cellWidth:30},
-                        3:{halign:'center', cellWidth:34}
+                        0: {halign:'left', fontStyle:'bold', cellWidth:'auto'},
+                        1: {halign:'center', cellWidth:22},
+                        2: {halign:'center', cellWidth:20},
+                        3: {halign:'right',  cellWidth:20},
+                        4: {halign:'right',  cellWidth:22},
+                        5: {halign:'center', cellWidth:12},
+                        6: {halign:'center', cellWidth:12},
+                        7: {halign:'center', cellWidth:12},
+                        8: {halign:'center', cellWidth:14},
+                        9: {halign:'center', fontStyle:'bold', cellWidth:24},
+                        10:{halign:'center', cellWidth:28}
                     },
                     didParseCell: d => {
                         if (d.section === 'body') {
-                            if (d.column.index === 2) {
+                            // LTA column — red if > 0
+                            if (d.column.index === 5 && d.cell.raw !== '0' && d.cell.raw !== '—') {
+                                d.cell.styles.fillColor=[255,235,238]; d.cell.styles.textColor=[183,28,28]; d.cell.styles.fontStyle='bold';
+                            }
+                            // MTC column — orange if > 0
+                            if (d.column.index === 6 && d.cell.raw !== '0' && d.cell.raw !== '—') {
+                                d.cell.styles.fillColor=[255,243,224]; d.cell.styles.textColor=[230,81,0]; d.cell.styles.fontStyle='bold';
+                            }
+                            // Days Lost — red if > 0
+                            if (d.column.index === 8 && d.cell.raw !== '0' && d.cell.raw !== '—') {
+                                d.cell.styles.fillColor=[255,235,238]; d.cell.styles.textColor=[183,28,28]; d.cell.styles.fontStyle='bold';
+                            }
+                            // Compliance % column
+                            if (d.column.index === 9) {
                                 const v = parseInt(d.cell.raw);
                                 if (!isNaN(v)) {
                                     d.cell.styles.fillColor = pctBg(v);
                                     d.cell.styles.textColor = pctColor(v);
+                                    d.cell.styles.fontStyle = 'bold';
                                 }
                             }
-                            if (d.column.index === 3) {
-                                if (d.cell.raw === 'COMPLIANT')     { d.cell.styles.fillColor=[232,245,233]; d.cell.styles.textColor=[27,94,32];   d.cell.styles.fontStyle='bold'; }
-                                if (d.cell.raw === 'PARTIAL')       { d.cell.styles.fillColor=[255,253,231]; d.cell.styles.textColor=[230,81,0];   d.cell.styles.fontStyle='bold'; }
-                                if (d.cell.raw === 'NON-COMPLIANT') { d.cell.styles.fillColor=[255,235,238]; d.cell.styles.textColor=[183,28,28];  d.cell.styles.fontStyle='bold'; }
+                            // Rating column
+                            if (d.column.index === 10) {
+                                if (d.cell.raw === 'COMPLIANT')     { d.cell.styles.fillColor=[232,245,233]; d.cell.styles.textColor=[27,94,32];  d.cell.styles.fontStyle='bold'; }
+                                if (d.cell.raw === 'PARTIAL')       { d.cell.styles.fillColor=[255,253,231]; d.cell.styles.textColor=[230,81,0];  d.cell.styles.fontStyle='bold'; }
+                                if (d.cell.raw === 'NON-COMPLIANT') { d.cell.styles.fillColor=[255,235,238]; d.cell.styles.textColor=[183,28,28]; d.cell.styles.fontStyle='bold'; }
+                                if (d.cell.raw === 'N/A')           { d.cell.styles.fillColor=[245,245,245]; d.cell.styles.textColor=[150,150,150];}
                             }
                         }
                     },
                     didDrawPage: d => { if(d.pageNumber>1){ _pdfHeader(doc, title, year); } _pdfFooter(doc); }
                 });
+
+                // ── Legend footnote ───────────────────────────────────────────
+                const legendY = doc.lastAutoTable.finalY + 4;
+                doc.setFont('helvetica','italic'); doc.setFontSize(6); doc.setTextColor(130,130,130);
+                doc.text('LTA = Lost Time Accident  ·  MTC = Medical Treatment Case  ·  FAC = First Aid Case  ·  Manhours & Manpower are YTD unless a specific month is selected.', _PML, legendY);
             });
+
+            // ── Incident Summary Page ──────────────────────────────────────────
+            const incidentProjs = activeProjs.filter(p => {
+                const lta = (()=>{let s=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'medical_LTA',m));if(!isNaN(x))s+=x;}return s;})();
+                const mtc = (()=>{let s=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'medical_Medical Treatment',m));if(!isNaN(x))s+=x;}return s;})();
+                const hi  = (()=>{let s=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'medical_High-Potential incident',m));if(!isNaN(x))s+=x;}return s;})();
+                return lta > 0 || mtc > 0 || hi > 0;
+            });
+            if (incidentProjs.length > 0) {
+                doc.addPage();
+                _pdfHeader(doc, title, year);
+                _pdfFooter(doc);
+                let iY = sy;
+
+                doc.setFillColor(183,28,28); doc.roundedRect(_PML, iY, W-_PML-_PMR, 10, 2, 2, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(255,255,255);
+                doc.text('⚠  INCIDENT & SAFETY SUMMARY  —  PROJECTS WITH RECORDED INCIDENTS', _PML+5, iY+7);
+                doc.setFont('helvetica','normal'); doc.setFontSize(7);
+                doc.text(moLabel + '  ·  As of ' + _today(), W-_PMR-2, iY+7, {align:'right'});
+                iY += 14;
+
+                const iBody = incidentProjs.map(p => {
+                    function ytd(key){let s=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,key,m));if(!isNaN(x))s+=x;}return s;}
+                    const lta = ytd('medical_LTA');
+                    const mtc = ytd('medical_Medical Treatment');
+                    const fac = ytd('medical_First Aid');
+                    const dl  = ytd('medical_Days Lost/Charged');
+                    const fat = ytd('medical_Fatality');
+                    const hi  = ytd('medical_High-Potential incident');
+                    const mh  = (()=>{let s=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,'exposures_Total Exposed Manhour',m));if(!isNaN(x))s+=x;}return s;})();
+                    const trir = mh > 0 ? ((lta+mtc)*200000/mh).toFixed(2) : '—';
+                    const ltir = mh > 0 ? ((lta)*200000/mh).toFixed(2) : '—';
+                    return [
+                        _s(p.name),
+                        _s(p.region),
+                        _num(mh),
+                        fat > 0 ? String(fat) : '0',
+                        lta > 0 ? String(lta) : '0',
+                        mtc > 0 ? String(mtc) : '0',
+                        fac > 0 ? String(fac) : '0',
+                        dl  > 0 ? String(dl)  : '0',
+                        hi  > 0 ? String(hi)  : '0',
+                        trir,
+                        ltir
+                    ];
+                });
+
+                doc.autoTable({
+                    head:[['PROJECT','REGION','MANHOURS\n(YTD)','FATALITY','LTA','MTC','FAC','DAYS\nLOST','HIGH\nPOTENTIAL','TRIR','LTIR']],
+                    body: iBody, startY: iY, margin: mg,
+                    tableWidth: W-mg.left-mg.right,
+                    styles: {...bs, fontSize:7.5, cellPadding:3, halign:'center', valign:'middle'},
+                    headStyles: {...hs, fontSize:7.5, fillColor:[183,28,28]},
+                    alternateRowStyles: ar,
+                    columnStyles: {
+                        0:{halign:'left', fontStyle:'bold', cellWidth:'auto'},
+                        1:{halign:'center', cellWidth:38},
+                        2:{halign:'right',  cellWidth:26},
+                        3:{halign:'center', cellWidth:18},
+                        4:{halign:'center', cellWidth:16},
+                        5:{halign:'center', cellWidth:16},
+                        6:{halign:'center', cellWidth:16},
+                        7:{halign:'center', cellWidth:18},
+                        8:{halign:'center', cellWidth:22},
+                        9:{halign:'center', cellWidth:18},
+                        10:{halign:'center', cellWidth:18}
+                    },
+                    didParseCell: d => {
+                        if (d.section === 'body') {
+                            // Fatality
+                            if (d.column.index === 3 && d.cell.raw !== '0') { d.cell.styles.fillColor=[183,28,28]; d.cell.styles.textColor=[255,255,255]; d.cell.styles.fontStyle='bold'; }
+                            // LTA
+                            if (d.column.index === 4 && d.cell.raw !== '0') { d.cell.styles.fillColor=[255,205,210]; d.cell.styles.textColor=[183,28,28]; d.cell.styles.fontStyle='bold'; }
+                            // MTC
+                            if (d.column.index === 5 && d.cell.raw !== '0') { d.cell.styles.fillColor=[255,243,224]; d.cell.styles.textColor=[230,81,0]; d.cell.styles.fontStyle='bold'; }
+                            // Days Lost
+                            if (d.column.index === 7 && d.cell.raw !== '0') { d.cell.styles.fillColor=[255,235,238]; d.cell.styles.textColor=[183,28,28]; d.cell.styles.fontStyle='bold'; }
+                            // High Potential
+                            if (d.column.index === 8 && d.cell.raw !== '0') { d.cell.styles.fillColor=[255,243,224]; d.cell.styles.textColor=[153,50,0]; d.cell.styles.fontStyle='bold'; }
+                        }
+                    },
+                    didDrawPage: d => { if(d.pageNumber>1){ _pdfHeader(doc, title, year); } _pdfFooter(doc); }
+                });
+
+                const fY2 = doc.lastAutoTable.finalY + 4;
+                doc.setFont('helvetica','italic'); doc.setFontSize(6); doc.setTextColor(130,130,130);
+                doc.text('TRIR = Total Recordable Incident Rate per 200,000 manhours  ·  LTIR = Lost Time Incident Rate per 200,000 manhours', _PML, fY2);
+            }
         }
 
         // ── Month selector modal for Overall PDF export ──────────────────────
@@ -33165,3 +33634,295 @@ function osCloseModal() {
 }
 
 // os-project-modal backdrop click disabled — use × button to close
+
+// ── ESH Personnel Monitoring — Export to Excel (ExcelJS) ─────────────────────
+async function exportPersonnelExcel() {
+    if (typeof ExcelJS === 'undefined') {
+        showToast('❌ Excel library not loaded. Refresh and try again.', 'error');
+        return;
+    }
+
+    const allPersonnel = state.personnelData || [];
+    if (!allPersonnel.length) {
+        showToast('ℹ️ No personnel data to export.', 'info');
+        return;
+    }
+
+    showToast('⏳ Generating Excel file...', 'info');
+
+    // ── Cert helpers ──────────────────────────────────────────────────────────
+    const CERT_KEYS_MAP = {
+        'Safety Officer I':'COSH','Safety Officer II':'COSH','Safety Officer III':'COSH','Safety Officer IV':'COSH',
+        'PCO':'PCO_ACCRED','First Aider':'BLS','Project Nurse':'OHNAP',
+        'ESH Superintendent':'DOLE_OSH','ESH Head':'DOLE_OSH'
+    };
+    const CERT_LABELS_MAP = {
+        'COSH':'COSH','PCO_ACCRED':'PCO Accred.','BLS':'BLS','OHNAP':'OHNAP','DOLE_OSH':'DOLE OSHP'
+    };
+    function _certStatus(expiry) {
+        if (!expiry) return 'NONE';
+        const now = new Date(); now.setHours(0,0,0,0);
+        const exp = new Date(expiry); exp.setHours(0,0,0,0);
+        const days = Math.round((exp - now) / 86400000);
+        if (days < 0) return 'EXPIRED';
+        if (days <= 60) return 'EXPIRING';
+        return 'VALID';
+    }
+    function _fmtDate(d) {
+        if (!d) return '—';
+        try { const dt = new Date(d); return isNaN(dt) ? d : dt.toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'2-digit'}); }
+        catch(e) { return d; }
+    }
+    function _fmtLen(len) {
+        if (!len) return '—';
+        const s = String(len).trim();
+        if (s.toLowerCase().includes('mo')) {
+            const m = parseFloat(s);
+            if (isNaN(m)) return s;
+            return `${m} mo${m !== 1 ? 's' : ''}`;
+        }
+        const yrs = parseFloat(s);
+        if (isNaN(yrs)) return s;
+        if (yrs === 0) return '< 1 mo';
+        return yrs === 1 ? '1 yr' : `${yrs} yrs`;
+    }
+
+    // ── Ordering ──────────────────────────────────────────────────────────────
+    const CORP_POS_ORDER = ['QESH Group Manager','QESH Deputy Manager','ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation','Environmental and Sustainability Head','Corporate Physician','Corporate Nurse','Corporate Dentist','QESH Corp. DC','Others'];
+    const PROJ_POS_ORDER = ['ESH Superintendent','ESH Head','Safety Officer IV','Safety Officer III','Safety Officer II','Safety Officer I','PCO','Project Physician','Project Nurse','First Aider','Others'];
+    const REGION_ORDER   = ['CORPORATE','NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+    const corpRank = pos => { const i = CORP_POS_ORDER.indexOf(pos); return i >= 0 ? i : CORP_POS_ORDER.length; };
+    const projRank = pos => { const i = PROJ_POS_ORDER.indexOf(pos); return i >= 0 ? i : PROJ_POS_ORDER.length; };
+
+    const projRegionMap = {};
+    (state.masterProjects || state.projects || []).forEach(p => { if (p.name) projRegionMap[p.name] = (p.region||'').toUpperCase(); });
+
+    // ── Group by region → project ─────────────────────────────────────────────
+    const regionGroups = {};
+    allPersonnel.forEach(p => {
+        const proj   = (p.current || p.projectAssignment || p.project || '').trim();
+        const isCorp = proj === 'Corporate Office' || (projRegionMap[proj]||'').toUpperCase() === 'CORPORATE';
+        const region = isCorp ? 'CORPORATE' : (projRegionMap[proj] || (p.region||p._region||'') || 'OTHER').toUpperCase();
+        if (!regionGroups[region]) regionGroups[region] = {};
+        if (!regionGroups[region][proj || 'Unassigned']) regionGroups[region][proj || 'Unassigned'] = [];
+        regionGroups[region][proj || 'Unassigned'].push(p);
+    });
+
+    // Sort within each project group
+    Object.entries(regionGroups).forEach(([region, projMap]) => {
+        const isCorp = region === 'CORPORATE';
+        Object.values(projMap).forEach(arr => arr.sort((a,b) => (isCorp ? corpRank(a.pos) - corpRank(b.pos) : projRank(a.pos) - projRank(b.pos))));
+    });
+
+    // ── ExcelJS workbook ──────────────────────────────────────────────────────
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'ESH Monitoring System';
+    wb.created = new Date();
+
+    // Exact colors from reference file
+    const COLOR_HEADER_BG  = '2E7D32'; // medium green — header row
+    const COLOR_BANNER_BG  = '1B5E20'; // dark green  — project banner rows
+    const COLOR_WHITE      = 'FFFFFFFF';
+    const COLOR_TOTAL_BG   = 'E8F5E9'; // light green — TOTAL row in summary
+
+    const COL_HEADERS = ['REGION','PROJECT','#','Full Name','Position','EMP ID','Gender','Age','Date Hired','Length of Service','Certification','Cert Expiry','Status'];
+    // Reference column widths (exact match to reference file)
+    const COL_WIDTHS  = [18, 35, 5, 30, 25, 12, 10, 8, 15, 18, 15, 15, 12];
+
+    // ── Shared style builders ─────────────────────────────────────────────────
+    function applyHeaderStyle(cell) {
+        cell.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11, name: 'Calibri' };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_HEADER_BG } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.border    = {
+            top:    { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } },
+            bottom: { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } },
+            left:   { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } },
+            right:  { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } }
+        };
+    }
+
+    function applyBannerStyle(cell) {
+        cell.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_BANNER_BG } };
+        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+    }
+
+    function applyDataStyle(cell, colIdx) {
+        cell.font      = { size: 11, name: 'Calibri' };
+        cell.alignment = { vertical: 'middle', wrapText: false };
+        if (colIdx === 3) cell.alignment.horizontal = 'center'; // # column centered
+    }
+
+    function applyTotalStyle(cell) {
+        cell.font = { bold: true, size: 11, name: 'Calibri' };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_TOTAL_BG } };
+        cell.alignment = { vertical: 'middle' };
+    }
+
+    // ── Auto-fit column width based on actual data ────────────────────────────
+    function autoFitCols(ws, dataRows, minWidths) {
+        const numCols = minWidths.length;
+        const maxLens = [...minWidths]; // start with minimum widths
+        // Check header row
+        COL_HEADERS.forEach((h, i) => {
+            if (h.length + 2 > maxLens[i]) maxLens[i] = h.length + 2;
+        });
+        // Check all data rows
+        dataRows.forEach(row => {
+            row.forEach((val, i) => {
+                if (i >= numCols) return;
+                const len = val !== null && val !== undefined ? String(val).length + 2 : 0;
+                if (len > maxLens[i]) maxLens[i] = len;
+            });
+        });
+        ws.columns = maxLens.map(w => ({ width: Math.min(w, 50) })); // cap at 50
+    }
+
+    // ── Build Summary sheet ───────────────────────────────────────────────────
+    const summaryWs = wb.addWorksheet('Summary');
+    summaryWs.addRow(['REGION', 'Total Personnel', '# of Projects']);
+    ['A1','B1','C1'].forEach(addr => {
+        const cell = summaryWs.getCell(addr);
+        cell.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12, name: 'Calibri' };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_BANNER_BG } };
+        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+    });
+    summaryWs.getRow(1).height = 20;
+
+    const sortedRegions = REGION_ORDER.filter(r => regionGroups[r]);
+    const otherRegions  = Object.keys(regionGroups).filter(r => !REGION_ORDER.includes(r));
+    const allRegions    = [...sortedRegions, ...otherRegions];
+    let totalP = 0, totalProj = 0;
+
+    allRegions.forEach(region => {
+        const projMap  = regionGroups[region];
+        const pCount   = Object.values(projMap).reduce((a,arr)=>a+arr.length,0);
+        const prCount  = Object.keys(projMap).length;
+        summaryWs.addRow([region, pCount, prCount]);
+        totalP += pCount; totalProj += prCount;
+    });
+
+    const totalRowIdx = allRegions.length + 2;
+    summaryWs.addRow(['TOTAL', totalP, totalProj]);
+    ['A','B','C'].forEach(col => applyTotalStyle(summaryWs.getCell(`${col}${totalRowIdx}`)));
+
+    // Auto-fit summary columns
+    summaryWs.getColumn('A').width = 25;
+    summaryWs.getColumn('B').width = 18;
+    summaryWs.getColumn('C').width = 15;
+
+    // ── Build per-region sheets ───────────────────────────────────────────────
+    allRegions.forEach(region => {
+        const projMap  = regionGroups[region];
+        const isCorp   = region === 'CORPORATE';
+        const sheetName = region.length > 31 ? region.substring(0, 31) : region;
+        const ws = wb.addWorksheet(sheetName);
+
+        // Collect all data rows for auto-fit calculation
+        const allDataRows = [];
+
+        // Sort project names
+        let projNames = Object.keys(projMap).sort((a,b) => a.localeCompare(b));
+        if (!isCorp) {
+            const supProj = (() => {
+                for (const [pname, arr] of Object.entries(projMap)) {
+                    if (arr.find(p => p.pos === 'ESH Superintendent')) return pname;
+                }
+                return null;
+            })();
+            if (supProj) projNames = [supProj, ...projNames.filter(n => n !== supProj)];
+        }
+
+        // Pre-collect all data for auto-fit
+        projNames.forEach(projName => {
+            const members = projMap[projName] || [];
+            members.forEach((p, mi) => {
+                const pid      = p.id || p.empId || '';
+                const certKey  = CERT_KEYS_MAP[p.pos] || null;
+                const certData = certKey && window._pcCertData && pid ? (window._pcCertData[pid]||{})[certKey] : null;
+                const certLabel = certKey ? (CERT_LABELS_MAP[certKey] || certKey) : '—';
+                const expiryStr = certData && certData.expiry ? _fmtDate(certData.expiry) : certData && certData.pdfUrl ? 'No expiry set' : (certKey ? 'Not uploaded' : '—');
+                const status   = certKey ? _certStatus(certData && certData.expiry) : '—';
+                allDataRows.push([
+                    region, projName, mi + 1,
+                    (p.name || '').toUpperCase(),
+                    p.pos || '—',
+                    p.id || '—',
+                    p.gen || p.gender || '—',
+                    p.age || '—',
+                    p.hired ? _fmtDate(p.hired) : '—',
+                    _fmtLen(p.len),
+                    certLabel, expiryStr, status
+                ]);
+            });
+        });
+
+        // Auto-fit columns based on real data
+        autoFitCols(ws, allDataRows, COL_WIDTHS);
+
+        // ── Header row ────────────────────────────────────────────────────────
+        const headerRow = ws.addRow(COL_HEADERS);
+        headerRow.height = 22;
+        headerRow.eachCell(cell => applyHeaderStyle(cell));
+
+        // ── Project groups ────────────────────────────────────────────────────
+        projNames.forEach((projName, projIdx) => {
+            const members = projMap[projName] || [];
+            if (!members.length) return;
+
+            // Project banner row — merged across all 13 columns
+            const bannerRow = ws.addRow([`📌 ${projName}`, '', '', '', '', '', '', '', '', '', '', '', '']);
+            bannerRow.height = 18;
+            ws.mergeCells(bannerRow.number, 1, bannerRow.number, 13);
+            applyBannerStyle(bannerRow.getCell(1));
+
+            // Personnel data rows
+            members.forEach((p, mi) => {
+                const pid      = p.id || p.empId || '';
+                const certKey  = CERT_KEYS_MAP[p.pos] || null;
+                const certData = certKey && window._pcCertData && pid ? (window._pcCertData[pid]||{})[certKey] : null;
+                const certLabel = certKey ? (CERT_LABELS_MAP[certKey] || certKey) : '—';
+                const expiryStr = certData && certData.expiry ? _fmtDate(certData.expiry) : certData && certData.pdfUrl ? 'No expiry set' : (certKey ? 'Not uploaded' : '—');
+                const status   = certKey ? _certStatus(certData && certData.expiry) : '—';
+
+                const dataRow = ws.addRow([
+                    region, projName, mi + 1,
+                    (p.name || '').toUpperCase(),
+                    p.pos || '—',
+                    p.id || '—',
+                    p.gen || p.gender || '—',
+                    p.age || '—',
+                    p.hired ? _fmtDate(p.hired) : '—',
+                    _fmtLen(p.len),
+                    certLabel, expiryStr, status
+                ]);
+                dataRow.height = 16;
+                dataRow.eachCell((cell, colNumber) => applyDataStyle(cell, colNumber));
+            });
+
+            // ── Spacer row after each project (except last) ───────────────────
+            if (projIdx < projNames.length - 1) {
+                const spacer = ws.addRow(['', '', '', '', '', '', '', '', '', '', '', '', '']);
+                spacer.height = 8;
+            }
+        });
+
+        // Freeze top header row
+        ws.views = [{ state: 'frozen', ySplit: 1, activeCell: 'A2' }];
+    });
+
+    // ── Download ──────────────────────────────────────────────────────────────
+    try {
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob   = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const now    = new Date();
+        const stamp  = now.toISOString().slice(0,10);
+        const fname  = `ESH_Personnel_${now.getFullYear()}_${stamp}.xlsx`;
+        saveAs(blob, fname);
+        showToast(`✅ Exported: ${fname}`, 'success');
+    } catch(err) {
+        console.error('Excel export error:', err);
+        showToast('❌ Export failed. Check console for details.', 'error');
+    }
+}
