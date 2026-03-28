@@ -16989,7 +16989,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     var EMR_KEY = 'env-monthly-report_Environmental Monthly Report (EMR)';
                     var EMR_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-                    var emrActProjs = displayProjects.filter(function(p){ return !isProjectOnStoppage(p) && p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS'; });
+                    var emrActProjs = displayProjects.filter(function(p){ return !isProjectOnStoppage(p) && p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS' && !p.noPco; });
                     var emrTot=0, emrFill=0;
                     // Only count months BEFORE the current one as overdue (current month hasn't ended yet)
                     // emrCurMoIdx is 0-based; mo is 1-based → loop mo=1 to emrCurMoIdx (excludes current)
@@ -17010,14 +17010,16 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     REGIONS.forEach(function(reg) {
                         var projs = displayProjects.filter(function(p){ return p.region===reg; });
                         if (!projs.length) return;
-                        // Active (non-stoppage) projects for compliance counting
-                        var activeProjs = projs.filter(function(p){ return !isProjectOnStoppage(p); });
+                        // Active (non-stoppage, non-noPco) projects for compliance counting
+                        // Projects with noPco=true are exempt — PCO is provided by another contractor
+                        var activeProjs = projs.filter(function(p){ return !isProjectOnStoppage(p) && !p.noPco; });
                         var canEditReg = state.isEditing && UserAccounts.canEdit(state.currentUser&&state.currentUser.email, reg) && UserAccounts.canEditTab(state.currentUser&&state.currentUser.email, 'env-monthly-report');
                         var isCollapsed = isRegionCollapsed(reg);
                         var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
 
                         var emrComplete = 0;
                         for(var m=1;m<=emrCurMoIdx+1;m++){ var mOk=activeProjs.every(function(p){ return p.vals[EMR_KEY]&&p.vals[EMR_KEY][m]; }); if(mOk && activeProjs.length > 0) emrComplete++; }
+                        var noPcoCount = projs.filter(function(p){ return !!p.noPco && !isProjectOnStoppage(p); }).length;
 
                         html += '<div id="region-banner-'+reg+'" class="region-banner region-'+reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+' '+(isCollapsed?'collapsed':'')+' '+(canEditReg?'rb-editable':'')+'" onclick="toggleRegion(\''+reg.replace(/'/g,"\\'")+'\',event)">'
                             +'<div class="region-banner-inner"><div class="region-banner-left">'
@@ -17025,6 +17027,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             +'</div><div class="region-banner-right">'
                             +'<span class="rbadge rbadge-count">'+projs.length+' PROJ</span>'
                             +'<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">'+emrComplete+'/'+(emrCurMoIdx+1)+' complete</span>'
+                            +(noPcoCount>0?'<span class="rbadge" style="background:rgba(230,81,0,0.35);color:#ffccbc;font-size:0.6rem;"><i class="fas fa-user-slash" style="margin-right:3px;"></i>'+noPcoCount+' exempt</span>':'')
                             +(canEditReg?'<button class="lta-add-btn" onclick="event.stopPropagation();window.openEmrDialog(\''+regKey+'\',\''+reg.replace(/'/g,"\\'")+'\',\'M1\',true)" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-plus"></i> Add Entry</button>':'')
                             +'<i class="fas fa-chevron-down region-toggle-icon"></i>'
                             +'</div></div></div>'
@@ -17069,6 +17072,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var canEdit = !!editMode || isNew;
                         var dis = canEdit?'':'disabled';
                         if (canEdit) _activateEditMode();
+                        // noPco checkbox has its own permission — independent of edit mode
+                        // Any user who can edit env-monthly-report for this region can toggle it
+                        var _canToggleNoPco = UserAccounts.canEditTab(
+                            state.currentUser && state.currentUser.email, 'env-monthly-report'
+                        ) && UserAccounts.canEdit(
+                            state.currentUser && state.currentUser.email, reg
+                        );
 
                         var mIdx = parseInt(periodKey.replace('M',''));
                         var mLabel = EMR_MONTHS[mIdx-1] + ' ' + selYear;
@@ -17093,10 +17103,74 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         var rowDefs = [
                             { label: 'EMR Date', desc: 'Environmental Monthly Report submission date — '+mLabel,
-                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_KEY,idx:mIdx,val:p.vals[EMR_KEY]?p.vals[EMR_KEY][mIdx]||'':'',dis:(stopped||!canEdit)?'disabled':dis,inputType:'date',stopped:stopped}; }) }
+                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); var noPco=!!p.noPco; return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_KEY,idx:mIdx,val:p.vals[EMR_KEY]?p.vals[EMR_KEY][mIdx]||'':'',dis:(stopped||noPco||!canEdit)?'disabled':dis,inputType:'date',stopped:stopped,noPco:noPco}; }) }
                         ];
 
-                        var tableHtml = _modalTable(rowDefs, null, regProjs.map(function(p){ return p.name + (isProjectOnStoppage(p) ? ' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;"><i class=\'fas fa-pause-circle\'></i></span>' : ''); }));
+                        // Build custom project column headers with noPco checkbox
+                        var _projColHeaders = regProjs.map(function(p){
+                            var stopped = isProjectOnStoppage(p);
+                            var noPco   = !!p.noPco;
+                            var safeId  = p.name.replace(/[^a-zA-Z0-9]/g,'_');
+                            var safePn  = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                            var badge   = stopped
+                                ? ' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;"><i class="fas fa-pause-circle"></i></span>'
+                                : noPco
+                                    ? ' <span style="background:#fff3e0;color:#e65100;border-radius:3px;padding:2px 5px;font-size:0.58rem;font-weight:700;"><i class="fas fa-user-slash"></i> EXEMPT</span>'
+                                    : '';
+                            var cbDisabled = (!_canToggleNoPco || stopped) ? 'disabled' : '';
+                            var cbChecked  = noPco ? 'checked' : '';
+                            var cbHtml = '<div title="Check if project has no own PCO — exempts it from EMR compliance computation" '
+                                + 'style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:5px;padding:3px 0;border-top:1px dashed #c8e6c9;">'
+                                + '<input type="checkbox" id="nopco-cb-'+safeId+'" '+cbChecked+' '+cbDisabled
+                                + ' onchange="window._toggleNoPco(\''+safePn+'\',this.checked)"'
+                                + ' style="cursor:'+(cbDisabled?'not-allowed':'pointer')+';accent-color:#e65100;width:13px;height:13px;">'
+                                + '<label for="nopco-cb-'+safeId+'" style="font-size:0.58rem;cursor:'+(cbDisabled?'not-allowed':'pointer')+';color:'+(noPco?'#e65100':'#777')+';font-weight:'+(noPco?'700':'400')+';white-space:nowrap;">'
+                                + 'No PCO / by Contractor'
+                                + '</label>'
+                                + '</div>';
+                            return '<th style="padding:5px 8px;border:1px solid #c8e6c9;min-width:180px;white-space:normal;word-break:break-word;'
+                                + 'background:'+(noPco?'#fff3e0':'#b7ddb5')+';color:'+(noPco?'#e65100':'#1b5e20')+';text-align:center;">'
+                                + p.name + badge + cbHtml + '</th>';
+                        }).join('');
+
+                        // Build table HTML manually to use custom headers
+                        var _theadHtml = '<tr style="background:#9ecf9b;color:#1b5e20;font-size:0.67rem;font-weight:800;">'
+                            + '<th style="padding:6px 8px;border:1px solid #c8e6c9;min-width:120px;white-space:nowrap;">FIELD</th>'
+                            + '<th style="padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;text-align:left;white-space:normal;">DESCRIPTION</th>'
+                            + _projColHeaders + '</tr>';
+                        var _tbodyHtml = rowDefs.map(function(rd){
+                            var cells = rd.cells.map(function(c){
+                                if (c.stopped) {
+                                    return '<td style="padding:6px 8px;border:1px solid #e0e0e0;min-width:180px;background:#f5f5f5;opacity:0.7;">'
+                                        + '<div style="display:flex;align-items:center;justify-content:center;gap:5px;color:#9e9e9e;font-size:0.67rem;font-style:italic;padding:4px 0;">'
+                                        + '<i class="fas fa-ban" style="font-size:0.65rem;"></i> Work Stoppage — Exempt</div></td>';
+                                }
+                                if (c.noPco) {
+                                    return '<td style="padding:6px 8px;border:1px solid #ffe0b2;min-width:180px;background:#fff8f0;">'
+                                        + '<div style="display:flex;align-items:center;justify-content:center;gap:5px;color:#e65100;font-size:0.67rem;font-style:italic;padding:4px 0;">'
+                                        + '<i class="fas fa-user-slash" style="font-size:0.65rem;"></i> No PCO / Contractor PCO — Exempt</div></td>';
+                                }
+                                var _mBorder = c.val ? '#a5d6a7' : '#ffe082';
+                                var _mBg     = c.val ? '#c8e6c9' : '#fffde7';
+                                var _mColor  = c.val ? '#2e7d32' : '#7a5c00';
+                                var inputCss = 'width:100%;border:1px solid '+_mBorder+';border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:700;background:'+_mBg+';color:'+_mColor+';';
+                                return '<td style="padding:6px 8px;border:1px solid #c8e6c9;min-width:180px;">'
+                                    + '<input type="'+(c.inputType||'date')+'" value="'+(c.val||'')+'" '+(c.dis||'')
+                                    + ' data-pname="'+c.pname+'" data-key="'+c.key+'" data-idx="'+c.idx+'"'
+                                    + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);'
+                                    + 'this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';'
+                                    + 'this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';'
+                                    + 'this.style.color=this.value?\'#2e7d32\':\'#c62828\'"'
+                                    + ' style="'+inputCss+'"></td>';
+                            }).join('');
+                            return '<tr style="background:var(--bg-card);border-bottom:1px solid #c8e6c9;">'
+                                + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-weight:800;color:#1b5e20;background:#e8f5e9;white-space:nowrap;">'+rd.label+'</td>'
+                                + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-size:0.67rem;color:#555;white-space:normal;">'+rd.desc+'</td>'
+                                + cells + '</tr>';
+                        }).join('');
+                        var tableHtml = '<table style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
+                            + '<thead>'+_theadHtml+'</thead><tbody>'+_tbodyHtml+'</tbody></table>';
+
                         var header = _modalHeader('linear-gradient(90deg,#0d3d0f,#1b5e20,#2e7d32)',
                             (isNew ? '➕ New EMR Entry' : canEdit?'✏️ Edit':'🔍 View')+' EMR — <span style="color:#fbc02d;">'+mLabel+'</span>',
                             '<i class="fas fa-location-dot" style="margin-right:4px;"></i>'+reg+' · '+regProjs.length+' project'+(regProjs.length!==1?'s':'')+' &nbsp;·&nbsp; '+selYear,
@@ -17116,6 +17190,34 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         modal.setAttribute('data-period', periodKey);
                     };
                     window._saveEmrModal = function(){ _genericSaveModal('emr-modal','env-monthly-report'); };
+
+                    // ── Toggle noPco exemption flag on a project ──────────────────────
+                    window._toggleNoPco = function(pName, checked) {
+                        var p = (state.projects||[]).find(function(x){ return x.name === pName; });
+                        if (!p) return;
+                        var rbac = UserAccounts.checkPermission(state.currentUser&&state.currentUser.email, 'edit', p.region, 'env-monthly-report');
+                        if (!rbac.allowed) { showLockedMessage(rbac.reason); return; }
+                        p.noPco = !!checked;
+                        // Also update masterProjects so the flag persists across renders
+                        var mp = (state.masterProjects||[]).find(function(x){ return x.name === pName; });
+                        if (mp) mp.noPco = !!checked;
+                        if (typeof markPendingSync === 'function') markPendingSync();
+                        if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
+                        showToast(
+                            checked
+                                ? '⚠️ "'+pName+'" marked as exempt — No PCO / PCO by Contractor'
+                                : '✅ "'+pName+'" exemption removed — now included in EMR compliance',
+                            checked ? 'warning' : 'success'
+                        );
+                        // Refresh the modal so compliance counts update immediately
+                        var _modal = document.getElementById('emr-modal');
+                        var _reg   = _modal ? _modal.getAttribute('data-reg') : null;
+                        var _per   = _modal ? _modal.getAttribute('data-period') : null;
+                        var _rk    = _reg ? _reg.replace(/[^a-zA-Z0-9]/g,'_') : '';
+                        if (_modal) _modal.remove();
+                        if (_reg && _per) window.openEmrDialog(_rk, _reg, _per, !!state.isEditing);
+                        render();
+                    };
 
                     return;
                 } // end env-monthly-report
@@ -22112,7 +22214,7 @@ const ProjectsDB = {
             // Admin owns all fields on CORPORATE projects — atomic field-level write,
             // no pre-read needed since no other role writes CORPORATE env/health data.
             const ADMIN_TOP_FIELDS = ['name','region','status','dateStarted','dateFinished','isRenewable',
-                                      'auditData','doePdfFiles','workStoppageDate','workResumeDate'];
+                                      'auditData','doePdfFiles','workStoppageDate','workResumeDate','noPco'];
             ADMIN_TOP_FIELDS.forEach(f => { if (f in sanitized) payload[f] = sanitized[f]; });
             if (sanitized.vals) {
                 Object.keys(sanitized.vals).forEach(k => {
@@ -22121,7 +22223,7 @@ const ProjectsDB = {
             }
         } else if (userRole === 'superintendent') {
             const SUPER_TOP_FIELDS = ['name','region','status','dateStarted','dateFinished','isRenewable',
-                                      'auditData','doePdfFiles','workStoppageDate','workResumeDate'];
+                                      'auditData','doePdfFiles','workStoppageDate','workResumeDate','noPco'];
             SUPER_TOP_FIELDS.forEach(f => { if (f in sanitized) payload[f] = sanitized[f]; });
             if (sanitized.vals) {
                 Object.keys(sanitized.vals).forEach(k => {
@@ -22132,6 +22234,9 @@ const ProjectsDB = {
                 });
             }
         } else if (userRole === 'pco' || userRole === 'envi_head') {
+            // PCO/envi_head may set noPco flag (exempts project from EMR compliance)
+            const PCO_TOP_FIELDS = ['noPco'];
+            PCO_TOP_FIELDS.forEach(f => { if (f in sanitized) payload[f] = sanitized[f]; });
             if (sanitized.vals) {
                 Object.keys(sanitized.vals).forEach(k => {
                     if (this._isEnvValsKey(k)) payload[`vals.${k}`] = sanitized.vals[k];
