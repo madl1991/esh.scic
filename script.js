@@ -13675,9 +13675,16 @@ function renderTabulation() {
             const _renderScroll = _renderMc ? _renderMc.scrollTop : 0;
             try {
             // Hide PDF export button for superintendent, pco, and corp_nurse
+            // Also hide on overall tab (replaced by Excel export there)
             const _pdfBtnEl = document.getElementById('export-pdf-btn');
-            if (_pdfBtnEl && ['superintendent','pco','corp_nurse'].includes(state.userRole)) {
-                _pdfBtnEl.style.display = 'none';
+            if (_pdfBtnEl) {
+                const _hidePdf = ['superintendent','pco','corp_nurse'].includes(state.userRole) || state.currentTab === 'overall';
+                _pdfBtnEl.style.display = _hidePdf ? 'none' : '';
+            }
+            // Show/hide Overall Excel export button — visible only on overall tab
+            const _ovXlsWrap = document.getElementById('export-overall-excel-wrap');
+            if (_ovXlsWrap) {
+                _ovXlsWrap.style.display = (state.currentTab === 'overall') ? '' : 'none';
             }
             const _eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
             const _nonTableTabs = ['settings','personnel','env-monitoring','osh-requirement','nov','got-monitoring'];
@@ -17119,13 +17126,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     : '';
                             var cbDisabled = (!_canToggleNoPco || stopped) ? 'disabled' : '';
                             var cbChecked  = noPco ? 'checked' : '';
-                            var cbHtml = '<div title="Check if project has no own PCO — exempts it from EMR compliance computation" '
+                            var cbHtml = '<div title="Check if PCO is provided by Joint Venture partner — exempts project from EMR compliance computation" '
                                 + 'style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:5px;padding:3px 0;border-top:1px dashed #c8e6c9;">'
                                 + '<input type="checkbox" id="nopco-cb-'+safeId+'" '+cbChecked+' '+cbDisabled
                                 + ' onchange="window._toggleNoPco(\''+safePn+'\',this.checked)"'
                                 + ' style="cursor:'+(cbDisabled?'not-allowed':'pointer')+';accent-color:#e65100;width:13px;height:13px;">'
                                 + '<label for="nopco-cb-'+safeId+'" style="font-size:0.58rem;cursor:'+(cbDisabled?'not-allowed':'pointer')+';color:'+(noPco?'#e65100':'#777')+';font-weight:'+(noPco?'700':'400')+';white-space:nowrap;">'
-                                + 'No PCO / by Contractor'
+                                + 'Joint Venture PCO'
                                 + '</label>'
                                 + '</div>';
                             return '<th style="padding:5px 8px;border:1px solid #c8e6c9;min-width:180px;white-space:normal;word-break:break-word;'
@@ -17148,7 +17155,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 if (c.noPco) {
                                     return '<td style="padding:6px 8px;border:1px solid #ffe0b2;min-width:180px;background:#fff8f0;">'
                                         + '<div style="display:flex;align-items:center;justify-content:center;gap:5px;color:#e65100;font-size:0.67rem;font-style:italic;padding:4px 0;">'
-                                        + '<i class="fas fa-user-slash" style="font-size:0.65rem;"></i> No PCO / Contractor PCO — Exempt</div></td>';
+                                        + '<i class="fas fa-user-slash" style="font-size:0.65rem;"></i> Joint Venture PCO — Exempt</div></td>';
                                 }
                                 var _mBorder = c.val ? '#a5d6a7' : '#ffe082';
                                 var _mBg     = c.val ? '#c8e6c9' : '#fffde7';
@@ -17205,7 +17212,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
                         showToast(
                             checked
-                                ? '⚠️ "'+pName+'" marked as exempt — No PCO / PCO by Contractor'
+                                ? '⚠️ "'+pName+'" marked as exempt — Joint Venture PCO'
                                 : '✅ "'+pName+'" exemption removed — now included in EMR compliance',
                             checked ? 'warning' : 'success'
                         );
@@ -33737,6 +33744,410 @@ function osCloseModal() {
     const modal = document.getElementById('os-project-modal');
     modal.style.display = 'none';
 }
+
+// ── Overall Summary — Export to Excel (ExcelJS) ──────────────────────────────
+async function exportOverallExcel() {
+    if (typeof ExcelJS === 'undefined') {
+        showToast('❌ Excel library not loaded. Refresh and try again.', 'error');
+        return;
+    }
+
+    const allProjects = state.masterProjects || state.projects || [];
+    if (!allProjects.length) {
+        showToast('ℹ️ No project data to export.', 'info');
+        return;
+    }
+
+    showToast('⏳ Generating Excel file...', 'info');
+
+    const selYear   = state.selectedYear || new Date().getFullYear();
+    const curYear   = new Date().getFullYear();
+    const curMonth  = new Date().getMonth() + 1; // 1-based
+    const maxMonth  = (selYear === curYear) ? curMonth : 12;
+
+    const ALL_MONTHS = ['January','February','March','April','May','June',
+                        'July','August','September','October','November','December'];
+    const REGION_ORDER = ['CORPORATE','PLANT OPERATIONS','NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function _fmtDate(d) {
+        if (!d) return '—';
+        try {
+            const dt = new Date(d);
+            return isNaN(dt) ? d : dt.toLocaleDateString('en-PH', { year:'numeric', month:'short', day:'2-digit' });
+        } catch(e) { return d; }
+    }
+    function _status(p) {
+        if (p.dateFinished) return 'FINISHED';
+        if (p.workStoppageDate && !p.workResumeDate) return 'WORK STOPPAGE';
+        return 'ON-GOING';
+    }
+    function _perc(p) {
+        if (typeof getPerc === 'function') return getPerc(p);
+        return null;
+    }
+    function _monthPerc(p, mo) {
+        // per-month compliance using same logic as getProjCompliance
+        if (typeof isMonthBlacklistedForProject === 'function' && isMonthBlacklistedForProject(p, mo, selYear)) return null;
+        const vals = p.vals || {};
+        let filled = 0, total = 0;
+
+        // Activities (5 rows)
+        ['activities_No. of ESH Committee Conducted','activities_No. of ESH inspection',
+         'activities_No. of Identified Near-Miss','activities_Drills Conducted','activities_Training Conducted'].forEach(key => {
+            total++;
+            const v = vals[key] && vals[key][mo];
+            if (v !== undefined && v !== null && v !== '' && v !== '0') filled++;
+        });
+        // DOLE monthly
+        ['dole_WAIR','dole_RSO','dole_MOM'].forEach(key => {
+            total++;
+            if (vals[key] && vals[key][mo]) filled++;
+        });
+        // Monthly data keys (exposures, medical, nov)
+        const MONTHLY_KEYS = [
+            'exposures_Total Manpower','exposures_Total Exposed Manhour',
+            'medical_LTA','medical_Medical Treatment','medical_First Aid','medical_Fatality',
+            'medical_Days Lost/Charged','medical_High-Potential incident','medical_Dangerous Occurrences',
+            'nov_No. of Violations'
+        ];
+        MONTHLY_KEYS.forEach(key => {
+            total++;
+            const v = vals[key] && vals[key][mo];
+            if (v !== undefined && v !== null && v !== '') filled++;
+        });
+        return total > 0 ? Math.round(filled / total * 100) : null;
+    }
+
+    // ── Group projects by region ──────────────────────────────────────────────
+    const _EXCL_REGS = ['CORPORATE', 'PLANT OPERATIONS'];
+    const regionGroups = {};
+    allProjects.filter(p => !_EXCL_REGS.includes((p.region || '').toUpperCase())).forEach(p => {
+        const reg = (p.region || 'OTHER').toUpperCase();
+        if (!regionGroups[reg]) regionGroups[reg] = [];
+        regionGroups[reg].push(p);
+    });
+
+    // ── ExcelJS workbook ──────────────────────────────────────────────────────
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'ESH Monitoring System';
+    wb.created = new Date();
+
+    // Colors — same palette as Personnel export
+    const COLOR_HEADER_BG = '2E7D32';
+    const COLOR_BANNER_BG = '1B5E20';
+    const COLOR_TOTAL_BG  = 'E8F5E9';
+    const COLOR_ONGOING   = 'E8F5E9';
+    const COLOR_STOPPED   = 'FFF3E0';
+    const COLOR_FINISHED  = 'ECEFF1';
+
+    // ── Shared style builders (identical to Personnel export) ─────────────────
+    function applyHeaderStyle(cell) {
+        cell.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11, name: 'Calibri' };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_HEADER_BG } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.border    = {
+            top:    { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } },
+            bottom: { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } },
+            left:   { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } },
+            right:  { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } }
+        };
+    }
+    function applyBannerStyle(cell) {
+        cell.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_BANNER_BG } };
+        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+    }
+    function applyDataStyle(cell, colIdx, statusStr, perc) {
+        cell.font      = { size: 10, name: 'Calibri' };
+        cell.alignment = { vertical: 'middle', wrapText: false };
+        // compliance % column: color-coded
+        if (colIdx === 6) {
+            const pv = typeof perc === 'number' ? perc : -1;
+            const bg = pv >= 90 ? 'FFC8E6C9' : pv >= 75 ? 'FFFFCC80' : pv >= 0 ? 'FFFFCDD2' : 'FFF5F5F5';
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+            cell.font = { bold: true, size: 10, name: 'Calibri', color: { argb: pv >= 90 ? 'FF1B5E20' : pv >= 75 ? 'FFE65100' : pv >= 0 ? 'FFC62828' : 'FF9E9E9E' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        }
+        if (colIdx === 5) { // status
+            const bg = statusStr === 'ON-GOING' ? 'FF' + COLOR_ONGOING : statusStr === 'WORK STOPPAGE' ? 'FF' + COLOR_STOPPED : 'FF' + COLOR_FINISHED;
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+            cell.font = { bold: true, size: 9, name: 'Calibri',
+                color: { argb: statusStr === 'ON-GOING' ? 'FF2E7D32' : statusStr === 'WORK STOPPAGE' ? 'FFE65100' : 'FF546E7A' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        }
+        // monthly % columns
+        if (colIdx >= 8) {
+            const pv = typeof perc === 'number' ? perc : -1;
+            const bg = pv >= 90 ? 'FFE8F5E9' : pv >= 75 ? 'FFFFF9C4' : pv >= 0 ? 'FFFFEBEE' : 'FFFAFAFA';
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+            cell.font = { size: 9, name: 'Calibri', color: { argb: pv >= 90 ? 'FF2E7D32' : pv >= 75 ? 'FFF57F17' : pv >= 0 ? 'FFC62828' : 'FFBDBDBD' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        }
+    }
+    function applyTotalStyle(cell) {
+        cell.font = { bold: true, size: 11, name: 'Calibri' };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_TOTAL_BG } };
+        cell.alignment = { vertical: 'middle' };
+    }
+    function autoFitCols(ws, dataRows, minWidths) {
+        const numCols = minWidths.length;
+        const maxLens = minWidths.slice();
+        dataRows.forEach(row => {
+            row.forEach((val, i) => {
+                if (i < numCols) {
+                    const len = String(val === null || val === undefined ? '' : val).length;
+                    if (len > maxLens[i]) maxLens[i] = len;
+                }
+            });
+        });
+        ws.columns = maxLens.map(w => ({ width: Math.min(w + 2, 50) }));
+    }
+
+    // ── Column definitions ────────────────────────────────────────────────────
+    // Fixed cols: REGION | PROJECT | # | STATUS | DATE STARTED | DATE FINISHED | OVERALL % | WORK STOP DATE | Jan % | Feb % | ... (up to maxMonth)
+    const fixedHeaders  = ['REGION','PROJECT','#','STATUS','DATE STARTED','DATE FINISHED','OVERALL %','STOPPAGE DATE'];
+    const fixedWidths   = [22, 38, 5, 16, 14, 14, 12, 14];
+    const monthHeaders  = ALL_MONTHS.slice(0, maxMonth).map(m => m.substring(0,3).toUpperCase() + ' %');
+    const monthWidths   = monthHeaders.map(() => 9);
+    const COL_HEADERS   = [...fixedHeaders, ...monthHeaders];
+    const COL_WIDTHS    = [...fixedWidths, ...monthWidths];
+    const TOTAL_COLS    = COL_HEADERS.length;
+
+    // ── Build Summary sheet (monthly averages per region) ────────────────────
+    const summaryWs = wb.addWorksheet('Summary');
+
+    const EXCLUDED_REGIONS = ['CORPORATE', 'PLANT OPERATIONS'];
+    const sortedRegions = REGION_ORDER.filter(r => regionGroups[r] && !EXCLUDED_REGIONS.includes(r));
+    const otherRegions  = Object.keys(regionGroups).filter(r => !REGION_ORDER.includes(r) && !EXCLUDED_REGIONS.includes(r));
+    const allRegions    = [...sortedRegions, ...otherRegions];
+
+    // For each region × month: average compliance of all non-stoppage projects
+    function _regionMonthAvg(reg, mo) {
+        const projs = (regionGroups[reg] || []).filter(p => {
+            if (p.workStoppageDate && !p.workResumeDate) return false; // fully stopped
+            if (typeof isMonthBlacklistedForProject === 'function' &&
+                isMonthBlacklistedForProject(p, mo, selYear)) return false;
+            return true;
+        });
+        if (!projs.length) return null;
+        const vals = projs.map(p => _monthPerc(p, mo)).filter(v => v !== null);
+        return vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+    }
+
+    // Build header: REGION | TOTAL PROJECTS | ON-GOING | WORK STOPPAGE | FINISHED | Jan Avg | Feb Avg | ...
+    const sumMonthLabels = ALL_MONTHS.slice(0, maxMonth).map(m => m.toUpperCase() + '\nAVERAGE');
+    const sumHdrData = ['REGION', 'TOTAL\nPROJECTS', 'ON-GOING', 'WORK\nSTOPPAGE', 'FINISHED', ...sumMonthLabels];
+    const TOTAL_SUM_COLS = sumHdrData.length;
+
+    // Title row
+    summaryWs.addRow([`ESH OVERALL SUMMARY — ${selYear}`]);
+    const titleCell = summaryWs.getCell('A1');
+    titleCell.font      = { bold: true, size: 14, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+    titleCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_BANNER_BG } };
+    titleCell.alignment = { horizontal: 'left', vertical: 'middle' };
+    summaryWs.mergeCells(1, 1, 1, TOTAL_SUM_COLS);
+    summaryWs.getRow(1).height = 28;
+
+    summaryWs.addRow([]);
+
+    // Header row
+    const sumHdrRow = summaryWs.addRow(sumHdrData);
+    sumHdrRow.height = 30;
+    sumHdrRow.eachCell(cell => {
+        applyHeaderStyle(cell);
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    });
+    sumHdrRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+
+    // Helper: style a monthly avg cell
+    function _styleMonthAvgCell(cell, avg) {
+        if (avg === null) {
+            cell.value = '—';
+            cell.font      = { size: 10, name: 'Calibri', color: { argb: 'FFBDBDBD' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            return;
+        }
+        cell.value = avg + '%';
+        const bg = avg >= 90 ? 'FFC8E6C9' : avg >= 75 ? 'FFFFCC80' : 'FFFFCDD2';
+        const fg = avg >= 90 ? 'FF1B5E20' : avg >= 75 ? 'FFE65100' : 'FFC62828';
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+        cell.font      = { bold: true, size: 10, name: 'Calibri', color: { argb: fg } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    }
+
+    let grandTotal = 0, grandOngoing = 0, grandStopped = 0, grandFinished = 0;
+    // For grand total row: average of all regions per month
+    const grandMonthSums   = new Array(maxMonth).fill(0);
+    const grandMonthCounts = new Array(maxMonth).fill(0);
+
+    allRegions.forEach(reg => {
+        const projs   = regionGroups[reg] || [];
+        const ongoing = projs.filter(p => _status(p) === 'ON-GOING').length;
+        const stopped = projs.filter(p => _status(p) === 'WORK STOPPAGE').length;
+        const finished= projs.filter(p => _status(p) === 'FINISHED').length;
+
+        const rowData = [reg, projs.length, ongoing, stopped, finished];
+        // placeholder values — we'll set cells manually for styling
+        for (let mo = 1; mo <= maxMonth; mo++) rowData.push('');
+
+        const row = summaryWs.addRow(rowData);
+        row.height = 18;
+        row.getCell(1).font = { bold: true, size: 10, name: 'Calibri' };
+        row.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
+        row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' };
+
+        for (let mo = 1; mo <= maxMonth; mo++) {
+            const avg = _regionMonthAvg(reg, mo);
+            _styleMonthAvgCell(row.getCell(5 + mo), avg);
+            if (avg !== null) {
+                grandMonthSums[mo - 1]   += avg;
+                grandMonthCounts[mo - 1] += 1;
+            }
+        }
+
+        grandTotal   += projs.length;
+        grandOngoing += ongoing;
+        grandStopped += stopped;
+        grandFinished+= finished;
+    });
+
+    // Grand total row
+    const grandRowData = ['ALL REGIONS', grandTotal, grandOngoing, grandStopped, grandFinished];
+    for (let mo = 1; mo <= maxMonth; mo++) grandRowData.push('');
+    const totRow = summaryWs.addRow(grandRowData);
+    totRow.height = 22;
+    [1,2,3,4,5].forEach(c => applyTotalStyle(totRow.getCell(c)));
+    totRow.getCell(1).font = { bold: true, size: 11, name: 'Calibri' };
+    for (let mo = 1; mo <= maxMonth; mo++) {
+        const grandAvg = grandMonthCounts[mo-1] > 0
+            ? Math.round(grandMonthSums[mo-1] / grandMonthCounts[mo-1])
+            : null;
+        const cell = totRow.getCell(5 + mo);
+        applyTotalStyle(cell);
+        _styleMonthAvgCell(cell, grandAvg);
+        if (grandAvg !== null) {
+            // Override font to bold for total row
+            const bg = grandAvg >= 90 ? 'FFC8E6C9' : grandAvg >= 75 ? 'FFFFCC80' : 'FFFFCDD2';
+            const fg = grandAvg >= 90 ? 'FF1B5E20' : grandAvg >= 75 ? 'FFE65100' : 'FFC62828';
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+            cell.font = { bold: true, size: 11, name: 'Calibri', color: { argb: fg } };
+        }
+    }
+
+    // Column widths for summary sheet
+    summaryWs.getColumn(1).width = 26; // REGION
+    summaryWs.getColumn(2).width = 10; // TOTAL
+    summaryWs.getColumn(3).width = 10; // ON-GOING
+    summaryWs.getColumn(4).width = 12; // WORK STOPPAGE
+    summaryWs.getColumn(5).width = 10; // FINISHED
+    for (let mo = 1; mo <= maxMonth; mo++) {
+        summaryWs.getColumn(5 + mo).width = 11; // Jan Avg, Feb Avg, ...
+    }
+
+    // Freeze first col + header rows
+    summaryWs.views = [{ state: 'frozen', xSplit: 1, ySplit: 3, activeCell: 'B4' }];
+
+    // ── Per-region sheets ─────────────────────────────────────────────────────
+    allRegions.filter(r => !EXCLUDED_REGIONS.includes(r)).forEach(reg => {
+        const projs = (regionGroups[reg] || []).slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        if (!projs.length) return;
+
+        const sheetName = reg.length > 31 ? reg.substring(0, 31) : reg;
+        const ws = wb.addWorksheet(sheetName);
+
+        // Collect data rows for auto-fit
+        const allDataRows = [];
+
+        // ── Title / banner ────────────────────────────────────────────────────
+        ws.addRow([`📌 ${reg} — ESH OVERALL SUMMARY (${selYear})`]);
+        const rTitleCell = ws.getCell('A1');
+        rTitleCell.font      = { bold: true, size: 12, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+        rTitleCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_BANNER_BG } };
+        rTitleCell.alignment = { horizontal: 'left', vertical: 'middle' };
+        ws.mergeCells(1, 1, 1, TOTAL_COLS);
+        ws.getRow(1).height = 24;
+
+        // ── Header row ────────────────────────────────────────────────────────
+        const hdrRow = ws.addRow(COL_HEADERS);
+        hdrRow.height = 22;
+        hdrRow.eachCell(cell => applyHeaderStyle(cell));
+
+        // ── Data rows ─────────────────────────────────────────────────────────
+        projs.forEach((p, idx) => {
+            const st   = _status(p);
+            const ov   = _perc(p);
+            const ovDisplay = ov !== null ? ov + '%' : '—';
+
+            const monthPercs = ALL_MONTHS.slice(0, maxMonth).map((_, mi) => {
+                const mp = _monthPerc(p, mi + 1);
+                return mp !== null ? mp + '%' : '—';
+            });
+
+            const rowData = [
+                reg,
+                p.name || '—',
+                idx + 1,
+                st,
+                _fmtDate(p.dateStarted),
+                p.dateFinished ? _fmtDate(p.dateFinished) : '—',
+                ovDisplay,
+                p.workStoppageDate ? _fmtDate(p.workStoppageDate) : '—',
+                ...monthPercs
+            ];
+            allDataRows.push(rowData);
+
+            const dataRow = ws.addRow(rowData);
+            dataRow.height = 16;
+            dataRow.eachCell((cell, colNum) => {
+                // pass numeric perc for color-coding
+                const percForCol = colNum === 7 ? ov
+                    : colNum >= 9 ? (typeof monthPercs[colNum - 9] === 'string' && monthPercs[colNum - 9] !== '—'
+                        ? parseInt(monthPercs[colNum - 9]) : -1)
+                    : null;
+                applyDataStyle(cell, colNum, st, percForCol);
+            });
+        });
+
+        // Region average footer row
+        const regPercs = projs.map(p => _perc(p)).filter(v => v !== null);
+        const regAvg   = regPercs.length > 0 ? Math.round(regPercs.reduce((a,b)=>a+b,0)/regPercs.length) : null;
+        const footerData = ['', 'REGION AVERAGE', '', '', '', '', regAvg !== null ? regAvg + '%' : '—', '', ...ALL_MONTHS.slice(0, maxMonth).map(() => '')];
+        const footerRow  = ws.addRow(footerData);
+        footerRow.height = 18;
+        ['A','B','C','D','E','F','G','H'].forEach((col, i) => applyTotalStyle(footerRow.getCell(col)));
+        if (regAvg !== null) {
+            const avgCell = footerRow.getCell(7);
+            const bg = regAvg >= 90 ? 'FFC8E6C9' : regAvg >= 75 ? 'FFFFCC80' : 'FFFFCDD2';
+            const fg = regAvg >= 90 ? 'FF1B5E20' : regAvg >= 75 ? 'FFE65100' : 'FFC62828';
+            avgCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+            avgCell.font = { bold: true, size: 11, name: 'Calibri', color: { argb: fg } };
+        }
+
+        // Auto-fit
+        autoFitCols(ws, allDataRows, COL_WIDTHS);
+
+        // Freeze header rows (title + header = 2 rows)
+        ws.views = [{ state: 'frozen', ySplit: 2, activeCell: 'A3' }];
+    });
+
+    // ── Download ──────────────────────────────────────────────────────────────
+    try {
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob   = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const now    = new Date();
+        const stamp  = now.toISOString().slice(0, 10);
+        const fname  = `ESH_Overall_Summary_${selYear}_${stamp}.xlsx`;
+        saveAs(blob, fname);
+        showToast(`✅ Exported: ${fname}`, 'success');
+    } catch(err) {
+        console.error('Excel export error:', err);
+        showToast('❌ Export failed. Check console for details.', 'error');
+    }
+}
+window.exportOverallExcel = exportOverallExcel;
 
 // os-project-modal backdrop click disabled — use × button to close
 
