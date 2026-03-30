@@ -5316,9 +5316,13 @@ function updateAuditData(pName, qtr, field, val) {
             if (!p.vals[key]?.entries) return;
             showDeleteDialog('ECC Entry', `ECC entry #${idx + 1} of ${pName}`).then(confirmed => {
                 if (!confirmed) return;
+                const backup = JSON.parse(JSON.stringify(p.vals[key].entries));
                 p.vals[key].entries.splice(idx, 1);
                 saveToFirebase(); render();
-                showToast(`ECC entry deleted from ${pName}`, 'success');
+                showUndoToast(`ECC entry #${idx + 1} deleted from ${pName}`, () => {
+                    p.vals[key].entries = backup;
+                    saveToFirebase(); render();
+                });
             });
         }
 
@@ -5378,10 +5382,14 @@ function updateAuditData(pName, qtr, field, val) {
             if (!p.vals[key] || !p.vals[key].entries) return;
             showDeleteDialog('Permit Entry', `${permitRow} entry #${idx + 1} of ${pName}`).then(confirmed => {
                 if (!confirmed) return;
+                const backup = JSON.parse(JSON.stringify(p.vals[key].entries));
                 p.vals[key].entries.splice(idx, 1);
                 if (p.vals[key].entries.length === 0) p.vals[key].entries = [{ permitNo: '', dateIssued: '', expiryDate: '' }];
                 saveToFirebase(); render();
-                showToast(`${permitRow} entry deleted from ${pName}`, 'success');
+                showUndoToast(`${permitRow} entry #${idx + 1} deleted from ${pName}`, () => {
+                    p.vals[key].entries = backup;
+                    saveToFirebase(); render();
+                });
             });
         }
         window.removeMultiPermitEntry = removeMultiPermitEntry;
@@ -5409,9 +5417,13 @@ function updateAuditData(pName, qtr, field, val) {
             if (!p.vals[key]) return;
             showDeleteDialog('EMB Entry', `${type} entry #${idx + 1} of ${pName}`).then(confirmed => {
                 if (!confirmed) return;
+                const backup = JSON.parse(JSON.stringify(p.vals[key]));
                 p.vals[key].splice(idx, 1);
                 saveToFirebase(); render();
-                showToast(`${type} entry deleted from ${pName}`, 'success');
+                showUndoToast(`${type} entry #${idx + 1} deleted from ${pName}`, () => {
+                    p.vals[key] = backup;
+                    saveToFirebase(); render();
+                });
             });
         }
         window.removeEmbEntry = removeEmbEntry;
@@ -5796,7 +5808,21 @@ function updateAuditData(pName, qtr, field, val) {
             }
         })();
 
-        showToast(`"${projectName}" has been deleted.`, 'success');
+        showUndoToast(`"${projectName}" has been deleted.`, async () => {
+            if (deletedFromProjects) state.projects.push(deletedFromProjects);
+            if (deletedFromMasterProjects) state.masterProjects.push(deletedFromMasterProjects);
+            reapplyFilters();
+            saveUserData(state.currentUser.email);
+            render();
+            if (deletedFromMasterProjects && window.ProjectsDB) {
+                const projectsByYear = _buildProjectsByYear([deletedFromMasterProjects]);
+                projectsByYear.forEach((_, year) => {
+                    ProjectsDB.saveProject(year, deletedFromMasterProjects).catch(() => {});
+                });
+            }
+            saveToFirebaseWithRetry().catch(() => {});
+            showToast(`Project "${projectName}" restored!`, 'success');
+        });
     } else {
         debugLog('INFO', 'Delete cancelled by user');
     }
@@ -6190,6 +6216,100 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
 
         window.getMonthlyCompliance = getMonthlyCompliance;
 
+        // ── PER-REGION MONTHLY COMPLIANCE: same logic as getMonthlyCompliance but filtered to one region
+        function getMonthlyComplianceByRegion(monthIdx1Based, region) {
+            const selectedYear = (state && state.selectedYear) || new Date().getFullYear();
+            const projects = (state.projects || []).filter(p =>
+                p.region === region &&
+                !isProjectOnStoppage(p) &&
+                !isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear)
+            );
+            if (projects.length === 0) return 0;
+
+            let grandFilled = 0, grandTotal = 0;
+
+            projects.forEach(proj => {
+                let filled = 0, total = 0;
+                const vals = proj.vals || {};
+
+                ['activities_No. of ESH Committee Conducted','activities_No. of ESH inspection',
+                 'activities_No. of Identified Near-Miss','activities_Drills Conducted','activities_Training Conducted'].forEach(key => {
+                    total += 1;
+                    const v = vals[key] && vals[key][monthIdx1Based];
+                    if (v !== undefined && v !== null && v !== '' && v !== '0') filled++;
+                });
+
+                const _KPM_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                const moName = _KPM_MONTHS[monthIdx1Based - 1];
+                if (!(vals && vals['kpm_na'] === '1')) {
+                    total += 1;
+                    const _kpmProjRegion = (proj.region || '').toUpperCase();
+                    const _kpmRegionPeers = (state.projects || []).filter(p =>
+                        p.status !== 'work-stoppage' &&
+                        !(p.vals && p.vals['kpm_na'] === '1') &&
+                        (p.region || '').toUpperCase() === _kpmProjRegion
+                    );
+                    const _dateKey = 'kpm_v3_' + moName + '_dateSubmitted';
+                    const _kpmSubmitted = _kpmRegionPeers.some(p => {
+                        const v = p.vals && p.vals[_dateKey];
+                        return v && v.toString().trim() !== '';
+                    });
+                    if (_kpmSubmitted) filled++;
+                }
+
+                ['dole_WAIR','dole_RSO','dole_MOM'].forEach(key => {
+                    total += 1;
+                    const v = vals[key] && vals[key][monthIdx1Based];
+                    if (v !== undefined && v !== null && v !== '' && v !== '0') filled++;
+                });
+
+                if (typeof window.gotGetCell === 'function') {
+                    ['E1','E2','E3','S1','S2','S3'].forEach(goalId => {
+                        total += 1;
+                        const _gotVal = window.gotGetCell(proj, goalId, 0, monthIdx1Based).r;
+                        if (_gotVal && _gotVal.toString().trim() !== '') filled++;
+                    });
+                }
+
+                const _calYear  = selectedYear;
+                const _calStor  = (typeof getEshStorage === 'function') ? getEshStorage() : {};
+                const _ESH_CAL_TYPES = ['esh-calendar-env', 'esh-calendar-safety', 'esh-calendar-health'];
+                const _ESH_DEF_ROWS  = (typeof ESH_DEFAULT_ROWS !== 'undefined') ? ESH_DEFAULT_ROWS : {};
+                const mi = monthIdx1Based - 1;
+                _ESH_CAL_TYPES.forEach(tt => {
+                    const rows = _ESH_DEF_ROWS[tt] || [];
+                    rows.forEach((_, ti) => {
+                        const naRowKey = `${_calYear}|${tt}|${proj.name}|${ti}|na_row`;
+                        const naFrom   = _calStor[naRowKey] !== undefined ? parseInt(_calStor[naRowKey]) : -1;
+                        if (naFrom >= 0 && mi >= naFrom) return;
+                        total += 1;
+                        const actualKey = `${_calYear}|${tt}|${proj.name}|${ti}|${mi}|actual`;
+                        if (_calStor[actualKey] && _calStor[actualKey] !== '') filled++;
+                    });
+                });
+
+                const _ESH_DRILLS_LIST = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
+                _ESH_DRILLS_LIST.forEach((drill, di) => {
+                    const _drillSi = (typeof getDrillStorageIdx === 'function')
+                        ? getDrillStorageIdx(drill, di)
+                        : (drill.id !== undefined ? drill.id : di);
+                    const planKey   = `${_calYear}|esh-calendar-drills|GLOBAL_PLAN|${_drillSi}|${mi}|plan`;
+                    if (!_calStor[planKey] || _calStor[planKey] === '__DELETED__') return;
+                    const naCellKey = `${_calYear}|esh-calendar-drills|${proj.name}|${_drillSi}|${mi}|na`;
+                    if (_calStor[naCellKey]) return;
+                    total += 1;
+                    const actualKey = `${_calYear}|esh-calendar-drills|${proj.name}|${_drillSi}|${mi}|actual`;
+                    if (_calStor[actualKey] && _calStor[actualKey] !== '' && _calStor[actualKey] !== '__DELETED__') filled++;
+                });
+
+                grandFilled += filled;
+                grandTotal  += total;
+            });
+
+            return grandTotal > 0 ? Math.round((grandFilled / grandTotal) * 100) : 0;
+        }
+        window.getMonthlyComplianceByRegion = getMonthlyComplianceByRegion;
+
         function calculateYTD(vals, rowIndex) {
             if (!vals) return 0;
             let sum = 0;
@@ -6217,22 +6337,60 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         function renderCharts() {
             const chartProjects = state.projects.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS');
             const chartRegions = REGIONS.filter(r => r !== 'CORPORATE' && r !== 'PLANT OPERATIONS');
-            const regionData = {};
-            chartRegions.forEach(r => regionData[r] = [0, 0]);
-            chartProjects.forEach(p => {
-                if (!regionData[p.region]) return;
-                const perc = getPerc(p);
-                if (perc === null) return; // work-stopped — excluded from chart
-                regionData[p.region][0] += perc;
-                regionData[p.region][1] += 1;
-            });
 
-            const regionAvgs = chartRegions.map(r => regionData[r][1] > 0 ? Math.round(regionData[r][0] / regionData[r][1]) : 0);
+            // ── Determine data: overall vs monthly ───────────────────────────────
+            const _rcv = state.complianceView || 0; // 0=overall, 1-12=month
+            const _RC_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            const _rcNow = new Date();
+            const _rcSelYear = state.selectedYear || _rcNow.getFullYear();
+            const _rcCurYear = _rcNow.getFullYear();
+            const _rcMaxMonth = (_rcSelYear === _rcCurYear) ? (_rcNow.getMonth() + 1) : 12;
+
+            let regionAvgs;
+            if (_rcv === 0) {
+                // Overall: same as before
+                const regionData = {};
+                chartRegions.forEach(r => regionData[r] = [0, 0]);
+                chartProjects.forEach(p => {
+                    if (!regionData[p.region]) return;
+                    const perc = getPerc(p);
+                    if (perc === null) return;
+                    regionData[p.region][0] += perc;
+                    regionData[p.region][1] += 1;
+                });
+                regionAvgs = chartRegions.map(r => regionData[r][1] > 0 ? Math.round(regionData[r][0] / regionData[r][1]) : 0);
+            } else {
+                // Monthly: use per-region monthly compliance
+                regionAvgs = chartRegions.map(r => getMonthlyComplianceByRegion(_rcv, r));
+            }
+
             const statusCounts = { 'on-going': 0, 'work-stoppage': 0, 'finished': 0 };
             chartProjects.forEach(p => statusCounts[p.status] = (statusCounts[p.status] || 0) + 1);
 
             Object.values(state.charts).forEach(chart => { if (chart) chart.destroy(); });
             state.charts = {};
+
+            // ── Inject prev/next nav into chart-box header ───────────────────────
+            const _rcBox = document.querySelector('.chart-box:has(#regionChart)') ||
+                           (() => { const c = document.getElementById('regionChart'); return c ? c.closest('.chart-box') : null; })();
+            if (_rcBox) {
+                let _rcNav = _rcBox.querySelector('.rc-month-nav');
+                if (!_rcNav) {
+                    _rcNav = document.createElement('div');
+                    _rcNav.className = 'rc-month-nav';
+                    _rcNav.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:6px;margin:2px 0 8px;';
+                    const _rcH3 = _rcBox.querySelector('h3');
+                    if (_rcH3) _rcH3.after(_rcNav);
+                    else _rcBox.prepend(_rcNav);
+                }
+                const _rcPrevOk = _rcv > 0;
+                const _rcNextOk = _rcv < _rcMaxMonth;
+                const _rcMonthLabel = _rcv === 0 ? 'Overall Average' : _RC_MONTHS[_rcv - 1];
+                _rcNav.innerHTML =
+                    `<span onclick="${_rcPrevOk ? 'state.complianceView=' + (_rcv - 1) + ';renderCharts();' : ''}" style="cursor:${_rcPrevOk ? 'pointer' : 'default'};color:${_rcPrevOk ? '#1b5e20' : '#ccc'};font-size:1.2rem;font-weight:700;padding:0 2px;user-select:none;line-height:1;">&#8249;</span>` +
+                    `<span style="font-size:0.72rem;font-weight:700;color:${_rcv === 0 ? '#888' : '#1b5e20'};min-width:100px;text-align:center;letter-spacing:0.03em;">${_rcMonthLabel}</span>` +
+                    `<span onclick="${_rcNextOk ? 'state.complianceView=' + (_rcv + 1) + ';renderCharts();' : ''}" style="cursor:${_rcNextOk ? 'pointer' : 'default'};color:${_rcNextOk ? '#1b5e20' : '#ccc'};font-size:1.2rem;font-weight:700;padding:0 2px;user-select:none;line-height:1;">&#8250;</span>`;
+            }
 
             setTimeout(() => {
                 const regionCtx = document.getElementById('regionChart');
@@ -6292,7 +6450,11 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                                 tooltip: {
                                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
                                     padding: 12,
-                                    cornerRadius: 8
+                                    cornerRadius: 8,
+                                    callbacks: {
+                                        title: (items) => items[0].label,
+                                        label: (item) => ` ${item.raw}% compliance`
+                                    }
                                 }
                             },
                             scales: { 
@@ -12572,10 +12734,13 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const label = `${type === 'internal' ? 'Internal' : 'External'} NOV #${nIdx + 1}`;
             showDeleteDialog('OSH NOV', `${label} from ${pName}`).then(confirmed => {
                 if (!confirmed) return;
+                const backup = JSON.parse(JSON.stringify(p.vals[key]));
                 p.vals[key].splice(nIdx, 1);
                 saveToFirebase(); renderOshNovTab();
-                if (typeof window.openOshNovModal === 'function') window.openOshNovModal(pName);
-                showToast(`${label} deleted`, 'success');
+                showUndoToast(`${label} deleted from ${pName}`, () => {
+                    p.vals[key] = backup;
+                    saveToFirebase(); renderOshNovTab();
+                });
             });
         }
 
@@ -12606,14 +12771,17 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 : `Violation #${vIdx + 1} from NOV #${nIdx + 1}`;
             showDeleteDialog('OSH NOV Violation', `${label} — ${pName}`).then(confirmed => {
                 if (!confirmed) return;
+                const backup = JSON.parse(JSON.stringify(p.vals[key]));
                 if (nov.violations.length === 1) {
                     p.vals[key].splice(nIdx, 1);
                 } else {
                     nov.violations.splice(vIdx, 1);
                 }
                 saveToFirebase(); renderOshNovTab();
-                if (typeof window.openOshNovModal === 'function') window.openOshNovModal(pName);
-                showToast(`${label} deleted`, 'success');
+                showUndoToast(`${label} deleted`, () => {
+                    p.vals[key] = backup;
+                    saveToFirebase(); renderOshNovTab();
+                });
             });
         }
 
@@ -14671,23 +14839,7 @@ if (state.currentTab === 'audit') {
                     'RA 4850',
                     'DAO 2014-02',
                     'ECC Condition',
-                    'Others',
-                    // Legacy long-form values stored in Firebase — kept for backward compatibility
-                    'PD 1586 – Philippine Environmental Impact Statement System',
-                    'RA 9003 – Ecological Solid Waste Management Act',
-                    'RA 8749 – Philippine Clean Air Act',
-                    'RA 9275 – Philippine Clean Water Act',
-                    'RA 6969 – Toxic Substances and Hazardous Waste Act',
-                    'RA 9147 – Wildlife Resources Conservation and Protection Act',
-                    'PD 705 – Revised Forestry Code of the Philippines',
-                    'RA 11038 – Expanded NIPAS Act (E-NIPAS)',
-                    'RA 11285 – Energy Efficiency and Conservation Act',
-                    'RA 9175 – Chainsaw Act of 2002',
-                    'RA 7942 – Philippine Mining Act',
-                    'RA 10593 – Revised NIPAS Act',
-                    'RA 4850 – Laguna Lake Development Authority Act',
-                    'DAO 2014-02 – DENR Air Quality Guidelines',
-                    'ECC Condition – Environmental Compliance Certificate Condition',
+                    'Others'
                 ];
 
                 const canEditNovEnv = UserAccounts.canEditTab(state.currentUser?.email, 'nov-env');
@@ -14747,10 +14899,13 @@ if (state.currentTab === 'audit') {
                     const label = `${type === 'internal' ? 'NCR (Client/SCIC Audit)' : 'External NOV'} #${nIdx + 1}`;
                     showDeleteDialog('ENVI NOV', `${label} from ${pName}`).then(confirmed => {
                         if (!confirmed) return;
+                        const backup = JSON.parse(JSON.stringify(p.vals[key]));
                         p.vals[key].splice(nIdx, 1);
                         saveToFirebase(); if(typeof window.renderNovEnvTab==='function') window.renderNovEnvTab();
-                        if (typeof window.openEnvNovModal === 'function') window.openEnvNovModal(pName);
-                        showToast(`${label} deleted`, 'success');
+                        showUndoToast(`${label} deleted from ${pName}`, () => {
+                            p.vals[key] = backup;
+                            saveToFirebase(); if(typeof window.renderNovEnvTab==='function') window.renderNovEnvTab();
+                        });
                     });
                 }
 
@@ -14781,14 +14936,17 @@ if (state.currentTab === 'audit') {
                         : `Violation #${vIdx + 1} from NOV #${nIdx + 1}`;
                     showDeleteDialog('ENVI NOV Violation', `${label} — ${pName}`).then(confirmed => {
                         if (!confirmed) return;
+                        const backup = JSON.parse(JSON.stringify(p.vals[key]));
                         if (nov.violations.length === 1) {
                             p.vals[key].splice(nIdx, 1);
                         } else {
                             nov.violations.splice(vIdx, 1);
                         }
                         saveToFirebase(); if(typeof window.renderNovEnvTab==='function') window.renderNovEnvTab();
-                        if (typeof window.openEnvNovModal === 'function') window.openEnvNovModal(pName);
-                        showToast(`${label} deleted`, 'success');
+                        showUndoToast(`${label} deleted`, () => {
+                            p.vals[key] = backup;
+                            saveToFirebase(); if(typeof window.renderNovEnvTab==='function') window.renderNovEnvTab();
+                        });
                     });
                 }
 
@@ -15084,7 +15242,7 @@ if (state.currentTab === 'audit') {
                                             <td rowspan="${rowspan}" class="nov-group-first nov-rowspan">${dis?`<span style="font-size:0.73rem;">${nov.issuingBody||''}</span>`:`<select onchange="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'issuingBody',this.value)"><option value="">— Select —</option>${ibOpts}</select>`}</td>
                                             <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="text" value="${nov.refNo||''}" ${dis} oninput="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'refNo',this.value)"></td>`;
                                     }
-                                    t += `<td ${firstClass}>${dis?`<span style="font-size:0.73rem;">${viol.violationLaw||'<span style="color:#bbb;font-style:italic;">Not set</span>'}</span>`:`<select onchange="updateNovEnvViolField('${pnSafe}','${type}',${nIdx},${vIdx},'violationLaw',this.value)">${vlOpts}</select>`}</td>
+                                    t += `<td ${firstClass}>${dis?`<span style="font-size:0.73rem;">${viol.violationLaw||''}</span>`:`<select onchange="updateNovEnvViolField('${pnSafe}','${type}',${nIdx},${vIdx},'violationLaw',this.value)">${vlOpts}</select>`}</td>
                                         <td ${firstClass}>${dis?`<span class="${statusClass}">${viol.status||'Open'}</span>`:`<select onchange="updateNovEnvViolField('${pnSafe}','${type}',${nIdx},${vIdx},'status',this.value);saveToFirebase();if(typeof window.renderNovEnvTab==='function')window.renderNovEnvTab();" style="width:100%;">${stOpts}</select>`}</td>`;
                                     if (state.isEditing && canEdit) {
                                         if (isFirst) {
@@ -21226,7 +21384,16 @@ function pRowDelete(i) {
             PersonnelDB.deletePerson(deletedPid).catch(e => console.warn('PersonnelDB delete failed:', e));
         }
 
-        showToast(`"${personName}" has been removed.`, 'success');
+        showUndoToast(`"${personName}" has been removed.`, () => {
+            const restoreAt = Math.min(deletedIndex, state.personnelData.length);
+            state.personnelData.splice(restoreAt, 0, deletedPerson);
+            renderPTable();
+            saveUserData(state.currentUser.email);
+            if (deletedPerson._pid) {
+                PersonnelDB.savePerson(deletedPerson).catch(() => {});
+            }
+            if (window.showToast) window.showToast('Personnel restored successfully!', 'success');
+        });
 
     });
 }
@@ -31389,10 +31556,14 @@ window.eshCorpDrillDeleteRow = function(idx) {
     const label = (item && item.name) ? item.name : `Row #${idx + 1}`;
     showDeleteDialog('Corporate Drill Row', label).then(confirmed => {
         if (!confirmed) return;
+        const backup = JSON.parse(JSON.stringify(rows));
         rows.splice(idx, 1);
         setCorpDrillCustomRows(rows);
         renderCorpDrillsTab();
-        showToast(`"${label}" removed from Corporate Drills`, 'success');
+        showUndoToast(`"${label}" removed from Corporate Drills`, () => {
+            setCorpDrillCustomRows(backup);
+            renderCorpDrillsTab();
+        });
     });
 };
 
@@ -31617,10 +31788,14 @@ window.eshDeleteCustomRow = function(tabType, projName, rowIdx) {
     const label = typeof item === 'string' ? item : (item && item.name) ? item.name : `Row #${rowIdx + 1}`;
     showDeleteDialog('ESH Calendar Row', `"${label}" from ${projName || tabType}`).then(confirmed => {
         if (!confirmed) return;
+        const backup = JSON.parse(JSON.stringify(rows));
         rows.splice(rowIdx, 1);
         setEshCustomRows(tabType, projName, rows);
         try { renderEshCalendar(tabType); } catch(e) {}
-        showToast(`"${label}" removed from ${projName || tabType}`, 'success');
+        showUndoToast(`"${label}" removed from ${projName || tabType}`, () => {
+            setEshCustomRows(tabType, projName, backup);
+            try { renderEshCalendar(tabType); } catch(e) {}
+        });
     });
 };
 
