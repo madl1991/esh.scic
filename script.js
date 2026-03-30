@@ -9787,8 +9787,6 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             doc.roundedRect(_PML, curY, W-_PML-_PMR, 14, 2, 2, 'F');
             doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(255,255,255);
             doc.text('OVERALL SUMMARY  ·  KEY PERFORMANCE MEASURES  (' + year + ')', _PML+6, curY+6);
-            doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-            doc.text('As of ' + _today(), _PML+6, curY+12);
             doc.setFont('helvetica','bold'); doc.setFontSize(11);
             const bRgb = companyAvg===null?[200,200,200]:companyAvg>=85?[152,255,152]:companyAvg>=75?[255,235,150]:[255,170,170];
             doc.setTextColor(bRgb[0],bRgb[1],bRgb[2]);
@@ -9822,24 +9820,23 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 const rP = projs.filter(function(p){return p.region===region;});
                 if (!rP.length) return;
                 const rWith  = rP.filter(hasAnyData).length;
-                const rPct   = Math.round((rWith/rP.length)*100);
                 const moAvgs = MO_LONG.map(function(mo){
                     const scores = rP.map(function(p){ return projMonthScore(p,mo); }).filter(function(v){return v!==null;});
                     return scores.length ? scores.reduce(function(a,b){return a+b;},0)/scores.length : null;
                 });
                 const validMo = moAvgs.filter(function(v){return v!==null;});
                 const rOverall = validMo.length ? validMo.reduce(function(a,b){return a+b;},0)/validMo.length : null;
-                regSumBody.push([_s(region), String(rP.length), String(rWith), rPct+'%', ...moAvgs.map(fmtScore), fmtScore(rOverall)]);
+                regSumBody.push([_s(region), String(rP.length), String(rWith), ...moAvgs.map(fmtScore), fmtScore(rOverall)]);
             });
 
             const rRegW  = tW * 0.20;
-            const rFix3  = tW * 0.065; // projects / with data / input %
-            const rMoW   = (tW - rRegW - rFix3*3) / 13; // 12 months + avg
-            const rSumCS = {0:{halign:'left',fontStyle:'bold',cellWidth:rRegW},1:{halign:'center',cellWidth:rFix3},2:{halign:'center',cellWidth:rFix3},3:{halign:'center',fontStyle:'bold',cellWidth:rFix3}};
-            for (let i=0;i<13;i++) rSumCS[4+i]={halign:'center',cellWidth:rMoW};
+            const rFix2  = tW * 0.065; // projects / with data
+            const rMoW   = (tW - rRegW - rFix2*2) / 13; // 12 months + avg
+            const rSumCS = {0:{halign:'left',fontStyle:'bold',cellWidth:rRegW},1:{halign:'center',cellWidth:rFix2},2:{halign:'center',cellWidth:rFix2}};
+            for (let i=0;i<13;i++) rSumCS[3+i]={halign:'center',cellWidth:rMoW};
 
             doc.autoTable({
-                head:[['REGION','PROJS','WITH\nDATA','INPUT\n%', ...MO, 'AVG']],
+                head:[['REGION','PROJS','WITH\nDATA', ...MO, 'AVG']],
                 body:regSumBody, startY:curY, margin:mg,
                 tableWidth:tW,
                 styles:{...bs, fontSize:7.5, cellPadding:3, valign:'middle'},
@@ -9847,13 +9844,13 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 alternateRowStyles:ar,
                 columnStyles:rSumCS,
                 didParseCell:function(d){
-                    if(d.section!=='body'||d.column.index<=2) return;
+                    if(d.section!=='body'||d.column.index<=1) return;
                     const raw=d.cell.raw; if(raw==='—'||!raw) return;
                     const v=parseInt(raw);
                     if(!isNaN(v)){
                         const c=scoreColors(v);
                         if(c){d.cell.styles.fillColor=c.fill; d.cell.styles.textColor=c.text;}
-                        if(d.column.index===3||d.column.index===16) d.cell.styles.fontStyle='bold';
+                        if(d.column.index===15) d.cell.styles.fontStyle='bold';
                     }
                 },
                 didDrawPage:function(d){if(d.pageNumber>1){_pdfHeader(doc,title,year);} _pdfFooter(doc);}
@@ -9862,114 +9859,99 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             REGIONS.forEach(function(region){
                 const regProjs = projs.filter(function(p){return p.region===region;});
                 if (!regProjs.length) return;
-                doc.addPage(); _pdfHeader(doc,title,year); _pdfFooter(doc);
-                let rY = sy;
 
-                doc.setFillColor(27,94,32); doc.roundedRect(_PML,rY,W-_PML-_PMR,10,2,2,'F');
-                doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(255,255,255);
-                doc.text(region, _PML+5, rY+7);
-                doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-                doc.text(regProjs.length+' project'+(regProjs.length>1?'s':''), W-_PMR-2, rY+7, {align:'right'});
-                rY += 13;
-
-                doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(27,94,32);
-                doc.text('COMPLIANCE SUMMARY BY PROJECT', _PML, rY); rY += 4;
-
-                const sumHead = ['PROJECT', ...rows.map(function(r){return r.id.toUpperCase();}), 'OVERALL\nAVG'];
-                const sumBody = regProjs.map(function(proj){
-                    const rowAvgs = rows.map(function(r){
-                        const vals = MO_LONG.map(function(mo){ return parsePct(getKpmVal(proj,mo,r.id)); }).filter(function(v){return v!==null;});
-                        return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
-                    });
-                    const ov = projOverallScore(proj);
-                    return [_s(proj.name), ...rowAvgs.map(fmtScore), fmtScore(ov)];
-                });
-
-                const sPColW = tW * 0.28;
-                const sRowW  = (tW - sPColW) / (rows.length + 1);
-                const sumCS  = {0:{halign:'left',fontStyle:'bold',cellWidth:sPColW}};
-                rows.forEach(function(_,i){ sumCS[1+i]={halign:'center',cellWidth:sRowW}; });
-                sumCS[1+rows.length] = {halign:'center',fontStyle:'bold',cellWidth:sRowW};
-
-                doc.autoTable({
-                    head:[sumHead], body:sumBody, startY:rY, margin:mg,
-                    tableWidth:tW,
-                    styles:{...bs, fontSize:7.5, cellPadding:3, valign:'middle'},
-                    headStyles:{...hs, fontSize:7.5, cellPadding:3.5},
-                    alternateRowStyles:ar,
-                    columnStyles:sumCS,
-                    didParseCell:function(d){
-                        if(d.section!=='body'||d.column.index===0) return;
-                        const v=parseInt(d.cell.raw);
-                        if(!isNaN(v)){
-                            const c=scoreColors(v);
-                            if(c){d.cell.styles.fillColor=c.fill; d.cell.styles.textColor=c.text;}
-                            if(d.column.index===1+rows.length) d.cell.styles.fontStyle='bold';
+                // Get region's Date Submitted dates from first project (same for all projects in region)
+                const firstProj = regProjs[0];
+                const regionDates = MO_LONG.map(function(mo){ 
+                    const dateStr = getDateSubmitted(firstProj, mo);
+                    if (!dateStr || dateStr === '') return '';
+                    try {
+                        const dt = new Date(dateStr);
+                        if (!isNaN(dt)) {
+                            const m = dt.getMonth() + 1;
+                            const d = dt.getDate();
+                            const y = String(dt.getFullYear()).slice(-2);
+                            return m + '/' + d + '/' + y;
                         }
-                    },
-                    didDrawPage:function(d){if(d.pageNumber>1){_pdfHeader(doc,title,year);} _pdfFooter(doc);}
+                    } catch(e) {}
+                    return dateStr;
                 });
 
-                rY = doc.lastAutoTable.finalY + 8;
+                // Process each project on a separate page
+                regProjs.forEach(function(proj, projIdx){
+                    doc.addPage(); _pdfHeader(doc,title,year); _pdfFooter(doc);
+                    let pY = sy;
 
-                doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(27,94,32);
-                doc.text('MONTHLY KPI RATINGS BY PROJECT', _PML, rY); rY += 4;
+                    // Banner with Project Name prominent and Region as subtitle
+                    doc.setFillColor(27,94,32); doc.roundedRect(_PML,pY,W-_PML-_PMR,14,2,2,'F');
+                    
+                    // Project Name - main title
+                    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(255,255,255);
+                    doc.text(_s(proj.name), _PML+5, pY+5);
+                    
+                    // Region Name - subtitle
+                    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(220,255,220);
+                    doc.text(region, _PML+5, pY+11);
+                    
+                    pY += 18;
 
-                const kHead = ['PROJECT', 'KPI MEASURE', ...MO, 'AVG'];
-                const kBody = [];
-                regProjs.forEach(function(proj){
-                    rows.forEach(function(row, ri){
+                    // Compliance Summary for this project
+                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(27,94,32);
+                    doc.text('COMPLIANCE SUMMARY', _PML, pY); pY += 4;
+
+                    const projHead = ['KPI MEASURE', ...MO, 'AVG'];
+                    const projBody = [];
+                    
+                    // Add Date Submitted row first
+                    const dateRow = ['Date Submitted', ...regionDates, ''];
+                    projBody.push(dateRow);
+                    
+                    // Then add KPI data rows
+                    rows.forEach(function(row){
                         const monthVals = MO_LONG.map(function(mo){ return parsePct(getKpmVal(proj,mo,row.id)); });
                         const valid = monthVals.filter(function(v){return v!==null;});
                         const avg   = valid.length ? valid.reduce(function(a,b){return a+b;},0)/valid.length : null;
-                        const kRow  = [
-                            ri===0 ? _s(proj.name) : '',
-                            _s(row.measure || row.del || row.id)
-                        ];
+                        const kRow  = [_s(row.measure || row.del || row.id)];
                         monthVals.forEach(function(v){ kRow.push(v!==null ? Math.round(v)+'%' : ''); });
                         kRow.push(fmtScore(avg));
-                        kBody.push(kRow);
+                        projBody.push(kRow);
                     });
-                    const dRow = ['', 'Date Submitted'];
-                    MO_LONG.forEach(function(mo){ dRow.push(getDateSubmitted(proj,mo)||''); });
-                    dRow.push('');
-                    kBody.push(dRow);
-                    kBody.push(Array(kHead.length).fill(''));
-                });
-                if (kBody.length && kBody[kBody.length-1].every(function(c){return c===''; })) kBody.pop();
 
-                const kPColW = tW * 0.13;
-                const kMColW = tW * 0.25;
-                const kMoW   = (tW - kPColW - kMColW) / 13;
-                const kCS    = {0:{fontStyle:'bold',cellWidth:kPColW}, 1:{fontStyle:'italic',cellWidth:kMColW}};
-                for (let i=2; i<=14; i++) kCS[i]={halign:'center',cellWidth:kMoW};
+                    const pMColW = tW * 0.25;
+                    const pMoW   = (tW - pMColW) / 13;
+                    const pCS    = {0:{fontStyle:'bold',cellWidth:pMColW}};
+                    for (let i=1; i<=13; i++) pCS[i]={halign:'center',cellWidth:pMoW};
 
-                doc.autoTable({
-                    head:[kHead], body:kBody, startY:rY, margin:mg,
-                    tableWidth:tW,
-                    styles:{...bs, fontSize:6.5, cellPadding:2},
-                    headStyles:{...hs, fontSize:6.5, cellPadding:2.5},
-                    alternateRowStyles:ar,
-                    columnStyles:kCS,
-                    didParseCell:function(d){
-                        if(d.section==='body'){
-                            if(d.column.index>=2 && d.cell.raw && d.cell.raw!==''){
-                                const v=parseInt(d.cell.raw);
-                                if(!isNaN(v)){
-                                    const c=scoreColors(v);
-                                    if(c){d.cell.styles.fillColor=c.fill; d.cell.styles.textColor=c.text;}
-                                    if(d.column.index===14) d.cell.styles.fontStyle='bold';
+                    doc.autoTable({
+                        head:[projHead], body:projBody, startY:pY, margin:mg,
+                        tableWidth:tW,
+                        styles:{...bs, fontSize:7, cellPadding:2.5},
+                        headStyles:{...hs, fontSize:7, cellPadding:3},
+                        alternateRowStyles:ar,
+                        columnStyles:pCS,
+                        didParseCell:function(d){
+                            if(d.section==='body'){
+                                // Style Date Submitted row
+                                if(d.row.index===0 && d.column.index===0){
+                                    d.cell.styles.fillColor=[240,248,255]; d.cell.styles.textColor=[21,101,192]; d.cell.styles.fontStyle='bold';
+                                } else if(d.row.index===0 && d.column.index>=1 && d.column.index<=12){
+                                    d.cell.styles.fillColor=[240,248,255]; d.cell.styles.textColor=[21,101,192]; d.cell.styles.fontStyle='bold';
+                                }
+                                // Style KPI data rows
+                                else if(d.column.index>=1 && d.cell.raw && d.cell.raw!==''){
+                                    const v=parseInt(d.cell.raw);
+                                    if(!isNaN(v)){
+                                        const c=scoreColors(v);
+                                        if(c){d.cell.styles.fillColor=c.fill; d.cell.styles.textColor=c.text;}
+                                        if(d.column.index===13) d.cell.styles.fontStyle='bold';
+                                    }
                                 }
                             }
-                            if(d.column.index===1 && d.cell.raw==='Date Submitted'){
-                                d.cell.styles.fillColor=[240,248,255]; d.cell.styles.textColor=[21,101,192]; d.cell.styles.fontStyle='bold';
-                            }
-                            if(d.row.cells&&Object.values(d.row.cells).every(function(c){return c.raw==='';})){
-                                d.cell.styles.fillColor=[255,255,255]; d.cell.styles.minCellHeight=2;
-                            }
-                        }
-                    },
-                    didDrawPage:function(d){if(d.pageNumber>1){_pdfHeader(doc,title,year);} _pdfFooter(doc);}
+                        },
+                        didDrawPage:function(d){if(d.pageNumber>1){_pdfHeader(doc,title,year);} _pdfFooter(doc);}
+                    });
+
+                    pY = doc.lastAutoTable.finalY + 8;
                 });
             });
         }
