@@ -5316,13 +5316,9 @@ function updateAuditData(pName, qtr, field, val) {
             if (!p.vals[key]?.entries) return;
             showDeleteDialog('ECC Entry', `ECC entry #${idx + 1} of ${pName}`).then(confirmed => {
                 if (!confirmed) return;
-                const backup = JSON.parse(JSON.stringify(p.vals[key].entries));
                 p.vals[key].entries.splice(idx, 1);
                 saveToFirebase(); render();
-                showUndoToast(`ECC entry #${idx + 1} deleted from ${pName}`, () => {
-                    p.vals[key].entries = backup;
-                    saveToFirebase(); render();
-                });
+                showToast(`ECC entry deleted from ${pName}`, 'success');
             });
         }
 
@@ -5382,14 +5378,10 @@ function updateAuditData(pName, qtr, field, val) {
             if (!p.vals[key] || !p.vals[key].entries) return;
             showDeleteDialog('Permit Entry', `${permitRow} entry #${idx + 1} of ${pName}`).then(confirmed => {
                 if (!confirmed) return;
-                const backup = JSON.parse(JSON.stringify(p.vals[key].entries));
                 p.vals[key].entries.splice(idx, 1);
                 if (p.vals[key].entries.length === 0) p.vals[key].entries = [{ permitNo: '', dateIssued: '', expiryDate: '' }];
                 saveToFirebase(); render();
-                showUndoToast(`${permitRow} entry #${idx + 1} deleted from ${pName}`, () => {
-                    p.vals[key].entries = backup;
-                    saveToFirebase(); render();
-                });
+                showToast(`${permitRow} entry deleted from ${pName}`, 'success');
             });
         }
         window.removeMultiPermitEntry = removeMultiPermitEntry;
@@ -5417,13 +5409,9 @@ function updateAuditData(pName, qtr, field, val) {
             if (!p.vals[key]) return;
             showDeleteDialog('EMB Entry', `${type} entry #${idx + 1} of ${pName}`).then(confirmed => {
                 if (!confirmed) return;
-                const backup = JSON.parse(JSON.stringify(p.vals[key]));
                 p.vals[key].splice(idx, 1);
                 saveToFirebase(); render();
-                showUndoToast(`${type} entry #${idx + 1} deleted from ${pName}`, () => {
-                    p.vals[key] = backup;
-                    saveToFirebase(); render();
-                });
+                showToast(`${type} entry deleted from ${pName}`, 'success');
             });
         }
         window.removeEmbEntry = removeEmbEntry;
@@ -5808,21 +5796,7 @@ function updateAuditData(pName, qtr, field, val) {
             }
         })();
 
-        showUndoToast(`"${projectName}" has been deleted.`, async () => {
-            if (deletedFromProjects) state.projects.push(deletedFromProjects);
-            if (deletedFromMasterProjects) state.masterProjects.push(deletedFromMasterProjects);
-            reapplyFilters();
-            saveUserData(state.currentUser.email);
-            render();
-            if (deletedFromMasterProjects && window.ProjectsDB) {
-                const projectsByYear = _buildProjectsByYear([deletedFromMasterProjects]);
-                projectsByYear.forEach((_, year) => {
-                    ProjectsDB.saveProject(year, deletedFromMasterProjects).catch(() => {});
-                });
-            }
-            saveToFirebaseWithRetry().catch(() => {});
-            showToast(`Project "${projectName}" restored!`, 'success');
-        });
+        showToast(`"${projectName}" has been deleted.`, 'success');
     } else {
         debugLog('INFO', 'Delete cancelled by user');
     }
@@ -9787,6 +9761,8 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             doc.roundedRect(_PML, curY, W-_PML-_PMR, 14, 2, 2, 'F');
             doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(255,255,255);
             doc.text('OVERALL SUMMARY  ·  KEY PERFORMANCE MEASURES  (' + year + ')', _PML+6, curY+6);
+            doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+            doc.text('As of ' + _today(), _PML+6, curY+12);
             doc.setFont('helvetica','bold'); doc.setFontSize(11);
             const bRgb = companyAvg===null?[200,200,200]:companyAvg>=85?[152,255,152]:companyAvg>=75?[255,235,150]:[255,170,170];
             doc.setTextColor(bRgb[0],bRgb[1],bRgb[2]);
@@ -9820,23 +9796,24 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 const rP = projs.filter(function(p){return p.region===region;});
                 if (!rP.length) return;
                 const rWith  = rP.filter(hasAnyData).length;
+                const rPct   = Math.round((rWith/rP.length)*100);
                 const moAvgs = MO_LONG.map(function(mo){
                     const scores = rP.map(function(p){ return projMonthScore(p,mo); }).filter(function(v){return v!==null;});
                     return scores.length ? scores.reduce(function(a,b){return a+b;},0)/scores.length : null;
                 });
                 const validMo = moAvgs.filter(function(v){return v!==null;});
                 const rOverall = validMo.length ? validMo.reduce(function(a,b){return a+b;},0)/validMo.length : null;
-                regSumBody.push([_s(region), String(rP.length), String(rWith), ...moAvgs.map(fmtScore), fmtScore(rOverall)]);
+                regSumBody.push([_s(region), String(rP.length), String(rWith), rPct+'%', ...moAvgs.map(fmtScore), fmtScore(rOverall)]);
             });
 
             const rRegW  = tW * 0.20;
-            const rFix2  = tW * 0.065; // projects / with data
-            const rMoW   = (tW - rRegW - rFix2*2) / 13; // 12 months + avg
-            const rSumCS = {0:{halign:'left',fontStyle:'bold',cellWidth:rRegW},1:{halign:'center',cellWidth:rFix2},2:{halign:'center',cellWidth:rFix2}};
-            for (let i=0;i<13;i++) rSumCS[3+i]={halign:'center',cellWidth:rMoW};
+            const rFix3  = tW * 0.065; // projects / with data / input %
+            const rMoW   = (tW - rRegW - rFix3*3) / 13; // 12 months + avg
+            const rSumCS = {0:{halign:'left',fontStyle:'bold',cellWidth:rRegW},1:{halign:'center',cellWidth:rFix3},2:{halign:'center',cellWidth:rFix3},3:{halign:'center',fontStyle:'bold',cellWidth:rFix3}};
+            for (let i=0;i<13;i++) rSumCS[4+i]={halign:'center',cellWidth:rMoW};
 
             doc.autoTable({
-                head:[['REGION','PROJS','WITH\nDATA', ...MO, 'AVG']],
+                head:[['REGION','PROJS','WITH\nDATA','INPUT\n%', ...MO, 'AVG']],
                 body:regSumBody, startY:curY, margin:mg,
                 tableWidth:tW,
                 styles:{...bs, fontSize:7.5, cellPadding:3, valign:'middle'},
@@ -9844,13 +9821,13 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 alternateRowStyles:ar,
                 columnStyles:rSumCS,
                 didParseCell:function(d){
-                    if(d.section!=='body'||d.column.index<=1) return;
+                    if(d.section!=='body'||d.column.index<=2) return;
                     const raw=d.cell.raw; if(raw==='—'||!raw) return;
                     const v=parseInt(raw);
                     if(!isNaN(v)){
                         const c=scoreColors(v);
                         if(c){d.cell.styles.fillColor=c.fill; d.cell.styles.textColor=c.text;}
-                        if(d.column.index===15) d.cell.styles.fontStyle='bold';
+                        if(d.column.index===3||d.column.index===16) d.cell.styles.fontStyle='bold';
                     }
                 },
                 didDrawPage:function(d){if(d.pageNumber>1){_pdfHeader(doc,title,year);} _pdfFooter(doc);}
@@ -9859,99 +9836,114 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             REGIONS.forEach(function(region){
                 const regProjs = projs.filter(function(p){return p.region===region;});
                 if (!regProjs.length) return;
+                doc.addPage(); _pdfHeader(doc,title,year); _pdfFooter(doc);
+                let rY = sy;
 
-                // Get region's Date Submitted dates from first project (same for all projects in region)
-                const firstProj = regProjs[0];
-                const regionDates = MO_LONG.map(function(mo){ 
-                    const dateStr = getDateSubmitted(firstProj, mo);
-                    if (!dateStr || dateStr === '') return '';
-                    try {
-                        const dt = new Date(dateStr);
-                        if (!isNaN(dt)) {
-                            const m = dt.getMonth() + 1;
-                            const d = dt.getDate();
-                            const y = String(dt.getFullYear()).slice(-2);
-                            return m + '/' + d + '/' + y;
-                        }
-                    } catch(e) {}
-                    return dateStr;
+                doc.setFillColor(27,94,32); doc.roundedRect(_PML,rY,W-_PML-_PMR,10,2,2,'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(255,255,255);
+                doc.text(region, _PML+5, rY+7);
+                doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+                doc.text(regProjs.length+' project'+(regProjs.length>1?'s':''), W-_PMR-2, rY+7, {align:'right'});
+                rY += 13;
+
+                doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(27,94,32);
+                doc.text('COMPLIANCE SUMMARY BY PROJECT', _PML, rY); rY += 4;
+
+                const sumHead = ['PROJECT', ...rows.map(function(r){return r.id.toUpperCase();}), 'OVERALL\nAVG'];
+                const sumBody = regProjs.map(function(proj){
+                    const rowAvgs = rows.map(function(r){
+                        const vals = MO_LONG.map(function(mo){ return parsePct(getKpmVal(proj,mo,r.id)); }).filter(function(v){return v!==null;});
+                        return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+                    });
+                    const ov = projOverallScore(proj);
+                    return [_s(proj.name), ...rowAvgs.map(fmtScore), fmtScore(ov)];
                 });
 
-                // Process each project on a separate page
-                regProjs.forEach(function(proj, projIdx){
-                    doc.addPage(); _pdfHeader(doc,title,year); _pdfFooter(doc);
-                    let pY = sy;
+                const sPColW = tW * 0.28;
+                const sRowW  = (tW - sPColW) / (rows.length + 1);
+                const sumCS  = {0:{halign:'left',fontStyle:'bold',cellWidth:sPColW}};
+                rows.forEach(function(_,i){ sumCS[1+i]={halign:'center',cellWidth:sRowW}; });
+                sumCS[1+rows.length] = {halign:'center',fontStyle:'bold',cellWidth:sRowW};
 
-                    // Banner with Project Name prominent and Region as subtitle
-                    doc.setFillColor(27,94,32); doc.roundedRect(_PML,pY,W-_PML-_PMR,14,2,2,'F');
-                    
-                    // Project Name - main title
-                    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(255,255,255);
-                    doc.text(_s(proj.name), _PML+5, pY+5);
-                    
-                    // Region Name - subtitle
-                    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(220,255,220);
-                    doc.text(region, _PML+5, pY+11);
-                    
-                    pY += 18;
+                doc.autoTable({
+                    head:[sumHead], body:sumBody, startY:rY, margin:mg,
+                    tableWidth:tW,
+                    styles:{...bs, fontSize:7.5, cellPadding:3, valign:'middle'},
+                    headStyles:{...hs, fontSize:7.5, cellPadding:3.5},
+                    alternateRowStyles:ar,
+                    columnStyles:sumCS,
+                    didParseCell:function(d){
+                        if(d.section!=='body'||d.column.index===0) return;
+                        const v=parseInt(d.cell.raw);
+                        if(!isNaN(v)){
+                            const c=scoreColors(v);
+                            if(c){d.cell.styles.fillColor=c.fill; d.cell.styles.textColor=c.text;}
+                            if(d.column.index===1+rows.length) d.cell.styles.fontStyle='bold';
+                        }
+                    },
+                    didDrawPage:function(d){if(d.pageNumber>1){_pdfHeader(doc,title,year);} _pdfFooter(doc);}
+                });
 
-                    // Compliance Summary for this project
-                    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(27,94,32);
-                    doc.text('COMPLIANCE SUMMARY', _PML, pY); pY += 4;
+                rY = doc.lastAutoTable.finalY + 8;
 
-                    const projHead = ['KPI MEASURE', ...MO, 'AVG'];
-                    const projBody = [];
-                    
-                    // Add Date Submitted row first
-                    const dateRow = ['Date Submitted', ...regionDates, ''];
-                    projBody.push(dateRow);
-                    
-                    // Then add KPI data rows
-                    rows.forEach(function(row){
+                doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(27,94,32);
+                doc.text('MONTHLY KPI RATINGS BY PROJECT', _PML, rY); rY += 4;
+
+                const kHead = ['PROJECT', 'KPI MEASURE', ...MO, 'AVG'];
+                const kBody = [];
+                regProjs.forEach(function(proj){
+                    rows.forEach(function(row, ri){
                         const monthVals = MO_LONG.map(function(mo){ return parsePct(getKpmVal(proj,mo,row.id)); });
                         const valid = monthVals.filter(function(v){return v!==null;});
                         const avg   = valid.length ? valid.reduce(function(a,b){return a+b;},0)/valid.length : null;
-                        const kRow  = [_s(row.measure || row.del || row.id)];
+                        const kRow  = [
+                            ri===0 ? _s(proj.name) : '',
+                            _s(row.measure || row.del || row.id)
+                        ];
                         monthVals.forEach(function(v){ kRow.push(v!==null ? Math.round(v)+'%' : ''); });
                         kRow.push(fmtScore(avg));
-                        projBody.push(kRow);
+                        kBody.push(kRow);
                     });
+                    const dRow = ['', 'Date Submitted'];
+                    MO_LONG.forEach(function(mo){ dRow.push(getDateSubmitted(proj,mo)||''); });
+                    dRow.push('');
+                    kBody.push(dRow);
+                    kBody.push(Array(kHead.length).fill(''));
+                });
+                if (kBody.length && kBody[kBody.length-1].every(function(c){return c===''; })) kBody.pop();
 
-                    const pMColW = tW * 0.25;
-                    const pMoW   = (tW - pMColW) / 13;
-                    const pCS    = {0:{fontStyle:'bold',cellWidth:pMColW}};
-                    for (let i=1; i<=13; i++) pCS[i]={halign:'center',cellWidth:pMoW};
+                const kPColW = tW * 0.13;
+                const kMColW = tW * 0.25;
+                const kMoW   = (tW - kPColW - kMColW) / 13;
+                const kCS    = {0:{fontStyle:'bold',cellWidth:kPColW}, 1:{fontStyle:'italic',cellWidth:kMColW}};
+                for (let i=2; i<=14; i++) kCS[i]={halign:'center',cellWidth:kMoW};
 
-                    doc.autoTable({
-                        head:[projHead], body:projBody, startY:pY, margin:mg,
-                        tableWidth:tW,
-                        styles:{...bs, fontSize:7, cellPadding:2.5},
-                        headStyles:{...hs, fontSize:7, cellPadding:3},
-                        alternateRowStyles:ar,
-                        columnStyles:pCS,
-                        didParseCell:function(d){
-                            if(d.section==='body'){
-                                // Style Date Submitted row
-                                if(d.row.index===0 && d.column.index===0){
-                                    d.cell.styles.fillColor=[240,248,255]; d.cell.styles.textColor=[21,101,192]; d.cell.styles.fontStyle='bold';
-                                } else if(d.row.index===0 && d.column.index>=1 && d.column.index<=12){
-                                    d.cell.styles.fillColor=[240,248,255]; d.cell.styles.textColor=[21,101,192]; d.cell.styles.fontStyle='bold';
-                                }
-                                // Style KPI data rows
-                                else if(d.column.index>=1 && d.cell.raw && d.cell.raw!==''){
-                                    const v=parseInt(d.cell.raw);
-                                    if(!isNaN(v)){
-                                        const c=scoreColors(v);
-                                        if(c){d.cell.styles.fillColor=c.fill; d.cell.styles.textColor=c.text;}
-                                        if(d.column.index===13) d.cell.styles.fontStyle='bold';
-                                    }
+                doc.autoTable({
+                    head:[kHead], body:kBody, startY:rY, margin:mg,
+                    tableWidth:tW,
+                    styles:{...bs, fontSize:6.5, cellPadding:2},
+                    headStyles:{...hs, fontSize:6.5, cellPadding:2.5},
+                    alternateRowStyles:ar,
+                    columnStyles:kCS,
+                    didParseCell:function(d){
+                        if(d.section==='body'){
+                            if(d.column.index>=2 && d.cell.raw && d.cell.raw!==''){
+                                const v=parseInt(d.cell.raw);
+                                if(!isNaN(v)){
+                                    const c=scoreColors(v);
+                                    if(c){d.cell.styles.fillColor=c.fill; d.cell.styles.textColor=c.text;}
+                                    if(d.column.index===14) d.cell.styles.fontStyle='bold';
                                 }
                             }
-                        },
-                        didDrawPage:function(d){if(d.pageNumber>1){_pdfHeader(doc,title,year);} _pdfFooter(doc);}
-                    });
-
-                    pY = doc.lastAutoTable.finalY + 8;
+                            if(d.column.index===1 && d.cell.raw==='Date Submitted'){
+                                d.cell.styles.fillColor=[240,248,255]; d.cell.styles.textColor=[21,101,192]; d.cell.styles.fontStyle='bold';
+                            }
+                            if(d.row.cells&&Object.values(d.row.cells).every(function(c){return c.raw==='';})){
+                                d.cell.styles.fillColor=[255,255,255]; d.cell.styles.minCellHeight=2;
+                            }
+                        }
+                    },
+                    didDrawPage:function(d){if(d.pageNumber>1){_pdfHeader(doc,title,year);} _pdfFooter(doc);}
                 });
             });
         }
@@ -12580,13 +12572,10 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const label = `${type === 'internal' ? 'Internal' : 'External'} NOV #${nIdx + 1}`;
             showDeleteDialog('OSH NOV', `${label} from ${pName}`).then(confirmed => {
                 if (!confirmed) return;
-                const backup = JSON.parse(JSON.stringify(p.vals[key]));
                 p.vals[key].splice(nIdx, 1);
                 saveToFirebase(); renderOshNovTab();
-                showUndoToast(`${label} deleted from ${pName}`, () => {
-                    p.vals[key] = backup;
-                    saveToFirebase(); renderOshNovTab();
-                });
+                if (typeof window.openOshNovModal === 'function') window.openOshNovModal(pName);
+                showToast(`${label} deleted`, 'success');
             });
         }
 
@@ -12617,17 +12606,14 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 : `Violation #${vIdx + 1} from NOV #${nIdx + 1}`;
             showDeleteDialog('OSH NOV Violation', `${label} — ${pName}`).then(confirmed => {
                 if (!confirmed) return;
-                const backup = JSON.parse(JSON.stringify(p.vals[key]));
                 if (nov.violations.length === 1) {
                     p.vals[key].splice(nIdx, 1);
                 } else {
                     nov.violations.splice(vIdx, 1);
                 }
                 saveToFirebase(); renderOshNovTab();
-                showUndoToast(`${label} deleted`, () => {
-                    p.vals[key] = backup;
-                    saveToFirebase(); renderOshNovTab();
-                });
+                if (typeof window.openOshNovModal === 'function') window.openOshNovModal(pName);
+                showToast(`${label} deleted`, 'success');
             });
         }
 
@@ -13657,16 +13643,9 @@ function renderTabulation() {
             const _renderScroll = _renderMc ? _renderMc.scrollTop : 0;
             try {
             // Hide PDF export button for superintendent, pco, and corp_nurse
-            // Also hide on overall tab (replaced by Excel export there)
             const _pdfBtnEl = document.getElementById('export-pdf-btn');
-            if (_pdfBtnEl) {
-                const _hidePdf = ['superintendent','pco','corp_nurse'].includes(state.userRole) || state.currentTab === 'overall';
-                _pdfBtnEl.style.display = _hidePdf ? 'none' : '';
-            }
-            // Show/hide Overall Excel export button — visible only on overall tab
-            const _ovXlsWrap = document.getElementById('export-overall-excel-wrap');
-            if (_ovXlsWrap) {
-                _ovXlsWrap.style.display = (state.currentTab === 'overall') ? '' : 'none';
+            if (_pdfBtnEl && ['superintendent','pco','corp_nurse'].includes(state.userRole)) {
+                _pdfBtnEl.style.display = 'none';
             }
             const _eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
             const _nonTableTabs = ['settings','personnel','env-monitoring','osh-requirement','nov','got-monitoring'];
@@ -14692,7 +14671,23 @@ if (state.currentTab === 'audit') {
                     'RA 4850',
                     'DAO 2014-02',
                     'ECC Condition',
-                    'Others'
+                    'Others',
+                    // Legacy long-form values stored in Firebase — kept for backward compatibility
+                    'PD 1586 – Philippine Environmental Impact Statement System',
+                    'RA 9003 – Ecological Solid Waste Management Act',
+                    'RA 8749 – Philippine Clean Air Act',
+                    'RA 9275 – Philippine Clean Water Act',
+                    'RA 6969 – Toxic Substances and Hazardous Waste Act',
+                    'RA 9147 – Wildlife Resources Conservation and Protection Act',
+                    'PD 705 – Revised Forestry Code of the Philippines',
+                    'RA 11038 – Expanded NIPAS Act (E-NIPAS)',
+                    'RA 11285 – Energy Efficiency and Conservation Act',
+                    'RA 9175 – Chainsaw Act of 2002',
+                    'RA 7942 – Philippine Mining Act',
+                    'RA 10593 – Revised NIPAS Act',
+                    'RA 4850 – Laguna Lake Development Authority Act',
+                    'DAO 2014-02 – DENR Air Quality Guidelines',
+                    'ECC Condition – Environmental Compliance Certificate Condition',
                 ];
 
                 const canEditNovEnv = UserAccounts.canEditTab(state.currentUser?.email, 'nov-env');
@@ -14752,13 +14747,10 @@ if (state.currentTab === 'audit') {
                     const label = `${type === 'internal' ? 'NCR (Client/SCIC Audit)' : 'External NOV'} #${nIdx + 1}`;
                     showDeleteDialog('ENVI NOV', `${label} from ${pName}`).then(confirmed => {
                         if (!confirmed) return;
-                        const backup = JSON.parse(JSON.stringify(p.vals[key]));
                         p.vals[key].splice(nIdx, 1);
                         saveToFirebase(); if(typeof window.renderNovEnvTab==='function') window.renderNovEnvTab();
-                        showUndoToast(`${label} deleted from ${pName}`, () => {
-                            p.vals[key] = backup;
-                            saveToFirebase(); if(typeof window.renderNovEnvTab==='function') window.renderNovEnvTab();
-                        });
+                        if (typeof window.openEnvNovModal === 'function') window.openEnvNovModal(pName);
+                        showToast(`${label} deleted`, 'success');
                     });
                 }
 
@@ -14789,17 +14781,14 @@ if (state.currentTab === 'audit') {
                         : `Violation #${vIdx + 1} from NOV #${nIdx + 1}`;
                     showDeleteDialog('ENVI NOV Violation', `${label} — ${pName}`).then(confirmed => {
                         if (!confirmed) return;
-                        const backup = JSON.parse(JSON.stringify(p.vals[key]));
                         if (nov.violations.length === 1) {
                             p.vals[key].splice(nIdx, 1);
                         } else {
                             nov.violations.splice(vIdx, 1);
                         }
                         saveToFirebase(); if(typeof window.renderNovEnvTab==='function') window.renderNovEnvTab();
-                        showUndoToast(`${label} deleted`, () => {
-                            p.vals[key] = backup;
-                            saveToFirebase(); if(typeof window.renderNovEnvTab==='function') window.renderNovEnvTab();
-                        });
+                        if (typeof window.openEnvNovModal === 'function') window.openEnvNovModal(pName);
+                        showToast(`${label} deleted`, 'success');
                     });
                 }
 
@@ -15095,7 +15084,7 @@ if (state.currentTab === 'audit') {
                                             <td rowspan="${rowspan}" class="nov-group-first nov-rowspan">${dis?`<span style="font-size:0.73rem;">${nov.issuingBody||''}</span>`:`<select onchange="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'issuingBody',this.value)"><option value="">— Select —</option>${ibOpts}</select>`}</td>
                                             <td rowspan="${rowspan}" class="nov-group-first nov-rowspan"><input type="text" value="${nov.refNo||''}" ${dis} oninput="updateNovEnvNovField('${pnSafe}','${type}',${nIdx},'refNo',this.value)"></td>`;
                                     }
-                                    t += `<td ${firstClass}>${dis?`<span style="font-size:0.73rem;">${viol.violationLaw||''}</span>`:`<select onchange="updateNovEnvViolField('${pnSafe}','${type}',${nIdx},${vIdx},'violationLaw',this.value)">${vlOpts}</select>`}</td>
+                                    t += `<td ${firstClass}>${dis?`<span style="font-size:0.73rem;">${viol.violationLaw||'<span style="color:#bbb;font-style:italic;">Not set</span>'}</span>`:`<select onchange="updateNovEnvViolField('${pnSafe}','${type}',${nIdx},${vIdx},'violationLaw',this.value)">${vlOpts}</select>`}</td>
                                         <td ${firstClass}>${dis?`<span class="${statusClass}">${viol.status||'Open'}</span>`:`<select onchange="updateNovEnvViolField('${pnSafe}','${type}',${nIdx},${vIdx},'status',this.value);saveToFirebase();if(typeof window.renderNovEnvTab==='function')window.renderNovEnvTab();" style="width:100%;">${stOpts}</select>`}</td>`;
                                     if (state.isEditing && canEdit) {
                                         if (isFirst) {
@@ -16978,7 +16967,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     var EMR_KEY = 'env-monthly-report_Environmental Monthly Report (EMR)';
                     var EMR_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-                    var emrActProjs = displayProjects.filter(function(p){ return !isProjectOnStoppage(p) && p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS' && !p.noPco; });
+                    var emrActProjs = displayProjects.filter(function(p){ return !isProjectOnStoppage(p) && p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS'; });
                     var emrTot=0, emrFill=0;
                     // Only count months BEFORE the current one as overdue (current month hasn't ended yet)
                     // emrCurMoIdx is 0-based; mo is 1-based → loop mo=1 to emrCurMoIdx (excludes current)
@@ -16999,16 +16988,14 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     REGIONS.forEach(function(reg) {
                         var projs = displayProjects.filter(function(p){ return p.region===reg; });
                         if (!projs.length) return;
-                        // Active (non-stoppage, non-noPco) projects for compliance counting
-                        // Projects with noPco=true are exempt — PCO is provided by another contractor
-                        var activeProjs = projs.filter(function(p){ return !isProjectOnStoppage(p) && !p.noPco; });
+                        // Active (non-stoppage) projects for compliance counting
+                        var activeProjs = projs.filter(function(p){ return !isProjectOnStoppage(p); });
                         var canEditReg = state.isEditing && UserAccounts.canEdit(state.currentUser&&state.currentUser.email, reg) && UserAccounts.canEditTab(state.currentUser&&state.currentUser.email, 'env-monthly-report');
                         var isCollapsed = isRegionCollapsed(reg);
                         var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
 
                         var emrComplete = 0;
                         for(var m=1;m<=emrCurMoIdx+1;m++){ var mOk=activeProjs.every(function(p){ return p.vals[EMR_KEY]&&p.vals[EMR_KEY][m]; }); if(mOk && activeProjs.length > 0) emrComplete++; }
-                        var noPcoCount = projs.filter(function(p){ return !!p.noPco && !isProjectOnStoppage(p); }).length;
 
                         html += '<div id="region-banner-'+reg+'" class="region-banner region-'+reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+' '+(isCollapsed?'collapsed':'')+' '+(canEditReg?'rb-editable':'')+'" onclick="toggleRegion(\''+reg.replace(/'/g,"\\'")+'\',event)">'
                             +'<div class="region-banner-inner"><div class="region-banner-left">'
@@ -17016,7 +17003,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             +'</div><div class="region-banner-right">'
                             +'<span class="rbadge rbadge-count">'+projs.length+' PROJ</span>'
                             +'<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">'+emrComplete+'/'+(emrCurMoIdx+1)+' complete</span>'
-                            +(noPcoCount>0?'<span class="rbadge" style="background:rgba(230,81,0,0.35);color:#ffccbc;font-size:0.6rem;"><i class="fas fa-user-slash" style="margin-right:3px;"></i>'+noPcoCount+' exempt</span>':'')
                             +(canEditReg?'<button class="lta-add-btn" onclick="event.stopPropagation();window.openEmrDialog(\''+regKey+'\',\''+reg.replace(/'/g,"\\'")+'\',\'M1\',true)" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-plus"></i> Add Entry</button>':'')
                             +'<i class="fas fa-chevron-down region-toggle-icon"></i>'
                             +'</div></div></div>'
@@ -17061,13 +17047,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var canEdit = !!editMode || isNew;
                         var dis = canEdit?'':'disabled';
                         if (canEdit) _activateEditMode();
-                        // noPco checkbox has its own permission — independent of edit mode
-                        // Any user who can edit env-monthly-report for this region can toggle it
-                        var _canToggleNoPco = UserAccounts.canEditTab(
-                            state.currentUser && state.currentUser.email, 'env-monthly-report'
-                        ) && UserAccounts.canEdit(
-                            state.currentUser && state.currentUser.email, reg
-                        );
 
                         var mIdx = parseInt(periodKey.replace('M',''));
                         var mLabel = EMR_MONTHS[mIdx-1] + ' ' + selYear;
@@ -17092,74 +17071,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         var rowDefs = [
                             { label: 'EMR Date', desc: 'Environmental Monthly Report submission date — '+mLabel,
-                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); var noPco=!!p.noPco; return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_KEY,idx:mIdx,val:p.vals[EMR_KEY]?p.vals[EMR_KEY][mIdx]||'':'',dis:(stopped||noPco||!canEdit)?'disabled':dis,inputType:'date',stopped:stopped,noPco:noPco}; }) }
+                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_KEY,idx:mIdx,val:p.vals[EMR_KEY]?p.vals[EMR_KEY][mIdx]||'':'',dis:(stopped||!canEdit)?'disabled':dis,inputType:'date',stopped:stopped}; }) }
                         ];
 
-                        // Build custom project column headers with noPco checkbox
-                        var _projColHeaders = regProjs.map(function(p){
-                            var stopped = isProjectOnStoppage(p);
-                            var noPco   = !!p.noPco;
-                            var safeId  = p.name.replace(/[^a-zA-Z0-9]/g,'_');
-                            var safePn  = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-                            var badge   = stopped
-                                ? ' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;"><i class="fas fa-pause-circle"></i></span>'
-                                : noPco
-                                    ? ' <span style="background:#fff3e0;color:#e65100;border-radius:3px;padding:2px 5px;font-size:0.58rem;font-weight:700;"><i class="fas fa-user-slash"></i> EXEMPT</span>'
-                                    : '';
-                            var cbDisabled = (!_canToggleNoPco || stopped) ? 'disabled' : '';
-                            var cbChecked  = noPco ? 'checked' : '';
-                            var cbHtml = '<div title="Check if PCO is provided by Joint Venture partner — exempts project from EMR compliance computation" '
-                                + 'style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:5px;padding:3px 0;border-top:1px dashed #c8e6c9;">'
-                                + '<input type="checkbox" id="nopco-cb-'+safeId+'" '+cbChecked+' '+cbDisabled
-                                + ' onchange="window._toggleNoPco(\''+safePn+'\',this.checked)"'
-                                + ' style="cursor:'+(cbDisabled?'not-allowed':'pointer')+';accent-color:#e65100;width:13px;height:13px;">'
-                                + '<label for="nopco-cb-'+safeId+'" style="font-size:0.58rem;cursor:'+(cbDisabled?'not-allowed':'pointer')+';color:'+(noPco?'#e65100':'#777')+';font-weight:'+(noPco?'700':'400')+';white-space:nowrap;">'
-                                + 'Joint Venture PCO'
-                                + '</label>'
-                                + '</div>';
-                            return '<th style="padding:5px 8px;border:1px solid #c8e6c9;min-width:180px;white-space:normal;word-break:break-word;'
-                                + 'background:'+(noPco?'#fff3e0':'#b7ddb5')+';color:'+(noPco?'#e65100':'#1b5e20')+';text-align:center;">'
-                                + p.name + badge + cbHtml + '</th>';
-                        }).join('');
-
-                        // Build table HTML manually to use custom headers
-                        var _theadHtml = '<tr style="background:#9ecf9b;color:#1b5e20;font-size:0.67rem;font-weight:800;">'
-                            + '<th style="padding:6px 8px;border:1px solid #c8e6c9;min-width:120px;white-space:nowrap;">FIELD</th>'
-                            + '<th style="padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;text-align:left;white-space:normal;">DESCRIPTION</th>'
-                            + _projColHeaders + '</tr>';
-                        var _tbodyHtml = rowDefs.map(function(rd){
-                            var cells = rd.cells.map(function(c){
-                                if (c.stopped) {
-                                    return '<td style="padding:6px 8px;border:1px solid #e0e0e0;min-width:180px;background:#f5f5f5;opacity:0.7;">'
-                                        + '<div style="display:flex;align-items:center;justify-content:center;gap:5px;color:#9e9e9e;font-size:0.67rem;font-style:italic;padding:4px 0;">'
-                                        + '<i class="fas fa-ban" style="font-size:0.65rem;"></i> Work Stoppage — Exempt</div></td>';
-                                }
-                                if (c.noPco) {
-                                    return '<td style="padding:6px 8px;border:1px solid #ffe0b2;min-width:180px;background:#fff8f0;">'
-                                        + '<div style="display:flex;align-items:center;justify-content:center;gap:5px;color:#e65100;font-size:0.67rem;font-style:italic;padding:4px 0;">'
-                                        + '<i class="fas fa-user-slash" style="font-size:0.65rem;"></i> Joint Venture PCO — Exempt</div></td>';
-                                }
-                                var _mBorder = c.val ? '#a5d6a7' : '#ffe082';
-                                var _mBg     = c.val ? '#c8e6c9' : '#fffde7';
-                                var _mColor  = c.val ? '#2e7d32' : '#7a5c00';
-                                var inputCss = 'width:100%;border:1px solid '+_mBorder+';border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:700;background:'+_mBg+';color:'+_mColor+';';
-                                return '<td style="padding:6px 8px;border:1px solid #c8e6c9;min-width:180px;">'
-                                    + '<input type="'+(c.inputType||'date')+'" value="'+(c.val||'')+'" '+(c.dis||'')
-                                    + ' data-pname="'+c.pname+'" data-key="'+c.key+'" data-idx="'+c.idx+'"'
-                                    + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);'
-                                    + 'this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';'
-                                    + 'this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';'
-                                    + 'this.style.color=this.value?\'#2e7d32\':\'#c62828\'"'
-                                    + ' style="'+inputCss+'"></td>';
-                            }).join('');
-                            return '<tr style="background:var(--bg-card);border-bottom:1px solid #c8e6c9;">'
-                                + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-weight:800;color:#1b5e20;background:#e8f5e9;white-space:nowrap;">'+rd.label+'</td>'
-                                + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-size:0.67rem;color:#555;white-space:normal;">'+rd.desc+'</td>'
-                                + cells + '</tr>';
-                        }).join('');
-                        var tableHtml = '<table style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
-                            + '<thead>'+_theadHtml+'</thead><tbody>'+_tbodyHtml+'</tbody></table>';
-
+                        var tableHtml = _modalTable(rowDefs, null, regProjs.map(function(p){ return p.name + (isProjectOnStoppage(p) ? ' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;"><i class=\'fas fa-pause-circle\'></i></span>' : ''); }));
                         var header = _modalHeader('linear-gradient(90deg,#0d3d0f,#1b5e20,#2e7d32)',
                             (isNew ? '➕ New EMR Entry' : canEdit?'✏️ Edit':'🔍 View')+' EMR — <span style="color:#fbc02d;">'+mLabel+'</span>',
                             '<i class="fas fa-location-dot" style="margin-right:4px;"></i>'+reg+' · '+regProjs.length+' project'+(regProjs.length!==1?'s':'')+' &nbsp;·&nbsp; '+selYear,
@@ -17179,34 +17094,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         modal.setAttribute('data-period', periodKey);
                     };
                     window._saveEmrModal = function(){ _genericSaveModal('emr-modal','env-monthly-report'); };
-
-                    // ── Toggle noPco exemption flag on a project ──────────────────────
-                    window._toggleNoPco = function(pName, checked) {
-                        var p = (state.projects||[]).find(function(x){ return x.name === pName; });
-                        if (!p) return;
-                        var rbac = UserAccounts.checkPermission(state.currentUser&&state.currentUser.email, 'edit', p.region, 'env-monthly-report');
-                        if (!rbac.allowed) { showLockedMessage(rbac.reason); return; }
-                        p.noPco = !!checked;
-                        // Also update masterProjects so the flag persists across renders
-                        var mp = (state.masterProjects||[]).find(function(x){ return x.name === pName; });
-                        if (mp) mp.noPco = !!checked;
-                        if (typeof markPendingSync === 'function') markPendingSync();
-                        if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
-                        showToast(
-                            checked
-                                ? '⚠️ "'+pName+'" marked as exempt — Joint Venture PCO'
-                                : '✅ "'+pName+'" exemption removed — now included in EMR compliance',
-                            checked ? 'warning' : 'success'
-                        );
-                        // Refresh the modal so compliance counts update immediately
-                        var _modal = document.getElementById('emr-modal');
-                        var _reg   = _modal ? _modal.getAttribute('data-reg') : null;
-                        var _per   = _modal ? _modal.getAttribute('data-period') : null;
-                        var _rk    = _reg ? _reg.replace(/[^a-zA-Z0-9]/g,'_') : '';
-                        if (_modal) _modal.remove();
-                        if (_reg && _per) window.openEmrDialog(_rk, _reg, _per, !!state.isEditing);
-                        render();
-                    };
 
                     return;
                 } // end env-monthly-report
@@ -21339,16 +21226,7 @@ function pRowDelete(i) {
             PersonnelDB.deletePerson(deletedPid).catch(e => console.warn('PersonnelDB delete failed:', e));
         }
 
-        showUndoToast(`"${personName}" has been removed.`, () => {
-            const restoreAt = Math.min(deletedIndex, state.personnelData.length);
-            state.personnelData.splice(restoreAt, 0, deletedPerson);
-            renderPTable();
-            saveUserData(state.currentUser.email);
-            if (deletedPerson._pid) {
-                PersonnelDB.savePerson(deletedPerson).catch(() => {});
-            }
-            if (window.showToast) window.showToast('Personnel restored successfully!', 'success');
-        });
+        showToast(`"${personName}" has been removed.`, 'success');
 
     });
 }
@@ -22203,7 +22081,7 @@ const ProjectsDB = {
             // Admin owns all fields on CORPORATE projects — atomic field-level write,
             // no pre-read needed since no other role writes CORPORATE env/health data.
             const ADMIN_TOP_FIELDS = ['name','region','status','dateStarted','dateFinished','isRenewable',
-                                      'auditData','doePdfFiles','workStoppageDate','workResumeDate','noPco'];
+                                      'auditData','doePdfFiles','workStoppageDate','workResumeDate'];
             ADMIN_TOP_FIELDS.forEach(f => { if (f in sanitized) payload[f] = sanitized[f]; });
             if (sanitized.vals) {
                 Object.keys(sanitized.vals).forEach(k => {
@@ -22212,7 +22090,7 @@ const ProjectsDB = {
             }
         } else if (userRole === 'superintendent') {
             const SUPER_TOP_FIELDS = ['name','region','status','dateStarted','dateFinished','isRenewable',
-                                      'auditData','doePdfFiles','workStoppageDate','workResumeDate','noPco'];
+                                      'auditData','doePdfFiles','workStoppageDate','workResumeDate'];
             SUPER_TOP_FIELDS.forEach(f => { if (f in sanitized) payload[f] = sanitized[f]; });
             if (sanitized.vals) {
                 Object.keys(sanitized.vals).forEach(k => {
@@ -22223,9 +22101,6 @@ const ProjectsDB = {
                 });
             }
         } else if (userRole === 'pco' || userRole === 'envi_head') {
-            // PCO/envi_head may set noPco flag (exempts project from EMR compliance)
-            const PCO_TOP_FIELDS = ['noPco'];
-            PCO_TOP_FIELDS.forEach(f => { if (f in sanitized) payload[f] = sanitized[f]; });
             if (sanitized.vals) {
                 Object.keys(sanitized.vals).forEach(k => {
                     if (this._isEnvValsKey(k)) payload[`vals.${k}`] = sanitized.vals[k];
@@ -31514,14 +31389,10 @@ window.eshCorpDrillDeleteRow = function(idx) {
     const label = (item && item.name) ? item.name : `Row #${idx + 1}`;
     showDeleteDialog('Corporate Drill Row', label).then(confirmed => {
         if (!confirmed) return;
-        const backup = JSON.parse(JSON.stringify(rows));
         rows.splice(idx, 1);
         setCorpDrillCustomRows(rows);
         renderCorpDrillsTab();
-        showUndoToast(`"${label}" removed from Corporate Drills`, () => {
-            setCorpDrillCustomRows(backup);
-            renderCorpDrillsTab();
-        });
+        showToast(`"${label}" removed from Corporate Drills`, 'success');
     });
 };
 
@@ -31746,14 +31617,10 @@ window.eshDeleteCustomRow = function(tabType, projName, rowIdx) {
     const label = typeof item === 'string' ? item : (item && item.name) ? item.name : `Row #${rowIdx + 1}`;
     showDeleteDialog('ESH Calendar Row', `"${label}" from ${projName || tabType}`).then(confirmed => {
         if (!confirmed) return;
-        const backup = JSON.parse(JSON.stringify(rows));
         rows.splice(rowIdx, 1);
         setEshCustomRows(tabType, projName, rows);
         try { renderEshCalendar(tabType); } catch(e) {}
-        showUndoToast(`"${label}" removed from ${projName || tabType}`, () => {
-            setEshCustomRows(tabType, projName, backup);
-            try { renderEshCalendar(tabType); } catch(e) {}
-        });
+        showToast(`"${label}" removed from ${projName || tabType}`, 'success');
     });
 };
 
@@ -33726,410 +33593,6 @@ function osCloseModal() {
     const modal = document.getElementById('os-project-modal');
     modal.style.display = 'none';
 }
-
-// ── Overall Summary — Export to Excel (ExcelJS) ──────────────────────────────
-async function exportOverallExcel() {
-    if (typeof ExcelJS === 'undefined') {
-        showToast('❌ Excel library not loaded. Refresh and try again.', 'error');
-        return;
-    }
-
-    const allProjects = state.masterProjects || state.projects || [];
-    if (!allProjects.length) {
-        showToast('ℹ️ No project data to export.', 'info');
-        return;
-    }
-
-    showToast('⏳ Generating Excel file...', 'info');
-
-    const selYear   = state.selectedYear || new Date().getFullYear();
-    const curYear   = new Date().getFullYear();
-    const curMonth  = new Date().getMonth() + 1; // 1-based
-    const maxMonth  = (selYear === curYear) ? curMonth : 12;
-
-    const ALL_MONTHS = ['January','February','March','April','May','June',
-                        'July','August','September','October','November','December'];
-    const REGION_ORDER = ['CORPORATE','PLANT OPERATIONS','NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
-    function _fmtDate(d) {
-        if (!d) return '—';
-        try {
-            const dt = new Date(d);
-            return isNaN(dt) ? d : dt.toLocaleDateString('en-PH', { year:'numeric', month:'short', day:'2-digit' });
-        } catch(e) { return d; }
-    }
-    function _status(p) {
-        if (p.dateFinished) return 'FINISHED';
-        if (p.workStoppageDate && !p.workResumeDate) return 'WORK STOPPAGE';
-        return 'ON-GOING';
-    }
-    function _perc(p) {
-        if (typeof getPerc === 'function') return getPerc(p);
-        return null;
-    }
-    function _monthPerc(p, mo) {
-        // per-month compliance using same logic as getProjCompliance
-        if (typeof isMonthBlacklistedForProject === 'function' && isMonthBlacklistedForProject(p, mo, selYear)) return null;
-        const vals = p.vals || {};
-        let filled = 0, total = 0;
-
-        // Activities (5 rows)
-        ['activities_No. of ESH Committee Conducted','activities_No. of ESH inspection',
-         'activities_No. of Identified Near-Miss','activities_Drills Conducted','activities_Training Conducted'].forEach(key => {
-            total++;
-            const v = vals[key] && vals[key][mo];
-            if (v !== undefined && v !== null && v !== '' && v !== '0') filled++;
-        });
-        // DOLE monthly
-        ['dole_WAIR','dole_RSO','dole_MOM'].forEach(key => {
-            total++;
-            if (vals[key] && vals[key][mo]) filled++;
-        });
-        // Monthly data keys (exposures, medical, nov)
-        const MONTHLY_KEYS = [
-            'exposures_Total Manpower','exposures_Total Exposed Manhour',
-            'medical_LTA','medical_Medical Treatment','medical_First Aid','medical_Fatality',
-            'medical_Days Lost/Charged','medical_High-Potential incident','medical_Dangerous Occurrences',
-            'nov_No. of Violations'
-        ];
-        MONTHLY_KEYS.forEach(key => {
-            total++;
-            const v = vals[key] && vals[key][mo];
-            if (v !== undefined && v !== null && v !== '') filled++;
-        });
-        return total > 0 ? Math.round(filled / total * 100) : null;
-    }
-
-    // ── Group projects by region ──────────────────────────────────────────────
-    const _EXCL_REGS = ['CORPORATE', 'PLANT OPERATIONS'];
-    const regionGroups = {};
-    allProjects.filter(p => !_EXCL_REGS.includes((p.region || '').toUpperCase())).forEach(p => {
-        const reg = (p.region || 'OTHER').toUpperCase();
-        if (!regionGroups[reg]) regionGroups[reg] = [];
-        regionGroups[reg].push(p);
-    });
-
-    // ── ExcelJS workbook ──────────────────────────────────────────────────────
-    const wb = new ExcelJS.Workbook();
-    wb.creator = 'ESH Monitoring System';
-    wb.created = new Date();
-
-    // Colors — same palette as Personnel export
-    const COLOR_HEADER_BG = '2E7D32';
-    const COLOR_BANNER_BG = '1B5E20';
-    const COLOR_TOTAL_BG  = 'E8F5E9';
-    const COLOR_ONGOING   = 'E8F5E9';
-    const COLOR_STOPPED   = 'FFF3E0';
-    const COLOR_FINISHED  = 'ECEFF1';
-
-    // ── Shared style builders (identical to Personnel export) ─────────────────
-    function applyHeaderStyle(cell) {
-        cell.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11, name: 'Calibri' };
-        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_HEADER_BG } };
-        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-        cell.border    = {
-            top:    { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } },
-            bottom: { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } },
-            left:   { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } },
-            right:  { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } }
-        };
-    }
-    function applyBannerStyle(cell) {
-        cell.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' };
-        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_BANNER_BG } };
-        cell.alignment = { horizontal: 'left', vertical: 'middle' };
-    }
-    function applyDataStyle(cell, colIdx, statusStr, perc) {
-        cell.font      = { size: 10, name: 'Calibri' };
-        cell.alignment = { vertical: 'middle', wrapText: false };
-        // compliance % column: color-coded
-        if (colIdx === 6) {
-            const pv = typeof perc === 'number' ? perc : -1;
-            const bg = pv >= 90 ? 'FFC8E6C9' : pv >= 75 ? 'FFFFCC80' : pv >= 0 ? 'FFFFCDD2' : 'FFF5F5F5';
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
-            cell.font = { bold: true, size: 10, name: 'Calibri', color: { argb: pv >= 90 ? 'FF1B5E20' : pv >= 75 ? 'FFE65100' : pv >= 0 ? 'FFC62828' : 'FF9E9E9E' } };
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        }
-        if (colIdx === 5) { // status
-            const bg = statusStr === 'ON-GOING' ? 'FF' + COLOR_ONGOING : statusStr === 'WORK STOPPAGE' ? 'FF' + COLOR_STOPPED : 'FF' + COLOR_FINISHED;
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
-            cell.font = { bold: true, size: 9, name: 'Calibri',
-                color: { argb: statusStr === 'ON-GOING' ? 'FF2E7D32' : statusStr === 'WORK STOPPAGE' ? 'FFE65100' : 'FF546E7A' } };
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        }
-        // monthly % columns
-        if (colIdx >= 8) {
-            const pv = typeof perc === 'number' ? perc : -1;
-            const bg = pv >= 90 ? 'FFE8F5E9' : pv >= 75 ? 'FFFFF9C4' : pv >= 0 ? 'FFFFEBEE' : 'FFFAFAFA';
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
-            cell.font = { size: 9, name: 'Calibri', color: { argb: pv >= 90 ? 'FF2E7D32' : pv >= 75 ? 'FFF57F17' : pv >= 0 ? 'FFC62828' : 'FFBDBDBD' } };
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        }
-    }
-    function applyTotalStyle(cell) {
-        cell.font = { bold: true, size: 11, name: 'Calibri' };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_TOTAL_BG } };
-        cell.alignment = { vertical: 'middle' };
-    }
-    function autoFitCols(ws, dataRows, minWidths) {
-        const numCols = minWidths.length;
-        const maxLens = minWidths.slice();
-        dataRows.forEach(row => {
-            row.forEach((val, i) => {
-                if (i < numCols) {
-                    const len = String(val === null || val === undefined ? '' : val).length;
-                    if (len > maxLens[i]) maxLens[i] = len;
-                }
-            });
-        });
-        ws.columns = maxLens.map(w => ({ width: Math.min(w + 2, 50) }));
-    }
-
-    // ── Column definitions ────────────────────────────────────────────────────
-    // Fixed cols: REGION | PROJECT | # | STATUS | DATE STARTED | DATE FINISHED | OVERALL % | WORK STOP DATE | Jan % | Feb % | ... (up to maxMonth)
-    const fixedHeaders  = ['REGION','PROJECT','#','STATUS','DATE STARTED','DATE FINISHED','OVERALL %','STOPPAGE DATE'];
-    const fixedWidths   = [22, 38, 5, 16, 14, 14, 12, 14];
-    const monthHeaders  = ALL_MONTHS.slice(0, maxMonth).map(m => m.substring(0,3).toUpperCase() + ' %');
-    const monthWidths   = monthHeaders.map(() => 9);
-    const COL_HEADERS   = [...fixedHeaders, ...monthHeaders];
-    const COL_WIDTHS    = [...fixedWidths, ...monthWidths];
-    const TOTAL_COLS    = COL_HEADERS.length;
-
-    // ── Build Summary sheet (monthly averages per region) ────────────────────
-    const summaryWs = wb.addWorksheet('Summary');
-
-    const EXCLUDED_REGIONS = ['CORPORATE', 'PLANT OPERATIONS'];
-    const sortedRegions = REGION_ORDER.filter(r => regionGroups[r] && !EXCLUDED_REGIONS.includes(r));
-    const otherRegions  = Object.keys(regionGroups).filter(r => !REGION_ORDER.includes(r) && !EXCLUDED_REGIONS.includes(r));
-    const allRegions    = [...sortedRegions, ...otherRegions];
-
-    // For each region × month: average compliance of all non-stoppage projects
-    function _regionMonthAvg(reg, mo) {
-        const projs = (regionGroups[reg] || []).filter(p => {
-            if (p.workStoppageDate && !p.workResumeDate) return false; // fully stopped
-            if (typeof isMonthBlacklistedForProject === 'function' &&
-                isMonthBlacklistedForProject(p, mo, selYear)) return false;
-            return true;
-        });
-        if (!projs.length) return null;
-        const vals = projs.map(p => _monthPerc(p, mo)).filter(v => v !== null);
-        return vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
-    }
-
-    // Build header: REGION | TOTAL PROJECTS | ON-GOING | WORK STOPPAGE | FINISHED | Jan Avg | Feb Avg | ...
-    const sumMonthLabels = ALL_MONTHS.slice(0, maxMonth).map(m => m.toUpperCase() + '\nAVERAGE');
-    const sumHdrData = ['REGION', 'TOTAL\nPROJECTS', 'ON-GOING', 'WORK\nSTOPPAGE', 'FINISHED', ...sumMonthLabels];
-    const TOTAL_SUM_COLS = sumHdrData.length;
-
-    // Title row
-    summaryWs.addRow([`ESH OVERALL SUMMARY — ${selYear}`]);
-    const titleCell = summaryWs.getCell('A1');
-    titleCell.font      = { bold: true, size: 14, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
-    titleCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_BANNER_BG } };
-    titleCell.alignment = { horizontal: 'left', vertical: 'middle' };
-    summaryWs.mergeCells(1, 1, 1, TOTAL_SUM_COLS);
-    summaryWs.getRow(1).height = 28;
-
-    summaryWs.addRow([]);
-
-    // Header row
-    const sumHdrRow = summaryWs.addRow(sumHdrData);
-    sumHdrRow.height = 30;
-    sumHdrRow.eachCell(cell => {
-        applyHeaderStyle(cell);
-        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-    });
-    sumHdrRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
-
-    // Helper: style a monthly avg cell
-    function _styleMonthAvgCell(cell, avg) {
-        if (avg === null) {
-            cell.value = '—';
-            cell.font      = { size: 10, name: 'Calibri', color: { argb: 'FFBDBDBD' } };
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-            return;
-        }
-        cell.value = avg + '%';
-        const bg = avg >= 90 ? 'FFC8E6C9' : avg >= 75 ? 'FFFFCC80' : 'FFFFCDD2';
-        const fg = avg >= 90 ? 'FF1B5E20' : avg >= 75 ? 'FFE65100' : 'FFC62828';
-        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
-        cell.font      = { bold: true, size: 10, name: 'Calibri', color: { argb: fg } };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-    }
-
-    let grandTotal = 0, grandOngoing = 0, grandStopped = 0, grandFinished = 0;
-    // For grand total row: average of all regions per month
-    const grandMonthSums   = new Array(maxMonth).fill(0);
-    const grandMonthCounts = new Array(maxMonth).fill(0);
-
-    allRegions.forEach(reg => {
-        const projs   = regionGroups[reg] || [];
-        const ongoing = projs.filter(p => _status(p) === 'ON-GOING').length;
-        const stopped = projs.filter(p => _status(p) === 'WORK STOPPAGE').length;
-        const finished= projs.filter(p => _status(p) === 'FINISHED').length;
-
-        const rowData = [reg, projs.length, ongoing, stopped, finished];
-        // placeholder values — we'll set cells manually for styling
-        for (let mo = 1; mo <= maxMonth; mo++) rowData.push('');
-
-        const row = summaryWs.addRow(rowData);
-        row.height = 18;
-        row.getCell(1).font = { bold: true, size: 10, name: 'Calibri' };
-        row.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
-        row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
-        row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
-        row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' };
-
-        for (let mo = 1; mo <= maxMonth; mo++) {
-            const avg = _regionMonthAvg(reg, mo);
-            _styleMonthAvgCell(row.getCell(5 + mo), avg);
-            if (avg !== null) {
-                grandMonthSums[mo - 1]   += avg;
-                grandMonthCounts[mo - 1] += 1;
-            }
-        }
-
-        grandTotal   += projs.length;
-        grandOngoing += ongoing;
-        grandStopped += stopped;
-        grandFinished+= finished;
-    });
-
-    // Grand total row
-    const grandRowData = ['ALL REGIONS', grandTotal, grandOngoing, grandStopped, grandFinished];
-    for (let mo = 1; mo <= maxMonth; mo++) grandRowData.push('');
-    const totRow = summaryWs.addRow(grandRowData);
-    totRow.height = 22;
-    [1,2,3,4,5].forEach(c => applyTotalStyle(totRow.getCell(c)));
-    totRow.getCell(1).font = { bold: true, size: 11, name: 'Calibri' };
-    for (let mo = 1; mo <= maxMonth; mo++) {
-        const grandAvg = grandMonthCounts[mo-1] > 0
-            ? Math.round(grandMonthSums[mo-1] / grandMonthCounts[mo-1])
-            : null;
-        const cell = totRow.getCell(5 + mo);
-        applyTotalStyle(cell);
-        _styleMonthAvgCell(cell, grandAvg);
-        if (grandAvg !== null) {
-            // Override font to bold for total row
-            const bg = grandAvg >= 90 ? 'FFC8E6C9' : grandAvg >= 75 ? 'FFFFCC80' : 'FFFFCDD2';
-            const fg = grandAvg >= 90 ? 'FF1B5E20' : grandAvg >= 75 ? 'FFE65100' : 'FFC62828';
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
-            cell.font = { bold: true, size: 11, name: 'Calibri', color: { argb: fg } };
-        }
-    }
-
-    // Column widths for summary sheet
-    summaryWs.getColumn(1).width = 26; // REGION
-    summaryWs.getColumn(2).width = 10; // TOTAL
-    summaryWs.getColumn(3).width = 10; // ON-GOING
-    summaryWs.getColumn(4).width = 12; // WORK STOPPAGE
-    summaryWs.getColumn(5).width = 10; // FINISHED
-    for (let mo = 1; mo <= maxMonth; mo++) {
-        summaryWs.getColumn(5 + mo).width = 11; // Jan Avg, Feb Avg, ...
-    }
-
-    // Freeze first col + header rows
-    summaryWs.views = [{ state: 'frozen', xSplit: 1, ySplit: 3, activeCell: 'B4' }];
-
-    // ── Per-region sheets ─────────────────────────────────────────────────────
-    allRegions.filter(r => !EXCLUDED_REGIONS.includes(r)).forEach(reg => {
-        const projs = (regionGroups[reg] || []).slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        if (!projs.length) return;
-
-        const sheetName = reg.length > 31 ? reg.substring(0, 31) : reg;
-        const ws = wb.addWorksheet(sheetName);
-
-        // Collect data rows for auto-fit
-        const allDataRows = [];
-
-        // ── Title / banner ────────────────────────────────────────────────────
-        ws.addRow([`📌 ${reg} — ESH OVERALL SUMMARY (${selYear})`]);
-        const rTitleCell = ws.getCell('A1');
-        rTitleCell.font      = { bold: true, size: 12, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
-        rTitleCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_BANNER_BG } };
-        rTitleCell.alignment = { horizontal: 'left', vertical: 'middle' };
-        ws.mergeCells(1, 1, 1, TOTAL_COLS);
-        ws.getRow(1).height = 24;
-
-        // ── Header row ────────────────────────────────────────────────────────
-        const hdrRow = ws.addRow(COL_HEADERS);
-        hdrRow.height = 22;
-        hdrRow.eachCell(cell => applyHeaderStyle(cell));
-
-        // ── Data rows ─────────────────────────────────────────────────────────
-        projs.forEach((p, idx) => {
-            const st   = _status(p);
-            const ov   = _perc(p);
-            const ovDisplay = ov !== null ? ov + '%' : '—';
-
-            const monthPercs = ALL_MONTHS.slice(0, maxMonth).map((_, mi) => {
-                const mp = _monthPerc(p, mi + 1);
-                return mp !== null ? mp + '%' : '—';
-            });
-
-            const rowData = [
-                reg,
-                p.name || '—',
-                idx + 1,
-                st,
-                _fmtDate(p.dateStarted),
-                p.dateFinished ? _fmtDate(p.dateFinished) : '—',
-                ovDisplay,
-                p.workStoppageDate ? _fmtDate(p.workStoppageDate) : '—',
-                ...monthPercs
-            ];
-            allDataRows.push(rowData);
-
-            const dataRow = ws.addRow(rowData);
-            dataRow.height = 16;
-            dataRow.eachCell((cell, colNum) => {
-                // pass numeric perc for color-coding
-                const percForCol = colNum === 7 ? ov
-                    : colNum >= 9 ? (typeof monthPercs[colNum - 9] === 'string' && monthPercs[colNum - 9] !== '—'
-                        ? parseInt(monthPercs[colNum - 9]) : -1)
-                    : null;
-                applyDataStyle(cell, colNum, st, percForCol);
-            });
-        });
-
-        // Region average footer row
-        const regPercs = projs.map(p => _perc(p)).filter(v => v !== null);
-        const regAvg   = regPercs.length > 0 ? Math.round(regPercs.reduce((a,b)=>a+b,0)/regPercs.length) : null;
-        const footerData = ['', 'REGION AVERAGE', '', '', '', '', regAvg !== null ? regAvg + '%' : '—', '', ...ALL_MONTHS.slice(0, maxMonth).map(() => '')];
-        const footerRow  = ws.addRow(footerData);
-        footerRow.height = 18;
-        ['A','B','C','D','E','F','G','H'].forEach((col, i) => applyTotalStyle(footerRow.getCell(col)));
-        if (regAvg !== null) {
-            const avgCell = footerRow.getCell(7);
-            const bg = regAvg >= 90 ? 'FFC8E6C9' : regAvg >= 75 ? 'FFFFCC80' : 'FFFFCDD2';
-            const fg = regAvg >= 90 ? 'FF1B5E20' : regAvg >= 75 ? 'FFE65100' : 'FFC62828';
-            avgCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
-            avgCell.font = { bold: true, size: 11, name: 'Calibri', color: { argb: fg } };
-        }
-
-        // Auto-fit
-        autoFitCols(ws, allDataRows, COL_WIDTHS);
-
-        // Freeze header rows (title + header = 2 rows)
-        ws.views = [{ state: 'frozen', ySplit: 2, activeCell: 'A3' }];
-    });
-
-    // ── Download ──────────────────────────────────────────────────────────────
-    try {
-        const buffer = await wb.xlsx.writeBuffer();
-        const blob   = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const now    = new Date();
-        const stamp  = now.toISOString().slice(0, 10);
-        const fname  = `ESH_Overall_Summary_${selYear}_${stamp}.xlsx`;
-        saveAs(blob, fname);
-        showToast(`✅ Exported: ${fname}`, 'success');
-    } catch(err) {
-        console.error('Excel export error:', err);
-        showToast('❌ Export failed. Check console for details.', 'error');
-    }
-}
-window.exportOverallExcel = exportOverallExcel;
 
 // os-project-modal backdrop click disabled — use × button to close
 
