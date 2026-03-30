@@ -14407,10 +14407,12 @@ function renderTabulation() {
 
                 REGIONS.forEach(reg => {
                 const CORPORATE_ALLOWED_TABS = ['overall', 'rates', 'exposures', 'medical', 'nov', 'nov-env', 'nov-monitoring', 'activities', 'dole']; // 'dole' included — CORPORATE region shown in DOLE Reportorial
-                if (reg === 'CORPORATE' && !CORPORATE_ALLOWED_TABS.includes(state.currentTab)) return;
+                const RESTRICTED_TABS_FOR_CORPORATE = ['audit', 'cshp', 'reg']; // audit, cshp, reg tabs — completely exclude CORPORATE (monitoring only)
+                if (reg === 'CORPORATE' && (!CORPORATE_ALLOWED_TABS.includes(state.currentTab) || RESTRICTED_TABS_FOR_CORPORATE.includes(state.currentTab))) return;
 
                 const PLANT_ALLOWED_TABS = ['overall', 'permits', 'emb', 'env-monitoring', 'env-monthly-report'];
-                if (reg === 'PLANT OPERATIONS' && !PLANT_ALLOWED_TABS.includes(state.currentTab)) return;
+                const RESTRICTED_TABS_FOR_PLANT = ['audit', 'cshp', 'reg']; // audit, cshp, reg tabs — completely exclude PLANT OPERATIONS
+                if (reg === 'PLANT OPERATIONS' && (!PLANT_ALLOWED_TABS.includes(state.currentTab) || RESTRICTED_TABS_FOR_PLANT.includes(state.currentTab))) return;
 
                 const projs = displayProjects.filter(p => p.region === reg);
                 
@@ -18290,6 +18292,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                 REGIONS.forEach(reg => {
                     if (reg === 'CORPORATE') return; // CORPORATE not shown in this tab
+                    if (reg === 'PLANT OPERATIONS') return; // PLANT OPERATIONS not shown in audit/cshp/reg tabs (monitoring only)
                     const projs = displayProjects.filter(p => p.region === reg);
                     if (projs.length === 0) return;
 
@@ -21719,8 +21722,8 @@ function buildTrendChartHTML(tabType) {
                 <option value="SOUTH LUZON">SOUTH LUZON</option>
                 <option value="NORTH LUZON">NORTH LUZON</option>
                 <option value="VISAYAS & MINDANAO">VISAYAS & MINDANAO</option>
-                <option value="PLANT OPERATIONS">PLANT OPERATIONS</option>
-                <option value="CORPORATE">CORPORATE</option>
+                ${['audit', 'cshp', 'reg'].includes(tabType) ? '' : '<option value="PLANT OPERATIONS">PLANT OPERATIONS</option>'}
+                ${['audit', 'cshp', 'reg'].includes(tabType) ? '' : '<option value="CORPORATE">CORPORATE</option>'}
               </select>
               <select id="trendProjectFilter_${tabType}" onchange="updateTrendChart('${tabType}')"
                       style="padding: 6px 12px; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; background: white; color: #1b5e20; cursor: pointer;">
@@ -21751,9 +21754,15 @@ function populateProjectFilter(tabType) {
         const regionSelId = id.replace('trendProjectFilter_', 'trendRegionFilter_');
         const regionSel = document.getElementById(regionSelId);
         const regionVal = regionSel ? regionSel.value : 'all';
-        const projects = regionVal === 'all'
+        let projects = regionVal === 'all'
             ? state.projects
             : state.projects.filter(p => p.region === regionVal);
+        
+        // Exclude PLANT OPERATIONS and CORPORATE for audit, cshp, reg tabs
+        if (suffix && ['audit', 'cshp', 'reg'].includes(suffix)) {
+            projects = projects.filter(p => p.region !== 'PLANT OPERATIONS' && p.region !== 'CORPORATE');
+        }
+        
         projectFilter.innerHTML = '<option value="all">All Projects</option>';
         projects.forEach(p => {
             const option = document.createElement('option');
@@ -21786,6 +21795,11 @@ function _doUpdateTrendChart(tabType) {
     }
     
     let filteredProjects = state.projects;
+    
+    // Exclude PLANT OPERATIONS and CORPORATE for audit, cshp, reg tabs
+    if (['audit', 'cshp', 'reg'].includes(tabType)) {
+        filteredProjects = filteredProjects.filter(p => p.region !== 'PLANT OPERATIONS' && p.region !== 'CORPORATE');
+    }
     
     if (regionFilter !== 'all') {
         filteredProjects = filteredProjects.filter(p => p.region === regionFilter);
