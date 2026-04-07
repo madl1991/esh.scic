@@ -4934,6 +4934,13 @@ debugCommands.help() - Show this help
         }
 
         function changeTab(t) {
+            // Auto-save any pending changes before switching tabs
+            if (window.RowSaveManager && window.RowSaveManager.hasDirty && window.RowSaveManager.hasDirty()) {
+                window.RowSaveManager.saveAllDirty().catch((e) => {
+                    console.warn('Auto-save on tab change failed:', e);
+                });
+            }
+            
             // Save scroll of current tab before switching
             const _mc = document.getElementById('main-content');
             if (_mc && state.currentTab) {
@@ -5266,7 +5273,7 @@ function updateAuditData(pName, qtr, field, val) {
                     }
                 }
             }
-            const _skipRenderTabs = ['cshp', 'reg', 'doe-permit', 'exposures', 'activities',
+            const _skipRenderTabs = ['cshp', 'reg', 'doe-permit', 'exposures',
                                      'dole', 'env-monthly-report', 'nov', 'nov-env', 'nov-monitoring',
                                      'medical', 'kpm', 'emb', 'permits', 'lta-registry', 'health-report',
                                      'audit', 'env-monitoring', 'osh-requirement', 'tabulation', 'got-monitoring'];
@@ -27440,6 +27447,10 @@ document.addEventListener('DOMContentLoaded', function() {
     window.appliancesSetField = function(key, fieldId, val) {
         if (!appliancesData[key]) appliancesData[key] = {};
         appliancesData[key][fieldId] = parseFloat(val) || 0;
+        // Re-render GOT monitoring to show real-time updates
+        if (typeof window.renderGotMonitoring === 'function') {
+            window.renderGotMonitoring();
+        }
     };
 
     window.appliancesSave = function(key, projName, regionRaw, month, building) {
@@ -30285,6 +30296,14 @@ const _eshRegionProjectIdx = {};
 function eshGetRegionKey(tabType, region) { return tabType + '|' + region; }
 
 function tabNavProject(tabType, region, delta) {
+    // Save any pending changes in the current project before switching to next project
+    if (window.RowSaveManager && window.RowSaveManager.hasDirty && window.RowSaveManager.hasDirty()) {
+        window.RowSaveManager.saveAllDirty().catch((e) => {
+            console.warn('Auto-save before project switch failed:', e);
+            showToast('⚠️ Auto-save failed. Your unsaved changes may be lost.', 'warning', 3000);
+        });
+    }
+    
     const key = _tabNavKey(tabType, region);
     const allProjects = (state && (state.filteredProjects || state.projects)) ? (state.filteredProjects || state.projects) : [];
     const regProjs = allProjects.filter(p => p.region === region);
