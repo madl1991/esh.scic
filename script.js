@@ -12546,7 +12546,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                             const statusBg   = e.status === 'Closed' ? '#e8f5e9' : e.status === 'Ongoing' ? '#fff3e0' : '#ffebee';
                             const classifLabel = e.incidentClassification || '—';
                             const personLabel  = e.injuredPersonName === 'N/A' ? '<em style="color:#aaa;">N/A</em>' : (e.injuredPersonName || '<em style="color:#aaa;">—</em>');
-                            const accidentDate = e.dateOfAccident || (e.dateReported ? `${e.dateReported} (reported)` : '—');
+                            const accidentDate = e.dateOfAccident || (e.dateReported ? `${e.dateReported}` : '—');
                             const aiirLabel    = e.aiirNo || '<em style="color:#aaa;">No AIIR No.</em>';
 
                             html += `<div class="lta-row-item" style="
@@ -26901,7 +26901,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (typeof showToast === 'function') showToast('🔒 No permission to delete here.', 'warning');
             return;
         }
-        if (row && typeof deleteEnvRowFromFirebase === 'function') deleteEnvRowFromFirebase('env_fuel_rows', row);
+        if (row && typeof deleteEnvRowFromFirebase === 'function') deleteEnvRowFromFirebase('env_fuel_rows', id);
         fuelData = fuelData.filter(r => r.id !== id);
         fuelRenderRegions();
         fuelUpdateSummary();
@@ -28919,7 +28919,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (typeof showToast === 'function') showToast('🔒 No permission to delete here.', 'warning');
             return;
         }
-        if (row && typeof deleteEnvRowFromFirebase === 'function') deleteEnvRowFromFirebase('env_water_rows', row);
+        if (row && typeof deleteEnvRowFromFirebase === 'function') deleteEnvRowFromFirebase('env_water_rows', id);
         waterData = waterData.filter(r => r.id !== id);
         waterRenderRegions();
         waterUpdateSummary();
