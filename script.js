@@ -3431,6 +3431,9 @@ debugCommands.help() - Show this help
                 ];
                 const _doleSelYr = _notifSelYr;
                 _doleAnnual.forEach(({ row, label, dlM, dlD }) => {
+                    // Skip if marked N/A for this project
+                    const _naKeyNotif = `dole_${row}__na`;
+                    if (project.vals[_naKeyNotif] === '1') return;
                     // Deadline is within the selected year
                     const isPastDue = currentYear > _doleSelYr ||
                         (currentYear === _doleSelYr && (currentMonth > dlM || (currentMonth === dlM && currentDay > dlD)));
@@ -6014,6 +6017,8 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             }
         } else {
             if (cat === 'dole' && (row === 'AEDR' || row === 'AMR')) {
+                const _naKeyAnnual = key + '__na';
+                if (proj.vals[_naKeyAnnual] === '1') { /* N/A — exempt from compliance */ return; }
                 total += 1;
                 if (proj.vals[key] && proj.vals[key][1]) filled++;
             } else {
@@ -15730,7 +15735,29 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 
                 if (isDole && (row === 'AEDR' || row === 'AMR')) {
                     const v = p.vals[key] ? (p.vals[key][1] ?? "") : "";
-                    html += `<td colspan="12" style="text-align: center;"><input type="date" value="${v}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${key}',1,this.value)" style="width: 180px;"></td>`;
+                    const _naKey = key + '__na';
+                    const _isNA = p.vals[_naKey] === '1';
+                    html += `<td colspan="12" style="text-align: center;">
+                        <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;margin-right:10px;"
+                               title="Check if this report is NOT required for this project (e.g. project less than 1 year old) — exempts from compliance tracking">
+                            <input type="checkbox" ${_isNA ? 'checked' : ''} ${inputsEditable ? '' : 'disabled'}
+                                onchange="(function(){
+                                    var proj = state.projects.find(function(x){return x.name==='${p.name.replace(/'/g,"\\'")}';});
+                                    if(!proj) return;
+                                    if(!proj.vals) proj.vals={};
+                                    proj.vals['${_naKey}'] = this.checked ? '1' : '';
+                                    if(window.RowSaveManager) window.RowSaveManager.markDirty('${p.name.replace(/'/g,"\\'")}','${_naKey}');
+                                    saveToFirebase();
+                                    render();
+                                }).call(this)"
+                                style="cursor:pointer;accent-color:#e65100;">
+                            <span style="font-size:0.7rem;font-weight:700;color:${_isNA ? '#e65100' : '#888'};white-space:nowrap;">N/A</span>
+                        </label>
+                        <input type="date" value="${_isNA ? '' : v}" ${inputsEditable && !_isNA ? '' : 'disabled'}
+                            oninput="updateVal('${p.name}','${key}',1,this.value)"
+                            style="width:180px;${_isNA ? 'background:#f5f5f5;color:#aaa;border:1px solid #ddd;' : ''}">
+                        ${_isNA ? '<span style="font-size:0.68rem;color:#e65100;margin-left:8px;"><i class="fas fa-info-circle"></i> Exempt — not required for this project</span>' : ''}
+                    </td>`;
                 } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
                     // ── CORPORATE Training Conducted: manual input (no training calendar to source from) ──
                     if (row === 'Training Conducted' && p.region === 'CORPORATE') {
@@ -16495,24 +16522,41 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 var stopped = isProjectOnStoppage(proj);
                                 var dis = (stopped || !canEdit) ? 'disabled' : '';
                                 var k = 'dole_' + rd.row;
-                                var v = proj.vals[k] ? (proj.vals[k][1] || '') : '';
-                                var overdue = !v && passed;
-                                var bg  = stopped ? '#f5f5f5' : v ? '#c8e6c9' : overdue ? '#ffcdd2' : '#f5f5f5';
-                                var bdr = stopped ? '#e0e0e0' : v ? '#a5d6a7' : overdue ? '#ef9a9a' : '#e0e0e0';
-                                var clr = stopped ? '#9e9e9e' : v ? '#2e7d32' : overdue ? '#c62828' : '#9e9e9e';
+                                var naKey = k + '__na';
+                                var isNA = (proj.vals[naKey] === '1');
+                                var v = (!isNA && proj.vals[k]) ? (proj.vals[k][1] || '') : '';
+                                var overdue = !v && passed && !isNA;
+                                var bg  = stopped ? '#f5f5f5' : isNA ? '#fff8e1' : v ? '#c8e6c9' : overdue ? '#ffcdd2' : '#f5f5f5';
+                                var bdr = stopped ? '#e0e0e0' : isNA ? '#ffc107' : v ? '#a5d6a7' : overdue ? '#ef9a9a' : '#e0e0e0';
+                                var clr = stopped ? '#9e9e9e' : isNA ? '#e65100' : v ? '#2e7d32' : overdue ? '#c62828' : '#9e9e9e';
                                 var pnEsc = proj.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-                                var tdStyle = 'padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;' + (stopped ? 'background:#fafafa;opacity:0.65;' : '');
+                                var pnSafeNA = proj.name.replace(/[^a-zA-Z0-9]/g,'_');
+                                var tdStyle = 'padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;' + (stopped ? 'background:#fafafa;opacity:0.65;' : isNA ? 'background:#fff8e1;' : '');
                                 var inStyle = 'width:100%;border:1px solid ' + bdr + ';border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:700;background:' + bg + ';color:' + clr + ';';
                                 var cell;
                                 if (stopped) {
                                     cell = '<div style="font-size:0.62rem;color:#9e9e9e;text-align:center;padding:4px;font-style:italic;"><i class="fas fa-ban"></i> Stopped</div>';
                                 } else {
                                     var safeName = proj.name.replace(/[^a-zA-Z0-9]/g,'_');
-                                    cell = '<input type="date" value="' + v + '" ' + dis
+                                    var naCheckbox = '<label style="display:flex;align-items:center;gap:4px;margin-bottom:4px;cursor:pointer;" title="Mark N/A if this report is not required for this project (e.g. less than 1 year old) — exempts from compliance">'
+                                        + '<input type="checkbox" id="dole-na-' + rd.row + '-' + pnSafeNA + '" ' + (isNA ? 'checked' : '') + ' ' + (canEdit ? '' : 'disabled')
+                                        + ' onchange="(function(cb){'
+                                        + 'var proj=state.projects.find(function(x){return x.name===\'' + pnEsc + '\';});'
+                                        + 'if(!proj)return;'
+                                        + 'if(!proj.vals)proj.vals={};'
+                                        + 'proj.vals[\'' + naKey + '\']=cb.checked?\'1\':\'\';'
+                                        + 'if(window.RowSaveManager)window.RowSaveManager.markDirty(\'' + pnEsc + '\',\'' + naKey + '\');'
+                                        + 'saveToFirebase();render();'
+                                        + '})(this)" style="cursor:pointer;accent-color:#e65100;margin:0;flex-shrink:0;width:14px;height:14px;">'
+                                        + '<span style="font-size:0.65rem;font-weight:800;color:' + (isNA ? '#e65100' : '#999') + ';margin:0;line-height:1;">N/A</span>'
+                                        + '</label>';
+                                    var dateInput = '<input type="date" value="' + v + '" ' + (isNA ? 'disabled' : dis)
                                         + ' name="dolemod-' + rd.row + '-' + safeName + '"'
                                         + ' data-pname="' + pnEsc + '" data-row="' + rd.row + '" data-moIdx="1"'
-                                        + ' style="' + inStyle + '"'
+                                        + ' style="' + inStyle + (isNA ? 'background:#f5f5f5;color:#bbb;' : '') + '"'
                                         + ' oninput="updateVal(\'' + pnEsc + '\',\'dole_' + rd.row + '\',1,this.value);_refreshDateCell(this)">';
+                                    cell = naCheckbox + dateInput
+                                        + (isNA ? '<div style="font-size:0.6rem;color:#e65100;margin-top:3px;"><i class="fas fa-info-circle"></i> Exempt from compliance</div>' : '');
                                 }
                                 return '<td style="' + tdStyle + '">' + cell + '</td>';
                             }).join('');
