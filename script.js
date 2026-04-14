@@ -17369,6 +17369,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 } // end env-monthly-report
 
                 if (state.currentTab === 'kpm') {
+                    // Override displayProjects for KPM — must show ALL projects to ensure accurate status across regions
+                    const kpmDisplayProjects = state.projects;
+                    
                     window.KPM_ESH_ROWS = [
                         { id:'e1',  kpm:'1', wp:'ESH Program Implementation ', del:'ESH Meetings',
                           dw:0.10, measure:'Conduct of ESH Meetings (ESH and ESH Committee)',
@@ -17893,7 +17896,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     // ── KPM: region banners → monthly list (per region) → dialog ────
                     function kpmRegionMonthScore(reg, mo) {
-                        var projs = displayProjects.filter(function(p){ return p.region === reg && !kpmIsNA(p) && !isProjectOnStoppage(p) && !isProjectNA(p); });
+                        var projs = kpmDisplayProjects.filter(function(p){ return p.region === reg && !kpmIsNA(p) && !isProjectOnStoppage(p) && !isProjectNA(p); });
                         if (!projs.length) return null;
                         var grand = 0, hasAny = false;
                         KPM_ESH_ROWS.forEach(function(row) {
@@ -17919,7 +17922,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     REGIONS.forEach(function(reg) {
                         if (reg === 'CORPORATE' || reg === 'PLANT OPERATIONS') return;
                         // Exclude work-stoppage and N/A projects from KPM entirely (unless resumed)
-                        var projs = displayProjects.filter(function(p) { return p.region === reg && !isProjectOnStoppage(p) && !isProjectNA(p); });
+                        var projs = kpmDisplayProjects.filter(function(p) { return p.region === reg && !isProjectOnStoppage(p) && !isProjectNA(p); });
                         if (!projs.length) return;
                         // Active projects (not N/A) — used for computations and modal
                         var activeProjs = projs.filter(function(p) { return !kpmIsNA(p) && !isProjectOnStoppage(p) && !isProjectNA(p); });
@@ -17927,11 +17930,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var isCollapsed = isRegionCollapsed(reg);
                         var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
 
-                        // Count how many months have been submitted (any ACTIVE project in region has dateSubmitted)
+                        // Count how many months have been submitted (check ALL projects in region, not just filtered ones)
+                        // This ensures submission status is accurate even when user filters are applied
                         var submittedCount = 0;
                         KPM_MONTHS.forEach(function(mo, mi) {
                             if (mi > curMoIdx) return;
-                            var anySubm = activeProjs.some(function(p){ return p.vals['kpm_v3_' + mo + '_dateSubmitted']; });
+                            var allRegionProjs = state.projects.filter(function(p){ return p.region === reg && !isProjectOnStoppage(p) && !isProjectNA(p); });
+                            var anySubm = allRegionProjs.some(function(p){ return p.vals['kpm_v3_' + mo + '_dateSubmitted']; });
                             if (anySubm) submittedCount++;
                         });
 
@@ -17955,8 +17960,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         KPM_MONTHS.forEach(function(mo, mi) {
                             if (mi > curMoIdx) return;
                             var score = kpmRegionMonthScore(reg, mo);
-                            var anySubm = activeProjs.some(function(p){ return p.vals['kpm_v3_' + mo + '_dateSubmitted']; });
-                            var anyData = activeProjs.some(function(p){ return KPM_ESH_ROWS.some(function(r){ return p.vals['kpm_v3_' + mo + '_' + r.id]; }); });
+                            // Check if ANY project in this region (including other users' projects) submitted
+                            var allRegionProjs = state.projects.filter(function(p){ return p.region === reg && !isProjectOnStoppage(p) && !isProjectNA(p); });
+                            var anySubm = allRegionProjs.some(function(p){ return p.vals['kpm_v3_' + mo + '_dateSubmitted']; });
+                            var anyData = allRegionProjs.some(function(p){ return KPM_ESH_ROWS.some(function(r){ return p.vals['kpm_v3_' + mo + '_' + r.id]; }); });
                             if (!anySubm && !anyData) return; // skip months with zero data
                             hasAnyRow = true;
 
@@ -17966,7 +17973,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var submFg = anySubm ? '#2e7d32' : '#c62828';
                             // Collect unique submitted dates from active projects
                             var submDates = activeProjs.map(function(p){ return p.vals['kpm_v3_' + mo + '_dateSubmitted'] || ''; }).filter(Boolean);
-                            var submLabel = submDates.length ? submDates[0] + (submDates.length > 1 ? ' (+' + (submDates.length-1) + ')' : '') : 'Not submitted';
+                            var uniqueDates = submDates.filter(function(date, index){ return submDates.indexOf(date) === index; }); // Get unique dates only
+                            var submLabel = anySubm ? (uniqueDates.length ? uniqueDates[0] : '✓ Submitted') : 'Not submitted';
 
                             html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
                                 + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
@@ -18062,9 +18070,16 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         modal.setAttribute('data-canedit', canEdit ? '1' : '0');
                         modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.58);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;';
 
-                        // Date Submitted for active month (stored on first project in region)
+                        // Date Submitted for active month (search all projects in region to find it)
                         var _modalDateKey  = 'kpm_v3_' + activeMo + '_dateSubmitted';
-                        var _modalDateVal  = (regProjs[0] && regProjs[0].vals && regProjs[0].vals[_modalDateKey]) || '';
+                        var _allRegionProjs = state.projects.filter(function(p){ return p.region === reg && !isProjectOnStoppage(p) && !isProjectNA(p); });
+                        var _modalDateVal  = '';
+                        for(var _i=0; _i<_allRegionProjs.length; _i++) {
+                            if (_allRegionProjs[_i].vals && _allRegionProjs[_i].vals[_modalDateKey]) {
+                                _modalDateVal = _allRegionProjs[_i].vals[_modalDateKey];
+                                break;
+                            }
+                        }
                         var _modalProjSafe = regProjs[0] ? regProjs[0].name.replace(/\\/g,'\\\\').replace(/'/g,"\\'") : '';
                         var _regSafe = reg.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
                         var _regKeySafe = regKey.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -18097,7 +18112,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<i class="fas fa-calendar-check" style="color:' + (_modalDateVal?'#2e7d32':'#c62828') + ';font-size:0.7rem;"></i>'
                             + '<span style="font-weight:700;font-size:0.64rem;color:#444;">Date Submitted:</span>'
                             + '<input type="date" id="kpm-modal-date-submitted" value="' + _modalDateVal + '" ' + (canEdit ? '' : 'disabled')
-                            + ' oninput="(function(el,v){var p=state.projects.find(function(x){return x.name===\'' + _modalProjSafe + '\';});if(p){if(!p.vals)p.vals={};p.vals[\'' + _modalDateKey + '\']=v;if(typeof markPendingSync===\'function\')markPendingSync();}var ok=!!v;el.style.background=ok?\'#c8e6c9\':\'#ffcdd2\';el.style.color=ok?\'#2e7d32\':\'#c62828\';el.style.borderColor=ok?\'#a5d6a7\':\'#ef9a9a\';var ico=el.parentElement.querySelector(\'i\');if(ico)ico.style.color=ok?\'#2e7d32\':\'#c62828\';})(this,this.value)"'
+                            + ' oninput="(function(el,v){var regProjs=state.projects.filter(function(p){return p.region===\'' + _regSafe + '\' && p.status!==\'work-stoppage\' && !(p.vals && p.vals[\'kpm_na\']===\'1\');});regProjs.forEach(function(p){if(!p.vals)p.vals={};p.vals[\'' + _modalDateKey + '\']=v;});if(typeof markPendingSync===\'function\')markPendingSync();var ok=!!v;el.style.background=ok?\'#c8e6c9\':\'#ffcdd2\';el.style.color=ok?\'#2e7d32\':\'#c62828\';el.style.borderColor=ok?\'#a5d6a7\':\'#ef9a9a\';var ico=el.parentElement.querySelector(\'i\');if(ico)ico.style.color=ok?\'#2e7d32\':\'#c62828\';})(this,this.value)"'
                             + ' style="border:1px solid ' + (_modalDateVal?'#a5d6a7':'#ef9a9a') + ';border-radius:4px;padding:3px 7px;font-size:0.67rem;font-weight:700;background:' + (_modalDateVal?'#c8e6c9':'#ffcdd2') + ';color:' + (_modalDateVal?'#2e7d32':'#c62828') + ';cursor:' + (canEdit?'pointer':'not-allowed') + ';">'
                             + '</label>'
                             + '<span style="font-size:0.6rem;color:#888;margin-left:auto;white-space:nowrap;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll table horizontally</span>'
