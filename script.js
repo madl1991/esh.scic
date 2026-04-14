@@ -7851,12 +7851,12 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const totalDO  = activeProjs.reduce((s,p)=>s+ytdSum(p,'medical_Dangerous Occurrences'),0);
             const totalNM  = activeProjs.reduce((s,p)=>s+ytdSum(p,'activities_No. of Identified Near-Miss'),0);
 
-            // Compliance
-            const percVals = activeProjs.map(p => typeof getPerc === 'function' ? getPerc(p) : null).filter(v=>v!==null);
+            // Compliance — use ongoingProjs to exclude finished projects
+            const percVals = ongoingProjs.map(p => typeof getPerc === 'function' ? getPerc(p) : null).filter(v=>v!==null);
             const grandAvg = percVals.length ? Math.round(percVals.reduce((s,v)=>s+v,0)/percVals.length) : null;
-            const compliantCount   = activeProjs.filter(p=>{ const v=typeof getPerc==='function'?getPerc(p):null; return v!==null&&v>=90; }).length;
-            const partialCount     = activeProjs.filter(p=>{ const v=typeof getPerc==='function'?getPerc(p):null; return v!==null&&v>=75&&v<90; }).length;
-            const nonCompliantCount= activeProjs.filter(p=>{ const v=typeof getPerc==='function'?getPerc(p):null; return v!==null&&v<75; }).length;
+            const compliantCount   = ongoingProjs.filter(p=>{ const v=typeof getPerc==='function'?getPerc(p):null; return v!==null&&v>=90; }).length;
+            const partialCount     = ongoingProjs.filter(p=>{ const v=typeof getPerc==='function'?getPerc(p):null; return v!==null&&v>=75&&v<90; }).length;
+            const nonCompliantCount= ongoingProjs.filter(p=>{ const v=typeof getPerc==='function'?getPerc(p):null; return v!==null&&v<75; }).length;
 
             // Frequency & Severity Rates (per 1,000,000 manhours)
             const cumMH = activeProjs.reduce((s,p)=>{
@@ -7885,7 +7885,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
 
             // ── KPI Summary Cards (2 rows × 5 cards) ─────────────────────────
             const kpiCards = [
-                { label:'TOTAL PROJECTS',       val:String(activeProjs.length),  sub:'All regions',         color:[27,94,32],  bg:[232,245,233] },
+                { label:'TOTAL PROJECTS',       val:String(ongoingProjs.length),  sub:'Ongoing',         color:[27,94,32],  bg:[232,245,233] },
                 { label:'TOTAL MANPOWER',        val:_num(totalMp),               sub:'Current month',       color:[33,101,174], bg:[227,242,253] },
                 { label:'MANHOURS (YTD)',         val:_num(totalMH),               sub:'Exposed this year',   color:[0,105,92],  bg:[224,242,241] },
                 { label:'COMPLIANT ≥90%',        val:String(compliantCount),      sub:'Projects',            color:[27,94,32],  bg:[200,230,201] },
@@ -7946,7 +7946,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             doc.text('REGIONAL BREAKDOWN', _PML, curY); curY += 4;
 
             const regBody = REGIONS_ORDER.map(reg => {
-                const rp = activeProjs.filter(p=>p.region===reg);
+                const rp = ongoingProjs.filter(p=>p.region===reg);
                 if (!rp.length) return null;
                 const rMH  = rp.reduce((s,p)=>s+ytdSum(p,'exposures_Total Exposed Manhour'),0);
                 const rMP  = rp.reduce((s,p)=>{const x=parseFloat(_v(p,'exposures_Total Manpower',curMonth));return s+(isNaN(x)?0:x);},0);
@@ -7966,7 +7966,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             // Totals row
             regBody.push([
                 'GRAND TOTAL',
-                String(activeProjs.length),
+                String(ongoingProjs.length),
                 String(ongoingProjs.length),
                 String(stoppedProjs.length),
                 _num(totalMp),
@@ -7976,7 +7976,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 totalFa>0?String(totalFa):'0',
                 totalDL>0?String(totalDL):'0',
                 grandAvg!==null?grandAvg+'%':'—',
-                String(compliantCount)+'/'+activeProjs.length
+                String(compliantCount)+'/'+ongoingProjs.length
             ]);
 
             doc.autoTable({
@@ -8245,9 +8245,10 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             doc.setFont('helvetica','normal'); doc.setFontSize(8);
             doc.text(moLabel + '  ·  As of ' + _today(), _PML+6, curY+12);
 
-            // Compute overall average across all active non-CORPORATE/PLANT projects
+            // Compute overall average across ongoing non-CORPORATE/PLANT projects
             const activeProjs = projs.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS');
-            const percVals = activeProjs.map(p => getProjCompliance(p, monthIdx)).filter(v => v !== null);
+            const ongoingProjs = activeProjs.filter(p => !p.dateFinished && p.status !== 'work-stoppage');
+            const percVals = ongoingProjs.map(p => getProjCompliance(p, monthIdx)).filter(v => v !== null);
             const grandAvg = percVals.length ? Math.round(percVals.reduce((s,v)=>s+v,0)/percVals.length) : null;
             const avgColor = grandAvg !== null ? (grandAvg >= 90 ? [152,255,152] : grandAvg >= 75 ? [255,235,150] : [255,170,170]) : [200,200,200];
             doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(...avgColor);
@@ -8257,9 +8258,9 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             // ── Summary cards (overall + per region) ─────────────────────────
             const cardData = [];
             // Grand total card
-            cardData.push({ label:'ALL REGIONS', count: activeProjs.length, avg: grandAvg });
+            cardData.push({ label:'ALL REGIONS', count: ongoingProjs.length, avg: grandAvg });
             REGIONS_ORDER.forEach(reg => {
-                const rp = activeProjs.filter(p => p.region === reg);
+                const rp = ongoingProjs.filter(p => p.region === reg);
                 const rv = rp.map(p => getProjCompliance(p, monthIdx)).filter(v => v !== null);
                 const ra = rv.length ? Math.round(rv.reduce((s,v)=>s+v,0)/rv.length) : null;
                 cardData.push({ label: reg, count: rp.length, avg: ra });
@@ -16489,7 +16490,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 var dis = (stopped || !canEdit) ? 'disabled' : '';
                                 var k = 'dole_' + rd.row;
                                 var v = proj.vals[k] ? (proj.vals[k][1] || '') : '';
-                                var overdue = !v && passed;
+                                var naKey = 'dole_' + rd.row + '_na';
+                                var isNA = proj.vals[naKey] ? proj.vals[naKey][1] || false : false;
+                                var overdue = !v && !isNA && passed;
                                 var bg  = stopped ? '#f5f5f5' : v ? '#c8e6c9' : overdue ? '#ffcdd2' : '#f5f5f5';
                                 var bdr = stopped ? '#e0e0e0' : v ? '#a5d6a7' : overdue ? '#ef9a9a' : '#e0e0e0';
                                 var clr = stopped ? '#9e9e9e' : v ? '#2e7d32' : overdue ? '#c62828' : '#9e9e9e';
@@ -16501,11 +16504,22 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     cell = '<div style="font-size:0.62rem;color:#9e9e9e;text-align:center;padding:4px;font-style:italic;"><i class="fas fa-ban"></i> Stopped</div>';
                                 } else {
                                     var safeName = proj.name.replace(/[^a-zA-Z0-9]/g,'_');
-                                    cell = '<input type="date" value="' + v + '" ' + dis
+                                    
+                                    // ── N/A Checkbox Permission Logic ──────────────────────────────────
+                                    // Only the assigned superintendent for this project's region can edit
+                                    var _cbDisabled = !canEdit;
+                                    var _cbCursor = _cbDisabled ? 'not-allowed' : 'pointer';
+                                    var _cbOpacity = _cbDisabled ? '0.5' : '1';
+                                    var _cbTitle = _cbDisabled ? 'Only the region superintendent can change this' : 'Project less than 1 year old - not required by DOLE';
+                                    
+                                    var naCheckbox = '<input type="checkbox" ' + (_cbDisabled ? 'disabled' : '') + ' ' + (isNA ? 'checked' : '') + ' style="margin-right:6px;cursor:' + _cbCursor + ';width:16px;height:16px;opacity:' + _cbOpacity + ';" title="' + _cbTitle + '" data-pname="' + pnEsc + '" data-row="' + rd.row + '" class="dole-na-checkbox" ' + (_cbDisabled ? '' : 'onchange="(function(e){var pn = e.target.dataset.pname; var row = e.target.dataset.row; var isChecked = e.target.checked; updateVal(pn, \'dole_\' + row + \'_na\', 1, isChecked); var dateInput = e.target.parentElement.querySelector(\'input[type=date]\'); if(dateInput) { dateInput.disabled = isChecked; dateInput.style.opacity = isChecked ? \'0.5\' : \'1\'; dateInput.style.background = isChecked ? \'#efefef\' : \'#c8e6c9\'; } })(event)"') + ' />';
+                                    
+                                    var dateInput = '<input type="date" value="' + v + '" ' + (dis || isNA ? 'disabled' : '')
                                         + ' name="dolemod-' + rd.row + '-' + safeName + '"'
                                         + ' data-pname="' + pnEsc + '" data-row="' + rd.row + '" data-moIdx="1"'
-                                        + ' style="' + inStyle + '"'
+                                        + ' style="' + inStyle + (isNA ? 'opacity:0.5;background:#efefef;' : '') + '"'
                                         + ' oninput="updateVal(\'' + pnEsc + '\',\'dole_' + rd.row + '\',1,this.value);_refreshDateCell(this)">';
+                                    cell = '<div style="display:flex;align-items:center;">' + naCheckbox + dateInput + '</div>';
                                 }
                                 return '<td style="' + tdStyle + '">' + cell + '</td>';
                             }).join('');
@@ -17856,7 +17870,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var submFg = anySubm ? '#2e7d32' : '#c62828';
                             // Collect unique submitted dates from active projects
                             var submDates = activeProjs.map(function(p){ return p.vals['kpm_v3_' + mo + '_dateSubmitted'] || ''; }).filter(Boolean);
-                            var submLabel = submDates.length ? submDates[0] + (submDates.length > 1 ? ' (+' + (submDates.length-1) + ')' : '') : 'Not submitted';
+                            var submLabel = submDates.length ? submDates[0] : 'Not submitted';
 
                             html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
                                 + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
@@ -23392,6 +23406,14 @@ function setupAuthObserver() {
                 else if (userInfo.role === 'pco') roleIcon = 'fa-leaf';
                 const roleLabel = state.currentUser.displayName || (state.isAdmin ? 'ESH Admin' : userInfo.displayName);
                 
+            // ── Hide export buttons for superintendent & PCO ────────────────────
+            if (state.userRole === 'superintendent' || state.userRole === 'pco') {
+                const pExportBtn = document.getElementById('p-export-excel-btn');
+                const envExportBtn = document.getElementById('env-export-pdf-btn');
+                if (pExportBtn) pExportBtn.style.display = 'none';
+                if (envExportBtn) envExportBtn.style.display = 'none';
+            }
+            // ────────────────────────────────────────────────────────────────────
                 const nameDiv = userBadge.querySelector('.name');
                 if (nameDiv) {
                     nameDiv.innerHTML = `
@@ -26753,23 +26775,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ─── Delete a single env row document from Firestore ─────────────────────────
     async function deleteEnvRowFromFirebase(colName, row) {
-        if (!window.firebaseDb || !window.firebase || !row?.id) return;
+        if (!window.firebaseDb || !window.firebase || !row?.id) {
+            throw new Error('Firebase not initialized or missing row ID');
+        }
         // Role guard: same as saveEnvRowToFirebase
         const _delEmail = window.firebaseAuth?.currentUser?.email;
         const _delInfo  = (typeof UserAccounts !== 'undefined') ? UserAccounts.getUserInfo(_delEmail) : null;
         if (_delInfo) {
             const _role = _delInfo.role;
             if (!['pco', 'envi_head', 'admin'].includes(_role)) {
-                console.warn(`🔒 deleteEnvRowFromFirebase: blocked — role "${_role}"`);
-                return;
+                const msg = `🔒 deleteEnvRowFromFirebase: blocked — role "${_role}"`;
+                console.warn(msg);
+                throw new Error(msg);
             }
             if (_role === 'pco' && row.region && row.region !== _delInfo.region) {
-                console.warn(`🔒 deleteEnvRowFromFirebase: blocked — PCO region mismatch`);
-                return;
+                const msg = `🔒 deleteEnvRowFromFirebase: blocked — PCO region mismatch`;
+                console.warn(msg);
+                throw new Error(msg);
             }
             if (_role === 'envi_head' && row.region && !['PLANT OPERATIONS', 'CORPORATE'].includes(row.region)) {
-                console.warn(`🔒 deleteEnvRowFromFirebase: blocked — envi_head region mismatch`);
-                return;
+                const msg = `🔒 deleteEnvRowFromFirebase: blocked — envi_head region mismatch`;
+                console.warn(msg);
+                throw new Error(msg);
             }
         }
         try {
@@ -26781,6 +26808,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(`🗑 deleteEnvRowFromFirebase: deleted row ${rowId} from ${colName}`);
         } catch(e) {
             console.warn(`deleteEnvRowFromFirebase (${colName}) failed:`, e.message);
+            throw e;
         }
     }
     window.deleteEnvRowFromFirebase = deleteEnvRowFromFirebase;
@@ -26901,10 +26929,22 @@ document.addEventListener('DOMContentLoaded', function() {
             if (typeof showToast === 'function') showToast('🔒 No permission to delete here.', 'warning');
             return;
         }
-        if (row && typeof deleteEnvRowFromFirebase === 'function') deleteEnvRowFromFirebase('env_fuel_rows', id);
-        fuelData = fuelData.filter(r => r.id !== id);
-        fuelRenderRegions();
-        fuelUpdateSummary();
+        if (row && typeof deleteEnvRowFromFirebase === 'function') {
+            deleteEnvRowFromFirebase('env_fuel_rows', id).then(() => {
+                // Only remove from local array AFTER Firebase deletion succeeds
+                fuelData = fuelData.filter(r => r.id !== id);
+                fuelRenderRegions();
+                fuelUpdateSummary();
+                if (typeof showToast === 'function') showToast('🗑 Fuel entry deleted.', 'success');
+            }).catch((err) => {
+                if (typeof showToast === 'function') showToast('❌ Failed to delete entry: ' + err.message, 'error');
+            });
+        } else {
+            // Fallback if deleteEnvRowFromFirebase is not available
+            fuelData = fuelData.filter(r => r.id !== id);
+            fuelRenderRegions();
+            fuelUpdateSummary();
+        }
     };
 
     window.fuelToggleRegion = function(regionRaw) {
@@ -27915,6 +27955,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const _ENV_TABS = ['elec','water','waste','appl','fuel'];
 
     window.openEnvPdfModal = function() {
+        if (state.userRole === 'superintendent' || state.userRole === 'pco') {
+            showToast('🔒 You do not have permission to export Environmental Monitoring data.', 'warning');
+            return;
+        }
+        
         const yr = (typeof state !== 'undefined' && state.selectedYear) ? state.selectedYear : new Date().getFullYear();
         const lbl = document.getElementById('envpdf-year-label');
         if (lbl) lbl.textContent = yr;
@@ -28919,10 +28964,22 @@ document.addEventListener('DOMContentLoaded', function() {
             if (typeof showToast === 'function') showToast('🔒 No permission to delete here.', 'warning');
             return;
         }
-        if (row && typeof deleteEnvRowFromFirebase === 'function') deleteEnvRowFromFirebase('env_water_rows', id);
-        waterData = waterData.filter(r => r.id !== id);
-        waterRenderRegions();
-        waterUpdateSummary();
+        if (row && typeof deleteEnvRowFromFirebase === 'function') {
+            deleteEnvRowFromFirebase('env_water_rows', id).then(() => {
+                // Only remove from local array AFTER Firebase deletion succeeds
+                waterData = waterData.filter(r => r.id !== id);
+                waterRenderRegions();
+                waterUpdateSummary();
+                if (typeof showToast === 'function') showToast('💧 Water entry deleted.', 'success');
+            }).catch((err) => {
+                if (typeof showToast === 'function') showToast('❌ Failed to delete entry: ' + err.message, 'error');
+            });
+        } else {
+            // Fallback if deleteEnvRowFromFirebase is not available
+            waterData = waterData.filter(r => r.id !== id);
+            waterRenderRegions();
+            waterUpdateSummary();
+        }
     };
 
     window.waterToggleRegion = function(regionRaw) {
@@ -33787,6 +33844,11 @@ function osCloseModal() {
 
 // ── ESH Personnel Monitoring — Export to Excel (ExcelJS) ─────────────────────
 async function exportPersonnelExcel() {
+    if (state.userRole === 'superintendent' || state.userRole === 'pco') {
+        showToast('🔒 You do not have permission to export ESH Personnel data.', 'warning');
+        return;
+    }
+    
     if (typeof ExcelJS === 'undefined') {
         showToast('❌ Excel library not loaded. Refresh and try again.', 'error');
         return;
