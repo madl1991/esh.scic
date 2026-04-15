@@ -16263,7 +16263,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var projs = displayProjects.filter(function(p){ return p.region === reg; });
                         if (!projs.length) return;
                         // Active (non-stoppage) projects — used for compliance counting
-                        var activeProjs = projs.filter(function(p){ return !isProjectOnStoppage(p); });
+                        var activeProjs = projs.filter(function(p){ return !isProjectOnStoppage(p) && !p.dateFinished; });
                         var canEditReg = state.isEditing && UserAccounts.canEdit(state.currentUser && state.currentUser.email, reg) && UserAccounts.canEditTab(state.currentUser && state.currentUser.email, 'dole');
                         var isCollapsed = isRegionCollapsed(reg);
                         var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
@@ -16367,7 +16367,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     window.openDoleDialog = function(regKey, reg, month, editMode) {
                         var selYear  = state.selectedYear || new Date().getFullYear();
                         var curMoIdx = new Date().getMonth();
-                        var regProjs = (state.filteredProjects || state.projects).filter(function(p){ return p.region === reg; });
+                        var regProjs = (state.filteredProjects || state.projects).filter(function(p){ return p.region === reg && !p.dateFinished; });
                         if (!regProjs.length) { if (typeof showToast === 'function') showToast('No projects in ' + reg, 'info'); return; }
 
                         var isNew = !month;
@@ -16838,7 +16838,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var projs = displayProjects.filter(function(p){ return p.region === reg; });
                         if (!projs.length) return;
                         // Active (non-stoppage) projects for compliance counting
-                        var activeProjs = projs.filter(function(p){ return !isProjectOnStoppage(p); });
+                        var activeProjs = projs.filter(function(p){ return !isProjectOnStoppage(p) && !p.dateFinished; });
                         var canEditReg = state.isEditing && UserAccounts.canEdit(state.currentUser&&state.currentUser.email, reg) && UserAccounts.canEditTab(state.currentUser&&state.currentUser.email, 'emb');
                         var isCollapsed = isRegionCollapsed(reg);
                         var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
@@ -16903,7 +16903,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     window.openEmbDialog = function(regKey, reg, periodKey, editMode) {
                         var selYear = state.selectedYear || new Date().getFullYear();
-                        var regProjs = (state.filteredProjects||state.projects).filter(function(p){ return p.region===reg; });
+                        var regProjs = (state.filteredProjects||state.projects).filter(function(p){ return p.region===reg && !p.dateFinished; });
                         if (!regProjs.length) return;
                         var canEdit = !!editMode;
                         var dis = canEdit ? '' : 'disabled';
@@ -17002,7 +17002,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     }
                     // Note: doeCurQ still used for region row-display loops below
 
-                    var doeActProjs = displayProjects.filter(function(p){ return p.isRenewable && !isProjectOnStoppage(p); });
+                    var doeActProjs = displayProjects.filter(function(p){ return p.isRenewable && !isProjectOnStoppage(p) && !p.dateFinished; });
 
                     if (!doeActProjs.length) {
                         html += '<div style="background:var(--bg-card);padding:40px;margin:20px;border-radius:12px;text-align:center;border:2px dashed var(--border-color);">'
@@ -17163,7 +17163,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var projs = displayProjects.filter(function(p){ return p.region===reg; });
                         if (!projs.length) return;
                         // Active (non-stoppage) projects for compliance counting
-                        var activeProjs = projs.filter(function(p){ return !isProjectOnStoppage(p); });
+                        var activeProjs = projs.filter(function(p){ return !isProjectOnStoppage(p) && !p.dateFinished; });
                         var canEditReg = state.isEditing && UserAccounts.canEdit(state.currentUser&&state.currentUser.email, reg) && UserAccounts.canEditTab(state.currentUser&&state.currentUser.email, 'env-monthly-report');
                         var isCollapsed = isRegionCollapsed(reg);
                         var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
@@ -17203,7 +17203,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     window.openEmrDialog = function(regKey, reg, periodKey, editMode) {
                         var selYear = state.selectedYear || new Date().getFullYear();
                         var curMoIdx = new Date().getMonth();
-                        var regProjs = (state.filteredProjects||state.projects).filter(function(p){ return p.region===reg; });
+                        var regProjs = (state.filteredProjects||state.projects).filter(function(p){ return p.region===reg && !p.dateFinished; });
                         if (!regProjs.length) return;
 
                         var isNew = !periodKey;
@@ -17797,7 +17797,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     // ── KPM: region banners → monthly list (per region) → dialog ────
                     function kpmRegionMonthScore(reg, mo) {
-                        var projs = displayProjects.filter(function(p){ return p.region === reg && !kpmIsNA(p) && !isProjectOnStoppage(p); });
+                        var projs = displayProjects.filter(function(p){ return p.region === reg && !kpmIsNA(p) && !isProjectOnStoppage(p) && !p.dateFinished; });
                         if (!projs.length) return null;
                         var grand = 0, hasAny = false;
                         KPM_ESH_ROWS.forEach(function(row) {
@@ -17823,7 +17823,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     REGIONS.forEach(function(reg) {
                         if (reg === 'CORPORATE' || reg === 'PLANT OPERATIONS') return;
                         // Exclude work-stoppage projects from KPM entirely (unless resumed)
-                        var projs = displayProjects.filter(function(p) { return p.region === reg && !isProjectOnStoppage(p); });
+                        var projs = displayProjects.filter(function(p) { return p.region === reg && !isProjectOnStoppage(p) && !p.dateFinished; });
                         if (!projs.length) return;
                         // Active projects (not N/A) — used for computations and modal
                         var activeProjs = projs.filter(function(p) { return !kpmIsNA(p) && !isProjectOnStoppage(p); });
@@ -17913,7 +17913,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     window.openKpmDialog = function(regKey, reg, month, editMode) {
                         var selYear = state.selectedYear || new Date().getFullYear();
                         var curMoIdx = new Date().getMonth();
-                        var regProjs = (state.filteredProjects || state.projects).filter(function(p){ return p.region === reg && !kpmIsNA(p) && !isProjectOnStoppage(p); });
+                        var regProjs = (state.filteredProjects || state.projects).filter(function(p){ return p.region === reg && !kpmIsNA(p) && !isProjectOnStoppage(p) && !p.dateFinished; });
                         if (!regProjs.length) { if (typeof showToast === 'function') showToast('No active projects in ' + reg, 'info'); return; }
 
                         var isNew = !month; // ← declare here, used for month dropdown
@@ -18241,7 +18241,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var activeMo = modal.getAttribute('data-month');
                         if (!reg || !activeMo) { modal.remove(); render(); return; }
 
-                        var regProjs = (state.filteredProjects || state.projects).filter(function(p){ return p.region === reg && !kpmIsNA(p) && !isProjectOnStoppage(p); });
+                        var regProjs = (state.filteredProjects || state.projects).filter(function(p){ return p.region === reg && !kpmIsNA(p) && !isProjectOnStoppage(p) && !p.dateFinished; });
 
                         // RBAC check on first project
                         if (regProjs.length) {
@@ -18706,13 +18706,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                                 </div>
                                             `}
                                         </div>
-                                    ` : hasPdf ? `
-                                        <button class="pdf-view-btn" 
-                                                onclick="viewDoePdf('${p.name}', ${q})" 
-                                                title="View PDF"
-                                                style="margin-left: 10px;">
-                                            <i class="fas fa-file-pdf"></i> View
-                                        </button>
                                     ` : ''}
                                 </td>`;
                                 } // end else (not client-provided)
@@ -25656,7 +25649,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.gotNavigateProject = function(reg, delta) {
         var allProjects = (typeof getReportProjects === 'function') ? getReportProjects() : ((state && state.projects) ? state.projects : []);
-        var projs = allProjects.filter(function(p){ return p.region === reg && !isProjectOnStoppage(p); });
+        var projs = allProjects.filter(function(p){ return p.region === reg && !isProjectOnStoppage(p) && !p.dateFinished; });
         if (!projs.length) return;
         var cur = _gotRegionProjIdx[reg] || 0;
         cur = Math.max(0, Math.min(projs.length - 1, cur + delta));
@@ -26089,7 +26082,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         presentRegions.forEach(function(reg) {
             // Exclude work-stoppage projects from GOT (unless resumed)
-            var projs = allProjects.filter(function(p){ return p.region === reg && !isProjectOnStoppage(p); });
+            var projs = allProjects.filter(function(p){ return p.region === reg && !isProjectOnStoppage(p) && !p.dateFinished; });
             if (!projs.length) return;
 
             var isCollapsed = !!_gotCollapsed[reg];
@@ -26387,7 +26380,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var curMoIdx   = new Date().getMonth(); // 0-based
 
             function getRegMonthScore(reg, moIdx) {
-                var projs = allProjects.filter(function(p){ return p.region === reg && !isProjectOnStoppage(p); });
+                var projs = allProjects.filter(function(p){ return p.region === reg && !isProjectOnStoppage(p) && !p.dateFinished; });
                 if (!projs.length) return null;
                 var month = moIdx + 1; // 1-based
 
@@ -30304,7 +30297,7 @@ window._tabNavBar = _tabNavBar;
 
 function eshNavigateProject(tabType, region, delta) {
     const key = eshGetRegionKey(tabType, region);
-    const allProjects = (state && state.projects) ? state.projects : [];
+    const allProjects = (state && state.projects) ? state.projects.filter(p => (p.status || '').toLowerCase() !== 'finished') : [];
     const regProjects = allProjects.filter(p => p.region === region);
     if (!regProjects.length) return;
     let cur = _eshRegionProjectIdx[key] || 0;
@@ -30325,7 +30318,7 @@ function eshToggleRegion(regionId) {
     if (banner) banner.style.borderRadius = wasCollapsed ? '8px 8px 0 0' : '8px';
 
     if (wasCollapsed) {
-        const allProjects = (state && state.projects) ? state.projects : [];
+        const allProjects = (state && state.projects) ? state.projects.filter(p => (p.status || '').toLowerCase() !== 'finished') : [];
         const regionOrder = ["CORPORATE", "NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
         const tabTypes = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
         tabTypes.forEach(function(tabType) {
@@ -30403,7 +30396,7 @@ function renderEshCalendar(tabType) {
 
     const col = TAB_COLORS[tabType] || TAB_COLORS['esh-calendar-env'];
     const regionOrder = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
-    const allProjects = (state && state.projects) ? state.projects : [];
+    const allProjects = (state && state.projects) ? state.projects.filter(p => (p.status || '').toLowerCase() !== 'finished') : [];
 
     (function _injectEshSummaryStyles() {
         if (document.getElementById('esh-summary-styles')) return;
@@ -30734,7 +30727,7 @@ function renderEshCalendar(tabType) {
     `;
 
     const corpProj = allProjects.find(p => p.region === 'CORPORATE');
-    const regularProjects = allProjects.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS');
+    const regularProjects = allProjects.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS' && (p.status || '').toLowerCase() !== 'finished');
 
     if (regularProjects.length === 0 && !corpProj) {
         html += `<div class="esh-no-projects">
