@@ -16671,7 +16671,21 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     + '<i class="fas fa-ban" style="font-size:0.65rem;"></i> Work Stoppage — Exempt'
                                     + '</div></td>';
                             }
-                            // Color logic: green if filled, red if overdue+empty, yellow/neutral if not yet due+empty
+                            // ── Checkbox input type (e.g. Care of Client) ────────────────
+                            if (c.inputType === 'checkbox') {
+                                var _cbChecked = !!(c.val === true || c.val === 'true' || c.val === '1');
+                                var _cbBg = _cbChecked ? '#c8e6c9' : '#fffde7';
+                                var _cbCursor = c.dis ? 'not-allowed' : 'pointer';
+                                var _cbHtml = '<td style="padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;background:' + _cbBg + ';">';
+                                _cbHtml += '<div style="display:flex;align-items:center;justify-content:center;gap:8px;">';
+                                _cbHtml += '<input type="checkbox"' + (_cbChecked ? ' checked' : '') + ' ' + (c.dis||'');
+                                _cbHtml += ' data-pname="' + c.pname + '" data-key="' + c.key + '" data-idx="' + c.idx + '" data-inputtype="checkbox"';
+                                _cbHtml += ' style="width:18px;height:18px;accent-color:#2e7d32;cursor:' + _cbCursor + ';"';
+                                _cbHtml += ' onchange="(function(el){var v=el.checked;updateVal(el.dataset.pname,el.dataset.key,parseInt(el.dataset.idx),v);var td=el.closest(\'td\');td.style.background=v?\'#c8e6c9\':\'#fffde7\';var lbl=td.querySelector(\'.coc-label\');if(lbl)lbl.textContent=v?\'✓ Yes\':\'No\';})(this)">';
+                                _cbHtml += '<span class="coc-label" style="font-size:0.7rem;font-weight:700;color:#1b5e20;">' + (_cbChecked ? '✓ Yes' : 'No') + '</span>';
+                                _cbHtml += '</div></td>';
+                                return _cbHtml;
+                            }
                             var _mEmpty = !c.val;
                             var _mOverdue = !!c.overdue;
                             var _mBorder = c.val ? '#a5d6a7' : (_mOverdue ? '#ef9a9a' : '#ffe082');
@@ -16720,7 +16734,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     // naturally skipped — only [data-pname][data-key][data-idx] inputs are swept.
                     modal.querySelectorAll('[data-pname][data-key][data-idx]').forEach(function(inp) {
                         if (inp.dataset.pname && inp.dataset.key) {
-                            updateVal(inp.dataset.pname, inp.dataset.key, parseInt(inp.dataset.idx), inp.value);
+                            // For checkbox inputs, use .checked (boolean) instead of .value
+                            var val = (inp.dataset.inputtype === 'checkbox' || inp.type === 'checkbox') ? inp.checked : inp.value;
+                            updateVal(inp.dataset.pname, inp.dataset.key, parseInt(inp.dataset.idx), val);
                         }
                     });
                     modal.remove();
@@ -16861,7 +16877,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             +'</div><div class="region-banner-right">'
                             +'<span class="rbadge rbadge-count">'+projs.length+' PROJ</span>'
                             +'<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">'+embComplete+'/'+embTotal2+' complete</span>'
-                            +(canEditReg?'<button class="lta-add-btn" onclick="event.stopPropagation();window.openEmbDialog(\''+regKey+'\',\''+reg.replace(/'/g,"\\'")+'\',\'Q1\',true)" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-plus"></i> Add Entry</button>':'')
+                            +(canEditReg?'<button class="lta-add-btn" onclick="event.stopPropagation();window.openEmbMultiDialog(\''+regKey+'\',\''+reg.replace(/'/g,"\\'")+'\');" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-plus"></i> Add Entry</button>':'')
                             +'<i class="fas fa-chevron-down region-toggle-icon"></i>'
                             +'</div></div></div>'
                             +'<div id="region-content-'+reg+'" class="region-content '+(isCollapsed?'collapsed':'')+'">';
@@ -16914,31 +16930,30 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var periodLabel = isSmr ? SMR_LABELS[periodIdx-1] : CMR_LABELS[periodIdx-1];
                         var periodDue   = isSmr ? SMR_DUE[periodIdx-1]   : CMR_DUE[periodIdx-1];
 
-                        var sdKey = isSmr ? 'emb_SMR (Quarterly) - Submission Date' : 'emb_CMR (Semi-Annual) - Submission Date';
-                        var rnKey = isSmr ? 'emb_SMR (Quarterly) - Reference No.'   : 'emb_CMR (Semi-Annual) - Reference No.';
+                        var sdKey  = isSmr ? 'emb_SMR (Quarterly) - Submission Date' : 'emb_CMR (Semi-Annual) - Submission Date';
+                        var rnKey  = isSmr ? 'emb_SMR (Quarterly) - Reference No.'   : 'emb_CMR (Semi-Annual) - Reference No.';
+                        var cocKey = isSmr ? 'emb_SMR (Quarterly) - Care of Client'   : 'emb_CMR (Semi-Annual) - Care of Client';
+                        var extraKey = isSmr ? 'emb_extra_smr' : 'emb_extra_cmr';
 
-                        // ── Compute whether this period's deadline has already passed ──────
+                        // Overdue check
                         var _embNow2 = new Date();
                         var _embNowY2 = _embNow2.getFullYear();
-                        var _embNowM2 = _embNow2.getMonth(); // 0-based
+                        var _embNowM2 = _embNow2.getMonth();
                         var _embNowD2 = _embNow2.getDate();
-                        var _isThisYr2 = selYear === _embNowY2;
                         var _isPeriodOverdue = false;
                         if (selYear < _embNowY2) {
-                            _isPeriodOverdue = true; // entire past year
-                        } else if (_isThisYr2) {
+                            _isPeriodOverdue = true;
+                        } else if (selYear === _embNowY2) {
                             if (isSmr) {
                                 if (periodIdx === 4) {
-                                    // Q4 due Jan 15 of next year
                                     var _q4dlY = selYear + 1;
                                     if (_embNowY2 > _q4dlY) _isPeriodOverdue = true;
                                     else if (_embNowY2 === _q4dlY && (_embNowM2 > 0 || (_embNowM2 === 0 && _embNowD2 > 15))) _isPeriodOverdue = true;
                                 } else {
-                                    var _dlM0 = periodIdx * 3; // Q1=3,Q2=6,Q3=9 (0-based)
+                                    var _dlM0 = periodIdx * 3;
                                     if (_embNowM2 > _dlM0 || (_embNowM2 === _dlM0 && _embNowD2 > 15)) _isPeriodOverdue = true;
                                 }
                             } else {
-                                // CMR: H1 due Jul 15, H2 due Jan 15 next year
                                 if (periodIdx === 2) {
                                     var _h2dlY = selYear + 1;
                                     if (_embNowY2 > _h2dlY) _isPeriodOverdue = true;
@@ -16948,21 +16963,160 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 }
                             }
                         }
-                        // ─────────────────────────────────────────────────────────────────
 
-                        var rowDefs = [
-                            { label: 'Submission Date', desc: (isSmr?'SMR Quarterly':'CMR Semi-Annual')+' Submission Date &nbsp;<span style="font-size:0.6rem;color:#888;">'+periodDue+'</span>',
-                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:sdKey,idx:periodIdx,val:p.vals[sdKey]?p.vals[sdKey][periodIdx]||'':'',dis:(stopped||!canEdit)?'disabled':dis,inputType:'date',stopped:stopped,overdue:_isPeriodOverdue}; }) },
-                            { label: 'Reference No.', desc: (isSmr?'SMR Quarterly':'CMR Semi-Annual')+' Reference Number',
-                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:rnKey,idx:periodIdx,val:p.vals[rnKey]?p.vals[rnKey][periodIdx]||'':'',dis:(stopped||!canEdit)?'disabled':dis,inputType:'text',stopped:stopped,overdue:_isPeriodOverdue}; }) }
-                        ];
+                        // ── Build per-project-column table ─────────────────────────────────────
+                        // Columns = projects, Rows = (primary + extra) entries per project
+                        // Each entry has: Submission Date, Reference No., Care of Client checkbox
 
-                        var tableHtml = _modalTable(rowDefs, null, regProjs.map(function(p){ return p.name + (isProjectOnStoppage(p) ? ' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;"><i class=\'fas fa-pause-circle\'></i></span>' : ''); }));
+                        function _embCellBg(val) {
+                            if (val) return '#c8e6c9';
+                            return _isPeriodOverdue ? '#ffcdd2' : '#fffde7';
+                        }
+                        function _embCellBorder(val) {
+                            if (val) return '#a5d6a7';
+                            return _isPeriodOverdue ? '#ef9a9a' : '#ffe082';
+                        }
+                        function _embCellColor(val) {
+                            if (val) return '#2e7d32';
+                            return _isPeriodOverdue ? '#c62828' : '#7a5c00';
+                        }
+
+                        function _buildEmbProjectCol(p, projIdx) {
+                            var stopped = isProjectOnStoppage(p);
+                            var pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+                            var pnJs   = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+
+                            if (stopped) {
+                                return '<td style="padding:8px;border:1px solid #e0e0e0;min-width:200px;vertical-align:top;background:#f5f5f5;">'
+                                    + '<div style="display:flex;align-items:center;justify-content:center;gap:5px;color:#9e9e9e;font-size:0.67rem;font-style:italic;padding:20px 0;">'
+                                    + '<i class="fas fa-ban"></i> Work Stoppage — Exempt</div></td>';
+                            }
+
+                            // Primary entry (index = periodIdx in the original key)
+                            var sdVal  = (p.vals[sdKey]  && p.vals[sdKey][periodIdx])  ? p.vals[sdKey][periodIdx]  : '';
+                            var rnVal  = (p.vals[rnKey]  && p.vals[rnKey][periodIdx])  ? p.vals[rnKey][periodIdx]  : '';
+                            var cocVal = !!(p.vals[cocKey] && (p.vals[cocKey][periodIdx] === true || p.vals[cocKey][periodIdx] === 'true' || p.vals[cocKey][periodIdx] === '1'));
+
+                            // Extra entries from emb_extra_smr / emb_extra_cmr
+                            var extras = (p.vals[extraKey] && Array.isArray(p.vals[extraKey])) ? p.vals[extraKey] : [];
+
+                            var html = '<td style="padding:8px;border:1px solid #c8e6c9;min-width:200px;vertical-align:top;">';
+
+                            // ── Primary entry block ──
+                            html += '<div class="emb-entry-block" style="margin-bottom:8px;padding:8px;border:1px solid #a5d6a7;border-radius:6px;background:#f1f8f1;position:relative;">';
+                            html += '<div style="font-size:0.58rem;font-weight:800;color:#2e7d32;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Entry #1 (Primary)</div>';
+
+                            // Submission Date
+                            var _sdBg = _embCellBg(sdVal); var _sdBd = _embCellBorder(sdVal); var _sdC = _embCellColor(sdVal);
+                            html += '<div style="margin-bottom:5px;">';
+                            html += '<div style="font-size:0.6rem;color:#555;margin-bottom:2px;">📅 Submission Date</div>';
+                            html += '<input type="date" value="' + sdVal + '" ' + (canEdit?'':'disabled')
+                                + ' data-pname="' + pnSafe + '" data-key="' + sdKey + '" data-idx="' + periodIdx + '"'
+                                + ' style="width:100%;border:1px solid ' + _sdBd + ';border-radius:4px;padding:3px 5px;font-size:0.72rem;font-weight:700;background:' + _sdBg + ';color:' + _sdC + ';box-sizing:border-box;"'
+                                + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';">';
+                            html += '</div>';
+
+                            // Reference No.
+                            var _rnBg = _embCellBg(rnVal); var _rnBd = _embCellBorder(rnVal); var _rnC = _embCellColor(rnVal);
+                            html += '<div style="margin-bottom:5px;">';
+                            html += '<div style="font-size:0.6rem;color:#555;margin-bottom:2px;">🔢 Reference No.</div>';
+                            html += '<input type="text" value="' + (rnVal||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
+                                + ' data-pname="' + pnSafe + '" data-key="' + rnKey + '" data-idx="' + periodIdx + '"'
+                                + ' placeholder="Ref number..."'
+                                + ' style="width:100%;border:1px solid ' + _rnBd + ';border-radius:4px;padding:3px 5px;font-size:0.72rem;font-weight:700;background:' + _rnBg + ';color:' + _rnC + ';box-sizing:border-box;"'
+                                + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';">';
+                            html += '</div>';
+
+                            // Care of Client checkbox
+                            html += '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;">';
+                            html += '<input type="checkbox"' + (cocVal?' checked':'') + ' ' + (canEdit?'':'disabled')
+                                + ' data-pname="' + pnSafe + '" data-key="' + cocKey + '" data-idx="' + periodIdx + '" data-inputtype="checkbox"'
+                                + ' style="width:14px;height:14px;accent-color:#2e7d32;cursor:' + (canEdit?'pointer':'not-allowed') + ';"'
+                                + ' onchange="(function(el){var v=el.checked;updateVal(el.dataset.pname,el.dataset.key,parseInt(el.dataset.idx),v);var lbl=el.nextElementSibling;if(lbl)lbl.textContent=v?\'✓ Care of Client\':\'Care of Client\';})(this)">';
+                            html += '<span style="font-size:0.62rem;color:#555;cursor:pointer;">' + (cocVal?'✓ Care of Client':'Care of Client') + '</span>';
+                            html += '</div>';
+                            html += '</div>'; // end primary entry block
+
+                            // ── Extra entries ──
+                            extras.forEach(function(entry, eIdx) {
+                                var eSd  = (entry.sd && entry.sd[periodIdx]) ? entry.sd[periodIdx] : '';
+                                var eRn  = (entry.rn && entry.rn[periodIdx]) ? entry.rn[periodIdx] : '';
+                                var _eSdBg = _embCellBg(eSd); var _eSdBd = _embCellBorder(eSd); var _eSdC = _embCellColor(eSd);
+                                var _eRnBg = _embCellBg(eRn); var _eRnBd = _embCellBorder(eRn); var _eRnC = _embCellColor(eRn);
+                                var eNum = eIdx + 2;
+                                var eType = isSmr ? 'SMR' : 'CMR';
+
+                                html += '<div class="emb-entry-block" style="margin-bottom:8px;padding:8px;border:1px solid #90caf9;border-radius:6px;background:#e3f2fd;position:relative;">';
+                                html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">';
+                                html += '<div style="font-size:0.58rem;font-weight:800;color:#1565c0;text-transform:uppercase;letter-spacing:0.4px;">Entry #' + eNum + '</div>';
+                                if (canEdit) {
+                                    html += '<button onclick="window._removeEmbExtraEntry(\'' + pnJs + '\',\'' + eType + '\',' + eIdx + ')" '
+                                        + 'style="background:#ffcdd2;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;padding:1px 6px;font-size:0.6rem;cursor:pointer;line-height:1.4;" '
+                                        + 'title="Remove this entry"><i class="fas fa-times"></i> Remove</button>';
+                                }
+                                html += '</div>';
+
+                                // Extra Submission Date
+                                html += '<div style="margin-bottom:5px;">';
+                                html += '<div style="font-size:0.6rem;color:#555;margin-bottom:2px;">📅 Submission Date</div>';
+                                html += '<input type="date" value="' + eSd + '" ' + (canEdit?'':'disabled')
+                                    + ' data-pname="' + pnSafe + '" data-extrakey="' + extraKey + '" data-eidx="' + eIdx + '" data-field="sd" data-period="' + periodIdx + '"'
+                                    + ' style="width:100%;border:1px solid ' + _eSdBd + ';border-radius:4px;padding:3px 5px;font-size:0.72rem;font-weight:700;background:' + _eSdBg + ';color:' + _eSdC + ';box-sizing:border-box;"'
+                                    + ' oninput="updateEmbEntry(this.dataset.pname,\'' + eType + '\',' + eIdx + ',\'sd\',' + periodIdx + ',this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';">';
+                                html += '</div>';
+
+                                // Extra Reference No.
+                                html += '<div style="margin-bottom:5px;">';
+                                html += '<div style="font-size:0.6rem;color:#555;margin-bottom:2px;">🔢 Reference No.</div>';
+                                html += '<input type="text" value="' + (eRn||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
+                                    + ' data-pname="' + pnSafe + '" data-extrakey="' + extraKey + '" data-eidx="' + eIdx + '" data-field="rn" data-period="' + periodIdx + '"'
+                                    + ' placeholder="Ref number..."'
+                                    + ' style="width:100%;border:1px solid ' + _eRnBd + ';border-radius:4px;padding:3px 5px;font-size:0.72rem;font-weight:700;background:' + _eRnBg + ';color:' + _eRnC + ';box-sizing:border-box;"'
+                                    + ' oninput="updateEmbEntry(this.dataset.pname,\'' + eType + '\',' + eIdx + ',\'rn\',' + periodIdx + ',this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';">';
+                                html += '</div>';
+                                html += '</div>'; // end extra entry block
+                            });
+
+                            // ── + Add Entry button (per project column) ──
+                            if (canEdit) {
+                                var eType2 = isSmr ? 'SMR' : 'CMR';
+                                html += '<button onclick="window._addEmbExtraEntryInModal(\'' + pnJs + '\',\'' + eType2 + '\',\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + periodKey + '\')" '
+                                    + 'style="width:100%;padding:6px 10px;background:#e8f5e9;color:#2e7d32;border:1px dashed #81c784;border-radius:6px;font-size:0.68rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:background 0.15s;" '
+                                    + 'onmouseenter="this.style.background=\'#c8e6c9\'" onmouseleave="this.style.background=\'#e8f5e9\'">'
+                                    + '<i class="fas fa-plus"></i> Add Entry</button>';
+                            }
+
+                            html += '</td>';
+                            return html;
+                        }
+
+                        // Build the table — header row (project names) + one combined row (all entries per project)
+                        var projNameHtml = regProjs.map(function(p){
+                            return '<th style="padding:8px 10px;border:1px solid #c8e6c9;min-width:200px;text-align:center;background:#b7ddb5;color:#1b5e20;font-size:0.67rem;font-weight:800;white-space:normal;word-break:break-word;">'
+                                + p.name + (isProjectOnStoppage(p) ? ' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.55rem;"><i class=\'fas fa-pause-circle\'></i></span>' : '')
+                                + '</th>';
+                        }).join('');
+
+                        var projColsHtml = regProjs.map(function(p, i){ return _buildEmbProjectCol(p, i); }).join('');
+
+                        var tableHtml = '<table id="emb-modal-table" style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
+                            + '<thead><tr style="background:#9ecf9b;color:#1b5e20;font-size:0.67rem;font-weight:800;">'
+                            + '<th style="padding:6px 8px;border:1px solid #c8e6c9;min-width:120px;white-space:nowrap;background:#e8f5e9;color:#1b5e20;">PROJECT</th>'
+                            + projNameHtml + '</tr></thead>'
+                            + '<tbody><tr style="background:var(--bg-card);">'
+                            + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-weight:800;color:#1b5e20;background:#e8f5e9;white-space:nowrap;vertical-align:top;">'
+                            + '<div style="font-size:0.75rem;font-weight:800;color:#1b5e20;">ENTRIES</div>'
+                            + '<div style="font-size:0.58rem;color:#666;margin-top:4px;">per project</div>'
+                            + '</td>'
+                            + projColsHtml
+                            + '</tr></tbody></table>';
+
                         var header = _modalHeader('linear-gradient(90deg,#0d3d0f,#1b5e20,#2e7d32)',
                             (canEdit?'✏️ Edit':'🔍 View')+' EMB — <span style="color:#fbc02d;">'+(isSmr?'SMR':'CMR')+' '+periodLabel+'</span>',
                             '<i class="fas fa-location-dot" style="margin-right:4px;"></i>'+reg+' · '+regProjs.length+' project'+(regProjs.length!==1?'s':'')+' &nbsp;·&nbsp; '+selYear,
                             'emb-modal');
-                        var infoBar = _modalInfoBar('All projects in region — '+(isSmr?'SMR':'CMR')+' '+periodLabel+' '+selYear);
+                        var infoBar = _modalInfoBar((isSmr?'SMR Quarterly':'CMR Semi-Annual')+' — '+periodLabel+' '+selYear+' &nbsp;<span style="font-size:0.6rem;color:#888;">'+periodDue+'</span>'
+                            + (canEdit ? '<br><small style="margin-top:6px;display:inline-block;color:#1565c0;">💡 Click <strong>+ Add Entry</strong> inside a project column to add multiple submissions.</small>' : ''));
                         var footer = _modalFooter(
                             canEdit ? 'window._saveEmbModal()' : null,
                             canEdit ? null : 'window.openEmbDialog(\''+regKey.replace(/'/g,"\\'")+'\',\''+reg.replace(/'/g,"\\'")+'\',\''+periodKey+'\',true)',
@@ -16971,8 +17125,156 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var modal = _buildModalOverlay('emb-modal', header, infoBar, tableHtml, footer);
                         modal.setAttribute('data-reg', reg);
                         modal.setAttribute('data-period', periodKey);
+                        modal.setAttribute('data-regkey', regKey);
                     };
-                    window._saveEmbModal = function(){ _genericSaveModal('emb-modal','emb'); };
+
+                    // Helper: add extra entry then re-open modal
+                    window._addEmbExtraEntryInModal = function(pName, type, regKey, reg, periodKey) {
+                        addEmbEntry(pName, type);
+                        // Re-open modal after a short delay to let render complete
+                        setTimeout(function(){ window.openEmbDialog(regKey, reg, periodKey, true); }, 150);
+                    };
+
+                    // Helper: remove extra entry then re-open modal
+                    window._removeEmbExtraEntry = function(pName, type, idx) {
+                        var modal = document.getElementById('emb-modal');
+                        var regKey  = modal ? modal.getAttribute('data-regkey') : '';
+                        var reg     = modal ? modal.getAttribute('data-reg') : '';
+                        var periodKey = modal ? modal.getAttribute('data-period') : '';
+                        removeEmbEntry(pName, type, idx);
+                        setTimeout(function(){ if(reg && periodKey) window.openEmbDialog(regKey, reg, periodKey, true); }, 350);
+                    };
+
+                    window._saveEmbModal = function() {
+                        var modal = document.getElementById('emb-modal');
+                        if (!modal) return;
+                        // Save primary entries (data-pname/data-key/data-idx inputs)
+                        modal.querySelectorAll('[data-pname][data-key][data-idx]').forEach(function(inp) {
+                            if (inp.dataset.pname && inp.dataset.key) {
+                                var val = (inp.dataset.inputtype === 'checkbox' || inp.type === 'checkbox') ? inp.checked : inp.value;
+                                updateVal(inp.dataset.pname, inp.dataset.key, parseInt(inp.dataset.idx), val);
+                            }
+                        });
+                        // Extra entries are already saved live via updateEmbEntry() on oninput
+                        modal.remove();
+                        render();
+                        if (typeof showToast === 'function') showToast('✅ Entry saved.', 'success', 2500);
+                    };
+                    
+                    
+                    // ── NEW: Add Multiple Entries Dialog ────────────────────────────────────────
+                    window.openEmbMultiDialog = function(regKey, reg) {
+                        var selYear = state.selectedYear || new Date().getFullYear();
+                        var regProjs = (state.filteredProjects||state.projects).filter(function(p){ return p.region===reg && !p.dateFinished; });
+                        if (!regProjs.length) return;
+                        _activateEditMode();
+                        
+                        var modalId = 'emb-multi-modal-' + Date.now();
+                        var html = '<div id="'+modalId+'" class="modal-overlay" style="z-index:10001;">'
+                            +'<div class="modal-content" style="max-width:600px;">'
+                            +'<div class="modal-header" style="background:linear-gradient(90deg,#0d3d0f,#1b5e20);color:white;padding:20px;border-radius:12px 12px 0 0;">'
+                            +'<h2 style="margin:0;font-size:1.2rem;"><i class="fas fa-plus-circle"></i> Add Multiple EMB Entries</h2>'
+                            +'<p style="margin:5px 0 0 0;font-size:0.9rem;opacity:0.9;">'+reg+' — '+selYear+'</p>'
+                            +'</div>'
+                            +'<div class="modal-body" style="padding:20px;background:var(--bg-card);">'
+                            +'<div style="margin-bottom:20px;padding:15px;background:#e8f5e9;border-left:4px solid #2e7d32;border-radius:4px;">'
+                            +'<p style="margin:0;font-size:0.9rem;color:#1b5e20;"><strong>📌 Select Period Type:</strong> Choose whether you want to add SMR (Quarterly) or CMR (Semi-Annual) entries.</p>'
+                            +'</div>'
+                            +'<div style="margin-bottom:20px;">'
+                            +'<label style="display:block;margin-bottom:15px;padding:12px;border:2px solid #ddd;border-radius:6px;cursor:pointer;transition:all 0.2s;">'
+                            +'<input type="radio" name="emb_entry_type" value="SMR" checked style="margin-right:10px;cursor:pointer;accent-color:#2e7d32;"> <strong>SMR (Quarterly)</strong><br>'
+                            +'<small style="margin-left:24px;color:#666;">Quarterly reports - Q1, Q2, Q3, Q4</small>'
+                            +'</label>'
+                            +'<label style="display:block;padding:12px;border:2px solid #ddd;border-radius:6px;cursor:pointer;transition:all 0.2s;">'
+                            +'<input type="radio" name="emb_entry_type" value="CMR" style="margin-right:10px;cursor:pointer;accent-color:#2e7d32;"> <strong>CMR (Semi-Annual)</strong><br>'
+                            +'<small style="margin-left:24px;color:#666;">Semi-annual reports - H1 (Jan-Jun), H2 (Jul-Dec)</small>'
+                            +'</label>'
+                            +'</div>'
+                            +'<div style="margin-bottom:20px;">'
+                            +'<label style="display:block;margin-bottom:8px;"><strong>Select Period(s):</strong></label>'
+                            +'<div id="emb_period_options" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
+                            +'<label style="padding:10px;border:1px solid #ddd;border-radius:4px;cursor:pointer;text-align:center;background:#f5f5f5;">'
+                            +'<input type="checkbox" class="emb_period_check" value="1" style="margin-right:6px;cursor:pointer;accent-color:#2e7d32;"> Q1 (Jan–Mar)</label>'
+                            +'<label style="padding:10px;border:1px solid #ddd;border-radius:4px;cursor:pointer;text-align:center;background:#f5f5f5;">'
+                            +'<input type="checkbox" class="emb_period_check" value="2" style="margin-right:6px;cursor:pointer;accent-color:#2e7d32;"> Q2 (Apr–Jun)</label>'
+                            +'<label style="padding:10px;border:1px solid #ddd;border-radius:4px;cursor:pointer;text-align:center;background:#f5f5f5;">'
+                            +'<input type="checkbox" class="emb_period_check" value="3" style="margin-right:6px;cursor:pointer;accent-color:#2e7d32;"> Q3 (Jul–Sep)</label>'
+                            +'<label style="padding:10px;border:1px solid #ddd;border-radius:4px;cursor:pointer;text-align:center;background:#f5f5f5;">'
+                            +'<input type="checkbox" class="emb_period_check" value="4" style="margin-right:6px;cursor:pointer;accent-color:#2e7d32;"> Q4 (Oct–Dec)</label>'
+                            +'</div>'
+                            +'</div>'
+                            +'<div style="margin-bottom:20px;">'
+                            +'<label style="display:block;margin-bottom:8px;"><strong>Select Project(s):</strong></label>'
+                            +'<div id="emb_project_list" style="max-height:200px;overflow-y:auto;border:1px solid #ddd;border-radius:4px;background:#f9f9f9;">'
+                            + regProjs.map(function(p,i){ return '<label style="display:block;padding:10px;border-bottom:1px solid #eee;cursor:pointer;user-select:none;"><input type="checkbox" class="emb_proj_check" value="'+i+'" style="margin-right:8px;cursor:pointer;accent-color:#2e7d32;"> '+p.name+'</label>'; }).join('')
+                            +'</div>'
+                            +'</div>'
+                            +'</div>'
+                            +'<div class="modal-footer" style="padding:15px 20px;background:#f5f5f5;border-top:1px solid #ddd;border-radius:0 0 12px 12px;text-align:right;">'
+                            +'<button onclick="document.getElementById(\''+modalId+'\').remove();" style="padding:10px 20px;border:1px solid #ddd;border-radius:4px;background:white;cursor:pointer;margin-right:10px;">Cancel</button>'
+                            +'<button onclick="window._processEmbMultiEntries(\''+modalId+'\',\''+regKey+'\',\''+reg.replace(/'/g,"\\'")+'\');" style="padding:10px 24px;background:#2e7d32;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;">Add Entries</button>'
+                            +'</div>'
+                            +'</div></div>';
+                        
+                        document.body.insertAdjacentHTML('beforeend', html);
+                        
+                        // Setup period options change
+                        document.querySelectorAll('input[name="emb_entry_type"]').forEach(function(radio) {
+                            radio.addEventListener('change', function() {
+                                var periodsDiv = document.getElementById('emb_period_options');
+                                if (this.value === 'SMR') {
+                                    periodsDiv.innerHTML = '<label style="padding:10px;border:1px solid #ddd;border-radius:4px;cursor:pointer;text-align:center;background:#f5f5f5;"><input type="checkbox" class="emb_period_check" value="1" style="margin-right:6px;cursor:pointer;accent-color:#2e7d32;"> Q1 (Jan–Mar)</label>'
+                                        +'<label style="padding:10px;border:1px solid #ddd;border-radius:4px;cursor:pointer;text-align:center;background:#f5f5f5;"><input type="checkbox" class="emb_period_check" value="2" style="margin-right:6px;cursor:pointer;accent-color:#2e7d32;"> Q2 (Apr–Jun)</label>'
+                                        +'<label style="padding:10px;border:1px solid #ddd;border-radius:4px;cursor:pointer;text-align:center;background:#f5f5f5;"><input type="checkbox" class="emb_period_check" value="3" style="margin-right:6px;cursor:pointer;accent-color:#2e7d32;"> Q3 (Jul–Sep)</label>'
+                                        +'<label style="padding:10px;border:1px solid #ddd;border-radius:4px;cursor:pointer;text-align:center;background:#f5f5f5;"><input type="checkbox" class="emb_period_check" value="4" style="margin-right:6px;cursor:pointer;accent-color:#2e7d32;"> Q4 (Oct–Dec)</label>';
+                                } else {
+                                    periodsDiv.innerHTML = '<label style="padding:10px;border:1px solid #ddd;border-radius:4px;cursor:pointer;text-align:center;background:#f5f5f5;grid-column:1/3;"><input type="checkbox" class="emb_period_check" value="1" style="margin-right:6px;cursor:pointer;accent-color:#2e7d32;"> H1 (Jan–Jun)</label>'
+                                        +'<label style="padding:10px;border:1px solid #ddd;border-radius:4px;cursor:pointer;text-align:center;background:#f5f5f5;grid-column:1/3;"><input type="checkbox" class="emb_period_check" value="2" style="margin-right:6px;cursor:pointer;accent-color:#2e7d32;"> H2 (Jul–Dec)</label>';
+                                }
+                            });
+                        });
+                    };
+                    
+                    window._processEmbMultiEntries = function(modalId, regKey, reg) {
+                        var entryType = document.querySelector('input[name="emb_entry_type"]:checked').value;
+                        var selectedPeriods = Array.from(document.querySelectorAll('#'+modalId+' input.emb_period_check:checked')).map(function(el){ return parseInt(el.value); });
+                        var selectedProjects = Array.from(document.querySelectorAll('#'+modalId+' input.emb_proj_check:checked')).map(function(el){ return parseInt(el.value); });
+                        
+                        if (!selectedPeriods.length || !selectedProjects.length) {
+                            showToast('⚠️ Please select at least one period and one project', 'warning');
+                            return;
+                        }
+                        
+                        _activateEditMode();
+                        var regProjs = (state.filteredProjects||state.projects).filter(function(p){ return p.region===reg && !p.dateFinished; });
+                        
+                        selectedProjects.forEach(function(projIdx) {
+                            var proj = regProjs[projIdx];
+                            if (!proj) return;
+                            
+                            var sdKey = entryType==='SMR' ? 'emb_SMR (Quarterly) - Submission Date' : 'emb_CMR (Semi-Annual) - Submission Date';
+                            var rnKey = entryType==='SMR' ? 'emb_SMR (Quarterly) - Reference No.' : 'emb_CMR (Semi-Annual) - Reference No.';
+                            var cocKey = entryType==='SMR' ? 'emb_SMR (Quarterly) - Care of Client' : 'emb_CMR (Semi-Annual) - Care of Client';
+                            
+                            if (!proj.vals[sdKey]) proj.vals[sdKey] = {};
+                            if (!proj.vals[rnKey]) proj.vals[rnKey] = {};
+                            if (!proj.vals[cocKey]) proj.vals[cocKey] = {};
+                            
+                            selectedPeriods.forEach(function(periodIdx) {
+                                proj.vals[sdKey][periodIdx] = proj.vals[sdKey][periodIdx] || '';
+                                proj.vals[rnKey][periodIdx] = proj.vals[rnKey][periodIdx] || '';
+                                proj.vals[cocKey][periodIdx] = proj.vals[cocKey][periodIdx] || false;
+                            });
+                        });
+                        
+                        document.getElementById(modalId).remove();
+                        showToast('✅ Entry slots created. Now filling details...', 'success');
+                        
+                        // Open dialog for the first selected period
+                        // Format: SMR_Q1, SMR_Q2, CMR_H1, CMR_H2
+                        var periodKey = entryType + '_' + (entryType==='SMR' ? 'Q' : 'H') + selectedPeriods[0];
+                        window.openEmbDialog(regKey, reg, periodKey, true);
+                    };
 
                     return;
                 } // end emb
