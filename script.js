@@ -3289,6 +3289,7 @@ debugCommands.help() - Show this help
             const _kpmRegionProjects = {};
             state.projects.forEach(p => {
                 if (p.status === 'work-stoppage') return;
+                if (p.status === 'finished') return;
                 if (p.vals && p.vals['kpm_na'] === '1') return;
                 const reg = (p.region || 'UNKNOWN').toUpperCase();
                 if (!_kpmRegionProjects[reg]) _kpmRegionProjects[reg] = [];
@@ -3313,6 +3314,8 @@ debugCommands.help() - Show this help
             state.projects.forEach(project => {
                 // ── Skip work-stoppage projects entirely — they are exempt ──────
                 if (project.status === 'work-stoppage') return;
+                // ── Skip finished projects — no longer active, no overdue alerts ──
+                if (project.status === 'finished') return;
 
                 let overdueTabs = [];
 
@@ -5093,9 +5096,18 @@ debugCommands.help() - Show this help
                     pdfBtn.style.display = 'none';
                 } else if (t === 'env-monitoring') {
                     pdfBtn.style.display = 'none';
+                } else if (t === 'emb') {
+                    pdfBtn.style.display = 'none';
                 } else {
                     pdfBtn.style.display = 'inline-block';
                 }
+            }
+            // EMB Excel export button — visible on EMB tab, hidden for superintendent/pco/corp_nurse
+            const _embExcelWrap = document.getElementById('export-emb-excel-wrap');
+            if (_embExcelWrap) {
+                const _embNoExcelRoles = ['superintendent', 'pco', 'corp_nurse'];
+                const _showEmbExcel = (t === 'emb') && !_embNoExcelRoles.includes(state.userRole);
+                _embExcelWrap.style.display = _showEmbExcel ? 'inline-block' : 'none';
             }
 
             if (window.ESHDataSync) { window.ESHDataSync.onTabChange(t); }
@@ -13823,10 +13835,18 @@ function renderTabulation() {
             const _renderMc = document.getElementById('main-content');
             const _renderScroll = _renderMc ? _renderMc.scrollTop : 0;
             try {
-            // Hide PDF export button for superintendent, pco, and corp_nurse
+            // Hide PDF export button for superintendent, pco, and corp_nurse; also hide on emb tab
             const _pdfBtnEl = document.getElementById('export-pdf-btn');
-            if (_pdfBtnEl && ['superintendent','pco','corp_nurse'].includes(state.userRole)) {
-                _pdfBtnEl.style.display = 'none';
+            if (_pdfBtnEl) {
+                if (['superintendent','pco','corp_nurse'].includes(state.userRole) || state.currentTab === 'emb') {
+                    _pdfBtnEl.style.display = 'none';
+                }
+            }
+            // EMB Excel button — only visible on emb tab for non-restricted roles
+            const _embExWrap = document.getElementById('export-emb-excel-wrap');
+            if (_embExWrap) {
+                const _embNoRoles = ['superintendent','pco','corp_nurse'];
+                _embExWrap.style.display = (state.currentTab === 'emb' && !_embNoRoles.includes(state.userRole)) ? 'inline-block' : 'none';
             }
             const _eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
             const _nonTableTabs = ['settings','personnel','env-monitoring','osh-requirement','nov','got-monitoring'];
@@ -34368,6 +34388,336 @@ async function exportPersonnelExcel() {
         showToast(`✅ Exported: ${fname}`, 'success');
     } catch(err) {
         console.error('Excel export error:', err);
+        showToast('❌ Export failed. Check console for details.', 'error');
+    }
+}
+
+// ── EMB Reportorial — Export to Excel (ExcelJS) ───────────────────────────────
+async function exportEmbExcel() {
+    const _noRoles = ['superintendent', 'pco', 'corp_nurse'];
+    if (_noRoles.includes(state.userRole)) {
+        showToast('🔒 You do not have permission to export EMB Reportorial data.', 'warning');
+        return;
+    }
+    if (typeof ExcelJS === 'undefined') {
+        showToast('❌ Excel library not loaded. Refresh and try again.', 'error');
+        return;
+    }
+
+    const year = state.selectedYear || new Date().getFullYear();
+
+    // Collect projects — EXCLUDE CORPORATE
+    const allProjs = (state.filteredProjects || state.projects || []).filter(p => {
+        const r = (p.region || '').toUpperCase();
+        return r !== 'CORPORATE';
+    });
+
+    if (!allProjs.length) {
+        showToast('ℹ️ No project data to export.', 'info');
+        return;
+    }
+
+    showToast('⏳ Generating EMB Excel file...', 'info');
+
+    // ── Date formatter ────────────────────────────────────────────────────────
+    function _fmtDate(d) {
+        if (!d) return '';
+        try {
+            const dt = new Date(d);
+            if (isNaN(dt)) return d;
+            return dt.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: '2-digit' });
+        } catch(e) { return d; }
+    }
+
+    // ── Region order ──────────────────────────────────────────────────────────
+    const REGION_ORDER = ['NCR', 'SOUTH LUZON', 'NORTH LUZON', 'VISAYAS & MINDANAO', 'PLANT OPERATIONS'];
+    const SMR_PERIODS  = [
+        { idx: 1, label: 'Q1 (Jan–Mar)', due: 'Due: Apr 30' },
+        { idx: 2, label: 'Q2 (Apr–Jun)', due: 'Due: Jul 30' },
+        { idx: 3, label: 'Q3 (Jul–Sep)', due: 'Due: Oct 30' },
+        { idx: 4, label: 'Q4 (Oct–Dec)', due: 'Due: Jan 30' },
+    ];
+    const CMR_PERIODS  = [
+        { idx: 1, label: 'H1 (Jan–Jun)', due: 'Due: Jul 30' },
+        { idx: 2, label: 'H2 (Jul–Dec)', due: 'Due: Jan 30' },
+    ];
+
+    // ── Group projects by region ──────────────────────────────────────────────
+    const regionMap = {};
+    allProjs.forEach(p => {
+        const r = (p.region || 'OTHER').toUpperCase();
+        if (!regionMap[r]) regionMap[r] = [];
+        regionMap[r].push(p);
+    });
+
+    // ── ExcelJS workbook ──────────────────────────────────────────────────────
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'ESH Monitoring System';
+    wb.created = new Date();
+
+    // ── Colors ────────────────────────────────────────────────────────────────
+    const C_TITLE_BG  = '1B5E20';
+    const C_HEAD_BG   = '2E7D32';
+    const C_SMR_BG    = 'E8F5E9';
+    const C_CMR_BG    = 'E3F2FD';
+    const C_REGION_BG = 'C8E6C9';
+    const C_PROJ_BG   = 'F1F8E9';
+    const C_WHITE     = 'FFFFFFFF';
+    const C_FILLED_BG = 'C8E6C9';
+    const C_EMPTY_BG  = 'FFCDD2';
+    const C_COC_BG    = 'A5D6A7';
+
+    function _cell(ws, row, col) { return ws.getCell(row, col); }
+
+    function _applyTitle(cell, text) {
+        cell.value = text;
+        cell.font  = { bold: true, color: { argb: 'FF' + C_WHITE }, size: 13, name: 'Calibri' };
+        cell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_TITLE_BG } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = { bottom: { style: 'medium', color: { argb: 'FFA5D6A7' } } };
+    }
+
+    function _applyRegionHeader(cell, text) {
+        cell.value = text;
+        cell.font  = { bold: true, color: { argb: 'FF1B5E20' }, size: 11, name: 'Calibri' };
+        cell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_REGION_BG } };
+        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+        cell.border = {
+            top:    { style: 'medium', color: { argb: 'FF2E7D32' } },
+            bottom: { style: 'medium', color: { argb: 'FF2E7D32' } },
+        };
+    }
+
+    function _applyColHeader(cell, text, bgHex) {
+        cell.value = text;
+        cell.font  = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' };
+        cell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + (bgHex || C_HEAD_BG) } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.border = {
+            top:    { style: 'thin', color: { argb: 'FFA5D6A7' } },
+            bottom: { style: 'thin', color: { argb: 'FFA5D6A7' } },
+            left:   { style: 'thin', color: { argb: 'FFA5D6A7' } },
+            right:  { style: 'thin', color: { argb: 'FFA5D6A7' } },
+        };
+    }
+
+    function _applyData(cell, value, filled, isCoc) {
+        cell.value = value !== undefined ? value : '';
+        const bgHex = isCoc ? C_COC_BG : (filled ? C_FILLED_BG : (value ? C_FILLED_BG : C_EMPTY_BG));
+        cell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + bgHex } };
+        cell.font  = { size: 9.5, name: 'Calibri', bold: isCoc, color: { argb: isCoc ? 'FF2E7D32' : 'FF263238' } };
+        cell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+        cell.border = {
+            top:    { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            bottom: { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            left:   { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            right:  { style: 'thin', color: { argb: 'FFB0BEC5' } },
+        };
+    }
+
+    function _applyProjBanner(cell, text) {
+        cell.value = text;
+        cell.font  = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FF1B5E20' } };
+        cell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_PROJ_BG } };
+        cell.alignment = { horizontal: 'left', vertical: 'middle' };
+        cell.border = {
+            top:    { style: 'thin', color: { argb: 'FF81C784' } },
+            bottom: { style: 'thin', color: { argb: 'FF81C784' } },
+        };
+    }
+
+    // ── Build a single worksheet ──────────────────────────────────────────────
+    const ws = wb.addWorksheet('EMB Reportorial', {
+        pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1 },
+        views: [{ state: 'frozen', xSplit: 0, ySplit: 3 }],
+    });
+
+    // Column definitions
+    // A: REGION | B: PROJECT | C: TYPE | D: PERIOD | E: ENTRY # | F: FACILITY | G: SUBMISSION DATE | H: REFERENCE NO. | I: CARE OF CLIENT
+    const COLS = [
+        { key: 'region',  header: 'REGION',          width: 22 },
+        { key: 'project', header: 'PROJECT',          width: 35 },
+        { key: 'type',    header: 'TYPE',             width: 12 },
+        { key: 'period',  header: 'PERIOD',           width: 18 },
+        { key: 'entry',   header: 'ENTRY #',          width: 9  },
+        { key: 'fac',     header: 'FACILITY',         width: 32 },
+        { key: 'sd',      header: 'SUBMISSION DATE',  width: 20 },
+        { key: 'rn',      header: 'REFERENCE NO.',    width: 22 },
+        { key: 'coc',     header: 'CARE OF CLIENT',   width: 16 },
+    ];
+    COLS.forEach((c, i) => { ws.getColumn(i + 1).width = c.width; });
+
+    // ── Row 1: Title ──────────────────────────────────────────────────────────
+    ws.mergeCells(1, 1, 1, COLS.length);
+    const titleCell = ws.getCell(1, 1);
+    _applyTitle(titleCell, `SCIC ESH — EMB REPORTORIAL (SMR & CMR) — ${year}`);
+    ws.getRow(1).height = 28;
+
+    // ── Row 2: Sub-title / generated ─────────────────────────────────────────
+    ws.mergeCells(2, 1, 2, COLS.length);
+    const subCell = ws.getCell(2, 1);
+    subCell.value = `Generated: ${new Date().toLocaleString('en-PH')}   |   SMR = Quarterly Self-Monitoring Report   |   CMR = Compliance Monitoring Report`;
+    subCell.font  = { italic: true, size: 9, color: { argb: 'FF555555' }, name: 'Calibri' };
+    subCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F8E9' } };
+    subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(2).height = 16;
+
+    // ── Row 3: Column headers ─────────────────────────────────────────────────
+    COLS.forEach((c, i) => { _applyColHeader(ws.getCell(3, i + 1), c.header); });
+    ws.getRow(3).height = 22;
+
+    let curRow = 4;
+
+    // ── Iterate regions ───────────────────────────────────────────────────────
+    const orderedRegions = [
+        ...REGION_ORDER.filter(r => regionMap[r]),
+        ...Object.keys(regionMap).filter(r => !REGION_ORDER.includes(r)),
+    ];
+
+    orderedRegions.forEach(region => {
+        const projs = regionMap[region] || [];
+        if (!projs.length) return;
+
+        // Region banner
+        ws.mergeCells(curRow, 1, curRow, COLS.length);
+        _applyRegionHeader(ws.getCell(curRow, 1), `📍  ${region}  (${projs.length} project${projs.length !== 1 ? 's' : ''})`);
+        ws.getRow(curRow).height = 20;
+        curRow++;
+
+        projs.forEach(p => {
+            const pv = p.vals || {};
+
+            // Project banner row
+            ws.mergeCells(curRow, 1, curRow, COLS.length);
+            _applyProjBanner(ws.getCell(curRow, 1), `▸  ${p.name}`);
+            ws.getRow(curRow).height = 18;
+            curRow++;
+
+            // SMR key helpers
+            const smrFacKey = 'emb_SMR (Quarterly) - Facility';
+            const smrSdKey  = 'emb_SMR (Quarterly) - Submission Date';
+            const smrRnKey  = 'emb_SMR (Quarterly) - Reference No.';
+            const smrCocKey = 'emb_SMR (Quarterly) - Care of Client';
+            const smrExtKey = 'emb_extra_smr';
+
+            // CMR key helpers
+            const cmrFacKey = 'emb_CMR (Semi-Annual) - Facility';
+            const cmrSdKey  = 'emb_CMR (Semi-Annual) - Submission Date';
+            const cmrRnKey  = 'emb_CMR (Semi-Annual) - Reference No.';
+            const cmrCocKey = 'emb_CMR (Semi-Annual) - Care of Client';
+            const cmrExtKey = 'emb_extra_cmr';
+
+            function _val(key, idx) {
+                return (pv[key] && pv[key][idx] !== undefined && pv[key][idx] !== null) ? pv[key][idx] : '';
+            }
+            function _boolVal(key, idx) {
+                const v = pv[key] && pv[key][idx];
+                return v === true || v === 'true' || v === '1' || v === 1;
+            }
+
+            function _writeEntryRow(type, periodLabel, entryNum, fac, sd, rn, coc) {
+                const isCoc = coc === true || coc === 'true' || coc === '1' || coc === 1 || coc === true;
+                const typeBg = type === 'SMR' ? '388E3C' : '1565C0';
+                const row = ws.getRow(curRow);
+
+                _applyData(ws.getCell(curRow, 1), region, true, false);
+                _applyData(ws.getCell(curRow, 2), p.name, true, false);
+
+                // TYPE cell — color-coded
+                const typeCell = ws.getCell(curRow, 3);
+                typeCell.value = type;
+                typeCell.font  = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9.5, name: 'Calibri' };
+                typeCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + typeBg } };
+                typeCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                typeCell.border = {
+                    top:   { style: 'thin', color: { argb: 'FFB0BEC5' } },
+                    bottom:{ style: 'thin', color: { argb: 'FFB0BEC5' } },
+                    left:  { style: 'thin', color: { argb: 'FFB0BEC5' } },
+                    right: { style: 'thin', color: { argb: 'FFB0BEC5' } },
+                };
+
+                _applyData(ws.getCell(curRow, 4), periodLabel, true, false);
+                _applyData(ws.getCell(curRow, 5), entryNum, entryNum === 1, false);
+                _applyData(ws.getCell(curRow, 6), fac || '', !!fac, false);
+                _applyData(ws.getCell(curRow, 7), sd ? _fmtDate(sd) : '', !!sd, false);
+                _applyData(ws.getCell(curRow, 8), rn || '', !!rn, false);
+
+                // Care of Client cell
+                const cocCell = ws.getCell(curRow, 9);
+                if (isCoc) {
+                    _applyData(cocCell, '✓ Exempted', true, true);
+                } else {
+                    _applyData(cocCell, '—', false, false);
+                    cocCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+                }
+
+                row.height = 17;
+                curRow++;
+            }
+
+            // ── SMR rows (Q1–Q4) ─────────────────────────────────────────────
+            SMR_PERIODS.forEach(period => {
+                const fac  = _val(smrFacKey, period.idx);
+                const sd   = _val(smrSdKey,  period.idx);
+                const rn   = _val(smrRnKey,  period.idx);
+                const coc  = _boolVal(smrCocKey, period.idx);
+
+                _writeEntryRow('SMR', period.label, 1, fac, sd, rn, coc);
+
+                // Extra SMR entries for this period
+                const extras = Array.isArray(pv[smrExtKey]) ? pv[smrExtKey] : [];
+                extras.forEach((entry, eIdx) => {
+                    const eFac = (entry.fac && entry.fac[period.idx]) ? entry.fac[period.idx] : '';
+                    const eSd  = (entry.sd  && entry.sd[period.idx])  ? entry.sd[period.idx]  : '';
+                    const eRn  = (entry.rn  && entry.rn[period.idx])  ? entry.rn[period.idx]  : '';
+                    _writeEntryRow('SMR', period.label, eIdx + 2, eFac, eSd, eRn, false);
+                });
+            });
+
+            // ── CMR rows (H1–H2) ─────────────────────────────────────────────
+            CMR_PERIODS.forEach(period => {
+                const fac  = _val(cmrFacKey, period.idx);
+                const sd   = _val(cmrSdKey,  period.idx);
+                const rn   = _val(cmrRnKey,  period.idx);
+                const coc  = _boolVal(cmrCocKey, period.idx);
+
+                _writeEntryRow('CMR', period.label, 1, fac, sd, rn, coc);
+
+                // Extra CMR entries for this period
+                const extras = Array.isArray(pv[cmrExtKey]) ? pv[cmrExtKey] : [];
+                extras.forEach((entry, eIdx) => {
+                    const eFac = (entry.fac && entry.fac[period.idx]) ? entry.fac[period.idx] : '';
+                    const eSd  = (entry.sd  && entry.sd[period.idx])  ? entry.sd[period.idx]  : '';
+                    const eRn  = (entry.rn  && entry.rn[period.idx])  ? entry.rn[period.idx]  : '';
+                    _writeEntryRow('CMR', period.label, eIdx + 2, eFac, eSd, eRn, false);
+                });
+            });
+
+            // Spacer row between projects
+            ws.getRow(curRow).height = 6;
+            curRow++;
+        });
+
+        // Spacer row between regions
+        ws.getRow(curRow).height = 8;
+        curRow++;
+    });
+
+    // ── Save ─────────────────────────────────────────────────────────────────
+    try {
+        const buf  = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `SCIC_ESH_EMB_REPORTORIAL_${year}_${new Date().toISOString().slice(0,10)}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('✅ EMB Reportorial Excel exported successfully!', 'success');
+    } catch(err) {
+        console.error('EMB Excel export error:', err);
         showToast('❌ Export failed. Check console for details.', 'error');
     }
 }
