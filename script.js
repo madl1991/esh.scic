@@ -9140,7 +9140,13 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
 
         function _pdfEmb(doc, year, projs, sy, W, H, bs, hs, ar, mg) {
             const title   = 'EMB REPORTORIAL';
-            const REGIONS = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO','PLANT OPERATIONS'];
+            // Build dynamic region list: preserve known order, then append any extra regions found in data
+            const KNOWN_REGIONS = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO','PLANT OPERATIONS'];
+            const _allDataRegions = [...new Set(projs.map(function(p){ return p.region; }).filter(Boolean))];
+            const REGIONS = [
+                ...KNOWN_REGIONS.filter(function(r){ return _allDataRegions.includes(r); }),
+                ..._allDataRegions.filter(function(r){ return !KNOWN_REGIONS.includes(r); })
+            ];
 
             function fmtDate(d) {
                 if (!d) return '—';
