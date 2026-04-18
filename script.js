@@ -9140,7 +9140,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
 
         function _pdfEmb(doc, year, projs, sy, W, H, bs, hs, ar, mg) {
             const title   = 'EMB REPORTORIAL';
-            const REGIONS = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+            const REGIONS = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO','PLANT OPERATIONS'];
 
             function fmtDate(d) {
                 if (!d) return '—';
@@ -16865,7 +16865,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     var CMR_DUE   = ['Due: Jul 15',   'Due: Jan 15'];
 
                     REGIONS.forEach(function(reg) {
-                        if (reg === 'CORPORATE' || reg === 'PLANT OPERATIONS') return;
+                        if (reg === 'CORPORATE') return;
                         var projs = displayProjects.filter(function(p){ return p.region === reg; });
                         if (!projs.length) return;
                         // Active (non-stoppage) projects for compliance counting
@@ -16873,6 +16873,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var canEditReg = state.isEditing && UserAccounts.canEdit(state.currentUser&&state.currentUser.email, reg) && UserAccounts.canEditTab(state.currentUser&&state.currentUser.email, 'emb');
                         var isCollapsed = isRegionCollapsed(reg);
                         var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
+                        var isPlantOps = reg === 'PLANT OPERATIONS';
 
                         // count complete periods (active projects only) — always against all 4Q + 2H
                         // A period is "complete" if every active project has SD+RN filled OR has Care of Client checked
@@ -16888,16 +16889,16 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             if(hOk) embComplete++;
                         }
 
-                        html += '<div id="region-banner-'+reg+'" class="region-banner region-'+reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+' '+(isCollapsed?'collapsed':'')+' '+(canEditReg?'rb-editable':'')+'" onclick="toggleRegion(\''+reg.replace(/'/g,"\\'")+'\',event)">'
+                        html += '<div id="region-banner-'+reg+'" class="region-banner region-'+reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+' '+(isCollapsed?'collapsed':'')+' '+(canEditReg?'rb-editable':'')+'" onclick="toggleRegion(\''+reg.replace(/'/g,"\\'")+'\',event)">' 
                             +'<div class="region-banner-inner"><div class="region-banner-left">'
-                            +'<i class="fas fa-location-dot region-icon"></i><span class="region-name">'+reg+'</span>'
-                            
+                            +'<i class="fas '+(isPlantOps?'fa-industry':'fa-location-dot')+' region-icon"></i><span class="region-name">'+reg+'</span>'
+                            +(isPlantOps?'<span class="rbadge" style="background:rgba(255,255,255,0.2);color:white;font-size:0.55rem;padding:2px 8px;border-radius:10px;font-weight:700;">🏭 MONITORING ONLY</span>':'')
                             +'</div><div class="region-banner-right">'
-                            +'<span class="rbadge rbadge-count">'+projs.length+' PROJ</span>'
+                            +'<span class="rbadge rbadge-count">'+projs.length+(isPlantOps?' PLANT'+(projs.length!==1?'S':''):' PROJ')+'</span>'
                             +'<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">'+embComplete+'/'+embTotal2+' complete</span>'
                             +'<i class="fas fa-chevron-down region-toggle-icon"></i>'
                             +'</div></div></div>'
-                            +'<div id="region-content-'+reg+'" class="region-content '+(isCollapsed?'collapsed':'')+'">';
+                            +'<div id="region-content-'+reg+'" class="region-content '+(isCollapsed?'collapsed':'')+'">'; 
 
                         var periods2 = [];
                         for (var q2=1; q2<=4; q2++) {
@@ -17022,50 +17023,45 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                             var html = '<td style="padding:8px;border:1px solid '+(stopped?'#e0e0e0':_cocExempt?'#81c784':'#c8e6c9')+';width:220px;min-width:220px;max-width:220px;vertical-align:top;text-align:left;background:'+(stopped?'#fafafa':_cocExempt?'#f1fff1':'')+';">';
 
-                            // Care of Client exemption banner only (work-stoppage info shown via tooltip on column header)
-                            if (_cocExempt) {
-                                html += '<div style="display:flex;align-items:center;gap:5px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:4px;padding:4px 8px;font-size:0.6rem;font-weight:700;margin-bottom:8px;">'
-                                    + '<i class="fas fa-check-circle"></i> ✅ Care of Client — Exempted (Compliant)</div>';
-                            }
-
                             // ── Primary entry block ──
-                            // When CoC is checked, SD and Ref No fields appear green (exempt = compliant)
                             var facKey = isSmr ? 'emb_SMR (Quarterly) - Facility' : 'emb_CMR (Semi-Annual) - Facility';
                             var facVal = (p.vals[facKey] && p.vals[facKey][periodIdx]) ? p.vals[facKey][periodIdx] : '';
                             var _sdEffective = _cocExempt ? true : sdVal;
                             var _rnEffective = _cocExempt ? true : rnVal;
                             html += '<div class="emb-entry-block" style="margin-bottom:8px;padding:8px;border:1px solid '+(_cocExempt?'#a5d6a7':'#a5d6a7')+';border-radius:6px;background:'+(_cocExempt?'#e8f5e9':'#f1f8f1')+';position:relative;">';
 
-                            // Facility
-                            html += '<div style="margin-bottom:6px;">';
-                            html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">🏭 Facility</div>';
-                            html += '<input type="text" value="' + (facVal||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
-                                + ' data-pname="' + pnSafe + '" data-key="' + facKey + '" data-idx="' + periodIdx + '"'
-                                + ' placeholder="Facility name..."'
-                                + ' style="width:100%;border:1px solid #b0bec5;border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:#eceff1;color:#263238;box-sizing:border-box;text-align:left;display:block;"'
-                                + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);">';
-                            html += '</div>';
+                            if (!_cocExempt) {
+                                // Facility
+                                html += '<div style="margin-bottom:6px;">';
+                                html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">🏭 Facility</div>';
+                                html += '<input type="text" value="' + (facVal||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
+                                    + ' data-pname="' + pnSafe + '" data-key="' + facKey + '" data-idx="' + periodIdx + '"'
+                                    + ' placeholder="Facility name..."'
+                                    + ' style="width:100%;border:1px solid #b0bec5;border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:#eceff1;color:#263238;box-sizing:border-box;text-align:left;display:block;"'
+                                    + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);">';
+                                html += '</div>';
 
-                            // Submission Date
-                            var _sdBg = _embCellBg(_sdEffective); var _sdBd = _embCellBorder(_sdEffective); var _sdC = _embCellColor(_sdEffective);
-                            html += '<div style="margin-bottom:6px;">';
-                            html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">📅 Submission Date' + (_cocExempt?' <span style="color:#2e7d32;font-weight:800;">(Exempt)</span>':'') + '</div>';
-                            html += '<input type="date" value="' + sdVal + '" ' + (canEdit?'':'disabled')
-                                + ' data-pname="' + pnSafe + '" data-key="' + sdKey + '" data-idx="' + periodIdx + '"'
-                                + ' style="width:100%;border:1px solid ' + _sdBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _sdBg + ';color:' + _sdC + ';box-sizing:border-box;text-align:left;display:block;"'
-                                + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';">';
-                            html += '</div>';
+                                // Submission Date
+                                var _sdBg = _embCellBg(_sdEffective); var _sdBd = _embCellBorder(_sdEffective); var _sdC = _embCellColor(_sdEffective);
+                                html += '<div style="margin-bottom:6px;">';
+                                html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">📅 Submission Date</div>';
+                                html += '<input type="date" value="' + sdVal + '" ' + (canEdit?'':'disabled')
+                                    + ' data-pname="' + pnSafe + '" data-key="' + sdKey + '" data-idx="' + periodIdx + '"'
+                                    + ' style="width:100%;border:1px solid ' + _sdBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _sdBg + ';color:' + _sdC + ';box-sizing:border-box;text-align:left;display:block;"'
+                                    + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';">';
+                                html += '</div>';
 
-                            // Reference No.
-                            var _rnBg = _embCellBg(_rnEffective); var _rnBd = _embCellBorder(_rnEffective); var _rnC = _embCellColor(_rnEffective);
-                            html += '<div style="margin-bottom:6px;">';
-                            html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">🔢 Reference No.' + (_cocExempt?' <span style="color:#2e7d32;font-weight:800;">(Exempt)</span>':'') + '</div>';
-                            html += '<input type="text" value="' + (rnVal||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
-                                + ' data-pname="' + pnSafe + '" data-key="' + rnKey + '" data-idx="' + periodIdx + '"'
-                                + ' placeholder="Ref number..."'
-                                + ' style="width:100%;border:1px solid ' + _rnBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _rnBg + ';color:' + _rnC + ';box-sizing:border-box;text-align:left;display:block;"'
-                                + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';">';
-                            html += '</div>';
+                                // Reference No.
+                                var _rnBg = _embCellBg(_rnEffective); var _rnBd = _embCellBorder(_rnEffective); var _rnC = _embCellColor(_rnEffective);
+                                html += '<div style="margin-bottom:6px;">';
+                                html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">🔢 Reference No.</div>';
+                                html += '<input type="text" value="' + (rnVal||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
+                                    + ' data-pname="' + pnSafe + '" data-key="' + rnKey + '" data-idx="' + periodIdx + '"'
+                                    + ' placeholder="Ref number..."'
+                                    + ' style="width:100%;border:1px solid ' + _rnBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _rnBg + ';color:' + _rnC + ';box-sizing:border-box;text-align:left;display:block;"'
+                                    + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';">';
+                                html += '</div>';
+                            }
 
                             // Care of Client checkbox — when checked, project is permanently exempt for this period
                             html += '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;padding:5px 6px;border-radius:4px;background:' + (_cocExempt?'#c8e6c9':'#f5f5f5') + ';border:1px solid '+(_cocExempt?'#a5d6a7':'#ddd')+';cursor:pointer;" onclick="this.querySelector(\'input[type=checkbox]\').click()">';
