@@ -30240,6 +30240,15 @@ function startEshCalendarSync() {
         }
 
         // Re-render visible ESH calendar tabs
+        // ── Skip re-render if a delete confirm dialog is open, or if we just wrote an actual ──
+        if (window._eshConfirmDialogOpen) {
+            console.log('⏸️ ESH sync: skipping re-render — confirm dialog is open');
+            return;
+        }
+        if (window._eshSavingActual) {
+            console.log('⏸️ ESH sync: skipping re-render — actual date write in progress (echo suppression)');
+            return;
+        }
         const eshTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
         const tabsToRefresh = (state && eshTabs.includes(state.currentTab)) ? [state.currentTab] : eshTabs;
         tabsToRefresh.forEach(function(tabType) {
@@ -30251,6 +30260,20 @@ function startEshCalendarSync() {
                 const safeRegion = region.replace(/[^a-z0-9]/gi, '_');
                 const contentEl = document.getElementById(tabType + '-' + safeRegion + '-content');
                 if (contentEl && contentEl.style.display !== 'none') {
+                    // ── Skip re-render if user is actively editing a date input inside this container ──
+                    const _focusedEl = document.activeElement;
+                    if (_focusedEl && _focusedEl.type === 'date' && contentEl.contains(_focusedEl)) {
+                        // User is mid-input — defer re-render to avoid wiping their input
+                        (function(_t, _r, _rp) {
+                            setTimeout(function() {
+                                const _fi = document.activeElement;
+                                if (_fi && _fi.type === 'date' && document.getElementById(_t + '-' + _r.replace(/[^a-z0-9]/gi,'_') + '-content') && document.getElementById(_t + '-' + _r.replace(/[^a-z0-9]/gi,'_') + '-content').contains(_fi)) return;
+                                const _pi = _eshRegionProjectIdx[eshGetRegionKey(_t, _r)] || 0;
+                                try { eshRenderRegionTable(_t, _r, _rp, _pi); } catch(e) {}
+                            }, 1500);
+                        })(tabType, region, regProjects);
+                        return;
+                    }
                     const projIdx = _eshRegionProjectIdx[eshGetRegionKey(tabType, region)] || 0;
                     try { eshRenderRegionTable(tabType, region, regProjects, projIdx); } catch(e) {}
                 }
@@ -31171,7 +31194,7 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                         ? `onclick="event.stopPropagation();eshToggle8HrOshNA(event,'${tabType}','${proj.name.replace(/'/g,"\'")}',${storageIdx},${mi})"`
                         : '';
                     html += `<td class="esh-td-plan${isPlanned8?' esh-planned':''}${!isAdmin?' esh-plan-locked':''}"
-                        data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}"
+                        data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}" data-projname="${proj.name.replace(/"/g,'&quot;')}"
                         onclick="event.stopPropagation();eshSetPlan('${tabType}','${proj.name}',${storageIdx},${mi},null,this)"
                         title="${!isAdmin ? '🔒 Admin only — Cannot set Plan/Schedule' : isPlanned8 ? 'Click to unschedule' : 'Click to schedule'}">
                     </td>`;
@@ -31211,7 +31234,7 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                 else if (!isPlanned) { actualClass += ' esh-not-planned'; }
 
                 html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}${!isAdmin?' esh-plan-locked':''}"
-                    data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}"
+                    data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}" data-projname="${proj.name.replace(/"/g,'&quot;')}"
                     onclick="event.stopPropagation();eshSetPlan('${tabType}','${proj.name}',${storageIdx},${mi},null,this)"
                     title="${!isAdmin ? '🔒 Admin only — Cannot set Plan/Schedule' : isPlanned ? 'Click to unschedule' : 'Click to schedule'}">
                 </td>`;
@@ -31343,7 +31366,7 @@ function buildDrillsSingleTable(projects, storage, col) {
                     'Once a year':  '#42a5f5',
                 }[drill.freq] || '#fff9c4';
                 const plannedBg = isPlanned ? planFreqColor : '';
-                html += `<td class="${planClass}" data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}" data-freq="${drill.freq}"
+                html += `<td class="${planClass}" data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}" data-freq="${drill.freq}" data-projname="${proj.name.replace(/"/g,'&quot;')}"
                     ${planOnClick} title="${planTitle}" style="${planCellStyle}${isPlanned && !isNaCell ? 'background:'+planFreqColor+' !important;' : ''}"></td>`;
 
                 let actualClass = 'esh-td-actual';
@@ -31585,7 +31608,7 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
 
     // ── Update DOM immediately (optimistic UI) ────────────────────────────────
     document.querySelectorAll(
-        `.esh-td-plan[data-tabtype="${tabType}"][data-ti="${ti}"][data-mi="${mi}"]`
+        `.esh-td-plan[data-tabtype="${tabType}"][data-ti="${ti}"][data-mi="${mi}"][data-projname="${projName.replace(/"/g,'&quot;')}"]`
     ).forEach(function(cell) {
         cell.classList.toggle('esh-planned', nowPlanned);
         cell.title = nowPlanned ? 'Click to unschedule' : 'Click to schedule';
@@ -31649,7 +31672,7 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
             _eshSaveLocal(key, nowPlanned ? null : true);
             // Rollback DOM
             document.querySelectorAll(
-                `.esh-td-plan[data-tabtype="${tabType}"][data-ti="${ti}"][data-mi="${mi}"]`
+                `.esh-td-plan[data-tabtype="${tabType}"][data-ti="${ti}"][data-mi="${mi}"][data-projname="${projName.replace(/"/g,'&quot;')}"]`
             ).forEach(function(cell) {
                 cell.classList.toggle('esh-planned', !nowPlanned);
                 cell.style.background = !nowPlanned ? planBg : '';
@@ -31695,7 +31718,7 @@ window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drill
             }
         }
     }
-    document.querySelectorAll(`.esh-td-plan[data-tabtype="${tabType}"][data-ti="${ti}"][data-mi="${mi}"]`).forEach(cell => {
+    document.querySelectorAll(`.esh-td-plan[data-tabtype="${tabType}"][data-ti="${ti}"][data-mi="${mi}"][data-projname="${projName.replace(/"/g,'&quot;')}"]`).forEach(cell => {
         if (cell === tdEl) return;
         cell.classList.toggle('esh-planned', nowPlanned);
         cell.title = planTitle;
@@ -31762,7 +31785,11 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
         const _existing = (_storage[_key] && _storage[_key] !== '__DELETED__') ? _storage[_key] : '';
         if (_existing) {
             const _mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            if (!confirm(`🗑️ Delete actual date "${_existing}" for ${projName} — ${_mn[mi] || 'Month '+(mi+1)}?\n\nThis action cannot be undone.`)) {
+            // ── Guard: suppress Firebase listener re-render while confirm dialog is open ──
+            window._eshConfirmDialogOpen = true;
+            const _confirmed = confirm(`🗑️ Delete actual date "${_existing}" for ${projName} — ${_mn[mi] || 'Month '+(mi+1)}?\n\nThis action cannot be undone.`);
+            window._eshConfirmDialogOpen = false;
+            if (!_confirmed) {
                 if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = _existing; }
                 return;
             }
@@ -31796,18 +31823,23 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
     _eshSaveLocal(actualKey, value || null);
 
     // ── Write directly to Firebase RTDB ──────────────────────────────────────
+    // Set flag to suppress the immediate onValue echo re-render (would wipe the user's current view)
+    window._eshSavingActual = true;
     const safePath = 'esh-calendar/data/' + _eshKeyToFirebasePath(actualKey);
     const ref = window.firebase.dbRef(window.firebaseRealtimeDb, safePath);
     window.firebase.set(ref, value || null)
         .then(function() {
             showToast(value ? '✅ Actual date saved.' : '🗑️ Actual date deleted.', 'success', 2000);
             console.log('✅ eshSetActual saved:', actualKey, '=', value || null);
+            // Clear flag after a short delay — allows the echo onValue to fire without disruption
+            setTimeout(function() { window._eshSavingActual = false; }, 2000);
         })
         .catch(function(e) {
             const errMsg = (e && (e.message || e.code || String(e))) || '';
             console.error('❌ eshSetActual failed:', actualKey, errMsg);
             showToast('❌ Save failed: ' + errMsg, 'error', 5000);
             _eshSaveLocal(actualKey, null);
+            window._eshSavingActual = false;
             if (tdEl) { const inp = tdEl.querySelector('input[type="date"]'); if (inp) inp.value = ''; tdEl.classList.remove('esh-done', 'esh-overdue'); }
         });
 };
