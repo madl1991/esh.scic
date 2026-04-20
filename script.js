@@ -27210,7 +27210,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         if (row && typeof deleteEnvRowFromFirebase === 'function') {
-            deleteEnvRowFromFirebase('env_fuel_rows', id).then(() => {
+            deleteEnvRowFromFirebase('env_fuel_rows', row).then(() => {
                 // Only remove from local array AFTER Firebase deletion succeeds
                 fuelData = fuelData.filter(r => r.id !== id);
                 fuelRenderRegions();
@@ -29245,7 +29245,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         if (row && typeof deleteEnvRowFromFirebase === 'function') {
-            deleteEnvRowFromFirebase('env_water_rows', id).then(() => {
+            deleteEnvRowFromFirebase('env_water_rows', row).then(() => {
                 // Only remove from local array AFTER Firebase deletion succeeds
                 waterData = waterData.filter(r => r.id !== id);
                 waterRenderRegions();
