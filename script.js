@@ -30828,7 +30828,7 @@ function renderEshCalendar(tabType) {
     const _ssTrainings = ESH_TRAININGS[tabType] || [];
     const _ssDrills    = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
     const _ssAllProjs  = (state && state.projects)
-        ? state.projects.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS')
+        ? state.projects.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS' && (p.status || '').toLowerCase() !== 'finished')
         : [];
 
     function _ssMonthOverdue(mi) {
