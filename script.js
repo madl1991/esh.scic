@@ -16713,17 +16713,16 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 _cbHtml += '<input type="checkbox"' + (_cbChecked ? ' checked' : '') + ' ' + (c.dis||'');
                                 _cbHtml += ' data-pname="' + c.pname + '" data-key="' + c.key + '" data-idx="' + c.idx + '" data-inputtype="checkbox"';
                                 _cbHtml += ' style="width:18px;height:18px;accent-color:#2e7d32;cursor:' + _cbCursor + ';"';
-                                _cbHtml += ' onchange="(function(el){var v=el.checked;updateVal(el.dataset.pname,el.dataset.key,parseInt(el.dataset.idx),v);var td=el.closest(\'td\');td.style.background=v?\'#c8e6c9\':\'#fffde7\';var lbl=td.querySelector(\'.coc-label\');if(lbl)lbl.textContent=v?\'✓ N/A\':\'No\';var row=el.closest(\'tr\');if(row){var tbl=row.closest(\'table\');if(tbl){var allRows=tbl.querySelectorAll(\'tr\');var pn=el.dataset.pname;for(var ri=0;ri<allRows.length;ri++){var dinps=allRows[ri].querySelectorAll(\'input[type=date][data-pname]\');for(var di=0;di<dinps.length;di++){var inp=dinps[di];if(inp.dataset.pname===pn){if(v){inp.disabled=true;inp.style.background=\'#c8e6c9\';inp.style.borderColor=\'#a5d6a7\';inp.style.color=\'#2e7d32\';inp.style.opacity=\'0.85\';}else{inp.disabled=false;inp.style.background=inp.value?\'#c8e6c9\':\'#fffde7\';inp.style.borderColor=inp.value?\'#a5d6a7\':\'#ffe082\';inp.style.color=inp.value?\'#2e7d32\':\'#7a5c00\';inp.style.opacity=\'1\';}}}}}}})(this)">';
-                                _cbHtml += '<span class="coc-label" style="font-size:0.7rem;font-weight:700;color:#1b5e20;">' + (_cbChecked ? '✓ N/A' : 'No') + '</span>';
+                                _cbHtml += ' onchange="(function(el){var v=el.checked;updateVal(el.dataset.pname,el.dataset.key,parseInt(el.dataset.idx),v);var td=el.closest(\'td\');td.style.background=v?\'#c8e6c9\':\'#fffde7\';var lbl=td.querySelector(\'.coc-label\');if(lbl)lbl.textContent=v?\'✓ Yes\':\'No\';})(this)">';
+                                _cbHtml += '<span class="coc-label" style="font-size:0.7rem;font-weight:700;color:#1b5e20;">' + (_cbChecked ? '✓ Yes' : 'No') + '</span>';
                                 _cbHtml += '</div></td>';
                                 return _cbHtml;
                             }
                             var _mEmpty = !c.val;
                             var _mOverdue = !!c.overdue;
-                            var _mNaGreen = !!c.naChecked;
-                            var _mBorder = (_mNaGreen || c.val) ? '#a5d6a7' : (_mOverdue ? '#ef9a9a' : '#ffe082');
-                            var _mBg     = (_mNaGreen || c.val) ? '#c8e6c9' : (_mOverdue ? '#ffcdd2' : '#fffde7');
-                            var _mColor  = (_mNaGreen || c.val) ? '#2e7d32' : (_mOverdue ? '#c62828' : '#7a5c00');
+                            var _mBorder = c.val ? '#a5d6a7' : (_mOverdue ? '#ef9a9a' : '#ffe082');
+                            var _mBg     = c.val ? '#c8e6c9' : (_mOverdue ? '#ffcdd2' : '#fffde7');
+                            var _mColor  = c.val ? '#2e7d32' : (_mOverdue ? '#c62828' : '#7a5c00');
                             var inputCss = 'width:100%;border:1px solid ' + _mBorder + ';border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:700;background:' + _mBg + ';color:' + _mColor + ';';
                             return '<td style="padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;">'
                                 + '<input type="' + (c.inputType||'date') + '" value="' + (c.val||'') + '" ' + (c.dis||'')
@@ -17404,18 +17403,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     var emrActProjs = displayProjects.filter(function(p){ return !isProjectOnStoppage(p) && p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS'; });
                     var emrTot=0, emrFill=0;
-                    var EMR_NA_KEY = 'env-monthly-report_na';
                     // Only count months BEFORE the current one as overdue (current month hasn't ended yet)
                     // emrCurMoIdx is 0-based; mo is 1-based → loop mo=1 to emrCurMoIdx (excludes current)
-                    // Skip months marked N/A — excluded from compliance computation
-                    emrActProjs.forEach(function(p){
-                        for(var m=1;m<=emrCurMoIdx;m++){
-                            var isNaMonth = p.vals[EMR_NA_KEY] && p.vals[EMR_NA_KEY][m];
-                            if(isNaMonth) continue; // N/A — excluded from compliance
-                            emrTot++;
-                            if(p.vals[EMR_KEY]&&p.vals[EMR_KEY][m]) emrFill++;
-                        }
-                    });
+                    emrActProjs.forEach(function(p){ for(var m=1;m<=emrCurMoIdx;m++){ emrTot++; if(p.vals[EMR_KEY]&&p.vals[EMR_KEY][m]) emrFill++; } });
                     var emrPct = emrTot>0?Math.round(emrFill/emrTot*100):0;
                     var emrPctC = emrPct>=90?'#2e7d32':emrPct>=75?'#e65100':'#c62828';
                     var emrPctBg = emrPct>=90?'#e8f5e9':emrPct>=75?'#fff3e0':'#ffebee';
@@ -17439,11 +17429,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
 
                         var emrComplete = 0;
-                        for(var m=1;m<=emrCurMoIdx+1;m++){
-                            var nonNaProjs = activeProjs.filter(function(p){ return !(p.vals[EMR_NA_KEY]&&p.vals[EMR_NA_KEY][m]); });
-                            var mOk = nonNaProjs.length>0 && nonNaProjs.every(function(p){ return p.vals[EMR_KEY]&&p.vals[EMR_KEY][m]; });
-                            if(mOk) emrComplete++;
-                        }
+                        for(var m=1;m<=emrCurMoIdx+1;m++){ var mOk=activeProjs.every(function(p){ return p.vals[EMR_KEY]&&p.vals[EMR_KEY][m]; }); if(mOk && activeProjs.length > 0) emrComplete++; }
 
                         html += '<div id="region-banner-'+reg+'" class="region-banner region-'+reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+' '+(isCollapsed?'collapsed':'')+' '+(canEditReg?'rb-editable':'')+'" onclick="toggleRegion(\''+reg.replace(/'/g,"\\'")+'\',event)">'
                             +'<div class="region-banner-inner"><div class="region-banner-left">'
@@ -17458,13 +17444,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         var emrPeriods = [];
                         for(var m2=0;m2<=emrCurMoIdx;m2++){
-                            var mIdx2 = m2+1;
-                            var nonNaProjs2 = activeProjs.filter(function(p){ return !(p.vals[EMR_NA_KEY]&&p.vals[EMR_NA_KEY][mIdx2]); });
-                            var mFill = nonNaProjs2.filter(function(p){ return p.vals[EMR_KEY]&&p.vals[EMR_KEY][mIdx2]; }).length;
+                            var mFill = activeProjs.filter(function(p){ return p.vals[EMR_KEY]&&p.vals[EMR_KEY][m2+1]; }).length;
                             emrPeriods.push({
                                 label: EMR_MONTHS[m2] + ' ' + emrSelYear,
                                 shortLabel: EMR_MONTHS[m2].substring(0,3).toUpperCase(),
-                                filledCount: mFill, totalSlots: nonNaProjs2.length,
+                                filledCount: mFill, totalSlots: activeProjs.length,
                                 isCurrent: (m2 === emrCurMoIdx),
                                 sub: 'Submitted: <span style="color:'+(mFill===activeProjs.length?'#2e7d32':mFill>0?'#e65100':'#c62828')+';font-weight:700;">'+mFill+'/'+activeProjs.length+'</span>',
                                 periodKey: 'M'+(m2+1)
@@ -17519,12 +17503,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 + opts + '</select></label>';
                         })() : '';
 
-                        var EMR_NA_KEY_MODAL = 'env-monthly-report_na';
                         var rowDefs = [
-                            { label: 'N/A', desc: 'Mark as Not Applicable — project is exempt from EMR compliance for this month',
-                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); var naVal=p.vals[EMR_NA_KEY_MODAL]?!!p.vals[EMR_NA_KEY_MODAL][mIdx]:false; return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_NA_KEY_MODAL,idx:mIdx,val:naVal,dis:(stopped||!(canEdit||state.isEditing))?'disabled':'',inputType:'checkbox',stopped:stopped}; }) },
                             { label: 'EMR Date', desc: 'Environmental Monthly Report submission date — '+mLabel,
-                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); var _pNa=p.vals[EMR_NA_KEY_MODAL]?!!p.vals[EMR_NA_KEY_MODAL][mIdx]:false; return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_KEY,idx:mIdx,val:p.vals[EMR_KEY]?p.vals[EMR_KEY][mIdx]||'':'',dis:(stopped||(!canEdit&&!state.isEditing))?'disabled':((_pNa||(!canEdit&&state.isEditing))?'disabled':dis),inputType:'date',stopped:stopped,naChecked:_pNa}; }) }
+                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_KEY,idx:mIdx,val:p.vals[EMR_KEY]?p.vals[EMR_KEY][mIdx]||'':'',dis:(stopped||!canEdit)?'disabled':dis,inputType:'date',stopped:stopped}; }) }
                         ];
 
                         var tableHtml = _modalTable(rowDefs, null, regProjs.map(function(p){ return p.name + (isProjectOnStoppage(p) ? ' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;"><i class=\'fas fa-pause-circle\'></i></span>' : ''); }));
@@ -17538,8 +17519,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<span style="font-size:0.6rem;color:#888;margin-left:auto;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll if needed</span>'
                             + '</div>';
                         var footer = _modalFooter(
-                            (canEdit || state.isEditing) ? 'window._saveEmrModal()' : null,
-                            (canEdit || state.isEditing) ? null : 'window.openEmrDialog(\''+_rk+'\',\''+_rg+'\',\''+periodKey+'\',true)',
+                            canEdit ? 'window._saveEmrModal()' : null,
+                            canEdit ? null : 'window.openEmrDialog(\''+_rk+'\',\''+_rg+'\',\''+periodKey+'\',true)',
                             'emr-modal');
 
                         var modal = _buildModalOverlay('emr-modal', header, infoBar, tableHtml, footer);
