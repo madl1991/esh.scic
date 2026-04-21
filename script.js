@@ -5277,6 +5277,35 @@ function updateAuditData(pName, qtr, field, val) {
             // so data reflects immediately without needing save/refresh
             // Note: _skipRenderTabs are re-rendered by saveData() and _doSnapshotRender()
             // No deferred render here — avoids wiping active input while user is typing
+
+            // FIX: Deferred render for 'exposures' tab so computed rows (e.g. "Total Exposed
+            // Man-hour to date") update visually after input without wiping the active field.
+            if (state.currentTab === 'exposures') {
+                clearTimeout(window._exposuresDeferredRender);
+                window._exposuresDeferredRender = setTimeout(function() {
+                    if (state.currentTab !== 'exposures') return;
+                    const _activeEl2 = document.activeElement;
+                    const _activeId2 = _activeEl2 ? _activeEl2.id : null;
+                    const _activeName2 = _activeEl2 ? _activeEl2.getAttribute('name') : null;
+                    const _activeSelStart2 = (_activeEl2 && _activeEl2.selectionStart !== undefined) ? _activeEl2.selectionStart : null;
+                    const _activeSelEnd2 = (_activeEl2 && _activeEl2.selectionEnd !== undefined) ? _activeEl2.selectionEnd : null;
+                    const _mainEl2 = document.getElementById('main-content') || document.documentElement;
+                    const _savedScrollY2 = _mainEl2.scrollTop || 0;
+                    render();
+                    if (_savedScrollY2 > 0) {
+                        requestAnimationFrame(function() { _mainEl2.scrollTop = _savedScrollY2; });
+                    }
+                    let _restoreEl2 = _activeId2 ? document.getElementById(_activeId2) : null;
+                    if (!_restoreEl2 && _activeName2) _restoreEl2 = document.querySelector('[name=' + JSON.stringify(_activeName2) + ']');
+                    if (_restoreEl2) {
+                        _restoreEl2.focus();
+                        if (_activeSelStart2 !== null && _restoreEl2.setSelectionRange) {
+                            try { _restoreEl2.setSelectionRange(_activeSelStart2, _activeSelEnd2); } catch(e) {}
+                        }
+                    }
+                }, 800);
+            }
+
             if (state.currentTab === 'rates') {
                 const _activeInPanel = document.activeElement?.closest('#incident-tabulation-panel');
                 if (!_activeInPanel) {
