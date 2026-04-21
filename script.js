@@ -14716,7 +14716,7 @@ function renderTabulation() {
 
                                 ${(p.workStoppageDate && p.workResumeDate) ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;padding:2px 8px;border-radius:12px;font-size:0.68rem;font-weight:700;margin-left:8px;"><i class="fas fa-play-circle" style="font-size:0.65rem;"></i> RESUMED — Counting from ${formatDateDMY(p.workResumeDate)}</span>` : ''}
                             </div>
-                            <div class="project-meta">${p.region === 'CORPORATE' ? 'Main Office' : p.region === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')} • ${p.region || 'No Region'}</div>
+                            <div class="project-meta">${p.region === 'CORPORATE' ? 'Main Office' : p.region === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
                         </div>
                         ${p.region === 'CORPORATE' ? '' : `<div class="project-dates">
                             <div><span class="date-label">Started:</span> ${p.dateStarted ? formatDateDMY(p.dateStarted) : 'Not set'}</div>
