@@ -4873,7 +4873,7 @@ debugCommands.help() - Show this help
                     ${isSuperEditableTab
                         ? `✏️ <strong>Editable</strong> — Superintendent access · Region: <strong>${info.region}</strong>`
                         : isCorpDrillsTab
-                            ? `🔒 <strong>Read-Only</strong> — Corporate HQ Drills is Admin-managed only.`
+                            ? `🔒 <strong>Read-Only</strong> — Corporate Drills is Admin-managed only.`
                             : `🔒 <strong>Read-Only</strong> — This tab is not editable for Superintendent.`}
                     <span style="font-weight:400;opacity:0.8;margin-left:4px;">· Write: Safety &amp; Health tabs within <strong>${info.region}</strong> · Env tabs managed by PCO</span>
                 </div>`;
@@ -4995,7 +4995,7 @@ debugCommands.help() - Show this help
                 'esh-calendar-safety': `${state.selectedYear} ESH CALENDAR — SAFETY TRAININGS`,
                 'esh-calendar-health': `${state.selectedYear} ESH CALENDAR — HEALTH AWARENESS`,
                 'esh-calendar-drills': `${state.selectedYear} ESH CALENDAR — EMERGENCY DRILLS`,
-                'esh-calendar-corp-drills': `${state.selectedYear} ESH CALENDAR — CORPORATE HQ DRILLS`,
+                'esh-calendar-corp-drills': `${state.selectedYear} ESH CALENDAR — CORPORATE DRILLS`,
                 'got-monitoring': 'GOALS, OBJECTIVES & TARGETS (GOT) MONITORING'
             };
             document.querySelector('.header-title').innerText = titles[t] || t.toUpperCase();
@@ -5415,6 +5415,7 @@ function updateAuditData(pName, qtr, field, val) {
         const NO_EXPIRY_PERMITS = [
             'ECC',
             'Company Registration System (CRS)',
+            'CNC',
             "Hazardous Waste Generator's ID",
             'NWRB Water Permit'
         ];
@@ -14278,7 +14279,7 @@ function renderTabulation() {
                                         const ak = `${_eshYear1}|esh-calendar-drills|${p.name}|${_dsi1}|${mi}|actual`;
                                         if (eshStor[ak]) monthTotal++;
                                     });
-                                    // ── CORPORATE HQ Drills: also count corp-drills actuals for CORPORATE project ──
+                                    // ── CORPORATE Drills: also count corp-drills actuals for CORPORATE project ──
                                     if (p.region === 'CORPORATE') {
                                         const _corpBase1 = window.CORP_DRILLS || [];
                                         const _corpCustom1 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
@@ -14396,7 +14397,7 @@ function renderTabulation() {
                                             const ak = `${_eshYear2}|esh-calendar-drills|${p.name}|${_dsi2}|${mi}|actual`;
                                             if (eshStor[ak]) ytdTotal++;
                                         });
-                                        // ── CORPORATE HQ Drills: also count corp-drills actuals for CORPORATE project ──
+                                        // ── CORPORATE Drills: also count corp-drills actuals for CORPORATE project ──
                                         if (p.region === 'CORPORATE') {
                                             const _corpBase2 = window.CORP_DRILLS || [];
                                             const _corpCustom2 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
@@ -16003,7 +16004,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 const ak = `${_eshYear3}|esh-calendar-drills|${projName}|${_dsi3}|${mi}|actual`;
                                 if (eshStor[ak]) count++;
                             });
-                            // ── CORPORATE HQ Drills: also count corp-drills actuals for CORPORATE project ──
+                            // ── CORPORATE Drills: also count corp-drills actuals for CORPORATE project ──
                             if (p.region === 'CORPORATE') {
                                 const _corpBase3 = window.CORP_DRILLS || [];
                                 const _corpCustom3 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
@@ -16246,7 +16247,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 if (eshStor[naCellKey4]) return; // skip N/A cells
                                 if (eshStor[`${_eshYear4}|esh-calendar-drills|${p.name}|${_dsi4}|${mi}|actual`]) ytdValue++;
                             });
-                            // ── CORPORATE HQ Drills: also count corp-drills actuals for CORPORATE project ──
+                            // ── CORPORATE Drills: also count corp-drills actuals for CORPORATE project ──
                             if (p.region === 'CORPORATE') {
                                 const _corpBase4 = window.CORP_DRILLS || [];
                                 const _corpCustom4 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
@@ -32255,7 +32256,7 @@ function renderCorpDrillsTab() {
         <div class="esh-cal-header" style="background:linear-gradient(135deg,#1b5e20 0%,#388e3c 100%);">
             <i class="fas fa-building-columns esh-cal-header-icon"></i>
             <div style="flex:1;">
-                <div class="esh-cal-header-title">${selYear} ESH CALENDAR — CORPORATE HQ DRILLS</div>
+                <div class="esh-cal-header-title">${selYear} ESH CALENDAR — CORPORATE DRILLS</div>
                 <div class="esh-cal-header-sub">Corporate Office Only · Admin-Editable · Not counted in regional compliance · Plan color = Frequency | Actual = Date (Green=Done, Red=Overdue)</div>
             </div>
 
@@ -32274,7 +32275,7 @@ function renderCorpDrillsTab() {
         <div class="corp-drills-table-outer">
             <div class="corp-drills-table-header-bar">
                 <i class="fas fa-building-columns" style="margin-right:6px;"></i>
-                <strong>CORPORATE HQ Drills &amp; Activities</strong> — For the Corporate Office only.
+                <strong>CORPORATE Drills &amp; Activities</strong> — For the Corporate Office only.
                 ${canEdit ? 'Click <strong>Plan</strong> cell to schedule. Enter <strong>Actual</strong> date upon completion.' : '🔒 View only — Admin can edit.'}
             </div>
             <div style="overflow-x:auto;"><table class="esh-table">
