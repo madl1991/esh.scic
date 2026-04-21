@@ -5996,181 +5996,210 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
 }
 
         function getPerc(proj) {
-            if (proj.workStoppageDate && !proj.workResumeDate) return null; // exclude from avg
+            // ── OVERALL COMPLIANCE (equal-weight per area, full year) ──────────────
+            // 10 areas, each area = 1/N of the final score (N = applicable areas).
+            // Areas that do not apply to a project are excluded from the average.
+            // Area scores are 0–1; final score = average × 100.
+            //
+            // Area 1  — Drills & Training          (monthly, 2 fields)
+            // Area 2  — KPM                        (monthly, region-wide; N/A → exempt)
+            // Area 3  — DOLE (WAIR, RSO, MOM)      (monthly, 3 fields)
+            // Area 4  — GOT Monitoring             (monthly, 6 goals)
+            // Area 5  — ESH Calendar               (monthly, 3 sub-areas averaged)
+            // Area 6  — Emergency Drills           (planned months only; none planned → excluded)
+            // Area 7  — Envi Reportorial (EMR)     (monthly; N/A months → exempt)
+            // Area 8  — SMR Quarterly              (4 quarters; CoC quarter → exempt)
+            // Area 9  — CMR Semi-Annual            (2 periods; CoC period → exempt)
+            // Area 10 — DOE Reportorial            (4 quarters; renewable only; client-provided → exempt)
+
+            if (proj.workStoppageDate && !proj.workResumeDate) return null;
 
             const selectedYear = (state && state.selectedYear) || new Date().getFullYear();
             function isMonthBlacklisted(monthIdx1Based) {
                 return isMonthBlacklistedForProject(proj, monthIdx1Based, selectedYear);
             }
 
-            let total = 0, filled = 0;
-
-            ["exposures", "medical", "nov", "activities", "dole","permits","emb", "cshp","reg","env-monthly-report"].forEach(cat => {
-    SCHEMA[cat].forEach(row => {
-        const key = `${cat}_${row}`;
-        if (cat === 'cshp' || cat === 'reg') {
-            total += 1;
-            if (proj.vals[key] && proj.vals[key][1]) filled++;
-        } else if (cat === 'permits') {
-            const _noExpPerm = (window.NO_EXPIRY_PERMITS || []).includes(row);
-            total += _noExpPerm ? 2 : 3;
-            if (proj.vals[key]) {
-                const _maxIdx = _noExpPerm ? 2 : 3;
-                for (let i = 1; i <= _maxIdx; i++) {
-                    if (proj.vals[key][i] && proj.vals[key][i] !== "") filled++;
-                }
-            }
-        } else if (cat === 'emb') {
-            if (row === "SMR (Quarterly) - Submission Date") {
-                total += 4; // Q1, Q2, Q3, Q4
-                if (proj.vals[key]) {
-                    for (let i = 1; i <= 4; i++) {
-                        if (proj.vals[key][i] && proj.vals[key][i] !== "") filled++;
-                    }
-                }
-            } else if (row === "SMR (Quarterly) - Reference No.") {
-                total += 4; // Q1, Q2, Q3, Q4
-                if (proj.vals[key]) {
-                    for (let i = 1; i <= 4; i++) {
-                        if (proj.vals[key][i] && proj.vals[key][i] !== "") filled++;
-                    }
-                }
-            } else if (row === "CMR (Semi-Annual) - Submission Date") {
-                total += 2; // Two semi-annual periods
-                if (proj.vals[key] && proj.vals[key][1]) filled++;
-                if (proj.vals[key] && proj.vals[key][2]) filled++;
-            } else if (row === "CMR (Semi-Annual) - Reference No.") {
-                total += 2; // Two semi-annual periods
-                if (proj.vals[key] && proj.vals[key][1]) filled++;
-                if (proj.vals[key] && proj.vals[key][2]) filled++;
-            }
-        } else {
-            if (cat === 'dole' && (row === 'AEDR' || row === 'AMR')) {
-                total += 1;
-                if (proj.vals[key] && proj.vals[key][1]) filled++;
-            } else {
-                for (let i = 1; i <= 12; i++) {
-                    if (isMonthBlacklisted(i)) continue; // skip — not counted
-                    total += 1;
-                    if (proj.vals[key] && proj.vals[key][i] && proj.vals[key][i] !== "0" && proj.vals[key][i] !== "") filled++;
-                }
-            }
-        }
-    });
-});
-
-            // ── KPM: region-wide check (dateSubmitted is saved on projs[0] per region) ──
-            // Bug fix: kpm_v3_{month}_dateSubmitted is stored only on the first project
-            // per region, NOT on every individual project. Checking proj.vals alone gives
-            // false-negatives for all projects except the first. Mirror the notification
-            // logic: a month is "submitted" if ANY non-NA, non-stopped project in the
-            // same region has the key set.
+            const vals = proj.vals || {};
+            const areaScores = [];
             const _KPM_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-            if (!(proj.vals && proj.vals['kpm_na'] === '1')) {
-                // Pre-collect all active (non-stopped, non-NA) projects in the same region
+            const _calYear   = selectedYear;
+            const _calStor   = (typeof getEshStorage === 'function') ? getEshStorage() : {};
+            const _ESH_DEF_ROWS  = (typeof ESH_DEFAULT_ROWS !== 'undefined') ? ESH_DEFAULT_ROWS : {};
+            const _ESH_DRILLS_LIST = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
+
+            // ── Area 1: Drills & Training (2 fields × 12 months) ──
+            let dtF = 0, dtT = 0;
+            ['activities_Drills Conducted', 'activities_Training Conducted'].forEach(key => {
+                for (let i = 1; i <= 12; i++) {
+                    if (isMonthBlacklisted(i)) continue;
+                    dtT++;
+                    const v = vals[key] && vals[key][i];
+                    if (v !== undefined && v !== null && v !== '' && v !== '0') dtF++;
+                }
+            });
+            if (dtT > 0) areaScores.push(dtF / dtT);
+
+            // ── Area 2: KPM (monthly, region-wide check; N/A → excluded) ──
+            if (!(vals['kpm_na'] === '1')) {
                 const _kpmProjRegion = (proj.region || '').toUpperCase();
                 const _kpmRegionPeers = (state.projects || []).filter(p =>
                     p.status !== 'work-stoppage' &&
                     !(p.vals && p.vals['kpm_na'] === '1') &&
                     (p.region || '').toUpperCase() === _kpmProjRegion
                 );
+                let kF = 0, kT = 0;
                 _KPM_MONTHS.forEach((mo, idx) => {
-                    if (isMonthBlacklisted(idx + 1)) return; // skip blacklisted months
-                    total += 1;
-                    // Check region-wide: submitted if ANY peer project has the date set
+                    if (isMonthBlacklisted(idx + 1)) return;
+                    kT++;
                     const _dateKey = 'kpm_v3_' + mo + '_dateSubmitted';
-                    const _kpmSubmitted = _kpmRegionPeers.some(p => {
+                    const _submitted = _kpmRegionPeers.some(p => {
                         const v = p.vals && p.vals[_dateKey];
                         return v && v.toString().trim() !== '';
                     });
-                    if (_kpmSubmitted) filled++;
+                    if (_submitted) kF++;
                 });
+                if (kT > 0) areaScores.push(kF / kT);
             }
+            // N/A → area entirely excluded from average
 
-            // ── DOE Safety Officer Permit (Renewable Energy projects only) ────────
-            // Only counted if the project is marked as renewable AND permit is not
-            // client-provided. 2 slots: permit number (index 1) + validity date (index 2).
-            if (proj.isRenewable === true &&
-                !(proj.vals && proj.vals['doe-permit_client_provided'] === '1')) {
-                const _doePermKey = 'doe-permit_DOE Safety Officer Permit';
-                total += 2; // permit number + valid until
-                const _doeVals = proj.vals && proj.vals[_doePermKey];
-                if (_doeVals && _doeVals[1] && _doeVals[1] !== '') filled++;
-                if (_doeVals && _doeVals[2] && _doeVals[2] !== '') filled++;
-            }
+            // ── Area 3: DOLE — WAIR, RSO, MOM (3 fields × 12 months) ──
+            let dF = 0, dT = 0;
+            ['dole_WAIR', 'dole_RSO', 'dole_MOM'].forEach(key => {
+                for (let i = 1; i <= 12; i++) {
+                    if (isMonthBlacklisted(i)) continue;
+                    dT++;
+                    const v = vals[key] && vals[key][i];
+                    if (v !== undefined && v !== null && v !== '' && v !== '0') dF++;
+                }
+            });
+            if (dT > 0) areaScores.push(dF / dT);
 
-            // ── GOT Monitoring (Goals, Objectives & Targets) ─────────────────────
-            // 6 goals × 12 months; filled when a rating/value is entered for the month
-            const _GOT_GOALS = ['E1','E2','E3','S1','S2','S3'];
+            // ── Area 4: GOT Monitoring (6 goals × 12 months) ──
             if (typeof window.gotGetCell === 'function') {
-                _GOT_GOALS.forEach(goalId => {
+                let gF = 0, gT = 0;
+                ['E1','E2','E3','S1','S2','S3'].forEach(goalId => {
                     for (let i = 1; i <= 12; i++) {
                         if (isMonthBlacklisted(i)) continue;
-                        total += 1;
+                        gT++;
                         const _gotVal = window.gotGetCell(proj, goalId, 0, i).r;
-                        if (_gotVal && _gotVal.toString().trim() !== '') filled++;
+                        if (_gotVal && _gotVal.toString().trim() !== '') gF++;
                     }
                 });
+                if (gT > 0) areaScores.push(gF / gT);
             }
 
-            // ── ESH Training Calendars (env, safety, health) ──────────────────────
-            // Each training row × each month = 1 slot; filled when actual date is entered.
-            // Rows marked N/A (via na_row key) are excluded from the current month onwards.
-            const _calYear  = selectedYear;
-            const _calStor  = (typeof getEshStorage === 'function') ? getEshStorage() : {};
+            // ── Area 5: ESH Calendar — env, safety, health (3 sub-areas, equally averaged) ──
             const _ESH_CAL_TYPES = ['esh-calendar-env', 'esh-calendar-safety', 'esh-calendar-health'];
-            const _ESH_DEF_ROWS  = (typeof ESH_DEFAULT_ROWS !== 'undefined') ? ESH_DEFAULT_ROWS : {};
-
+            const calSubScores = [];
             _ESH_CAL_TYPES.forEach(tt => {
                 const rows = _ESH_DEF_ROWS[tt] || [];
+                let cF = 0, cT = 0;
                 rows.forEach((_, ti) => {
-                    // Check N/A: na_row key stores the 0-based month index from which the row is N/A
-                    const naRowKey  = `${_calYear}|${tt}|${proj.name}|${ti}|na_row`;
-                    const naFrom    = _calStor[naRowKey] !== undefined ? parseInt(_calStor[naRowKey]) : -1;
+                    const naRowKey = `${_calYear}|${tt}|${proj.name}|${ti}|na_row`;
+                    const naFrom   = _calStor[naRowKey] !== undefined ? parseInt(_calStor[naRowKey]) : -1;
                     for (let mi = 0; mi < 12; mi++) {
                         const monthIdx1 = mi + 1;
                         if (isMonthBlacklisted(monthIdx1)) continue;
-                        if (naFrom >= 0 && mi >= naFrom) continue; // excluded by N/A
-                        total += 1;
+                        if (naFrom >= 0 && mi >= naFrom) continue; // N/A from this month onward
+                        cT++;
                         const actualKey = `${_calYear}|${tt}|${proj.name}|${ti}|${mi}|actual`;
-                        if (_calStor[actualKey] && _calStor[actualKey] !== '') filled++;
+                        if (_calStor[actualKey] && _calStor[actualKey] !== '') cF++;
                     }
                 });
+                calSubScores.push(cT > 0 ? cF / cT : 1); // no applicable rows = fully exempt
             });
+            if (calSubScores.length > 0) {
+                areaScores.push(calSubScores.reduce((a, b) => a + b, 0) / calSubScores.length);
+            }
 
-            // ── Emergency Drills ──────────────────────────────────────────────────
-            // Only count months where a GLOBAL_PLAN date exists for that drill.
-            // Filled when actual date is entered; N/A cells (na key = true) are skipped.
-            //
-            // Bug fix: ESH_DRILLS IDs are NOT sequential array indices (e.g. id:7 is at
-            // array index 12). The rendering code uses getDrillStorageIdx(drill, arrayIdx)
-            // which returns drill.id for standard drills — this is what was saved to storage.
-            // We must use the same function here so planKey/actualKey/naCellKey match what
-            // was written by eshSetPlan() / eshSetActual().
-            const _ESH_DRILLS_LIST = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
+            // ── Area 6: Emergency Drills (planned entries only; none planned → excluded) ──
+            let drF = 0, drT = 0;
             _ESH_DRILLS_LIST.forEach((drill, di) => {
-                // Use the same index resolution as the render / save functions
                 const _drillSi = (typeof getDrillStorageIdx === 'function')
                     ? getDrillStorageIdx(drill, di)
                     : (drill.id !== undefined ? drill.id : di);
                 for (let mi = 0; mi < 12; mi++) {
                     const monthIdx1 = mi + 1;
                     if (isMonthBlacklisted(monthIdx1)) continue;
-                    const planKey   = `${_calYear}|esh-calendar-drills|GLOBAL_PLAN|${_drillSi}|${mi}|plan`;
-                    if (!_calStor[planKey] || _calStor[planKey] === '__DELETED__') continue; // not planned this month — don't count
+                    const planKey = `${_calYear}|esh-calendar-drills|GLOBAL_PLAN|${_drillSi}|${mi}|plan`;
+                    if (!_calStor[planKey] || _calStor[planKey] === '__DELETED__') continue;
                     const naCellKey = `${_calYear}|esh-calendar-drills|${proj.name}|${_drillSi}|${mi}|na`;
-                    if (_calStor[naCellKey]) continue; // marked N/A — skip
-                    total += 1;
+                    if (_calStor[naCellKey]) continue;
+                    drT++;
                     const actualKey = `${_calYear}|esh-calendar-drills|${proj.name}|${_drillSi}|${mi}|actual`;
-                    if (_calStor[actualKey] && _calStor[actualKey] !== '' && _calStor[actualKey] !== '__DELETED__') filled++;
+                    if (_calStor[actualKey] && _calStor[actualKey] !== '' && _calStor[actualKey] !== '__DELETED__') drF++;
                 }
             });
+            if (drT > 0) areaScores.push(drF / drT);
+            // No planned drills this year → area not counted
 
-            return total > 0 ? Math.round((filled / total) * 100) : 0;
+            // ── Area 7: Envi Reportorial — EMR (monthly; N/A months → exempt) ──
+            const _emrKey   = 'env-monthly-report_Environmental Monthly Report (EMR)';
+            const _emrNaKey = 'env-monthly-report_na';
+            let emrF = 0, emrT = 0;
+            for (let i = 1; i <= 12; i++) {
+                if (isMonthBlacklisted(i)) continue;
+                const _naRaw = vals[_emrNaKey] && vals[_emrNaKey][i];
+                const _isNa  = _naRaw === true || _naRaw === 'true' || _naRaw === '1' || _naRaw === 1;
+                if (_isNa) continue; // exempt month
+                emrT++;
+                const v = vals[_emrKey] && vals[_emrKey][i];
+                if (v && v.toString().trim() !== '') emrF++;
+            }
+            if (emrT > 0) areaScores.push(emrF / emrT);
+
+            // ── Area 8: SMR Quarterly (4 quarters; Care-of-Client quarter → exempt) ──
+            const _smrKey    = 'emb_SMR (Quarterly) - Submission Date';
+            const _smrCocKey = 'emb_SMR (Quarterly) - Care of Client';
+            let smrF = 0, smrT = 0;
+            for (let q = 1; q <= 4; q++) {
+                const _coc  = vals[_smrCocKey] && vals[_smrCocKey][q];
+                const _isCoC = _coc === true || _coc === 'true' || _coc === '1' || _coc === 1;
+                if (_isCoC) continue; // exempt quarter
+                smrT++;
+                const v = vals[_smrKey] && vals[_smrKey][q];
+                if (v && v.toString().trim() !== '') smrF++;
+            }
+            if (smrT > 0) areaScores.push(smrF / smrT);
+            // All quarters CoC → area excluded
+
+            // ── Area 9: CMR Semi-Annual (2 periods; Care-of-Client period → exempt) ──
+            const _cmrKey    = 'emb_CMR (Semi-Annual) - Submission Date';
+            const _cmrCocKey = 'emb_CMR (Semi-Annual) - Care of Client';
+            let cmrF = 0, cmrT = 0;
+            for (let p2 = 1; p2 <= 2; p2++) {
+                const _coc  = vals[_cmrCocKey] && vals[_cmrCocKey][p2];
+                const _isCoC = _coc === true || _coc === 'true' || _coc === '1' || _coc === 1;
+                if (_isCoC) continue;
+                cmrT++;
+                const v = vals[_cmrKey] && vals[_cmrKey][p2];
+                if (v && v.toString().trim() !== '') cmrF++;
+            }
+            if (cmrT > 0) areaScores.push(cmrF / cmrT);
+
+            // ── Area 10: DOE Reportorial (renewable projects only; client-provided → exempt) ──
+            if (proj.isRenewable === true) {
+                const _doeIsCP = vals['doe_client_provided'] === '1' || vals['doe-permit_client_provided'] === '1';
+                if (!_doeIsCP) {
+                    const _doeKey = 'doe_DOE Quarterly Report Submission Date';
+                    let doeF = 0;
+                    for (let q = 1; q <= 4; q++) {
+                        const v = vals[_doeKey] && vals[_doeKey][q];
+                        if (v && v.toString().trim() !== '') doeF++;
+                    }
+                    areaScores.push(doeF / 4);
+                }
+                // client-provided → area excluded
+            }
+            // Non-renewable project → Area 10 not applicable
+
+            return areaScores.length > 0
+                ? Math.round(areaScores.reduce((a, b) => a + b, 0) / areaScores.length * 100)
+                : 0;
         }
 
         // ── MONTHLY COMPLIANCE: computes compliance rate for a specific month (1-based)
-        // Each area has EQUAL weight (1/6 each): Activities, KPM, DOLE, GOT, ESH Calendar, Emergency Drills
+        // Each area has EQUAL weight (1/7 each): Drills+Training, KPM, DOLE, GOT, ESH Calendar, Emergency Drills, EMR
         // Per project: score = average of area scores (0-1 each). Grand score = average across all projects.
         function getMonthlyCompliance(monthIdx1Based) {
             const selectedYear = (state && state.selectedYear) || new Date().getFullYear();
@@ -6195,14 +6224,13 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 const vals = proj.vals || {};
                 const areaScores = [];
 
-                // ── Area 1: Activities (5 fields) ──
-                let aF = 0, aT = 5;
-                ['activities_No. of ESH Committee Conducted','activities_No. of ESH inspection',
-                 'activities_No. of Identified Near-Miss','activities_Drills Conducted','activities_Training Conducted'].forEach(key => {
+                // ── Area 1: Drills & Training (2 fields) ──
+                let aF = 0;
+                ['activities_Drills Conducted', 'activities_Training Conducted'].forEach(key => {
                     const v = vals[key] && vals[key][monthIdx1Based];
                     if (v !== undefined && v !== null && v !== '' && v !== '0') aF++;
                 });
-                areaScores.push(aF / aT);
+                areaScores.push(aF / 2);
 
                 // ── Area 2: KPM (1 field — submitted or not) ──
                 if (!(vals && vals['kpm_na'] === '1')) {
@@ -6277,6 +6305,18 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 if (drT > 0) areaScores.push(drF / drT);
                 // No planned drills this month — area not counted (excluded from average)
 
+                // ── Area 7: Envi Reportorial - EMR (1 field) ──
+                const _emrKey   = 'env-monthly-report_Environmental Monthly Report (EMR)';
+                const _emrNaKey = 'env-monthly-report_na';
+                const _emrNaRaw = vals[_emrNaKey] && vals[_emrNaKey][monthIdx1Based];
+                const _emrIsNa  = _emrNaRaw === true || _emrNaRaw === 'true' || _emrNaRaw === '1' || _emrNaRaw === 1;
+                if (_emrIsNa) {
+                    areaScores.push(1); // marked N/A — exempt, count as full
+                } else {
+                    const _emrVal = vals[_emrKey] && vals[_emrKey][monthIdx1Based];
+                    areaScores.push((_emrVal && _emrVal.toString().trim() !== '') ? 1 : 0);
+                }
+
                 // ── Project score = equal average of all applicable areas ──
                 if (areaScores.length > 0) {
                     grandSum += areaScores.reduce((a, b) => a + b, 0) / areaScores.length;
@@ -6312,14 +6352,13 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 const vals = proj.vals || {};
                 const areaScores = [];
 
-                // ── Area 1: Activities (5 fields) ──
+                // ── Area 1: Drills & Training (2 fields) ──
                 let aF = 0;
-                ['activities_No. of ESH Committee Conducted','activities_No. of ESH inspection',
-                 'activities_No. of Identified Near-Miss','activities_Drills Conducted','activities_Training Conducted'].forEach(key => {
+                ['activities_Drills Conducted', 'activities_Training Conducted'].forEach(key => {
                     const v = vals[key] && vals[key][monthIdx1Based];
                     if (v !== undefined && v !== null && v !== '' && v !== '0') aF++;
                 });
-                areaScores.push(aF / 5);
+                areaScores.push(aF / 2);
 
                 // ── Area 2: KPM ──
                 if (!(vals && vals['kpm_na'] === '1')) {
@@ -6392,6 +6431,18 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     if (_calStor[actualKey] && _calStor[actualKey] !== '' && _calStor[actualKey] !== '__DELETED__') drF++;
                 });
                 if (drT > 0) areaScores.push(drF / drT);
+
+                // ── Area 7: Envi Reportorial - EMR (1 field) ──
+                const _emrKey   = 'env-monthly-report_Environmental Monthly Report (EMR)';
+                const _emrNaKey = 'env-monthly-report_na';
+                const _emrNaRaw = vals[_emrNaKey] && vals[_emrNaKey][monthIdx1Based];
+                const _emrIsNa  = _emrNaRaw === true || _emrNaRaw === 'true' || _emrNaRaw === '1' || _emrNaRaw === 1;
+                if (_emrIsNa) {
+                    areaScores.push(1); // marked N/A — exempt, count as full
+                } else {
+                    const _emrVal = vals[_emrKey] && vals[_emrKey][monthIdx1Based];
+                    areaScores.push((_emrVal && _emrVal.toString().trim() !== '') ? 1 : 0);
+                }
 
                 if (areaScores.length > 0) {
                     grandSum += areaScores.reduce((a, b) => a + b, 0) / areaScores.length;
@@ -8236,22 +8287,25 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     // Overall: use getPerc (all categories, all months)
                     return typeof getPerc === 'function' ? getPerc(proj) : null;
                 }
-                // Monthly: compute for single month
+                // Monthly: compute for single month — equal-weight per area (consistent with getMonthlyCompliance)
                 if (isMonthBlacklistedForProject(proj, mo, selectedYear)) return null;
-                let filled = 0, total = 0;
                 const vals = proj.vals || {};
-                // Activities (5 rows)
-                ['activities_No. of ESH Committee Conducted','activities_No. of ESH inspection',
-                 'activities_No. of Identified Near-Miss','activities_Drills Conducted','activities_Training Conducted'].forEach(key => {
-                    total++;
+                const _mi = mo - 1; // 0-based month index
+                const _pdfAreaScores = [];
+                const _calStor2 = (typeof getEshStorage === 'function') ? getEshStorage() : {};
+                const _ESH_DEF_ROWS2 = (typeof ESH_DEFAULT_ROWS !== 'undefined') ? ESH_DEFAULT_ROWS : {};
+                const _ESH_DRILLS2   = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
+
+                // Area 1: Drills & Training
+                let _dtF = 0;
+                ['activities_Drills Conducted', 'activities_Training Conducted'].forEach(key => {
                     const v = vals[key] && vals[key][mo];
-                    if (v !== undefined && v !== null && v !== '' && v !== '0') filled++;
+                    if (v !== undefined && v !== null && v !== '' && v !== '0') _dtF++;
                 });
-                // KPM
-                // Bug fix: dateSubmitted is stored only on the first project per region.
-                // Use region-wide check to avoid false-negatives for peer projects.
+                _pdfAreaScores.push(_dtF / 2);
+
+                // Area 2: KPM (N/A → excluded)
                 if (!(vals['kpm_na'] === '1')) {
-                    total++;
                     const _kpmProjRegion = (proj.region || '').toUpperCase();
                     const _kpmRegionPeers = (state.projects || []).filter(p =>
                         p.status !== 'work-stoppage' &&
@@ -8263,53 +8317,74 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         const v = p.vals && p.vals[_kpmDateKey];
                         return v && v.toString().trim() !== '';
                     });
-                    if (_kpmSubmitted) filled++;
+                    _pdfAreaScores.push(_kpmSubmitted ? 1 : 0);
                 }
-                // DOLE monthly (WAIR, RSO, MOM)
+
+                // Area 3: DOLE (WAIR, RSO, MOM)
+                let _dF = 0;
                 ['dole_WAIR','dole_RSO','dole_MOM'].forEach(key => {
-                    total++;
                     const v = vals[key] && vals[key][mo];
-                    if (v !== undefined && v !== null && v !== '' && v !== '0') filled++;
+                    if (v !== undefined && v !== null && v !== '' && v !== '0') _dF++;
                 });
-                // GOT
+                _pdfAreaScores.push(_dF / 3);
+
+                // Area 4: GOT Monitoring
                 if (typeof window.gotGetCell === 'function') {
+                    let _gF = 0;
                     ['E1','E2','E3','S1','S2','S3'].forEach(goalId => {
-                        total++;
                         const gv = window.gotGetCell(proj, goalId, 0, mo).r;
-                        if (gv && gv.toString().trim() !== '') filled++;
+                        if (gv && gv.toString().trim() !== '') _gF++;
                     });
+                    _pdfAreaScores.push(_gF / 6);
                 }
-                // ESH Calendar
-                const _calStor = (typeof getEshStorage === 'function') ? getEshStorage() : {};
-                const _ESH_DEF_ROWS = (typeof ESH_DEFAULT_ROWS !== 'undefined') ? ESH_DEFAULT_ROWS : {};
-                const mi = mo - 1;
+
+                // Area 5: ESH Calendar (3 sub-areas averaged)
+                const _calSubScores2 = [];
                 ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
-                    (_ESH_DEF_ROWS[tt] || []).forEach((_, ti) => {
+                    let _cF = 0, _cT = 0;
+                    (_ESH_DEF_ROWS2[tt] || []).forEach((_, ti) => {
                         const naRowKey = `${selectedYear}|${tt}|${proj.name}|${ti}|na_row`;
-                        const naFrom = _calStor[naRowKey] !== undefined ? parseInt(_calStor[naRowKey]) : -1;
-                        if (naFrom >= 0 && mi >= naFrom) return;
-                        total++;
-                        const actualKey = `${selectedYear}|${tt}|${proj.name}|${ti}|${mi}|actual`;
-                        if (_calStor[actualKey] && _calStor[actualKey] !== '') filled++;
+                        const naFrom = _calStor2[naRowKey] !== undefined ? parseInt(_calStor2[naRowKey]) : -1;
+                        if (naFrom >= 0 && _mi >= naFrom) return;
+                        _cT++;
+                        const actualKey = `${selectedYear}|${tt}|${proj.name}|${ti}|${_mi}|actual`;
+                        if (_calStor2[actualKey] && _calStor2[actualKey] !== '') _cF++;
                     });
+                    _calSubScores2.push(_cT > 0 ? _cF / _cT : 1);
                 });
-                // Emergency Drills
-                // Bug fix: use getDrillStorageIdx(drill, di) to match the storage keys
-                // written by eshSetPlan() / eshSetActual() during rendering.
-                const _ESH_DRILLS_LIST = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
-                _ESH_DRILLS_LIST.forEach((drill, di) => {
+                if (_calSubScores2.length > 0) {
+                    _pdfAreaScores.push(_calSubScores2.reduce((a, b) => a + b, 0) / _calSubScores2.length);
+                }
+
+                // Area 6: Emergency Drills
+                let _drF = 0, _drT = 0;
+                _ESH_DRILLS2.forEach((drill, di) => {
                     const _drillSi = (typeof getDrillStorageIdx === 'function')
                         ? getDrillStorageIdx(drill, di)
                         : (drill.id !== undefined ? drill.id : di);
-                    const planKey = `${selectedYear}|esh-calendar-drills|GLOBAL_PLAN|${_drillSi}|${mi}|plan`;
-                    if (!_calStor[planKey] || _calStor[planKey] === '__DELETED__') return;
-                    const naCellKey = `${selectedYear}|esh-calendar-drills|${proj.name}|${_drillSi}|${mi}|na`;
-                    if (_calStor[naCellKey]) return;
-                    total++;
-                    const actualKey = `${selectedYear}|esh-calendar-drills|${proj.name}|${_drillSi}|${mi}|actual`;
-                    if (_calStor[actualKey] && _calStor[actualKey] !== '' && _calStor[actualKey] !== '__DELETED__') filled++;
+                    const planKey = `${selectedYear}|esh-calendar-drills|GLOBAL_PLAN|${_drillSi}|${_mi}|plan`;
+                    if (!_calStor2[planKey] || _calStor2[planKey] === '__DELETED__') return;
+                    const naCellKey = `${selectedYear}|esh-calendar-drills|${proj.name}|${_drillSi}|${_mi}|na`;
+                    if (_calStor2[naCellKey]) return;
+                    _drT++;
+                    const actualKey = `${selectedYear}|esh-calendar-drills|${proj.name}|${_drillSi}|${_mi}|actual`;
+                    if (_calStor2[actualKey] && _calStor2[actualKey] !== '' && _calStor2[actualKey] !== '__DELETED__') _drF++;
                 });
-                return total > 0 ? Math.round((filled / total) * 100) : 0;
+                if (_drT > 0) _pdfAreaScores.push(_drF / _drT);
+
+                // Area 7: EMR (N/A → excluded)
+                const _emrKey3   = 'env-monthly-report_Environmental Monthly Report (EMR)';
+                const _emrNaKey3 = 'env-monthly-report_na';
+                const _emrNaRaw3 = vals[_emrNaKey3] && vals[_emrNaKey3][mo];
+                const _emrIsNa3  = _emrNaRaw3 === true || _emrNaRaw3 === 'true' || _emrNaRaw3 === '1' || _emrNaRaw3 === 1;
+                if (!_emrIsNa3) {
+                    const _emrVal3 = vals[_emrKey3] && vals[_emrKey3][mo];
+                    _pdfAreaScores.push((_emrVal3 && _emrVal3.toString().trim() !== '') ? 1 : 0);
+                }
+
+                return _pdfAreaScores.length > 0
+                    ? Math.round(_pdfAreaScores.reduce((a, b) => a + b, 0) / _pdfAreaScores.length * 100)
+                    : 0;
             }
 
             function pctColor(v) {
