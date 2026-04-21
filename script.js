@@ -4477,37 +4477,32 @@ debugCommands.help() - Show this help
                     }
                 }
 
+                // Update masterProjects with the renamed project
                 const mIdx = state.masterProjects.findIndex(p => p.name === oldName);
                 if (mIdx >= 0) state.masterProjects[mIdx] = project;
 
                 if (nameChanged) {
-                    try {
-                        const eshData = getEshStorage();
-                        const updatedEshData = {};
-                        let renamedCount = 0;
-                        Object.entries(eshData).forEach(([key, val]) => {
-                            const parts = key.split('|');
-                            if (parts.length === 5 && parts[1] === oldName) {
-                                const newKey = parts[0] + '|' + newName + '|' + parts[2] + '|' + parts[3] + '|' + parts[4];
-                                updatedEshData[newKey] = val;
-                                renamedCount++;
-                            } else {
-                                updatedEshData[key] = val;
+                    // Clean stale old-name entry from yearProjectCache (all years)
+                    if (state.yearProjectCache) {
+                        state.yearProjectCache.forEach((cachedProjects, yr) => {
+                            const _cleaned = cachedProjects.filter(p => p.name !== oldName);
+                            if (_cleaned.length !== cachedProjects.length) {
+                                state.yearProjectCache.set(yr, _cleaned);
                             }
                         });
-                        if (renamedCount > 0) {
-                            setEshStorage(updatedEshData);
-                            console.log(`✅ ESH calendar: renamed ${renamedCount} keys from "${oldName}" → "${newName}"`);
-                        }
-                    } catch(e) {
-                        console.warn('⚠️ Could not rename ESH calendar keys:', e);
                     }
-
+                    // Clean any lingering old-name entry from masterProjects
+                    const _staleMIdx = state.masterProjects.findIndex(p => p.name === oldName);
+                    if (_staleMIdx >= 0 && state.masterProjects[_staleMIdx] !== project) {
+                        state.masterProjects.splice(_staleMIdx, 1);
+                    }
+                    // Update personnel assignments
                     (state.personnelData || []).forEach(person => {
-                        if (person.current === oldName) {
-                            person.current = newName;
-                        }
+                        if (person.current === oldName) person.current = newName;
                     });
+                    // Suppress ESH Calendar RTDB listener echo during rename
+                    window._eshSavingActual = true;
+                    setTimeout(function() { window._eshSavingActual = false; }, 4000);
                 }
 
                 sortProjects(state.currentSort);
@@ -4517,7 +4512,20 @@ debugCommands.help() - Show this help
                 render();
 
                 showSyncPill('syncing', 'Saving to cloud...');
-                saveToFirebaseWithRetry().then(s => s ? markSyncComplete() : markSyncFailed()).catch(() => markSyncFailed());
+
+                // Use ProjectsDB.renameProject for atomic rename across all storage layers:
+                // Firestore (write new doc + delete old doc) + ESH Calendar RTDB (re-key entries)
+                const _year = state.selectedYear || new Date().getFullYear();
+                if (nameChanged && window.ProjectsDB) {
+                    window.ProjectsDB.renameProject(_year, oldName, project)
+                        .then(s => s ? markSyncComplete() : markSyncFailed())
+                        .catch(() => markSyncFailed());
+                } else {
+                    saveToFirebaseWithRetry()
+                        .then(s => s ? markSyncComplete() : markSyncFailed())
+                        .catch(() => markSyncFailed());
+                }
+
                 showToast(`Project updated${isRenewable ? ' (Renewable Energy)' : ''}`, 'success');
             }
         }
@@ -5278,12 +5286,14 @@ function updateAuditData(pName, qtr, field, val) {
             // Note: _skipRenderTabs are re-rendered by saveData() and _doSnapshotRender()
             // No deferred render here — avoids wiping active input while user is typing
 
-            // FIX: Deferred render for 'exposures' tab so computed rows (e.g. "Total Exposed
-            // Man-hour to date") update visually after input without wiping the active field.
-            if (state.currentTab === 'exposures') {
-                clearTimeout(window._exposuresDeferredRender);
-                window._exposuresDeferredRender = setTimeout(function() {
-                    if (state.currentTab !== 'exposures') return;
+            // FIX: Deferred render for 'exposures' and 'nov-monitoring' tabs so values
+            // update visually after input without wiping the active field.
+            if (state.currentTab === 'exposures' || state.currentTab === 'nov-monitoring') {
+                const _deferredTabKey = state.currentTab === 'exposures' ? '_exposuresDeferredRender' : '_novMonitoringDeferredRender';
+                const _deferredTabName = state.currentTab;
+                clearTimeout(window[_deferredTabKey]);
+                window[_deferredTabKey] = setTimeout(function() {
+                    if (state.currentTab !== _deferredTabName) return;
                     const _activeEl2 = document.activeElement;
                     const _activeId2 = _activeEl2 ? _activeEl2.id : null;
                     const _activeName2 = _activeEl2 ? _activeEl2.getAttribute('name') : null;
@@ -22835,6 +22845,40 @@ const ProjectsDB = {
         }
     },
 
+    // Rename a project across ALL storage layers:
+    //   1. Firestore: write newName doc from old doc data, then delete old doc
+    //   2. ESH Calendar RTDB: re-key all entries from oldName → newName
+    //   3. In-memory caches: yearProjectCache, masterProjects
+    // This is the ONLY correct way to rename — never just save newName and hope oldName disappears.
+    async renameProject(year, oldName, updatedProject) {
+        if (!window.firebaseDb || !window.firebase) return false;
+        const oldId = this.getProjectId(oldName);
+        const newId = this.getProjectId(updatedProject.name);
+        try {
+            if (oldId === newId) {
+                // Same slug (e.g. case-only change) — just update in place, no delete needed
+                await this.saveProject(year, updatedProject);
+                console.log(`✅ ProjectsDB.renameProject: in-place update for "${updatedProject.name}" (same slug)`);
+            } else {
+                // Different slug — write to new doc ID, then delete old doc
+                const newRef = this.getDocRef(year, updatedProject.name);
+                const sanitized = this.sanitizeProject(updatedProject);
+                await window.firebase.setDoc(newRef, sanitized, { merge: false });
+                console.log(`✅ ProjectsDB.renameProject: wrote new doc "${updatedProject.name}"`);
+                await this.deleteProject(year, oldName);
+                console.log(`✅ ProjectsDB.renameProject: deleted old doc "${oldName}"`);
+            }
+
+            // Re-key ESH Calendar RTDB entries: oldName → newName
+            await _eshRtdbRenameProject(oldName, updatedProject.name);
+
+            return true;
+        } catch(e) {
+            console.error(`❌ ProjectsDB.renameProject failed (${oldName} → ${updatedProject.name}):`, e.message);
+            return false;
+        }
+    },
+
     async loadYear(year) {
         if (!window.firebaseDb || !window.firebase) return null;
         try {
@@ -30266,6 +30310,46 @@ function _eshRtdbWrite(key, value) {
     const writeVal = (value === null || value === undefined || value === false) ? null : value;
     return window.firebase.set(ref, writeVal);
 }
+
+// ── _eshRtdbRenameProject: re-key ALL ESH Calendar RTDB entries for a renamed project ─
+// Writes newName keys and removes oldName keys atomically via RTDB multi-path update.
+async function _eshRtdbRenameProject(oldName, newName) {
+    if (!oldName || !newName || oldName === newName) return;
+    const cache = window._eshMemCache || {};
+    const updates = {};
+    let count = 0;
+    Object.entries(cache).forEach(function(kv) {
+        const key = kv[0];
+        const val = kv[1];
+        const parts = key.split('|');
+        if (parts.length === 5 && parts[1] === oldName) {
+            const newKey = parts[0] + '|' + newName + '|' + parts[2] + '|' + parts[3] + '|' + parts[4];
+            updates[_eshKeyToFirebasePath(newKey)] = val;
+            updates[_eshKeyToFirebasePath(key)] = null; // delete old key
+            // Update in-memory cache
+            window._eshMemCache[newKey] = val;
+            delete window._eshMemCache[key];
+            count++;
+        }
+    });
+    if (count === 0) {
+        console.log('_eshRtdbRenameProject: no ESH Calendar keys found for "' + oldName + '"');
+        return;
+    }
+    // Persist updated cache to localStorage
+    try { localStorage.setItem('esh_calendar_data', JSON.stringify(window._eshMemCache)); } catch(e) {}
+    // Apply atomic multi-path update to RTDB
+    if (window.firebaseRealtimeDb && window.firebase && window.firebase.dbRef && window.firebase.update) {
+        try {
+            const rootRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
+            await window.firebase.update(rootRef, updates);
+            console.log('_eshRtdbRenameProject: renamed ' + count + ' ESH Calendar keys: "' + oldName + '" -> "' + newName + '"');
+        } catch(e) {
+            console.warn('_eshRtdbRenameProject: RTDB update failed:', e.message);
+        }
+    }
+}
+window._eshRtdbRenameProject = _eshRtdbRenameProject;
 
 // ── setEshStorage: kept for compatibility — just saves full object to localStorage ─
 function setEshStorage(data) {
