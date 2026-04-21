@@ -6388,8 +6388,8 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const statusCounts = { 'on-going': 0, 'work-stoppage': 0, 'finished': 0 };
             chartProjects.forEach(p => statusCounts[p.status] = (statusCounts[p.status] || 0) + 1);
 
-            Object.values(state.charts).forEach(chart => { if (chart) chart.destroy(); });
-            state.charts = {};
+            // Only destroy regionChart — statusChart is static and should not flicker on prev/next
+            if (state.charts.region) { state.charts.region.destroy(); state.charts.region = null; }
 
             // ── Inject prev/next nav into chart-box header ───────────────────────
             const _rcBox = document.querySelector('.chart-box:has(#regionChart)') ||
@@ -6408,9 +6408,9 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 const _rcNextOk = _rcv < _rcMaxMonth;
                 const _rcMonthLabel = _rcv === 0 ? 'Overall Average' : _RC_MONTHS[_rcv - 1];
                 _rcNav.innerHTML =
-                    `<span onclick="${_rcPrevOk ? 'state.complianceView=' + (_rcv - 1) + ';renderCharts();' : ''}" style="cursor:${_rcPrevOk ? 'pointer' : 'default'};color:${_rcPrevOk ? '#1b5e20' : '#ccc'};font-size:1.2rem;font-weight:700;padding:0 2px;user-select:none;line-height:1;">&#8249;</span>` +
+                    `<span onclick="${_rcPrevOk ? 'state.complianceView=' + (_rcv - 1) + ';renderComplianceCardOnly();' : ''}" style="cursor:${_rcPrevOk ? 'pointer' : 'default'};color:${_rcPrevOk ? '#1b5e20' : '#ccc'};font-size:1.2rem;font-weight:700;padding:0 2px;user-select:none;line-height:1;">&#8249;</span>` +
                     `<span style="font-size:0.72rem;font-weight:700;color:${_rcv === 0 ? '#888' : '#1b5e20'};min-width:100px;text-align:center;letter-spacing:0.03em;">${_rcMonthLabel}</span>` +
-                    `<span onclick="${_rcNextOk ? 'state.complianceView=' + (_rcv + 1) + ';renderCharts();' : ''}" style="cursor:${_rcNextOk ? 'pointer' : 'default'};color:${_rcNextOk ? '#1b5e20' : '#ccc'};font-size:1.2rem;font-weight:700;padding:0 2px;user-select:none;line-height:1;">&#8250;</span>`;
+                    `<span onclick="${_rcNextOk ? 'state.complianceView=' + (_rcv + 1) + ';renderComplianceCardOnly();' : ''}" style="cursor:${_rcNextOk ? 'pointer' : 'default'};color:${_rcNextOk ? '#1b5e20' : '#ccc'};font-size:1.2rem;font-weight:700;padding:0 2px;user-select:none;line-height:1;">&#8250;</span>`;
             }
 
             setTimeout(() => {
@@ -13833,6 +13833,176 @@ function renderTabulation() {
             };
         }
 
+        // ── Renders ONLY the region bar chart — never touches statusChart ──────────
+        window.renderRegionChartOnly = function() {
+            const chartProjects = state.projects.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS');
+            const chartRegions = REGIONS.filter(r => r !== 'CORPORATE' && r !== 'PLANT OPERATIONS');
+            const _rcv = state.complianceView || 0;
+            const _RC_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            const _rcNow = new Date();
+            const _rcSelYear = state.selectedYear || _rcNow.getFullYear();
+            const _rcCurYear = _rcNow.getFullYear();
+            const _rcMaxMonth = (_rcSelYear === _rcCurYear) ? (_rcNow.getMonth() + 1) : 12;
+
+            let regionAvgs;
+            if (_rcv === 0) {
+                const regionData = {};
+                chartRegions.forEach(r => regionData[r] = [0, 0]);
+                chartProjects.forEach(p => {
+                    if (!regionData[p.region]) return;
+                    const perc = getPerc(p);
+                    if (perc === null) return;
+                    regionData[p.region][0] += perc;
+                    regionData[p.region][1] += 1;
+                });
+                regionAvgs = chartRegions.map(r => regionData[r][1] > 0 ? Math.round(regionData[r][0] / regionData[r][1]) : 0);
+            } else {
+                regionAvgs = chartRegions.map(r => getMonthlyComplianceByRegion(_rcv, r));
+            }
+
+            // Update chart-box nav label
+            const _rcBox = document.querySelector('.chart-box:has(#regionChart)') ||
+                           (() => { const c = document.getElementById('regionChart'); return c ? c.closest('.chart-box') : null; })();
+            if (_rcBox) {
+                let _rcNav = _rcBox.querySelector('.rc-month-nav');
+                if (!_rcNav) {
+                    _rcNav = document.createElement('div');
+                    _rcNav.className = 'rc-month-nav';
+                    _rcNav.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:6px;margin:2px 0 8px;';
+                    const _rcH3 = _rcBox.querySelector('h3');
+                    if (_rcH3) _rcH3.after(_rcNav);
+                    else _rcBox.prepend(_rcNav);
+                }
+                const _rcPrevOk = _rcv > 0;
+                const _rcNextOk = _rcv < _rcMaxMonth;
+                const _rcMonthLabel = _rcv === 0 ? 'Overall Average' : _RC_MONTHS[_rcv - 1];
+                _rcNav.innerHTML =
+                    `<span onclick="${_rcPrevOk ? 'state.complianceView=' + (_rcv - 1) + ';renderComplianceCardOnly();' : ''}" style="cursor:${_rcPrevOk ? 'pointer' : 'default'};color:${_rcPrevOk ? '#1b5e20' : '#ccc'};font-size:1.2rem;font-weight:700;padding:0 2px;user-select:none;line-height:1;">&#8249;</span>` +
+                    `<span style="font-size:0.72rem;font-weight:700;color:${_rcv === 0 ? '#888' : '#1b5e20'};min-width:100px;text-align:center;letter-spacing:0.03em;">${_rcMonthLabel}</span>` +
+                    `<span onclick="${_rcNextOk ? 'state.complianceView=' + (_rcv + 1) + ';renderComplianceCardOnly();' : ''}" style="cursor:${_rcNextOk ? 'pointer' : 'default'};color:${_rcNextOk ? '#1b5e20' : '#ccc'};font-size:1.2rem;font-weight:700;padding:0 2px;user-select:none;line-height:1;">&#8250;</span>`;
+            }
+
+            setTimeout(() => {
+                const regionCtx = document.getElementById('regionChart');
+                if (!regionCtx) return;
+                // Destroy only regionChart — statusChart is left completely alone
+                if (state.charts.region) { state.charts.region.destroy(); state.charts.region = null; }
+                const existingChart = Chart.getChart(regionCtx);
+                if (existingChart) existingChart.destroy();
+
+                const ctx = regionCtx.getContext('2d');
+                const gradients = [];
+                const g1 = ctx.createLinearGradient(0, 0, 0, 300);
+                g1.addColorStop(0, '#5e35b1'); g1.addColorStop(0.5, '#4527a0'); g1.addColorStop(1, '#311b92');
+                gradients.push(g1);
+                const g2 = ctx.createLinearGradient(0, 0, 0, 300);
+                g2.addColorStop(0, '#00897b'); g2.addColorStop(0.5, '#00695c'); g2.addColorStop(1, '#004d40');
+                gradients.push(g2);
+                const g3 = ctx.createLinearGradient(0, 0, 0, 300);
+                g3.addColorStop(0, '#6d4c41'); g3.addColorStop(0.5, '#4e342e'); g3.addColorStop(1, '#3e2723');
+                gradients.push(g3);
+                const g4 = ctx.createLinearGradient(0, 0, 0, 300);
+                g4.addColorStop(0, '#546e7a'); g4.addColorStop(0.5, '#37474f'); g4.addColorStop(1, '#263238');
+                gradients.push(g4);
+
+                state.charts.region = new Chart(regionCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: chartRegions,
+                        datasets: [{ label: 'Compliance %', data: regionAvgs, backgroundColor: gradients, borderWidth: 0, borderRadius: 8 }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(0,0,0,0.8)', padding: 12, cornerRadius: 8,
+                                callbacks: { title: (i) => i[0].label, label: (i) => ` ${i.raw}% compliance` }
+                            }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }, 100);
+        };
+
+        // ── Lightweight compliance card updater — avoids full re-render on prev/next ──
+        window.renderComplianceCardOnly = function() {
+            // 1. Recompute label + value
+            const _MC_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            const _mcNow = new Date();
+            const _mcSelYear = state.selectedYear || _mcNow.getFullYear();
+            const _mcCurYear = _mcNow.getFullYear();
+            const _mcCurMonth = _mcNow.getMonth() + 1;
+            const _mcMaxMonth = (_mcSelYear === _mcCurYear) ? _mcCurMonth : 12;
+            const _mcCv = state.complianceView || 0;
+
+            // Compute overallAvg inline
+            const _cpProjects = state.projects.filter(p =>
+                p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS' && !isProjectOnStoppage(p)
+            );
+            let _gTotal = 0, _gCount = 0;
+            _cpProjects.forEach(p => { const v = getPerc(p); if (v !== null) { _gTotal += v; _gCount++; } });
+            const _overallAvg = _gCount > 0 ? Math.round(_gTotal / _gCount) : 0;
+
+            let _mcLabel, _mcValue;
+            if (_mcCv === 0) {
+                _mcLabel = 'OVERALL COMPLIANCE';
+                _mcValue = _overallAvg + '%';
+            } else {
+                _mcLabel = _MC_MONTHS[_mcCv - 1].toUpperCase() + ' COMPLIANCE';
+                const _mv = getMonthlyCompliance(_mcCv);
+                _mcValue = _mv !== null ? _mv + '%' : '—';
+            }
+
+            // 2. Update the compliance stat-card DOM (2nd card in #grand-stats)
+            const _grandStats = document.getElementById('grand-stats');
+            if (_grandStats) {
+                const _compCard = _grandStats.querySelectorAll('.stat-card')[1];
+                if (_compCard) {
+                    const _lbl = _compCard.querySelector('.stat-label');
+                    const _val = _compCard.querySelector('.stat-value');
+                    if (_lbl) _lbl.textContent = _mcLabel;
+                    if (_val) _val.textContent = _mcValue;
+
+                    // Rebuild dots + nav
+                    let _mcDots = '';
+                    for (let _di = 0; _di <= _mcMaxMonth; _di++) {
+                        const _active = _di === _mcCv;
+                        const _tip = _di === 0 ? 'Overall' : _MC_MONTHS[_di-1].slice(0,3);
+                        _mcDots += '<span title="' + _tip + '" onclick="state.complianceView=' + _di + ';renderComplianceCardOnly();" style="' +
+                            'display:inline-block;width:' + (_active?'10':'7') + 'px;height:' + (_active?'10':'7') + 'px;' +
+                            'border-radius:50%;background:' + (_active?'#fbc02d':'#ccc') + ';' +
+                            'cursor:pointer;margin:0 2px;vertical-align:middle;' +
+                            'transition:all 0.15s;border:' + (_active?'1.5px solid #e5a800':'1px solid #bbb') + ';' +
+                        '"></span>';
+                    }
+                    const _mcPrevOk = _mcCv > 0;
+                    const _mcNextOk = _mcCv < _mcMaxMonth;
+                    const _mcPrevBtn = '<span onclick="' + (_mcPrevOk ? 'state.complianceView=' + (_mcCv-1) + ';renderComplianceCardOnly();' : '') + '" style="' +
+                        'cursor:' + (_mcPrevOk?'pointer':'default') + ';color:' + (_mcPrevOk?'#555':'#ccc') + ';' +
+                        'font-size:1.1rem;font-weight:700;padding:0 4px;user-select:none;">&#8249;</span>';
+                    const _mcNextBtn = '<span onclick="' + (_mcNextOk ? 'state.complianceView=' + (_mcCv+1) + ';renderComplianceCardOnly();' : '') + '" style="' +
+                        'cursor:' + (_mcNextOk?'pointer':'default') + ';color:' + (_mcNextOk?'#555':'#ccc') + ';' +
+                        'font-size:1.1rem;font-weight:700;padding:0 4px;user-select:none;">&#8250;</span>';
+
+                    const _navRow = _compCard.querySelector('div[style*="display:flex"]') || _compCard.lastElementChild;
+                    if (_navRow) {
+                        _navRow.innerHTML = _mcPrevBtn +
+                            '<div style="display:inline-flex;flex-wrap:wrap;justify-content:center;gap:2px;max-width:130px;">' + _mcDots + '</div>' +
+                            _mcNextBtn;
+                    }
+                }
+            }
+
+            // 3. Only re-render the region bar chart — statusChart stays untouched
+            renderRegionChartOnly();
+        };
+
         function render() {
             // Always preserve scroll position — prevents view jumping on edit/save/input
             const _renderMc = document.getElementById('main-content');
@@ -13935,7 +14105,7 @@ function renderTabulation() {
                 for (let _di = 0; _di <= _mcMaxMonth; _di++) {
                     const _active = _di === _mcCv;
                     const _tip = _di === 0 ? 'Overall' : _MC_MONTHS[_di-1].slice(0,3);
-                    _mcDots += '<span title="' + _tip + '" onclick="state.complianceView=' + _di + ';render();" style="' +
+                    _mcDots += '<span title="' + _tip + '" onclick="state.complianceView=' + _di + ';renderComplianceCardOnly();" style="' +
                         'display:inline-block;width:' + (_active?'10':'7') + 'px;height:' + (_active?'10':'7') + 'px;' +
                         'border-radius:50%;background:' + (_active?'#fbc02d':'#ccc') + ';' +
                         'cursor:pointer;margin:0 2px;vertical-align:middle;' +
@@ -13945,10 +14115,10 @@ function renderTabulation() {
 
                 const _mcPrevOk = _mcCv > 0;
                 const _mcNextOk = _mcCv < _mcMaxMonth;
-                const _mcPrevBtn = '<span onclick="' + (_mcPrevOk ? 'state.complianceView=' + (_mcCv-1) + ';render();' : '') + '" style="' +
+                const _mcPrevBtn = '<span onclick="' + (_mcPrevOk ? 'state.complianceView=' + (_mcCv-1) + ';renderComplianceCardOnly();' : '') + '" style="' +
                     'cursor:' + (_mcPrevOk?'pointer':'default') + ';color:' + (_mcPrevOk?'#555':'#ccc') + ';' +
                     'font-size:1.1rem;font-weight:700;padding:0 4px;user-select:none;">&#8249;</span>';
-                const _mcNextBtn = '<span onclick="' + (_mcNextOk ? 'state.complianceView=' + (_mcCv+1) + ';render();' : '') + '" style="' +
+                const _mcNextBtn = '<span onclick="' + (_mcNextOk ? 'state.complianceView=' + (_mcCv+1) + ';renderComplianceCardOnly();' : '') + '" style="' +
                     'cursor:' + (_mcNextOk?'pointer':'default') + ';color:' + (_mcNextOk?'#555':'#ccc') + ';' +
                     'font-size:1.1rem;font-weight:700;padding:0 4px;user-select:none;">&#8250;</span>';
 
