@@ -1177,7 +1177,7 @@ function applyNumFmtToInputs() {
             
             presenceListener: null, // Firebase listener for presence updates
             deviceListener: null, // Firebase listener for device updates
-            complianceView: 0 // 0 = Overall, 1-12 = monthly (Jan-Dec)
+            complianceView: new Date().getMonth() + 1 // 0 = Overall, 1-12 = monthly (Jan-Dec); default to current month
         };
 
         window.DEBUG_MODE = true; // Set to false to disable debug logs
@@ -6513,29 +6513,27 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             // Only destroy regionChart — statusChart is static and should not flicker on prev/next
             if (state.charts.region) { state.charts.region.destroy(); state.charts.region = null; }
 
-            // ── Inject prev/next nav into chart-box header ───────────────────────
-            const _rcBox = document.querySelector('.chart-box:has(#regionChart)') ||
-                           (() => { const c = document.getElementById('regionChart'); return c ? c.closest('.chart-box') : null; })();
-            if (_rcBox) {
-                let _rcNav = _rcBox.querySelector('.rc-month-nav');
-                if (!_rcNav) {
-                    _rcNav = document.createElement('div');
-                    _rcNav.className = 'rc-month-nav';
-                    _rcNav.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:6px;margin:2px 0 8px;';
-                    const _rcH3 = _rcBox.querySelector('h3');
-                    if (_rcH3) _rcH3.after(_rcNav);
-                    else _rcBox.prepend(_rcNav);
-                }
-                const _rcPrevOk = _rcv > 0;
-                const _rcNextOk = _rcv < _rcMaxMonth;
-                const _rcMonthLabel = _rcv === 0 ? 'Overall Average' : _RC_MONTHS[_rcv - 1];
-                _rcNav.innerHTML =
-                    `<span onclick="${_rcPrevOk ? 'state.complianceView=' + (_rcv - 1) + ';renderComplianceCardOnly();' : ''}" style="cursor:${_rcPrevOk ? 'pointer' : 'default'};color:${_rcPrevOk ? '#1b5e20' : '#ccc'};font-size:1.2rem;font-weight:700;padding:0 2px;user-select:none;line-height:1;">&#8249;</span>` +
-                    `<span style="font-size:0.72rem;font-weight:700;color:${_rcv === 0 ? '#888' : '#1b5e20'};min-width:100px;text-align:center;letter-spacing:0.03em;">${_rcMonthLabel}</span>` +
-                    `<span onclick="${_rcNextOk ? 'state.complianceView=' + (_rcv + 1) + ';renderComplianceCardOnly();' : ''}" style="cursor:${_rcNextOk ? 'pointer' : 'default'};color:${_rcNextOk ? '#1b5e20' : '#ccc'};font-size:1.2rem;font-weight:700;padding:0 2px;user-select:none;line-height:1;">&#8250;</span>`;
-            }
-
             setTimeout(() => {
+                // ── Inject prev/next nav into chart-box header (inside setTimeout so DOM is ready) ──
+                    const _rcBox = document.querySelector('.chart-box:has(#regionChart)') ||
+                               (() => { const c = document.getElementById('regionChart'); return c ? c.closest('.chart-box') : null; })();
+                    if (_rcBox) {
+                    let _rcNav = _rcBox.querySelector('.rc-month-nav');
+                    if (!_rcNav) {
+                        _rcNav = document.createElement('div');
+                        _rcNav.className = 'rc-month-nav';
+                        _rcNav.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:6px;margin:2px 0 8px;';
+                        const _rcH3 = _rcBox.querySelector('h3');
+                        if (_rcH3) _rcH3.after(_rcNav);
+                        else _rcBox.prepend(_rcNav);
+                    }
+                    const _rcPrevOk = _rcv > 0;
+                    const _rcNextOk = _rcv < _rcMaxMonth;
+                    const _rcMonthLabel = _rcv === 0 ? 'Overall Average' : _RC_MONTHS[_rcv - 1];
+                    _rcNav.innerHTML =
+                        `<span style="font-size:0.72rem;font-weight:700;color:${_rcv === 0 ? '#888' : '#1b5e20'};min-width:100px;text-align:center;letter-spacing:0.03em;">${_rcMonthLabel}</span>`;
+                }
+
                 const regionCtx = document.getElementById('regionChart');
                 if (regionCtx) {
                     const existingChart = Chart.getChart(regionCtx);
@@ -14023,9 +14021,7 @@ function renderTabulation() {
                 const _rcNextOk = _rcv < _rcMaxMonth;
                 const _rcMonthLabel = _rcv === 0 ? 'Overall Average' : _RC_MONTHS[_rcv - 1];
                 _rcNav.innerHTML =
-                    `<span onclick="${_rcPrevOk ? 'state.complianceView=' + (_rcv - 1) + ';renderComplianceCardOnly();' : ''}" style="cursor:${_rcPrevOk ? 'pointer' : 'default'};color:${_rcPrevOk ? '#1b5e20' : '#ccc'};font-size:1.2rem;font-weight:700;padding:0 2px;user-select:none;line-height:1;">&#8249;</span>` +
-                    `<span style="font-size:0.72rem;font-weight:700;color:${_rcv === 0 ? '#888' : '#1b5e20'};min-width:100px;text-align:center;letter-spacing:0.03em;">${_rcMonthLabel}</span>` +
-                    `<span onclick="${_rcNextOk ? 'state.complianceView=' + (_rcv + 1) + ';renderComplianceCardOnly();' : ''}" style="cursor:${_rcNextOk ? 'pointer' : 'default'};color:${_rcNextOk ? '#1b5e20' : '#ccc'};font-size:1.2rem;font-weight:700;padding:0 2px;user-select:none;line-height:1;">&#8250;</span>`;
+                    `<span style="font-size:0.72rem;font-weight:700;color:${_rcv === 0 ? '#888' : '#1b5e20'};min-width:100px;text-align:center;letter-spacing:0.03em;">${_rcMonthLabel}</span>`;
             }
 
             setTimeout(() => {
