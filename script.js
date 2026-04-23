@@ -4873,7 +4873,7 @@ debugCommands.help() - Show this help
                     ${isSuperEditableTab
                         ? `✏️ <strong>Editable</strong> — Superintendent access · Region: <strong>${info.region}</strong>`
                         : isCorpDrillsTab
-                            ? `🔒 <strong>Read-Only</strong> — Corporate HQ Drills is Admin-managed only.`
+                            ? `🔒 <strong>Read-Only</strong> — Corporate Drills is Admin-managed only.`
                             : `🔒 <strong>Read-Only</strong> — This tab is not editable for Superintendent.`}
                     <span style="font-weight:400;opacity:0.8;margin-left:4px;">· Write: Safety &amp; Health tabs within <strong>${info.region}</strong> · Env tabs managed by PCO</span>
                 </div>`;
@@ -4995,7 +4995,7 @@ debugCommands.help() - Show this help
                 'esh-calendar-safety': `${state.selectedYear} ESH CALENDAR — SAFETY TRAININGS`,
                 'esh-calendar-health': `${state.selectedYear} ESH CALENDAR — HEALTH AWARENESS`,
                 'esh-calendar-drills': `${state.selectedYear} ESH CALENDAR — EMERGENCY DRILLS`,
-                'esh-calendar-corp-drills': `${state.selectedYear} ESH CALENDAR — CORPORATE HQ DRILLS`,
+                'esh-calendar-corp-drills': `${state.selectedYear} ESH CALENDAR — CORPORATE DRILLS`,
                 'got-monitoring': 'GOALS, OBJECTIVES & TARGETS (GOT) MONITORING'
             };
             document.querySelector('.header-title').innerText = titles[t] || t.toUpperCase();
@@ -10552,7 +10552,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             doc.setFillColor(27, 94, 32);
             doc.rect(_PML, curY, W - _PML - _PMR, 10, 'F');
             doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(255, 255, 255);
-            doc.text('CORPORATE HQ  ·  ' + projName, _PML + 4, curY + 7);
+            doc.text('CORPORATE  ·  ' + projName, _PML + 4, curY + 7);
             doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
             doc.text(allDrills.length + ' drill type' + (allDrills.length !== 1 ? 's' : ''), W - _PMR - 2, curY + 7, {align:'right'});
             curY += 12;
@@ -14381,7 +14381,7 @@ function renderTabulation() {
                                         const ak = `${_eshYear1}|esh-calendar-drills|${p.name}|${_dsi1}|${mi}|actual`;
                                         if (eshStor[ak]) monthTotal++;
                                     });
-                                    // ── CORPORATE HQ Drills: also count corp-drills actuals for CORPORATE project ──
+                                    // ── CORPORATE Drills: also count corp-drills actuals for CORPORATE project ──
                                     if (p.region === 'CORPORATE') {
                                         const _corpBase1 = window.CORP_DRILLS || [];
                                         const _corpCustom1 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
@@ -14499,7 +14499,7 @@ function renderTabulation() {
                                             const ak = `${_eshYear2}|esh-calendar-drills|${p.name}|${_dsi2}|${mi}|actual`;
                                             if (eshStor[ak]) ytdTotal++;
                                         });
-                                        // ── CORPORATE HQ Drills: also count corp-drills actuals for CORPORATE project ──
+                                        // ── CORPORATE Drills: also count corp-drills actuals for CORPORATE project ──
                                         if (p.region === 'CORPORATE') {
                                             const _corpBase2 = window.CORP_DRILLS || [];
                                             const _corpCustom2 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
@@ -16106,7 +16106,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 const ak = `${_eshYear3}|esh-calendar-drills|${projName}|${_dsi3}|${mi}|actual`;
                                 if (eshStor[ak]) count++;
                             });
-                            // ── CORPORATE HQ Drills: also count corp-drills actuals for CORPORATE project ──
+                            // ── CORPORATE Drills: also count corp-drills actuals for CORPORATE project ──
                             if (p.region === 'CORPORATE') {
                                 const _corpBase3 = window.CORP_DRILLS || [];
                                 const _corpCustom3 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
@@ -16349,7 +16349,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 if (eshStor[naCellKey4]) return; // skip N/A cells
                                 if (eshStor[`${_eshYear4}|esh-calendar-drills|${p.name}|${_dsi4}|${mi}|actual`]) ytdValue++;
                             });
-                            // ── CORPORATE HQ Drills: also count corp-drills actuals for CORPORATE project ──
+                            // ── CORPORATE Drills: also count corp-drills actuals for CORPORATE project ──
                             if (p.region === 'CORPORATE') {
                                 const _corpBase4 = window.CORP_DRILLS || [];
                                 const _corpCustom4 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
@@ -17376,11 +17376,17 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 // Facility
                                 html += '<div style="margin-bottom:6px;">';
                                 html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">🏭 Facility</div>';
+                                var _facBg = _embCellBg(facVal); var _facBd = _embCellBorder(facVal); var _facC = _embCellColor(facVal);
                                 html += '<input type="text" value="' + (facVal||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
                                     + ' data-pname="' + pnSafe + '" data-key="' + facKey + '" data-idx="' + periodIdx + '"'
                                     + ' placeholder="Facility name..."'
-                                    + ' style="width:100%;border:1px solid #b0bec5;border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:#eceff1;color:#263238;box-sizing:border-box;text-align:left;display:block;"'
-                                    + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);">';
+                                    + ' style="width:100%;border:1px solid ' + _facBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _facBg + ';color:' + _facC + ';box-sizing:border-box;text-align:left;display:block;"'
+                                    + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';this.setAttribute(\'data-tip\',this.value);"'
+                                    + ' data-tip="' + (facVal||'').replace(/"/g,'&quot;') + '"'
+                                    + ' onmouseenter="if(this.value){var t=document.getElementById(\'emb-fac-tip\');if(!t){t=document.createElement(\'div\');t.id=\'emb-fac-tip\';t.style.cssText=\'position:fixed;z-index:2147483647;background:#263238;color:#fff;font-size:0.72rem;font-weight:700;padding:5px 10px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.5);pointer-events:none;max-width:280px;word-break:break-word;white-space:pre-wrap;\';document.body.appendChild(t);}t.textContent=this.value;t.style.display=\'block\';var r=this.getBoundingClientRect();var tx=Math.min(Math.max(r.left+r.width/2-t.offsetWidth/2,8),window.innerWidth-t.offsetWidth-8);var ty=r.bottom+6;if(ty+t.offsetHeight>window.innerHeight-8)ty=r.top-t.offsetHeight-6;t.style.left=tx+(\'px\');t.style.top=ty+(\'px\');}"'
+                                    + ' onmouseleave="var t=document.getElementById(\'emb-fac-tip\');if(t)t.style.display=\'none\';"'
+                                    + ' onmousemove="var t=document.getElementById(\'emb-fac-tip\');if(t&&t.style.display!==\'none\'){var r=this.getBoundingClientRect();var tx=Math.min(Math.max(r.left+r.width/2-t.offsetWidth/2,8),window.innerWidth-t.offsetWidth-8);var ty=r.bottom+6;if(ty+t.offsetHeight>window.innerHeight-8)ty=r.top-t.offsetHeight-6;t.style.left=tx+(\'px\');t.style.top=ty+(\'px\');}"'
+                                    + '>';
                                 html += '</div>';
 
                                 // Submission Date
@@ -17397,11 +17403,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 var _rnBg = _embCellBg(_rnEffective); var _rnBd = _embCellBorder(_rnEffective); var _rnC = _embCellColor(_rnEffective);
                                 html += '<div style="margin-bottom:6px;">';
                                 html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">🔢 Reference No.</div>';
-                                html += '<input type="text" value="' + (rnVal||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
+                                html += '<input type="text" inputmode="numeric" pattern="[0-9]*" value="' + (rnVal||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
                                     + ' data-pname="' + pnSafe + '" data-key="' + rnKey + '" data-idx="' + periodIdx + '"'
                                     + ' placeholder="Ref number..."'
                                     + ' style="width:100%;border:1px solid ' + _rnBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _rnBg + ';color:' + _rnC + ';box-sizing:border-box;text-align:left;display:block;"'
-                                    + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';">';
+                                    + ' onkeypress="return /[0-9]/.test(event.key);"'
+                                    + ' oninput="this.value=this.value.replace(/[^0-9]/g,\'\');updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';">';
                                 html += '</div>';
                             }
 
@@ -17438,11 +17445,17 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 // Extra Facility
                                 html += '<div style="margin-bottom:6px;">';
                                 html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">🏭 Facility</div>';
+                                var _eFacBg = _embCellBg(eFac); var _eFacBd = _embCellBorder(eFac); var _eFacC = _embCellColor(eFac);
                                 html += '<input type="text" value="' + (eFac||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
                                     + ' data-pname="' + pnSafe + '" data-extrakey="' + extraKey + '" data-eidx="' + eIdx + '" data-field="fac" data-period="' + periodIdx + '"'
                                     + ' placeholder="Facility name..."'
-                                    + ' style="width:100%;border:1px solid #b0bec5;border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:#eceff1;color:#263238;box-sizing:border-box;text-align:left;display:block;"'
-                                    + ' oninput="updateEmbEntry(this.dataset.pname,\'' + eType + '\',' + eIdx + ',\'fac\',' + periodIdx + ',this.value);">';
+                                    + ' style="width:100%;border:1px solid ' + _eFacBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _eFacBg + ';color:' + _eFacC + ';box-sizing:border-box;text-align:left;display:block;"'
+                                    + ' oninput="updateEmbEntry(this.dataset.pname,\'' + eType + '\',' + eIdx + ',\'fac\',' + periodIdx + ',this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';this.setAttribute(\'data-tip\',this.value);"'
+                                    + ' data-tip="' + (eFac||'').replace(/"/g,'&quot;') + '"'
+                                    + ' onmouseenter="if(this.value){var t=document.getElementById(\'emb-fac-tip\');if(!t){t=document.createElement(\'div\');t.id=\'emb-fac-tip\';t.style.cssText=\'position:fixed;z-index:2147483647;background:#263238;color:#fff;font-size:0.72rem;font-weight:700;padding:5px 10px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.5);pointer-events:none;max-width:280px;word-break:break-word;white-space:pre-wrap;\';document.body.appendChild(t);}t.textContent=this.value;t.style.display=\'block\';var r=this.getBoundingClientRect();var tx=Math.min(Math.max(r.left+r.width/2-t.offsetWidth/2,8),window.innerWidth-t.offsetWidth-8);var ty=r.bottom+6;if(ty+t.offsetHeight>window.innerHeight-8)ty=r.top-t.offsetHeight-6;t.style.left=tx+(\'px\');t.style.top=ty+(\'px\');}"'
+                                    + ' onmouseleave="var t=document.getElementById(\'emb-fac-tip\');if(t)t.style.display=\'none\';"'
+                                    + ' onmousemove="var t=document.getElementById(\'emb-fac-tip\');if(t&&t.style.display!==\'none\'){var r=this.getBoundingClientRect();var tx=Math.min(Math.max(r.left+r.width/2-t.offsetWidth/2,8),window.innerWidth-t.offsetWidth-8);var ty=r.bottom+6;if(ty+t.offsetHeight>window.innerHeight-8)ty=r.top-t.offsetHeight-6;t.style.left=tx+(\'px\');t.style.top=ty+(\'px\');}"'
+                                    + '>';
                                 html += '</div>';
 
                                 // Extra Submission Date
@@ -17457,11 +17470,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 // Extra Reference No.
                                 html += '<div style="margin-bottom:6px;">';
                                 html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">🔢 Reference No.</div>';
-                                html += '<input type="text" value="' + (eRn||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
+                                html += '<input type="text" inputmode="numeric" pattern="[0-9]*" value="' + (eRn||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
                                     + ' data-pname="' + pnSafe + '" data-extrakey="' + extraKey + '" data-eidx="' + eIdx + '" data-field="rn" data-period="' + periodIdx + '"'
                                     + ' placeholder="Ref number..."'
                                     + ' style="width:100%;border:1px solid ' + _eRnBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _eRnBg + ';color:' + _eRnC + ';box-sizing:border-box;text-align:left;display:block;"'
-                                    + ' oninput="updateEmbEntry(this.dataset.pname,\'' + eType + '\',' + eIdx + ',\'rn\',' + periodIdx + ',this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';">';
+                                    + ' onkeypress="return /[0-9]/.test(event.key);"'
+                                    + ' oninput="this.value=this.value.replace(/[^0-9]/g,\'\');updateEmbEntry(this.dataset.pname,\'' + eType + '\',' + eIdx + ',\'rn\',' + periodIdx + ',this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';">';
                                 html += '</div>';
                                 html += '</div>'; // end extra entry block
                             });
@@ -17880,19 +17894,19 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                           dw:0.10, measure:'Safe man-hours',
                           kpi:['75%','80%','85%','90%','95%'] },
                         { id:'e3',  kpm:'',  wp:'', del:'Incident/Accident Investigation',
-                          dw:0.08, measure:'Incident/accident investigation conducted on time',
+                          dw:0.08, measure:'Incident/Accident Investigation conducted on time',
                           kpi:['75%',null,'85%',null,'95%'] },
                         { id:'e4',  kpm:'',  wp:'', del:'Emergency Preparedness & Response',
                           dw:0.08, measure:'Conduct of Emergency Drills',
                           kpi:['75%',null,'85%','90%',null] },
                         { id:'e5',  kpm:'',  wp:'', del:'ESH Orientations & Trainings',
-                          dw:0.08, measure:'Conduct ESH Orientation',
+                          dw:0.08, measure:'Conduct ESH Orientations & Trainings',
                           kpi:['75%',null,'85%','90%',null] },
-                        { id:'e6',  kpm:'',  wp:'', del:'',
-                          dw:0.08, measure:'Conduct ESH Trainings',
+                        { id:'e6',  kpm:'',  wp:'', del:'Permit to Work System',
+                          dw:0.08, measure:'Full implementation of Permit to Work system',
                           kpi:['75%',null,'85%','90%',null] },
                         { id:'e7',  kpm:'',  wp:'', del:'ESH Inspections',
-                          dw:0.08, measure:'Monitoring of Status ESH Inspection Findings',
+                          dw:0.08, measure:'Conduct of ESH Inspections',
                           kpi:['75%',null,'85%','90%',null] },
                         { id:'e8',  kpm:'2', wp:'Compliance to ESH Laws and Regulations',
                           del:'Submission of ESH Compliance Reports to Regulatory Agencies',
@@ -18119,6 +18133,26 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         // region table, destroying the focused input and causing scroll jumps.
                         // kpmUpdateRowTotals already updates totals directly in the DOM.
                     };
+                    // Handler for the new dropdown EP selector (inline view)
+                    window.kpmEpSelectChange = function(sel) {
+                        var regKey   = sel.dataset.regkey;
+                        var rowId    = sel.dataset.rowid;
+                        var dw       = parseFloat(sel.dataset.dw);
+                        var pnSafe   = sel.dataset.pname;
+                        var activeMo = sel.dataset.activemo;
+                        var val      = sel.value; // e.g. "90%" or ""
+                        var n = parseFloat(String(val).replace('%',''));
+                        sel.style.color = (!val || isNaN(n)) ? '#555' : n/100 >= 0.90 ? '#2e7d32' : n/100 >= 0.85 ? '#e65100' : '#c62828';
+                        var pObj = state.projects.find(function(x){ return x.name === pnSafe; });
+                        if (pObj) {
+                            var _rbacEp = UserAccounts.checkPermission(state.currentUser && state.currentUser.email, 'edit', pObj.region, 'kpm');
+                            if (!_rbacEp.allowed) { showLockedMessage(_rbacEp.reason); sel.value = pObj.vals['kpm_v3_' + activeMo + '_' + rowId] || ''; return; }
+                            pObj.vals['kpm_v3_' + activeMo + '_' + rowId] = val;
+                            if (typeof markPendingSync==='function') markPendingSync();
+                            if (typeof saveToFirebaseDebounced==='function') saveToFirebaseDebounced();
+                        }
+                        window.kpmUpdateRowTotals(regKey, rowId, dw);
+                    };
                     window.kpmAutoPercent = function(inp) {
                         var raw = inp.value.replace(/%/g, '').trim();
                         var n = parseFloat(raw);
@@ -18213,14 +18247,18 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 var n = parseFloat(String(rawVal).replace('%',''));
                                 var inputColor = (isNaN(n)||n===0) ? '#555' : n/100 >= 0.90 ? '#2e7d32' : n/100 >= 0.85 ? '#e65100' : '#c62828';
                                 var disAttr = canEdit ? '' : ' disabled';
+                                var validKpiOpts = (row.kpi||[]).filter(function(v){ return v !== null && v !== undefined && v !== ''; });
+                                var optionsHtml = '<option value="">—</option>' + validKpiOpts.map(function(opt){
+                                    return '<option value="' + opt + '"' + (rawVal === opt ? ' selected' : '') + '>' + opt + '</option>';
+                                }).join('');
                                 return '<td style="text-align:center;padding:2px 3px;border:1px solid #c8e6c9;min-width:72px;">'
-                                    + '<input type="text" id="kpm-ep-input-' + regKey + '-' + row.id + '-' + pk + '"'
-                                    + ' value="' + rawVal + '" placeholder=""' + disAttr
+                                    + '<select id="kpm-ep-input-' + regKey + '-' + row.id + '-' + pk + '"'
+                                    + disAttr
                                     + ' data-regkey="' + regKey + '" data-rowid="' + row.id + '" data-dw="' + row.dw + '" data-pname="' + pnSafe + '" data-activemo="' + activeMo + '"'
-                                    + ' onfocus="window.kpmEpFocus(this)"'
-                                    + ' oninput="window.kpmAutoPercent(this)"'
-                                    + ' onblur="window.kpmEpBlurDS(this)"'
-                                    + ' style="width:62px;text-align:center;border:1px solid #b0c8b0;border-radius:3px;padding:3px 2px;font-size:0.72rem;font-weight:700;color:' + inputColor + ';">'
+                                    + ' onchange="window.kpmEpSelectChange(this)"'
+                                    + ' style="width:68px;text-align:center;border:1px solid #b0c8b0;border-radius:3px;padding:2px 1px;font-size:0.72rem;font-weight:700;color:' + inputColor + ';background:#fff;cursor:pointer;">'
+                                    + optionsHtml
+                                    + '</select>'
                                     + '</td>';
                             }).join('');
 
@@ -18699,14 +18737,18 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 var rawVal = pp.vals[k] !== undefined ? pp.vals[k] : '';
                                 var n = parseFloat(String(rawVal).replace('%',''));
                                 var inputColor = (isNaN(n)||n===0)?'#555':n/100>=0.90?'#2e7d32':n/100>=0.85?'#e65100':'#c62828';
+                                var validKpiOptsMod = (row.kpi||[]).filter(function(v){ return v !== null && v !== undefined && v !== ''; });
+                                var optionsHtmlMod = '<option value="">—</option>' + validKpiOptsMod.map(function(opt){
+                                    return '<option value="' + opt + '"' + (rawVal === opt ? ' selected' : '') + '>' + opt + '</option>';
+                                }).join('');
                                 return '<td style="text-align:center;padding:2px 3px;border:1px solid #c8e6c9;min-width:72px;">'
-                                    + '<input type="text" id="kpmmod-ep-' + modKey + '-' + row.id + '-' + pk + '"'
-                                    + ' value="' + rawVal + '" placeholder=""' + (dis?' disabled':'')
+                                    + '<select id="kpmmod-ep-' + modKey + '-' + row.id + '-' + pk + '"'
+                                    + (dis?' disabled':'')
                                     + ' data-regkey="' + modKey + '" data-rowid="' + row.id + '" data-dw="' + row.dw + '" data-pname="' + pnSafeInner + '" data-activemo="' + activeMo + '"'
-                                    + ' onfocus="window.kpmEpFocus(this)"'
-                                    + ' oninput="window.kpmAutoPercent(this)"'
-                                    + ' onblur="window.kpmEpBlurDSMod(this)"'
-                                    + ' style="width:62px;text-align:center;border:1px solid #b0c8b0;border-radius:3px;padding:3px 2px;font-size:0.72rem;font-weight:700;color:' + inputColor + ';">'
+                                    + ' onchange="window.kpmEpSelectChangeMod(this)"'
+                                    + ' style="width:68px;text-align:center;border:1px solid #b0c8b0;border-radius:3px;padding:2px 1px;font-size:0.72rem;font-weight:700;color:' + inputColor + ';background:#fff;cursor:pointer;">'
+                                    + optionsHtmlMod
+                                    + '</select>'
                                     + '</td>';
                             }).join('');
 
@@ -18823,6 +18865,34 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var epInputs = document.querySelectorAll('[id^="kpmmod-ep-' + regKey + '-' + rowId + '-"]');
                         var sum=0,count=0;
                         epInputs.forEach(function(i){ var r=parseFloat(i.value.replace('%','').trim()); if(!isNaN(r)&&r>0){sum+=r/100;count++;} });
+                        var avgEp = count>0?sum/count:0;
+                        var total = avgEp*dw;
+                        var avgEl = document.getElementById('kpmmod-avg-ep-' + regKey + '-' + rowId);
+                        var totEl = document.getElementById('kpmmod-row-tot-' + regKey + '-' + rowId);
+                        var ec = avgEp>=0.90?'#2e7d32':avgEp>=0.85?'#e65100':avgEp>0?'#c62828':'#aaa';
+                        if (avgEl){ avgEl.textContent = avgEp>0?(avgEp*100).toFixed(1)+'%':'—'; avgEl.style.color=ec; }
+                        if (totEl){ totEl.textContent = total>0?(total*100).toFixed(2)+'%':'—'; totEl.style.color=ec; }
+                    };
+                    // Handler for the new dropdown EP selector (modal view)
+                    window.kpmEpSelectChangeMod = function(sel) {
+                        var regKey   = sel.dataset.regkey;
+                        var rowId    = sel.dataset.rowid;
+                        var dw       = parseFloat(sel.dataset.dw);
+                        var pnSafe   = sel.dataset.pname;
+                        var activeMo = sel.dataset.activemo;
+                        var val      = sel.value;
+                        var n = parseFloat(String(val).replace('%',''));
+                        sel.style.color = (!val || isNaN(n)) ? '#555' : n/100 >= 0.90 ? '#2e7d32' : n/100 >= 0.85 ? '#e65100' : '#c62828';
+                        var pObj = state.projects.find(function(x){ return x.name === pnSafe; });
+                        if (pObj) {
+                            var _rbac = UserAccounts.checkPermission(state.currentUser && state.currentUser.email, 'edit', pObj.region, 'kpm');
+                            if (!_rbac.allowed) { showLockedMessage(_rbac.reason); sel.value = pObj.vals['kpm_v3_' + activeMo + '_' + rowId] || ''; return; }
+                            pObj.vals['kpm_v3_' + activeMo + '_' + rowId] = val;
+                            if (typeof markPendingSync==='function') markPendingSync();
+                        }
+                        var epSelects = document.querySelectorAll('[id^="kpmmod-ep-' + regKey + '-' + rowId + '-"]');
+                        var sum=0,count=0;
+                        epSelects.forEach(function(s){ var r=parseFloat((s.value||'').replace('%','').trim()); if(!isNaN(r)&&r>0){sum+=r/100;count++;} });
                         var avgEp = count>0?sum/count:0;
                         var total = avgEp*dw;
                         var avgEl = document.getElementById('kpmmod-avg-ep-' + regKey + '-' + rowId);
@@ -31353,7 +31423,7 @@ function renderEshCalendar(tabType) {
                 'esh-calendar-safety': 'Safety Trainings',
                 'esh-calendar-health': 'Health Awareness',
                 'esh-calendar-drills': 'Emergency Drills',
-                'esh-calendar-corp-drills': 'Corporate HQ Drills'
+                'esh-calendar-corp-drills': 'Corporate Drills'
             };
             const _tabLabel = _tabLabels[tabType] || tabType;
 
@@ -32358,7 +32428,7 @@ function renderCorpDrillsTab() {
         <div class="esh-cal-header" style="background:linear-gradient(135deg,#1b5e20 0%,#388e3c 100%);">
             <i class="fas fa-building-columns esh-cal-header-icon"></i>
             <div style="flex:1;">
-                <div class="esh-cal-header-title">${selYear} ESH CALENDAR — CORPORATE HQ DRILLS</div>
+                <div class="esh-cal-header-title">${selYear} ESH CALENDAR — CORPORATE DRILLS</div>
                 <div class="esh-cal-header-sub">Corporate Office Only · Admin-Editable · Not counted in regional compliance · Plan color = Frequency | Actual = Date (Green=Done, Red=Overdue)</div>
             </div>
 
@@ -32377,7 +32447,7 @@ function renderCorpDrillsTab() {
         <div class="corp-drills-table-outer">
             <div class="corp-drills-table-header-bar">
                 <i class="fas fa-building-columns" style="margin-right:6px;"></i>
-                <strong>CORPORATE HQ Drills &amp; Activities</strong> — For the Corporate Office only.
+                <strong>CORPORATE Drills &amp; Activities</strong> — For the Corporate Office only.
                 ${canEdit ? 'Click <strong>Plan</strong> cell to schedule. Enter <strong>Actual</strong> date upon completion.' : '🔒 View only — Admin can edit.'}
             </div>
             <div style="overflow-x:auto;"><table class="esh-table">
