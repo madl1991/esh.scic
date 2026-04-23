@@ -17175,7 +17175,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     // Summary — count only fields for periods whose deadline has passed
                     var embTot=0, embFill=0;
-                    var embActProjs = displayProjects.filter(function(dp){ return !isProjectOnStoppage(dp); });
+                    var embActProjs = displayProjects.filter(function(dp){ return !isProjectOnStoppage(dp) && !dp.dateFinished && dp.region !== 'PLANT OPERATIONS' && dp.region !== 'CORPORATE'; });
                     embActProjs.forEach(function(dp){
                         for (var q=1; q<=embDueQ; q++) {
                             var _qCoc = _isCocExempt(dp, 'SMR', q);
