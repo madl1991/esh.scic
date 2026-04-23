@@ -19057,23 +19057,42 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             }
                             
                             const _cshpDateId = `cshp-date-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}`;
-                            html += `<tr>
-                                <td style="text-align:left;font-weight:600;background:var(--border-color); position: sticky; left: 0; z-index: 5;">
+                            // Format date value as MM/DD/YYYY for display badge
+                            const _vDisplay = v ? (function(d){ var p=d.split('-'); return p.length===3?p[1]+'/'+p[2]+'/'+p[0]:d; })(v) : '';
+                            html += `<tr style="${!v ? 'background:#ffebee;' : ''}">
+                                <td style="text-align:left;font-weight:600;background:${!v ? '#ffcdd2' : 'var(--border-color)'}; position: sticky; left: 0; z-index: 5;">
                                     ${p.isRenewable ? '<i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;" title="Renewable Energy Project"></i>' : ''}
                                     ${p.name}
                                 </td>
-                                <td style="white-space:nowrap;">
+                                <td id="cshp-td-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}" style="white-space:nowrap;text-align:center;background:${v ? '#dcedc8;' : ''}">
+                                    ${(state.isEditing && canEditRegion) ? `
                                     <input type="date" id="${_cshpDateId}"
                                         value="${v}"
                                         data-saved-value="${v}"
-                                        ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
                                         onfocus="(function(el){el.dataset.savedValue=el.value;})(this)"
-                                        oninput="(function(el){updateVal('${p.name}','${key}',1,el.value); el.style.borderColor=el.value?'#4caf50':''; el.style.background=el.value?'#f1fff1':''; var clrBtn=document.getElementById('cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}'); if(clrBtn) clrBtn.style.display=el.value?'inline':'none';})(this)"
-                                        onchange="(function(el){updateVal('${p.name}','${key}',1,el.value); el.style.borderColor=el.value?'#4caf50':''; el.style.background=el.value?'#f1fff1':''; var clrBtn=document.getElementById('cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}'); if(clrBtn) clrBtn.style.display=el.value?'inline':'none';})(this)"
-                                        style="${v ? 'border-color:#4caf50;background:#f1fff1;' : ''}">
-                                    ${(state.isEditing && canEditRegion) ? `<button id="cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}" title="Clear date" style="display:${v ? 'inline' : 'none'};margin-left:4px;background:none;border:none;cursor:pointer;color:#ef5350;font-size:0.85rem;padding:2px 4px;vertical-align:middle;" tabindex="-1" onclick="(function(btn){var inp=document.getElementById('cshp-date-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}');if(inp){inp.value='';inp.style.borderColor='';inp.style.background='';updateVal('${p.name}','${key}',1,'');}btn.style.display='none';})(this)"><i class='fas fa-times-circle'></i></button>` : ''}
+                                        oninput="(function(el){
+                                            updateVal('${p.name}','${key}',1,el.value);
+                                            var td=el.closest('td'); if(td) td.style.background=el.value?'#dcedc8':'';
+                                            var tr=el.closest('tr'); if(tr){tr.style.background=el.value?'':'#ffebee'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background=el.value?'var(--border-color)':'#ffcdd2';}
+                                            var clrBtn=document.getElementById('cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}'); if(clrBtn) clrBtn.style.display=el.value?'inline':'none';
+                                        })(this)"
+                                        onchange="(function(el){
+                                            updateVal('${p.name}','${key}',1,el.value);
+                                            var td=el.closest('td'); if(td) td.style.background=el.value?'#dcedc8':'';
+                                            var tr=el.closest('tr'); if(tr){tr.style.background=el.value?'':'#ffebee'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background=el.value?'var(--border-color)':'#ffcdd2';}
+                                            var clrBtn=document.getElementById('cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}'); if(clrBtn) clrBtn.style.display=el.value?'inline':'none';
+                                        })(this)"
+                                        style="border:1px solid #a5d6a7;border-radius:4px;padding:3px 6px;${v ? 'background:#f1fff1;' : ''}">
+                                    <button id="cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}" title="Clear date" style="display:${v ? 'inline' : 'none'};margin-left:4px;background:none;border:none;cursor:pointer;color:#ef5350;font-size:0.85rem;padding:2px 4px;vertical-align:middle;" tabindex="-1" onclick="(function(btn){
+                                        var inp=document.getElementById('cshp-date-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}');
+                                        if(inp){inp.value='';updateVal('${p.name}','${key}',1,'');}
+                                        var td=btn.closest('td'); if(td) td.style.background='';
+                                        var tr=btn.closest('tr'); if(tr){tr.style.background='#ffebee'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background='#ffcdd2';}
+                                        btn.style.display='none';
+                                    })(this)"><i class='fas fa-times-circle'></i></button>
+                                    ` : (v ? `<span style="display:inline-block;background:#dcedc8;color:#33691e;font-weight:700;font-size:0.82rem;padding:5px 18px;border-radius:6px;letter-spacing:0.03em;">${_vDisplay}</span>` : `<span style="color:#bdbdbd;font-size:0.75rem;font-style:italic;">mm/dd/yyyy</span>`)}
                                 </td>
-                                <td>${pdfCell}</td>
+                                <td style="${!v ? 'background:#ffebee;' : ''}">${pdfCell}</td>
                             </tr>`;
                         });
 
