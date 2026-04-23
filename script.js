@@ -5206,9 +5206,9 @@ function updateAuditData(pName, qtr, field, val) {
             const selYear = state.selectedYear || curYear;
             if (selYear !== curYear) return; // only color-code current year
             if (v) {
-                td.style.background = '#e8f5e9';
+                td.style.background = '';
                 input.style.borderColor = '#a5d6a7';
-                input.style.background  = '#f1fff1';
+                input.style.background  = '#c8e6c9';
                 input.style.color       = '#2e7d32';
             } else {
                 td.style.background = '#ffebee';
@@ -16304,9 +16304,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         if (isDateType && _isCurrentYear) {
                             if (_isFutureMonth) {
                                 _dateCellStyle = 'background:#f5f5f5;opacity:0.65;';
-                            } else if (v) {
-                                _dateCellStyle = 'background:#e8f5e9;';
-                            } else if (_isOverdue) {
+                            } else if (!v && _isOverdue) {
                                 _dateCellStyle = 'background:#ffebee;';
                             }
                         } else if (!isDateType && _isFutureMonth) {
@@ -16314,7 +16312,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         }
 
                         const _dateInputStyle = (isDateType && _isCurrentYear && !_isFutureMonth)
-                            ? `style="width:100%;border:1.5px solid ${v ? '#a5d6a7' : _isOverdue ? '#ef9a9a' : 'var(--border-color)'};border-radius:4px;padding:2px 3px;font-size:0.72rem;background:${v ? '#f1fff1' : _isOverdue ? '#fff5f5' : 'var(--input-bg)'};color:${v ? '#2e7d32' : _isOverdue ? '#c62828' : 'var(--text-primary)'};"`
+                            ? `style="width:100%;border:1.5px solid ${v ? '#a5d6a7' : _isOverdue ? '#ef9a9a' : 'var(--border-color)'};border-radius:4px;padding:2px 3px;font-size:0.72rem;background:${v ? '#c8e6c9' : _isOverdue ? '#fff5f5' : 'var(--input-bg)'};color:${v ? '#2e7d32' : _isOverdue ? '#c62828' : 'var(--text-primary)'};"`
                             : '';
 
                         html += `<td class="${isNov ? 'nov-narrow-td' : (isDole ? 'dole-narrow-td' : 'monthly-data')}" style="${_dateCellStyle}"><input type="${isDateType ? 'date' : 'text'}" ${isDateType ? '' : 'inputmode="decimal" data-num'} value="${vFmt}" ${_cellDisabled}${_futureTip} ${_dateInputStyle} ${isDateType ? `oninput="updateVal('${p.name}','${key}',${i},this.value);_refreshDateCell(this)"` : `oninput="numFmtInput(this, function(v){updateVal('${p.name}','${key}',${i},v)})"`}></td>`;
@@ -19060,11 +19058,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             // Format date value as MM/DD/YYYY for display badge
                             const _vDisplay = v ? (function(d){ var p=d.split('-'); return p.length===3?p[1]+'/'+p[2]+'/'+p[0]:d; })(v) : '';
                             html += `<tr style="${!v ? 'background:#ffebee;' : ''}">
-                                <td style="text-align:left;font-weight:600;background:${!v ? '#ffcdd2' : 'var(--border-color)'}; position: sticky; left: 0; z-index: 5;">
+                                <td style="text-align:left;font-weight:600;background:var(--border-color);color:${v ? '#2e7d32' : '#c62828'}; position: sticky; left: 0; z-index: 5;">
                                     ${p.isRenewable ? '<i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;" title="Renewable Energy Project"></i>' : ''}
                                     ${p.name}
                                 </td>
-                                <td id="cshp-td-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}" style="white-space:nowrap;text-align:center;background:${v ? '#dcedc8;' : ''}">
+                                <td id="cshp-td-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}" style="white-space:nowrap;text-align:center;">
                                     ${(state.isEditing && canEditRegion) ? `
                                     <input type="date" id="${_cshpDateId}"
                                         value="${v}"
@@ -19072,17 +19070,17 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         onfocus="(function(el){el.dataset.savedValue=el.value;})(this)"
                                         oninput="(function(el){
                                             updateVal('${p.name}','${key}',1,el.value);
-                                            var td=el.closest('td'); if(td) td.style.background=el.value?'#dcedc8':'';
+                                            var td=el.closest('td'); if(td) td.style.background='';
                                             var tr=el.closest('tr'); if(tr){tr.style.background=el.value?'':'#ffebee'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background=el.value?'var(--border-color)':'#ffcdd2';}
                                             var clrBtn=document.getElementById('cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}'); if(clrBtn) clrBtn.style.display=el.value?'inline':'none';
                                         })(this)"
                                         onchange="(function(el){
                                             updateVal('${p.name}','${key}',1,el.value);
-                                            var td=el.closest('td'); if(td) td.style.background=el.value?'#dcedc8':'';
+                                            var td=el.closest('td'); if(td) td.style.background='';
                                             var tr=el.closest('tr'); if(tr){tr.style.background=el.value?'':'#ffebee'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background=el.value?'var(--border-color)':'#ffcdd2';}
                                             var clrBtn=document.getElementById('cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}'); if(clrBtn) clrBtn.style.display=el.value?'inline':'none';
                                         })(this)"
-                                        style="border:1px solid #a5d6a7;border-radius:4px;padding:3px 6px;${v ? 'background:#f1fff1;' : ''}">
+                                        style="border:1px solid ${v ? '#a5d6a7' : '#ef9a9a'};border-radius:4px;padding:3px 6px;font-family:inherit;font-size:inherit;${v ? 'background:#c8e6c9;' : 'background:#fff5f5;'}">
                                     <button id="cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}" title="Clear date" style="display:${v ? 'inline' : 'none'};margin-left:4px;background:none;border:none;cursor:pointer;color:#ef5350;font-size:0.85rem;padding:2px 4px;vertical-align:middle;" tabindex="-1" onclick="(function(btn){
                                         var inp=document.getElementById('cshp-date-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}');
                                         if(inp){inp.value='';updateVal('${p.name}','${key}',1,'');}
@@ -19090,7 +19088,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         var tr=btn.closest('tr'); if(tr){tr.style.background='#ffebee'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background='#ffcdd2';}
                                         btn.style.display='none';
                                     })(this)"><i class='fas fa-times-circle'></i></button>
-                                    ` : (v ? `<span style="display:inline-block;background:#dcedc8;color:#33691e;font-weight:700;font-size:0.82rem;padding:5px 18px;border-radius:6px;letter-spacing:0.03em;">${_vDisplay}</span>` : `<span style="color:#bdbdbd;font-size:0.75rem;font-style:italic;">mm/dd/yyyy</span>`)}
+                                    ` : (v ? `<span style="display:inline-block;background:#dcedc8;color:#33691e;font-weight:600;padding:5px 18px;border-radius:6px;letter-spacing:0.03em;">${_vDisplay}</span>` : `<span style="display:inline-block;background:#ffcdd2;color:#c62828;font-weight:600;padding:5px 18px;border-radius:6px;letter-spacing:0.03em;">mm/dd/yyyy</span>`)}
                                 </td>
                                 <td style="${!v ? 'background:#ffebee;' : ''}">${pdfCell}</td>
                             </tr>`;
