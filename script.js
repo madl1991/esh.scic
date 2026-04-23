@@ -4493,9 +4493,14 @@ debugCommands.help() - Show this help
                     if (_staleMIdx >= 0 && state.masterProjects[_staleMIdx] !== project) {
                         state.masterProjects.splice(_staleMIdx, 1);
                     }
-                    // Update personnel assignments
+                    // Update personnel assignments and persist to PersonnelDB
                     (state.personnelData || []).forEach(person => {
-                        if (person.current === oldName) person.current = newName;
+                        if (person.current === oldName) {
+                            person.current = newName;
+                            if (typeof PersonnelDB !== 'undefined') {
+                                PersonnelDB.savePerson(person).catch(e => console.warn('PersonnelDB rename-sync failed:', e));
+                            }
+                        }
                     });
                     // Suppress ESH Calendar RTDB listener echo during rename
                     window._eshSavingActual = true;
