@@ -1155,7 +1155,6 @@ function applyNumFmtToInputs() {
             personnelData: [],
             incidentRateData: { recordableCases: 0, lostDays: 0, totalHours: 0 },
             filteredProjects: [],
-            selectedProjects: [],
             charts: {},
             currentSort: 'name',
             darkMode: false,
@@ -2969,7 +2968,6 @@ debugCommands.help() - Show this help
             state.searchTerm = '';
             state.regionFilter = '';
             state.statusFilter = '';
-            state.selectedProjects = [];
 
             const preservedPersonnel = JSON.parse(JSON.stringify(state.personnelData || []));
 
@@ -4066,7 +4064,6 @@ debugCommands.help() - Show this help
             function _lightProjects(projects) {
                 return (projects || []).map(p => {
                     const copy = { ...p };
-                    delete copy.selected;
                     return copy;
                 });
             }
@@ -14847,7 +14844,7 @@ function renderTabulation() {
                     const canDelete = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p.region, state.currentTab).allowed;
                     const isDeleteLocked = !canDelete;
 
-                    html += `<div class="project-row ${isLocked ? 'project-locked' : ''}" data-pname="${(p.name||'').replace(/"/g,'&quot;')}" data-region="${(p.region||'').replace(/"/g,'&quot;')}" data-status="${_derivedStatus}" style="${isWorkStopped ? 'opacity:0.7;' : ''}${state.currentTab === 'overall' ? 'cursor:pointer;' : ''}" ${state.currentTab === 'overall' ? `onclick="osOpenModal('${p.name.replace(/'/g, "\\'")}')"`  : ''}>\n                        ${state.isEditing ? `<input type="checkbox" class="project-checkbox" ${p.selected ? 'checked' : ''} ${isLocked ? 'disabled' : ''} onclick="event.stopPropagation()" onchange="toggleProjectSelect('${p.name}')">` : ''}
+                    html += `<div class="project-row ${isLocked ? 'project-locked' : ''}" data-pname="${(p.name||'').replace(/"/g,'&quot;')}" data-region="${(p.region||'').replace(/"/g,'&quot;')}" data-status="${_derivedStatus}" style="${isWorkStopped ? 'opacity:0.7;' : ''}${state.currentTab === 'overall' ? 'cursor:pointer;' : ''}" ${state.currentTab === 'overall' ? `onclick="osOpenModal('${p.name.replace(/'/g, "\\'")}')"`  : ''}>\n                        
                         <div class="circular-progress" style="--percentage: ${percDeg}deg;${isWorkStopped ? 'opacity:0.45;' : ''}">
                             <div class="circular-progress-inner" style="${isWorkStopped ? 'font-size:0.62rem;color:#bf360c;' : ''}">${percDisplay}${percDisplay !== '—' ? '%' : ''}</div>
                         </div>
@@ -19959,10 +19956,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
         
 document.addEventListener('click', closeAllStatusDropdowns);
-        function toggleProjectSelect(projectName) {
-            const project = state.filteredProjects.find(p => p.name === projectName);
-            if (project) project.selected = !project.selected;
-        }
+
 
         function settingsToggle(headerEl) {
             const body = headerEl.nextElementSibling;
