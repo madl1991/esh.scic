@@ -17922,11 +17922,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         { id:'e11', kpm:'4', wp:'Compliance ',
                           del:'Environmental Programs',
                           dw:0.07, measure:'Zero environmental complaints, violations or environmental findings',
-                          kpi:['75%',null,'85%','90%',null] },
+                          kpi:['75%',null,null,null,'95%'] },
                         { id:'e12', kpm:'',  wp:'',
                           del:'Occupational Safety and Health Programs',
                           dw:0.08, measure:'Zero OS&H accidents/incidents, violations, complaints and findings',
-                          kpi:['75%',null,'85%','90%',null] },
+                          kpi:['75%',null,null,null,'95%'] },
                     ];
 
                     const KPM_GRADE_SCALE = [1, 2, 3, 4, 5];
