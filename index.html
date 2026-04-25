@@ -1026,26 +1026,16 @@
                 
 
                 
+                <span class="na-badge" id="export-pdf-btn" style="display:none;">
+                  <!-- PDF export hidden — all tabs now use Excel -->
+                </span>
+
+                <span class="na-badge" id="export-overall-excel-wrap" style="display:none;"></span>
+                <span class="na-badge" id="export-emb-excel-wrap" style="display:none;"></span>
+                <span class="na-badge" id="export-kpm-excel-wrap" style="display:none;"></span>
+
                 <span class="na-badge">
-                  <button id="export-pdf-btn" class="na-icon" onclick="exportCurrentTabToPDF()" title="Export to PDF Report">
-                    <svg><use href="#ic-pdf"/></svg>
-                  </button>
-                </span>
-
-                <span class="na-badge" id="export-overall-excel-wrap" style="display:none;">
-                  <button id="export-overall-excel-btn" class="na-icon" onclick="exportOverallExcel()" title="Export Overall Summary to Excel">
-                    <svg><use href="#ic-excel"/></svg>
-                  </button>
-                </span>
-
-                <span class="na-badge" id="export-emb-excel-wrap" style="display:none;">
-                  <button id="export-emb-excel-btn" class="na-icon" onclick="exportEmbExcel()" title="Export EMB Reportorial to Excel">
-                    <svg><use href="#ic-excel"/></svg>
-                  </button>
-                </span>
-
-                <span class="na-badge" id="export-kpm-excel-wrap" style="display:none;">
-                  <button id="export-kpm-excel-btn" class="na-icon" onclick="exportKpmExcel()" title="Export KPM Report to Excel">
+                  <button id="export-excel-btn" class="na-icon" onclick="exportCurrentTabToExcel()" title="Export to Excel" style="display:none;">
                     <svg><use href="#ic-excel"/></svg>
                   </button>
                 </span>
