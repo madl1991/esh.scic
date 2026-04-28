@@ -24114,9 +24114,7 @@ function setupAuthObserver() {
                 
             // ── Hide export buttons for superintendent & PCO ────────────────────
             if (state.userRole === 'superintendent' || state.userRole === 'pco') {
-                const pExportBtn = document.getElementById('p-export-excel-btn');
                 const envExportBtn = document.getElementById('env-export-pdf-btn');
-                if (pExportBtn) pExportBtn.style.display = 'none';
                 if (envExportBtn) envExportBtn.style.display = 'none';
             }
             // ────────────────────────────────────────────────────────────────────
