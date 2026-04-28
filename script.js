@@ -36156,10 +36156,16 @@ async function exportKpmExcel() {
     const REGIONS  = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
 
     // ── Collect projects (exclude Corporate) ──────────────────────────────────
+    // ── Collect projects — exclude Corporate, Plant Ops, finished, and work-stoppage ──
     const allProjs = (state.filteredProjects || state.projects || []).filter(p => {
         const r = (p.region || '').toUpperCase();
-        return r !== 'CORPORATE';
+        if (r === 'CORPORATE') return false;
+        if (r === 'PLANT OPERATIONS') return false;
+        if (p.dateFinished) return false;
+        if (p.status === 'work-stoppage') return false;
+        return true;
     });
+
     if (!allProjs.length) {
         showToast('ℹ️ No project data to export.', 'info');
         return;
@@ -36173,16 +36179,16 @@ async function exportKpmExcel() {
         const v = proj.vals['kpm_v3_' + mo + '_' + rowId];
         return (v !== undefined && v !== null && v !== '') ? String(v) : null;
     }
-    function getDateSubmitted(proj, mo) {
-        const v = proj.vals && proj.vals['kpm_v3_' + mo + '_dateSubmitted'];
-        return v ? String(v) : '';
+    function getKpmStatus(proj, mo) {
+        // Returns special status: 'non-submission', 'project-completion', 'project-on-hold', or null
+        if (!proj.vals) return null;
+        return proj.vals['kpm_v3_' + mo + '_status'] || null;
     }
     function parsePct(s) {
         if (!s) return null;
         const n = parseFloat(String(s).replace('%', ''));
         return isNaN(n) ? null : n;
     }
-    function fmtScore(v) { return v === null ? '—' : Math.round(v) + '%'; }
     function projMonthScore(proj, mo) {
         let wSum = 0, wTot = 0;
         rows.forEach(r => {
@@ -36195,16 +36201,12 @@ async function exportKpmExcel() {
         const scores = MO_LONG.map(mo => projMonthScore(proj, mo)).filter(v => v !== null);
         return scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
     }
-    function hasAnyData(proj) {
-        return MO_LONG.some(mo => rows.some(r => getKpmVal(proj, mo, r.id)));
-    }
 
-    // ── Color logic (matching PDF) ─────────────────────────────────────────────
-    // Returns { bg: 'RRGGBB', fg: 'RRGGBB' } or null
+    // ── Color logic ───────────────────────────────────────────────────────────
     function scoreColor(v) {
         if (v === null) return null;
         if (v >= 90) return { bg: 'C8E6C9', fg: '1B5E20' };
-        if (v >= 85) return { bg: 'DCE8C7', fg: '1B5E20' };
+        if (v >= 85) return { bg: 'FFF9C4', fg: '82500D' };
         if (v >= 75) return { bg: 'FFF9C4', fg: '82500D' };
         return { bg: 'FFCDD2', fg: 'B71C1C' };
     }
@@ -36214,44 +36216,48 @@ async function exportKpmExcel() {
     wb.creator = 'ESH Monitoring System';
     wb.created = new Date();
 
-    // Shared palette (matches exportPersonnelExcel)
-    const COLOR_HEADER_BG = '2E7D32';
-    const COLOR_BANNER_BG = '1B5E20';
-    const COLOR_TOTAL_BG  = 'E8F5E9';
-    const COLOR_ALT_ROW   = 'F1F8E9';
-    const COLOR_WHITE     = 'FFFFFFFF';
+    const C_DARK_GREEN  = '1B5E20';
+    const C_MED_GREEN   = '2E7D32';
+    const C_LIGHT_GREEN = 'E8F5E9';
+    const C_TEAL        = 'B2DFDB';    // non-submission / status bg
+    const C_YELLOW      = 'FFF9C4';
+    const C_WHITE       = 'FFFFFFFF';
+    const C_GRAY_HDR    = 'F5F5F5';
+    const C_COL_HDR_BG  = '37474F';    // dark blue-gray for left fixed columns header
+    const C_COL_HDR_FG  = 'FFFFFF';
 
-    // ── Shared style builders (matching Personnel style) ──────────────────────
-    function applyHeaderStyle(cell) {
-        cell.font      = { bold: true, color: { argb: COLOR_WHITE }, size: 10, name: 'Calibri' };
-        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_HEADER_BG } };
+    // ── Style helpers ─────────────────────────────────────────────────────────
+    function applyHeaderStyle(cell, bgArgb, fgArgb) {
+        cell.font      = { bold: true, color: { argb: fgArgb || C_COL_HDR_FG }, size: 9, name: 'Calibri' };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + (bgArgb || C_COL_HDR_BG) } };
         cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
         cell.border    = {
-            top:    { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } },
-            bottom: { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } },
-            left:   { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } },
-            right:  { style: 'thin', color: { argb: 'FF' + COLOR_HEADER_BG } }
+            top:    { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            bottom: { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            left:   { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            right:  { style: 'thin', color: { argb: 'FFB0BEC5' } }
         };
     }
-    function applyBannerStyle(cell, text) {
-        cell.value     = text;
-        cell.font      = { bold: true, color: { argb: COLOR_WHITE }, size: 10, name: 'Calibri' };
-        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_BANNER_BG } };
-        cell.alignment = { horizontal: 'left', vertical: 'middle' };
-    }
-    function applyTotalStyle(cell) {
-        cell.font      = { bold: true, size: 10, name: 'Calibri' };
-        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_TOTAL_BG } };
-        cell.alignment = { vertical: 'middle', horizontal: 'center' };
-    }
-    function applyDataStyle(cell, align) {
-        cell.font      = { size: 9, name: 'Calibri' };
-        cell.alignment = { vertical: 'middle', horizontal: align || 'center', wrapText: false };
-    }
-    function applyScoreCell(cell, rawVal) {
+    function applyScoreCell(cell, rawVal, statusStr) {
+        const thinBorder = {
+            top:    { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            bottom: { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            left:   { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            right:  { style: 'thin', color: { argb: 'FFB0BEC5' } }
+        };
+        cell.border = thinBorder;
+        // Special statuses — teal background, rotated label
+        if (statusStr) {
+            cell.value     = '';
+            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB2DFDB' } };
+            cell.font      = { size: 8, name: 'Calibri', color: { argb: 'FF004D40' }, italic: true };
+            cell.alignment = { horizontal: 'center', vertical: 'middle', textRotation: 90, wrapText: false };
+            return;
+        }
         const num = parsePct(rawVal);
-        cell.value = rawVal || '';
-        applyDataStyle(cell, 'center');
+        cell.value     = rawVal || '';
+        cell.font      = { bold: num !== null, size: 9, name: 'Calibri' };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
         if (num !== null) {
             const c = scoreColor(num);
             if (c) {
@@ -36260,214 +36266,413 @@ async function exportKpmExcel() {
             }
         }
     }
+    function applyAvgCell(cell, score) {
+        cell.border = {
+            top: { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } },
+            bottom: { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } },
+            left: { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } },
+            right: { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } }
+        };
+        if (score === null) { cell.value = '—'; cell.font = { size: 9, name: 'Calibri', color: { argb: 'FF9E9E9E' } }; cell.alignment = { horizontal: 'center', vertical: 'middle' }; return; }
+        const pct = Math.round(score) + '%';
+        cell.value     = pct;
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        const c = scoreColor(score);
+        if (c) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + c.bg } };
+            cell.font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FF' + c.fg } };
+        }
+    }
+    function leftCellStyle(cell, bold) {
+        cell.font      = { bold: !!bold, size: 8.5, name: 'Calibri' };
+        cell.alignment = { vertical: 'middle', wrapText: true };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
+        cell.border    = {
+            top:    { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            bottom: { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            left:   { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            right:  { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } }
+        };
+    }
 
-    // ── SHEET 1 : SUMMARY ─────────────────────────────────────────────────────
-    const summaryWs = wb.addWorksheet('Summary');
-
-    // Title row
-    const titleCell = summaryWs.getCell('A1');
-    titleCell.value     = `KEY PERFORMANCE MEASURES REPORT — ${year}`;
-    titleCell.font      = { bold: true, color: { argb: COLOR_WHITE }, size: 13, name: 'Calibri' };
-    titleCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_BANNER_BG } };
-    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-    summaryWs.mergeCells('A1:R1');
-    summaryWs.getRow(1).height = 24;
-
-    // Header row
-    const sumHdrRow = summaryWs.addRow(['REGION', 'PROJECT', 'HAS DATA', ...MO_SHORT, 'OVERALL AVG']);
-    sumHdrRow.height = 22;
-    sumHdrRow.eachCell(cell => applyHeaderStyle(cell));
-
-    // Data rows — grouped by region
-    const sortedRegions = REGIONS.filter(r => allProjs.some(p => (p.region || '').toUpperCase() === r));
-    const otherRegions  = [...new Set(allProjs.map(p => (p.region || '').toUpperCase()).filter(r => !REGIONS.includes(r)))];
+    // ── Build per-region project list (sorted) ────────────────────────────────
+    const KPM_REGIONS = ['NCR', 'SOUTH LUZON', 'NORTH LUZON', 'VISAYAS & MINDANAO'];
+    const sortedRegions = KPM_REGIONS.filter(r => allProjs.some(p => (p.region || '').toUpperCase() === r));
+    const otherRegions  = [...new Set(allProjs.map(p => (p.region || '').toUpperCase()).filter(r => !KPM_REGIONS.includes(r)))];
     const allRegionOrder = [...sortedRegions, ...otherRegions];
 
-    let sumRowIdx = 3;
+    // Ordered project list per region (used for consistent column order)
+    const projsByRegion = {};
+    allRegionOrder.forEach(r => {
+        projsByRegion[r] = allProjs.filter(p => (p.region || '').toUpperCase() === r);
+    });
+    // Flat ordered project list
+    const orderedProjs = allRegionOrder.flatMap(r => projsByRegion[r]);
+
+    // ── Fixed left columns: WORK PROCESS | DELIVERABLES | DW | MEASURE ────────
+    const LEFT_COLS = 4;
+    // Col 1 = Work Process, Col 2 = Deliverables, Col 3 = DW, Col 4 = Measure
+    // Then: one col per project + 1 AVG col per region group
+
+    // Build column map: [LEFT_COLS fixed] + [proj cols + AVG per region]
+    // We need: projects grouped per region, each group ends with an AVG col
+    const colMap = []; // { type: 'proj'|'avg', proj?, region? }
     allRegionOrder.forEach(region => {
-        const regProjs = allProjs.filter(p => (p.region || '').toUpperCase() === region);
-        if (!regProjs.length) return;
+        projsByRegion[region].forEach(proj => {
+            colMap.push({ type: 'proj', proj, region });
+        });
+        colMap.push({ type: 'avg', region });
+    });
+    const totalCols = LEFT_COLS + colMap.length;
 
-        // Region banner
-        const bannerRow = summaryWs.addRow([`📌 ${region}`, '', '', ...Array(13).fill('')]);
-        summaryWs.mergeCells(bannerRow.number, 1, bannerRow.number, 18);
-        applyBannerStyle(bannerRow.getCell(1), `📌 ${region}  (${regProjs.length} project${regProjs.length !== 1 ? 's' : ''})`);
-        bannerRow.height = 18;
-        sumRowIdx++;
+    // ── NOTES ROW style helper ─────────────────────────────────────────────────
+    function addNotesRow(ws, totalCols) {
+        const noteRow = ws.addRow([
+            'NOTES: 1) If the KPM or KPI is not applicable, do not delete the cell/row, put "N/A" or c/o "CO or CEY" instead.  2) Attached the corresponding evidences and/or records.'
+        ]);
+        ws.mergeCells(noteRow.number, 1, noteRow.number, totalCols);
+        const nc = noteRow.getCell(1);
+        nc.font      = { size: 8, name: 'Calibri', color: { argb: 'FF5D4037' }, italic: true };
+        nc.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF9C4' } };
+        nc.alignment = { vertical: 'middle', wrapText: true };
+        noteRow.height = 22;
+        return noteRow;
+    }
 
-        regProjs.forEach(proj => {
-            const hasData   = hasAnyData(proj);
-            const moScores  = MO_LONG.map(mo => projMonthScore(proj, mo));
-            const overall   = projOverallScore(proj);
+    // ── Build one CONSOLIDATED KPI sheet per month (submitted months only) ───────
+    const submittedMonths = MO_LONG.filter(mo =>
+        allProjs.some(p => rows.some(r => getKpmVal(p, mo, r.id)))
+    );
 
-            const rowData = [
-                (proj.region || '').toUpperCase(),
-                proj.name || '',
-                hasData ? 'YES' : 'NO',
-                ...moScores.map(v => v !== null ? Math.round(v) + '%' : '—'),
-                fmtScore(overall)
+    if (!submittedMonths.length) {
+        showToast('ℹ️ No KPM submissions found for this year.', 'info');
+        return;
+    }
+
+    submittedMonths.forEach((mo) => {
+        const moIdx       = MO_LONG.indexOf(mo);
+        const moShortName = MO_SHORT[moIdx];
+        const sheetName   = ('KPI-' + moShortName + '-' + year).substring(0, 31);
+        const ws          = wb.addWorksheet(sheetName);
+
+        // ── Row 1: Notes ────────────────────────────────────────────────────────
+        addNotesRow(ws, totalCols);
+
+        // ── Row 2: Spacer ───────────────────────────────────────────────────────
+        ws.addRow([]);
+        ws.getRow(2).height = 6;
+
+        // ── Row 3: Region header spans ──────────────────────────────────────────
+        const regHdrRow = ws.addRow(Array(totalCols).fill(''));
+        regHdrRow.height = 20;
+        let colOffset = LEFT_COLS + 1;
+        allRegionOrder.forEach(region => {
+            const projCount = projsByRegion[region].length;
+            const spanStart = colOffset;
+            const spanEnd   = colOffset + projCount; // +1 for AVG col
+            const c = regHdrRow.getCell(spanStart);
+            c.value = region;
+            c.font  = { bold: true, color: { argb: C_COL_HDR_FG }, size: 10, name: 'Calibri' };
+            c.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+            c.alignment = { horizontal: 'center', vertical: 'middle' };
+            if (spanEnd > spanStart) ws.mergeCells(regHdrRow.number, spanStart, regHdrRow.number, spanEnd);
+            colOffset += projCount + 1;
+        });
+        // Blank fixed-col area in region row
+        for (let ci = 1; ci <= LEFT_COLS; ci++) {
+            const c = regHdrRow.getCell(ci);
+            c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+        }
+
+        // ── Row 4: Column headers (Work Process | Del | DW | Measure | proj names | AVG) ─
+        const hdrData = ['Work Process', 'Deliverables', 'Del.\nWeight (DW)', 'Measure'];
+        colMap.forEach(cm => {
+            hdrData.push(cm.type === 'proj' ? (cm.proj.name || '') : 'AVG');
+        });
+        const hdrRow = ws.addRow(hdrData);
+        hdrRow.height = 45;
+        for (let ci = 1; ci <= LEFT_COLS; ci++) {
+            applyHeaderStyle(hdrRow.getCell(ci), C_COL_HDR_BG, C_COL_HDR_FG);
+        }
+        colMap.forEach((cm, i) => {
+            const ci = LEFT_COLS + 1 + i;
+            if (cm.type === 'avg') {
+                applyHeaderStyle(hdrRow.getCell(ci), C_MED_GREEN, 'FFFFFF');
+                hdrRow.getCell(ci).value = 'REGION\nAVG';
+            } else {
+                applyHeaderStyle(hdrRow.getCell(ci), C_COL_HDR_BG, C_COL_HDR_FG);
+            }
+        });
+
+        // ── Data rows: one per KPM measure ─────────────────────────────────────
+        // Group rows by Work Process for merging
+        let dataRowStart = 5; // current row index in worksheet (1-based)
+        let wpGroupStart = dataRowStart;
+        let wpGroupLabel = rows[0] ? rows[0].wp : '';
+        let wpGroupCount = 0;
+
+        // Track wp / del merge ranges
+        const wpMerges  = []; // { startRow, endRow, label }
+        const delMerges = []; // { startRow, endRow, label }
+
+        rows.forEach((kpmRow, ri) => {
+            const rowArr = [
+                kpmRow.wp  || '',   // Work Process
+                kpmRow.del || '',   // Deliverables
+                kpmRow.dw  ? (Math.round(kpmRow.dw * 100) + '%') : '',  // DW
+                kpmRow.measure || kpmRow.del || ''  // Measure
             ];
-            const dataRow = summaryWs.addRow(rowData);
-            dataRow.height = 16;
 
-            // Style each cell
-            dataRow.getCell(1).font = { size: 9, name: 'Calibri' };
-            dataRow.getCell(1).alignment = { vertical: 'middle' };
-            dataRow.getCell(2).font = { bold: true, size: 9, name: 'Calibri' };
-            dataRow.getCell(2).alignment = { vertical: 'middle' };
-            dataRow.getCell(3).font = { size: 9, name: 'Calibri', color: { argb: hasData ? 'FF1B5E20' : 'FFB71C1C' } };
-            dataRow.getCell(3).alignment = { vertical: 'middle', horizontal: 'center' };
-
-            // Month score cells (cols 4–15)
-            moScores.forEach((v, idx) => {
-                applyScoreCell(dataRow.getCell(4 + idx), v !== null ? Math.round(v) + '%' : null);
-            });
-            // Overall (col 16)
-            const ovCell = dataRow.getCell(16);
-            applyScoreCell(ovCell, overall !== null ? Math.round(overall) + '%' : null);
-            if (overall !== null) ovCell.font = { ...ovCell.font, bold: true, size: 10 };
-
-            sumRowIdx++;
-        });
-
-        // Spacer
-        summaryWs.getRow(sumRowIdx).height = 6;
-        sumRowIdx++;
-    });
-
-    // Column widths
-    summaryWs.getColumn(1).width = 22;
-    summaryWs.getColumn(2).width = 36;
-    summaryWs.getColumn(3).width = 10;
-    for (let i = 4; i <= 15; i++) summaryWs.getColumn(i).width = 7;
-    summaryWs.getColumn(16).width = 12;
-    summaryWs.views = [{ state: 'frozen', ySplit: 2, activeCell: 'A3' }];
-
-    // ── SHEETS 2+: One per region ──────────────────────────────────────────────
-    allRegionOrder.forEach(region => {
-        const regProjs = allProjs.filter(p => (p.region || '').toUpperCase() === region);
-        if (!regProjs.length) return;
-
-        const sheetName = region.length > 31 ? region.substring(0, 31) : region;
-        const ws = wb.addWorksheet(sheetName);
-
-        // ── Title ──────────────────────────────────────────────────────────────
-        const rTitleCell = ws.getCell('A1');
-        rTitleCell.value     = `KPM REPORT — ${region} — ${year}`;
-        rTitleCell.font      = { bold: true, color: { argb: COLOR_WHITE }, size: 12, name: 'Calibri' };
-        rTitleCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_BANNER_BG } };
-        rTitleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-        // Total cols = 1(PROJECT) + 1(KPI MEASURE) + 12(months) + 1(AVG) + 1(DATE SUBMITTED) = 16
-        ws.mergeCells(1, 1, 1, 16);
-        ws.getRow(1).height = 22;
-
-        // ── Header ─────────────────────────────────────────────────────────────
-        const hdrRow = ws.addRow(['PROJECT', 'KPI MEASURE', ...MO_SHORT, 'AVG', 'DATE SUBMITTED']);
-        hdrRow.height = 22;
-        hdrRow.eachCell(cell => applyHeaderStyle(cell));
-
-        let curRow = 3;
-
-        regProjs.forEach((proj, projIdx) => {
-            // Project banner row
-            const projBanner = ws.addRow([`📌 ${proj.name || 'Unnamed'}`, ...Array(15).fill('')]);
-            ws.mergeCells(curRow, 1, curRow, 16);
-            applyBannerStyle(projBanner.getCell(1), `📌 ${proj.name || 'Unnamed'}`);
-            projBanner.height = 18;
-            curRow++;
-
-            // KPI measure rows (one per KPM row)
-            rows.forEach((kpmRow, rowIdx) => {
-                const monthVals = MO_LONG.map(mo => {
-                    const raw = getKpmVal(proj, mo, kpmRow.id);
-                    return raw;
-                });
-                const numVals   = monthVals.map(v => parsePct(v)).filter(v => v !== null);
-                const avg       = numVals.length ? numVals.reduce((a, b) => a + b, 0) / numVals.length : null;
-
-                // Date submitted: take first month that has a date (or blank)
-                const dateStr = MO_LONG.map(mo => getDateSubmitted(proj, mo)).find(d => d) || '';
-
-                const measureLabel = kpmRow.measure || kpmRow.del || kpmRow.id;
-                const rowDataArr   = [
-                    rowIdx === 0 ? (proj.name || '') : '',
-                    measureLabel,
-                    ...monthVals.map(v => v || ''),
-                    fmtScore(avg),
-                    rowIdx === 0 ? dateStr : ''
-                ];
-                const dataRow = ws.addRow(rowDataArr);
-                dataRow.height = 16;
-
-                // Project name cell
-                const pNameCell = dataRow.getCell(1);
-                pNameCell.font      = { bold: true, size: 9, name: 'Calibri' };
-                pNameCell.alignment = { vertical: 'middle', wrapText: false };
-
-                // Measure cell
-                const mCell = dataRow.getCell(2);
-                mCell.font      = { italic: true, size: 8.5, name: 'Calibri' };
-                mCell.alignment = { vertical: 'middle', wrapText: true };
-
-                // Month value cells (cols 3–14)
-                monthVals.forEach((v, mIdx) => {
-                    applyScoreCell(dataRow.getCell(3 + mIdx), v);
-                });
-
-                // AVG cell (col 15)
-                const avgCell = dataRow.getCell(15);
-                applyScoreCell(avgCell, avg !== null ? Math.round(avg) + '%' : null);
-                if (avg !== null) avgCell.font = { ...avgCell.font, bold: true };
-
-                // Date submitted cell (col 16)
-                const dtCell = dataRow.getCell(16);
-                dtCell.value     = rowIdx === 0 ? dateStr : '';
-                dtCell.font      = { size: 8.5, name: 'Calibri', color: { argb: 'FF1565C0' } };
-                dtCell.alignment = { vertical: 'middle', horizontal: 'center' };
-
-                // Alternate row shading
-                if (rowIdx % 2 === 0) {
-                    [1,2,...Array(12).keys().map(i => i+3), 15, 16].forEach(ci => {
-                        const c = dataRow.getCell(ci);
-                        if (!c.fill || !c.fill.fgColor || c.fill.fgColor.argb === COLOR_WHITE) {
-                            c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + COLOR_ALT_ROW } };
-                        }
-                    });
+            // Per project values
+            colMap.forEach(cm => {
+                if (cm.type === 'proj') {
+                    rowArr.push(getKpmVal(cm.proj, mo, kpmRow.id) || '');
+                } else {
+                    // Region AVG for this measure/month
+                    const regProjs = projsByRegion[cm.region];
+                    const vals = regProjs.map(p => parsePct(getKpmVal(p, mo, kpmRow.id))).filter(v => v !== null);
+                    rowArr.push(vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) + '%' : '');
                 }
-
-                curRow++;
             });
 
-            // Monthly date submitted row
-            const dateRowArr = ['', 'Date Submitted (by month)', ...MO_LONG.map(mo => getDateSubmitted(proj, mo)), '', ''];
-            const dateRow = ws.addRow(dateRowArr);
-            dateRow.height = 14;
-            dateRow.getCell(2).font      = { bold: true, italic: true, size: 8, name: 'Calibri', color: { argb: 'FF1565C0' } };
-            dateRow.getCell(2).alignment = { vertical: 'middle' };
-            dateRow.getCell(2).fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE3F2FD' } };
-            for (let ci = 3; ci <= 14; ci++) {
-                dateRow.getCell(ci).font      = { size: 8, name: 'Calibri', color: { argb: 'FF1565C0' } };
-                dateRow.getCell(ci).alignment = { vertical: 'middle', horizontal: 'center' };
-                dateRow.getCell(ci).fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE3F2FD' } };
-            }
-            curRow++;
+            const dataRow = ws.addRow(rowArr);
+            dataRow.height = 36;
 
-            // Spacer between projects
-            if (projIdx < regProjs.length - 1) {
-                ws.getRow(curRow).height = 6;
-                curRow++;
+            // Left 4 cols styling
+            leftCellStyle(dataRow.getCell(1), false); // wp — will be merged, content set after
+            leftCellStyle(dataRow.getCell(2), false); // del
+            // DW cell
+            const dwCell = dataRow.getCell(3);
+            dwCell.font      = { bold: true, size: 8.5, name: 'Calibri', color: { argb: 'FF1B5E20' } };
+            dwCell.alignment = { horizontal: 'center', vertical: 'middle' };
+            dwCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
+            dwCell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+            // Measure cell
+            const mCell = dataRow.getCell(4);
+            mCell.font      = { size: 8, name: 'Calibri', italic: true };
+            mCell.alignment = { vertical: 'middle', wrapText: true };
+            mCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
+            mCell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+
+            // Score cells
+            colMap.forEach((cm, i) => {
+                const ci = LEFT_COLS + 1 + i;
+                const cell = dataRow.getCell(ci);
+                if (cm.type === 'proj') {
+                    const rawVal = getKpmVal(cm.proj, mo, kpmRow.id);
+                    const status = getKpmStatus(cm.proj, mo);
+                    applyScoreCell(cell, rawVal, status);
+                } else {
+                    // AVG cell
+                    const regProjs = projsByRegion[cm.region];
+                    const vals = regProjs.map(p => parsePct(getKpmVal(p, mo, kpmRow.id))).filter(v => v !== null);
+                    const avg  = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+                    applyAvgCell(cell, avg);
+                }
+            });
+
+            dataRowStart++;
+        });
+
+        // ── KPI SCORE row (weighted avg per project for the month) ─────────────
+        const scoreArr = ['KPI SCORE', '', '', ''];
+        colMap.forEach(cm => {
+            if (cm.type === 'proj') {
+                const score = projMonthScore(cm.proj, mo);
+                scoreArr.push(score !== null ? Math.round(score) + '%' : '—');
+            } else {
+                const regProjs = projsByRegion[cm.region];
+                const scores = regProjs.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
+                scoreArr.push(avg !== null ? Math.round(avg) + '%' : '—');
+            }
+        });
+        const scoreRow = ws.addRow(scoreArr);
+        scoreRow.height = 22;
+        ws.mergeCells(scoreRow.number, 1, scoreRow.number, LEFT_COLS);
+        const scoreLbl = scoreRow.getCell(1);
+        scoreLbl.value     = 'KPI SCORE';
+        scoreLbl.font      = { bold: true, size: 10, name: 'Calibri', color: { argb: C_COL_HDR_FG } };
+        scoreLbl.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+        scoreLbl.alignment = { horizontal: 'center', vertical: 'middle' };
+        colMap.forEach((cm, i) => {
+            const ci = LEFT_COLS + 1 + i;
+            applyAvgCell(scoreRow.getCell(ci), cm.type === 'proj'
+                ? projMonthScore(cm.proj, mo)
+                : (function() {
+                    const rp = projsByRegion[cm.region];
+                    const sv = rp.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                    return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                  })()
+            );
+        });
+
+        // ── Merge Work Process cells vertically ────────────────────────────────
+        // rows array already has wp set only on first row of group (blank after)
+        // Build merge ranges from the rows data
+        const kpmDataStartRow = 5; // row 5 is first data row
+        let wpStart = kpmDataStartRow, curWp = rows[0]?.wp || '';
+        rows.forEach((kpmRow, ri) => {
+            const isLast = ri === rows.length - 1;
+            const nextWp = !isLast ? (rows[ri+1].wp || '') : null;
+            if (nextWp !== curWp || isLast) {
+                const wpEnd = kpmDataStartRow + ri;
+                if (wpEnd > wpStart) {
+                    ws.mergeCells(wpStart, 1, wpEnd, 1);
+                }
+                ws.getCell(wpStart, 1).value     = curWp;
+                ws.getCell(wpStart, 1).font      = { bold: true, size: 8.5, name: 'Calibri' };
+                ws.getCell(wpStart, 1).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                ws.getCell(wpStart, 1).fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
+                ws.getCell(wpStart, 1).border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'medium',color:{argb:'FF'+C_MED_GREEN}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+                curWp  = nextWp || '';
+                wpStart = kpmDataStartRow + ri + 1;
             }
         });
 
-        // Column widths
-        ws.getColumn(1).width  = 26;   // PROJECT
-        ws.getColumn(2).width  = 42;   // KPI MEASURE
-        for (let i = 3; i <= 14; i++) ws.getColumn(i).width = 7.5;  // months
-        ws.getColumn(15).width = 9;    // AVG
-        ws.getColumn(16).width = 18;   // DATE SUBMITTED
+        // Merge Deliverables cells (same logic, by del field)
+        let delStart = kpmDataStartRow, curDel = rows[0]?.del || '';
+        rows.forEach((kpmRow, ri) => {
+            const isLast = ri === rows.length - 1;
+            const nextDel = !isLast ? (rows[ri+1].del || '') : null;
+            if (nextDel !== curDel || isLast) {
+                const delEnd = kpmDataStartRow + ri;
+                if (delEnd > delStart) {
+                    ws.mergeCells(delStart, 2, delEnd, 2);
+                }
+                ws.getCell(delStart, 2).value     = curDel;
+                ws.getCell(delStart, 2).font      = { size: 8.5, name: 'Calibri' };
+                ws.getCell(delStart, 2).alignment = { vertical: 'middle', wrapText: true };
+                ws.getCell(delStart, 2).fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
+                ws.getCell(delStart, 2).border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+                curDel  = nextDel || '';
+                delStart = kpmDataStartRow + ri + 1;
+            }
+        });
 
-        ws.views = [{ state: 'frozen', ySplit: 2, activeCell: 'A3' }];
+        // ── Column widths ───────────────────────────────────────────────────────
+        ws.getColumn(1).width = 18;  // Work Process
+        ws.getColumn(2).width = 18;  // Deliverables
+        ws.getColumn(3).width = 7;   // DW
+        ws.getColumn(4).width = 28;  // Measure
+        colMap.forEach((cm, i) => {
+            ws.getColumn(LEFT_COLS + 1 + i).width = cm.type === 'avg' ? 8 : 14;
+        });
+
+        // ── Freeze panes — freeze row 4 (header) and first 4 cols ───────────────
+        ws.views = [{ state: 'frozen', xSplit: LEFT_COLS, ySplit: 4, activeCell: 'E5' }];
     });
+
+    // ── OVERALL SUMMARY SHEET ─────────────────────────────────────────────────
+    const sumWs = wb.addWorksheet('OVERALL SUMMARY');
+    addNotesRow(sumWs, totalCols);
+    sumWs.addRow([]); sumWs.getRow(2).height = 6;
+
+    // Region header
+    const sRegHdr = sumWs.addRow(Array(totalCols).fill(''));
+    sRegHdr.height = 20;
+    let sColOff = LEFT_COLS + 1;
+    allRegionOrder.forEach(region => {
+        const pc = projsByRegion[region].length;
+        const c  = sRegHdr.getCell(sColOff);
+        c.value = region;
+        c.font  = { bold: true, color: { argb: C_COL_HDR_FG }, size: 10, name: 'Calibri' };
+        c.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+        c.alignment = { horizontal: 'center', vertical: 'middle' };
+        if (pc > 0) sumWs.mergeCells(sRegHdr.number, sColOff, sRegHdr.number, sColOff + pc);
+        sColOff += pc + 1;
+    });
+    for (let ci = 1; ci <= LEFT_COLS; ci++) {
+        sRegHdr.getCell(ci).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+    }
+
+    // Column header — months as rows in summary? No — use projects as cols, months as rows
+    // Summary: rows = months, cols = projects (same pivot but transposed per month)
+    const sHdrData = ['Month', '', '', ''];
+    colMap.forEach(cm => sHdrData.push(cm.type === 'proj' ? (cm.proj.name || '') : 'REGION\nAVG'));
+    const sHdrRow = sumWs.addRow(sHdrData);
+    sHdrRow.height = 45;
+    sumWs.mergeCells(sHdrRow.number, 1, sHdrRow.number, LEFT_COLS);
+    for (let ci = 1; ci <= LEFT_COLS; ci++) applyHeaderStyle(sHdrRow.getCell(ci), C_COL_HDR_BG, C_COL_HDR_FG);
+    sHdrRow.getCell(1).value = 'MONTH';
+    colMap.forEach((cm, i) => {
+        const ci = LEFT_COLS + 1 + i;
+        applyHeaderStyle(sHdrRow.getCell(ci), cm.type === 'avg' ? C_MED_GREEN : C_COL_HDR_BG, C_COL_HDR_FG);
+    });
+
+    // One row per submitted month only
+    submittedMonths.forEach((mo) => {
+        const moIdx = MO_LONG.indexOf(mo);
+        const mRowData = [MO_SHORT[moIdx], '', '', ''];
+        colMap.forEach(cm => {
+            if (cm.type === 'proj') {
+                const s = projMonthScore(cm.proj, mo);
+                mRowData.push(s !== null ? Math.round(s) + '%' : '—');
+            } else {
+                const rp = projsByRegion[cm.region];
+                const sv = rp.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                mRowData.push(avg !== null ? Math.round(avg) + '%' : '—');
+            }
+        });
+        const mRow = sumWs.addRow(mRowData);
+        mRow.height = 18;
+        sumWs.mergeCells(mRow.number, 1, mRow.number, LEFT_COLS);
+        const mlbl = mRow.getCell(1);
+        mlbl.value     = MO_SHORT[moIdx];
+        mlbl.font      = { bold: true, size: 9, name: 'Calibri' };
+        mlbl.alignment = { horizontal: 'center', vertical: 'middle' };
+        mlbl.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
+        mlbl.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+        colMap.forEach((cm, i) => {
+            const ci = LEFT_COLS + 1 + i;
+            applyAvgCell(mRow.getCell(ci), cm.type === 'proj'
+                ? projMonthScore(cm.proj, mo)
+                : (function() {
+                    const rp = projsByRegion[cm.region];
+                    const sv = rp.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                    return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                  })()
+            );
+        });
+    });
+
+    // Overall avg row
+    const ovArr = ['OVERALL AVG', '', '', ''];
+    colMap.forEach(cm => {
+        if (cm.type === 'proj') {
+            const s = projOverallScore(cm.proj);
+            ovArr.push(s !== null ? Math.round(s) + '%' : '—');
+        } else {
+            const rp = projsByRegion[cm.region];
+            const sv = rp.map(p => projOverallScore(p)).filter(v => v !== null);
+            const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+            ovArr.push(avg !== null ? Math.round(avg) + '%' : '—');
+        }
+    });
+    const ovRow = sumWs.addRow(ovArr);
+    ovRow.height = 22;
+    sumWs.mergeCells(ovRow.number, 1, ovRow.number, LEFT_COLS);
+    const ovLbl = ovRow.getCell(1);
+    ovLbl.value = 'OVERALL AVG'; ovLbl.font = { bold: true, size: 10, name: 'Calibri', color: { argb: C_COL_HDR_FG } };
+    ovLbl.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+    ovLbl.alignment = { horizontal: 'center', vertical: 'middle' };
+    colMap.forEach((cm, i) => {
+        applyAvgCell(ovRow.getCell(LEFT_COLS + 1 + i), cm.type === 'proj'
+            ? projOverallScore(cm.proj)
+            : (function() {
+                const rp = projsByRegion[cm.region];
+                const sv = rp.map(p => projOverallScore(p)).filter(v => v !== null);
+                return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+              })()
+        );
+    });
+
+    // Summary col widths
+    sumWs.getColumn(1).width = 12;
+    for (let ci = 2; ci <= LEFT_COLS; ci++) sumWs.getColumn(ci).width = 5;
+    colMap.forEach((cm, i) => { sumWs.getColumn(LEFT_COLS + 1 + i).width = cm.type === 'avg' ? 8 : 14; });
+    sumWs.views = [{ state: 'frozen', xSplit: LEFT_COLS, ySplit: 4, activeCell: 'E5' }];
 
     // ── Download ──────────────────────────────────────────────────────────────
     try {
