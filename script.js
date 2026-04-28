@@ -36316,13 +36316,15 @@ async function exportKpmExcel() {
 
     // Build column map: [LEFT_COLS fixed] + [proj cols + AVG per region]
     // We need: projects grouped per region, each group ends with an AVG col
-    const colMap = []; // { type: 'proj'|'avg', proj?, region? }
+    const colMap = []; // { type: 'proj'|'avg'|'overall', proj?, region? }
     allRegionOrder.forEach(region => {
         projsByRegion[region].forEach(proj => {
             colMap.push({ type: 'proj', proj, region });
         });
         colMap.push({ type: 'avg', region });
     });
+    // Add overall average column at the end (across ALL regions)
+    colMap.push({ type: 'overall' });
     const totalCols = LEFT_COLS + colMap.length;
 
     // ── NOTES ROW style helper ─────────────────────────────────────────────────
@@ -36378,6 +36380,12 @@ async function exportKpmExcel() {
             if (spanEnd > spanStart) ws.mergeCells(regHdrRow.number, spanStart, regHdrRow.number, spanEnd);
             colOffset += projCount + 1;
         });
+        // Overall avg column header in region row
+        const overallRegHdrCell = regHdrRow.getCell(colOffset);
+        overallRegHdrCell.value = 'OVERALL';
+        overallRegHdrCell.font  = { bold: true, color: { argb: C_COL_HDR_FG }, size: 10, name: 'Calibri' };
+        overallRegHdrCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
+        overallRegHdrCell.alignment = { horizontal: 'center', vertical: 'middle' };
         // Blank fixed-col area in region row
         for (let ci = 1; ci <= LEFT_COLS; ci++) {
             const c = regHdrRow.getCell(ci);
@@ -36399,6 +36407,9 @@ async function exportKpmExcel() {
             if (cm.type === 'avg') {
                 applyHeaderStyle(hdrRow.getCell(ci), C_MED_GREEN, 'FFFFFF');
                 hdrRow.getCell(ci).value = 'REGION\nAVG';
+            } else if (cm.type === 'overall') {
+                applyHeaderStyle(hdrRow.getCell(ci), '1A237E', 'FFFFFF');
+                hdrRow.getCell(ci).value = 'OVERALL\nAVG';
             } else {
                 applyHeaderStyle(hdrRow.getCell(ci), C_COL_HDR_BG, C_COL_HDR_FG);
             }
@@ -36427,6 +36438,10 @@ async function exportKpmExcel() {
             colMap.forEach(cm => {
                 if (cm.type === 'proj') {
                     rowArr.push(getKpmVal(cm.proj, mo, kpmRow.id) || '');
+                } else if (cm.type === 'overall') {
+                    // Overall AVG across ALL projects
+                    const vals = orderedProjs.map(p => parsePct(getKpmVal(p, mo, kpmRow.id))).filter(v => v !== null);
+                    rowArr.push(vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) + '%' : '');
                 } else {
                     // Region AVG for this measure/month
                     const regProjs = projsByRegion[cm.region];
@@ -36462,6 +36477,13 @@ async function exportKpmExcel() {
                     const rawVal = getKpmVal(cm.proj, mo, kpmRow.id);
                     const status = getKpmStatus(cm.proj, mo);
                     applyScoreCell(cell, rawVal, status);
+                } else if (cm.type === 'overall') {
+                    const vals = orderedProjs.map(p => parsePct(getKpmVal(p, mo, kpmRow.id))).filter(v => v !== null);
+                    const avg  = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+                    applyAvgCell(cell, avg);
+                    // Extra styling to distinguish overall col
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+                    cell.font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF1A237E' } };
                 } else {
                     // AVG cell
                     const regProjs = projsByRegion[cm.region];
@@ -36480,6 +36502,10 @@ async function exportKpmExcel() {
             if (cm.type === 'proj') {
                 const score = projMonthScore(cm.proj, mo);
                 scoreArr.push(score !== null ? Math.round(score) + '%' : '—');
+            } else if (cm.type === 'overall') {
+                const scores = orderedProjs.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
+                scoreArr.push(avg !== null ? Math.round(avg) + '%' : '—');
             } else {
                 const regProjs = projsByRegion[cm.region];
                 const scores = regProjs.map(p => projMonthScore(p, mo)).filter(v => v !== null);
@@ -36497,14 +36523,23 @@ async function exportKpmExcel() {
         scoreLbl.alignment = { horizontal: 'center', vertical: 'middle' };
         colMap.forEach((cm, i) => {
             const ci = LEFT_COLS + 1 + i;
-            applyAvgCell(scoreRow.getCell(ci), cm.type === 'proj'
-                ? projMonthScore(cm.proj, mo)
-                : (function() {
-                    const rp = projsByRegion[cm.region];
-                    const sv = rp.map(p => projMonthScore(p, mo)).filter(v => v !== null);
-                    return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
-                  })()
-            );
+            const cell = scoreRow.getCell(ci);
+            if (cm.type === 'overall') {
+                const scores = orderedProjs.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
+                applyAvgCell(cell, avg);
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
+                cell.font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+            } else {
+                applyAvgCell(cell, cm.type === 'proj'
+                    ? projMonthScore(cm.proj, mo)
+                    : (function() {
+                        const rp = projsByRegion[cm.region];
+                        const sv = rp.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                        return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                      })()
+                );
+            }
         });
 
         // ── Merge Work Process cells vertically ────────────────────────────────
@@ -36556,7 +36591,7 @@ async function exportKpmExcel() {
         ws.getColumn(3).width = 7;   // DW
         ws.getColumn(4).width = 28;  // Measure
         colMap.forEach((cm, i) => {
-            ws.getColumn(LEFT_COLS + 1 + i).width = cm.type === 'avg' ? 8 : 14;
+            ws.getColumn(LEFT_COLS + 1 + i).width = cm.type === 'avg' ? 8 : cm.type === 'overall' ? 10 : 14;
         });
 
         // ── Freeze panes — freeze row 4 (header) and first 4 cols ───────────────
@@ -36582,6 +36617,12 @@ async function exportKpmExcel() {
         if (pc > 0) sumWs.mergeCells(sRegHdr.number, sColOff, sRegHdr.number, sColOff + pc);
         sColOff += pc + 1;
     });
+    // Overall column label in region header row
+    const sOverallRegHdr = sRegHdr.getCell(sColOff);
+    sOverallRegHdr.value = 'OVERALL';
+    sOverallRegHdr.font  = { bold: true, color: { argb: C_COL_HDR_FG }, size: 10, name: 'Calibri' };
+    sOverallRegHdr.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
+    sOverallRegHdr.alignment = { horizontal: 'center', vertical: 'middle' };
     for (let ci = 1; ci <= LEFT_COLS; ci++) {
         sRegHdr.getCell(ci).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
     }
@@ -36589,7 +36630,7 @@ async function exportKpmExcel() {
     // Column header — months as rows in summary? No — use projects as cols, months as rows
     // Summary: rows = months, cols = projects (same pivot but transposed per month)
     const sHdrData = ['Month', '', '', ''];
-    colMap.forEach(cm => sHdrData.push(cm.type === 'proj' ? (cm.proj.name || '') : 'REGION\nAVG'));
+    colMap.forEach(cm => sHdrData.push(cm.type === 'proj' ? (cm.proj.name || '') : cm.type === 'overall' ? 'OVERALL\nAVG' : 'REGION\nAVG'));
     const sHdrRow = sumWs.addRow(sHdrData);
     sHdrRow.height = 45;
     sumWs.mergeCells(sHdrRow.number, 1, sHdrRow.number, LEFT_COLS);
@@ -36597,7 +36638,11 @@ async function exportKpmExcel() {
     sHdrRow.getCell(1).value = 'MONTH';
     colMap.forEach((cm, i) => {
         const ci = LEFT_COLS + 1 + i;
-        applyHeaderStyle(sHdrRow.getCell(ci), cm.type === 'avg' ? C_MED_GREEN : C_COL_HDR_BG, C_COL_HDR_FG);
+        if (cm.type === 'overall') {
+            applyHeaderStyle(sHdrRow.getCell(ci), '1A237E', 'FFFFFF');
+        } else {
+            applyHeaderStyle(sHdrRow.getCell(ci), cm.type === 'avg' ? C_MED_GREEN : C_COL_HDR_BG, C_COL_HDR_FG);
+        }
     });
 
     // One row per submitted month only
@@ -36608,6 +36653,10 @@ async function exportKpmExcel() {
             if (cm.type === 'proj') {
                 const s = projMonthScore(cm.proj, mo);
                 mRowData.push(s !== null ? Math.round(s) + '%' : '—');
+            } else if (cm.type === 'overall') {
+                const sv = orderedProjs.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                mRowData.push(avg !== null ? Math.round(avg) + '%' : '—');
             } else {
                 const rp = projsByRegion[cm.region];
                 const sv = rp.map(p => projMonthScore(p, mo)).filter(v => v !== null);
@@ -36626,14 +36675,23 @@ async function exportKpmExcel() {
         mlbl.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
         colMap.forEach((cm, i) => {
             const ci = LEFT_COLS + 1 + i;
-            applyAvgCell(mRow.getCell(ci), cm.type === 'proj'
-                ? projMonthScore(cm.proj, mo)
-                : (function() {
-                    const rp = projsByRegion[cm.region];
-                    const sv = rp.map(p => projMonthScore(p, mo)).filter(v => v !== null);
-                    return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
-                  })()
-            );
+            const cell = mRow.getCell(ci);
+            if (cm.type === 'overall') {
+                const sv = orderedProjs.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                applyAvgCell(cell, avg);
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+                cell.font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF1A237E' } };
+            } else {
+                applyAvgCell(cell, cm.type === 'proj'
+                    ? projMonthScore(cm.proj, mo)
+                    : (function() {
+                        const rp = projsByRegion[cm.region];
+                        const sv = rp.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                        return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                      })()
+                );
+            }
         });
     });
 
@@ -36643,6 +36701,10 @@ async function exportKpmExcel() {
         if (cm.type === 'proj') {
             const s = projOverallScore(cm.proj);
             ovArr.push(s !== null ? Math.round(s) + '%' : '—');
+        } else if (cm.type === 'overall') {
+            const sv = orderedProjs.map(p => projOverallScore(p)).filter(v => v !== null);
+            const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+            ovArr.push(avg !== null ? Math.round(avg) + '%' : '—');
         } else {
             const rp = projsByRegion[cm.region];
             const sv = rp.map(p => projOverallScore(p)).filter(v => v !== null);
@@ -36658,20 +36720,29 @@ async function exportKpmExcel() {
     ovLbl.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
     ovLbl.alignment = { horizontal: 'center', vertical: 'middle' };
     colMap.forEach((cm, i) => {
-        applyAvgCell(ovRow.getCell(LEFT_COLS + 1 + i), cm.type === 'proj'
-            ? projOverallScore(cm.proj)
-            : (function() {
-                const rp = projsByRegion[cm.region];
-                const sv = rp.map(p => projOverallScore(p)).filter(v => v !== null);
-                return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
-              })()
-        );
+        const cell = ovRow.getCell(LEFT_COLS + 1 + i);
+        if (cm.type === 'overall') {
+            const sv = orderedProjs.map(p => projOverallScore(p)).filter(v => v !== null);
+            const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+            applyAvgCell(cell, avg);
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
+            cell.font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+        } else {
+            applyAvgCell(cell, cm.type === 'proj'
+                ? projOverallScore(cm.proj)
+                : (function() {
+                    const rp = projsByRegion[cm.region];
+                    const sv = rp.map(p => projOverallScore(p)).filter(v => v !== null);
+                    return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                  })()
+            );
+        }
     });
 
     // Summary col widths
     sumWs.getColumn(1).width = 12;
     for (let ci = 2; ci <= LEFT_COLS; ci++) sumWs.getColumn(ci).width = 5;
-    colMap.forEach((cm, i) => { sumWs.getColumn(LEFT_COLS + 1 + i).width = cm.type === 'avg' ? 8 : 14; });
+    colMap.forEach((cm, i) => { sumWs.getColumn(LEFT_COLS + 1 + i).width = cm.type === 'avg' ? 8 : cm.type === 'overall' ? 10 : 14; });
     sumWs.views = [{ state: 'frozen', xSplit: LEFT_COLS, ySplit: 4, activeCell: 'E5' }];
 
     // ── Download ──────────────────────────────────────────────────────────────
