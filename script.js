@@ -3321,14 +3321,18 @@ debugCommands.help() - Show this help
                 // Months before this index are skipped — project didn't exist yet.
                 const _projStartMo0 = _projectStartMonth0(project);
 
+                // Region-aware exclusion flags — mirrors dashboard tab visibility rules:
+                // CORPORATE allowed tabs: rates, exposures, medical, nov, nov-env, nov-monitoring, activities, dole
+                // PLANT OPERATIONS allowed tabs: permits, emb, env-monitoring, env-monthly-report
+                const _notifRegion = (project.region || '').toUpperCase();
+                const _isCorp  = _notifRegion === 'CORPORATE';
+                const _isPlant = _notifRegion === 'PLANT OPERATIONS';
+
                 // ── KPM: check region-wide dateSubmitted (not per-project) ────────
-                // dateSubmitted is stored only on projs[0] per region, so checking
-                // each project's own vals gives false positives for projects 2, 3, etc.
-                // Instead, flag a project only if its region has an unsubmitted past month
-                // AND this project was active in that month (not N/A, not blacklisted).
-                {
+                // CORPORATE and PLANT OPERATIONS are excluded from KPM reporting
+                if (!_isCorp && !_isPlant) {
                     const _kpmNa = project.vals && project.vals['kpm_na'] === '1';
-                    const _reg = (project.region || 'UNKNOWN').toUpperCase();
+                    const _reg = _notifRegion || 'UNKNOWN';
                     const _regionMissingMonths = _kpmRegionOverdueMonths[_reg] || [];
                     const _effectiveMissing = _kpmNa ? [] : _regionMissingMonths.filter(month => {
                         if (month < _projStartMo0) return false;
@@ -3340,9 +3344,10 @@ debugCommands.help() - Show this help
                 }
 
                 // ── ENVI REPORTORIAL (Environmental Monthly Report): missing monthly entries ──
+                // CORPORATE and PLANT OPERATIONS are excluded from EMR reporting
                 let hasEnvMonthlyOverdue = false;
                 const key_emr = 'env-monthly-report_Environmental Monthly Report (EMR)';
-                if (_pastMonthLimit > 0) {
+                if (_pastMonthLimit > 0 && !_isCorp && !_isPlant) {
                     for (let month = 0; month < _pastMonthLimit; month++) {
                         // Skip months before the project started this year
                         if (month < _projStartMo0) continue;
@@ -3356,10 +3361,8 @@ debugCommands.help() - Show this help
                 if (hasEnvMonthlyOverdue) overdueTabs.push({ name: 'ENVI Reportorial (EMR)', tab: 'env-monthly-report' });
 
                 // ── GOT MONITORING: no GOT data entered for any past month ───────
-                // Goals: E1, E2, E3, S1, S2, S3 — each has 1 measure (index 0).
-                // Fires only if ALL past months have zero rating across all goals.
-                // If even one month/goal has a rating, the project is considered active.
-                {
+                // CORPORATE and PLANT OPERATIONS are excluded from GOT Monitoring
+                if (!_isCorp && !_isPlant) {
                     const _gotGoalIds = ['E1','E2','E3','S1','S2','S3'];
                     const _selYrGot   = _notifSelYr;
                     let hasAnyGotData = false;
@@ -3381,24 +3384,21 @@ debugCommands.help() - Show this help
                 }
 
                 // ── ESH CALENDAR & DRILLS: planned drills with no actual recorded ─
-                // Checks the in-memory ESH cache for planned drill months with missing actuals
-                {
+                // CORPORATE and PLANT OPERATIONS are excluded from ESH Calendar & Drills
+                if (!_isCorp && !_isPlant) {
                     const _eshStor = (typeof getEshStorage === 'function') ? getEshStorage() : (window._eshMemCache || {});
                     const _eshSelYr = _notifSelYr;
                     let hasEshDrillOverdue = false;
-                    // Look for any GLOBAL_PLAN drill entries in past months with no actual for this project
                     outer_drills: for (const [storKey, planVal] of Object.entries(_eshStor)) {
                         if (!planVal) continue;
-                        // Key format: {year}|esh-calendar-drills|GLOBAL_PLAN|{di}|{mi}|plan
                         if (!storKey.startsWith(_eshSelYr + '|esh-calendar-drills|GLOBAL_PLAN|')) continue;
                         const parts = storKey.split('|');
                         if (parts.length < 6 || parts[5] !== 'plan') continue;
                         const di = parts[3], mi = parseInt(parts[4]);
-                        if (mi < 1 || mi > _pastMonthLimit) continue; // only past months
-                        // Skip months before the project started this year
+                        if (mi < 1 || mi > _pastMonthLimit) continue;
                         if ((mi - 1) < _projStartMo0) continue;
                         const naCellKey = _eshSelYr + '|esh-calendar-drills|' + project.name + '|' + di + '|' + mi + '|na';
-                        if (_eshStor[naCellKey]) continue; // marked N/A — skip
+                        if (_eshStor[naCellKey]) continue;
                         const actualKey = _eshSelYr + '|esh-calendar-drills|' + project.name + '|' + di + '|' + mi + '|actual';
                         if (!_eshStor[actualKey]) { hasEshDrillOverdue = true; break outer_drills; }
                     }
@@ -3406,8 +3406,9 @@ debugCommands.help() - Show this help
                 }
 
                 // ── DOLE Monthly: WAIR, RSO, MOM ────────────────────────────────
+                // PLANT OPERATIONS is excluded from DOLE reporting
                 let hasDoleMonthlyOverdue = false;
-                if (_pastMonthLimit > 0) {
+                if (_pastMonthLimit > 0 && !_isPlant) {
                     ['WAIR', 'RSO', 'MOM'].forEach(row => {
                         if (hasDoleMonthlyOverdue) return;
                         const key = `dole_${row}`;
@@ -3425,7 +3426,8 @@ debugCommands.help() - Show this help
                 if (hasDoleMonthlyOverdue) overdueTabs.push({ name: 'DOLE Reportorial', tab: 'dole' });
 
                 // ── DOLE Annual: AEDR (due Jan 30) & AMR (due Mar 31) ───────────
-                // AEDR and AMR are stored at index [1] as a single date value
+                // PLANT OPERATIONS is excluded from DOLE reporting
+                if (!_isPlant) {
                 const _doleAnnual = [
                     { row: 'AEDR', label: 'AEDR (Annual Exposure Data Report)', dlM: 0, dlD: 30 }, // Jan 30
                     { row: 'AMR',  label: 'AMR (Annual Medical Report)',         dlM: 2, dlD: 31 }  // Mar 31
@@ -3441,9 +3443,12 @@ debugCommands.help() - Show this help
                         overdueTabs.push({ name: `${label} (Missing)`, tab: 'dole' });
                     }
                 });
+                } // end !_isPlant DOLE Annual
 
                 // ── EMB Reportorial: SMR quarterly ──────────────────────────────
+                // CORPORATE is excluded from EMB reporting
                 let hasEmbOverdue = false;
+                if (!_isCorp) {
                 const _embSelYr = _notifSelYr;
                 const key_emb = 'emb_SMR (Quarterly) - Submission Date';
                 const key_emb_coc = 'emb_SMR (Quarterly) - Care of Client';
@@ -3468,10 +3473,12 @@ debugCommands.help() - Show this help
                         }
                     }
                 }
+                } // end !_isCorp EMB
                 if (hasEmbOverdue) overdueTabs.push({ name: 'EMB Reportorial', tab: 'emb' });
 
                 // ── DOE (Renewable only) ─────────────────────────────────────────
-                if (project.isRenewable === true) {
+                // CORPORATE and PLANT OPERATIONS are excluded from DOE reporting
+                if (project.isRenewable === true && !_isCorp && !_isPlant) {
                     // DOE Safety Officer Permit
                     if (!(project.vals && project.vals['doe-permit_client_provided'] === '1')) {
                         const doePermitVals = project.vals['doe-permit_DOE Safety Officer Permit'];
@@ -3512,13 +3519,17 @@ debugCommands.help() - Show this help
                 }
 
                 // ── CSHP ────────────────────────────────────────────────────────
+                // CORPORATE and PLANT OPERATIONS are excluded from CSHP
+                if (!_isCorp && !_isPlant) {
                 const cshpDate = project.vals['cshp_CSHP Approval Date'] ? project.vals['cshp_CSHP Approval Date'][1] : '';
                 if (!cshpDate || cshpDate.trim() === '') {
                     overdueTabs.push({ name: 'CSHP (Missing)', tab: 'cshp' });
                 }
+                } // end !_isCorp && !_isPlant CSHP
 
                 // ── PERMITS: expired / expiring soon / missing ──────────────────
-                // Uses actual SCHEMA permits list — no phantom "Certificate of Registration" check
+                // CORPORATE is excluded from Permits reporting
+                if (!_isCorp) {
                 const PERMIT_ROWS = (window.MULTI_ENTRY_PERMITS)
                     ? ['ECC','Company Registration System (CRS)','CNC','Certificate of Accreditation (DENR-EMB)','Certificate of Accreditation (LLDA)','LLDA Clearance','Permit to Transport (PTT)','Permit to Operate (PTO)','Discharge Permit (DP)',"Hazardous Waste Generator's ID",'Permit to Transport (Haz Waste)','Permit to Transport (Logs)','Tree Cutting Permit (STCP or S/PLTP)','Permit to Cut Coconut Tree','NWRB Water Permit']
                     : [];
@@ -3557,9 +3568,11 @@ debugCommands.help() - Show this help
                 if (missingPermits.length > 0) {
                     overdueTabs.push({ name: `Missing Permit(s): ${missingPermits.slice(0,2).join(', ')}${missingPermits.length > 2 ? ` +${missingPermits.length-2} more` : ''}`, tab: 'permits' });
                 }
+                } // end !_isCorp Permits
 
                 // ── OSH Deficiency ───────────────────────────────────────────────
-                if (state.oshData && state.oshData[project.name]) {
+                // CORPORATE and PLANT OPERATIONS are excluded from OSH Deficiency checks
+                if (!_isCorp && !_isPlant && state.oshData && state.oshData[project.name]) {
                     const oshEntry = state.oshData[project.name];
                     const manpower = parseInt(oshEntry.manpower) || 0;
                     if (manpower > 0) {
@@ -5072,6 +5085,7 @@ debugCommands.help() - Show this help
                 } else {
                     setTimeout(envInitChart, 100);
                 }
+
             }
             if (t === 'health-report') { setTimeout(renderHealthReport, 100); setTimeout(function(){ if(typeof window.openHealthReportModal==='function') window.openHealthReportModal(); }, 200); }
             if (t === 'got-monitoring') { setTimeout(renderGotMonitoring, 100); }
@@ -5107,7 +5121,7 @@ debugCommands.help() - Show this help
 
             // Universal Excel export button visibility
             const _xlNoRoles  = ['superintendent', 'pco', 'corp_nurse'];
-            const _xlNoTabs   = ['env-monitoring', 'settings'];
+            const _xlNoTabs   = ['settings'];
             const _xlPersonOk = (t !== 'personnel') || (state.isAdmin || state.userRole === 'manager');
             const _showXl     = !_xlNoRoles.includes(state.userRole) && !_xlNoTabs.includes(t) && _xlPersonOk;
             const _uniXlBtn   = document.getElementById('export-excel-btn');
@@ -14154,7 +14168,7 @@ function renderTabulation() {
             });
             // Universal Excel button visibility (mirrors changeTab logic)
             const _rxNoRoles  = ['superintendent','pco','corp_nurse'];
-            const _rxNoTabs   = ['env-monitoring','settings'];
+            const _rxNoTabs   = ['settings'];
             const _rxPersonOk = (state.currentTab !== 'personnel') || (state.isAdmin || state.userRole === 'manager');
             const _rxShowXl   = !_rxNoRoles.includes(state.userRole) && !_rxNoTabs.includes(state.currentTab) && _rxPersonOk;
             const _rxUniBtn   = document.getElementById('export-excel-btn');
@@ -17754,6 +17768,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     ]);
 
                     REGIONS.forEach(function(reg) {
+                        if (reg === 'CORPORATE' || reg === 'PLANT OPERATIONS') return; // Not included in EMR reporting
                         var projs = displayProjects.filter(function(p){ return p.region===reg; });
                         if (!projs.length) return;
                         // Active (non-stoppage) projects for compliance counting
@@ -24112,12 +24127,9 @@ function setupAuthObserver() {
                 else if (userInfo.role === 'pco') roleIcon = 'fa-leaf';
                 const roleLabel = state.currentUser.displayName || (state.isAdmin ? 'ESH Admin' : userInfo.displayName);
                 
-            // ── Hide export buttons for superintendent & PCO ────────────────────
-            if (state.userRole === 'superintendent' || state.userRole === 'pco') {
-                const envExportBtn = document.getElementById('env-export-pdf-btn');
-                if (envExportBtn) envExportBtn.style.display = 'none';
-            }
-            // ────────────────────────────────────────────────────────────────────
+            // ── Hide old env PDF export button — universal Excel button now handles this ──
+            const envExportBtn = document.getElementById('env-export-pdf-btn');
+            if (envExportBtn) envExportBtn.style.display = 'none';
                 const nameDiv = userBadge.querySelector('.name');
                 if (nameDiv) {
                     nameDiv.innerHTML = `
@@ -28652,6 +28664,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.envRenderRegions = envRenderRegions;
     Object.defineProperty(window, '_envData', { get: () => envData, set: v => { envData = v; }, configurable: true });
     Object.defineProperty(window, '_wasteData', { get: () => wasteData, set: v => { wasteData = v; }, configurable: true });
+    Object.defineProperty(window, '_fuelData', { get: () => fuelData, set: v => { fuelData = v; }, configurable: true });
 
     // ══════════════════════════════════════════════════════════════════════════
     //  ENV MONITORING — PDF EXPORT  (Electricity · Water · Waste · Appliances · Fuel)
@@ -34627,9 +34640,11 @@ async function exportCurrentTabToExcel() {
     }
 
     // Route to dedicated exporters for tabs that already have them
-    if (tab === 'personnel')    { exportPersonnelExcel(); return; }
-    if (tab === 'emb')          { exportEmbExcel();       return; }
-    if (tab === 'kpm')          { exportKpmExcel();       return; }
+    if (tab === 'personnel')       { exportPersonnelExcel();       return; }
+    if (tab === 'emb')             { exportEmbExcel();             return; }
+    if (tab === 'kpm')             { exportKpmExcel();             return; }
+    if (tab === 'dole')            { exportDoleExcel();            return; }
+    if (tab === 'env-monitoring')  { exportEnvMonitoringExcel();   return; }
 
     const year  = state.selectedYear || new Date().getFullYear();
     const projs = getReportProjects();
@@ -34740,6 +34755,728 @@ async function exportCurrentTabToExcel() {
     }
 
     try {
+    // ════════════════════════════════════════════════════════════════════════
+    // TOTAL EXPOSURES — monthly per sheet
+    // ════════════════════════════════════════════════════════════════════════
+    if (tab === 'exposures') {
+        const EXP_MEASURES = [
+            { key: 'Total Manpower',                label: 'Total Manpower' },
+            { key: 'Total Exposed Manhour',          label: 'Total Exposed Manhour' },
+            { key: 'Total Exposed Man-hour to date', label: 'Total Exposed Man-hour to date' },
+            { key: 'No. of Days w/o LTA',            label: 'No. of Days w/o LTA' },
+        ];
+
+        // Get value for a measure for a given project and month (1-12)
+        function expGetVal(proj, measureKey, monthIdx) {
+            if (measureKey === 'Total Exposed Man-hour to date') {
+                const base = parseFloat((proj.vals && proj.vals['exposures_Total Exposed Man-hour to date'] && proj.vals['exposures_Total Exposed Man-hour to date'][0]) || 0) || 0;
+                const mhKey = 'exposures_Total Exposed Manhour';
+                let cum = base;
+                for (let i = 1; i <= monthIdx; i++) cum += parseFloat(_v(proj, mhKey, i)) || 0;
+                return cum > 0 ? cum : '';
+            }
+            const raw = _v(proj, 'exposures_' + measureKey, monthIdx);
+            return raw !== '' ? (parseFloat(raw) || '') : '';
+        }
+
+        // Get YTD value for a measure for a given project
+        function expYtd(proj, measureKey) {
+            if (measureKey === 'Total Exposed Man-hour to date') {
+                const base = parseFloat((proj.vals && proj.vals['exposures_Total Exposed Man-hour to date'] && proj.vals['exposures_Total Exposed Man-hour to date'][0]) || 0) || 0;
+                const mhKey = 'exposures_Total Exposed Manhour';
+                let cum = base;
+                for (let i = 1; i <= 12; i++) cum += parseFloat(_v(proj, mhKey, i)) || 0;
+                return cum > 0 ? cum : '';
+            }
+            return _ytd(proj, 'exposures_' + measureKey);
+        }
+
+        // Style helpers for measure label rows
+        const EXP_MEAS_COLORS = ['FF1B5E20','FF2E7D32','FF388E3C','FF1565C0'];
+        const EXP_MEAS_FILLS  = ['FFE8F5E9','FFF1F8E9','FFF9FBE7','FFE3F2FD'];
+
+        function buildExpSheet(ws, sheetTitle, cols, getValFn) {
+            // cols = total columns (PROJECT + REGION + MEASURE + VALUE)
+            _xTitle(ws, sheetTitle, cols);
+            const hdr = ws.addRow(['PROJECT', 'REGION', 'MEASURE', 'VALUE']);
+            hdr.height = 22; hdr.eachCell(_xHdr);
+            ws.views = [{ state: 'frozen', ySplit: 2, activeCell: 'A3' }];
+            ws.getColumn(1).width = 36;
+            ws.getColumn(2).width = 22;
+            ws.getColumn(3).width = 32;
+            ws.getColumn(4).width = 22;
+
+            const grandTotals = {};
+            EXP_MEASURES.forEach(function(m) { grandTotals[m.key] = 0; });
+
+            let ri = 3;
+            REGIONS.forEach(function(region) {
+                const rp = projs.filter(function(p) { return (p.region || '').toUpperCase() === region; });
+                if (!rp.length) return;
+
+                // Region banner
+                const ban = ws.addRow([region]);
+                ws.mergeCells(ri, 1, ri, cols);
+                _xBan(ban.getCell(1), '📌 ' + region + ' (' + rp.length + ' project' + (rp.length !== 1 ? 's' : '') + ')');
+                ban.height = 16; ri++;
+
+                const regionTotals = {};
+                EXP_MEASURES.forEach(function(m) { regionTotals[m.key] = 0; });
+
+                rp.forEach(function(proj, pIdx) {
+                    const projColor = pIdx % 2 === 0 ? 'FFF9FBF9' : 'FFFFFFFF';
+
+                    EXP_MEASURES.forEach(function(m, mIdx) {
+                        const val = getValFn(proj, m.key);
+                        const numVal = parseFloat(val);
+                        if (!isNaN(numVal) && val !== '') {
+                            regionTotals[m.key] += numVal;
+                            grandTotals[m.key]  += numVal;
+                        }
+
+                        const projLabel   = mIdx === 0 ? (proj.name   || '') : '';
+                        const regionLabel = mIdx === 0 ? (proj.region || '') : '';
+                        const dr = ws.addRow([projLabel, regionLabel, m.label, val !== '' ? val : '—']);
+                        dr.height = 16;
+
+                        // Project name cell (only on first measure row, bold)
+                        const c1 = dr.getCell(1);
+                        c1.font      = { bold: mIdx === 0, size: 9, name: 'Calibri', color: { argb: mIdx === 0 ? 'FF1B5E20' : 'FF555555' } };
+                        c1.alignment = { vertical: 'middle' };
+                        c1.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: projColor } };
+
+                        // Region cell
+                        const c2 = dr.getCell(2);
+                        c2.font      = { size: 9, name: 'Calibri' };
+                        c2.alignment = { vertical: 'middle' };
+                        c2.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: projColor } };
+
+                        // Measure label cell
+                        const c3 = dr.getCell(3);
+                        c3.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: EXP_MEAS_COLORS[mIdx] } };
+                        c3.alignment = { vertical: 'middle', indent: 1 };
+                        c3.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: EXP_MEAS_FILLS[mIdx] } };
+
+                        // Value cell
+                        const c4 = dr.getCell(4);
+                        c4.font      = { bold: true, size: 9, name: 'Calibri' };
+                        c4.alignment = { vertical: 'middle', horizontal: 'center' };
+                        c4.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: EXP_MEAS_FILLS[mIdx] } };
+
+                        // Bottom border on last measure row of each project
+                        if (mIdx === EXP_MEASURES.length - 1) {
+                            [c1, c2, c3, c4].forEach(function(c) {
+                                c.border = { bottom: { style: 'thin', color: { argb: 'FFBDBDBD' } } };
+                            });
+                        }
+                        ri++;
+                    });
+                });
+
+                // Region subtotal rows — one per measure
+                EXP_MEASURES.forEach(function(m, mIdx) {
+                    const regDr = ws.addRow(['', '  REGION TOTAL', m.label, regionTotals[m.key] || 0]);
+                    regDr.height = 15;
+                    regDr.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+                    regDr.getCell(2).font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF1B5E20' } };
+                    regDr.getCell(2).alignment = { vertical: 'middle' };
+                    regDr.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+                    regDr.getCell(3).font = { bold: true, size: 9, name: 'Calibri', color: { argb: EXP_MEAS_COLORS[mIdx] } };
+                    regDr.getCell(3).alignment = { vertical: 'middle', indent: 1 };
+                    regDr.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+                    regDr.getCell(4).font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF1B5E20' } };
+                    regDr.getCell(4).alignment = { vertical: 'middle', horizontal: 'center' };
+                    regDr.getCell(4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+                    ri++;
+                });
+                ws.getRow(ri).height = 5; ri++;
+            });
+
+            // Grand total rows — one per measure
+            EXP_MEASURES.forEach(function(m, mIdx) {
+                const gdr = ws.addRow(['', ' GRAND TOTAL', m.label, grandTotals[m.key] || 0]);
+                gdr.height = 18;
+                for (let ci = 1; ci <= cols; ci++) {
+                    const c = gdr.getCell(ci);
+                    c.font      = { bold: true, size: 10, name: 'Calibri' };
+                    c.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_TOT_BG } };
+                    c.alignment = { vertical: 'middle', horizontal: ci >= 3 ? 'center' : 'left' };
+                }
+                gdr.getCell(3).value = m.label;
+                gdr.getCell(4).value = grandTotals[m.key] || 0;
+            });
+        }
+
+        const wb = new ExcelJS.Workbook(); wb.creator = 'ESH'; wb.created = new Date();
+        const MONTH_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const SHEET_COLS = 4; // PROJECT | REGION | MEASURE | VALUE
+
+        // ── Sheet 1: YTD Summary ─────────────────────────────────────────────
+        const sumWs = wb.addWorksheet('YTD Summary');
+        buildExpSheet(sumWs, 'TOTAL EXPOSURES — YTD SUMMARY ' + year, SHEET_COLS,
+            function(proj, measureKey) { return expYtd(proj, measureKey); }
+        );
+
+        // ── Sheets 2–13: One sheet per month ─────────────────────────────────
+        MONTH_FULL.forEach(function(moName, moIdx) {
+            const moNum = moIdx + 1;
+            const mWs = wb.addWorksheet(moName);
+            buildExpSheet(mWs, 'TOTAL EXPOSURES — ' + moName.toUpperCase() + ' ' + year, SHEET_COLS,
+                function(proj, measureKey) { return expGetVal(proj, measureKey, moNum); }
+            );
+        });
+
+        await _xSave(wb, 'total-exposures'); return;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ESH ACTIVITIES AND PROGRAMS — monthly per sheet
+    // ════════════════════════════════════════════════════════════════════════
+    if (tab === 'activities') {
+        const ACT_MEASURES = [
+            { key: 'No. of ESH Committee Conducted', label: 'No. of ESH Committee Conducted', color: '1B5E20', fill: 'E8F5E9' },
+            { key: 'No. of ESH inspection',           label: 'No. of ESH Inspection',           color: '0D47A1', fill: 'E3F2FD' },
+            { key: 'No. of Identified Near-Miss',     label: 'No. of Identified Near-Miss',     color: 'E65100', fill: 'FFF3E0' },
+            { key: 'Drills Conducted',                label: 'Drills Conducted',                color: '6A1B9A', fill: 'F3E5F5' },
+            { key: 'Training Conducted',              label: 'Training Conducted',              color: '880E4F', fill: 'FCE4EC' },
+        ];
+
+        // ── Build region/project order (same pattern as KPM/GOT) ─────────
+        const _ACT_REG_ORDER = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+        const _actAllProjs   = projs.filter(function(p) {
+            const r = (p.region || '').toUpperCase();
+            return r !== 'PLANT OPERATIONS';
+        });
+        const _actSortedReg  = _ACT_REG_ORDER.filter(function(r) {
+            return _actAllProjs.some(function(p) { return (p.region||'').toUpperCase() === r; });
+        });
+        const _actOtherReg = [];
+        _actAllProjs.forEach(function(p) {
+            const r = (p.region||'').toUpperCase();
+            if (!_ACT_REG_ORDER.includes(r) && !_actOtherReg.includes(r)) _actOtherReg.push(r);
+        });
+        const actRegOrder    = [..._actSortedReg, ..._actOtherReg];
+        const actProjsByReg  = {};
+        actRegOrder.forEach(function(r) {
+            actProjsByReg[r] = _actAllProjs.filter(function(p) { return (p.region||'').toUpperCase() === r; });
+        });
+        const actOrderedProjs = actRegOrder.reduce(function(arr, r) { return arr.concat(actProjsByReg[r]); }, []);
+
+        // ── Value helpers ─────────────────────────────────────────────────
+        function actGetVal(proj, measureKey, monthIdx) {
+            const mi  = monthIdx - 1;
+            const key = 'activities_' + measureKey;
+            if (measureKey === 'Drills Conducted') {
+                const eshStor  = (typeof getEshStorage === 'function') ? getEshStorage() : {};
+                const projName = proj.name;
+                let count = 0;
+                (typeof ESH_DRILLS !== 'undefined' ? ESH_DRILLS : []).forEach(function(drill, di) {
+                    const dsi = (typeof getDrillStorageIdx === 'function') ? getDrillStorageIdx(drill, di) : di;
+                    if (eshStor[year + '|esh-calendar-drills|' + projName + '|' + dsi + '|' + mi + '|na']) return;
+                    if (eshStor[year + '|esh-calendar-drills|' + projName + '|' + dsi + '|' + mi + '|actual']) count++;
+                });
+                if ((proj.region||'').toUpperCase() === 'CORPORATE') {
+                    const corpBase   = window.CORP_DRILLS || [];
+                    const corpCustom = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
+                    corpBase.forEach(function(_cd, cdi) {
+                        if (eshStor[year + '|esh-calendar-corp-drills|' + projName + '|' + cdi + '|' + mi + '|actual']) count++;
+                    });
+                    corpCustom.forEach(function(_ccr, cci) {
+                        if (eshStor[year + '|esh-calendar-corp-drills|' + projName + '|' + (1000+cci) + '|' + mi + '|actual']) count++;
+                    });
+                }
+                return count > 0 ? count : null;
+            }
+            if (measureKey === 'Training Conducted') {
+                if ((proj.region||'').toUpperCase() === 'CORPORATE') {
+                    const raw = _v(proj, key, monthIdx);
+                    return raw !== '' ? (parseFloat(raw) || null) : null;
+                }
+                const eshStor  = (typeof getEshStorage === 'function') ? getEshStorage() : {};
+                const projName = proj.name;
+                const _8HR     = '8-Hr Mandatory OSH Training';
+                let count = 0;
+                ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(function(tt) {
+                    ((typeof ESH_TRAININGS !== 'undefined' && ESH_TRAININGS[tt]) || []).forEach(function(tr, ti) {
+                        if (tr === _8HR) {
+                            const naK = year + '|' + tt + '|' + projName + '|' + ti + '|na_row';
+                            const naF = eshStor[naK] !== undefined ? parseInt(eshStor[naK]) : -1;
+                            if (naF >= 0 && mi >= naF) return;
+                        }
+                        if (eshStor[year + '|' + tt + '|' + projName + '|' + ti + '|' + mi + '|actual']) count++;
+                    });
+                });
+                return count > 0 ? count : null;
+            }
+            if (measureKey === 'No. of Identified Near-Miss') {
+                const entries = (proj.vals && proj.vals['lta-registry_entries']) || [];
+                const count = entries.filter(function(e) {
+                    if (e.incidentClassification !== 'Near Miss') return false;
+                    const d = e.dateOfAccident || e.dateReported || '';
+                    if (!d) return false;
+                    return parseInt(d.substring(0,4)) === year && parseInt(d.substring(5,7)) === monthIdx;
+                }).length;
+                return count > 0 ? count : null;
+            }
+            const raw = _v(proj, key, monthIdx);
+            return raw !== '' ? (parseFloat(raw) || null) : null;
+        }
+
+        function actYtd(proj, measureKey) {
+            let total = 0, any = false;
+            for (let m = 1; m <= 12; m++) {
+                const v = actGetVal(proj, measureKey, m);
+                if (v !== null) { total += v; any = true; }
+            }
+            return any ? total : null;
+        }
+
+        function actRegTotal(region, measureKey, moNum) {
+            let total = 0, any = false;
+            actProjsByReg[region].forEach(function(p) {
+                const v = moNum ? actGetVal(p, measureKey, moNum) : actYtd(p, measureKey);
+                if (v !== null) { total += v; any = true; }
+            });
+            return any ? total : null;
+        }
+
+        function actOverallTotal(measureKey, moNum) {
+            let total = 0, any = false;
+            actOrderedProjs.forEach(function(p) {
+                const v = moNum ? actGetVal(p, measureKey, moNum) : actYtd(p, measureKey);
+                if (v !== null) { total += v; any = true; }
+            });
+            return any ? total : null;
+        }
+
+        // ── colMap: same KPM/GOT pattern ─────────────────────────────────
+        const actColMap = [];
+        actRegOrder.forEach(function(region) {
+            actProjsByReg[region].forEach(function(proj) { actColMap.push({ type:'proj', proj, region }); });
+            actColMap.push({ type:'avg', region });
+        });
+        actColMap.push({ type:'overall' });
+
+        const A_LEFT  = 1; // ACTIVITY / PROGRAM
+        const A_TOTAL = A_LEFT + actColMap.length;
+        const A_DK_GRN = '1B5E20', A_MD_GRN = '2E7D32', A_GRY = 'F5F5F5', A_HDR_BG = '37474F', A_HDR_FG = 'FFFFFF';
+
+        function aApplyHdr(cell, bg, fg) {
+            cell.font      = { bold:true, color:{argb:'FF'+(fg||A_HDR_FG)}, size:9, name:'Calibri' };
+            cell.fill      = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+(bg||A_HDR_BG)} };
+            cell.alignment = { horizontal:'center', vertical:'middle', wrapText:true };
+            cell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
+        }
+        function aApplyVal(cell, val, am) {
+            cell.value     = val !== null ? val : '';
+            cell.font      = { bold: val !== null, size:9, name:'Calibri', color:{argb: val !== null ? 'FF'+am.color : 'FF9E9E9E'} };
+            cell.alignment = { horizontal:'center', vertical:'middle' };
+            cell.fill      = val !== null ? { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+am.fill} } : { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFFFFF'} };
+            cell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
+        }
+        function aApplyTotal(cell, val, am, isOverall) {
+            cell.value     = val !== null ? val : '—';
+            cell.font      = { bold:true, size:9, name:'Calibri', color:{argb: val !== null ? 'FF'+(isOverall?'FFFFFF':am.color) : 'FF9E9E9E'} };
+            cell.alignment = { horizontal:'center', vertical:'middle' };
+            cell.fill      = { type:'pattern', pattern:'solid', fgColor:{argb: isOverall ? 'FF'+am.color : (val !== null ? 'FF'+am.fill : 'FFF5F5F5')} };
+            cell.border    = { top:{style:'medium',color:{argb:'FF'+A_MD_GRN}}, bottom:{style:'medium',color:{argb:'FF'+A_MD_GRN}}, left:{style:'medium',color:{argb:'FF'+A_MD_GRN}}, right:{style:'medium',color:{argb:'FF'+A_MD_GRN}} };
+        }
+
+        function buildActSheet(ws, sheetTitle, getValFn, getRegFn, getOvFn) {
+            // Row 1: title note
+            const noteRow = ws.addRow([sheetTitle]);
+            ws.mergeCells(noteRow.number, 1, noteRow.number, A_TOTAL);
+            const nc = noteRow.getCell(1);
+            nc.font = { bold:true, size:11, name:'Calibri', color:{argb:'FF'+A_DK_GRN} };
+            nc.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFE8F5E9'} };
+            nc.alignment = { vertical:'middle' };
+            noteRow.height = 22;
+
+            // Row 2: spacer
+            ws.addRow([]); ws.getRow(2).height = 6;
+
+            // Row 3: Region header spans
+            const regHdrRow = ws.addRow(Array(A_TOTAL).fill(''));
+            regHdrRow.height = 20;
+            let colOff = A_LEFT + 1;
+            actRegOrder.forEach(function(region) {
+                const pc = actProjsByReg[region].length;
+                const c  = regHdrRow.getCell(colOff);
+                c.value = region;
+                c.font  = { bold:true, color:{argb:'FF'+A_HDR_FG}, size:10, name:'Calibri' };
+                c.fill  = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+A_DK_GRN} };
+                c.alignment = { horizontal:'center', vertical:'middle' };
+                if (pc > 0) ws.mergeCells(regHdrRow.number, colOff, regHdrRow.number, colOff + pc);
+                colOff += pc + 1;
+            });
+            const ovRegC = regHdrRow.getCell(colOff);
+            ovRegC.value = 'OVERALL'; ovRegC.font = { bold:true, color:{argb:'FF'+A_HDR_FG}, size:10, name:'Calibri' };
+            ovRegC.fill  = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1A237E'} };
+            ovRegC.alignment = { horizontal:'center', vertical:'middle' };
+            regHdrRow.getCell(1).fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+A_DK_GRN} };
+
+            // Row 4: Column headers
+            const hdrData = ['ACTIVITY / PROGRAM'];
+            actColMap.forEach(function(cm) {
+                if (cm.type === 'proj')    hdrData.push(cm.proj.name || '');
+                else if (cm.type === 'avg') hdrData.push('REGION\nTOTAL');
+                else                        hdrData.push('OVERALL\nTOTAL');
+            });
+            const hdrRow = ws.addRow(hdrData);
+            hdrRow.height = 45;
+            aApplyHdr(hdrRow.getCell(1), A_HDR_BG, A_HDR_FG);
+            actColMap.forEach(function(cm, i) {
+                const ci = A_LEFT + 1 + i;
+                if (cm.type === 'avg')         aApplyHdr(hdrRow.getCell(ci), A_MD_GRN, 'FFFFFF');
+                else if (cm.type === 'overall') aApplyHdr(hdrRow.getCell(ci), '1A237E', 'FFFFFF');
+                else                            aApplyHdr(hdrRow.getCell(ci), A_HDR_BG, A_HDR_FG);
+            });
+
+            // Data rows: one per activity measure
+            ACT_MEASURES.forEach(function(am) {
+                const rowArr = [am.label];
+                actColMap.forEach(function(cm) {
+                    if (cm.type === 'proj')    rowArr.push(getValFn(cm.proj, am.key) || '');
+                    else if (cm.type === 'avg') rowArr.push(getRegFn(cm.region, am.key) || '');
+                    else                        rowArr.push(getOvFn(am.key) || '');
+                });
+                const dr = ws.addRow(rowArr);
+                dr.height = 28;
+
+                // Activity label cell
+                const lc = dr.getCell(1);
+                lc.value     = am.label;
+                lc.font      = { bold:true, size:9, name:'Calibri', color:{argb:'FF'+am.color} };
+                lc.alignment = { vertical:'middle', wrapText:true };
+                lc.fill      = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+am.fill} };
+                lc.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+A_MD_GRN}} };
+
+                // Value cells
+                actColMap.forEach(function(cm, i) {
+                    const ci   = A_LEFT + 1 + i;
+                    const cell = dr.getCell(ci);
+                    if (cm.type === 'proj') {
+                        aApplyVal(cell, getValFn(cm.proj, am.key), am);
+                    } else if (cm.type === 'overall') {
+                        aApplyTotal(cell, getOvFn(am.key), am, true);
+                    } else {
+                        aApplyTotal(cell, getRegFn(cm.region, am.key), am, false);
+                    }
+                });
+            });
+
+            // Column widths
+            ws.getColumn(1).width = 30;
+            actColMap.forEach(function(cm, i) {
+                ws.getColumn(A_LEFT + 1 + i).width = cm.type === 'avg' ? 10 : cm.type === 'overall' ? 12 : 14;
+            });
+            ws.views = [{ state:'frozen', xSplit:A_LEFT, ySplit:4, activeCell:'B5' }];
+        }
+
+        const wb = new ExcelJS.Workbook(); wb.creator = 'ESH'; wb.created = new Date();
+        const MO_LONG_A = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const MO_SH_A   = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+        // Sheet 1: OVERALL SUMMARY (YTD)
+        const sumWs = wb.addWorksheet('OVERALL SUMMARY');
+        buildActSheet(sumWs,
+            'ESH ACTIVITIES AND PROGRAMS — OVERALL SUMMARY ' + year,
+            function(proj, mk) { return actYtd(proj, mk); },
+            function(reg,  mk) { return actRegTotal(reg, mk, null); },
+            function(mk)       { return actOverallTotal(mk, null); }
+        );
+
+        // Sheets 2–13: One per month
+        MO_LONG_A.forEach(function(moName, moIdx) {
+            const moNum  = moIdx + 1;
+            const shName = ('ACT-' + MO_SH_A[moIdx] + '-' + year).substring(0, 31);
+            const mWs    = wb.addWorksheet(shName);
+            buildActSheet(mWs,
+                'ESH ACTIVITIES AND PROGRAMS — ' + moName.toUpperCase() + ' ' + year,
+                function(proj, mk) { return actGetVal(proj, mk, moNum); },
+                function(reg,  mk) { return actRegTotal(reg, mk, moNum); },
+                function(mk)       { return actOverallTotal(mk, moNum); }
+            );
+        });
+
+        await _xSave(wb, 'esh-activities'); return;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // STATISTICS RATE — KPM/GOT-style layout (columns = projects, rows = rates)
+    // ════════════════════════════════════════════════════════════════════════
+    if (tab === 'rates') {
+        const _rateBase = (state.ratesStandard === 'osha') ? 200000 : 1000000;
+        const _rateStdLabel = (state.ratesStandard === 'osha') ? 'OSHA (200,000 hrs)' : 'OSHS (1,000,000 hrs)';
+
+        // ── Build region/project order (same pattern as KPM/GOT) ─────────
+        const _RATE_REGION_ORDER = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+        const _rateProjs = projs.filter(function(p) {
+            const r = (p.region || '').toUpperCase();
+            return r !== 'CORPORATE' && r !== 'PLANT OPERATIONS';
+        });
+        const _rateSortedReg = _RATE_REGION_ORDER.filter(function(r) {
+            return _rateProjs.some(function(p) { return (p.region||'').toUpperCase() === r; });
+        });
+        const _rateOtherReg = [];
+        _rateProjs.forEach(function(p) {
+            const r = (p.region||'').toUpperCase();
+            if (!_RATE_REGION_ORDER.includes(r) && !_rateOtherReg.includes(r)) _rateOtherReg.push(r);
+        });
+        const allRegionOrder = [..._rateSortedReg, ..._rateOtherReg];
+        const projsByRegion  = {};
+        allRegionOrder.forEach(function(r) {
+            projsByRegion[r] = _rateProjs.filter(function(p) { return (p.region||'').toUpperCase() === r; });
+        });
+        const orderedProjs = allRegionOrder.reduce(function(arr, r) { return arr.concat(projsByRegion[r]); }, []);
+
+        const RATE_ROWS = [
+            { key: 'LTIR',          label: 'LTIR',          desc: 'Lost Time Incident Rate',       color: '1B5E20', fill: 'E8F5E9' },
+            { key: 'TRIR',          label: 'TRIR',          desc: 'Total Recordable Incident Rate', color: '1565C0', fill: 'E3F2FD' },
+            { key: 'SEVERITY RATE', label: 'SEVERITY RATE', desc: 'Severity Rate',                 color: 'B71C1C', fill: 'FFEBEE' },
+        ];
+
+        function getRateVal(proj, rateKey, moNum) {
+            const mh  = parseFloat(_v(proj, 'exposures_Total Exposed Manhour', moNum)) || 0;
+            if (mh <= 0) return null;
+            const lta = parseFloat(_v(proj, 'medical_LTA', moNum))                     || 0;
+            const med = parseFloat(_v(proj, 'medical_Medical Treatment', moNum))        || 0;
+            const fat = parseFloat(_v(proj, 'medical_Fatality', moNum))                 || 0;
+            const hip = parseFloat(_v(proj, 'medical_High-Potential incident', moNum))  || 0;
+            const dL  = parseFloat(_v(proj, 'medical_Days Lost/Charged', moNum))        || 0;
+            const rec = lta + med + fat + hip;
+            if (rateKey === 'LTIR')          return (lta * _rateBase) / mh;
+            if (rateKey === 'TRIR')          return (rec * _rateBase) / mh;
+            if (rateKey === 'SEVERITY RATE') return (dL  * _rateBase) / mh;
+            return null;
+        }
+        function getRateYtd(proj, rateKey) {
+            let totalMh=0, totalLta=0, totalMed=0, totalFat=0, totalHip=0, totalDL=0;
+            for (let m = 1; m <= 12; m++) {
+                totalMh  += parseFloat(_v(proj, 'exposures_Total Exposed Manhour', m))    || 0;
+                totalLta += parseFloat(_v(proj, 'medical_LTA', m))                         || 0;
+                totalMed += parseFloat(_v(proj, 'medical_Medical Treatment', m))            || 0;
+                totalFat += parseFloat(_v(proj, 'medical_Fatality', m))                     || 0;
+                totalHip += parseFloat(_v(proj, 'medical_High-Potential incident', m))      || 0;
+                totalDL  += parseFloat(_v(proj, 'medical_Days Lost/Charged', m))            || 0;
+            }
+            if (totalMh <= 0) return null;
+            const rec = totalLta + totalMed + totalFat + totalHip;
+            if (rateKey === 'LTIR')          return (totalLta * _rateBase) / totalMh;
+            if (rateKey === 'TRIR')          return (rec      * _rateBase) / totalMh;
+            if (rateKey === 'SEVERITY RATE') return (totalDL  * _rateBase) / totalMh;
+            return null;
+        }
+        function fmtRate(v) { return v === null ? '' : parseFloat(v.toFixed(4)).toString(); }
+        function regionRateVal(region, rateKey, moNum) {
+            let mh=0,lta=0,med=0,fat=0,hip=0,dL=0;
+            const months = moNum ? [moNum] : [1,2,3,4,5,6,7,8,9,10,11,12];
+            projsByRegion[region].forEach(function(p) {
+                months.forEach(function(m) {
+                    mh  += parseFloat(_v(p,'exposures_Total Exposed Manhour', m)) || 0;
+                    lta += parseFloat(_v(p,'medical_LTA', m))                     || 0;
+                    med += parseFloat(_v(p,'medical_Medical Treatment', m))        || 0;
+                    fat += parseFloat(_v(p,'medical_Fatality', m))                 || 0;
+                    hip += parseFloat(_v(p,'medical_High-Potential incident', m))  || 0;
+                    dL  += parseFloat(_v(p,'medical_Days Lost/Charged', m))        || 0;
+                });
+            });
+            if (mh <= 0) return null;
+            const rec = lta+med+fat+hip;
+            if (rateKey === 'LTIR')          return (lta * _rateBase) / mh;
+            if (rateKey === 'TRIR')          return (rec * _rateBase) / mh;
+            if (rateKey === 'SEVERITY RATE') return (dL  * _rateBase) / mh;
+            return null;
+        }
+        function overallRateVal(rateKey, moNum) {
+            let mh=0,lta=0,med=0,fat=0,hip=0,dL=0;
+            const months = moNum ? [moNum] : [1,2,3,4,5,6,7,8,9,10,11,12];
+            orderedProjs.forEach(function(p) {
+                months.forEach(function(m) {
+                    mh  += parseFloat(_v(p,'exposures_Total Exposed Manhour', m)) || 0;
+                    lta += parseFloat(_v(p,'medical_LTA', m))                     || 0;
+                    med += parseFloat(_v(p,'medical_Medical Treatment', m))        || 0;
+                    fat += parseFloat(_v(p,'medical_Fatality', m))                 || 0;
+                    hip += parseFloat(_v(p,'medical_High-Potential incident', m))  || 0;
+                    dL  += parseFloat(_v(p,'medical_Days Lost/Charged', m))        || 0;
+                });
+            });
+            if (mh <= 0) return null;
+            const rec = lta+med+fat+hip;
+            if (rateKey === 'LTIR')          return (lta * _rateBase) / mh;
+            if (rateKey === 'TRIR')          return (rec * _rateBase) / mh;
+            if (rateKey === 'SEVERITY RATE') return (dL  * _rateBase) / mh;
+            return null;
+        }
+
+        // colMap: same KPM/GOT pattern
+        const rColMap = [];
+        allRegionOrder.forEach(function(region) {
+            projsByRegion[region].forEach(function(proj) { rColMap.push({ type:'proj', proj, region }); });
+            rColMap.push({ type:'avg', region });
+        });
+        rColMap.push({ type:'overall' });
+
+        const R_LEFT   = 2; // RATE | DESCRIPTION
+        const R_TOTAL  = R_LEFT + rColMap.length;
+        const C_DK_GRN = '1B5E20', C_MD_GRN = '2E7D32', C_GRY = 'F5F5F5', C_HDR_BG = '37474F', C_HDR_FG = 'FFFFFF';
+
+        function rApplyHdr(cell, bg, fg) {
+            cell.font      = { bold:true, color:{argb:'FF'+(fg||C_HDR_FG)}, size:9, name:'Calibri' };
+            cell.fill      = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+(bg||C_HDR_BG)} };
+            cell.alignment = { horizontal:'center', vertical:'middle', wrapText:true };
+            cell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
+        }
+        function rApplyVal(cell, val, rateRow) {
+            const txt = fmtRate(val);
+            cell.value     = txt || '';
+            cell.font      = { bold:!!txt, size:9, name:'Calibri', color:{argb: txt ? 'FF'+rateRow.color : 'FF9E9E9E'} };
+            cell.alignment = { horizontal:'center', vertical:'middle' };
+            cell.fill      = txt ? { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+rateRow.fill} } : { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFFFFF'} };
+            cell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
+        }
+        function rApplyAvg(cell, val, rateRow) {
+            const txt = fmtRate(val);
+            cell.value     = txt || '—';
+            cell.font      = { bold:true, size:9, name:'Calibri', color:{argb: txt ? 'FF'+rateRow.color : 'FF9E9E9E'} };
+            cell.alignment = { horizontal:'center', vertical:'middle' };
+            cell.fill      = txt ? { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+rateRow.fill} } : { type:'pattern', pattern:'solid', fgColor:{argb:'FFF5F5F5'} };
+            cell.border    = { top:{style:'medium',color:{argb:'FF'+C_MD_GRN}}, bottom:{style:'medium',color:{argb:'FF'+C_MD_GRN}}, left:{style:'medium',color:{argb:'FF'+C_MD_GRN}}, right:{style:'medium',color:{argb:'FF'+C_MD_GRN}} };
+        }
+
+        function buildRatesSheet(ws, sheetTitle, getValFn) {
+            // Row 1: notes
+            const noteRow = ws.addRow(['Standard: ' + _rateStdLabel + '  |  LTIR = LTA × base ÷ MH  |  TRIR = (LTA+MTC+FAT+HIP) × base ÷ MH  |  Severity Rate = Days Lost × base ÷ MH']);
+            ws.mergeCells(noteRow.number, 1, noteRow.number, R_TOTAL);
+            const nc = noteRow.getCell(1);
+            nc.font = { size:8, name:'Calibri', color:{argb:'FF5D4037'}, italic:true };
+            nc.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFF9C4'} };
+            nc.alignment = { vertical:'middle', wrapText:true };
+            noteRow.height = 18;
+
+            // Row 2: spacer
+            ws.addRow([]); ws.getRow(2).height = 6;
+
+            // Row 3: Region header spans
+            const regHdrRow = ws.addRow(Array(R_TOTAL).fill(''));
+            regHdrRow.height = 20;
+            let colOff = R_LEFT + 1;
+            allRegionOrder.forEach(function(region) {
+                const pc = projsByRegion[region].length;
+                const c  = regHdrRow.getCell(colOff);
+                c.value = region;
+                c.font  = { bold:true, color:{argb:'FF'+C_HDR_FG}, size:10, name:'Calibri' };
+                c.fill  = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+C_DK_GRN} };
+                c.alignment = { horizontal:'center', vertical:'middle' };
+                if (pc > 0) ws.mergeCells(regHdrRow.number, colOff, regHdrRow.number, colOff + pc);
+                colOff += pc + 1;
+            });
+            const ovRegC = regHdrRow.getCell(colOff);
+            ovRegC.value = 'OVERALL'; ovRegC.font = { bold:true, color:{argb:'FF'+C_HDR_FG}, size:10, name:'Calibri' };
+            ovRegC.fill  = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1A237E'} };
+            ovRegC.alignment = { horizontal:'center', vertical:'middle' };
+            for (let ci = 1; ci <= R_LEFT; ci++) regHdrRow.getCell(ci).fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+C_DK_GRN} };
+
+            // Row 4: col headers
+            const hdrData = ['RATE', 'DESCRIPTION'];
+            rColMap.forEach(function(cm) {
+                if (cm.type === 'proj')    hdrData.push(cm.proj.name || '');
+                else if (cm.type === 'avg') hdrData.push('REGION\nAVG');
+                else                        hdrData.push('OVERALL\nAVG');
+            });
+            const hdrRow = ws.addRow(hdrData);
+            hdrRow.height = 45;
+            for (let ci = 1; ci <= R_LEFT; ci++) rApplyHdr(hdrRow.getCell(ci), C_HDR_BG, C_HDR_FG);
+            rColMap.forEach(function(cm, i) {
+                const ci = R_LEFT + 1 + i;
+                if (cm.type === 'avg')         rApplyHdr(hdrRow.getCell(ci), C_MD_GRN, 'FFFFFF');
+                else if (cm.type === 'overall') rApplyHdr(hdrRow.getCell(ci), '1A237E', 'FFFFFF');
+                else                            rApplyHdr(hdrRow.getCell(ci), C_HDR_BG, C_HDR_FG);
+            });
+
+            // Data rows: one per rate
+            RATE_ROWS.forEach(function(rr) {
+                const rowArr = [rr.label, rr.desc];
+                rColMap.forEach(function(cm) {
+                    if (cm.type === 'proj')    rowArr.push(fmtRate(getValFn(cm.proj, rr.key)) || '');
+                    else if (cm.type === 'avg') rowArr.push(fmtRate(getValFn(null, rr.key, cm.region)) || '');
+                    else                        rowArr.push(fmtRate(getValFn(null, rr.key, 'overall')) || '');
+                });
+                const dr = ws.addRow(rowArr);
+                dr.height = 28;
+
+                // Left: RATE label
+                const lc = dr.getCell(1);
+                lc.value     = rr.label;
+                lc.font      = { bold:true, size:10, name:'Calibri', color:{argb:'FF'+rr.color} };
+                lc.alignment = { vertical:'middle', horizontal:'center' };
+                lc.fill      = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+rr.fill} };
+                lc.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MD_GRN}} };
+
+                // Left: description
+                const dc = dr.getCell(2);
+                dc.value     = rr.desc;
+                dc.font      = { size:8.5, name:'Calibri', italic:true };
+                dc.alignment = { vertical:'middle', wrapText:true };
+                dc.fill      = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+C_GRY} };
+                dc.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MD_GRN}} };
+
+                // Project value cells
+                rColMap.forEach(function(cm, i) {
+                    const ci   = R_LEFT + 1 + i;
+                    const cell = dr.getCell(ci);
+                    if (cm.type === 'proj') {
+                        rApplyVal(cell, getValFn(cm.proj, rr.key), rr);
+                    } else if (cm.type === 'overall') {
+                        rApplyAvg(cell, getValFn(null, rr.key, 'overall'), rr);
+                        cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFE8EAF6'} };
+                        cell.font = { bold:true, size:9, name:'Calibri', color:{argb:'FF1A237E'} };
+                    } else {
+                        rApplyAvg(cell, getValFn(null, rr.key, cm.region), rr);
+                    }
+                });
+            }); // end RATE_ROWS.forEach
+
+            // Col widths
+            ws.getColumn(1).width = 16;
+            ws.getColumn(2).width = 28;
+            rColMap.forEach(function(cm, i) {
+                ws.getColumn(R_LEFT + 1 + i).width = cm.type === 'avg' ? 10 : cm.type === 'overall' ? 12 : 14;
+            });
+            ws.views = [{ state:'frozen', xSplit:R_LEFT, ySplit:4, activeCell:'C5' }];
+        } // end buildRatesSheet
+
+        const wb = new ExcelJS.Workbook(); wb.creator='ESH'; wb.created=new Date();
+        const MO_LONG_R = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const MO_SH_R   = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+        // OVERALL SUMMARY sheet (YTD across all months)
+        const sumWsR = wb.addWorksheet('OVERALL SUMMARY');
+        buildRatesSheet(sumWsR, 'STATISTICS RATE — OVERALL SUMMARY ' + year,
+            function(proj, rateKey, aggType) {
+                if (aggType === 'overall') return overallRateVal(rateKey, null);
+                if (aggType)              return regionRateVal(aggType, rateKey, null);
+                return getRateYtd(proj, rateKey);
+            }
+        );
+
+        // Monthly sheets
+        MO_LONG_R.forEach(function(moName, moIdx) {
+            const moNum  = moIdx + 1;
+            const shName = ('RATES-' + MO_SH_R[moIdx] + '-' + year).substring(0, 31);
+            const mWs    = wb.addWorksheet(shName);
+            buildRatesSheet(mWs, 'STATISTICS RATE — ' + moName.toUpperCase() + ' ' + year,
+                function(proj, rateKey, aggType) {
+                    if (aggType === 'overall') return overallRateVal(rateKey, moNum);
+                    if (aggType)              return regionRateVal(aggType, rateKey, moNum);
+                    return getRateVal(proj, rateKey, moNum);
+                }
+            );
+        });
+
+        await _xSave(wb, 'statistics-rates'); return;
+    }
+
     // ════════════════════════════════════════════════════════════════════════
     // MONTHLY SCHEMA TABS
     // ════════════════════════════════════════════════════════════════════════
@@ -35154,6 +35891,102 @@ async function exportCurrentTabToExcel() {
         for (let ci=3;ci<=14;ci++) ws.getColumn(ci).width=8;
         ws.getColumn(15).width=14; ws.getColumn(16).width=18;
         ws.views=[{state:'frozen',ySplit:2,activeCell:'A3'}];
+
+        // ── Sheet 2: Incident Mechanism ──────────────────────────────────────
+        const mechData = computeMechanismFromLta(projs);
+        const mechWs   = wb.addWorksheet('Incident Mechanism');
+        const mechCols = 14; // Mechanism + 12 months + Total
+        _xTitle(mechWs, 'INCIDENT MECHANISM — ' + year, mechCols);
+        const mechHdr = mechWs.addRow(['INCIDENT MECHANISM', ...MO_SHORT, 'TOTAL']);
+        mechHdr.height = 22; mechHdr.eachCell(_xHdr);
+        mechData.rows.forEach(function(row, pIdx) {
+            const mechanism = row[0];
+            const months    = row.slice(1); // 12 month values
+            const total     = months.reduce(function(s, v) { return s + (parseInt(v) || 0); }, 0);
+            const dr = mechWs.addRow([mechanism, ...months, total]);
+            dr.height = 16;
+            dr.getCell(1).font      = { bold: true, size: 9, name: 'Calibri' };
+            dr.getCell(1).alignment = { vertical: 'middle' };
+            for (let ci = 2; ci <= mechCols; ci++) {
+                const c = dr.getCell(ci);
+                c.font      = { bold: ci === mechCols, size: 9, name: 'Calibri' };
+                c.alignment = { vertical: 'middle', horizontal: 'center' };
+                if (ci === mechCols && parseInt(c.value) > 0) {
+                    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+                    c.font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF1B5E20' } };
+                }
+            }
+            if (pIdx % 2 === 0) _xAlt(dr, mechCols);
+        });
+        // Grand total row
+        const mechGrand = ['TOTAL'];
+        for (let ci = 0; ci < 12; ci++) { mechGrand.push(mechData.total[ci] || 0); }
+        mechGrand.push(mechData.total.reduce(function(s, v) { return s + (v || 0); }, 0));
+        const mechGdr = mechWs.addRow(mechGrand);
+        mechGdr.height = 20;
+        mechGdr.eachCell(function(c, ci) {
+            c.font      = { bold: true, size: 10, name: 'Calibri' };
+            c.alignment = { vertical: 'middle', horizontal: ci === 1 ? 'left' : 'center' };
+            c.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_TOT_BG } };
+        });
+        mechWs.getColumn(1).width = 36;
+        for (let ci = 2; ci <= mechCols; ci++) mechWs.getColumn(ci).width = ci === mechCols ? 10 : 8;
+        mechWs.views = [{ state: 'frozen', ySplit: 2, activeCell: 'A3' }];
+
+        // ── Sheet 3: Contributing Factors ────────────────────────────────────
+        const factData  = computeFactorsFromLta(projs);
+        const factWs    = wb.addWorksheet('Contributing Factors');
+        const factCols  = 15; // Category + Sub-Factor + 12 months + Total
+        _xTitle(factWs, 'CONTRIBUTING FACTORS — ' + year, factCols);
+        const factHdr = factWs.addRow(['CATEGORY', 'CONTRIBUTING FACTOR', ...MO_SHORT, 'TOTAL']);
+        factHdr.height = 22; factHdr.eachCell(_xHdr);
+        let lastCat = '';
+        factData.rows.forEach(function(row, pIdx) {
+            const cat    = row[0];
+            const sub    = row[1];
+            const months = row.slice(2); // 12 month values
+            const total  = months.reduce(function(s, v) { return s + (parseInt(v) || 0); }, 0);
+            // Category banner row when category changes
+            if (cat && cat !== lastCat) {
+                const banIdx = factWs.rowCount + 1;
+                const banRow = factWs.addRow([cat]);
+                factWs.mergeCells(banIdx, 1, banIdx, factCols);
+                _xBan(banRow.getCell(1), '▶  ' + cat);
+                banRow.height = 16;
+                lastCat = cat;
+            }
+            const dr = factWs.addRow(['', sub, ...months, total]);
+            dr.height = 16;
+            dr.getCell(1).value = '';
+            dr.getCell(2).font      = { bold: false, size: 9, name: 'Calibri' };
+            dr.getCell(2).alignment = { vertical: 'middle' };
+            for (let ci = 3; ci <= factCols; ci++) {
+                const c = dr.getCell(ci);
+                c.font      = { bold: ci === factCols, size: 9, name: 'Calibri' };
+                c.alignment = { vertical: 'middle', horizontal: 'center' };
+                if (ci === factCols && parseInt(c.value) > 0) {
+                    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+                    c.font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF1B5E20' } };
+                }
+            }
+            if (pIdx % 2 === 0) _xAlt(dr, factCols);
+        });
+        // Grand total row
+        const factGrand = ['', 'TOTAL'];
+        for (let ci = 0; ci < 12; ci++) { factGrand.push(factData.total[ci] || 0); }
+        factGrand.push(factData.total.reduce(function(s, v) { return s + (v || 0); }, 0));
+        const factGdr = factWs.addRow(factGrand);
+        factGdr.height = 20;
+        factGdr.eachCell(function(c, ci) {
+            c.font      = { bold: true, size: 10, name: 'Calibri' };
+            c.alignment = { vertical: 'middle', horizontal: ci <= 2 ? 'left' : 'center' };
+            c.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_TOT_BG } };
+        });
+        factWs.getColumn(1).width = 18;
+        factWs.getColumn(2).width = 36;
+        for (let ci = 3; ci <= factCols; ci++) factWs.getColumn(ci).width = ci === factCols ? 10 : 8;
+        factWs.views = [{ state: 'frozen', ySplit: 2, activeCell: 'A3' }];
+
         await _xSave(wb,'tabulation'); return;
     }
 
@@ -35233,93 +36066,420 @@ async function exportCurrentTabToExcel() {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // GOT MONITORING
+    // GOT MONITORING — KPM-style layout (columns = projects, rows = goals)
     // ════════════════════════════════════════════════════════════════════════
     if (tab === 'got-monitoring') {
         if (typeof window.COMPLIANCE_GOALS==='undefined'||typeof window.gotGetCell==='undefined'){
             showToast('ℹ️ GOT Monitoring data not available for export.','info'); return;
         }
-        const COMPLIANCE_GOALS=window.COMPLIANCE_GOALS;
-        const GOAL_MEASURES=window.GOAL_MEASURES||{};
-        const gotGetCell=window.gotGetCell;
-        function fmtRating(raw){if(!raw||raw==='')return'—';const v=parseFloat(raw);return isNaN(v)?'—':Math.round(v*100)+'%';}
-        function goalAvg(proj,gId){const measures=GOAL_MEASURES[gId]||[''];const vals=[];measures.forEach(function(_,mi){for(let m=1;m<=12;m++){const v=parseFloat(gotGetCell(proj,gId,mi,m).r);if(!isNaN(v))vals.push(v);}});return vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:null;}
-        function overallAvg(proj){const vals=[];COMPLIANCE_GOALS.forEach(function(g){const a=goalAvg(proj,g.id);if(a!==null)vals.push(a);});return vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:null;}
-        function fmtPct(v){return v===null?'—':Math.round(v*100)+'%';}
-        function scoreArgb(v){if(v===null)return null;return v>=1.0?{bg:'FFC8E6C9',fg:'FF1B5E20'}:v>=0.75?{bg:'FFDCE8C7',fg:'FF1B5E20'}:v>=0.5?{bg:'FFFFF9C4',fg:'FF82500D'}:{bg:'FFFFCDD2',fg:'FFB71C1C'};}
+        const COMPLIANCE_GOALS = window.COMPLIANCE_GOALS;
+        const GOAL_MEASURES    = window.GOAL_MEASURES || {};
+        const gotGetCell       = window.gotGetCell;
 
-        const wb=new ExcelJS.Workbook(); wb.creator='ESH'; wb.created=new Date();
-        // Summary sheet
-        const numGoals=COMPLIANCE_GOALS.length;
-        const sumWs=wb.addWorksheet('Summary');
-        const sumCols=2+numGoals+1;
-        _xTitle(sumWs,'GOT MONITORING SUMMARY — '+year,sumCols);
-        const sumHdr=sumWs.addRow(['PROJECT','REGION',...COMPLIANCE_GOALS.map(function(g){return g.label||g.id;}),'OVERALL AVG']);
-        sumHdr.height=22; sumHdr.eachCell(_xHdr);
-        let sri=3;
-        REGIONS.forEach(function(region){
-            const rp=projs.filter(function(p){return (p.region||'').toUpperCase()===region;});
-            if (!rp.length) return;
-            const ban=sumWs.addRow([region]); sumWs.mergeCells(sri,1,sri,sumCols);
-            _xBan(ban.getCell(1),'📌 '+region); ban.height=16; sri++;
-            rp.forEach(function(proj,pIdx){
-                const goalVals=COMPLIANCE_GOALS.map(function(g){return fmtPct(goalAvg(proj,g.id));});
-                const ov=overallAvg(proj);
-                const dr=sumWs.addRow([proj.name||'',proj.region||'',...goalVals,fmtPct(ov)]);
-                dr.height=15;
-                dr.getCell(1).font={bold:true,size:9,name:'Calibri'}; dr.getCell(1).alignment={vertical:'middle'};
-                dr.getCell(2).font={size:9,name:'Calibri'}; dr.getCell(2).alignment={vertical:'middle'};
-                for (let ci=3;ci<3+numGoals;ci++){
-                    const c=dr.getCell(ci); _xData(c,'center');
-                    const rawVal=parseFloat(goalVals[ci-3]);
-                    if (!isNaN(rawVal)){const sc=scoreArgb(rawVal/100);if(sc){c.fill={type:'pattern',pattern:'solid',fgColor:{argb:sc.bg}};c.font={bold:false,size:9,name:'Calibri',color:{argb:sc.fg}};}}
-                }
-                const ovCell=dr.getCell(3+numGoals); _xData(ovCell,'center');
-                if (ov!==null){const sc=scoreArgb(ov);if(sc){ovCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:sc.bg}};ovCell.font={bold:true,size:9,name:'Calibri',color:{argb:sc.fg}};}}
-                if (pIdx%2===0) _xAlt(dr,sumCols);
-                sri++;
+        // ── Helpers ───────────────────────────────────────────────────────
+        function fmtRating(raw) {
+            if (!raw || raw === '') return '';
+            const v = parseFloat(raw);
+            return isNaN(v) ? '' : Math.round(v * 100) + '%';
+        }
+        function ratingColor(raw) {
+            const v = parseFloat(raw);
+            if (isNaN(v) || !raw) return null;
+            if (v >= 1.00) return { bg: 'C8E6C9', fg: '1B5E20' };
+            if (v >= 0.75) return { bg: 'FFF9C4', fg: '82500D' };
+            if (v >= 0.50) return { bg: 'FFF9C4', fg: 'E65100' };
+            return { bg: 'FFCDD2', fg: 'B71C1C' };
+        }
+        function measureAvgForMonth(proj, gId, mi, mo) {
+            const v = parseFloat(gotGetCell(proj, gId, mi, mo).r);
+            return isNaN(v) ? null : v;
+        }
+        function goalMonthAvg(proj, gId, mo) {
+            const measures = GOAL_MEASURES[gId] || [''];
+            const vals = measures.map(function(_, mi) {
+                const v = parseFloat(gotGetCell(proj, gId, mi, mo).r);
+                return isNaN(v) ? null : v;
+            }).filter(function(v) { return v !== null; });
+            return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+        }
+        function goalOverallAvg(proj, gId) {
+            const vals = [];
+            for (let mo = 1; mo <= 12; mo++) {
+                const v = goalMonthAvg(proj, gId, mo);
+                if (v !== null) vals.push(v);
+            }
+            return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+        }
+        function projMonthAvg(proj, mo) {
+            const vals = [];
+            COMPLIANCE_GOALS.forEach(function(g) {
+                const v = goalMonthAvg(proj, g.id, mo);
+                if (v !== null) vals.push(v);
             });
-            sumWs.getRow(sri).height=5; sri++;
-        });
-        sumWs.getColumn(1).width=36; sumWs.getColumn(2).width=22;
-        for (let ci=3;ci<=sumCols;ci++) sumWs.getColumn(ci).width=16;
-        sumWs.views=[{state:'frozen',ySplit:2,activeCell:'A3'}];
+            return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+        }
+        function projOverallAvg(proj) {
+            const vals = [];
+            COMPLIANCE_GOALS.forEach(function(g) {
+                const v = goalOverallAvg(proj, g.id);
+                if (v !== null) vals.push(v);
+            });
+            return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+        }
+        function fmtPct(v) { return v === null ? '—' : Math.round(v * 100) + '%'; }
 
-        // Detail sheets per goal
-        COMPLIANCE_GOALS.forEach(function(g){
-            const measures=GOAL_MEASURES[g.id]||[''];
-            const ws=wb.addWorksheet((g.label||g.id).replace(/[*?:/\\[\]]/g,'').substring(0,31));
-            const dCols=2+12+1;
-            _xTitle(ws,(g.label||g.id).toUpperCase()+' — '+year,dCols);
-            const dHdr=ws.addRow(['PROJECT','MEASURE',...MO_SHORT,'AVG']);
-            dHdr.height=22; dHdr.eachCell(_xHdr);
-            let dri=3;
-            REGIONS.forEach(function(region){
-                const rp=projs.filter(function(p){return (p.region||'').toUpperCase()===region;});
-                if (!rp.length) return;
-                const ban=ws.addRow([region]); ws.mergeCells(dri,1,dri,dCols);
-                _xBan(ban.getCell(1),'📌 '+region); ban.height=16; dri++;
-                rp.forEach(function(proj){
-                    measures.forEach(function(_,mi){
-                        const moVals=[];
-                        for (let m=1;m<=12;m++){const cell=gotGetCell(proj,g.id,mi,m);moVals.push(cell.r!==undefined&&cell.r!==''?fmtRating(cell.r):'');}
-                        const numVals=moVals.map(function(v){return parseFloat(v);}).filter(function(v){return !isNaN(v);});
-                        const avg=numVals.length?numVals.reduce(function(a,b){return a+b;},0)/numVals.length:null;
-                        const dr=ws.addRow([proj.name||'',measures[mi]||'Measure '+(mi+1),...moVals,avg!==null?Math.round(avg)+'%':'—']);
-                        dr.height=15;
-                        dr.getCell(1).font={bold:true,size:9,name:'Calibri'}; dr.getCell(1).alignment={vertical:'middle'};
-                        dr.getCell(2).font={italic:true,size:8.5,name:'Calibri'}; dr.getCell(2).alignment={vertical:'middle'};
-                        for (let ci=3;ci<=dCols;ci++){_xData(dr.getCell(ci),'center');}
-                        dri++;
+        // ── Build project column map (same as KPM) ────────────────────────
+        const GOT_REGIONS = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+        const gotAllProjs = (state.filteredProjects || state.projects || []).filter(function(p) {
+            const r = (p.region || '').toUpperCase();
+            return r !== 'CORPORATE' && r !== 'PLANT OPERATIONS' && !p.dateFinished && p.status !== 'work-stoppage';
+        });
+        const sortedReg  = GOT_REGIONS.filter(function(r) { return gotAllProjs.some(function(p) { return (p.region||'').toUpperCase()===r; }); });
+        const otherReg   = [...new Set(gotAllProjs.map(function(p){ return (p.region||'').toUpperCase(); }).filter(function(r){ return !GOT_REGIONS.includes(r); }))];
+        const allRegOrder = [...sortedReg, ...otherReg];
+        const projsByReg  = {};
+        allRegOrder.forEach(function(r) { projsByReg[r] = gotAllProjs.filter(function(p){ return (p.region||'').toUpperCase()===r; }); });
+        const orderedProjs = allRegOrder.flatMap(function(r){ return projsByReg[r]; });
+
+        // colMap: { type: 'proj'|'avg'|'overall', proj?, region? }
+        const colMap = [];
+        allRegOrder.forEach(function(region) {
+            projsByReg[region].forEach(function(proj) { colMap.push({ type: 'proj', proj, region }); });
+            colMap.push({ type: 'avg', region });
+        });
+        colMap.push({ type: 'overall' });
+
+        // LEFT fixed cols: CATEGORY | GOAL | TARGET | MEASURE
+        const LEFT_COLS  = 4;
+        const totalCols  = LEFT_COLS + colMap.length;
+
+        const C_DARK_GREEN = '1B5E20';
+        const C_MED_GREEN  = '2E7D32';
+        const C_GRAY_HDR   = 'F5F5F5';
+        const C_COL_HDR_BG = '37474F';
+        const C_COL_HDR_FG = 'FFFFFF';
+
+        // ── Style helpers (same as KPM) ───────────────────────────────────
+        function applyHdr(cell, bgArgb, fgArgb) {
+            cell.font      = { bold: true, color: { argb: 'FF' + (fgArgb || C_COL_HDR_FG) }, size: 9, name: 'Calibri' };
+            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + (bgArgb || C_COL_HDR_BG) } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+            cell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
+        }
+        function applyLeft(cell, bold) {
+            cell.font      = { bold: !!bold, size: 8.5, name: 'Calibri' };
+            cell.alignment = { vertical: 'middle', wrapText: true };
+            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
+            cell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+        }
+        function applyRatingCell(cell, rawVal) {
+            const thinBorder = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
+            cell.border    = thinBorder;
+            const txt = fmtRating(rawVal);
+            cell.value     = txt || '';
+            cell.font      = { bold: !!txt, size: 9, name: 'Calibri' };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            if (txt) {
+                const c = ratingColor(rawVal);
+                if (c) {
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + c.bg } };
+                    cell.font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF' + c.fg } };
+                }
+            }
+        }
+        function applyAvgCell(cell, score) {
+            cell.border = { top:{style:'medium',color:{argb:'FF'+C_MED_GREEN}}, bottom:{style:'medium',color:{argb:'FF'+C_MED_GREEN}}, left:{style:'medium',color:{argb:'FF'+C_MED_GREEN}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+            if (score === null) { cell.value='—'; cell.font={size:9,name:'Calibri',color:{argb:'FF9E9E9E'}}; cell.alignment={horizontal:'center',vertical:'middle'}; return; }
+            const pct = Math.round(score * 100) + '%';
+            cell.value     = pct;
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            const c = ratingColor(score);
+            if (c) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + c.bg } };
+                cell.font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FF' + c.fg } };
+            }
+        }
+        function addNotesRow(ws) {
+            const noteRow = ws.addRow(['NOTES: Rating scale — 25%: Started  |  50%: Partial  |  75%: Mostly Done  |  100%: Fully Implemented']);
+            ws.mergeCells(noteRow.number, 1, noteRow.number, totalCols);
+            const nc = noteRow.getCell(1);
+            nc.font      = { size: 8, name: 'Calibri', color: { argb: 'FF5D4037' }, italic: true };
+            nc.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF9C4' } };
+            nc.alignment = { vertical: 'middle', wrapText: true };
+            noteRow.height = 18;
+        }
+
+        // ── Build one sheet ───────────────────────────────────────────────
+        function buildGotKpmSheet(ws, sheetTitle, getValFn, getAvgFn) {
+            // Row 1: Notes
+            addNotesRow(ws);
+            // Row 2: Spacer
+            ws.addRow([]); ws.getRow(2).height = 6;
+
+            // Row 3: Region header spans
+            const regHdrRow = ws.addRow(Array(totalCols).fill(''));
+            regHdrRow.height = 20;
+            let colOffset = LEFT_COLS + 1;
+            allRegOrder.forEach(function(region) {
+                const pc = projsByReg[region].length;
+                const spanStart = colOffset;
+                const spanEnd   = colOffset + pc;
+                const c = regHdrRow.getCell(spanStart);
+                c.value = region;
+                c.font  = { bold: true, color: { argb: 'FF' + C_COL_HDR_FG }, size: 10, name: 'Calibri' };
+                c.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+                c.alignment = { horizontal: 'center', vertical: 'middle' };
+                if (spanEnd > spanStart) ws.mergeCells(regHdrRow.number, spanStart, regHdrRow.number, spanEnd);
+                colOffset += pc + 1;
+            });
+            // OVERALL label
+            const ovRegCell = regHdrRow.getCell(colOffset);
+            ovRegCell.value = 'OVERALL'; ovRegCell.font = { bold: true, color: { argb: 'FF' + C_COL_HDR_FG }, size: 10, name: 'Calibri' };
+            ovRegCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
+            ovRegCell.alignment = { horizontal: 'center', vertical: 'middle' };
+            for (let ci = 1; ci <= LEFT_COLS; ci++) {
+                regHdrRow.getCell(ci).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+            }
+
+            // Row 4: Column headers
+            const hdrData = ['Category', 'Goal', 'Target', 'Measure'];
+            colMap.forEach(function(cm) {
+                if (cm.type === 'proj') hdrData.push(cm.proj.name || '');
+                else if (cm.type === 'avg') hdrData.push('REGION\nAVG');
+                else hdrData.push('OVERALL\nAVG');
+            });
+            const hdrRow = ws.addRow(hdrData);
+            hdrRow.height = 45;
+            for (let ci = 1; ci <= LEFT_COLS; ci++) applyHdr(hdrRow.getCell(ci), C_COL_HDR_BG, C_COL_HDR_FG);
+            colMap.forEach(function(cm, i) {
+                const ci = LEFT_COLS + 1 + i;
+                if (cm.type === 'avg')         applyHdr(hdrRow.getCell(ci), C_MED_GREEN, 'FFFFFF');
+                else if (cm.type === 'overall') applyHdr(hdrRow.getCell(ci), '1A237E', 'FFFFFF');
+                else                            applyHdr(hdrRow.getCell(ci), C_COL_HDR_BG, C_COL_HDR_FG);
+                if (cm.type === 'avg')          hdrRow.getCell(ci).value = 'REGION\nAVG';
+                else if (cm.type === 'overall') hdrRow.getCell(ci).value = 'OVERALL\nAVG';
+            });
+
+            // Data rows: one per goal × measure
+            const DATA_START = 5;
+            let dataRowIdx = DATA_START;
+            // Track category merge ranges
+            const catMerges  = []; // { start, end, label }
+            const goalMerges = []; // { start, end, label }
+            let catStart = DATA_START, curCat = '';
+            let goalStart = DATA_START, curGoalId = '';
+
+            COMPLIANCE_GOALS.forEach(function(g) {
+                const cat      = g.id.startsWith('E') ? 'ENVIRONMENTAL' : 'OCCUPATIONAL HEALTH & SAFETY';
+                const measures = GOAL_MEASURES[g.id] || [''];
+                const goalRowStart = dataRowIdx;
+
+                measures.forEach(function(measure, mi) {
+                    const rowArr = [
+                        cat,
+                        g.goal || g.id,
+                        g.target || '',
+                        measure || 'Measure ' + (mi + 1)
+                    ];
+                    // Project values
+                    colMap.forEach(function(cm) {
+                        if (cm.type === 'proj') {
+                            rowArr.push(fmtRating(getValFn(cm.proj, g.id, mi)));
+                        } else if (cm.type === 'overall') {
+                            const vals = orderedProjs.map(function(p){ const v = parseFloat(getValFn(p, g.id, mi)); return isNaN(v)?null:v; }).filter(function(v){return v!==null;});
+                            const avg  = vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+                            rowArr.push(avg !== null ? fmtRating(String(avg)) : '');
+                        } else {
+                            const rp   = projsByReg[cm.region];
+                            const vals = rp.map(function(p){ const v = parseFloat(getValFn(p, g.id, mi)); return isNaN(v)?null:v; }).filter(function(v){return v!==null;});
+                            const avg  = vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+                            rowArr.push(avg !== null ? fmtRating(String(avg)) : '');
+                        }
+                    });
+
+                    const dataRow = ws.addRow(rowArr);
+                    dataRow.height = 36;
+
+                    // Left cols styling
+                    applyLeft(dataRow.getCell(1), true);  // Category
+                    applyLeft(dataRow.getCell(2), false); // Goal
+                    applyLeft(dataRow.getCell(3), false); // Target
+                    const mCell = dataRow.getCell(4);
+                    mCell.font      = { size: 8, name: 'Calibri', italic: true };
+                    mCell.alignment = { vertical: 'middle', wrapText: true };
+                    mCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
+                    mCell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+
+                    // Score cells
+                    colMap.forEach(function(cm, i) {
+                        const ci   = LEFT_COLS + 1 + i;
+                        const cell = dataRow.getCell(ci);
+                        if (cm.type === 'proj') {
+                            applyRatingCell(cell, getValFn(cm.proj, g.id, mi));
+                        } else if (cm.type === 'overall') {
+                            const vals = orderedProjs.map(function(p){ const v = parseFloat(getValFn(p, g.id, mi)); return isNaN(v)?null:v; }).filter(function(v){return v!==null;});
+                            const avg  = vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+                            applyAvgCell(cell, avg);
+                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+                            cell.font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF1A237E' } };
+                        } else {
+                            const rp   = projsByReg[cm.region];
+                            const vals = rp.map(function(p){ const v = parseFloat(getValFn(p, g.id, mi)); return isNaN(v)?null:v; }).filter(function(v){return v!==null;});
+                            const avg  = vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+                            applyAvgCell(cell, avg);
+                        }
+                    });
+
+                    dataRowIdx++;
+                });
+
+                // Track goal merge range
+                goalMerges.push({ start: goalRowStart, end: dataRowIdx - 1, label: g.goal || g.id, target: g.target || '' });
+                // Track category
+                if (cat !== curCat) {
+                    if (curCat) catMerges.push({ start: catStart, end: goalRowStart - 1, label: curCat });
+                    curCat = cat; catStart = goalRowStart;
+                }
+            });
+            // Flush last category
+            if (curCat) catMerges.push({ start: catStart, end: dataRowIdx - 1, label: curCat });
+
+            // Apply vertical merges for Category, Goal, Target cols
+            catMerges.forEach(function(m) {
+                if (m.end > m.start) ws.mergeCells(m.start, 1, m.end, 1);
+                const c = ws.getCell(m.start, 1);
+                c.value     = m.label;
+                c.font      = { bold: true, size: 8.5, name: 'Calibri', color: { argb: m.label === 'ENVIRONMENTAL' ? 'FF1B5E20' : 'FFB71C1C' } };
+                c.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                c.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: m.label === 'ENVIRONMENTAL' ? 'FFE8F5E9' : 'FFFFF3E0' } };
+                c.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'medium',color:{argb:'FF'+C_MED_GREEN}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+            });
+            goalMerges.forEach(function(m) {
+                if (m.end > m.start) {
+                    ws.mergeCells(m.start, 2, m.end, 2);
+                    ws.mergeCells(m.start, 3, m.end, 3);
+                }
+                const gc = ws.getCell(m.start, 2);
+                gc.value     = m.label;
+                gc.font      = { size: 8.5, name: 'Calibri' };
+                gc.alignment = { vertical: 'middle', wrapText: true };
+                gc.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
+                gc.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+                const tc = ws.getCell(m.start, 3);
+                tc.value     = m.target;
+                tc.font      = { size: 8, name: 'Calibri', italic: true };
+                tc.alignment = { vertical: 'middle', wrapText: true };
+                tc.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
+                tc.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+            });
+
+            // ── COMPLIANCE SCORE row (overall per project) ────────────────
+            const scoreArr = ['COMPLIANCE SCORE', '', '', ''];
+            colMap.forEach(function(cm) {
+                if (cm.type === 'proj') {
+                    const avg = getAvgFn(cm.proj);
+                    scoreArr.push(avg !== null ? Math.round(avg * 100) + '%' : '—');
+                } else if (cm.type === 'overall') {
+                    const vals = orderedProjs.map(function(p){ return getAvgFn(p); }).filter(function(v){return v!==null;});
+                    const avg  = vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+                    scoreArr.push(avg !== null ? Math.round(avg * 100) + '%' : '—');
+                } else {
+                    const rp   = projsByReg[cm.region];
+                    const vals = rp.map(function(p){ return getAvgFn(p); }).filter(function(v){return v!==null;});
+                    const avg  = vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+                    scoreArr.push(avg !== null ? Math.round(avg * 100) + '%' : '—');
+                }
+            });
+            const scoreRow = ws.addRow(scoreArr);
+            scoreRow.height = 22;
+            ws.mergeCells(scoreRow.number, 1, scoreRow.number, LEFT_COLS);
+            const scoreLbl = scoreRow.getCell(1);
+            scoreLbl.value     = 'COMPLIANCE SCORE';
+            scoreLbl.font      = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FF' + C_COL_HDR_FG } };
+            scoreLbl.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+            scoreLbl.alignment = { horizontal: 'center', vertical: 'middle' };
+            colMap.forEach(function(cm, i) {
+                const ci   = LEFT_COLS + 1 + i;
+                const cell = scoreRow.getCell(ci);
+                if (cm.type === 'overall') {
+                    const vals = orderedProjs.map(function(p){ return getAvgFn(p); }).filter(function(v){return v!==null;});
+                    const avg  = vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+                    applyAvgCell(cell, avg);
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
+                    cell.font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+                } else {
+                    applyAvgCell(cell, cm.type === 'proj'
+                        ? getAvgFn(cm.proj)
+                        : (function() {
+                            const rp   = projsByReg[cm.region];
+                            const vals = rp.map(function(p){ return getAvgFn(p); }).filter(function(v){return v!==null;});
+                            return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+                          })()
+                    );
+                }
+            });
+
+            // Column widths
+            ws.getColumn(1).width = 16;  // Category
+            ws.getColumn(2).width = 26;  // Goal
+            ws.getColumn(3).width = 26;  // Target
+            ws.getColumn(4).width = 28;  // Measure
+            colMap.forEach(function(cm, i) {
+                ws.getColumn(LEFT_COLS + 1 + i).width = cm.type === 'avg' ? 8 : cm.type === 'overall' ? 10 : 14;
+            });
+            ws.views = [{ state: 'frozen', xSplit: LEFT_COLS, ySplit: 4, activeCell: 'E5' }];
+        }
+
+        // ── Build workbook ────────────────────────────────────────────────
+        const wb = new ExcelJS.Workbook(); wb.creator = 'ESH'; wb.created = new Date();
+        const MO_LONG_G = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+        // Submitted months (months that have at least one rating)
+        const submittedMos = MO_LONG_G.filter(function(mo, moIdx) {
+            const moNum = moIdx + 1;
+            return gotAllProjs.some(function(p) {
+                return COMPLIANCE_GOALS.some(function(g) {
+                    const measures = GOAL_MEASURES[g.id] || [''];
+                    return measures.some(function(_, mi) {
+                        return gotGetCell(p, g.id, mi, moNum).r !== '';
                     });
                 });
-                ws.getRow(dri).height=5; dri++;
             });
-            ws.getColumn(1).width=32; ws.getColumn(2).width=30;
-            for (let ci=3;ci<=dCols;ci++) ws.getColumn(ci).width=8;
-            ws.views=[{state:'frozen',ySplit:2,activeCell:'A3'}];
         });
-        await _xSave(wb,'got-monitoring'); return;
+
+        if (!submittedMos.length && gotAllProjs.length === 0) {
+            showToast('ℹ️ No GOT data to export.', 'info'); return;
+        }
+
+        // OVERALL SUMMARY sheet (avg across all submitted months)
+        const sumWs = wb.addWorksheet('OVERALL SUMMARY');
+        buildGotKpmSheet(sumWs, 'GOT MONITORING — OVERALL SUMMARY ' + year,
+            function(proj, gId, mi) {
+                // Overall avg across all months for this goal/measure
+                const vals = [];
+                for (let mo = 1; mo <= 12; mo++) {
+                    const v = parseFloat(gotGetCell(proj, gId, mi, mo).r);
+                    if (!isNaN(v)) vals.push(v);
+                }
+                return vals.length ? String(vals.reduce(function(a,b){return a+b;},0)/vals.length) : '';
+            },
+            function(proj) { return projOverallAvg(proj); }
+        );
+
+        // Monthly sheets
+        (submittedMos.length ? submittedMos : MO_LONG_G).forEach(function(mo) {
+            const moIdx  = MO_LONG_G.indexOf(mo);
+            const moNum  = moIdx + 1;
+            const moShort = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][moIdx];
+            const sheetName = ('GOT-' + moShort + '-' + year).substring(0, 31);
+            const mWs = wb.addWorksheet(sheetName);
+            buildGotKpmSheet(mWs, 'GOT MONITORING — ' + mo.toUpperCase() + ' ' + year,
+                function(proj, gId, mi) { return gotGetCell(proj, gId, mi, moNum).r || ''; },
+                function(proj) { return projMonthAvg(proj, moNum); }
+            );
+        });
+
+        await _xSave(wb, 'got-monitoring'); return;
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -35377,67 +36537,434 @@ async function exportCurrentTabToExcel() {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // ESH CALENDAR TABS
+    // ESH CALENDAR TABS  — KPM/GOT-style layout
+    //   Rows    = training / drill items  (left fixed cols)
+    //   Columns = projects grouped by region + REGION AVG + OVERALL AVG
+    //   One worksheet per month (months that have any planned/actual data)
+    //   + a SUMMARY worksheet (overall planned vs actual per item per project)
     // ════════════════════════════════════════════════════════════════════════
     if (['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'].includes(tab)) {
-        const isDrills=(tab==='esh-calendar-drills');
-        const isCorpDrills=(tab==='esh-calendar-corp-drills');
-        const storage=(typeof getEshStorage==='function')?getEshStorage():{};
-        const trainings=(!isDrills&&!isCorpDrills&&typeof ESH_TRAININGS!=='undefined')?(ESH_TRAININGS[tab]||[]):[];
-        const drills=(isDrills&&typeof ESH_DRILLS!=='undefined')?ESH_DRILLS:[];
-        const corpDrills=(isCorpDrills&&typeof ESH_CORP_DRILLS!=='undefined')?ESH_CORP_DRILLS:[];
-        const items=isDrills?drills:isCorpDrills?corpDrills:trainings;
-        const allProjects=(state&&state.projects)?state.projects:[];
+        const _isDrills     = (tab === 'esh-calendar-drills');
+        const _isCorpDrills = (tab === 'esh-calendar-corp-drills');
+        const _storage      = (typeof getEshStorage === 'function') ? getEshStorage() : {};
+        const _trainings    = (!_isDrills && !_isCorpDrills && typeof ESH_TRAININGS !== 'undefined') ? (ESH_TRAININGS[tab] || []) : [];
+        const _drills       = (_isDrills  && typeof ESH_DRILLS      !== 'undefined') ? ESH_DRILLS      : [];
+        const _corpDrills   = (_isCorpDrills && typeof ESH_CORP_DRILLS !== 'undefined') ? ESH_CORP_DRILLS : [];
+        const _items        = _isDrills ? _drills : _isCorpDrills ? _corpDrills : _trainings;
 
-        const wb=new ExcelJS.Workbook(); wb.creator='ESH'; wb.created=new Date();
-        const ws=wb.addWorksheet('Calendar');
-        const cols=2+12+2; // REGION/PROJECT + ITEM + 12mo + PLANNED + ACTUAL
-        _xTitle(ws,title+' — '+year,cols);
-        const hdr=ws.addRow(['PROJECT','ITEM',...MO_SHORT,'PLANNED','ACTUAL']);
-        hdr.height=22; hdr.eachCell(_xHdr);
+        if (!_items.length) { showToast('ℹ️ No calendar items found.', 'info'); return; }
 
-        const _now=new Date();
-        const _curYear=_now.getFullYear();
-        const _curMonth=_now.getMonth();
-        function _isFuture(mi){return (year>_curYear)||(year===_curYear&&mi>_curMonth);}
+        // ── Project pool (same filter as KPM/GOT) ────────────────────────────
+        const _CAL_REGIONS  = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+        const _calAllProjs  = (state.filteredProjects || state.projects || []).filter(function(p) {
+            const r = (p.region || '').toUpperCase();
+            return r !== 'CORPORATE' && r !== 'PLANT OPERATIONS' && !p.dateFinished && p.status !== 'work-stoppage';
+        });
+        if (!_calAllProjs.length) { showToast('ℹ️ No project data to export.', 'info'); return; }
 
-        let ri=3;
-        REGIONS.forEach(function(region){
-            const regProjects=allProjects.filter(function(p){return p.region===region&&p.region!=='CORPORATE'&&p.region!=='PLANT OPERATIONS';});
-            if (!regProjects.length) return;
-            const ban=ws.addRow([region]); ws.mergeCells(ri,1,ri,cols);
-            _xBan(ban.getCell(1),'📌 '+region); ban.height=16; ri++;
-            regProjects.forEach(function(proj,pIdx){
-                items.forEach(function(item,di){
-                    const ti=isDrills?(typeof getDrillStorageIdx==='function'?getDrillStorageIdx(item,di):(item.id!==undefined?item.id:di)):di;
-                    let planned=0,actual=0;
-                    const moCells=MO_SHORT.map(function(_,mi){
-                        if (_isFuture(mi)) return '';
-                        if (isMonthBlacklistedForProject(proj,mi+1,year)) return 'N/A';
-                        const planKey=year+'|'+tab+'|GLOBAL_PLAN|'+ti+'|'+mi+'|plan';
-                        const actualKey=year+'|'+tab+'|'+proj.name+'|'+ti+'|'+mi+'|actual';
-                        const naKey=year+'|'+tab+'|'+proj.name+'|'+ti+'|'+mi+'|na';
-                        if (isDrills&&storage[naKey]) return 'N/A';
-                        if (storage[planKey]) planned++;
-                        if (storage[actualKey]){actual++;return '✔';}
-                        return storage[planKey]?'○':'';
-                    });
-                    const dr=ws.addRow([proj.name||'',item.label||item.name||String(di+1),...moCells,planned,actual]);
-                    dr.height=15;
-                    dr.getCell(1).font={bold:true,size:9,name:'Calibri'}; dr.getCell(1).alignment={vertical:'middle'};
-                    dr.getCell(2).font={italic:true,size:8.5,name:'Calibri'}; dr.getCell(2).alignment={vertical:'middle',wrapText:true};
-                    for (let ci=3;ci<=cols;ci++){_xData(dr.getCell(ci),'center');}
-                    if (pIdx%2===0) _xAlt(dr,cols);
-                    ri++;
+        const _calSortedReg = _CAL_REGIONS.filter(function(r){ return _calAllProjs.some(function(p){ return (p.region||'').toUpperCase()===r; }); });
+        const _calOtherReg  = [...new Set(_calAllProjs.map(function(p){ return (p.region||'').toUpperCase(); }).filter(function(r){ return !_CAL_REGIONS.includes(r); }))];
+        const _calRegOrder  = [..._calSortedReg, ..._calOtherReg];
+        const _calProjsByReg = {};
+        _calRegOrder.forEach(function(r){ _calProjsByReg[r] = _calAllProjs.filter(function(p){ return (p.region||'').toUpperCase()===r; }); });
+        const _calOrderedProjs = _calRegOrder.flatMap(function(r){ return _calProjsByReg[r]; });
+
+        // colMap: { type:'proj'|'avg'|'overall', proj?, region? }
+        const _calColMap = [];
+        _calRegOrder.forEach(function(region) {
+            _calProjsByReg[region].forEach(function(proj){ _calColMap.push({ type:'proj', proj, region }); });
+            _calColMap.push({ type:'avg', region });
+        });
+        _calColMap.push({ type:'overall' });
+
+        // LEFT fixed cols: NO. | TRAINING / DRILL | FREQUENCY (drills only, else blank)
+        const _CAL_LEFT = _isDrills || _isCorpDrills ? 3 : 2;  // No. | Item | Freq(drills)
+        const _calTotalCols = _CAL_LEFT + _calColMap.length;
+
+        // KPM/GOT palette
+        const _C_DG  = '1B5E20';  // dark green
+        const _C_MG  = '2E7D32';  // med green
+        const _C_GH  = 'F5F5F5';  // gray header
+        const _C_CHB = '37474F';  // col header bg
+        const _C_CHF = 'FFFFFF';
+        const _C_OVB = '1A237E';  // overall col bg (deep blue)
+
+        // ── Style helpers (identical palette to KPM/GOT) ─────────────────────
+        function _calHdr(cell, bgArgb, fgArgb) {
+            cell.font      = { bold:true, color:{argb:'FF'+(fgArgb||_C_CHF)}, size:9, name:'Calibri' };
+            cell.fill      = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+(bgArgb||_C_CHB)} };
+            cell.alignment = { horizontal:'center', vertical:'middle', wrapText:true };
+            cell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}},
+                               left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
+        }
+        function _calLeft(cell, bold) {
+            cell.font      = { bold:!!bold, size:8.5, name:'Calibri' };
+            cell.alignment = { vertical:'middle', wrapText:true };
+            cell.fill      = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+_C_GH} };
+            cell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}},
+                               left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+_C_MG}} };
+        }
+        function _calDataCell(cell, value) {
+            const thinBorder = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}},
+                                 left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
+            cell.border    = thinBorder;
+            cell.value     = value || '';
+            cell.font      = { size:9, name:'Calibri' };
+            cell.alignment = { horizontal:'center', vertical:'middle' };
+            if (value === '✔') {
+                cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFC8E6C9'} };
+                cell.font = { bold:true, size:9, name:'Calibri', color:{argb:'FF1B5E20'} };
+            } else if (value === '○') {
+                cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFF9C4'} };
+                cell.font = { bold:true, size:9, name:'Calibri', color:{argb:'FF82500D'} };
+            } else if (value === 'N/A') {
+                cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFB2DFDB'} };
+                cell.font = { italic:true, size:8, name:'Calibri', color:{argb:'FF004D40'} };
+            }
+        }
+        function _calAvgCell(cell, planned, actual, naCount, total) {
+            cell.border = { top:{style:'medium',color:{argb:'FF'+_C_MG}}, bottom:{style:'medium',color:{argb:'FF'+_C_MG}},
+                            left:{style:'medium',color:{argb:'FF'+_C_MG}}, right:{style:'medium',color:{argb:'FF'+_C_MG}} };
+            if (!total || total === naCount) {
+                cell.value = '—'; cell.font={size:9,name:'Calibri',color:{argb:'FF9E9E9E'}}; cell.alignment={horizontal:'center',vertical:'middle'}; return;
+            }
+            const eligible = total - naCount;
+            const pct = eligible > 0 ? Math.round((actual / eligible) * 100) : 0;
+            cell.value     = pct + '%';
+            cell.alignment = { horizontal:'center', vertical:'middle' };
+            const c = pct >= 90 ? {bg:'C8E6C9',fg:'1B5E20'} : pct >= 75 ? {bg:'FFF9C4',fg:'82500D'} : {bg:'FFCDD2',fg:'B71C1C'};
+            cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+c.bg} };
+            cell.font = { bold:true, size:10, name:'Calibri', color:{argb:'FF'+c.fg} };
+        }
+        function _calOverallAvgCell(cell, planned, actual, naCount, total) {
+            _calAvgCell(cell, planned, actual, naCount, total);
+            // Override fill to deep-blue tones for overall column
+            if (total && total !== naCount) {
+                const eligible = total - naCount;
+                const pct = eligible > 0 ? Math.round((actual / eligible) * 100) : 0;
+                cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFE8EAF6'} };
+                cell.font = { bold:true, size:10, name:'Calibri', color:{argb:'FF'+_C_OVB} };
+                // re-apply border
+                cell.border = { top:{style:'medium',color:{argb:'FF'+_C_MG}}, bottom:{style:'medium',color:{argb:'FF'+_C_MG}},
+                                left:{style:'medium',color:{argb:'FF'+_C_MG}}, right:{style:'medium',color:{argb:'FF'+_C_MG}} };
+            }
+        }
+
+        // ── Helper: get cell state for one item/proj/month ────────────────────
+        function _calGetState(proj, item, itemIdx, mi) {
+            const ti         = _isDrills || _isCorpDrills
+                ? (typeof getDrillStorageIdx==='function' ? getDrillStorageIdx(item,itemIdx) : (item.id!==undefined?item.id:itemIdx))
+                : itemIdx;
+            const planKey    = year+'|'+tab+'|GLOBAL_PLAN|'+ti+'|'+mi+'|plan';
+            const actualKey  = year+'|'+tab+'|'+proj.name+'|'+ti+'|'+mi+'|actual';
+            const naKey      = year+'|'+tab+'|'+proj.name+'|'+ti+'|'+mi+'|na';
+            const isNA       = (_isDrills || _isCorpDrills) && !!_storage[naKey];
+            const isBlack    = (typeof isMonthBlacklistedForProject==='function') && isMonthBlacklistedForProject(proj,mi+1,year);
+            if (isNA || isBlack) return 'N/A';
+            if (_storage[actualKey]) return '✔';
+            if (_storage[planKey])   return '○';
+            return '';
+        }
+
+        showToast('⏳ Generating ESH Calendar Excel file...', 'info');
+
+        // ── Build workbook ────────────────────────────────────────────────────
+        const _calWb = new ExcelJS.Workbook();
+        _calWb.creator = 'ESH Monitoring System';
+        _calWb.created = new Date();
+
+        // ── Helper: build region-header row + column-header row (KPM/GOT style) ─
+        function _calBuildHeaderRows(ws, sheetTitle) {
+            // Row 1: Notes / title bar
+            const noteRow = ws.addRow([sheetTitle + ' — ' + year]);
+            ws.mergeCells(noteRow.number, 1, noteRow.number, _calTotalCols);
+            const nc = noteRow.getCell(1);
+            nc.font      = { bold:true, color:{argb:'FF'+_C_CHF}, size:13, name:'Calibri' };
+            nc.fill      = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+_C_DG} };
+            nc.alignment = { horizontal:'center', vertical:'middle' };
+            noteRow.height = 26;
+
+            // Row 2: Spacer
+            ws.addRow([]); ws.getRow(2).height = 6;
+
+            // Row 3: Region span headers
+            const regHdrRow = ws.addRow(Array(_calTotalCols).fill(''));
+            regHdrRow.height = 20;
+            let colOff = _CAL_LEFT + 1;
+            _calRegOrder.forEach(function(region) {
+                const pc = _calProjsByReg[region].length;
+                const spanStart = colOff;
+                const spanEnd   = colOff + pc; // +1 for AVG col
+                const c = regHdrRow.getCell(spanStart);
+                c.value = region;
+                c.font  = { bold:true, color:{argb:'FF'+_C_CHF}, size:10, name:'Calibri' };
+                c.fill  = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+_C_DG} };
+                c.alignment = { horizontal:'center', vertical:'middle' };
+                if (spanEnd > spanStart) ws.mergeCells(regHdrRow.number, spanStart, regHdrRow.number, spanEnd);
+                colOff += pc + 1;
+            });
+            // OVERALL label
+            const ovCell = regHdrRow.getCell(colOff);
+            ovCell.value = 'OVERALL'; ovCell.font={bold:true,color:{argb:'FF'+_C_CHF},size:10,name:'Calibri'};
+            ovCell.fill  = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+_C_OVB} };
+            ovCell.alignment = { horizontal:'center', vertical:'middle' };
+            // Fill left fixed cols in region row with dark green
+            for (let ci=1; ci<=_CAL_LEFT; ci++) {
+                regHdrRow.getCell(ci).fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+_C_DG} };
+            }
+
+            // Row 4: Column headers
+            const hdrData = _CAL_LEFT === 3 ? ['NO.','DRILL / EMERGENCY SCENARIO','FREQUENCY'] : ['NO.','TRAINING / AWARENESS TOPIC'];
+            _calColMap.forEach(function(cm) {
+                if (cm.type==='proj')    hdrData.push(cm.proj.name||'');
+                else if (cm.type==='avg') hdrData.push('REGION\nAVG');
+                else                     hdrData.push('OVERALL\nAVG');
+            });
+            const hdrRow = ws.addRow(hdrData);
+            hdrRow.height = 45;
+            for (let ci=1; ci<=_CAL_LEFT; ci++) _calHdr(hdrRow.getCell(ci), _C_CHB, _C_CHF);
+            _calColMap.forEach(function(cm, i) {
+                const ci = _CAL_LEFT + 1 + i;
+                if      (cm.type==='avg')     _calHdr(hdrRow.getCell(ci), _C_MG,  'FFFFFF');
+                else if (cm.type==='overall') _calHdr(hdrRow.getCell(ci), _C_OVB, 'FFFFFF');
+                else                          _calHdr(hdrRow.getCell(ci), _C_CHB, _C_CHF);
+                if      (cm.type==='avg')     hdrRow.getCell(ci).value = 'REGION\nAVG';
+                else if (cm.type==='overall') hdrRow.getCell(ci).value = 'OVERALL\nAVG';
+            });
+
+            ws.views = [{ state:'frozen', xSplit:_CAL_LEFT, ySplit:4, activeCell:'D5' }];
+            return 5; // next row index (1-based)
+        }
+
+        // ── Per-month sheets ──────────────────────────────────────────────────
+        // Determine which months have any data
+        const _calSubmittedMonths = MO_LONG.filter(function(mo, mi) {
+            return _calAllProjs.some(function(proj) {
+                return _items.some(function(item, ii) {
+                    const s = _calGetState(proj, item, ii, mi);
+                    return s === '✔' || s === '○';
                 });
             });
-            ws.getRow(ri).height=5; ri++;
         });
-        ws.getColumn(1).width=32; ws.getColumn(2).width=36;
-        for (let ci=3;ci<=14;ci++) ws.getColumn(ci).width=7;
-        ws.getColumn(15).width=10; ws.getColumn(16).width=10;
-        ws.views=[{state:'frozen',ySplit:2,activeCell:'A3'}];
-        await _xSave(wb,tab); return;
+
+        if (!_calSubmittedMonths.length) {
+            showToast('ℹ️ No ESH Calendar data found for this year.', 'info'); return;
+        }
+
+        _calSubmittedMonths.forEach(function(mo) {
+            const moIdx  = MO_LONG.indexOf(mo);
+            const moSh   = MO_SHORT[moIdx];
+            const wsName = ('CAL-' + moSh + '-' + year).substring(0, 31);
+            const ws     = _calWb.addWorksheet(wsName);
+            let rowIdx   = _calBuildHeaderRows(ws, title + ' — ' + moSh);
+
+            _items.forEach(function(item, ii) {
+                const itemLabel = item.label || item.name || (typeof item === 'string' ? item : String(ii+1));
+                const itemFreq  = item.freq || '';
+                const rowArr    = _CAL_LEFT === 3 ? [ii+1, itemLabel, itemFreq] : [ii+1, itemLabel];
+
+                // Per-project values + region avg + overall avg
+                _calColMap.forEach(function(cm) {
+                    if (cm.type === 'proj') {
+                        rowArr.push(_calGetState(cm.proj, item, ii, moIdx));
+                    } else if (cm.type === 'avg') {
+                        const rp    = _calProjsByReg[cm.region];
+                        let planned=0, actual=0, na=0;
+                        rp.forEach(function(p){ const s=_calGetState(p,item,ii,moIdx); if(s==='✔'){actual++;planned++;} else if(s==='○'){planned++;} else if(s==='N/A'){na++;} });
+                        rowArr.push({ _planned:planned, _actual:actual, _na:na, _total:rp.length });
+                    } else {
+                        let planned=0, actual=0, na=0;
+                        _calOrderedProjs.forEach(function(p){ const s=_calGetState(p,item,ii,moIdx); if(s==='✔'){actual++;planned++;} else if(s==='○'){planned++;} else if(s==='N/A'){na++;} });
+                        rowArr.push({ _planned:planned, _actual:actual, _na:na, _total:_calOrderedProjs.length });
+                    }
+                });
+
+                const dataRow = ws.addRow(rowArr.map(function(v){ return (typeof v === 'object' && v !== null && '_actual' in v) ? '' : v; }));
+                dataRow.height = 30;
+
+                // Left cols
+                const noCell = dataRow.getCell(1);
+                noCell.font={bold:true,size:8,name:'Calibri'}; noCell.alignment={horizontal:'center',vertical:'middle'};
+                noCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+_C_GH}};
+                noCell.border={top:{style:'thin',color:{argb:'FFB0BEC5'}},bottom:{style:'thin',color:{argb:'FFB0BEC5'}},left:{style:'thin',color:{argb:'FFB0BEC5'}},right:{style:'thin',color:{argb:'FFB0BEC5'}}};
+                _calLeft(dataRow.getCell(2), false);
+                if (_CAL_LEFT === 3) {
+                    const fCell = dataRow.getCell(3);
+                    fCell.font={italic:true,size:8,name:'Calibri',color:{argb:'FF5D4037'}};
+                    fCell.alignment={vertical:'middle',horizontal:'center',wrapText:true};
+                    fCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+_C_GH}};
+                    fCell.border={top:{style:'thin',color:{argb:'FFB0BEC5'}},bottom:{style:'thin',color:{argb:'FFB0BEC5'}},left:{style:'thin',color:{argb:'FFB0BEC5'}},right:{style:'medium',color:{argb:'FF'+_C_MG}}};
+                }
+
+                // Data + avg cells
+                _calColMap.forEach(function(cm, i) {
+                    const ci   = _CAL_LEFT + 1 + i;
+                    const cell = dataRow.getCell(ci);
+                    const raw  = rowArr[_CAL_LEFT + i];
+                    if (cm.type === 'proj') {
+                        _calDataCell(cell, raw);
+                    } else if (cm.type === 'avg') {
+                        _calAvgCell(cell, raw._planned, raw._actual, raw._na, raw._total);
+                    } else {
+                        _calOverallAvgCell(cell, raw._planned, raw._actual, raw._na, raw._total);
+                    }
+                });
+
+                rowIdx++;
+            });
+
+            // Column widths
+            ws.getColumn(1).width = 5;
+            ws.getColumn(2).width = _CAL_LEFT === 3 ? 38 : 44;
+            if (_CAL_LEFT === 3) ws.getColumn(3).width = 14;
+            _calColMap.forEach(function(cm, i) {
+                const ci = _CAL_LEFT + 1 + i;
+                ws.getColumn(ci).width = cm.type === 'overall' ? 12 : cm.type === 'avg' ? 10 : 16;
+            });
+        });
+
+        // ── SUMMARY sheet: planned vs actual counts per item per project ──────
+        (function() {
+            const ws = _calWb.addWorksheet('SUMMARY');
+            // LEFT fixed cols for summary: NO. | ITEM | FREQ(drills) | METRIC
+            const SUM_LEFT = _CAL_LEFT === 3 ? 4 : 3; // No | Item | Freq(optional) | Metric
+            const sumTotalCols = SUM_LEFT + _calColMap.length;
+
+            // Row 1: title
+            const tr = ws.addRow([title + ' — ANNUAL SUMMARY ' + year]);
+            ws.mergeCells(tr.number, 1, tr.number, sumTotalCols);
+            const tc = tr.getCell(1);
+            tc.font={bold:true,color:{argb:'FF'+_C_CHF},size:13,name:'Calibri'};
+            tc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+_C_DG}};
+            tc.alignment={horizontal:'center',vertical:'middle'}; tr.height=26;
+            // Row 2: spacer
+            ws.addRow([]); ws.getRow(2).height=6;
+            // Row 3: region spans
+            const srHdr = ws.addRow(Array(sumTotalCols).fill(''));
+            srHdr.height=20;
+            let sColOff = SUM_LEFT + 1;
+            _calRegOrder.forEach(function(region){
+                const pc = _calProjsByReg[region].length;
+                const spanStart=sColOff, spanEnd=sColOff+pc;
+                const c=srHdr.getCell(spanStart);
+                c.value=region; c.font={bold:true,color:{argb:'FF'+_C_CHF},size:10,name:'Calibri'};
+                c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+_C_DG}};
+                c.alignment={horizontal:'center',vertical:'middle'};
+                if(spanEnd>spanStart) ws.mergeCells(srHdr.number,spanStart,srHdr.number,spanEnd);
+                sColOff+=pc+1;
+            });
+            const sovCell=srHdr.getCell(sColOff);
+            sovCell.value='OVERALL'; sovCell.font={bold:true,color:{argb:'FF'+_C_CHF},size:10,name:'Calibri'};
+            sovCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+_C_OVB}};
+            sovCell.alignment={horizontal:'center',vertical:'middle'};
+            for(let ci=1;ci<=SUM_LEFT;ci++) srHdr.getCell(ci).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+_C_DG}};
+            // Row 4: column headers
+            const shdrData = SUM_LEFT===4 ? ['NO.','TRAINING / DRILL TOPIC','FREQUENCY','METRIC'] : ['NO.','TRAINING / AWARENESS TOPIC','METRIC'];
+            _calColMap.forEach(function(cm){
+                if(cm.type==='proj') shdrData.push(cm.proj.name||'');
+                else if(cm.type==='avg') shdrData.push('REGION\nAVG');
+                else shdrData.push('OVERALL\nAVG');
+            });
+            const shdrRow = ws.addRow(shdrData);
+            shdrRow.height=45;
+            for(let ci=1;ci<=SUM_LEFT;ci++) _calHdr(shdrRow.getCell(ci),_C_CHB,_C_CHF);
+            _calColMap.forEach(function(cm,i){
+                const ci=SUM_LEFT+1+i;
+                if(cm.type==='avg')         _calHdr(shdrRow.getCell(ci),_C_MG,'FFFFFF');
+                else if(cm.type==='overall') _calHdr(shdrRow.getCell(ci),_C_OVB,'FFFFFF');
+                else                         _calHdr(shdrRow.getCell(ci),_C_CHB,_C_CHF);
+                if(cm.type==='avg')          shdrRow.getCell(ci).value='REGION\nAVG';
+                else if(cm.type==='overall') shdrRow.getCell(ci).value='OVERALL\nAVG';
+            });
+            ws.views=[{state:'frozen',xSplit:SUM_LEFT,ySplit:4,activeCell:'E5'}];
+
+            // Data rows — 2 rows per item: PLANNED and ACTUAL
+            _items.forEach(function(item, ii) {
+                const itemLabel = item.label||item.name||(typeof item==='string'?item:String(ii+1));
+                const itemFreq  = item.freq||'';
+                ['PLANNED','ACTUAL'].forEach(function(metric) {
+                    const rowArr = SUM_LEFT===4 ? [ii+1, itemLabel, itemFreq, metric] : [ii+1, itemLabel, metric];
+                    // Calculate annual totals per project
+                    _calColMap.forEach(function(cm) {
+                        function _annCount(proj) {
+                            let planned=0, actual=0, na=0;
+                            for(let mi=0;mi<12;mi++){
+                                const s=_calGetState(proj,item,ii,mi);
+                                if(s==='✔'){actual++;planned++;}
+                                else if(s==='○'){planned++;}
+                                else if(s==='N/A'){na++;}
+                            }
+                            return {planned,actual,na};
+                        }
+                        if(cm.type==='proj'){
+                            const c=_annCount(cm.proj);
+                            rowArr.push(metric==='PLANNED'?c.planned:c.actual);
+                        } else if(cm.type==='avg'){
+                            const rp=_calProjsByReg[cm.region];
+                            let tp=0,ta=0,tn=0;
+                            rp.forEach(function(p){const c=_annCount(p);tp+=c.planned;ta+=c.actual;tn+=c.na;});
+                            rowArr.push({_planned:tp,_actual:ta,_na:tn,_total:rp.length*12});
+                        } else {
+                            let tp=0,ta=0,tn=0;
+                            _calOrderedProjs.forEach(function(p){const c=_annCount(p);tp+=c.planned;ta+=c.actual;tn+=c.na;});
+                            rowArr.push({_planned:tp,_actual:ta,_na:tn,_total:_calOrderedProjs.length*12});
+                        }
+                    });
+
+                    const dataRow = ws.addRow(rowArr.map(function(v){return(typeof v==='object'&&v!==null&&'_actual' in v)?'':v;}));
+                    dataRow.height=18;
+
+                    // Style left cols
+                    const noC=dataRow.getCell(1);
+                    noC.font={bold:true,size:8,name:'Calibri'}; noC.alignment={horizontal:'center',vertical:'middle'};
+                    noC.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+_C_GH}};
+                    noC.border={top:{style:'thin',color:{argb:'FFB0BEC5'}},bottom:{style:'thin',color:{argb:'FFB0BEC5'}},left:{style:'thin',color:{argb:'FFB0BEC5'}},right:{style:'thin',color:{argb:'FFB0BEC5'}}};
+                    _calLeft(dataRow.getCell(2),false);
+                    if(SUM_LEFT===4){
+                        const fC=dataRow.getCell(3);
+                        fC.font={italic:true,size:8,name:'Calibri',color:{argb:'FF5D4037'}};
+                        fC.alignment={vertical:'middle',horizontal:'center',wrapText:true};
+                        fC.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+_C_GH}};
+                        fC.border={top:{style:'thin',color:{argb:'FFB0BEC5'}},bottom:{style:'thin',color:{argb:'FFB0BEC5'}},left:{style:'thin',color:{argb:'FFB0BEC5'}},right:{style:'medium',color:{argb:'FF'+_C_MG}}};
+                    }
+                    const mC=dataRow.getCell(SUM_LEFT);
+                    mC.font={bold:metric==='PLANNED',italic:metric==='ACTUAL',size:8,name:'Calibri',color:{argb:metric==='PLANNED'?'FF1B5E20':'FF37474F'}};
+                    mC.alignment={vertical:'middle',horizontal:'center'};
+                    mC.fill={type:'pattern',pattern:'solid',fgColor:{argb:metric==='PLANNED'?'FFE8F5E9':'FF'+_C_GH}};
+                    mC.border={top:{style:'thin',color:{argb:'FFB0BEC5'}},bottom:{style:'thin',color:{argb:'FFB0BEC5'}},left:{style:'thin',color:{argb:'FFB0BEC5'}},right:{style:'medium',color:{argb:'FF'+_C_MG}}};
+
+                    // Data cells
+                    _calColMap.forEach(function(cm,i){
+                        const ci=SUM_LEFT+1+i;
+                        const cell=dataRow.getCell(ci);
+                        const raw=rowArr[SUM_LEFT+i];
+                        if(cm.type==='proj'){
+                            const num=typeof raw==='number'?raw:0;
+                            cell.value=num||0;
+                            cell.font={bold:num>0,size:9,name:'Calibri'};
+                            cell.alignment={horizontal:'center',vertical:'middle'};
+                            cell.border={top:{style:'thin',color:{argb:'FFB0BEC5'}},bottom:{style:'thin',color:{argb:'FFB0BEC5'}},left:{style:'thin',color:{argb:'FFB0BEC5'}},right:{style:'thin',color:{argb:'FFB0BEC5'}}};
+                            if(metric==='ACTUAL'&&num>0){cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFC8E6C9'}};cell.font={bold:true,size:9,name:'Calibri',color:{argb:'FF1B5E20'}};}
+                        } else if(cm.type==='overall'){
+                            _calOverallAvgCell(cell,raw._planned,raw._actual,raw._na,raw._total);
+                        } else {
+                            _calAvgCell(cell,raw._planned,raw._actual,raw._na,raw._total);
+                        }
+                    });
+                });
+            });
+
+            // Column widths for summary
+            ws.getColumn(1).width=5;
+            ws.getColumn(2).width=SUM_LEFT===4?38:44;
+            if(SUM_LEFT===4) ws.getColumn(3).width=14;
+            ws.getColumn(SUM_LEFT).width=10;
+            _calColMap.forEach(function(cm,i){
+                ws.getColumn(SUM_LEFT+1+i).width=cm.type==='overall'?12:cm.type==='avg'?10:16;
+            });
+        })();
+
+        await _xSave(_calWb, tab); return;
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -36131,6 +37658,1073 @@ async function exportEmbExcel() {
 }
 
 // ── KPM — Export to Excel (ExcelJS) ───────────────────────────────────────────
+// ── DOLE Reportorial — Export to Excel (KPM-style layout) ────────────────────
+async function exportDoleExcel() {
+    const _noRoles = ['superintendent', 'pco', 'corp_nurse'];
+    if (_noRoles.includes(state.userRole)) {
+        showToast('🔒 You do not have permission to export DOLE Reportorial data.', 'warning');
+        return;
+    }
+    if (typeof ExcelJS === 'undefined') {
+        showToast('❌ Excel library not loaded. Refresh and try again.', 'error');
+        return;
+    }
+
+    const year     = state.selectedYear || new Date().getFullYear();
+    const MO_LONG  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const MO_SHORT = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+    // ── DOLE row definitions ───────────────────────────────────────────────────
+    // Monthly rows: WAIR, RSO, MOM (indexed 1–12)
+    // Annual rows: AEDR (due Jan 30), AMR (due Mar 31) — stored at index [1]
+    const DOLE_MONTHLY_ROWS = [
+        { id: 'WAIR', label: 'WAIR', desc: 'Work Accident / Illness Report',        color: '1565C0', fill: 'E3F2FD' },
+        { id: 'RSO',  label: 'RSO',  desc: 'Report on Safety Officer',              color: '1B5E20', fill: 'E8F5E9' },
+        { id: 'MOM',  label: 'MOM',  desc: 'Minutes of Meeting (ESH Committee)',    color: '4A148C', fill: 'EDE7F6' },
+    ];
+    const DOLE_ANNUAL_ROWS = [
+        { id: 'AEDR', label: 'AEDR', desc: 'Annual Exposure Data Report (due Jan 30)', color: 'E65100', fill: 'FBE9E7' },
+        { id: 'AMR',  label: 'AMR',  desc: 'Annual Medical Report (due Mar 31)',        color: 'B71C1C', fill: 'FFEBEE' },
+    ];
+    const ALL_ROWS = [...DOLE_MONTHLY_ROWS, ...DOLE_ANNUAL_ROWS];
+
+    // ── Collect projects — exclude CORPORATE, PLANT OPERATIONS, finished, work-stoppage ──
+    const allProjs = (state.filteredProjects || state.projects || []).filter(p => {
+        const r = (p.region || '').toUpperCase();
+        if (r === 'CORPORATE') return false;
+        if (r === 'PLANT OPERATIONS') return false;
+        if (p.dateFinished) return false;
+        if (p.status === 'work-stoppage') return false;
+        return true;
+    });
+
+    if (!allProjs.length) {
+        showToast('ℹ️ No project data to export.', 'info');
+        return;
+    }
+
+    showToast('⏳ Generating DOLE Reportorial Excel file...', 'info');
+
+    // ── Value helpers ─────────────────────────────────────────────────────────
+    function getDoleMonthVal(proj, rowId, moNum) {
+        const v = proj.vals && proj.vals['dole_' + rowId] ? proj.vals['dole_' + rowId][moNum] : '';
+        return (v !== undefined && v !== null && String(v).trim() !== '') ? String(v) : null;
+    }
+    function getDoleAnnualVal(proj, rowId) {
+        const v = proj.vals && proj.vals['dole_' + rowId] ? proj.vals['dole_' + rowId][1] : '';
+        return (v !== undefined && v !== null && String(v).trim() !== '') ? String(v) : null;
+    }
+
+    // ── Region/project ordering (same as KPM) ─────────────────────────────────
+    const DOLE_REGION_ORDER = ['NCR', 'SOUTH LUZON', 'NORTH LUZON', 'VISAYAS & MINDANAO'];
+    const sortedRegions  = DOLE_REGION_ORDER.filter(r => allProjs.some(p => (p.region || '').toUpperCase() === r));
+    const otherRegions   = [...new Set(allProjs.map(p => (p.region || '').toUpperCase()).filter(r => !DOLE_REGION_ORDER.includes(r)))];
+    const allRegionOrder = [...sortedRegions, ...otherRegions];
+
+    const projsByRegion = {};
+    allRegionOrder.forEach(r => {
+        projsByRegion[r] = allProjs.filter(p => (p.region || '').toUpperCase() === r);
+    });
+    const orderedProjs = allRegionOrder.flatMap(r => projsByRegion[r]);
+
+    // ── Column map: [LEFT_COLS fixed] + [proj cols + AVG per region] + overall ──
+    // LEFT_COLS = 3: REPORT | DESCRIPTION | TYPE
+    const LEFT_COLS = 3;
+    const colMap = [];
+    allRegionOrder.forEach(region => {
+        projsByRegion[region].forEach(proj => colMap.push({ type: 'proj', proj, region }));
+        colMap.push({ type: 'avg', region });
+    });
+    colMap.push({ type: 'overall' });
+    const totalCols = LEFT_COLS + colMap.length;
+
+    // ── Submission status helpers ─────────────────────────────────────────────
+    // For monthly: "submitted" = value is present
+    // For annual: "submitted" = value is present
+    function isMonthlySubmitted(proj, rowId, moNum) {
+        return getDoleMonthVal(proj, rowId, moNum) !== null;
+    }
+    function isAnnualSubmitted(proj, rowId) {
+        return getDoleAnnualVal(proj, rowId) !== null;
+    }
+    // Compliance score per project per month (all 3 monthly rows submitted = 100%)
+    function projMonthScore(proj, moNum) {
+        const submitted = DOLE_MONTHLY_ROWS.filter(r => isMonthlySubmitted(proj, r.id, moNum)).length;
+        return DOLE_MONTHLY_ROWS.length > 0 ? (submitted / DOLE_MONTHLY_ROWS.length) * 100 : null;
+    }
+    // Annual compliance score per project (both annual rows submitted = 100%)
+    function projAnnualScore(proj) {
+        const submitted = DOLE_ANNUAL_ROWS.filter(r => isAnnualSubmitted(proj, r.id)).length;
+        return DOLE_ANNUAL_ROWS.length > 0 ? (submitted / DOLE_ANNUAL_ROWS.length) * 100 : null;
+    }
+    // Overall score across all months + annual
+    function projOverallScore(proj) {
+        const monthScores = MO_LONG.map((_, mi) => projMonthScore(proj, mi + 1)).filter(v => v !== null);
+        const annScore    = projAnnualScore(proj);
+        const all = annScore !== null ? [...monthScores, annScore] : monthScores;
+        return all.length ? all.reduce((a, b) => a + b, 0) / all.length : null;
+    }
+
+    // ── Color logic (same thresholds as KPM) ─────────────────────────────────
+    function scoreColor(v) {
+        if (v === null) return null;
+        if (v >= 90) return { bg: 'C8E6C9', fg: '1B5E20' };
+        if (v >= 75) return { bg: 'FFF9C4', fg: '82500D' };
+        return { bg: 'FFCDD2', fg: 'B71C1C' };
+    }
+
+    // ── ExcelJS workbook ──────────────────────────────────────────────────────
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'ESH Monitoring System';
+    wb.created = new Date();
+
+    const C_DARK_GREEN = '1B5E20';
+    const C_MED_GREEN  = '2E7D32';
+    const C_GRAY_HDR   = 'F5F5F5';
+    const C_COL_HDR_BG = '37474F';
+    const C_COL_HDR_FG = 'FFFFFF';
+    const C_OVERALL_BG = '1A237E';
+
+    // ── Style helpers (mirror KPM exactly) ───────────────────────────────────
+    function applyHeaderStyle(cell, bgArgb, fgArgb) {
+        cell.font      = { bold: true, color: { argb: 'FF' + (fgArgb || C_COL_HDR_FG) }, size: 9, name: 'Calibri' };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + (bgArgb || C_COL_HDR_BG) } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.border    = {
+            top:    { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            bottom: { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            left:   { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            right:  { style: 'thin', color: { argb: 'FFB0BEC5' } }
+        };
+    }
+    function applyStatusCell(cell, val, rowDef, isAnnual) {
+        const thinBorder = {
+            top:    { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            bottom: { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            left:   { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            right:  { style: 'thin', color: { argb: 'FFB0BEC5' } }
+        };
+        cell.border = thinBorder;
+        if (val !== null) {
+            // Submitted — show date/value with green tint
+            cell.value     = val;
+            cell.font      = { bold: true, size: 8, name: 'Calibri', color: { argb: 'FF' + (rowDef ? rowDef.color : '1B5E20') } };
+            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + (rowDef ? rowDef.fill : 'E8F5E9') } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: false };
+        } else {
+            // Not submitted — show blank with light red
+            cell.value     = '';
+            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF8F8' } };
+            cell.font      = { size: 8, name: 'Calibri', color: { argb: 'FFBDBDBD' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        }
+    }
+    function applyAvgCell(cell, score) {
+        cell.border = {
+            top:    { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } },
+            bottom: { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } },
+            left:   { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } },
+            right:  { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } }
+        };
+        if (score === null) {
+            cell.value     = '—';
+            cell.font      = { size: 9, name: 'Calibri', color: { argb: 'FF9E9E9E' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            return;
+        }
+        const pct = Math.round(score) + '%';
+        cell.value     = pct;
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        const c = scoreColor(score);
+        if (c) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + c.bg } };
+            cell.font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FF' + c.fg } };
+        }
+    }
+    function leftCellStyle(cell) {
+        cell.font      = { size: 8.5, name: 'Calibri' };
+        cell.alignment = { vertical: 'middle', wrapText: true };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
+        cell.border    = {
+            top:    { style: 'thin',   color: { argb: 'FFB0BEC5' } },
+            bottom: { style: 'thin',   color: { argb: 'FFB0BEC5' } },
+            left:   { style: 'thin',   color: { argb: 'FFB0BEC5' } },
+            right:  { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } }
+        };
+    }
+
+    // ── Notes row helper (mirrors KPM) ────────────────────────────────────────
+    function addNotesRow(ws) {
+        const noteRow = ws.addRow([
+            'NOTES: Monthly reports (WAIR, RSO, MOM) are required per project per month. Annual reports (AEDR, AMR) are required once per year. Enter the submission date in each field.'
+        ]);
+        ws.mergeCells(noteRow.number, 1, noteRow.number, totalCols);
+        const nc = noteRow.getCell(1);
+        nc.font      = { size: 8, name: 'Calibri', color: { argb: 'FF5D4037' }, italic: true };
+        nc.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF9C4' } };
+        nc.alignment = { vertical: 'middle', wrapText: true };
+        noteRow.height = 22;
+        return noteRow;
+    }
+
+    // ── Build region header + col header rows ────────────────────────────────
+    function buildRegionAndColHeaders(ws) {
+        // Spacer row 2
+        ws.addRow([]); ws.getRow(ws.rowCount).height = 6;
+
+        // Region header row
+        const regHdrRow = ws.addRow(Array(totalCols).fill(''));
+        regHdrRow.height = 20;
+        let colOffset = LEFT_COLS + 1;
+        allRegionOrder.forEach(region => {
+            const projCount = projsByRegion[region].length;
+            const spanStart = colOffset;
+            const spanEnd   = colOffset + projCount; // +1 for AVG col
+            const c = regHdrRow.getCell(spanStart);
+            c.value     = region;
+            c.font      = { bold: true, color: { argb: 'FF' + C_COL_HDR_FG }, size: 10, name: 'Calibri' };
+            c.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+            c.alignment = { horizontal: 'center', vertical: 'middle' };
+            if (spanEnd > spanStart) ws.mergeCells(regHdrRow.number, spanStart, regHdrRow.number, spanEnd);
+            colOffset += projCount + 1;
+        });
+        const overallRegCell = regHdrRow.getCell(colOffset);
+        overallRegCell.value     = 'OVERALL';
+        overallRegCell.font      = { bold: true, color: { argb: 'FF' + C_COL_HDR_FG }, size: 10, name: 'Calibri' };
+        overallRegCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_OVERALL_BG } };
+        overallRegCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        for (let ci = 1; ci <= LEFT_COLS; ci++) {
+            regHdrRow.getCell(ci).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+        }
+
+        // Column header row
+        const hdrData = ['Report', 'Description', 'Type'];
+        colMap.forEach(cm => {
+            hdrData.push(cm.type === 'proj' ? (cm.proj.name || '') : cm.type === 'overall' ? 'OVERALL\nAVG' : 'REGION\nAVG');
+        });
+        const hdrRow = ws.addRow(hdrData);
+        hdrRow.height = 45;
+        for (let ci = 1; ci <= LEFT_COLS; ci++) applyHeaderStyle(hdrRow.getCell(ci), C_COL_HDR_BG, C_COL_HDR_FG);
+        colMap.forEach((cm, i) => {
+            const ci   = LEFT_COLS + 1 + i;
+            const cell = hdrRow.getCell(ci);
+            if (cm.type === 'avg') {
+                applyHeaderStyle(cell, C_MED_GREEN, 'FFFFFF');
+                cell.value = 'REGION\nAVG';
+            } else if (cm.type === 'overall') {
+                applyHeaderStyle(cell, C_OVERALL_BG, 'FFFFFF');
+                cell.value = 'OVERALL\nAVG';
+            } else {
+                applyHeaderStyle(cell, C_COL_HDR_BG, C_COL_HDR_FG);
+            }
+        });
+
+        return ws.rowCount; // returns last row number (col header row)
+    }
+
+    // ── Build data rows (monthly or annual) ───────────────────────────────────
+    function buildDataRows(ws, rowDefs, getValFn, typeLabel) {
+        rowDefs.forEach(rowDef => {
+            const rowArr = [rowDef.label, rowDef.desc, typeLabel];
+            colMap.forEach(cm => {
+                if (cm.type === 'proj') {
+                    rowArr.push(getValFn(cm.proj, rowDef.id) || '');
+                } else if (cm.type === 'overall') {
+                    const vals = orderedProjs.map(p => getValFn(p, rowDef.id) !== null ? 1 : 0);
+                    const pct  = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length * 100) : null;
+                    rowArr.push(pct !== null ? Math.round(pct) + '%' : '—');
+                } else {
+                    const rp   = projsByRegion[cm.region];
+                    const vals = rp.map(p => getValFn(p, rowDef.id) !== null ? 1 : 0);
+                    const pct  = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length * 100) : null;
+                    rowArr.push(pct !== null ? Math.round(pct) + '%' : '—');
+                }
+            });
+            const dataRow = ws.addRow(rowArr);
+            dataRow.height = 18;
+
+            // Style left cells
+            leftCellStyle(dataRow.getCell(1));
+            dataRow.getCell(1).font = { bold: true, size: 8.5, name: 'Calibri', color: { argb: 'FF' + rowDef.color } };
+            leftCellStyle(dataRow.getCell(2));
+            dataRow.getCell(2).font = { size: 8, name: 'Calibri', italic: true };
+            // Type cell
+            const typeCell = dataRow.getCell(3);
+            typeCell.font      = { bold: true, size: 7.5, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+            typeCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + (typeLabel === 'ANNUAL' ? 'B71C1C' : '37474F') } };
+            typeCell.alignment = { horizontal: 'center', vertical: 'middle' };
+            typeCell.border    = {
+                top:    { style: 'thin',   color: { argb: 'FFB0BEC5' } },
+                bottom: { style: 'thin',   color: { argb: 'FFB0BEC5' } },
+                left:   { style: 'thin',   color: { argb: 'FFB0BEC5' } },
+                right:  { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } }
+            };
+
+            // Value cells
+            colMap.forEach((cm, i) => {
+                const ci   = LEFT_COLS + 1 + i;
+                const cell = dataRow.getCell(ci);
+                if (cm.type === 'proj') {
+                    const val = getValFn(cm.proj, rowDef.id);
+                    applyStatusCell(cell, val, rowDef, typeLabel === 'ANNUAL');
+                } else if (cm.type === 'overall') {
+                    const vals = orderedProjs.map(p => getValFn(p, rowDef.id) !== null ? 1 : 0);
+                    const pct  = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length * 100) : null;
+                    applyAvgCell(cell, pct);
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+                    cell.font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF' + C_OVERALL_BG } };
+                } else {
+                    const rp   = projsByRegion[cm.region];
+                    const vals = rp.map(p => getValFn(p, rowDef.id) !== null ? 1 : 0);
+                    const pct  = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length * 100) : null;
+                    applyAvgCell(cell, pct);
+                }
+            });
+        });
+    }
+
+    // ── Build compliance score row ────────────────────────────────────────────
+    function buildScoreRow(ws, scoreLabel, scoreFn) {
+        const scoreArr = [scoreLabel, '', ''];
+        colMap.forEach(cm => {
+            if (cm.type === 'proj') {
+                const s = scoreFn(cm.proj);
+                scoreArr.push(s !== null ? Math.round(s) + '%' : '—');
+            } else if (cm.type === 'overall') {
+                const sv  = orderedProjs.map(p => scoreFn(p)).filter(v => v !== null);
+                const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                scoreArr.push(avg !== null ? Math.round(avg) + '%' : '—');
+            } else {
+                const rp  = projsByRegion[cm.region];
+                const sv  = rp.map(p => scoreFn(p)).filter(v => v !== null);
+                const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                scoreArr.push(avg !== null ? Math.round(avg) + '%' : '—');
+            }
+        });
+        const scoreRow = ws.addRow(scoreArr);
+        scoreRow.height = 22;
+        ws.mergeCells(scoreRow.number, 1, scoreRow.number, LEFT_COLS);
+        const scoreLbl = scoreRow.getCell(1);
+        scoreLbl.value     = scoreLabel;
+        scoreLbl.font      = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FF' + C_COL_HDR_FG } };
+        scoreLbl.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+        scoreLbl.alignment = { horizontal: 'center', vertical: 'middle' };
+        colMap.forEach((cm, i) => {
+            const ci   = LEFT_COLS + 1 + i;
+            const cell = scoreRow.getCell(ci);
+            if (cm.type === 'overall') {
+                const sv  = orderedProjs.map(p => scoreFn(p)).filter(v => v !== null);
+                const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                applyAvgCell(cell, avg);
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_OVERALL_BG } };
+                cell.font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+            } else {
+                applyAvgCell(cell, cm.type === 'proj'
+                    ? scoreFn(cm.proj)
+                    : (function() {
+                        const rp  = projsByRegion[cm.region];
+                        const sv  = rp.map(p => scoreFn(p)).filter(v => v !== null);
+                        return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                    })()
+                );
+            }
+        });
+    }
+
+    // ── Set column widths ─────────────────────────────────────────────────────
+    function setColWidths(ws) {
+        ws.getColumn(1).width = 8;   // Report label
+        ws.getColumn(2).width = 30;  // Description
+        ws.getColumn(3).width = 8;   // Type
+        colMap.forEach((cm, i) => {
+            ws.getColumn(LEFT_COLS + 1 + i).width = cm.type === 'avg' ? 8 : cm.type === 'overall' ? 10 : 14;
+        });
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ── ONE SHEET PER MONTH (submitted months only) ──────────────────────────
+    // ════════════════════════════════════════════════════════════════════════
+    const submittedMonths = MO_LONG.filter((mo, mi) =>
+        allProjs.some(p => DOLE_MONTHLY_ROWS.some(r => getDoleMonthVal(p, r.id, mi + 1) !== null))
+    );
+
+    if (!submittedMonths.length) {
+        showToast('ℹ️ No DOLE submissions found for this year.', 'info');
+        return;
+    }
+
+    submittedMonths.forEach((mo, idx) => {
+        const moNum       = MO_LONG.indexOf(mo) + 1;
+        const moShort     = MO_SHORT[MO_LONG.indexOf(mo)];
+        const sheetName   = ('DOLE-' + moShort + '-' + year).substring(0, 31);
+        const ws          = wb.addWorksheet(sheetName);
+
+        // Row 1: notes
+        addNotesRow(ws);
+        // Rows 2–4: region header + col header
+        buildRegionAndColHeaders(ws);
+        // Data rows 5+: monthly rows
+        buildDataRows(ws, DOLE_MONTHLY_ROWS, (p, id) => getDoleMonthVal(p, id, moNum), 'MONTHLY');
+        // Score row
+        buildScoreRow(ws, 'COMPLIANCE SCORE', p => projMonthScore(p, moNum));
+        // Col widths + freeze
+        setColWidths(ws);
+        ws.views = [{ state: 'frozen', xSplit: LEFT_COLS, ySplit: 4, activeCell: 'D5' }];
+    });
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ── ANNUAL REPORTS SHEET ─────────────────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════════════
+    const annualWs   = wb.addWorksheet('ANNUAL REPORTS');
+    addNotesRow(annualWs);
+    buildRegionAndColHeaders(annualWs);
+    buildDataRows(annualWs, DOLE_ANNUAL_ROWS, (p, id) => getDoleAnnualVal(p, id), 'ANNUAL');
+    buildScoreRow(annualWs, 'COMPLIANCE SCORE', projAnnualScore);
+    setColWidths(annualWs);
+    annualWs.views = [{ state: 'frozen', xSplit: LEFT_COLS, ySplit: 4, activeCell: 'D5' }];
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ── OVERALL SUMMARY SHEET (months as rows, projects as cols) ─────────────
+    // ════════════════════════════════════════════════════════════════════════
+    const sumWs = wb.addWorksheet('OVERALL SUMMARY');
+    addNotesRow(sumWs);
+    sumWs.addRow([]); sumWs.getRow(sumWs.rowCount).height = 6;
+
+    // Region header row
+    const sRegHdr = sumWs.addRow(Array(totalCols).fill(''));
+    sRegHdr.height = 20;
+    let sColOff = LEFT_COLS + 1;
+    allRegionOrder.forEach(region => {
+        const pc = projsByRegion[region].length;
+        const c  = sRegHdr.getCell(sColOff);
+        c.value     = region;
+        c.font      = { bold: true, color: { argb: 'FF' + C_COL_HDR_FG }, size: 10, name: 'Calibri' };
+        c.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+        c.alignment = { horizontal: 'center', vertical: 'middle' };
+        if (pc > 0) sumWs.mergeCells(sRegHdr.number, sColOff, sRegHdr.number, sColOff + pc);
+        sColOff += pc + 1;
+    });
+    const sOverallCell = sRegHdr.getCell(sColOff);
+    sOverallCell.value     = 'OVERALL';
+    sOverallCell.font      = { bold: true, color: { argb: 'FF' + C_COL_HDR_FG }, size: 10, name: 'Calibri' };
+    sOverallCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_OVERALL_BG } };
+    sOverallCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    for (let ci = 1; ci <= LEFT_COLS; ci++) {
+        sRegHdr.getCell(ci).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+    }
+
+    // Col header row
+    const sHdrData = ['Period', '', ''];
+    colMap.forEach(cm => sHdrData.push(
+        cm.type === 'proj' ? (cm.proj.name || '') :
+        cm.type === 'overall' ? 'OVERALL\nAVG' : 'REGION\nAVG'
+    ));
+    const sHdrRow = sumWs.addRow(sHdrData);
+    sHdrRow.height = 45;
+    sumWs.mergeCells(sHdrRow.number, 1, sHdrRow.number, LEFT_COLS);
+    for (let ci = 1; ci <= LEFT_COLS; ci++) applyHeaderStyle(sHdrRow.getCell(ci), C_COL_HDR_BG, C_COL_HDR_FG);
+    sHdrRow.getCell(1).value = 'PERIOD';
+    colMap.forEach((cm, i) => {
+        const ci   = LEFT_COLS + 1 + i;
+        const cell = sHdrRow.getCell(ci);
+        if (cm.type === 'overall')    applyHeaderStyle(cell, C_OVERALL_BG, 'FFFFFF');
+        else if (cm.type === 'avg')   applyHeaderStyle(cell, C_MED_GREEN, 'FFFFFF');
+        else                          applyHeaderStyle(cell, C_COL_HDR_BG, C_COL_HDR_FG);
+    });
+
+    // One row per submitted month
+    submittedMonths.forEach(mo => {
+        const moNum = MO_LONG.indexOf(mo) + 1;
+        const moIdx = moNum - 1;
+        const mRowData = [MO_SHORT[moIdx], '', ''];
+        colMap.forEach(cm => {
+            if (cm.type === 'proj') {
+                const s = projMonthScore(cm.proj, moNum);
+                mRowData.push(s !== null ? Math.round(s) + '%' : '—');
+            } else if (cm.type === 'overall') {
+                const sv  = orderedProjs.map(p => projMonthScore(p, moNum)).filter(v => v !== null);
+                const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                mRowData.push(avg !== null ? Math.round(avg) + '%' : '—');
+            } else {
+                const rp  = projsByRegion[cm.region];
+                const sv  = rp.map(p => projMonthScore(p, moNum)).filter(v => v !== null);
+                const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                mRowData.push(avg !== null ? Math.round(avg) + '%' : '—');
+            }
+        });
+        const mRow = sumWs.addRow(mRowData);
+        mRow.height = 18;
+        sumWs.mergeCells(mRow.number, 1, mRow.number, LEFT_COLS);
+        const mlbl = mRow.getCell(1);
+        mlbl.value     = MO_SHORT[moIdx];
+        mlbl.font      = { bold: true, size: 9, name: 'Calibri' };
+        mlbl.alignment = { horizontal: 'center', vertical: 'middle' };
+        mlbl.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
+        mlbl.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+        colMap.forEach((cm, i) => {
+            const ci   = LEFT_COLS + 1 + i;
+            const cell = mRow.getCell(ci);
+            if (cm.type === 'overall') {
+                const sv  = orderedProjs.map(p => projMonthScore(p, moNum)).filter(v => v !== null);
+                const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                applyAvgCell(cell, avg);
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+                cell.font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF' + C_OVERALL_BG } };
+            } else {
+                applyAvgCell(cell, cm.type === 'proj'
+                    ? projMonthScore(cm.proj, moNum)
+                    : (function() {
+                        const rp  = projsByRegion[cm.region];
+                        const sv  = rp.map(p => projMonthScore(p, moNum)).filter(v => v !== null);
+                        return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                    })()
+                );
+            }
+        });
+    });
+
+    // Annual row in summary
+    const annRowData = ['ANNUAL', '', ''];
+    colMap.forEach(cm => {
+        if (cm.type === 'proj') {
+            const s = projAnnualScore(cm.proj);
+            annRowData.push(s !== null ? Math.round(s) + '%' : '—');
+        } else if (cm.type === 'overall') {
+            const sv  = orderedProjs.map(p => projAnnualScore(p)).filter(v => v !== null);
+            const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+            annRowData.push(avg !== null ? Math.round(avg) + '%' : '—');
+        } else {
+            const rp  = projsByRegion[cm.region];
+            const sv  = rp.map(p => projAnnualScore(p)).filter(v => v !== null);
+            const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+            annRowData.push(avg !== null ? Math.round(avg) + '%' : '—');
+        }
+    });
+    const annRow = sumWs.addRow(annRowData);
+    annRow.height = 18;
+    sumWs.mergeCells(annRow.number, 1, annRow.number, LEFT_COLS);
+    const annLbl = annRow.getCell(1);
+    annLbl.value     = 'ANNUAL';
+    annLbl.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+    annLbl.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB71C1C' } };
+    annLbl.alignment = { horizontal: 'center', vertical: 'middle' };
+    annLbl.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+    colMap.forEach((cm, i) => {
+        const ci   = LEFT_COLS + 1 + i;
+        const cell = annRow.getCell(ci);
+        if (cm.type === 'overall') {
+            const sv  = orderedProjs.map(p => projAnnualScore(p)).filter(v => v !== null);
+            const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+            applyAvgCell(cell, avg);
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_OVERALL_BG } };
+            cell.font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+        } else {
+            applyAvgCell(cell, cm.type === 'proj'
+                ? projAnnualScore(cm.proj)
+                : (function() {
+                    const rp  = projsByRegion[cm.region];
+                    const sv  = rp.map(p => projAnnualScore(p)).filter(v => v !== null);
+                    return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
+                })()
+            );
+        }
+    });
+
+    // Summary col widths + freeze
+    setColWidths(sumWs);
+    sumWs.views = [{ state: 'frozen', xSplit: LEFT_COLS, ySplit: 4, activeCell: 'D5' }];
+
+    // ── Download ──────────────────────────────────────────────────────────────
+    try {
+        const buf  = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `SCIC_ESH_DOLE_REPORTORIAL_${year}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('✅ DOLE Reportorial Excel exported successfully!', 'success');
+    } catch(err) {
+        console.error('DOLE Excel export error:', err);
+        showToast('❌ DOLE export failed. Check console for details.', 'error');
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  ENVIRONMENTAL MONITORING — Excel Export
+//  Mirrors KPM / DOLE Excel output style:
+//  One worksheet per data type (Electricity, Water, Waste, Fuel, Appliances)
+//  + a Summary sheet.  Layout: left fixed columns (Region / Project / Month)
+//  + data columns, with region-group headers, totals rows, and a coloured
+//  grand-total banner — identical colour palette to KPM export.
+// ══════════════════════════════════════════════════════════════════════════════
+async function exportEnvMonitoringExcel() {
+    // PCO roles are allowed to trigger this from the in-tab button; only block non-env roles
+    if (typeof ExcelJS === 'undefined') {
+        showToast('❌ Excel library not loaded. Refresh and try again.', 'error');
+        return;
+    }
+
+    const year     = state.selectedYear || new Date().getFullYear();
+    const MO_LONG  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const MO_SHORT = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    const ENV_REGIONS = ['CORPORATE','PLANT OPERATIONS','NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
+
+    // ── Raw data ──────────────────────────────────────────────────────────────
+    const elecRows  = (window._envData   || []).filter(r => r);
+    const wasteRows = (window._wasteData || []).filter(r => r);
+    const waterRows = (window._waterData || []).filter(r => r);
+    const fuelRows  = (window._fuelData  || []).filter(r => r);
+
+    const allProjects = (state.projects || []);
+
+    // Projects per region (env regions)
+    const projsByRegion = {};
+    ENV_REGIONS.forEach(r => {
+        projsByRegion[r] = allProjects.filter(p => (p.region || '').toUpperCase() === r);
+    });
+    const orderedProjs = ENV_REGIONS.flatMap(r => projsByRegion[r]);
+
+    // Build colMap: per-region projects + REGION AVG + OVERALL AVG (same pattern as KPM)
+    const colMap = []; // {type:'proj'|'avg'|'overall', proj?, region?}
+    ENV_REGIONS.forEach(region => {
+        projsByRegion[region].forEach(proj => colMap.push({ type: 'proj', proj, region }));
+        if (projsByRegion[region].length) colMap.push({ type: 'avg', region });
+    });
+    colMap.push({ type: 'overall' });
+
+    if (!orderedProjs.length) {
+        showToast('ℹ️ No project data to export.', 'info');
+        return;
+    }
+
+    showToast('⏳ Generating Environmental Monitoring Excel file...', 'info');
+
+    // ── Palette (identical to KPM) ────────────────────────────────────────────
+    const C_DARK_GREEN  = '1B5E20';
+    const C_MED_GREEN   = '2E7D32';
+    const C_LIGHT_GREEN = 'E8F5E9';
+    const C_GRAY_HDR    = 'F5F5F5';
+    const C_COL_HDR_BG  = '37474F';
+    const C_COL_HDR_FG  = 'FFFFFF';
+    const C_OVERALL_BG  = '1A237E';
+    const C_ALT         = 'F1F8E9';
+
+    // ── Style helpers (mirrored from KPM) ─────────────────────────────────────
+    function applyHeaderStyle(cell, bgArgb, fgArgb) {
+        cell.font      = { bold: true, color: { argb: 'FF' + (fgArgb || C_COL_HDR_FG) }, size: 9, name: 'Calibri' };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + (bgArgb || C_COL_HDR_BG) } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.border    = {
+            top:    { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            bottom: { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            left:   { style: 'thin', color: { argb: 'FFB0BEC5' } },
+            right:  { style: 'thin', color: { argb: 'FFB0BEC5' } }
+        };
+    }
+    function leftCellStyle(cell, bold) {
+        cell.font      = { bold: !!bold, size: 8.5, name: 'Calibri' };
+        cell.alignment = { vertical: 'middle', wrapText: true };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
+        cell.border    = {
+            top:    { style: 'thin',   color: { argb: 'FFB0BEC5' } },
+            bottom: { style: 'thin',   color: { argb: 'FFB0BEC5' } },
+            left:   { style: 'thin',   color: { argb: 'FFB0BEC5' } },
+            right:  { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } }
+        };
+    }
+    function numCell(cell, value, bold, bgArgb, fgArgb) {
+        cell.value     = (value !== null && value !== undefined && !isNaN(value)) ? value : '';
+        cell.font      = { bold: !!bold, size: 9, name: 'Calibri', color: fgArgb ? { argb: 'FF' + fgArgb } : undefined };
+        cell.alignment = { horizontal: 'right', vertical: 'middle' };
+        if (bgArgb) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + bgArgb } };
+        cell.border    = {
+            top:    { style: 'thin', color: { argb: 'FFE0E0E0' } },
+            bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+            left:   { style: 'thin', color: { argb: 'FFE0E0E0' } },
+            right:  { style: 'thin', color: { argb: 'FFE0E0E0' } }
+        };
+    }
+    function avgCell(cell, value, bold) {
+        cell.border = {
+            top:    { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } },
+            bottom: { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } },
+            left:   { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } },
+            right:  { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } }
+        };
+        if (value === null || value === undefined || isNaN(value)) {
+            cell.value = '—';
+            cell.font  = { size: 9, name: 'Calibri', color: { argb: 'FF9E9E9E' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            return;
+        }
+        cell.value     = parseFloat(value.toFixed(3));
+        cell.font      = { bold: !!bold || true, size: 9, name: 'Calibri', color: { argb: 'FF' + C_DARK_GREEN } };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_LIGHT_GREEN } };
+        cell.alignment = { horizontal: 'right', vertical: 'middle' };
+    }
+    function overallCell(cell, value) {
+        cell.border = {
+            top:    { style: 'medium', color: { argb: 'FF' + C_OVERALL_BG } },
+            bottom: { style: 'medium', color: { argb: 'FF' + C_OVERALL_BG } },
+            left:   { style: 'medium', color: { argb: 'FF' + C_OVERALL_BG } },
+            right:  { style: 'medium', color: { argb: 'FF' + C_OVERALL_BG } }
+        };
+        if (value === null || value === undefined || isNaN(value)) {
+            cell.value = '—';
+            cell.font  = { size: 9, name: 'Calibri', color: { argb: 'FF9E9E9E' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            return;
+        }
+        cell.value     = parseFloat(value.toFixed(3));
+        cell.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_OVERALL_BG } };
+        cell.alignment = { horizontal: 'right', vertical: 'middle' };
+    }
+
+    function addNotesRow(ws, totalCols, title) {
+        const noteRow = ws.addRow([
+            'ENVIRONMENTAL MONITORING — ' + title + '  |  Year ' + year + '  |  Generated: ' + new Date().toLocaleDateString('en-PH', { year:'numeric', month:'long', day:'numeric' }) + '  |  SCIC ESH Monitoring System'
+        ]);
+        ws.mergeCells(noteRow.number, 1, noteRow.number, totalCols);
+        const nc = noteRow.getCell(1);
+        nc.font      = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+        nc.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+        nc.alignment = { horizontal: 'left', vertical: 'middle', wrapText: false };
+        noteRow.height = 24;
+        return noteRow;
+    }
+
+    function addRegionAndProjHeaders(ws, LEFT_COLS, colMap, totalCols, titleLabel) {
+        ws.addRow([]); ws.getRow(ws.rowCount).height = 6;
+        const regHdrRow = ws.addRow(Array(totalCols).fill(''));
+        regHdrRow.height = 20;
+        let colOffset = LEFT_COLS + 1;
+        ENV_REGIONS.forEach(region => {
+            if (!projsByRegion[region].length) return;
+            const projCount = projsByRegion[region].length;
+            const spanStart = colOffset;
+            const spanEnd   = colOffset + projCount;
+            const c = regHdrRow.getCell(spanStart);
+            c.value = region;
+            c.font  = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' };
+            c.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+            c.alignment = { horizontal: 'center', vertical: 'middle' };
+            if (spanEnd > spanStart) ws.mergeCells(regHdrRow.number, spanStart, regHdrRow.number, spanEnd);
+            colOffset += projCount + 1;
+        });
+        const overallHdr = regHdrRow.getCell(colOffset);
+        overallHdr.value = 'OVERALL';
+        overallHdr.font  = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' };
+        overallHdr.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_OVERALL_BG } };
+        overallHdr.alignment = { horizontal: 'center', vertical: 'middle' };
+        for (let ci = 1; ci <= LEFT_COLS; ci++) {
+            regHdrRow.getCell(ci).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+        }
+        const hdrData = [];
+        for (let i = 0; i < LEFT_COLS; i++) hdrData.push(i === 0 ? titleLabel : '');
+        colMap.forEach(cm => {
+            if (cm.type === 'proj')    hdrData.push(cm.proj.name || '');
+            else if (cm.type === 'avg') hdrData.push('REGION\nAVG');
+            else                        hdrData.push('OVERALL\nAVG');
+        });
+        const hdrRow = ws.addRow(hdrData);
+        hdrRow.height = 45;
+        for (let ci = 1; ci <= LEFT_COLS; ci++) applyHeaderStyle(hdrRow.getCell(ci), C_COL_HDR_BG, C_COL_HDR_FG);
+        colMap.forEach((cm, i) => {
+            const ci = LEFT_COLS + 1 + i;
+            if (cm.type === 'avg')         applyHeaderStyle(hdrRow.getCell(ci), C_MED_GREEN, 'FFFFFF');
+            else if (cm.type === 'overall') applyHeaderStyle(hdrRow.getCell(ci), C_OVERALL_BG, 'FFFFFF');
+            else                            applyHeaderStyle(hdrRow.getCell(ci), C_COL_HDR_BG, C_COL_HDR_FG);
+        });
+    }
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'ESH Monitoring System';
+    wb.created = new Date();
+
+    const LEFT_COLS = 2;
+    const totalCols = LEFT_COLS + colMap.length;
+
+    function makeMultiGetVal(rowArray) {
+        return function(proj, moLong, mk) {
+            const rows = rowArray.filter(r =>
+                (r.region || '').toUpperCase() === (proj.region || '').toUpperCase() &&
+                r.project === proj.name &&
+                r.month === moLong
+            );
+            if (!rows.length) return null;
+            const sum = rows.reduce((s, r) => s + (parseFloat(r[mk]) || 0), 0);
+            return sum;
+        };
+    }
+
+    function buildEnvSheet(sheetName, pageTitle, metricDefs, getVal) {
+        const ws = wb.addWorksheet(sheetName, {
+            views: [{ state: 'frozen', xSplit: LEFT_COLS, ySplit: 4, activeCell: 'C5' }]
+        });
+        addNotesRow(ws, totalCols, pageTitle);
+        addRegionAndProjHeaders(ws, LEFT_COLS, colMap, totalCols, 'Month');
+        if (LEFT_COLS > 1) { try { ws.mergeCells(4, 1, 4, LEFT_COLS); } catch(e) {} }
+        ws.getColumn(1).width = 14;
+        ws.getColumn(2).width = 26;
+        colMap.forEach((cm, i) => {
+            ws.getColumn(LEFT_COLS + 1 + i).width = cm.type === 'avg' ? 10 : cm.type === 'overall' ? 11 : 14;
+        });
+
+        const grandTotals = {};
+        metricDefs.forEach(md => {
+            grandTotals[md.key] = {};
+            orderedProjs.forEach(p => { grandTotals[md.key][p.name] = 0; });
+        });
+
+        let rowNum = 5;
+
+        MO_LONG.forEach((moLong, moIdx) => {
+            const moShort = MO_SHORT[moIdx];
+            const hasData = metricDefs.some(md =>
+                orderedProjs.some(p => { const v = getVal(p, moLong, md.key); return v !== null && v !== 0; })
+            );
+            if (!hasData) return;
+
+            const blockStart = rowNum;
+            metricDefs.forEach((md, mdi) => {
+                ws.addRow([]);
+                const dr = ws.getRow(rowNum++);
+                dr.height = 17;
+                const bg = moIdx % 2 === 0 ? C_ALT : null;
+
+                const moCell = dr.getCell(1);
+                moCell.value = mdi === 0 ? moShort : '';
+                leftCellStyle(moCell, mdi === 0);
+                if (mdi === 0) moCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+                const lbCell = dr.getCell(2);
+                lbCell.value = md.unit ? md.label + ' (' + md.unit + ')' : md.label;
+                lbCell.font      = { size: 8.5, name: 'Calibri', italic: true };
+                if (bg) lbCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + bg } };
+                lbCell.alignment = { vertical: 'middle', wrapText: true };
+                lbCell.border    = { top:{style:'thin',color:{argb:'FFE0E0E0'}}, bottom:{style:'thin',color:{argb:'FFE0E0E0'}}, left:{style:'thin',color:{argb:'FFE0E0E0'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+
+                colMap.forEach((cm, ci) => {
+                    const cell = dr.getCell(LEFT_COLS + 1 + ci);
+                    if (cm.type === 'proj') {
+                        const v = getVal(cm.proj, moLong, md.key);
+                        const num = (v !== null && !isNaN(v)) ? parseFloat(v.toFixed(md.dec !== undefined ? md.dec : 2)) : null;
+                        numCell(cell, num, false, bg, null);
+                        if (num !== null) grandTotals[md.key][cm.proj.name] = (grandTotals[md.key][cm.proj.name] || 0) + num;
+                    } else if (cm.type === 'avg') {
+                        const vals = projsByRegion[cm.region].map(p => getVal(p, moLong, md.key)).filter(v => v !== null && !isNaN(v));
+                        avgCell(cell, vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null, false);
+                    } else {
+                        const vals = orderedProjs.map(p => getVal(p, moLong, md.key)).filter(v => v !== null && !isNaN(v));
+                        overallCell(cell, vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null);
+                    }
+                });
+            });
+
+            if (metricDefs.length > 1) {
+                const blockEnd = rowNum - 1;
+                if (blockEnd > blockStart) {
+                    try { ws.mergeCells(blockStart, 1, blockEnd, 1); } catch(e) {}
+                    const mc = ws.getCell(blockStart, 1);
+                    mc.value = moShort;
+                    leftCellStyle(mc, true);
+                    mc.alignment = { horizontal: 'center', vertical: 'middle' };
+                }
+            }
+        });
+
+        const tStart = rowNum;
+        metricDefs.forEach((md, mdi) => {
+            ws.addRow([]);
+            const tr = ws.getRow(rowNum++);
+            tr.height = 20;
+            const moCell = tr.getCell(1);
+            moCell.value = '';
+            moCell.font  = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+            moCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+            moCell.alignment = { horizontal: 'center', vertical: 'middle' };
+            const lbCell = tr.getCell(2);
+            lbCell.value = md.unit ? md.label + ' (' + md.unit + ')' : md.label;
+            lbCell.font  = { bold: true, size: 8.5, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+            lbCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_MED_GREEN } };
+            lbCell.alignment = { vertical: 'middle', wrapText: true };
+            lbCell.border = { right: { style: 'medium', color: { argb: 'FF' + C_MED_GREEN } } };
+            colMap.forEach((cm, ci) => {
+                const cell = tr.getCell(LEFT_COLS + 1 + ci);
+                if (cm.type === 'proj') {
+                    const v = grandTotals[md.key][cm.proj.name] || 0;
+                    numCell(cell, v ? parseFloat(v.toFixed(md.dec !== undefined ? md.dec : 2)) : null, true, C_DARK_GREEN, 'FFFFFF');
+                } else if (cm.type === 'avg') {
+                    const vals = projsByRegion[cm.region].map(p => grandTotals[md.key][p.name] || 0).filter(v => v > 0);
+                    avgCell(cell, vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null, true);
+                    cell.font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF' + C_DARK_GREEN } };
+                } else {
+                    const vals = orderedProjs.map(p => grandTotals[md.key][p.name] || 0).filter(v => v > 0);
+                    overallCell(cell, vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null);
+                }
+            });
+        });
+        if (metricDefs.length > 1) {
+            const tEnd = rowNum - 1;
+            if (tEnd > tStart) {
+                try { ws.mergeCells(tStart, 1, tEnd, 1); } catch(e) {}
+                const tc = ws.getCell(tStart, 1);
+                tc.value = 'TOTAL';
+                tc.font  = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+                tc.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
+                tc.alignment = { horizontal: 'center', vertical: 'middle' };
+            }
+        }
+    }
+
+    // ── SHEET 1: ELECTRICITY ──────────────────────────────────────────────────
+    buildEnvSheet('Electricity', 'ELECTRICITY CONSUMPTION',
+        [
+            { key: 'kwh',    label: 'kWh Consumption',  unit: 'kWh',    dec: 2 },
+            { key: 'amount', label: 'Amount',            unit: 'Php',    dec: 2 },
+            { key: 'ghg',    label: 'GHG Emissions',     unit: 'tCO₂e', dec: 4 },
+            { key: 'trees',  label: 'Tree Equivalent',   unit: 'trees',  dec: 4 },
+        ],
+        makeMultiGetVal(elecRows)
+    );
+
+    // ── SHEET 2: WATER ────────────────────────────────────────────────────────
+    buildEnvSheet('Water', 'WATER CONSUMPTION',
+        [
+            { key: 'domM3',  label: 'Domestic Water',    unit: 'm³',  dec: 3 },
+            { key: 'domAmt', label: 'Domestic Amount',   unit: 'Php', dec: 2 },
+            { key: 'potLit', label: 'Potable Water',     unit: 'L',   dec: 3 },
+            { key: 'potAmt', label: 'Potable Amount',    unit: 'Php', dec: 2 },
+            { key: 'indM3',  label: 'Industrial Water',  unit: 'm³',  dec: 3 },
+            { key: 'indAmt', label: 'Industrial Amount', unit: 'Php', dec: 2 },
+        ],
+        makeMultiGetVal(waterRows)
+    );
+
+    // ── SHEET 3: WASTE ────────────────────────────────────────────────────────
+    buildEnvSheet('Waste', 'WASTE GENERATION & DISPOSAL',
+        [
+            { key: 'bioGen',         label: 'Biodegradable Generated',  unit: 'kg', dec: 2 },
+            { key: 'bioDisp',        label: 'Biodegradable Disposed',   unit: 'kg', dec: 2 },
+            { key: 'bioDiverted',    label: 'Biodegradable Diverted',   unit: 'kg', dec: 2 },
+            { key: 'nonbioGen',      label: 'Non-Bio Generated',        unit: 'kg', dec: 2 },
+            { key: 'nonbioDisp',     label: 'Non-Bio Disposed',         unit: 'kg', dec: 2 },
+            { key: 'nonbioDiverted', label: 'Non-Bio Diverted',         unit: 'kg', dec: 2 },
+            { key: 'recGen',         label: 'Recyclable Generated',     unit: 'kg', dec: 2 },
+            { key: 'recDisp',        label: 'Recyclable Disposed',      unit: 'kg', dec: 2 },
+            { key: 'recDiverted',    label: 'Recyclable Diverted',      unit: 'kg', dec: 2 },
+            { key: 'hazGen',         label: 'Hazardous Generated',      unit: 'kg', dec: 2 },
+            { key: 'hazDisp',        label: 'Hazardous Disposed',       unit: 'kg', dec: 2 },
+            { key: 'septage',        label: 'Septage',                  unit: 'L',  dec: 2 },
+        ],
+        makeMultiGetVal(wasteRows)
+    );
+
+    // ── SHEET 4: FUEL ─────────────────────────────────────────────────────────
+    buildEnvSheet('Fuel', 'FUEL CONSUMPTION',
+        [
+            { key: 'dieselLit', label: 'Diesel Consumption',   unit: 'L',     dec: 3 },
+            { key: 'gasLit',    label: 'Gasoline Consumption', unit: 'L',     dec: 3 },
+            { key: 'ghg',       label: 'GHG Emissions',        unit: 'tCO₂e', dec: 4 },
+        ],
+        makeMultiGetVal(fuelRows)
+    );
+
+    // ── SHEET 5: OVERALL SUMMARY ──────────────────────────────────────────────
+    {
+        const ws = wb.addWorksheet('OVERALL SUMMARY', {
+            views: [{ state: 'frozen', xSplit: LEFT_COLS, ySplit: 4, activeCell: 'C5' }]
+        });
+        addNotesRow(ws, totalCols, 'OVERALL SUMMARY');
+        addRegionAndProjHeaders(ws, LEFT_COLS, colMap, totalCols, 'Category');
+        if (LEFT_COLS > 1) { try { ws.mergeCells(4, 1, 4, LEFT_COLS); } catch(e) {} }
+        ws.getColumn(1).width = 20;
+        ws.getColumn(2).width = 26;
+        colMap.forEach((cm, i) => {
+            ws.getColumn(LEFT_COLS + 1 + i).width = cm.type === 'avg' ? 10 : cm.type === 'overall' ? 11 : 14;
+        });
+
+        const summaryDefs = [
+            { cat: 'Electricity', label: 'Total kWh',            unit: 'kWh',    dec: 2, rows: elecRows,  key: 'kwh' },
+            { cat: 'Electricity', label: 'Electricity Amount',    unit: 'Php',    dec: 2, rows: elecRows,  key: 'amount' },
+            { cat: 'Electricity', label: 'GHG (Electricity)',     unit: 'tCO₂e', dec: 4, rows: elecRows,  key: 'ghg' },
+            { cat: 'Water',       label: 'Domestic Water',        unit: 'm³',    dec: 3, rows: waterRows, key: 'domM3' },
+            { cat: 'Water',       label: 'Industrial Water',      unit: 'm³',    dec: 3, rows: waterRows, key: 'indM3' },
+            { cat: 'Fuel',        label: 'Diesel Consumption',    unit: 'L',     dec: 3, rows: fuelRows,  key: 'dieselLit' },
+            { cat: 'Fuel',        label: 'Gasoline Consumption',  unit: 'L',     dec: 3, rows: fuelRows,  key: 'gasLit' },
+            { cat: 'Fuel',        label: 'GHG (Fuel)',            unit: 'tCO₂e', dec: 4, rows: fuelRows,  key: 'ghg' },
+            { cat: 'Waste',       label: 'Hazardous Waste Gen',   unit: 'kg',    dec: 2, rows: wasteRows, key: 'hazGen' },
+            { cat: 'Waste',       label: 'Total Waste Generated', unit: 'kg',    dec: 2, rows: wasteRows, key: '_totalWaste' },
+        ];
+
+        function getProjTotalSum(proj, rowArr, key) {
+            if (key === '_totalWaste') {
+                return ['bioGen','nonbioGen','recGen','hazGen'].reduce((s, k) =>
+                    s + rowArr.filter(r => (r.region||''  ).toUpperCase() === (proj.region||'').toUpperCase() && r.project === proj.name).reduce((ss, r) => ss + (parseFloat(r[k])||0), 0), 0);
+            }
+            return rowArr.filter(r => (r.region||'').toUpperCase() === (proj.region||'').toUpperCase() && r.project === proj.name).reduce((s, r) => s + (parseFloat(r[key])||0), 0);
+        }
+
+        let sRowNum = 5;
+        let prevCat = '';
+
+        summaryDefs.forEach((sd) => {
+            ws.addRow([]);
+            const dr = ws.getRow(sRowNum++);
+            dr.height = 17;
+            const catCell = dr.getCell(1);
+            catCell.value = sd.cat !== prevCat ? sd.cat : '';
+            catCell.font  = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF' + C_DARK_GREEN } };
+            catCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
+            catCell.alignment = { horizontal: 'center', vertical: 'middle' };
+            catCell.border = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+            prevCat = sd.cat;
+            const lbCell = dr.getCell(2);
+            lbCell.value = sd.unit ? sd.label + ' (' + sd.unit + ')' : sd.label;
+            lbCell.font  = { size: 8.5, name: 'Calibri', italic: true };
+            lbCell.alignment = { vertical: 'middle', wrapText: true };
+            lbCell.border = { top:{style:'thin',color:{argb:'FFE0E0E0'}}, bottom:{style:'thin',color:{argb:'FFE0E0E0'}}, left:{style:'thin',color:{argb:'FFE0E0E0'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
+            colMap.forEach((cm, ci) => {
+                const cell = dr.getCell(LEFT_COLS + 1 + ci);
+                if (cm.type === 'proj') {
+                    const v = getProjTotalSum(cm.proj, sd.rows, sd.key);
+                    numCell(cell, v ? parseFloat(v.toFixed(sd.dec)) : null, false, null, null);
+                } else if (cm.type === 'avg') {
+                    const vals = projsByRegion[cm.region].map(p => getProjTotalSum(p, sd.rows, sd.key)).filter(v => v > 0);
+                    avgCell(cell, vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null, false);
+                } else {
+                    const vals = orderedProjs.map(p => getProjTotalSum(p, sd.rows, sd.key)).filter(v => v > 0);
+                    overallCell(cell, vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null);
+                }
+            });
+        });
+    }
+
+    // ── Download ───────────────────────────────────────────────────────────────
+    try {
+        const buf  = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'SCIC_ESH_EnvMonitoring_' + year + '_' + new Date().toISOString().slice(0,10) + '.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('✅ Environmental Monitoring Excel exported successfully!', 'success');
+    } catch(err) {
+        console.error('Env Monitoring Excel export error:', err);
+        showToast('❌ Environmental Monitoring export failed. Check console for details.', 'error');
+    }
+}
+
+
 async function exportKpmExcel() {
     const _noRoles = ['superintendent', 'pco', 'corp_nurse'];
     if (_noRoles.includes(state.userRole)) {
