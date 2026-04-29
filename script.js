@@ -14793,8 +14793,8 @@ function renderTabulation() {
                         <div class="region-banner-left">
                             <i class="fas ${regIcon} region-icon"></i>
                             <span class="region-name">${regLabel}</span>
-                            ${isCorporateReg ? `<span class="rbadge rbadge-admin">ADMIN ONLY</span>` : ''}
-                            ${isPlantReg ? `<span class="rbadge" style="background:rgba(255,255,255,0.2);color:white;font-size:0.55rem;padding:2px 8px;border-radius:10px;font-weight:700;">🏭 MONITORING ONLY</span>` : ''}
+                            ${isCorporateReg ? `` : ''}
+                            ${isPlantReg ? `` : ''}
                         </div>
                         <div class="region-banner-right">
                             ${(!isCorporateReg || isCorporateDataTab) ? (isCorporateReg ? `<span class="rbadge rbadge-count">${projs.length} OFFICE</span>` : isPlantReg ? `<span class="rbadge rbadge-count">${projs.length} PLANT${projs.length!==1?'S':''}</span>` : `<span class="rbadge rbadge-count">${projs.length} PROJECT${projs.length!==1?'S':''}</span>`) : ''}
@@ -14870,13 +14870,13 @@ function renderTabulation() {
                             </div>
                             <div class="project-meta">${p.region === 'CORPORATE' ? 'Main Office' : p.region === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
                         </div>
-                        ${p.region === 'CORPORATE' ? '' : `<div class="project-dates">
+                        ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="project-dates">
                             <div><span class="date-label">Started:</span> ${p.dateStarted ? formatDateDMY(p.dateStarted) : 'Not set'}</div>
                             <div><span class="date-label">${p.dateFinished ? 'Finished:' : 'Status:'}</span> ${p.dateFinished ? formatDateDMY(p.dateFinished) : 'Ongoing'}</div>
                             ${p.workStoppageDate ? `<div style="color:#757575;font-size:0.7rem;"><span class="date-label" style="color:#757575;">Stoppage:</span> ${formatDateDMY(p.workStoppageDate)}</div>` : ''}
                             ${p.workResumeDate ? `<div style="color:#2e7d32;font-size:0.7rem;"><span class="date-label" style="color:#2e7d32;">Resume:</span> ${formatDateDMY(p.workResumeDate)}</div>` : ''}
                         </div>`}
-                        <span class="status-badge ${statusClass}" onclick="event.stopPropagation(); ${isLocked ? 'showLockedMessage()' : `changeProjectStatus('${p.name}', event)`}">${statusLabel}</span>
+                        ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<span class="status-badge ${statusClass}" onclick="event.stopPropagation(); ${isLocked ? 'showLockedMessage()' : `changeProjectStatus('${p.name}', event)`}">${statusLabel}</span>`}
                         ${state.isEditing ? `
                             <button ${isLocked ? 'disabled' : ''} onclick="event.stopPropagation(); ${isLocked ? 'showLockedMessage()' : `openEditProjectModal('${p.name.replace(/'/g, "\\'")}', '${p.region}')`}" style="background:none;border:none;cursor:pointer;color:#555;font-size:1rem;padding:4px 6px;margin-right:2px;opacity:${isLocked ? '0.5' : '1'};" title="${isLocked ? 'View Only - Contact admin to edit' : 'Edit Project Details'}">
                                 <i class="fas fa-pen"></i>
@@ -16641,7 +16641,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<div class="region-banner-left">'
                             + '<i class="fas ' + (isCorporateDole ? 'fa-building-columns' : 'fa-location-dot') + ' region-icon"></i>'
                             + '<span class="region-name">' + reg + '</span>'
-                            + (isCorporateDole ? '<span class="rbadge rbadge-admin">ADMIN ONLY</span>' : '')
+                            + (isCorporateDole ? '' : '')
                             
                             + '</div>'
                             + '<div class="region-banner-right">'
@@ -17242,7 +17242,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         html += '<div id="region-banner-'+reg+'" class="region-banner region-'+reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+' '+(isCollapsed?'collapsed':'')+' '+(canEditReg?'rb-editable':'')+'" onclick="toggleRegion(\''+reg.replace(/'/g,"\\'")+'\',event)">' 
                             +'<div class="region-banner-inner"><div class="region-banner-left">'
                             +'<i class="fas '+(isPlantOps?'fa-industry':'fa-location-dot')+' region-icon"></i><span class="region-name">'+reg+'</span>'
-                            +(isPlantOps?'<span class="rbadge" style="background:rgba(255,255,255,0.2);color:white;font-size:0.55rem;padding:2px 8px;border-radius:10px;font-weight:700;">🏭 MONITORING ONLY</span>':'')
+                            +(isPlantOps?'':'')
                             +'</div><div class="region-banner-right">'
                             +'<span class="rbadge rbadge-count">'+projs.length+(isPlantOps?' PLANT'+(projs.length!==1?'S':''):' PROJ')+'</span>'
                             +'<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">'+embComplete+'/'+embTotal2+' complete</span>'
@@ -19002,7 +19002,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             <div class="region-banner-left">
                                 <i class="fas ${regIcon2} region-icon"></i>
                                 <span class="region-name">${regLabel2}</span>
-                                ${isCorporateReg2 ? `<span class="rbadge rbadge-admin">ADMIN ONLY</span>` : ''}
+                                ${isCorporateReg2 ? `` : ''}
                                 ${!canEditRegion && !isCorporateReg2 ? `` : ''}
                             </div>
                             <div class="region-banner-right">
@@ -34759,172 +34759,364 @@ async function exportCurrentTabToExcel() {
     // TOTAL EXPOSURES — monthly per sheet
     // ════════════════════════════════════════════════════════════════════════
     if (tab === 'exposures') {
+        // ── Measure definitions with individual color theming ─────────────────
         const EXP_MEASURES = [
-            { key: 'Total Manpower',                label: 'Total Manpower' },
-            { key: 'Total Exposed Manhour',          label: 'Total Exposed Manhour' },
-            { key: 'Total Exposed Man-hour to date', label: 'Total Exposed Man-hour to date' },
-            { key: 'No. of Days w/o LTA',            label: 'No. of Days w/o LTA' },
+            { key: 'Total Manpower',                label: 'Total Manpower',                color: '1B5E20', fill: 'E8F5E9' },
+            { key: 'Total Exposed Manhour',          label: 'Total Exposed Manhour',          color: '0D47A1', fill: 'E3F2FD' },
+            { key: 'Total Exposed Man-hour to date', label: 'Total Exposed Man-hour to date', color: '4A148C', fill: 'F3E5F5' },
+            { key: 'No. of Days w/o LTA',            label: 'No. of Days w/o LTA',            color: 'BF360C', fill: 'FBE9E7' },
         ];
 
-        // Get value for a measure for a given project and month (1-12)
+        // ── Value helpers ─────────────────────────────────────────────────────
         function expGetVal(proj, measureKey, monthIdx) {
             if (measureKey === 'Total Exposed Man-hour to date') {
                 const base = parseFloat((proj.vals && proj.vals['exposures_Total Exposed Man-hour to date'] && proj.vals['exposures_Total Exposed Man-hour to date'][0]) || 0) || 0;
                 const mhKey = 'exposures_Total Exposed Manhour';
                 let cum = base;
                 for (let i = 1; i <= monthIdx; i++) cum += parseFloat(_v(proj, mhKey, i)) || 0;
-                return cum > 0 ? cum : '';
+                return cum > 0 ? cum : null;
             }
             const raw = _v(proj, 'exposures_' + measureKey, monthIdx);
-            return raw !== '' ? (parseFloat(raw) || '') : '';
+            const num = parseFloat(raw);
+            return (!isNaN(num) && raw !== '') ? num : null;
         }
-
-        // Get YTD value for a measure for a given project
         function expYtd(proj, measureKey) {
             if (measureKey === 'Total Exposed Man-hour to date') {
-                const base = parseFloat((proj.vals && proj.vals['exposures_Total Exposed Man-hour to date'] && proj.vals['exposures_Total Exposed Man-hour to date'][0]) || 0) || 0;
-                const mhKey = 'exposures_Total Exposed Manhour';
-                let cum = base;
-                for (let i = 1; i <= 12; i++) cum += parseFloat(_v(proj, mhKey, i)) || 0;
-                return cum > 0 ? cum : '';
+                return expGetVal(proj, measureKey, 12);
             }
-            return _ytd(proj, 'exposures_' + measureKey);
+            let s = 0, any = false;
+            for (let m = 1; m <= 12; m++) {
+                const v = expGetVal(proj, measureKey, m);
+                if (v !== null) { s += v; any = true; }
+            }
+            return any ? s : null;
         }
 
-        // Style helpers for measure label rows
-        const EXP_MEAS_COLORS = ['FF1B5E20','FF2E7D32','FF388E3C','FF1565C0'];
-        const EXP_MEAS_FILLS  = ['FFE8F5E9','FFF1F8E9','FFF9FBE7','FFE3F2FD'];
+        // ── Project / region ordering ─────────────────────────────────────────
+        const EXP_REG_ORDER = ['NCR', 'SOUTH LUZON', 'NORTH LUZON', 'VISAYAS & MINDANAO'];
+        const _expSortedReg  = EXP_REG_ORDER.filter(function(r) {
+            return projs.some(function(p) { return (p.region||'').toUpperCase() === r; });
+        });
+        const _expOtherReg = [];
+        projs.forEach(function(p) {
+            const r = (p.region||'').toUpperCase();
+            if (!EXP_REG_ORDER.includes(r) && r !== 'CORPORATE' && r !== 'PLANT OPERATIONS' && !_expOtherReg.includes(r)) _expOtherReg.push(r);
+        });
+        const expRegOrder = [..._expSortedReg, ..._expOtherReg];
+        const expProjsByReg = {};
+        expRegOrder.forEach(function(r) {
+            expProjsByReg[r] = projs.filter(function(p) { return (p.region||'').toUpperCase() === r; });
+        });
+        const expOrderedProjs = expRegOrder.reduce(function(acc, r) { return acc.concat(expProjsByReg[r]); }, []);
 
-        function buildExpSheet(ws, sheetTitle, cols, getValFn) {
-            // cols = total columns (PROJECT + REGION + MEASURE + VALUE)
-            _xTitle(ws, sheetTitle, cols);
-            const hdr = ws.addRow(['PROJECT', 'REGION', 'MEASURE', 'VALUE']);
-            hdr.height = 22; hdr.eachCell(_xHdr);
-            ws.views = [{ state: 'frozen', ySplit: 2, activeCell: 'A3' }];
-            ws.getColumn(1).width = 36;
-            ws.getColumn(2).width = 22;
-            ws.getColumn(3).width = 32;
-            ws.getColumn(4).width = 22;
+        // ── Column map: [MEASURE label] + [proj cols + REGION TOTAL per region] + [OVERALL TOTAL] ──
+        const EXP_LEFT = 1; // single left column: MEASURE
+        const expColMap = [];
+        expRegOrder.forEach(function(region) {
+            expProjsByReg[region].forEach(function(proj) { expColMap.push({ type: 'proj', proj: proj, region: region }); });
+            expColMap.push({ type: 'total', region: region });
+        });
+        expColMap.push({ type: 'overall' });
+        const expTotalCols = EXP_LEFT + expColMap.length;
 
-            const grandTotals = {};
-            EXP_MEASURES.forEach(function(m) { grandTotals[m.key] = 0; });
+        // ── Shared style constants (matches KPM palette) ──────────────────────
+        const EXP_C_DARK   = '1B5E20';
+        const EXP_C_MED    = '2E7D32';
+        const EXP_C_GRAY   = 'F5F5F5';
+        const EXP_C_COLHDR = '37474F';
+        const EXP_C_WHITE  = 'FFFFFF';
 
-            let ri = 3;
-            REGIONS.forEach(function(region) {
-                const rp = projs.filter(function(p) { return (p.region || '').toUpperCase() === region; });
-                if (!rp.length) return;
-
-                // Region banner
-                const ban = ws.addRow([region]);
-                ws.mergeCells(ri, 1, ri, cols);
-                _xBan(ban.getCell(1), '📌 ' + region + ' (' + rp.length + ' project' + (rp.length !== 1 ? 's' : '') + ')');
-                ban.height = 16; ri++;
-
-                const regionTotals = {};
-                EXP_MEASURES.forEach(function(m) { regionTotals[m.key] = 0; });
-
-                rp.forEach(function(proj, pIdx) {
-                    const projColor = pIdx % 2 === 0 ? 'FFF9FBF9' : 'FFFFFFFF';
-
-                    EXP_MEASURES.forEach(function(m, mIdx) {
-                        const val = getValFn(proj, m.key);
-                        const numVal = parseFloat(val);
-                        if (!isNaN(numVal) && val !== '') {
-                            regionTotals[m.key] += numVal;
-                            grandTotals[m.key]  += numVal;
-                        }
-
-                        const projLabel   = mIdx === 0 ? (proj.name   || '') : '';
-                        const regionLabel = mIdx === 0 ? (proj.region || '') : '';
-                        const dr = ws.addRow([projLabel, regionLabel, m.label, val !== '' ? val : '—']);
-                        dr.height = 16;
-
-                        // Project name cell (only on first measure row, bold)
-                        const c1 = dr.getCell(1);
-                        c1.font      = { bold: mIdx === 0, size: 9, name: 'Calibri', color: { argb: mIdx === 0 ? 'FF1B5E20' : 'FF555555' } };
-                        c1.alignment = { vertical: 'middle' };
-                        c1.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: projColor } };
-
-                        // Region cell
-                        const c2 = dr.getCell(2);
-                        c2.font      = { size: 9, name: 'Calibri' };
-                        c2.alignment = { vertical: 'middle' };
-                        c2.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: projColor } };
-
-                        // Measure label cell
-                        const c3 = dr.getCell(3);
-                        c3.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: EXP_MEAS_COLORS[mIdx] } };
-                        c3.alignment = { vertical: 'middle', indent: 1 };
-                        c3.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: EXP_MEAS_FILLS[mIdx] } };
-
-                        // Value cell
-                        const c4 = dr.getCell(4);
-                        c4.font      = { bold: true, size: 9, name: 'Calibri' };
-                        c4.alignment = { vertical: 'middle', horizontal: 'center' };
-                        c4.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: EXP_MEAS_FILLS[mIdx] } };
-
-                        // Bottom border on last measure row of each project
-                        if (mIdx === EXP_MEASURES.length - 1) {
-                            [c1, c2, c3, c4].forEach(function(c) {
-                                c.border = { bottom: { style: 'thin', color: { argb: 'FFBDBDBD' } } };
-                            });
-                        }
-                        ri++;
-                    });
-                });
-
-                // Region subtotal rows — one per measure
-                EXP_MEASURES.forEach(function(m, mIdx) {
-                    const regDr = ws.addRow(['', '  REGION TOTAL', m.label, regionTotals[m.key] || 0]);
-                    regDr.height = 15;
-                    regDr.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
-                    regDr.getCell(2).font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF1B5E20' } };
-                    regDr.getCell(2).alignment = { vertical: 'middle' };
-                    regDr.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
-                    regDr.getCell(3).font = { bold: true, size: 9, name: 'Calibri', color: { argb: EXP_MEAS_COLORS[mIdx] } };
-                    regDr.getCell(3).alignment = { vertical: 'middle', indent: 1 };
-                    regDr.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
-                    regDr.getCell(4).font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF1B5E20' } };
-                    regDr.getCell(4).alignment = { vertical: 'middle', horizontal: 'center' };
-                    regDr.getCell(4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
-                    ri++;
-                });
-                ws.getRow(ri).height = 5; ri++;
+        // ── Style helpers ─────────────────────────────────────────────────────
+        function expApplyHdr(cell, bgArgb, fgArgb) {
+            cell.font      = { bold: true, color: { argb: fgArgb || EXP_C_WHITE }, size: 9, name: 'Calibri' };
+            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + (bgArgb || EXP_C_COLHDR) } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+            cell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
+        }
+        function expApplyData(cell, val, mIdx) {
+            cell.border = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:{style:'thin',color:{argb:'FFB0BEC5'}}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
+            cell.border = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
+            if (val === null || val === undefined) {
+                cell.value = '—';
+                cell.font  = { size: 9, name: 'Calibri', color: { argb: 'FF9E9E9E' } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                const m = EXP_MEASURES[mIdx];
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFAFAFA' } };
+                return;
+            }
+            const m = EXP_MEASURES[mIdx];
+            cell.value     = val;
+            cell.font      = { bold: true, size: 9, name: 'Calibri' };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
+        }
+        function expApplyRegTotal(cell, val, mIdx) {
+            cell.border = { top:{style:'medium',color:{argb:'FF'+EXP_C_MED}}, bottom:{style:'medium',color:{argb:'FF'+EXP_C_MED}}, left:{style:'medium',color:{argb:'FF'+EXP_C_MED}}, right:{style:'medium',color:{argb:'FF'+EXP_C_MED}} };
+            if (val === null || val === 0) {
+                cell.value = '—'; cell.font = { size: 9, name: 'Calibri', color: { argb: 'FF9E9E9E' } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+                return;
+            }
+            cell.value     = val;
+            cell.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF' + EXP_C_MED } };
+            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        }
+        function expApplyOverall(cell, val) {
+            cell.border = { top:{style:'medium',color:{argb:'FF1A237E'}}, bottom:{style:'medium',color:{argb:'FF1A237E'}}, left:{style:'medium',color:{argb:'FF1A237E'}}, right:{style:'medium',color:{argb:'FF1A237E'}} };
+            if (val === null || val === 0) {
+                cell.value = '—'; cell.font = { size: 9, name: 'Calibri', color: { argb: 'FF9E9E9E' } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+                return;
+            }
+            cell.value     = val;
+            cell.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF1A237E' } };
+            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        }
+        function expMeasureLabel(cell, mIdx) {
+            const m = EXP_MEASURES[mIdx];
+            cell.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF' + m.color } };
+            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + m.fill } };
+            cell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1, wrapText: true };
+            cell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+EXP_C_MED}} };
+        }
+        function expMonthLabel(cell) {
+            cell.font      = { bold: true, size: 9, name: 'Calibri' };
+            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + EXP_C_GRAY } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            cell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+EXP_C_MED}} };
+        }
+        function expAddNotes(ws, txt) {
+            const r = ws.addRow([txt]);
+            ws.mergeCells(r.number, 1, r.number, expTotalCols);
+            const c = r.getCell(1);
+            c.font      = { size: 8, name: 'Calibri', color: { argb: 'FF5D4037' }, italic: true };
+            c.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF9C4' } };
+            c.alignment = { vertical: 'middle', wrapText: true };
+            r.height    = 22;
+            return r;
+        }
+        function expAddTitle(ws, txt) {
+            const r = ws.addRow([txt]);
+            ws.mergeCells(r.number, 1, r.number, expTotalCols);
+            const c = r.getCell(1);
+            c.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12, name: 'Calibri' };
+            c.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + EXP_C_DARK } };
+            c.alignment = { horizontal: 'center', vertical: 'middle' };
+            r.height    = 26;
+            return r;
+        }
+        function expAddRegionHdrRow(ws) {
+            const rr = ws.addRow(Array(expTotalCols).fill(''));
+            rr.height = 20;
+            let cOff = EXP_LEFT + 1;
+            expRegOrder.forEach(function(region) {
+                const pc = expProjsByReg[region].length;
+                const spanEnd = cOff + pc; // +1 for TOTAL col
+                const c = rr.getCell(cOff);
+                c.value     = region;
+                c.font      = { bold: true, color: { argb: EXP_C_WHITE }, size: 10, name: 'Calibri' };
+                c.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + EXP_C_DARK } };
+                c.alignment = { horizontal: 'center', vertical: 'middle' };
+                if (spanEnd > cOff) ws.mergeCells(rr.number, cOff, rr.number, spanEnd);
+                cOff += pc + 1;
             });
-
-            // Grand total rows — one per measure
-            EXP_MEASURES.forEach(function(m, mIdx) {
-                const gdr = ws.addRow(['', ' GRAND TOTAL', m.label, grandTotals[m.key] || 0]);
-                gdr.height = 18;
-                for (let ci = 1; ci <= cols; ci++) {
-                    const c = gdr.getCell(ci);
-                    c.font      = { bold: true, size: 10, name: 'Calibri' };
-                    c.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_TOT_BG } };
-                    c.alignment = { vertical: 'middle', horizontal: ci >= 3 ? 'center' : 'left' };
-                }
-                gdr.getCell(3).value = m.label;
-                gdr.getCell(4).value = grandTotals[m.key] || 0;
+            const oc = rr.getCell(cOff);
+            oc.value = 'OVERALL'; oc.font = { bold: true, color: { argb: EXP_C_WHITE }, size: 10, name: 'Calibri' };
+            oc.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
+            oc.alignment = { horizontal: 'center', vertical: 'middle' };
+            for (let ci = 1; ci <= EXP_LEFT; ci++) rr.getCell(ci).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + EXP_C_DARK } };
+            return rr;
+        }
+        function expAddColHdrRow(ws, leftLabel) {
+            const hdrData = [leftLabel || 'MEASURE'];
+            expColMap.forEach(function(cm) {
+                hdrData.push(cm.type === 'proj' ? (cm.proj.name || '') : cm.type === 'overall' ? 'OVERALL\nTOTAL' : 'REGION\nTOTAL');
+            });
+            const hr = ws.addRow(hdrData);
+            hr.height = 45;
+            expApplyHdr(hr.getCell(1), EXP_C_COLHDR, EXP_C_WHITE);
+            expColMap.forEach(function(cm, i) {
+                const ci = EXP_LEFT + 1 + i;
+                if (cm.type === 'total')   expApplyHdr(hr.getCell(ci), EXP_C_MED, EXP_C_WHITE);
+                else if (cm.type === 'overall') expApplyHdr(hr.getCell(ci), '1A237E', EXP_C_WHITE);
+                else expApplyHdr(hr.getCell(ci), EXP_C_COLHDR, EXP_C_WHITE);
+            });
+            return hr;
+        }
+        function expSetColWidths(ws) {
+            ws.getColumn(1).width = 32;
+            expColMap.forEach(function(cm, i) {
+                ws.getColumn(EXP_LEFT + 1 + i).width = cm.type === 'total' ? 12 : cm.type === 'overall' ? 14 : 16;
             });
         }
 
-        const wb = new ExcelJS.Workbook(); wb.creator = 'ESH'; wb.created = new Date();
-        const MONTH_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-        const SHEET_COLS = 4; // PROJECT | REGION | MEASURE | VALUE
+        // ── Core sheet builder: rows=measures, cols=projects (KPM-style) ──────
+        function buildExpMatrixSheet(ws, sheetTitle, getValFn) {
+            expAddNotes(ws, 'SAFETY EXPOSURES & MANHOURS — Values as submitted per project. REGION TOTAL and OVERALL TOTAL are sums across all projects.');
+            expAddTitle(ws, sheetTitle);
+            ws.addRow([]); ws.getRow(ws.rowCount).height = 5;
+            expAddRegionHdrRow(ws);
+            expAddColHdrRow(ws, 'MEASURE');
 
-        // ── Sheet 1: YTD Summary ─────────────────────────────────────────────
-        const sumWs = wb.addWorksheet('YTD Summary');
-        buildExpSheet(sumWs, 'TOTAL EXPOSURES — YTD SUMMARY ' + year, SHEET_COLS,
-            function(proj, measureKey) { return expYtd(proj, measureKey); }
-        );
+            // Data rows — one per measure
+            EXP_MEASURES.forEach(function(meas, mIdx) {
+                const rowArr = [meas.label];
+                expColMap.forEach(function(cm) {
+                    if (cm.type === 'proj') {
+                        rowArr.push(getValFn(cm.proj, meas.key));
+                    } else if (cm.type === 'total') {
+                        let s = 0, any = false;
+                        expProjsByReg[cm.region].forEach(function(p) {
+                            const v = getValFn(p, meas.key);
+                            if (v !== null) { s += v; any = true; }
+                        });
+                        rowArr.push(any ? s : null);
+                    } else {
+                        let s = 0, any = false;
+                        expOrderedProjs.forEach(function(p) {
+                            const v = getValFn(p, meas.key);
+                            if (v !== null) { s += v; any = true; }
+                        });
+                        rowArr.push(any ? s : null);
+                    }
+                });
+                const dr = ws.addRow(rowArr);
+                dr.height = 24;
+                expMeasureLabel(dr.getCell(1), mIdx);
+                expColMap.forEach(function(cm, i) {
+                    const ci = EXP_LEFT + 1 + i;
+                    const cell = dr.getCell(ci);
+                    const val  = rowArr[EXP_LEFT + i];
+                    if (cm.type === 'overall') expApplyOverall(cell, val);
+                    else if (cm.type === 'total') expApplyRegTotal(cell, val, mIdx);
+                    else expApplyData(cell, val, mIdx);
+                });
+            });
 
-        // ── Sheets 2–13: One sheet per month ─────────────────────────────────
-        MONTH_FULL.forEach(function(moName, moIdx) {
+            expSetColWidths(ws);
+            ws.views = [{ state: 'frozen', xSplit: EXP_LEFT, ySplit: 5, activeCell: 'B6' }];
+        }
+
+        const wb = new ExcelJS.Workbook(); wb.creator = 'ESH Monitoring System'; wb.created = new Date();
+
+        // ── Sheet 1: YTD Summary (matrix) ────────────────────────────────────
+        const expYtdWs = wb.addWorksheet('YTD Summary');
+        buildExpMatrixSheet(expYtdWs, 'SAFETY EXPOSURES & MANHOURS — YTD SUMMARY ' + year,
+            function(proj, key) { return expYtd(proj, key); });
+
+        // ── Sheets 2-13: One matrix sheet per month ───────────────────────────
+        MO_LONG.forEach(function(moName, moIdx) {
             const moNum = moIdx + 1;
             const mWs = wb.addWorksheet(moName);
-            buildExpSheet(mWs, 'TOTAL EXPOSURES — ' + moName.toUpperCase() + ' ' + year, SHEET_COLS,
-                function(proj, measureKey) { return expGetVal(proj, measureKey, moNum); }
-            );
+            buildExpMatrixSheet(mWs, 'SAFETY EXPOSURES & MANHOURS — ' + moName.toUpperCase() + ' ' + year,
+                function(proj, key) { return expGetVal(proj, key, moNum); });
         });
+
+        // ── Sheet 14: OVERALL SUMMARY — per measure, rows=months, cols=projects ─
+        const expSumWs = wb.addWorksheet('OVERALL SUMMARY');
+        expAddNotes(expSumWs, 'SAFETY EXPOSURES & MANHOURS — Monthly breakdown per measure. Each section shows values for all projects grouped by region.');
+        expAddTitle(expSumWs, 'SAFETY EXPOSURES & MANHOURS — OVERALL SUMMARY ' + year);
+
+        EXP_MEASURES.forEach(function(meas, mIdx) {
+            // Spacer
+            expSumWs.addRow([]); expSumWs.getRow(expSumWs.rowCount).height = 6;
+            // Measure section banner
+            const mbr = expSumWs.addRow(['📊 ' + meas.label]);
+            expSumWs.mergeCells(mbr.number, 1, mbr.number, expTotalCols);
+            const mbc = mbr.getCell(1);
+            mbc.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' };
+            mbc.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + meas.color } };
+            mbc.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+            mbr.height    = 20;
+            // Region header
+            expAddRegionHdrRow(expSumWs);
+            // Column header
+            expAddColHdrRow(expSumWs, 'MONTH');
+
+            // One row per month
+            MO_LONG.forEach(function(moName, moIdx) {
+                const moNum = moIdx + 1;
+                const mRowData = [MO_SHORT[moIdx]];
+                expColMap.forEach(function(cm) {
+                    if (cm.type === 'proj') {
+                        mRowData.push(expGetVal(cm.proj, meas.key, moNum));
+                    } else if (cm.type === 'total') {
+                        let s = 0, any = false;
+                        expProjsByReg[cm.region].forEach(function(p) {
+                            const v = expGetVal(p, meas.key, moNum);
+                            if (v !== null) { s += v; any = true; }
+                        });
+                        mRowData.push(any ? s : null);
+                    } else {
+                        let s = 0, any = false;
+                        expOrderedProjs.forEach(function(p) {
+                            const v = expGetVal(p, meas.key, moNum);
+                            if (v !== null) { s += v; any = true; }
+                        });
+                        mRowData.push(any ? s : null);
+                    }
+                });
+                const mRow = expSumWs.addRow(mRowData);
+                mRow.height = 18;
+                expMonthLabel(mRow.getCell(1));
+                expColMap.forEach(function(cm, i) {
+                    const ci = EXP_LEFT + 1 + i;
+                    const cell = mRow.getCell(ci);
+                    const val  = mRowData[EXP_LEFT + i];
+                    if (cm.type === 'overall') expApplyOverall(cell, val);
+                    else if (cm.type === 'total') expApplyRegTotal(cell, val, mIdx);
+                    else expApplyData(cell, val, mIdx);
+                });
+            });
+
+            // YTD row
+            const ytdData = ['YTD'];
+            expColMap.forEach(function(cm) {
+                if (cm.type === 'proj') {
+                    ytdData.push(expYtd(cm.proj, meas.key));
+                } else if (cm.type === 'total') {
+                    let s = 0, any = false;
+                    expProjsByReg[cm.region].forEach(function(p) {
+                        const v = expYtd(p, meas.key);
+                        if (v !== null) { s += v; any = true; }
+                    });
+                    ytdData.push(any ? s : null);
+                } else {
+                    let s = 0, any = false;
+                    expOrderedProjs.forEach(function(p) {
+                        const v = expYtd(p, meas.key);
+                        if (v !== null) { s += v; any = true; }
+                    });
+                    ytdData.push(any ? s : null);
+                }
+            });
+            const ytdRow = expSumWs.addRow(ytdData);
+            ytdRow.height = 22;
+            const ytdLbl = ytdRow.getCell(1);
+            ytdLbl.value     = 'YTD';
+            ytdLbl.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+            ytdLbl.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + meas.color } };
+            ytdLbl.alignment = { horizontal: 'center', vertical: 'middle' };
+            ytdLbl.border    = { top:{style:'medium',color:{argb:'FFB0BEC5'}}, bottom:{style:'medium',color:{argb:'FFB0BEC5'}}, left:{style:'medium',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FFB0BEC5'}} };
+            expColMap.forEach(function(cm, i) {
+                const ci = EXP_LEFT + 1 + i;
+                const cell = expSumWs.getCell(ytdRow.number, ci);
+                const val  = ytdData[EXP_LEFT + i];
+                const bgColor = cm.type === 'overall' ? '1A237E' : cm.type === 'total' ? EXP_C_MED : meas.color;
+                cell.value     = (val !== null && val !== undefined) ? val : '—';
+                cell.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+                cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + bgColor } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.border    = { top:{style:'medium',color:{argb:'FFB0BEC5'}}, bottom:{style:'medium',color:{argb:'FFB0BEC5'}}, left:{style:'medium',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FFB0BEC5'}} };
+            });
+        });
+
+        expSetColWidths(expSumWs);
+        expSumWs.views = [{ state: 'frozen', xSplit: EXP_LEFT, ySplit: 2, activeCell: 'B3' }];
 
         await _xSave(wb, 'total-exposures'); return;
     }
