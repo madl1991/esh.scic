@@ -4086,10 +4086,11 @@ body.dark-mode #osh-req-body tr:nth-child(even) .osh-sticky-td { background: rgb
 .p-project-card td {
     white-space: nowrap;
     vertical-align: middle;
+    border: none !important;
 }
 .p-project-card tbody tr {
-    border-bottom: 1px solid var(--border-color);
     transition: background 0.15s;
+    border: none !important;
 }
 .p-project-card tbody tr:nth-child(even) { background: rgba(0,0,0,0.018); }
 body.dark-mode .p-project-card tbody tr:nth-child(even) { background: rgba(255,255,255,0.03); }
