@@ -21624,10 +21624,10 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
             return `<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div style="font-size:0.68rem;font-weight:700;color:${_col};">${_exp}</div><div style="font-size:0.56rem;font-weight:800;color:${_col};background:${_bg};padding:1px 5px;border-radius:8px;display:inline-block;margin-top:1px;">${_lbl}</div></td>`;
         })();
         rows += `
-        <tr id="p-row-${origIdx}" style="${rowBg}${hasToUpdate ? 'outline:1.5px solid #ef9a9a;' : ''}">
+        <tr id="p-row-${origIdx}" style="${rowBg}">
             <td style="text-align:left;position:sticky;left:0;z-index:5;${stickyBg}padding:5px 10px 5px 12px;white-space:nowrap;">
                 <span class="p-row-num">${di}</span>
-                <span class="p-view-text" onclick="pcViewPersonnel(${origIdx})" style="display:inline-block;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;cursor:pointer;text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(27,94,32,0.4);${hasToUpdate?'color:#c62828;font-weight:800;':'color:#1b5e20;font-weight:700;'}">${(p.name||'').toUpperCase()}</span>
+                <span class="p-view-text" onclick="pcViewPersonnel(${origIdx})" style="display:inline-block;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;cursor:pointer;text-decoration:none;${hasToUpdate?'color:#c62828;font-weight:800;':'color:#1b5e20;font-weight:700;'}">${(p.name||'').toUpperCase()}</span>
                 ${hasToUpdate ? `<i class="fas fa-circle-exclamation" title="TO UPDATE" style="font-size:0.75rem;color:#ef5350;margin-left:5px;vertical-align:middle;"></i>` : ''}
             </td>
             <td style="text-align:center;padding:5px 8px;white-space:nowrap;">${posDisplay}</td>
@@ -21757,12 +21757,21 @@ function renderPTable() {
     (state.masterProjects || state.projects || []).forEach(p => { if (p.name) projectRegionMap[p.name] = (p.region||'').toUpperCase(); });
     window._pRegionMap = projectRegionMap; // expose for personnelEditBtn helper
 
-    const corpPersonnel    = rawData.filter(p => p.current === 'Corporate Office' || projectRegionMap[p.current] === 'CORPORATE').sort((a,b) => {
+    const _personnelSortFn = (rankFn) => (a, b) => {
         const aOIC = a.oic ? 1 : 0;
         const bOIC = b.oic ? 1 : 0;
         if (bOIC !== aOIC) return bOIC - aOIC; // OIC goes first
-        return corpPosRank(a.pos) - corpPosRank(b.pos);
-    });
+        const rA = rankFn(a.pos), rB = rankFn(b.pos);
+        if (rA !== rB) return rA - rB;
+        // Same position: if First Aider, sort by date hired (earliest first)
+        if (a.pos === 'First Aider' && b.pos === 'First Aider') {
+            const dA = a.hired ? new Date(a.hired).getTime() : Infinity;
+            const dB = b.hired ? new Date(b.hired).getTime() : Infinity;
+            return dA - dB;
+        }
+        return 0;
+    };
+    const corpPersonnel    = rawData.filter(p => p.current === 'Corporate Office' || projectRegionMap[p.current] === 'CORPORATE').sort(_personnelSortFn(corpPosRank));
     const projectPersonnel = rawData.filter(p => p.current !== 'Corporate Office' && projectRegionMap[p.current] !== 'CORPORATE');
     projectPersonnel.forEach(p => { p._region = projectRegionMap[p.current] || 'OTHER'; });
 
@@ -21774,12 +21783,7 @@ function renderPTable() {
         regionGroups[r][p.current].push(p);
     });
 
-    Object.values(regionGroups).forEach(projMap => Object.values(projMap).forEach(arr => arr.sort((a,b) => {
-        const aOIC = a.oic ? 1 : 0;
-        const bOIC = b.oic ? 1 : 0;
-        if (bOIC !== aOIC) return bOIC - aOIC; // OIC goes first
-        return projPosRank(a.pos) - projPosRank(b.pos);
-    })));
+    Object.values(regionGroups).forEach(projMap => Object.values(projMap).forEach(arr => arr.sort(_personnelSortFn(projPosRank))));
 
     if ((state.personnelData||[]).length === 0) {
         container.innerHTML = '';
@@ -21814,7 +21818,7 @@ function renderPTable() {
             <tr id="p-row-${origIdx}" style="${_rowBg}${_hasToUpdate ? 'outline:1.5px solid #ef9a9a;' : ''}">
                 <td style="text-align:left;position:sticky;left:0;z-index:5;${_stickyBg}padding:5px 10px 5px 12px;white-space:nowrap;">
                     <span class="p-row-num">${di}</span>
-                    <span class="p-view-text" onclick="pcViewPersonnel(${origIdx})" style="display:inline-block;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;cursor:pointer;text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(27,94,32,0.4);${_hasToUpdate?'color:#c62828;font-weight:800;':'color:#1b5e20;font-weight:700;'}">${(p.name||'').toUpperCase()}</span>
+                    <span class="p-view-text" onclick="pcViewPersonnel(${origIdx})" style="display:inline-block;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;cursor:pointer;text-decoration:none;${_hasToUpdate?'color:#c62828;font-weight:800;':'color:#1b5e20;font-weight:700;'}">${(p.name||'').toUpperCase()}</span>
                     ${_hasToUpdate ? `<i class="fas fa-circle-exclamation" title="TO UPDATE" style="font-size:0.75rem;color:#ef5350;margin-left:5px;vertical-align:middle;"></i>` : ''}
                 </td>
                 <td style="text-align:center;padding:5px 8px;white-space:nowrap;">${posDisplay}</td>
@@ -21905,7 +21909,14 @@ function renderPTable() {
                     const aIsOIC = (state.personnelData[a._origIdx] || {}).oic ? 1 : 0;
                     const bIsOIC = (state.personnelData[b._origIdx] || {}).oic ? 1 : 0;
                     if (bIsOIC !== aIsOIC) return bIsOIC - aIsOIC; // OIC goes first
-                    return projPosRank(a.pos) - projPosRank(b.pos);
+                    const rA = projPosRank(a.pos), rB = projPosRank(b.pos);
+                    if (rA !== rB) return rA - rB;
+                    if (a.pos === 'First Aider' && b.pos === 'First Aider') {
+                        const dA = a.hired ? new Date(a.hired).getTime() : Infinity;
+                        const dB = b.hired ? new Date(b.hired).getTime() : Infinity;
+                        return dA - dB;
+                    }
+                    return 0;
                 });
                 return buildProjectCard(_pName, _pPersonnel, projOptions, displayIndexRef, false);
             })()}
