@@ -21763,10 +21763,13 @@ function renderPTable() {
         if (bOIC !== aOIC) return bOIC - aOIC; // OIC goes first
         const rA = rankFn(a.pos), rB = rankFn(b.pos);
         if (rA !== rB) return rA - rB;
-        // Same position level: sort by date hired (earliest first)
-        const dA = a.hired ? new Date(a.hired).getTime() : Infinity;
-        const dB = b.hired ? new Date(b.hired).getTime() : Infinity;
-        return dA - dB;
+        // Same position: if First Aider, sort by date hired (earliest first)
+        if (a.pos === 'First Aider' && b.pos === 'First Aider') {
+            const dA = a.hired ? new Date(a.hired).getTime() : Infinity;
+            const dB = b.hired ? new Date(b.hired).getTime() : Infinity;
+            return dA - dB;
+        }
+        return 0;
     };
     const corpPersonnel    = rawData.filter(p => p.current === 'Corporate Office' || projectRegionMap[p.current] === 'CORPORATE').sort(_personnelSortFn(corpPosRank));
     const projectPersonnel = rawData.filter(p => p.current !== 'Corporate Office' && projectRegionMap[p.current] !== 'CORPORATE');
@@ -32733,7 +32736,29 @@ window.pcViewPersonnel = function(idx) {
     }
 
     const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return isNaN(d)?s:d.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'}); };
-    const calcYOS = s => { if(!s) return '—'; const y=new Date().getFullYear()-new Date(s).getFullYear(); return `${y} yr${y!==1?'s':''}`; };
+    const calcYOS = s => {
+        if (!s) return '—';
+        const hired = new Date(s);
+        const today = new Date();
+        const msPerDay = 1000 * 60 * 60 * 24;
+        const totalDays = Math.floor((today - hired) / msPerDay);
+        if (totalDays < 0) return '0 days';
+        if (totalDays <= 1) return '1 day';
+        if (totalDays < 7) return totalDays + ' days';
+        if (totalDays < 14) return '1 wk.';
+        if (totalDays < 30) return Math.floor(totalDays / 7) + ' wks.';
+        let years = today.getFullYear() - hired.getFullYear();
+        const monthDiff = today.getMonth() - hired.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < hired.getDate())) years--;
+        if (years < 0) return '0 mos.';
+        if (years === 0) {
+            let months = (today.getFullYear() - hired.getFullYear()) * 12 + (today.getMonth() - hired.getMonth());
+            if (today.getDate() < hired.getDate()) months--;
+            if (months < 0) months = 0;
+            return months + ' mos.';
+        }
+        return years + ' yr' + (years !== 1 ? 's' : '');
+    };
 
     document.getElementById('pc-view-info-grid').innerHTML = [
         _iRow('ID Number',        p.id   || '—'),
