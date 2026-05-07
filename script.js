@@ -21757,7 +21757,12 @@ function renderPTable() {
     (state.masterProjects || state.projects || []).forEach(p => { if (p.name) projectRegionMap[p.name] = (p.region||'').toUpperCase(); });
     window._pRegionMap = projectRegionMap; // expose for personnelEditBtn helper
 
-    const corpPersonnel    = rawData.filter(p => p.current === 'Corporate Office' || projectRegionMap[p.current] === 'CORPORATE').sort((a,b) => corpPosRank(a.pos)-corpPosRank(b.pos));
+    const corpPersonnel    = rawData.filter(p => p.current === 'Corporate Office' || projectRegionMap[p.current] === 'CORPORATE').sort((a,b) => {
+        const aOIC = a.oic ? 1 : 0;
+        const bOIC = b.oic ? 1 : 0;
+        if (bOIC !== aOIC) return bOIC - aOIC; // OIC goes first
+        return corpPosRank(a.pos) - corpPosRank(b.pos);
+    });
     const projectPersonnel = rawData.filter(p => p.current !== 'Corporate Office' && projectRegionMap[p.current] !== 'CORPORATE');
     projectPersonnel.forEach(p => { p._region = projectRegionMap[p.current] || 'OTHER'; });
 
@@ -21769,7 +21774,12 @@ function renderPTable() {
         regionGroups[r][p.current].push(p);
     });
 
-    Object.values(regionGroups).forEach(projMap => Object.values(projMap).forEach(arr => arr.sort((a,b)=>projPosRank(a.pos)-projPosRank(b.pos))));
+    Object.values(regionGroups).forEach(projMap => Object.values(projMap).forEach(arr => arr.sort((a,b) => {
+        const aOIC = a.oic ? 1 : 0;
+        const bOIC = b.oic ? 1 : 0;
+        if (bOIC !== aOIC) return bOIC - aOIC; // OIC goes first
+        return projPosRank(a.pos) - projPosRank(b.pos);
+    })));
 
     if ((state.personnelData||[]).length === 0) {
         container.innerHTML = '';
@@ -21891,7 +21901,12 @@ function renderPTable() {
             ${_navBarHtml}
             ${(() => {
                 const _pName = _visibleProjName;
-                const _pPersonnel = (projMap[_pName] || []).sort((a,b) => projPosRank(a.pos)-projPosRank(b.pos));
+                const _pPersonnel = (projMap[_pName] || []).sort((a,b) => {
+                    const aIsOIC = (state.personnelData[a._origIdx] || {}).oic ? 1 : 0;
+                    const bIsOIC = (state.personnelData[b._origIdx] || {}).oic ? 1 : 0;
+                    if (bIsOIC !== aIsOIC) return bIsOIC - aIsOIC; // OIC goes first
+                    return projPosRank(a.pos) - projPosRank(b.pos);
+                });
                 return buildProjectCard(_pName, _pPersonnel, projOptions, displayIndexRef, false);
             })()}
         </div>`;
