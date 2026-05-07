@@ -21624,7 +21624,7 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
             return `<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div style="font-size:0.68rem;font-weight:700;color:${_col};">${_exp}</div><div style="font-size:0.56rem;font-weight:800;color:${_col};background:${_bg};padding:1px 5px;border-radius:8px;display:inline-block;margin-top:1px;">${_lbl}</div></td>`;
         })();
         rows += `
-        <tr id="p-row-${origIdx}" style="${rowBg}">
+        <tr id="p-row-${origIdx}" style="${rowBg}${hasToUpdate ? 'outline:1.5px solid #ef9a9a;' : ''}">
             <td style="text-align:left;position:sticky;left:0;z-index:5;${stickyBg}padding:5px 10px 5px 12px;white-space:nowrap;">
                 <span class="p-row-num">${di}</span>
                 <span class="p-view-text" onclick="pcViewPersonnel(${origIdx})" style="display:inline-block;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;cursor:pointer;text-decoration:none;${hasToUpdate?'color:#c62828;font-weight:800;':'color:#1b5e20;font-weight:700;'}">${(p.name||'').toUpperCase()}</span>
@@ -21763,13 +21763,10 @@ function renderPTable() {
         if (bOIC !== aOIC) return bOIC - aOIC; // OIC goes first
         const rA = rankFn(a.pos), rB = rankFn(b.pos);
         if (rA !== rB) return rA - rB;
-        // Same position: if First Aider, sort by date hired (earliest first)
-        if (a.pos === 'First Aider' && b.pos === 'First Aider') {
-            const dA = a.hired ? new Date(a.hired).getTime() : Infinity;
-            const dB = b.hired ? new Date(b.hired).getTime() : Infinity;
-            return dA - dB;
-        }
-        return 0;
+        // Same position level: sort by date hired (earliest first)
+        const dA = a.hired ? new Date(a.hired).getTime() : Infinity;
+        const dB = b.hired ? new Date(b.hired).getTime() : Infinity;
+        return dA - dB;
     };
     const corpPersonnel    = rawData.filter(p => p.current === 'Corporate Office' || projectRegionMap[p.current] === 'CORPORATE').sort(_personnelSortFn(corpPosRank));
     const projectPersonnel = rawData.filter(p => p.current !== 'Corporate Office' && projectRegionMap[p.current] !== 'CORPORATE');
