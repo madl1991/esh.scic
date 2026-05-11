@@ -1176,7 +1176,7 @@ function applyNumFmtToInputs() {
             
             presenceListener: null, // Firebase listener for presence updates
             deviceListener: null, // Firebase listener for device updates
-            complianceView: new Date().getMonth() + 1 // 0 = Overall, 1-12 = monthly (Jan-Dec); default to current month
+            complianceView: (new Date().getMonth() > 0 ? new Date().getMonth() : 12) // 0 = Overall, 1-12 = monthly; default to previous month (current month data incomplete)
         };
 
         window.DEBUG_MODE = true; // Set to false to disable debug logs
@@ -6496,7 +6496,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const _rcNow = new Date();
             const _rcSelYear = state.selectedYear || _rcNow.getFullYear();
             const _rcCurYear = _rcNow.getFullYear();
-            const _rcMaxMonth = (_rcSelYear === _rcCurYear) ? (_rcNow.getMonth() + 1) : 12;
+            const _rcMaxMonth = (_rcSelYear === _rcCurYear) ? (_rcNow.getMonth() > 0 ? _rcNow.getMonth() : 12) : 12; // previous month only
 
             let regionAvgs;
             if (_rcv === 0) {
@@ -14089,7 +14089,7 @@ function renderTabulation() {
             const _mcSelYear = state.selectedYear || _mcNow.getFullYear();
             const _mcCurYear = _mcNow.getFullYear();
             const _mcCurMonth = _mcNow.getMonth() + 1;
-            const _mcMaxMonth = (_mcSelYear === _mcCurYear) ? _mcCurMonth : 12;
+            const _mcMaxMonth = (_mcSelYear === _mcCurYear) ? (_mcCurMonth > 1 ? _mcCurMonth - 1 : 12) : 12; // show up to previous month only — current month data incomplete
             const _mcCv = state.complianceView || 0;
 
             // Compute overallAvg inline
@@ -14240,7 +14240,7 @@ function renderTabulation() {
                 const _mcSelYear = state.selectedYear || _mcNow.getFullYear();
                 const _mcCurYear = _mcNow.getFullYear();
                 const _mcCurMonth = _mcNow.getMonth() + 1; // 1-based
-                const _mcMaxMonth = (_mcSelYear === _mcCurYear) ? _mcCurMonth : 12;
+                const _mcMaxMonth = (_mcSelYear === _mcCurYear) ? (_mcCurMonth > 1 ? _mcCurMonth - 1 : 12) : 12; // show up to previous month only — current month data incomplete
                 const _mcCv = state.complianceView || 0; // 0=overall, 1-12=month
 
                 let _mcLabel, _mcValue;
@@ -25417,39 +25417,79 @@ async function deleteDoePermitPdf(projectName) {
 }
 
 function computeOshRequirements(manpower) {
+    // Based on DOLE Section 22. OSHS for the Construction Industry
     const n = Math.max(0, parseInt(manpower) || 0);
     if (n === 0) return null;
 
     let firstAider = 0, safetyOfficer = 0, ohNurse = 0, ohDentist = 0, ohPhysician = 0;
-    let soLabel = '', nurseLabel = '', physLabel = '';
+    let soLabel = '', nurseLabel = '', physLabel = '', dentistLabel = '';
 
     if (n >= 1 && n <= 9) {
+        // 1-9: 1 FA, 1 SO2, no nurse/dentist/physician
         firstAider = 1; safetyOfficer = 1; soLabel = '1 SO2';
+
     } else if (n >= 10 && n <= 50) {
+        // 10-50: 2 FA, 2 SO2, no nurse/dentist/physician
         firstAider = 2; safetyOfficer = 2; soLabel = '2 SO2';
+
     } else if (n >= 51 && n <= 99) {
-        firstAider = 2; safetyOfficer = 1; soLabel = '1 SO2';
-        ohNurse = 1; nurseLabel = '1 PT';
-    } else if (n >= 100 && n <= 199) {
-        firstAider = 3; safetyOfficer = 3; soLabel = '3 SO2 / 2 SO3';
-        ohNurse = 1; nurseLabel = '1 FT';
-        ohDentist = 1; ohPhysician = 1;
-        physLabel = '1 PT';
-    } else if (n >= 200 && n <= 500) {
-        firstAider = 6; safetyOfficer = 3; soLabel = '2 SO3 + 1 SO4';
+        // 51-99: 2 FA, 2 SO2, 2 PT Nurse, no dentist/physician
+        firstAider = 2; safetyOfficer = 2; soLabel = '2 SO2';
         ohNurse = 2; nurseLabel = '2 PT';
+
+    } else if (n >= 100 && n <= 199) {
+        // 100-199: 3 FA, 3 SO2/2 SO3, no nurse, no dentist, 1 PT Physician
+        firstAider = 3; safetyOfficer = 5; soLabel = '3 SO2/2 SO3';
+        ohPhysician = 1; physLabel = '1 PT';
+
+    } else if (n >= 200 && n <= 500) {
+        // 200-500: 6 FA, 2 SO3 + 1 SO4, 1 FT Nurse, 1 PT Dentist, 2 PT Physician
+        firstAider = 6; safetyOfficer = 3; soLabel = '2 SO3 + 1 SO4';
+        ohNurse = 1; nurseLabel = '1 FT';
+        ohDentist = 1; dentistLabel = '1 PT';
+        ohPhysician = 2; physLabel = '2 PT';
+
     } else {
+        // 501+: Rows from the table:
+        //   Base (200-500):  6 FA, 2 SO3+1 SO4 (3 SO), 1 FT Nurse, 1 PT Dentist, 2 PT Physician
+        //   501-2000 row:    FA=-, SO=-, Nurse=-, Dentist=-, Physician becomes 2 PT/1 FT (+1 FT)
+        //   Every +250 row:  +1 FT Nurse
+        //   Every +500 row:  +1 FA, +1 SO2, +4 PT/1 FT Physician (+5 total)
         const over500 = n - 500;
-        firstAider   = 6 + Math.floor(over500 / 500);
-        safetyOfficer = 3 + Math.floor(over500 / 500);
-        ohNurse      = 1 + Math.floor(over500 / 250);
-        ohPhysician  = Math.floor(over500 / 500);
-        soLabel = safetyOfficer + ' SO';
+        const blocks500 = Math.floor(over500 / 500);
+        const blocks250 = Math.floor(over500 / 250);
+
+        // First Aider: 6 base + 1 per every 500 over 500
+        firstAider = 6 + blocks500;
+
+        // Safety Officer: base 2 SO3+1 SO4 (3), + 1 SO2 per every 500 over 500
+        safetyOfficer = 3 + blocks500;
+        soLabel = blocks500 === 0
+            ? '2 SO3 + 1 SO4'
+            : '2 SO3 + 1 SO4 + ' + blocks500 + ' SO2';
+
+        // OH Nurse: 1 FT base + 1 FT per every 250 over 500
+        ohNurse = 1 + blocks250;
         nurseLabel = ohNurse + ' FT';
-        physLabel = ohPhysician > 0 ? ohPhysician + ' FT' : '–';
+
+        // OH Dentist: 1 PT (unchanged from 200-500 base)
+        ohDentist = 1;
+        dentistLabel = '1 PT';
+
+        // OH Physician:
+        //   501-2000 base: 2 PT + 1 FT = 3 (501-2000 row adds 1 FT to the 200-500 base of 2 PT)
+        //   Every +500 over 500: +4 PT/1 FT = +5 per block
+        ohPhysician = 3 + (blocks500 * 5);
+        if (blocks500 === 0) {
+            physLabel = '2 PT/1 FT';
+        } else {
+            const extraPT = blocks500 * 4;
+            const extraFT = blocks500 * 1;
+            physLabel = '2 PT/1 FT + ' + extraPT + ' PT/' + extraFT + ' FT';
+        }
     }
 
-    return { firstAider, safetyOfficer, ohNurse, ohDentist, ohPhysician, soLabel, nurseLabel, physLabel };
+    return { firstAider, safetyOfficer, ohNurse, ohDentist, ohPhysician, soLabel, nurseLabel, physLabel, dentistLabel };
 }
 
 function classifyOshPosition(pos) {
@@ -25653,7 +25693,7 @@ function renderOsh2() {
                 ${req ? makeCell('firstAider', req.firstAider, actual.firstAider, req.soLabel ? '' : '') : '<td style="text-align:center;color:#bdbdbd;font-size:0.7rem;">–</td>'}
                 ${req ? makeCell('safetyOfficer', req.safetyOfficer, actual.safetyOfficer, req.soLabel) : '<td style="text-align:center;color:#bdbdbd;font-size:0.7rem;">–</td>'}
                 ${req ? makeCell('ohNurse', req.ohNurse, actual.ohNurse, req.nurseLabel) : '<td style="text-align:center;color:#bdbdbd;font-size:0.7rem;">–</td>'}
-                ${req ? makeCell('ohDentist', req.ohDentist, actual.ohDentist, '') : '<td style="text-align:center;color:#bdbdbd;font-size:0.7rem;">–</td>'}
+                ${req ? makeCell('ohDentist', req.ohDentist, actual.ohDentist, req.dentistLabel||'') : '<td style="text-align:center;color:#bdbdbd;font-size:0.7rem;">–</td>'}
                 ${req ? makeCell('ohPhysician', req.ohPhysician, actual.ohPhysician, req.physLabel) : '<td style="text-align:center;color:#bdbdbd;font-size:0.7rem;">–</td>'}
                 <td style="padding:8px 6px;text-align:center;">${statusBadge}</td>
                 <td style="padding:6px 8px;min-width:150px;">
@@ -32736,29 +32776,7 @@ window.pcViewPersonnel = function(idx) {
     }
 
     const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return isNaN(d)?s:d.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'}); };
-    const calcYOS = s => {
-        if (!s) return '—';
-        const hired = new Date(s);
-        const today = new Date();
-        const msPerDay = 1000 * 60 * 60 * 24;
-        const totalDays = Math.floor((today - hired) / msPerDay);
-        if (totalDays < 0) return '0 days';
-        if (totalDays <= 1) return '1 day';
-        if (totalDays < 7) return totalDays + ' days';
-        if (totalDays < 14) return '1 wk.';
-        if (totalDays < 30) return Math.floor(totalDays / 7) + ' wks.';
-        let years = today.getFullYear() - hired.getFullYear();
-        const monthDiff = today.getMonth() - hired.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < hired.getDate())) years--;
-        if (years < 0) return '0 mos.';
-        if (years === 0) {
-            let months = (today.getFullYear() - hired.getFullYear()) * 12 + (today.getMonth() - hired.getMonth());
-            if (today.getDate() < hired.getDate()) months--;
-            if (months < 0) months = 0;
-            return months + ' mos.';
-        }
-        return years + ' yr' + (years !== 1 ? 's' : '');
-    };
+    const calcYOS = s => { if(!s) return '—'; const y=new Date().getFullYear()-new Date(s).getFullYear(); return `${y} yr${y!==1?'s':''}`; };
 
     document.getElementById('pc-view-info-grid').innerHTML = [
         _iRow('ID Number',        p.id   || '—'),
@@ -36726,53 +36744,570 @@ async function exportCurrentTabToExcel() {
     // OVERALL SUMMARY
     // ════════════════════════════════════════════════════════════════════════
     if (tab === 'overall') {
-        function ytdSum(p,key){let v=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,key,m));if(!isNaN(x))v+=x;}return v;}
-        const activeProjs=projs.filter(function(p){return p.region!=='CORPORATE'&&p.region!=='PLANT OPERATIONS';});
-        const ongoingProjs=activeProjs.filter(function(p){return !p.dateFinished&&p.status!=='work-stoppage';});
-        const wb=new ExcelJS.Workbook(); wb.creator='ESH'; wb.created=new Date();
-        const ws=wb.addWorksheet('Overall Summary');
-        const cols=12;
-        _xTitle(ws,'OVERALL ESH SUMMARY — '+year,cols);
-        const hdr=ws.addRow(['PROJECT','REGION','STATUS','COMPLIANCE %','MANHOURS (YTD)','MANPOWER','LTA','MED. TREATMENT','FIRST AID','FATALITY','HIGH-POTENTIAL','DAYS LOST']);
-        hdr.height=22; hdr.eachCell(_xHdr);
-        let ri=3;
-        REGIONS.forEach(function(region){
-            const rp=ongoingProjs.filter(function(p){return (p.region||'').toUpperCase()===region;});
-            if (!rp.length) return;
-            const ban=ws.addRow([region]); ws.mergeCells(ri,1,ri,cols);
-            _xBan(ban.getCell(1),'📌 '+region+' ('+rp.length+' project'+(rp.length!==1?'s':'')+')'); ban.height=16; ri++;
-            rp.forEach(function(proj,pIdx){
-                const curMonth=new Date().getMonth()+1;
-                const mp=parseFloat(_v(proj,'exposures_Total Manpower',curMonth))||0;
-                const mh=ytdSum(proj,'exposures_Total Exposed Manhour');
-                const lta=ytdSum(proj,'medical_LTA');
-                const med=ytdSum(proj,'medical_Medical Treatment');
-                const fa=ytdSum(proj,'medical_First Aid');
-                const fat=ytdSum(proj,'medical_Fatality');
-                const hi=ytdSum(proj,'medical_High-Potential incident');
-                const dl=ytdSum(proj,'medical_Days Lost/Charged');
-                const perc=(typeof getPerc==='function')?getPerc(proj):null;
-                const percStr=perc!==null?Math.round(perc)+'%':'—';
-                const dr=ws.addRow([proj.name||'',proj.region||'',proj.status||'Ongoing',percStr,mh||0,mp||0,lta||0,med||0,fa||0,fat||0,hi||0,dl||0]);
-                dr.height=15;
-                dr.getCell(1).font={bold:true,size:9,name:'Calibri'}; dr.getCell(1).alignment={vertical:'middle'};
-                dr.getCell(2).font={size:9,name:'Calibri'}; dr.getCell(2).alignment={vertical:'middle'};
-                for (let ci=3;ci<=cols;ci++){_xData(dr.getCell(ci),'center');}
-                // Compliance color
-                const pCell=dr.getCell(4); const pv=perc;
-                if (pv!==null){if(pv>=90){pCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFC8E6C9'}};pCell.font={bold:true,size:9,name:'Calibri',color:{argb:'FF1B5E20'}};}else if(pv>=75){pCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFF9C4'}};pCell.font={bold:true,size:9,name:'Calibri',color:{argb:'FF82500D'}};}else{pCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFCDD2'}};pCell.font={bold:true,size:9,name:'Calibri',color:{argb:'FFB71C1C'}};}}
-                // Red highlight for LTA / Fatality
-                const ltaCell=dr.getCell(7); if((lta||0)>0){ltaCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFCDD2'}};ltaCell.font={bold:true,size:9,name:'Calibri',color:{argb:'FFB71C1C'}};}
-                const fatCell=dr.getCell(10); if((fat||0)>0){fatCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFB71C1C'}};fatCell.font={bold:true,size:9,name:'Calibri',color:{argb:'FFFFFFFF'}};}
-                if (pIdx%2===0) _xAlt(dr,cols);
-                ri++;
+        // ── Use full state.projects — getReportProjects() strips work-stoppage ──
+        const _ovStateProjs = (state.filteredProjects || state.projects || []);
+
+        // ── Helpers ──────────────────────────────────────────────────────────
+        function _ovYtd(p,key){let v=0;for(let m=1;m<=12;m++){const x=parseFloat(_v(p,key,m));if(!isNaN(x))v+=x;}return v;}
+        function _ovFmt(n){return n>=1000?n.toLocaleString():String(n);}
+        function _ovCompColor(pv) {
+            if(pv===null) return null;
+            if(pv>=90) return {bg:'C8E6C9',fg:'1B5E20'};
+            if(pv>=75) return {bg:'FFF9C4',fg:'82500D'};
+            return {bg:'FFCDD2',fg:'B71C1C'};
+        }
+        function _ovApplyCompCell(cell, pv) {
+            const cc = _ovCompColor(pv);
+            if(!cc) return;
+            cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FF'+cc.bg}};
+            cell.font = {bold:true,size:9,name:'Calibri',color:{argb:'FF'+cc.fg}};
+            cell.alignment = {horizontal:'center',vertical:'middle'};
+        }
+        function _ovThinBorder(cell) {
+            cell.border = {
+                top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}},
+                left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}}
+            };
+        }
+
+        const MO_SHORT_OV = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+        const MO_LONG_OV  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const OV_REGIONS  = ['NCR','NORTH LUZON','SOUTH LUZON','VISAYAS & MINDANAO'];
+        // Previous month only — current month data is still incomplete
+        const curMonthOv  = new Date().getMonth()+1;
+
+        // ── Base project sets ─────────────────────────────────────────────────
+        // _ovOngoing  : status==='on-going' — matches UI ON-GOING stat card exactly
+        // _ovStopped  : status==='work-stoppage' — matches UI WORK STOPPAGE stat card
+        // _ovCompPool : compliance pool — excludes work-stoppage (matches complianceProjects in UI)
+        const _ovAllProjs = _ovStateProjs.filter(function(p){return p.region!=='CORPORATE'&&p.region!=='PLANT OPERATIONS';});
+        const _ovOngoing  = _ovAllProjs.filter(function(p){return p.status==='on-going';});
+        const _ovFinished = _ovAllProjs.filter(function(p){return !!p.dateFinished;});
+        const _ovStopped  = _ovAllProjs.filter(function(p){return p.status==='work-stoppage';});
+        const _ovCompPool = _ovAllProjs.filter(function(p){return p.status!=='work-stoppage'&&!(typeof isProjectOnStoppage==='function'&&isProjectOnStoppage(p));});
+
+        // ── Grand KPI totals (all projects) ──────────────────────────────────
+        const _ovTotalMH  = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'exposures_Total Exposed Manhour');},0);
+        const _ovTotalMp  = _ovAllProjs.reduce(function(s,p){const x=parseFloat(_v(p,'exposures_Total Manpower',curMonthOv));return s+(isNaN(x)?0:x);},0);
+        const _ovCumMH    = _ovAllProjs.reduce(function(s,p){
+            const prev=parseFloat((_v(p,'exposures_Total Exposed Man-hour to date',0)))||0;
+            return s+prev+_ovYtd(p,'exposures_Total Exposed Manhour');
+        },0);
+        const _ovTotalLTA = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'medical_LTA');},0);
+        const _ovTotalMed = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'medical_Medical Treatment');},0);
+        const _ovTotalFA  = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'medical_First Aid');},0);
+        const _ovTotalFat = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'medical_Fatality');},0);
+        const _ovTotalHI  = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'medical_High-Potential incident');},0);
+        const _ovTotalDO  = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'medical_Dangerous Occurrences');},0);
+        const _ovTotalNM  = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'activities_No. of Identified Near-Miss');},0);
+        const _ovTotalDL  = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'medical_Days Lost/Charged');},0);
+        const _ovFreqRate = _ovCumMH>0?((_ovTotalLTA/_ovCumMH)*1000000).toFixed(2):'—';
+        const _ovSevRate  = _ovCumMH>0?((_ovTotalDL/_ovCumMH)*1000000).toFixed(2):'—';
+
+        // ── Compliance KPIs (compPool — excludes work-stoppage) ───────────────
+        const _ovPercVals    = _ovCompPool.map(function(p){return typeof getPerc==='function'?getPerc(p):null;}).filter(function(v){return v!==null;});
+        const _ovGrandAvg    = _ovPercVals.length?Math.round(_ovPercVals.reduce(function(s,v){return s+v;},0)/_ovPercVals.length):null;
+        const _ovCompliant   = _ovCompPool.filter(function(p){const v=typeof getPerc==='function'?getPerc(p):null;return v!==null&&v>=90;}).length;
+        const _ovPartial     = _ovCompPool.filter(function(p){const v=typeof getPerc==='function'?getPerc(p):null;return v!==null&&v>=75&&v<90;}).length;
+        const _ovNonCompliant= _ovCompPool.filter(function(p){const v=typeof getPerc==='function'?getPerc(p):null;return v!==null&&v<75;}).length;
+
+        const wb = new ExcelJS.Workbook(); wb.creator='ESH'; wb.created=new Date();
+
+        // ════════════════════════════════════════════════════════════════════
+        // SHEET 1 — EXECUTIVE SUMMARY
+        // ════════════════════════════════════════════════════════════════════
+        (function _buildExecSummary() {
+            const ws = wb.addWorksheet('1. Executive Summary');
+            ws.views = [{showGridLines:false}];
+            ws.getColumn(1).width=26; ws.getColumn(2).width=16;
+            ws.getColumn(3).width=26; ws.getColumn(4).width=16;
+            ws.getColumn(5).width=26; ws.getColumn(6).width=16;
+
+            ws.mergeCells('A1:F1');
+            const tCell = ws.getCell('A1');
+            tCell.value     = 'SCIC — OVERALL ESH COMPLIANCE REPORT  ·  ' + year;
+            tCell.font      = {bold:true,size:14,name:'Calibri',color:{argb:'FFFFFFFF'}};
+            tCell.fill      = {type:'pattern',pattern:'solid',fgColor:{argb:'FF1B5E20'}};
+            tCell.alignment = {horizontal:'center',vertical:'middle'};
+            ws.getRow(1).height = 30;
+
+            ws.mergeCells('A2:F2');
+            const subCell = ws.getCell('A2');
+            const todayStr = new Date().toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'});
+            subCell.value     = 'As of ' + todayStr + '  ·  SCIC Environment, Safety & Health Department';
+            subCell.font      = {italic:true,size:9,name:'Calibri',color:{argb:'FFFFFFFF'}};
+            subCell.fill      = {type:'pattern',pattern:'solid',fgColor:{argb:'FF2E7D32'}};
+            subCell.alignment = {horizontal:'center',vertical:'middle'};
+            ws.getRow(2).height = 18;
+
+            let curR = 3;
+            function _secLabel(label) {
+                ws.getRow(curR).height = 6; curR++;
+                ws.mergeCells(curR,1,curR,6);
+                const c = ws.getCell(curR,1);
+                c.value = label;
+                c.font  = {bold:true,size:10,name:'Calibri',color:{argb:'FFFFFFFF'}};
+                c.fill  = {type:'pattern',pattern:'solid',fgColor:{argb:'FF37474F'}};
+                c.alignment = {horizontal:'left',vertical:'middle',indent:1};
+                ws.getRow(curR).height = 18; curR++;
+            }
+            function _setKpiCell(row, col, val, isBold, bgArgb, fgArgb, isLabel) {
+                const c = ws.getRow(row).getCell(col);
+                c.value = val;
+                c.font  = {bold:!!isBold, size:isLabel?8:11, name:'Calibri',
+                           color:{argb:'FF'+(fgArgb||(isLabel?'546E7A':'1B5E20'))}};
+                c.fill  = {type:'pattern',pattern:'solid',fgColor:{argb:'FF'+(bgArgb||(isLabel?'F5F5F5':'E8F5E9'))}};
+                c.alignment = {horizontal:isLabel?'right':'center', vertical:'middle', indent:isLabel?1:0};
+                _ovThinBorder(c);
+                ws.getRow(row).height = 22;
+            }
+
+            _secLabel('📊  PROJECT OVERVIEW & COMPLIANCE');
+            _setKpiCell(curR,1,'TOTAL PROJECTS',false,null,null,true);
+            _setKpiCell(curR,2,String(_ovAllProjs.length),true,'E8F5E9','1B5E20',false);
+            _setKpiCell(curR,3,'OVERALL COMPLIANCE',false,null,null,true);
+            const _occc=_ovCompColor(_ovGrandAvg);
+            _setKpiCell(curR,4,_ovGrandAvg!==null?_ovGrandAvg+'%':'—',true,_occc?_occc.bg:null,_occc?_occc.fg:null,false);
+            _setKpiCell(curR,5,'COMPLIANT (≥90%)',false,null,null,true);
+            _setKpiCell(curR,6,String(_ovCompliant),true,'C8E6C9','1B5E20',false); curR++;
+
+            _setKpiCell(curR,1,'ON-GOING',false,null,null,true);
+            _setKpiCell(curR,2,String(_ovOngoing.length),true,'E3F2FD','1565C0',false);
+            _setKpiCell(curR,3,'PARTIAL (75–89%)',false,null,null,true);
+            _setKpiCell(curR,4,String(_ovPartial),true,'FFF9C4','82500D',false);
+            _setKpiCell(curR,5,'NON-COMPLIANT (<75%)',false,null,null,true);
+            _setKpiCell(curR,6,String(_ovNonCompliant),true,_ovNonCompliant>0?'FFCDD2':'F5F5F5',_ovNonCompliant>0?'B71C1C':'757575',false); curR++;
+
+            _setKpiCell(curR,1,'FINISHED',false,null,null,true);
+            _setKpiCell(curR,2,String(_ovFinished.length),true,'F3E5F5','6A1B9A',false);
+            _setKpiCell(curR,3,'WORK STOPPAGE',false,null,null,true);
+            _setKpiCell(curR,4,String(_ovStopped.length),true,_ovStopped.length>0?'FFCDD2':'F5F5F5',_ovStopped.length>0?'B71C1C':'757575',false);
+            _setKpiCell(curR,5,'',false,'F5F5F5','F5F5F5',true);
+            _setKpiCell(curR,6,'',false,'F5F5F5','F5F5F5',false); curR++;
+
+            _secLabel('👷  MANPOWER & MANHOURS EXPOSURE');
+            _setKpiCell(curR,1,'TOTAL MANPOWER',false,null,null,true);
+            _setKpiCell(curR,2,_ovFmt(Math.round(_ovTotalMp)),true,'E3F2FD','1565C0',false);
+            _setKpiCell(curR,3,'YTD MANHOURS',false,null,null,true);
+            _setKpiCell(curR,4,_ovFmt(Math.round(_ovTotalMH)),true,'E0F2F1','00695C',false);
+            _setKpiCell(curR,5,'CUMULATIVE MANHOURS',false,null,null,true);
+            _setKpiCell(curR,6,_ovFmt(Math.round(_ovCumMH)),true,'E8EAF6','283593',false); curR++;
+
+            _setKpiCell(curR,1,'FREQUENCY RATE',false,null,null,true);
+            _setKpiCell(curR,2,String(_ovFreqRate),true,'E0F2F1','00695C',false);
+            _setKpiCell(curR,3,'SEVERITY RATE',false,null,null,true);
+            _setKpiCell(curR,4,String(_ovSevRate),true,'ECEFF1','37474F',false);
+            _setKpiCell(curR,5,'(per 1,000,000 manhours)',false,'F5F5F5','9E9E9E',true);
+            _setKpiCell(curR,6,'',false,'F5F5F5','F5F5F5',false); curR++;
+
+            _secLabel('🚨  INCIDENT SUMMARY (Year-to-Date)');
+            _setKpiCell(curR,1,'LOST TIME ACCIDENTS (LTA)',false,null,null,true);
+            _setKpiCell(curR,2,String(_ovTotalLTA),true,_ovTotalLTA>0?'FFCDD2':'E8F5E9',_ovTotalLTA>0?'B71C1C':'1B5E20',false);
+            _setKpiCell(curR,3,'MEDICAL TREATMENT CASES',false,null,null,true);
+            _setKpiCell(curR,4,String(_ovTotalMed),true,_ovTotalMed>0?'FFE0B2':'FFF8E1',_ovTotalMed>0?'E65100':'F57F17',false);
+            _setKpiCell(curR,5,'FIRST AID CASES',false,null,null,true);
+            _setKpiCell(curR,6,String(_ovTotalFA),true,'E1F5FE','0277BD',false); curR++;
+
+            _setKpiCell(curR,1,'FATALITIES',false,null,null,true);
+            _setKpiCell(curR,2,String(_ovTotalFat),true,_ovTotalFat>0?'B71C1C':'E8F5E9',_ovTotalFat>0?'FFFFFF':'1B5E20',false);
+            _setKpiCell(curR,3,'HIGH-POTENTIAL INCIDENTS',false,null,null,true);
+            _setKpiCell(curR,4,String(_ovTotalHI),true,_ovTotalHI>0?'FFE0B2':'F5F5F5',_ovTotalHI>0?'E65100':'757575',false);
+            _setKpiCell(curR,5,'DAYS LOST / CHARGED',false,null,null,true);
+            _setKpiCell(curR,6,String(_ovTotalDL),true,_ovTotalDL>0?'FFCDD2':'F5F5F5',_ovTotalDL>0?'B71C1C':'757575',false); curR++;
+
+            _setKpiCell(curR,1,'DANGEROUS OCCURRENCES',false,null,null,true);
+            _setKpiCell(curR,2,String(_ovTotalDO),true,_ovTotalDO>0?'FFE0B2':'F5F5F5',_ovTotalDO>0?'E65100':'757575',false);
+            _setKpiCell(curR,3,'NEAR MISS IDENTIFIED',false,null,null,true);
+            _setKpiCell(curR,4,String(_ovTotalNM),true,'EDE7F6','4A148C',false);
+            _setKpiCell(curR,5,'',false,'F5F5F5','F5F5F5',true);
+            _setKpiCell(curR,6,'',false,'F5F5F5','F5F5F5',false); curR++;
+
+            ws.getRow(curR).height = 6; curR++;
+            ws.mergeCells(curR,1,curR,6);
+            const lgCell = ws.getCell(curR,1);
+            lgCell.value     = '● COMPLIANCE LEGEND:   ≥90% = Compliant (Green)     75–89% = Partial (Yellow)     <75% = Non-Compliant (Red)';
+            lgCell.font      = {italic:true,size:8,name:'Calibri',color:{argb:'FF546E7A'}};
+            lgCell.fill      = {type:'pattern',pattern:'solid',fgColor:{argb:'FFF5F5F5'}};
+            lgCell.alignment = {horizontal:'center',vertical:'middle'};
+            ws.getRow(curR).height = 16;
+        })();
+
+        // ════════════════════════════════════════════════════════════════════
+        // SHEET 2 — REGIONAL BREAKDOWN
+        // ════════════════════════════════════════════════════════════════════
+        (function _buildRegionalBreakdown() {
+            const ws = wb.addWorksheet('2. Regional Breakdown');
+            ws.views = [{state:'frozen',ySplit:3,activeCell:'A4'}];
+
+            const _rCols = 15; // +2 for DO and NM
+            ws.mergeCells(1,1,1,_rCols);
+            const tCell = ws.getCell('A1');
+            tCell.value     = 'REGIONAL BREAKDOWN — OVERALL ESH SUMMARY  ·  ' + year;
+            tCell.font      = {bold:true,size:13,name:'Calibri',color:{argb:'FFFFFFFF'}};
+            tCell.fill      = {type:'pattern',pattern:'solid',fgColor:{argb:'FF1B5E20'}};
+            tCell.alignment = {horizontal:'center',vertical:'middle'};
+            ws.getRow(1).height = 26;
+
+            ws.mergeCells(2,1,2,_rCols);
+            const sh = ws.getCell('A2');
+            sh.value     = 'All active projects per region  ·  Compliance % excludes work-stoppage  ·  Figures are Year-to-Date unless noted';
+            sh.font      = {italic:true,size:8,name:'Calibri',color:{argb:'FFFFFFFF'}};
+            sh.fill      = {type:'pattern',pattern:'solid',fgColor:{argb:'FF2E7D32'}};
+            sh.alignment = {horizontal:'center',vertical:'middle'};
+            ws.getRow(2).height = 14;
+
+            const hdrLabels = [
+                'REGION','PROJECTS','ON-GOING','STOPPAGE',
+                'MANPOWER\n(Current Mo.)','YTD MANHOURS','COMPLIANCE %',
+                'LTA','MED.\nTREATMENT','FIRST AID','FATALITY','HI INC.','DAYS LOST',
+                'DANGEROUS\nOCCURRENCES','NEAR MISS\nIDENTIFIED'
+            ];
+            const hRow = ws.addRow(hdrLabels);
+            hRow.height = 28; hRow.eachCell(_xHdr);
+
+            ws.getColumn(1).width=26; ws.getColumn(2).width=11; ws.getColumn(3).width=11;
+            ws.getColumn(4).width=11; ws.getColumn(5).width=16; ws.getColumn(6).width=18;
+            ws.getColumn(7).width=15; ws.getColumn(8).width=10; ws.getColumn(9).width=11;
+            ws.getColumn(10).width=10; ws.getColumn(11).width=10; ws.getColumn(12).width=10;
+            ws.getColumn(13).width=12; ws.getColumn(14).width=14; ws.getColumn(15).width=13;
+
+            let _gtProj=0,_gtOngo=0,_gtStop=0,_gtMp=0,_gtMH=0;
+            let _gtLTA=0,_gtMed=0,_gtFA=0,_gtFat=0,_gtHI=0,_gtDL=0,_gtDO=0,_gtNM=0;
+            const _gtPercVals=[];
+
+            OV_REGIONS.forEach(function(region,rIdx) {
+                const rp = _ovAllProjs.filter(function(p){return (p.region||'').toUpperCase()===region;});
+                if(!rp.length) return;
+                const rOngo = rp.filter(function(p){return p.status==='on-going';}).length;
+                const rStop = rp.filter(function(p){return p.status==='work-stoppage';}).length;
+                const rMp   = rp.reduce(function(s,p){const x=parseFloat(_v(p,'exposures_Total Manpower',curMonthOv));return s+(isNaN(x)?0:x);},0);
+                const rMH   = rp.reduce(function(s,p){return s+_ovYtd(p,'exposures_Total Exposed Manhour');},0);
+                const rLTA  = rp.reduce(function(s,p){return s+_ovYtd(p,'medical_LTA');},0);
+                const rMed  = rp.reduce(function(s,p){return s+_ovYtd(p,'medical_Medical Treatment');},0);
+                const rFA   = rp.reduce(function(s,p){return s+_ovYtd(p,'medical_First Aid');},0);
+                const rFat  = rp.reduce(function(s,p){return s+_ovYtd(p,'medical_Fatality');},0);
+                const rHI   = rp.reduce(function(s,p){return s+_ovYtd(p,'medical_High-Potential incident');},0);
+                const rDL   = rp.reduce(function(s,p){return s+_ovYtd(p,'medical_Days Lost/Charged');},0);
+                const rDO   = rp.reduce(function(s,p){return s+_ovYtd(p,'medical_Dangerous Occurrences');},0);
+                const rNM   = rp.reduce(function(s,p){return s+_ovYtd(p,'activities_No. of Identified Near-Miss');},0);
+                const rCompProjs = rp.filter(function(p){return p.status!=='work-stoppage'&&!(typeof isProjectOnStoppage==='function'&&isProjectOnStoppage(p));});
+                const rPV   = rCompProjs.map(function(p){return typeof getPerc==='function'?getPerc(p):null;}).filter(function(v){return v!==null;});
+                const rAvg  = rPV.length?Math.round(rPV.reduce(function(s,v){return s+v;},0)/rPV.length):null;
+
+                _gtProj+=rp.length; _gtOngo+=rOngo; _gtStop+=rStop;
+                _gtMp+=rMp; _gtMH+=rMH; _gtLTA+=rLTA; _gtMed+=rMed;
+                _gtFA+=rFA; _gtFat+=rFat; _gtHI+=rHI; _gtDL+=rDL;
+                _gtDO+=rDO; _gtNM+=rNM;
+                rPV.forEach(function(v){_gtPercVals.push(v);});
+
+                const dr = ws.addRow([
+                    region, rp.length, rOngo, rStop,
+                    Math.round(rMp), Math.round(rMH),
+                    rAvg!==null?rAvg+'%':'—',
+                    rLTA, rMed, rFA, rFat, rHI, rDL, rDO, rNM
+                ]);
+                dr.height = 18;
+                const rc1 = dr.getCell(1);
+                rc1.font = {bold:true,size:9,name:'Calibri',color:{argb:'FF1B5E20'}};
+                rc1.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FFE8F5E9'}};
+                rc1.alignment = {vertical:'middle',horizontal:'left',indent:1};
+                _ovThinBorder(rc1);
+                for(let ci=2;ci<=_rCols;ci++){
+                    const c=dr.getCell(ci);
+                    c.font={size:9,name:'Calibri'};
+                    c.alignment={horizontal:'center',vertical:'middle'};
+                    _ovThinBorder(c);
+                    if(rIdx%2===1) c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF1F8E9'}};
+                }
+                _ovApplyCompCell(dr.getCell(7), rAvg);
+                if(rLTA>0){dr.getCell(8).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFCDD2'}};dr.getCell(8).font={bold:true,size:9,name:'Calibri',color:{argb:'FFB71C1C'}};}
+                if(rFat>0){dr.getCell(11).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFB71C1C'}};dr.getCell(11).font={bold:true,size:9,name:'Calibri',color:{argb:'FFFFFFFF'}};}
             });
-            ws.getRow(ri).height=5; ri++;
-        });
-        ws.getColumn(1).width=36; ws.getColumn(2).width=22; ws.getColumn(3).width=14;
-        ws.getColumn(4).width=14; ws.getColumn(5).width=16; ws.getColumn(6).width=12;
-        for (let ci=7;ci<=cols;ci++) ws.getColumn(ci).width=14;
-        ws.views=[{state:'frozen',ySplit:2,activeCell:'A3'}];
+
+            const _gtAvg = _gtPercVals.length?Math.round(_gtPercVals.reduce(function(s,v){return s+v;},0)/_gtPercVals.length):null;
+            const gtRow = ws.addRow([
+                'GRAND TOTAL', _gtProj, _gtOngo, _gtStop,
+                Math.round(_gtMp), Math.round(_gtMH),
+                _gtAvg!==null?_gtAvg+'%':'—',
+                _gtLTA, _gtMed, _gtFA, _gtFat, _gtHI, _gtDL, _gtDO, _gtNM
+            ]);
+            gtRow.height = 22;
+            gtRow.eachCell(function(c,ci){
+                c.font = {bold:true,size:10,name:'Calibri',color:{argb:'FF1B5E20'}};
+                c.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FFE8F5E9'}};
+                c.alignment = {horizontal:ci===1?'left':'center',vertical:'middle',indent:ci===1?1:0};
+                c.border = {
+                    top:{style:'medium',color:{argb:'FF2E7D32'}}, bottom:{style:'medium',color:{argb:'FF2E7D32'}},
+                    left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}}
+                };
+            });
+            _ovApplyCompCell(gtRow.getCell(7), _gtAvg);
+            if(_gtLTA>0){gtRow.getCell(8).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFCDD2'}};gtRow.getCell(8).font={bold:true,size:10,name:'Calibri',color:{argb:'FFB71C1C'}};}
+            if(_gtFat>0){gtRow.getCell(11).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFB71C1C'}};gtRow.getCell(11).font={bold:true,size:10,name:'Calibri',color:{argb:'FFFFFFFF'}};}
+        })();
+
+        // ════════════════════════════════════════════════════════════════════
+        // SHEET 3 — MONTHLY COMPLIANCE TREND
+        // ════════════════════════════════════════════════════════════════════
+        (function _buildMonthlyTrend() {
+            const ws = wb.addWorksheet('3. Monthly Compliance Trend');
+            ws.views = [{state:'frozen',xSplit:1,ySplit:3,activeCell:'B4'}];
+            const _tCols = 1 + OV_REGIONS.length + 1;
+
+            ws.mergeCells(1,1,1,_tCols);
+            const tCell = ws.getCell('A1');
+            tCell.value     = 'MONTHLY COMPLIANCE TREND  ·  ' + year;
+            tCell.font      = {bold:true,size:13,name:'Calibri',color:{argb:'FFFFFFFF'}};
+            tCell.fill      = {type:'pattern',pattern:'solid',fgColor:{argb:'FF1B5E20'}};
+            tCell.alignment = {horizontal:'center',vertical:'middle'};
+            ws.getRow(1).height = 26;
+
+            ws.mergeCells(2,1,2,_tCols);
+            const sh = ws.getCell('A2');
+            sh.value     = 'Equal-weight compliance per area, per ongoing project  ·  Excludes CORPORATE & PLANT OPERATIONS  ·  Up to previous month only';
+            sh.font      = {italic:true,size:8,name:'Calibri',color:{argb:'FFFFFFFF'}};
+            sh.fill      = {type:'pattern',pattern:'solid',fgColor:{argb:'FF2E7D32'}};
+            sh.alignment = {horizontal:'center',vertical:'middle'};
+            ws.getRow(2).height = 14;
+
+            const hdrVals = ['MONTH'].concat(OV_REGIONS).concat(['OVERALL']);
+            const hRow = ws.addRow(hdrVals);
+            hRow.height = 22; hRow.eachCell(_xHdr);
+            hRow.getCell(_tCols).fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FF1A237E'}};
+
+            ws.getColumn(1).width = 18;
+            for(let ci=2;ci<=_tCols;ci++) ws.getColumn(ci).width = 20;
+
+            // Previous month only — current month data is still incomplete
+            const maxMo = (year===new Date().getFullYear()) ? (new Date().getMonth()||12) : 12;
+
+            MO_LONG_OV.forEach(function(mo, mi) {
+                const moIdx = mi+1;
+                const dataRow = [mo];
+                OV_REGIONS.forEach(function(region) {
+                    const rv = typeof getMonthlyComplianceByRegion==='function'?getMonthlyComplianceByRegion(moIdx,region):null;
+                    dataRow.push(rv!==null?rv+'%':null);
+                });
+                const ov = typeof getMonthlyCompliance==='function'?getMonthlyCompliance(moIdx):null;
+                dataRow.push(ov!==null?ov+'%':null);
+
+                const dr = ws.addRow(dataRow);
+                dr.height = 18;
+                const mc = dr.getCell(1);
+                mc.font = {bold:true,size:9,name:'Calibri'};
+                mc.fill = {type:'pattern',pattern:'solid',fgColor:{argb:'FFE8F5E9'}};
+                mc.alignment = {horizontal:'left',vertical:'middle',indent:1};
+                _ovThinBorder(mc);
+
+                if(moIdx>maxMo) {
+                    for(let ci=2;ci<=_tCols;ci++){
+                        const c=dr.getCell(ci);
+                        c.value='—'; c.font={size:9,name:'Calibri',color:{argb:'FFB0BEC5'}};
+                        c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF5F5F5'}};
+                        c.alignment={horizontal:'center',vertical:'middle'};
+                        _ovThinBorder(c);
+                    }
+                } else {
+                    for(let ci=2;ci<=_tCols;ci++){
+                        const c=dr.getCell(ci);
+                        const raw=dataRow[ci-1];
+                        const pv=raw?parseInt(raw):null;
+                        c.alignment={horizontal:'center',vertical:'middle'};
+                        _ovThinBorder(c);
+                        if(pv===null){
+                            c.value='—'; c.font={size:9,name:'Calibri',color:{argb:'FFB0BEC5'}};
+                        } else if(ci===_tCols) {
+                            c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE8EAF6'}};
+                            c.font={bold:true,size:10,name:'Calibri',color:{argb:'FF1A237E'}};
+                        } else {
+                            _ovApplyCompCell(c, pv);
+                        }
+                    }
+                }
+            });
+
+            ws.addRow([]).height = 4;
+            const ovRow = ws.addRow(['OVERALL AVG'].concat(
+                OV_REGIONS.map(function(r){
+                    const rPV=_ovCompPool.filter(function(p){return(p.region||'').toUpperCase()===r;}).map(function(p){return typeof getPerc==='function'?getPerc(p):null;}).filter(function(v){return v!==null;});
+                    const rAvg=rPV.length?Math.round(rPV.reduce(function(s,v){return s+v;},0)/rPV.length):null;
+                    return rAvg!==null?rAvg+'%':'—';
+                })
+            ).concat([_ovGrandAvg!==null?_ovGrandAvg+'%':'—']));
+            ovRow.height=22;
+            ovRow.eachCell(function(c,ci){
+                c.font={bold:true,size:10,name:'Calibri'};
+                c.border={top:{style:'medium',color:{argb:'FF2E7D32'}},bottom:{style:'medium',color:{argb:'FF2E7D32'}},
+                          left:{style:'thin',color:{argb:'FFB0BEC5'}},right:{style:'thin',color:{argb:'FFB0BEC5'}}};
+                if(ci===1){
+                    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE8F5E9'}};
+                    c.alignment={horizontal:'left',vertical:'middle',indent:1};
+                } else {
+                    const pv=c.value&&c.value!=='—'?parseInt(c.value):null;
+                    if(pv!==null){
+                        if(ci===_tCols){
+                            c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE8EAF6'}};
+                            c.font={bold:true,size:10,name:'Calibri',color:{argb:'FF1A237E'}};
+                        } else {
+                            _ovApplyCompCell(c,pv);
+                        }
+                    } else {
+                        c.font={bold:true,size:9,name:'Calibri',color:{argb:'FFB0BEC5'}};
+                        c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF5F5F5'}};
+                        c.alignment={horizontal:'center',vertical:'middle'};
+                    }
+                }
+            });
+        })();
+
+        // ════════════════════════════════════════════════════════════════════
+        // SHEET 4 — PROJECT DETAIL
+        // ════════════════════════════════════════════════════════════════════
+        (function _buildProjectDetail() {
+            const ws = wb.addWorksheet('4. Project Detail');
+
+            // Previous month only — current month data is still incomplete
+            const _sh4MaxMo  = (year===new Date().getFullYear()) ? (new Date().getMonth()||12) : 12;
+            const _fixedCols = 4;
+            const _extraCols = 9; // YTD MH | Manpower | LTA | Med | FA | Fatality | HI | Days Lost | DO
+            const _totalCols = _fixedCols + _sh4MaxMo + _extraCols;
+
+            ws.views = [{state:'frozen',xSplit:3,ySplit:3,activeCell:'D4'}];
+
+            ws.mergeCells(1,1,1,_totalCols);
+            const tCell = ws.getCell('A1');
+            tCell.value     = 'PROJECT DETAIL — ESH SUMMARY  ·  ' + year;
+            tCell.font      = {bold:true,size:13,name:'Calibri',color:{argb:'FFFFFFFF'}};
+            tCell.fill      = {type:'pattern',pattern:'solid',fgColor:{argb:'FF1B5E20'}};
+            tCell.alignment = {horizontal:'center',vertical:'middle'};
+            ws.getRow(1).height = 26;
+
+            ws.mergeCells(2,1,2,_totalCols);
+            const sh = ws.getCell('A2');
+            sh.value     = 'All projects grouped by region  ·  🔴 Work Stoppage  |  ⬜ Finished  |  🟢 On-Going  ·  Monthly cols = regional compliance avg (up to previous month)  ·  YTD incident totals per project';
+            sh.font      = {italic:true,size:8,name:'Calibri',color:{argb:'FFFFFFFF'}};
+            sh.fill      = {type:'pattern',pattern:'solid',fgColor:{argb:'FF2E7D32'}};
+            sh.alignment = {horizontal:'center',vertical:'middle'};
+            ws.getRow(2).height = 14;
+
+            const _sh4MoHeaders = MO_SHORT_OV.slice(0,_sh4MaxMo).map(function(m){return m+'\n(REG. AVG)';});
+            const hdrVals = ['REGION','PROJECT','STATUS','OVERALL\nCOMPLIANCE'].concat(_sh4MoHeaders)
+                .concat(['YTD\nMANHOURS','MANPOWER','LTA','MED.\nTREATMENT','FIRST\nAID','FATALITY','HIGH-\nPOTENTIAL','DANGEROUS\nOCCURRENCES','DAYS\nLOST']);
+            const hRow = ws.addRow(hdrVals);
+            hRow.height=28; hRow.eachCell(_xHdr);
+            for(let ci=_fixedCols+1;ci<=_fixedCols+_sh4MaxMo;ci++){
+                hRow.getCell(ci).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF37474F'}};
+            }
+
+            ws.getColumn(1).width=22; ws.getColumn(2).width=34; ws.getColumn(3).width=14; ws.getColumn(4).width=14;
+            for(let ci=5;ci<=_fixedCols+_sh4MaxMo;ci++) ws.getColumn(ci).width=9;
+            ws.getColumn(_fixedCols+_sh4MaxMo+1).width=14;
+            ws.getColumn(_fixedCols+_sh4MaxMo+2).width=12;
+            for(let ci=_fixedCols+_sh4MaxMo+3;ci<=_totalCols-1;ci++) ws.getColumn(ci).width=12;
+            ws.getColumn(_totalCols).width=14; // DO col
+
+            function _sh4Sort(a,b){
+                const ord=function(p){return p.status==='on-going'?0:p.dateFinished?1:p.status==='work-stoppage'?2:0;};
+                return ord(a)-ord(b);
+            }
+
+            let projRowIdx=0;
+            OV_REGIONS.forEach(function(region){
+                const rp=_ovAllProjs.filter(function(p){return(p.region||'').toUpperCase()===region;}).slice().sort(_sh4Sort);
+                if(!rp.length) return;
+
+                const rpOngo=rp.filter(function(p){return p.status==='on-going';}).length;
+                const rpStop=rp.filter(function(p){return p.status==='work-stoppage';}).length;
+                const rpFin =rp.filter(function(p){return !!p.dateFinished;}).length;
+
+                const banRow=ws.addRow([]);
+                ws.mergeCells(banRow.number,1,banRow.number,_totalCols);
+                const banCell=banRow.getCell(1);
+                banCell.value='📌 '+region+' — '+rp.length+' project'+(rp.length!==1?'s':'')+
+                    '  (On-going: '+rpOngo+(rpStop?' · Work Stoppage: '+rpStop:'')+(rpFin?' · Finished: '+rpFin:'')+')';
+                banCell.font={bold:true,size:10,name:'Calibri',color:{argb:'FFFFFFFF'}};
+                banCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1B5E20'}};
+                banCell.alignment={horizontal:'left',vertical:'middle',indent:1};
+                banRow.height=16;
+
+                rp.forEach(function(proj){
+                    const isWS      = proj.status==='work-stoppage';
+                    const isFin     = !!proj.dateFinished && !isWS;
+                    const isInactive= isWS||isFin;
+                    const isAlt     = projRowIdx%2===1;
+                    const rowBg     = isWS?(isAlt?'FFE5E5':'FFF5F5'):isFin?(isAlt?'EEEEEE':'F5F5F5'):(isAlt?'F1F8E9':'FFFFFF');
+                    projRowIdx++;
+
+                    const perc = (!isWS&&typeof getPerc==='function')?getPerc(proj):null;
+                    const mh   = _ovYtd(proj,'exposures_Total Exposed Manhour');
+                    const mp   = parseFloat(_v(proj,'exposures_Total Manpower',curMonthOv))||0;
+                    const lta  = _ovYtd(proj,'medical_LTA');
+                    const med  = _ovYtd(proj,'medical_Medical Treatment');
+                    const fa   = _ovYtd(proj,'medical_First Aid');
+                    const fat  = _ovYtd(proj,'medical_Fatality');
+                    const hi   = _ovYtd(proj,'medical_High-Potential incident');
+                    const dl   = _ovYtd(proj,'medical_Days Lost/Charged');
+                    const pdo  = _ovYtd(proj,'medical_Dangerous Occurrences');
+                    const statusLabel = isWS?'WORK STOPPAGE':isFin?'FINISHED':'On-Going';
+
+                    const moComps = MO_LONG_OV.slice(0,_sh4MaxMo).map(function(_,mi){
+                        if(isInactive||typeof getMonthlyComplianceByRegion!=='function') return null;
+                        return getMonthlyComplianceByRegion(mi+1,(proj.region||'').toUpperCase());
+                    });
+
+                    const _moStartCol  = _fixedCols+1;
+                    const _moEndCol    = _fixedCols+_sh4MaxMo;
+                    const _incStartCol = _moEndCol+1;
+                    const _ltaCol      = _incStartCol+2;
+                    const _fatCol      = _incStartCol+5;
+
+                    const rowVals = [proj.region||'',proj.name||'',statusLabel,perc!==null?Math.round(perc)+'%':'—']
+                        .concat(moComps.map(function(v){return v!==null?v+'%':'—';}))
+                        .concat([Math.round(mh)||0,Math.round(mp)||0,lta||0,med||0,fa||0,fat||0,hi||0,pdo||0,dl||0]);
+
+                    const dr=ws.addRow(rowVals);
+                    dr.height=15;
+
+                    for(let ci=1;ci<=3;ci++){
+                        const c=dr.getCell(ci);
+                        c.font={size:9,name:'Calibri',bold:ci===2,color:{argb:isWS?'FFB71C1C':isFin?'FF757575':'FF212121'}};
+                        c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+rowBg}};
+                        c.alignment={vertical:'middle',horizontal:'left',indent:1,wrapText:false};
+                        _ovThinBorder(c);
+                    }
+                    const stCell=dr.getCell(3);
+                    if(isWS){stCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFB71C1C'}};stCell.font={bold:true,size:8,name:'Calibri',color:{argb:'FFFFFFFF'}};stCell.alignment={horizontal:'center',vertical:'middle'};}
+                    else if(isFin){stCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF9E9E9E'}};stCell.font={bold:true,size:8,name:'Calibri',color:{argb:'FFFFFFFF'}};stCell.alignment={horizontal:'center',vertical:'middle'};}
+
+                    const pCell=dr.getCell(4);
+                    pCell.alignment={horizontal:'center',vertical:'middle'}; _ovThinBorder(pCell);
+                    if(isInactive){pCell.value='—';pCell.font={size:9,name:'Calibri',color:{argb:'FFB0BEC5'}};pCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+rowBg}};}
+                    else{_ovApplyCompCell(pCell,perc);if(perc===null){pCell.font={size:9,name:'Calibri'};pCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+rowBg}};}}
+
+                    for(let ci=_moStartCol;ci<=_moEndCol;ci++){
+                        const c=dr.getCell(ci);
+                        const pv=c.value&&c.value!=='—'?parseInt(c.value):null;
+                        c.alignment={horizontal:'center',vertical:'middle'}; _ovThinBorder(c);
+                        if(isInactive||pv===null){c.value='—';c.font={size:8,name:'Calibri',color:{argb:'FFD0D0D0'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+rowBg}};}
+                        else{_ovApplyCompCell(c,pv);c.font={size:8,name:'Calibri',bold:true,color:{argb:'FF'+(_ovCompColor(pv)||{fg:'1B5E20'}).fg}};}
+                    }
+
+                    for(let ci=_incStartCol;ci<=_totalCols;ci++){
+                        const c=dr.getCell(ci);
+                        c.font={size:9,name:'Calibri',color:{argb:isInactive?'FF9E9E9E':'FF212121'}};
+                        c.alignment={horizontal:'center',vertical:'middle'};
+                        c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+rowBg}};
+                        _ovThinBorder(c);
+                    }
+                    const ltaC=dr.getCell(_ltaCol);
+                    if((lta||0)>0){ltaC.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFCDD2'}};ltaC.font={bold:true,size:9,name:'Calibri',color:{argb:'FFB71C1C'}};}
+                    const fatC=dr.getCell(_fatCol);
+                    if((fat||0)>0){fatC.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFB71C1C'}};fatC.font={bold:true,size:9,name:'Calibri',color:{argb:'FFFFFFFF'}};}
+                });
+                ws.addRow([]).height=4;
+            });
+        })();
+
         await _xSave(wb,'overall'); return;
     }
 
