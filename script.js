@@ -5209,6 +5209,32 @@ function updateAuditData(pName, qtr, field, val) {
             }
         }
 
+        // Instant DOM update for exposures tab — updates the Overall Summary merged table cells
+        // without waiting for the full deferred render. Mirrors updateToDateMonthCells pattern.
+        function _updateExposuresSummaryCells(key, mIdx) {
+            if (state.currentTab !== 'exposures') return;
+            const displayProjects = state.filteredProjects || state.projects || [];
+            // mIdx 0 = PREVIOUS column, 1-12 = monthly columns
+            // Update the Overall Summary table (merged table at the top, data-expsummary attribute)
+            // Find all summary cells for this key+mIdx
+            const colIdx = mIdx; // 0=prev, 1-12=months
+            // Recalculate the total for this column across all displayed projects
+            let colTotal = 0;
+            displayProjects.forEach(function(p) {
+                const v = p.vals[key] ? (p.vals[key][colIdx] ?? '') : '';
+                const n = parseFloat(String(v).replace(/,/g, ''));
+                if (!isNaN(n)) colTotal += n;
+            });
+            // Find the summary cell via data attribute
+            const summaryCell = document.querySelector(
+                `[data-expsummary-key="${CSS.escape(key)}"][data-expsummary-col="${colIdx}"]`
+            );
+            if (summaryCell) {
+                summaryCell.textContent = colTotal > 0 ? colTotal.toLocaleString('en-US') : '';
+            }
+        }
+        window._updateExposuresSummaryCells = _updateExposuresSummaryCells;
+
         function _refreshDateCell(input) {
             const td = input.closest('td');
             if (!td) return;
@@ -5297,6 +5323,13 @@ function updateAuditData(pName, qtr, field, val) {
 
             // FIX: Deferred render for 'exposures' and 'nov-monitoring' tabs so values
             // update visually after input without wiping the active field.
+            // Also: instant DOM update of Overall Summary cells for exposures tab.
+            if (state.currentTab === 'exposures') {
+                // Instant update of summary cells (no re-render needed for simple totals)
+                if (key !== 'exposures_Total Exposed Man-hour to date') {
+                    _updateExposuresSummaryCells(key, mIdx);
+                }
+            }
             if (state.currentTab === 'exposures' || state.currentTab === 'nov-monitoring') {
                 const _deferredTabKey = state.currentTab === 'exposures' ? '_exposuresDeferredRender' : '_novMonitoringDeferredRender';
                 const _deferredTabName = state.currentTab;
@@ -5322,7 +5355,7 @@ function updateAuditData(pName, qtr, field, val) {
                             try { _restoreEl2.setSelectionRange(_activeSelStart2, _activeSelEnd2); } catch(e) {}
                         }
                     }
-                }, 800);
+                }, 300);
             }
 
             if (state.currentTab === 'rates') {
@@ -14353,7 +14386,7 @@ function renderTabulation() {
                         const val = p.vals[key] ? (p.vals[key][0] ?? "") : "";
                         if (val !== "" && !isNaN(val)) prevTotal += parseFloat(val);
                     });
-                    html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}" style="font-weight: 700; font-size: 0.7rem;">${prevTotal > 0 ? fmtNum(prevTotal) : ''}</td>`;
+                    html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}" style="font-weight: 700; font-size: 0.7rem;" ${state.currentTab === 'exposures' ? `data-expsummary-key="${key.replace(/"/g,'&quot;')}" data-expsummary-col="0"` : ''}>${prevTotal > 0 ? fmtNum(prevTotal) : ''}</td>`;
                     
                     for (let i = 1; i <= 12; i++) {
                         let monthTotal = 0;
@@ -14475,7 +14508,7 @@ function renderTabulation() {
                             const _osIsCurr = _osSY === _osCY && i === _osCM;
                             const _osShowZero = _osIsMedAuto && (_osIsPast || _osIsCurr) && monthTotal === 0;
                             const _osDisp = monthTotal > 0 ? fmtNum(monthTotal) : (_osShowZero ? '0' : '');
-                            html += `<td class="${isNov ? 'nov-narrow-td' : 'monthly-data'}" style="font-weight: 600; background: ${monthTotal > 0 ? '#f1f8e9' : ''}; color: ${_osShowZero ? '#bbb' : ''};">${_osDisp}</td>`;
+                            html += `<td class="${isNov ? 'nov-narrow-td' : 'monthly-data'}" style="font-weight: 600; background: ${monthTotal > 0 ? '#f1f8e9' : ''}; color: ${_osShowZero ? '#bbb' : ''};" ${state.currentTab === 'exposures' ? `data-expsummary-key="${key.replace(/"/g,'&quot;')}" data-expsummary-col="${i}"` : ''}>${_osDisp}</td>`;
                         }
                     }
                     
@@ -16569,6 +16602,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         DOLE_MONTHLY_ROWS.forEach(function(row){
                             var k = 'dole_' + row;
                             for (var mo = 1; mo <= 12; mo++) {
+                                // Skip months where the project was on work stoppage (exempt)
+                                if (isMonthBlacklistedForProject(dp, mo, dSelYear)) continue;
                                 var dlM = mo === 12 ? 1 : mo + 1;
                                 var dlY2 = mo === 12 ? dSelYear + 1 : dSelYear;
                                 var deadlinePassed;
@@ -16624,10 +16659,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
                         var isCorporateDole = reg === 'CORPORATE';
 
-                        // Count months where all ACTIVE projects have all 3 rows filled
+                        // Count months where all ACTIVE (non-exempt) projects have all 3 rows filled
                         var submittedCount = 0;
                         for (var mi = 0; mi <= dCurMoIdx; mi++) {
                             var allFilled = activeProjs.every(function(p){
+                                // If project was on stoppage during this month, count it as fulfilled
+                                if (isMonthBlacklistedForProject(p, mi+1, dSelYear)) return true;
                                 return DOLE_MONTHLY_ROWS.every(function(row){
                                     var v = p.vals['dole_' + row] ? (p.vals['dole_' + row][mi+1] || '') : '';
                                     return v && v.toString().trim() !== '';
@@ -16659,6 +16696,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var isCurMo = (mi2 === dCurMoIdx);
                             var filledCount = 0, totalSlotsMo = 0;
                             activeProjs.forEach(function(p){
+                                // Skip projects that were on work stoppage during this month
+                                if (isMonthBlacklistedForProject(p, mi2+1, dSelYear)) return;
                                 DOLE_MONTHLY_ROWS.forEach(function(row){
                                     totalSlotsMo++;
                                     var v = p.vals['dole_' + row] ? (p.vals['dole_' + row][mi2+1] || '') : '';
@@ -16693,8 +16732,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var curBadge = isCurMo ? ' <span style="background:#e3f2fd;color:#1565c0;border-radius:4px;padding:1px 5px;font-size:0.58rem;font-weight:700;vertical-align:middle;">CURRENT</span>' : '';
 
                             var rowSummary = DOLE_MONTHLY_ROWS.map(function(row){
-                                var filled = activeProjs.filter(function(p){ var v = p.vals['dole_'+row] ? (p.vals['dole_'+row][mi2+1]||'') : ''; return v && v.trim(); }).length;
-                                return row + ': <span style="color:' + (filled===activeProjs.length?'#2e7d32':filled>0?'#e65100':'#c62828') + ';font-weight:700;">' + filled + '/' + activeProjs.length + '</span>';
+                                // Only count projects that are NOT on stoppage for this month
+                                var eligibleProjs = activeProjs.filter(function(p){ return !isMonthBlacklistedForProject(p, mi2+1, dSelYear); });
+                                var filled = eligibleProjs.filter(function(p){ var v = p.vals['dole_'+row] ? (p.vals['dole_'+row][mi2+1]||'') : ''; return v && v.trim(); }).length;
+                                return row + ': <span style="color:' + (filled===eligibleProjs.length?'#2e7d32':filled>0?'#e65100':'#c62828') + ';font-weight:700;">' + filled + '/' + eligibleProjs.length + '</span>';
                             }).join(' &nbsp;·&nbsp; ');
 
                             html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
@@ -16779,10 +16820,31 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var moIdx = DOLE_MONTHS.indexOf(activeMo);
                             var projCells = regProjs.map(function(p) {
                                 var isStopped = isProjectOnStoppage(p);
-                                var cellDis = (isStopped || !canEdit) ? 'disabled' : '';
+                                // ── Work-stoppage exempt check (covers resumed projects too) ─────
+                                // A month is "stoppage-exempt" if the project was on work stoppage
+                                // during that month — even if it has since resumed.
+                                var _moIdx1 = moIdx + 1; // 1-based
+                                var isStoppageExempt = !isStopped && isMonthBlacklistedForProject(p, _moIdx1, selYear);
+                                var cellDis = (isStopped || isStoppageExempt || !canEdit) ? 'disabled' : '';
                                 var k = 'dole_' + row;
                                 var v = p.vals[k] ? (p.vals[k][moIdx+1] || '') : '';
                                 var pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+
+                                // Build stoppage period label for tooltip
+                                var _tooltipText = '';
+                                if (isStoppageExempt && p.workStoppageDate) {
+                                    var _sd = new Date(p.workStoppageDate);
+                                    var _sdStr = (_sd.getMonth()+1) + '/' + _sd.getDate() + '/' + _sd.getFullYear();
+                                    _tooltipText = 'Work stoppage: ' + _sdStr;
+                                    if (p.workResumeDate) {
+                                        var _rd = new Date(p.workResumeDate);
+                                        var _rdStr = (_rd.getMonth()+1) + '/' + _rd.getDate() + '/' + _rd.getFullYear();
+                                        _tooltipText += ' → Resumed: ' + _rdStr + '. This month is exempt from DOLE reporting.';
+                                    } else {
+                                        _tooltipText += '. This month is exempt from DOLE reporting.';
+                                    }
+                                }
+
                                 // ── DOLE deadline-aware coloring for modal ───────────────────────
                                 // Red only AFTER the 20th of the following month has passed.
                                 // moIdx is 0-based (0=Jan…11=Dec); selYear is the selected year.
@@ -16803,18 +16865,36 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         else if (_modalNowM === _modalDeadlineM && _modalNowD > 20) { _modalDeadlinePassed = true; }
                                     }
                                 }
-                                var _modalIsOverdue = !v && _modalDeadlinePassed;
-                                var cellBg = isStopped ? '#f5f5f5' : (v ? '#c8e6c9' : (_modalIsOverdue ? '#ffcdd2' : '#f5f5f5'));
-                                var cellBorder = isStopped ? '#e0e0e0' : (v ? '#a5d6a7' : (_modalIsOverdue ? '#ef9a9a' : '#e0e0e0'));
-                                var cellColor = isStopped ? '#9e9e9e' : (v ? '#2e7d32' : (_modalIsOverdue ? '#c62828' : '#9e9e9e'));
-                                var inputStyle = 'width:100%;border:1px solid ' + cellBorder + ';border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:700;background:' + cellBg + ';color:' + cellColor + ';' + (isStopped ? 'cursor:not-allowed;' : '');
-                                return '<td style="padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;' + (isStopped ? 'background:#fafafa;opacity:0.65;' : '') + '">'
-                                    + (isStopped ? '<div style="font-size:0.62rem;color:#9e9e9e;text-align:center;padding:4px;font-style:italic;"><i class="fas fa-ban"></i> Stopped</div>' :
-                                        '<input type="date" value="' + v + '" ' + cellDis
-                                        + ' name="dolemod-' + row + '-' + p.name.replace(/[^a-zA-Z0-9]/g,'_') + '"'
-                                        + ' data-pname="' + pnSafe + '" data-row="' + row + '" data-moIdx="' + (moIdx+1) + '" data-overdue="' + (_modalIsOverdue ? '1' : '0') + '"'
-                                        + ' oninput="updateVal(\'' + pnSafe + '\',\'dole_' + row + '\',' + (moIdx+1) + ',this.value);_refreshDateCell(this)"'
-                                        + ' style="' + inputStyle + '"></td>');
+                                // Stoppage-exempt months are NEVER overdue regardless of deadline
+                                var _modalIsOverdue = !v && _modalDeadlinePassed && !isStoppageExempt;
+                                var cellBg     = isStopped        ? '#f5f5f5'
+                                               : isStoppageExempt ? '#f0f0f0'
+                                               : v                ? '#c8e6c9'
+                                               : _modalIsOverdue  ? '#ffcdd2'
+                                               :                    '#f5f5f5';
+                                var cellBorder = isStopped        ? '#e0e0e0'
+                                               : isStoppageExempt ? '#d0d0d0'
+                                               : v                ? '#a5d6a7'
+                                               : _modalIsOverdue  ? '#ef9a9a'
+                                               :                    '#e0e0e0';
+                                var cellColor  = isStopped        ? '#9e9e9e'
+                                               : isStoppageExempt ? '#9e9e9e'
+                                               : v                ? '#2e7d32'
+                                               : _modalIsOverdue  ? '#c62828'
+                                               :                    '#9e9e9e';
+                                var inputStyle = 'width:100%;border:1px solid ' + cellBorder + ';border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:700;background:' + cellBg + ';color:' + cellColor + ';' + ((isStopped || isStoppageExempt) ? 'cursor:not-allowed;' : '');
+                                var _tdExtraStyle = (isStopped || isStoppageExempt) ? 'background:#fafafa;opacity:' + (isStoppageExempt ? '0.8' : '0.65') + ';' : '';
+                                return '<td style="padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;' + _tdExtraStyle + '" title="' + (isStoppageExempt ? _tooltipText.replace(/"/g,'&quot;') : '') + '">'
+                                    + (isStopped
+                                        ? '<div style="font-size:0.62rem;color:#9e9e9e;text-align:center;padding:4px;font-style:italic;"><i class="fas fa-ban"></i> Stopped</div>'
+                                        : isStoppageExempt
+                                            ? '<div style="font-size:0.62rem;color:#9e9e9e;text-align:center;padding:5px 4px;font-style:italic;display:flex;align-items:center;justify-content:center;gap:4px;" title="' + _tooltipText.replace(/"/g,'&quot;') + '"><i class="fas fa-pause-circle" style="font-size:0.75rem;"></i> Exempt (Stoppage)</div>'
+                                            : '<input type="date" value="' + v + '" ' + cellDis
+                                                + ' name="dolemod-' + row + '-' + p.name.replace(/[^a-zA-Z0-9]/g,'_') + '"'
+                                                + ' data-pname="' + pnSafe + '" data-row="' + row + '" data-moIdx="' + (moIdx+1) + '" data-overdue="' + (_modalIsOverdue ? '1' : '0') + '"'
+                                                + ' oninput="updateVal(\'' + pnSafe + '\',\'dole_' + row + '\',' + (moIdx+1) + ',this.value);_refreshDateCell(this)"'
+                                                + ' style="' + inputStyle + '">')
+                                    + '</td>';
                             }).join('');
                             var rowDesc = row === 'WAIR' ? 'Work Accident/Illness Report' : row === 'RSO' ? 'Report on Safety Officer' : 'Minutes of Meeting';
                             return '<tr style="background:#f9fdf9;border-bottom:1px solid #c8e6c9;">'
@@ -16842,21 +16922,50 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                             var cells = regProjs.map(function(proj) {
                                 var stopped = isProjectOnStoppage(proj);
-                                var dis = (stopped || !canEdit) ? 'disabled' : '';
+                                // AEDR & AMR cover the ENTIRE prior year (selYear - 1).
+                                // If the project was on work stoppage at any point during selYear-1,
+                                // the whole annual report is exempt — no submission required.
+                                var _annExempt = false;
+                                if (!stopped && proj.workStoppageDate) {
+                                    var _reportingYear = selYear - 1;
+                                    // Check if any month of the reporting year was blacklisted
+                                    for (var _mi = 1; _mi <= 12; _mi++) {
+                                        if (isMonthBlacklistedForProject(proj, _mi, _reportingYear)) {
+                                            _annExempt = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                var _annTooltip = '';
+                                if (_annExempt && proj.workStoppageDate) {
+                                    var _asd = new Date(proj.workStoppageDate);
+                                    var _asdStr = (_asd.getMonth()+1) + '/' + _asd.getDate() + '/' + _asd.getFullYear();
+                                    _annTooltip = 'Project was on work stoppage during ' + (selYear-1) + ' (started ' + _asdStr + ')';
+                                    if (proj.workResumeDate) {
+                                        var _ard = new Date(proj.workResumeDate);
+                                        var _ardStr = (_ard.getMonth()+1) + '/' + _ard.getDate() + '/' + _ard.getFullYear();
+                                        _annTooltip += ', resumed ' + _ardStr + '. Annual report not required for stoppage year.';
+                                    } else {
+                                        _annTooltip += '. Annual report not required for stoppage year.';
+                                    }
+                                }
+                                var dis = (stopped || _annExempt || !canEdit) ? 'disabled' : '';
                                 var k = 'dole_' + rd.row;
                                 var v = proj.vals[k] ? (proj.vals[k][1] || '') : '';
                                 var naKey = 'dole_' + rd.row + '_na';
                                 var isNA = proj.vals[naKey] ? proj.vals[naKey][1] || false : false;
-                                var overdue = !v && !isNA && passed;
-                                var bg  = stopped ? '#f5f5f5' : v ? '#c8e6c9' : overdue ? '#ffcdd2' : '#f5f5f5';
-                                var bdr = stopped ? '#e0e0e0' : v ? '#a5d6a7' : overdue ? '#ef9a9a' : '#e0e0e0';
-                                var clr = stopped ? '#9e9e9e' : v ? '#2e7d32' : overdue ? '#c62828' : '#9e9e9e';
+                                var overdue = !v && !isNA && passed && !_annExempt;
+                                var bg  = stopped ? '#f5f5f5' : _annExempt ? '#f0f0f0' : v ? '#c8e6c9' : overdue ? '#ffcdd2' : '#f5f5f5';
+                                var bdr = stopped ? '#e0e0e0' : _annExempt ? '#d0d0d0' : v ? '#a5d6a7' : overdue ? '#ef9a9a' : '#e0e0e0';
+                                var clr = stopped ? '#9e9e9e' : _annExempt ? '#9e9e9e' : v ? '#2e7d32' : overdue ? '#c62828' : '#9e9e9e';
                                 var pnEsc = proj.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-                                var tdStyle = 'padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;' + (stopped ? 'background:#fafafa;opacity:0.65;' : '');
+                                var tdStyle = 'padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;' + ((stopped || _annExempt) ? 'background:#fafafa;opacity:' + (_annExempt ? '0.8' : '0.65') + ';' : '');
                                 var inStyle = 'width:100%;border:1px solid ' + bdr + ';border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:700;background:' + bg + ';color:' + clr + ';';
                                 var cell;
                                 if (stopped) {
                                     cell = '<div style="font-size:0.62rem;color:#9e9e9e;text-align:center;padding:4px;font-style:italic;"><i class="fas fa-ban"></i> Stopped</div>';
+                                } else if (_annExempt) {
+                                    cell = '<div style="font-size:0.62rem;color:#9e9e9e;text-align:center;padding:5px 4px;font-style:italic;display:flex;align-items:center;justify-content:center;gap:4px;" title="' + _annTooltip.replace(/"/g,'&quot;') + '"><i class="fas fa-pause-circle" style="font-size:0.75rem;"></i> Exempt (Stoppage)</div>';
                                 } else {
                                     var safeName = proj.name.replace(/[^a-zA-Z0-9]/g,'_');
                                     
@@ -16876,7 +16985,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         + ' oninput="updateVal(\'' + pnEsc + '\',\'dole_' + rd.row + '\',1,this.value);_refreshDateCell(this)">';
                                     cell = '<div style="display:flex;align-items:center;">' + naCheckbox + dateInput + '</div>';
                                 }
-                                return '<td style="' + tdStyle + '">' + cell + '</td>';
+                                return '<td style="' + tdStyle + '" title="' + (_annExempt ? _annTooltip.replace(/"/g,'&quot;') : '') + '">' + cell + '</td>';
                             }).join('');
 
                             return '<tr style="background:#fff8e1;border-bottom:1px solid #ffe0b2;">'
@@ -38463,13 +38572,13 @@ async function exportDoleExcel() {
     ];
     const ALL_ROWS = [...DOLE_MONTHLY_ROWS, ...DOLE_ANNUAL_ROWS];
 
-    // ── Collect projects — exclude CORPORATE, PLANT OPERATIONS, finished, work-stoppage ──
+    // ── Collect projects — exclude CORPORATE, PLANT OPERATIONS, finished ──────
+    // Work-stoppage projects are INCLUDED but their blacklisted months show N/A
     const allProjs = (state.filteredProjects || state.projects || []).filter(p => {
         const r = (p.region || '').toUpperCase();
         if (r === 'CORPORATE') return false;
         if (r === 'PLANT OPERATIONS') return false;
         if (p.dateFinished) return false;
-        if (p.status === 'work-stoppage') return false;
         return true;
     });
 
@@ -38482,6 +38591,7 @@ async function exportDoleExcel() {
 
     // ── Value helpers ─────────────────────────────────────────────────────────
     function getDoleMonthVal(proj, rowId, moNum) {
+        if (isMonthBlacklistedForProject(proj, moNum, year)) return null;
         const v = proj.vals && proj.vals['dole_' + rowId] ? proj.vals['dole_' + rowId][moNum] : '';
         return (v !== undefined && v !== null && String(v).trim() !== '') ? String(v) : null;
     }
@@ -38523,7 +38633,9 @@ async function exportDoleExcel() {
         return getDoleAnnualVal(proj, rowId) !== null;
     }
     // Compliance score per project per month (all 3 monthly rows submitted = 100%)
+    // Returns null for months blacklisted due to work-stoppage (excluded from averages)
     function projMonthScore(proj, moNum) {
+        if (isMonthBlacklistedForProject(proj, moNum, year)) return null;
         const submitted = DOLE_MONTHLY_ROWS.filter(r => isMonthlySubmitted(proj, r.id, moNum)).length;
         return DOLE_MONTHLY_ROWS.length > 0 ? (submitted / DOLE_MONTHLY_ROWS.length) * 100 : null;
     }
@@ -38698,18 +38810,26 @@ async function exportDoleExcel() {
     }
 
     // ── Build data rows (monthly or annual) ───────────────────────────────────
-    function buildDataRows(ws, rowDefs, getValFn, typeLabel) {
+    function buildDataRows(ws, rowDefs, getValFn, typeLabel, moNum) {
         rowDefs.forEach(rowDef => {
             const rowArr = [rowDef.label, rowDef.desc, typeLabel];
             colMap.forEach(cm => {
                 if (cm.type === 'proj') {
-                    rowArr.push(getValFn(cm.proj, rowDef.id) || '');
+                    // If month is blacklisted for this project, push N/A marker
+                    if (moNum && isMonthBlacklistedForProject(cm.proj, moNum, year)) {
+                        rowArr.push('N/A');
+                    } else {
+                        rowArr.push(getValFn(cm.proj, rowDef.id) || '');
+                    }
                 } else if (cm.type === 'overall') {
-                    const vals = orderedProjs.map(p => getValFn(p, rowDef.id) !== null ? 1 : 0);
+                    const vals = orderedProjs
+                        .filter(p => !(moNum && isMonthBlacklistedForProject(p, moNum, year)))
+                        .map(p => getValFn(p, rowDef.id) !== null ? 1 : 0);
                     const pct  = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length * 100) : null;
                     rowArr.push(pct !== null ? Math.round(pct) + '%' : '—');
                 } else {
-                    const rp   = projsByRegion[cm.region];
+                    const rp   = projsByRegion[cm.region]
+                        .filter(p => !(moNum && isMonthBlacklistedForProject(p, moNum, year)));
                     const vals = rp.map(p => getValFn(p, rowDef.id) !== null ? 1 : 0);
                     const pct  = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length * 100) : null;
                     rowArr.push(pct !== null ? Math.round(pct) + '%' : '—');
@@ -38740,16 +38860,31 @@ async function exportDoleExcel() {
                 const ci   = LEFT_COLS + 1 + i;
                 const cell = dataRow.getCell(ci);
                 if (cm.type === 'proj') {
-                    const val = getValFn(cm.proj, rowDef.id);
-                    applyStatusCell(cell, val, rowDef, typeLabel === 'ANNUAL');
+                    // Work-stoppage N/A styling
+                    if (moNum && isMonthBlacklistedForProject(cm.proj, moNum, year)) {
+                        cell.value     = 'N/A';
+                        cell.font      = { size: 8, name: 'Calibri', color: { argb: 'FF9E9E9E' }, italic: true };
+                        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                        cell.border    = {
+                            top: {style:'thin',color:{argb:'FFB0BEC5'}}, bottom: {style:'thin',color:{argb:'FFB0BEC5'}},
+                            left: {style:'thin',color:{argb:'FFB0BEC5'}}, right: {style:'thin',color:{argb:'FFB0BEC5'}}
+                        };
+                    } else {
+                        const val = getValFn(cm.proj, rowDef.id);
+                        applyStatusCell(cell, val, rowDef, typeLabel === 'ANNUAL');
+                    }
                 } else if (cm.type === 'overall') {
-                    const vals = orderedProjs.map(p => getValFn(p, rowDef.id) !== null ? 1 : 0);
+                    const vals = orderedProjs
+                        .filter(p => !(moNum && isMonthBlacklistedForProject(p, moNum, year)))
+                        .map(p => getValFn(p, rowDef.id) !== null ? 1 : 0);
                     const pct  = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length * 100) : null;
                     applyAvgCell(cell, pct);
                     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
                     cell.font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF' + C_OVERALL_BG } };
                 } else {
-                    const rp   = projsByRegion[cm.region];
+                    const rp   = projsByRegion[cm.region]
+                        .filter(p => !(moNum && isMonthBlacklistedForProject(p, moNum, year)));
                     const vals = rp.map(p => getValFn(p, rowDef.id) !== null ? 1 : 0);
                     const pct  = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length * 100) : null;
                     applyAvgCell(cell, pct);
@@ -38817,10 +38952,15 @@ async function exportDoleExcel() {
     }
 
     // ════════════════════════════════════════════════════════════════════════
+    // ── OVERALL SUMMARY SHEET — created FIRST so it appears as the first tab ──
+    // ════════════════════════════════════════════════════════════════════════
+    const sumWs = wb.addWorksheet('OVERALL SUMMARY');
+
+    // ════════════════════════════════════════════════════════════════════════
     // ── ONE SHEET PER MONTH (submitted months only) ──────────────────────────
     // ════════════════════════════════════════════════════════════════════════
     const submittedMonths = MO_LONG.filter((mo, mi) =>
-        allProjs.some(p => DOLE_MONTHLY_ROWS.some(r => getDoleMonthVal(p, r.id, mi + 1) !== null))
+        allProjs.some(p => !isMonthBlacklistedForProject(p, mi + 1, year) && DOLE_MONTHLY_ROWS.some(r => getDoleMonthVal(p, r.id, mi + 1) !== null))
     );
 
     if (!submittedMonths.length) {
@@ -38839,7 +38979,7 @@ async function exportDoleExcel() {
         // Rows 2–4: region header + col header
         buildRegionAndColHeaders(ws);
         // Data rows 5+: monthly rows
-        buildDataRows(ws, DOLE_MONTHLY_ROWS, (p, id) => getDoleMonthVal(p, id, moNum), 'MONTHLY');
+        buildDataRows(ws, DOLE_MONTHLY_ROWS, (p, id) => getDoleMonthVal(p, id, moNum), 'MONTHLY', moNum);
         // Score row
         buildScoreRow(ws, 'COMPLIANCE SCORE', p => projMonthScore(p, moNum));
         // Col widths + freeze
@@ -38861,7 +39001,6 @@ async function exportDoleExcel() {
     // ════════════════════════════════════════════════════════════════════════
     // ── OVERALL SUMMARY SHEET (months as rows, projects as cols) ─────────────
     // ════════════════════════════════════════════════════════════════════════
-    const sumWs = wb.addWorksheet('OVERALL SUMMARY');
     addNotesRow(sumWs);
     sumWs.addRow([]); sumWs.getRow(sumWs.rowCount).height = 6;
 
