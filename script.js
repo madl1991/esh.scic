@@ -12585,9 +12585,12 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             syncIncidentClassificationsFromRegistry();
             syncDaysLostFromLtaRegistry();
             if (typeof saveUserData === 'function') saveUserData(state.currentUser?.email);
+            // Mark dirty BEFORE saving so the onSnapshot echo is ignored while save is in flight
             if (window.RowSaveManager) window.RowSaveManager.markDirty(pName, 'lta_entries');
             if (typeof markPendingSync === 'function') markPendingSync();
-            if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
+            // Use immediate save (not debounced) so Firebase has the new data before onSnapshot fires
+            if (typeof saveToFirebase === 'function') saveToFirebase();
+            else if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
             _ltaAutoEditMode();
 
             modal.remove();
@@ -34247,7 +34250,13 @@ window.RowSaveManager = (function() {
                 if (typeof render === 'function' && !state?.isEditing) {
                     const _rsmMc = document.getElementById('main-content');
                     const _rsmScroll = _rsmMc ? _rsmMc.scrollTop : 0;
-                    render();
+                    // For lta-registry tab, use targeted re-render instead of full render()
+                    // to avoid wiping newly added/updated entries while onSnapshot echoes fire
+                    if (state?.currentTab === 'lta-registry' && typeof renderLtaRegistryTab === 'function') {
+                        renderLtaRegistryTab();
+                    } else {
+                        render();
+                    }
                     if (_rsmMc && _rsmScroll > 0) {
                         requestAnimationFrame(() => { _rsmMc.scrollTop = _rsmScroll; });
                     }
