@@ -22782,7 +22782,6 @@ function buildTrendChartHTML(tabType) {
                 <option value="SOUTH LUZON">SOUTH LUZON</option>
                 <option value="NORTH LUZON">NORTH LUZON</option>
                 <option value="VISAYAS & MINDANAO">VISAYAS & MINDANAO</option>
-                ${['audit', 'cshp', 'reg'].includes(tabType) ? '' : '<option value="PLANT OPERATIONS">PLANT OPERATIONS</option>'}
                 ${['audit', 'cshp', 'reg'].includes(tabType) ? '' : '<option value="CORPORATE">CORPORATE</option>'}
               </select>
               <select id="trendProjectFilter_${tabType}" onchange="updateTrendChart('${tabType}')"
