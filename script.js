@@ -2519,6 +2519,97 @@ function applyNumFmtToInputs() {
                 console.log('Filtered Projects:', state.filteredProjects);
             },
             clearConsole: () => console.clear(),
+
+            // ── Admin patch: fix a project's work-stoppage/resume/kpm_na flags ──
+            // Usage: debugCommands.fixProjectFlags('6.9MW Clarin HEPP', { workResumeDate: '2025-01-01', kpm_na: '' })
+            // workResumeDate : ISO date string e.g. '2025-06-01'  ('' = clear)
+            // workStoppageDate: ISO date string                    ('' = clear)
+            // kpm_na         : '1' = mark N/A,  '' = clear N/A flag
+            fixProjectFlags: async function(projectName, flags = {}) {
+                const year = state.selectedYear || new Date().getFullYear();
+                const p = state.projects.find(proj => proj.name === projectName);
+                if (!p) {
+                    console.error(`❌ fixProjectFlags: project not found → "${projectName}"`);
+                    console.log('Available projects:', state.projects.map(x => x.name));
+                    return false;
+                }
+
+                const changes = [];
+                // Fields to write directly to Firestore (partial update — does not overwrite other fields)
+                const firestoreUpdate = {};
+
+                if ('workResumeDate' in flags) {
+                    p.workResumeDate = flags.workResumeDate;
+                    firestoreUpdate['workResumeDate'] = flags.workResumeDate;
+                    changes.push(`workResumeDate = "${flags.workResumeDate}"`);
+                }
+                if ('workStoppageDate' in flags) {
+                    p.workStoppageDate = flags.workStoppageDate;
+                    firestoreUpdate['workStoppageDate'] = flags.workStoppageDate;
+                    changes.push(`workStoppageDate = "${flags.workStoppageDate}"`);
+                }
+                if ('kpm_na' in flags) {
+                    if (!p.vals) p.vals = {};
+                    p.vals['kpm_na'] = flags.kpm_na;
+                    firestoreUpdate['vals.kpm_na'] = flags.kpm_na;
+                    changes.push(`kpm_na = "${flags.kpm_na}"`);
+                }
+
+                // Auto-clear kpm_na when workResumeDate is being set
+                // (resumed projects should never stay excluded from KPM)
+                if ('workResumeDate' in flags && flags.workResumeDate && !('kpm_na' in flags)) {
+                    if (!p.vals) p.vals = {};
+                    if (p.vals['kpm_na'] === '1') {
+                        p.vals['kpm_na'] = '';
+                        firestoreUpdate['vals.kpm_na'] = '';
+                        changes.push('kpm_na auto-cleared (project resumed)');
+                    }
+                }
+
+                // Re-sync status from updated dates and write it too
+                if (typeof syncProjectStatus === 'function') syncProjectStatus(p);
+                firestoreUpdate['status'] = p.status;
+
+                if (!changes.length) {
+                    console.warn('⚠️ fixProjectFlags: no valid flags provided. Use: { workResumeDate, workStoppageDate, kpm_na }');
+                    return false;
+                }
+
+                console.log(`🔧 Patching "${projectName}" → ${changes.join(', ')}`);
+                console.log(`   New status: ${p.status}`);
+
+                let saved = false;
+                try {
+                    if (window.ProjectsDB && window.firebase && window.firebaseDb) {
+                        // Use updateDoc (partial field patch) — safer than full saveProject overwrite
+                        const docRef = window.ProjectsDB.getDocRef(year, projectName);
+                        await window.firebase.updateDoc(docRef, firestoreUpdate);
+                        saved = true;
+                    } else if (typeof saveToFirebaseWithRetry === 'function') {
+                        saved = await saveToFirebaseWithRetry();
+                    }
+                } catch(e) {
+                    console.error(`❌ fixProjectFlags Firebase error: ${e.message}`);
+                    // Fallback: try full project save
+                    try {
+                        if (window.ProjectsDB) {
+                            saved = await window.ProjectsDB.saveProject(year, p);
+                        }
+                    } catch(e2) {
+                        console.error(`❌ fixProjectFlags fallback also failed: ${e2.message}`);
+                    }
+                }
+
+                if (saved) {
+                    console.log(`✅ fixProjectFlags: "${projectName}" patched in Firebase.`);
+                    if (typeof reapplyFilters === 'function') reapplyFilters();
+                    if (typeof render === 'function') render();
+                } else {
+                    console.error(`❌ fixProjectFlags: Firebase save failed. Try logging in as Admin and retry.`);
+                }
+                return saved;
+            },
+
             help: () => {
                 console.log(`
 %c🔍 Debug Commands Available:
@@ -2527,6 +2618,8 @@ debugCommands.validate() - Validate state integrity
 debugCommands.testFiltering() - Test year filtering
 debugCommands.projects() - View all project arrays
 debugCommands.clearConsole() - Clear console
+debugCommands.fixProjectFlags(name, flags) - Patch project stoppage/resume/kpm_na flags
+  e.g. debugCommands.fixProjectFlags('6.9MW Clarin HEPP', { workResumeDate: '2025-01-01', kpm_na: '' })
 debugCommands.help() - Show this help
                 `, 'color: cyan; font-weight: bold', 'color: white');
             }
@@ -3166,6 +3259,7 @@ debugCommands.help() - Show this help
             state.masterProjects = Array.from(shellMap.values());
 
             state.projects = filterProjectsByYear(state.masterProjects, newYear);
+            state.projects.forEach(syncProjectStatus); // ensure status matches workStoppageDate/workResumeDate
             ensureCorporateProject(); ensurePlantProjects();
             state.filteredProjects = [...state.projects];
 
@@ -3871,6 +3965,7 @@ debugCommands.help() - Show this help
                 const sourceData = sourceYearSnap.data();
                 
                 state.projects = JSON.parse(JSON.stringify(sourceData.projects || []));
+                state.projects.forEach(syncProjectStatus); // ensure status matches workStoppageDate/workResumeDate
                 state.personnelData = JSON.parse(JSON.stringify(sourceData.personnelData || []));
                 state.incidentRateData = JSON.parse(JSON.stringify(sourceData.incidentRateData || { recordableCases: 0, lostDays: 0, totalHours: 0 }));
                 state.oshData = sourceData.oshData || {};
@@ -4036,6 +4131,7 @@ debugCommands.help() - Show this help
             if (savedData) {
                 const data = JSON.parse(savedData);
                 state.projects = data.projects || [];
+                state.projects.forEach(syncProjectStatus); // ensure status matches workStoppageDate/workResumeDate
                 state.projects.forEach(p => {
                     if (p.vals && p.vals['nov-env_violations']) {
                         p.vals['nov-env_violations'] = p.vals['nov-env_violations'].filter(v =>
@@ -4482,7 +4578,8 @@ debugCommands.help() - Show this help
                         project.status = 'finished';
                     } else if (wsDate && !wrDate) {
                         project.status = 'work-stoppage';
-                    } else if (project.status === 'finished' || project.status === 'work-stoppage') {
+                    } else {
+                        // resumed (wsDate + wrDate) or no stoppage at all — treat as on-going
                         project.status = 'on-going';
                     }
                 }
@@ -4562,6 +4659,7 @@ debugCommands.help() - Show this help
                 state.statusFilter = status;
 
                 let filtered = [...state.projects];
+                filtered.forEach(syncProjectStatus); // ensure p.status reflects workStoppageDate/workResumeDate before filtering
                 if (search)  filtered = filtered.filter(p => p.name.toLowerCase().includes(search));
                 if (region)  filtered = filtered.filter(p => p.region === region);
                 if (status)  filtered = filtered.filter(p => p.status === status);
@@ -4571,7 +4669,11 @@ debugCommands.help() - Show this help
                 if (state.currentTab === 'overall') {
                     const names = new Set(filtered.map(p => p.name));
                     document.querySelectorAll('.project-row[data-pname]').forEach(row => {
-                        row.style.display = names.has(row.getAttribute('data-pname')) ? '' : 'none';
+                        const rowName = row.getAttribute('data-pname');
+                        const rowStatus = row.getAttribute('data-status'); // uses _derivedStatus set at render time
+                        const nameMatch = names.has(rowName);
+                        const statusMatch = !status || rowStatus === status;
+                        row.style.display = (nameMatch && statusMatch) ? '' : 'none';
                     });
                     // Hide region sections that become fully empty after filter
                     document.querySelectorAll('[id^="region-content-"]').forEach(sec => {
@@ -6032,7 +6134,9 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
     if (p.workResumeDate) {
         const resD   = new Date(p.workResumeDate);
         const absRes = resD.getFullYear() * 12 + (resD.getMonth() + 1);
-        return absMo < absRes; // blacklisted = stopped but before resume
+        // Use <= so that the resume month itself is still frozen:
+        // e.g. resumed Apr 24 → first submittable month is May, not April
+        return absMo <= absRes;
     }
     return true; // still stopped — all months from stoppage onward are blacklisted
 }
@@ -11837,7 +11941,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             modal.id = 'lta-entry-modal';
             modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;';
             modal.innerHTML = `
-            <div style="border-radius:12px;width:min(860px,96vw);margin:auto;
+            <div style="border-radius:12px;width:min(1600px,99vw);margin:auto;
                 box-shadow:0 24px 80px rgba(0,0,0,0.35);overflow:hidden;position:relative;">
 
                 <!-- Header -->
@@ -14905,7 +15009,7 @@ function renderTabulation() {
                         </div>
                         ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="project-dates">
                             <div><span class="date-label">Started:</span> ${p.dateStarted ? formatDateDMY(p.dateStarted) : 'Not set'}</div>
-                            <div><span class="date-label">${p.dateFinished ? 'Finished:' : 'Status:'}</span> ${p.dateFinished ? formatDateDMY(p.dateFinished) : 'Ongoing'}</div>
+                            <div><span class="date-label">${p.dateFinished ? 'Finished:' : 'Status:'}</span> ${p.dateFinished ? formatDateDMY(p.dateFinished) : isWorkStopped ? '<span style="color:#c62828;font-weight:700;">Work Stoppage</span>' : 'Ongoing'}</div>
                             ${p.workStoppageDate ? `<div style="color:#757575;font-size:0.7rem;"><span class="date-label" style="color:#757575;">Stoppage:</span> ${formatDateDMY(p.workStoppageDate)}</div>` : ''}
                             ${p.workResumeDate ? `<div style="color:#2e7d32;font-size:0.7rem;"><span class="date-label" style="color:#2e7d32;">Resume:</span> ${formatDateDMY(p.workResumeDate)}</div>` : ''}
                         </div>`}
@@ -16804,7 +16908,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         modal.setAttribute('data-regkey', regKey);
                         modal.setAttribute('data-month', activeMo);
                         modal.setAttribute('data-canedit', canEdit ? '1' : '0');
-                        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.58);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;';
+                        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.62);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px 10px;';
 
                         // Build table: rows = WAIR/RSO/MOM, cols = projects
                         var projHeaderCols = regProjs.map(function(p){
@@ -17011,7 +17115,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + annualRows
                             + '</tbody></table>';
 
-                        modal.innerHTML = '<div style="border-radius:12px;width:min(900px,97vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
+                        modal.innerHTML = '<div style="border-radius:12px;width:min(1600px,99vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
                             // Header
                             + '<div style="background:linear-gradient(90deg,#0d3d0f,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
                             + '<div>'
@@ -17091,10 +17195,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     var modal = document.createElement('div');
                     modal.id = id;
                     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.58);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;';
-                    modal.innerHTML = '<div style="border-radius:12px;width:min(960px,97vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
+                    modal.innerHTML = '<div style="border-radius:12px;width:min(1600px,99vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
                         + headerHtml
                         + infoBar
-                        + '<div style="overflow-x:auto;max-height:58vh;overflow-y:auto;background:var(--bg-card);">' + tableHtml + '</div>'
+                        + '<div style="overflow-x:auto;max-height:76vh;overflow-y:auto;background:var(--bg-card);">' + tableHtml + '</div>'
                         + footerHtml
                         + '</div>';
                     // backdrop click disabled — use × button to close
@@ -18432,8 +18536,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 : '';
                             var hBg = isFrozen ? '#e0e0e0' : (isNA ? '#f5f5f5' : '#b7ddb5');
                             var hColor = isFrozen ? '#aaa' : (isNA ? '#bdbdbd' : '#1b5e20');
-                            var frozenBadge = isFrozen ? '<br><span style="font-size:0.53rem;background:#757575;color:#fff;border-radius:3px;padding:1px 4px;vertical-align:middle;">⏸ Stopped</span>' : '';
-                            return '<th style="padding:5px 4px;border:1px solid #c8e6c9;color:' + hColor + ';font-size:0.62rem;font-weight:700;text-align:center;min-width:72px;white-space:normal;word-break:break-word;background:' + hBg + ';">'
+                            var frozenBadge = '';
+                            var statusNote = isFrozen ? (isProjectOnStoppage(p) ? ' [WORK STOPPAGE — excluded from computation]' : ' [MONTH EXCLUDED — work stoppage period]') : '';
+                            var tooltipAttr = 'title="' + (p.name + statusNote).replace(/"/g,'&quot;') + '"';
+                            return '<th ' + tooltipAttr + ' style="padding:5px 4px;border:1px solid #c8e6c9;color:' + hColor + ';font-size:0.62rem;font-weight:700;text-align:center;min-width:72px;white-space:normal;word-break:break-word;background:' + hBg + ';">'
                                 + (isNA && !isFrozen
                                     ? '<span style="text-decoration:line-through;opacity:0.5;">' + p.name + '</span><br><span style="font-size:0.55rem;background:#ff9800;color:white;padding:1px 5px;border-radius:8px;">N/A EXEMPT</span>'
                                     : p.name)
@@ -18552,7 +18658,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     // ── KPM: region banners → monthly list (per region) → dialog ────
                     function kpmRegionMonthScore(reg, mo) {
-                        var projs = displayProjects.filter(function(p){ return p.region === reg && !kpmIsNA(p) && !isProjectOnStoppage(p) && !p.dateFinished; });
+                        // Only active (non-stopped, non-NA) projects count toward score
+                        var projs = state.projects.filter(function(p){ return p.region === reg && !kpmIsNA(p) && !isProjectOnStoppage(p) && !p.dateFinished; });
                         if (!projs.length) return null;
                         var grand = 0, hasAny = false;
                         KPM_ESH_ROWS.forEach(function(row) {
@@ -18575,13 +18682,31 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     var selYear = state.selectedYear || new Date().getFullYear();
                     var curMoIdx = new Date().getMonth();
 
+                    // ── DEBUG: log why any project is missing from KPM ──────────────
+                    (function() {
+                        var allRegProjs = state.projects.filter(function(p) {
+                            return p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS';
+                        });
+                        allRegProjs.forEach(function(p) {
+                            var excluded = [];
+                            if (kpmIsNA(p))          excluded.push('kpm_na=1');
+                            if (p.dateFinished)      excluded.push('dateFinished=' + p.dateFinished);
+                            if (excluded.length) {
+                                console.warn('[KPM EXCLUDED] ' + p.name + ' (' + p.region + ') → ' + excluded.join(', '));
+                            } else {
+                                console.log('[KPM INCLUDED] ' + p.name + ' (' + p.region + ') status=' + p.status + ' stoppage=' + (p.workStoppageDate||'none') + ' resume=' + (p.workResumeDate||'none'));
+                            }
+                        });
+                    })();
+                    // ── END DEBUG ─────────────────────────────────────────────────────
+
                     REGIONS.forEach(function(reg) {
                         if (reg === 'CORPORATE' || reg === 'PLANT OPERATIONS') return;
-                        // Exclude work-stoppage projects from KPM entirely (unless resumed)
-                        var projs = displayProjects.filter(function(p) { return p.region === reg && !isProjectOnStoppage(p) && !p.dateFinished; });
+                        // Use state.projects directly so work-stoppage projects always appear regardless of status filter
+                        var projs = state.projects.filter(function(p) { return p.region === reg && !kpmIsNA(p) && !p.dateFinished; });
                         if (!projs.length) return;
-                        // Active projects (not N/A) — used for computations and modal
-                        var activeProjs = projs.filter(function(p) { return !kpmIsNA(p) && !isProjectOnStoppage(p); });
+                        // Active projects (not stopped, not N/A) — used for score computations only
+                        var activeProjs = projs.filter(function(p) { return !isProjectOnStoppage(p); });
                         var canEditReg = state.isEditing && UserAccounts.canEdit(state.currentUser && state.currentUser.email, reg) && UserAccounts.canEditTab(state.currentUser && state.currentUser.email, 'kpm');
                         var isCollapsed = isRegionCollapsed(reg);
                         var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
@@ -18668,7 +18793,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     window.openKpmDialog = function(regKey, reg, month, editMode) {
                         var selYear = state.selectedYear || new Date().getFullYear();
                         var curMoIdx = new Date().getMonth();
-                        var regProjs = (state.filteredProjects || state.projects).filter(function(p){ return p.region === reg && !kpmIsNA(p) && !isProjectOnStoppage(p) && !p.dateFinished; });
+                        // Always use state.projects (not filteredProjects) so work-stoppage projects appear
+                        // even when the status filter is set to "on-going" only
+                        var regProjs = state.projects.filter(function(p){ return p.region === reg && (!kpmIsNA(p) || isProjectOnStoppage(p)) && !p.dateFinished; });
                         if (!regProjs.length) { if (typeof showToast === 'function') showToast('No active projects in ' + reg, 'info'); return; }
 
                         var isNew = !month; // ← declare here, used for month dropdown
@@ -18719,9 +18846,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         modal.setAttribute('data-regkey', regKey);
                         modal.setAttribute('data-month', activeMo);
                         modal.setAttribute('data-canedit', canEdit ? '1' : '0');
-                        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.58);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;';
-
-                        // Date Submitted for active month (stored on first project in region)
+                        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.58);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:6px 0;';
                         var _modalDateKey  = 'kpm_v3_' + activeMo + '_dateSubmitted';
                         var _modalDateVal  = (regProjs[0] && regProjs[0].vals && regProjs[0].vals[_modalDateKey]) || '';
                         var _modalProjSafe = regProjs[0] ? regProjs[0].name.replace(/\\/g,'\\\\').replace(/'/g,"\\'") : '';
@@ -18765,7 +18890,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         // Build KPM table
                         var tableHtml = window._kpmBuildModalTable(regProjs, activeMo, dis, regKey);
 
-                        modal.innerHTML = '<div style="border-radius:12px;width:min(1120px,97vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
+                        modal.innerHTML = '<div style="border-radius:12px;width:min(1600px,99vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
                             // Header
                             + '<div style="background:linear-gradient(90deg,#0d3d0f,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
                             + '<div>'
@@ -18775,7 +18900,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '</div>'
                             + '<div style="color:#a5d6a7;font-size:0.67rem;margin-top:3px;">'
                             + '<i class="fas fa-location-dot" style="margin-right:4px;"></i>' + reg
-                            + ' · <span style="color:#c8e6c9;">' + regProjs.length + ' project' + (regProjs.length!==1?'s':'') + '</span>'
+                            + ' · <span style="color:#c8e6c9;">' + regProjs.filter(function(p){return !isProjectOnStoppage(p);}).length + ' active project' + (regProjs.filter(function(p){return !isProjectOnStoppage(p);}).length!==1?'s':'') + '</span>'
+                            + (regProjs.filter(function(p){return isProjectOnStoppage(p);}).length ? ' · <span style="color:#f48fb1;font-size:0.63rem;"><i class="fas fa-pause-circle" style="margin-right:3px;"></i>' + regProjs.filter(function(p){return isProjectOnStoppage(p);}).length + ' on work stop (excluded)</span>' : '')
                             + '</div>'
                             + '</div>'
                             + '<button onclick="document.getElementById(\'kpm-month-modal\').remove()" title="Close" style="background:rgba(255,255,255,0.15);color:white;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.3)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'"><i class="fas fa-times"></i></button>'
@@ -18783,7 +18909,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             // Per-project submission meta
                             + metaHtml
                             // Table
-                            + '<div style="overflow-x:auto;max-height:58vh;overflow-y:auto;background:var(--bg-card);">'
+                            + '<div style="overflow-x:auto;max-height:76vh;overflow-y:auto;background:var(--bg-card);">'
                             + tableHtml
                             + '</div>'
                             // Legend
@@ -18791,6 +18917,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<span style="font-size:0.59rem;color:#1b5e20;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#c8e6c9;display:inline-block;"></span>≥90% Excellent</span>'
                             + '<span style="font-size:0.59rem;color:#7a5c00;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#fff9c4;display:inline-block;"></span>85–89% Satisfactory</span>'
                             + '<span style="font-size:0.59rem;color:#c62828;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#ffcdd2;display:inline-block;"></span>&lt;85% Needs Improvement</span>'
+                            + '<span style="font-size:0.59rem;color:#880e4f;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#fce4ec;border:1px solid #f48fb1;display:inline-block;"></span>Pink column = Work Stoppage (hover for details)</span>'
                             + '<span style="font-size:0.59rem;color:#888;margin-left:auto;">FM-RNI-04-04 | Rev. No.:4 | Eff. Date: 06 Aug 2018</span>'
                             + '</div>'
                             // Footer
@@ -18815,8 +18942,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var moIdx1Based = KPM_MONTHS.indexOf(activeMo) + 1; // 1-based month index
 
                         // Pre-compute which projects are frozen for this specific month
+                        // A project column is frozen if: (a) it is on work-stoppage (entire column frozen), or (b) this specific month is blacklisted for it
                         var _projWsFrozen = regProjs.map(function(pp) {
-                            return isMonthBlacklistedForProject(pp, moIdx1Based, selYear);
+                            return isProjectOnStoppage(pp) || isMonthBlacklistedForProject(pp, moIdx1Based, selYear);
                         });
 
                         rows.forEach(function(row) {
@@ -18843,10 +18971,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                             var projCells = regProjs.map(function(pp, pi) {
                                 if (_projWsFrozen[pi]) {
-                                    // Grey frozen cell — work stoppage for this month
-                                    return '<td style="text-align:center;padding:2px 3px;border:1px solid #c8e6c9;min-width:72px;background:#eeeeee;">'
-                                        + '<input type="text" value="—" disabled title="Work Stoppage — frozen"'
-                                        + ' style="width:62px;text-align:center;border:1px solid #ddd;border-radius:3px;padding:3px 2px;font-size:0.72rem;font-weight:700;color:#bbb;background:#e8e8e8;cursor:not-allowed;">'
+                                    // All frozen months (full stoppage OR month-blacklisted) use same pink style
+                                    return '<td style="text-align:center;padding:2px 6px;border:1px solid #c8e6c9;width:68px;min-width:68px;max-width:68px;background:#fce4ec;">'
+                                        + '<input type="text" value="—" disabled title="Work Stoppage — excluded from compliance"'
+                                        + ' style="width:52px;text-align:center;border:1px solid #f48fb1;border-radius:3px;padding:3px 2px;font-size:0.72rem;font-weight:700;color:#880e4f;background:#f8bbd0;cursor:not-allowed;">'
                                         + '</td>';
                                 }
                                 var pk = pp.name.replace(/[^a-zA-Z0-9]/g,'_');
@@ -18859,12 +18987,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 var optionsHtmlMod = '<option value="">—</option>' + validKpiOptsMod.map(function(opt){
                                     return '<option value="' + opt + '"' + (rawVal === opt ? ' selected' : '') + '>' + opt + '</option>';
                                 }).join('');
-                                return '<td style="text-align:center;padding:2px 3px;border:1px solid #c8e6c9;min-width:72px;">'
+                                return '<td style="text-align:center;padding:2px 6px;border:1px solid #c8e6c9;width:68px;min-width:68px;max-width:68px;">'
                                     + '<select id="kpmmod-ep-' + modKey + '-' + row.id + '-' + pk + '"'
                                     + (dis?' disabled':'')
                                     + ' data-regkey="' + modKey + '" data-rowid="' + row.id + '" data-dw="' + row.dw + '" data-pname="' + pnSafeInner + '" data-activemo="' + activeMo + '"'
                                     + ' onchange="window.kpmEpSelectChangeMod(this)"'
-                                    + ' style="width:68px;text-align:center;border:1px solid #b0c8b0;border-radius:3px;padding:2px 1px;font-size:0.72rem;font-weight:700;color:' + inputColor + ';background:#fff;cursor:pointer;">'
+                                    + ' style="width:56px;text-align:center;border:1px solid #b0c8b0;border-radius:3px;padding:2px 1px;font-size:0.72rem;font-weight:700;color:' + inputColor + ';background:#fff;cursor:pointer;">'
                                     + optionsHtmlMod
                                     + '</select>'
                                     + '</td>';
@@ -18900,16 +19028,106 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         });
 
                         var grandColor = grandTotal>=0.90?'#2e7d32':grandTotal>=0.85?'#e65100':'#c62828';
+                        // Inject marquee CSS + JS once per page load
+                        if (!document.getElementById('kpm-marquee-style')) {
+                            var _mStyle = document.createElement('style');
+                            _mStyle.id = 'kpm-marquee-style';
+                            _mStyle.textContent = [
+                                '.kpm-proj-name-wrap {',
+                                '  display:block; width:60px; overflow:hidden; white-space:nowrap; position:relative; cursor:default;',
+                                '}',
+                                '.kpm-proj-name-wrap .kpm-proj-name-txt {',
+                                '  display:inline-block; white-space:nowrap;',
+                                '}'
+                            ].join('\n');
+                            document.head.appendChild(_mStyle);
+
+                            // JS marquee: scroll left to end, scroll back right, then stop
+                            document.addEventListener('mouseover', function(e) {
+                                var wrap = e.target.closest('.kpm-proj-name-wrap');
+                                if (!wrap) return;
+                                var txt = wrap.querySelector('.kpm-proj-name-txt');
+                                if (!txt || wrap._kpmAnimating) return;
+                                var overflow = txt.scrollWidth - wrap.clientWidth;
+                                if (overflow <= 2) return; // no overflow, nothing to scroll
+                                wrap._kpmAnimating = true;
+                                var duration = Math.max(1500, overflow * 18); // ~18ms per px
+                                var start = null;
+                                function scrollLeft(ts) {
+                                    if (!start) start = ts;
+                                    var progress = Math.min((ts - start) / duration, 1);
+                                    txt.style.transform = 'translateX(-' + (overflow * progress) + 'px)';
+                                    if (progress < 1) {
+                                        wrap._rafId = requestAnimationFrame(scrollLeft);
+                                    } else {
+                                        // pause briefly at the end then scroll back
+                                        wrap._rafId = null;
+                                        setTimeout(function() {
+                                            if (!wrap._kpmAnimating) return;
+                                            var start2 = null;
+                                            function scrollRight(ts2) {
+                                                if (!start2) start2 = ts2;
+                                                var p2 = Math.min((ts2 - start2) / duration, 1);
+                                                txt.style.transform = 'translateX(-' + (overflow * (1 - p2)) + 'px)';
+                                                if (p2 < 1) {
+                                                    wrap._rafId = requestAnimationFrame(scrollRight);
+                                                } else {
+                                                    txt.style.transform = 'translateX(0)';
+                                                    wrap._kpmAnimating = false;
+                                                    wrap._rafId = null;
+                                                }
+                                            }
+                                            wrap._rafId = requestAnimationFrame(scrollRight);
+                                        }, 600);
+                                    }
+                                }
+                                wrap._rafId = requestAnimationFrame(scrollLeft);
+                            });
+                            document.addEventListener('mouseout', function(e) {
+                                var wrap = e.target.closest('.kpm-proj-name-wrap');
+                                if (!wrap) return;
+                                // Only reset if mouse truly left the wrap element
+                                if (wrap.contains(e.relatedTarget)) return;
+                                if (wrap._rafId) { cancelAnimationFrame(wrap._rafId); wrap._rafId = null; }
+                                var txt = wrap.querySelector('.kpm-proj-name-txt');
+                                if (txt) txt.style.transform = 'translateX(0)';
+                                wrap._kpmAnimating = false;
+                            });
+                        }
+
                         var projHeaderCols = regProjs.map(function(pp, pi){
                             var isFrozen = _projWsFrozen[pi];
-                            var hBg = isFrozen ? '#e0e0e0' : '#b7ddb5';
-                            var hColor = isFrozen ? '#aaa' : '#1b5e20';
-                            var frozenBadge = isFrozen ? ' <span style="font-size:0.53rem;background:#757575;color:#fff;border-radius:3px;padding:1px 4px;vertical-align:middle;">⏸ Stopped</span>' : '';
-                            return '<th style="padding:5px 4px;border:1px solid #c8e6c9;color:' + hColor + ';font-size:0.62rem;font-weight:700;text-align:center;min-width:72px;white-space:normal;word-break:break-word;background:' + hBg + ';">' + pp.name + frozenBadge + '</th>';
+                            var isFullStop = isProjectOnStoppage(pp);
+                            var isFinished = !!pp.dateFinished;
+                            // Both full-stop and month-blacklisted use pink header; finished use grey-blue
+                            var hBg    = isFrozen ? '#fce4ec' : '#b7ddb5';
+                            var hColor = isFrozen ? '#c62828' : '#1b5e20';
+                            // Tooltip: always show full project name + status if not normal
+                            var statusNote = isFinished
+                                ? ' [FINISHED: ' + pp.dateFinished + ']'
+                                : isFullStop
+                                    ? ' [WORK STOPPAGE — excluded from computation]'
+                                    : isFrozen
+                                        ? ' [MONTH EXCLUDED — work stoppage period]'
+                                        : '';
+                            var tooltipText = (pp.name + statusNote).replace(/"/g, '&quot;');
+                            return '<th style="padding:5px 6px;border:1px solid #c8e6c9;color:' + hColor + ';font-size:0.62rem;font-weight:700;text-align:center;width:68px;min-width:68px;max-width:68px;background:' + hBg + ';" title="' + tooltipText + '">'
+                                + '<span class="kpm-proj-name-wrap"><span class="kpm-proj-name-txt">' + pp.name + '</span></span>'
+                                + '</th>';
                         }).join('');
                         var projGradeRow3Cols = regProjs.map(function(pp, pi){
                             var isFrozen = _projWsFrozen[pi];
-                            return '<th style="padding:4px 2px;border:1px solid #c8e6c9;color:' + (isFrozen?'#bbb':'#1b5e20') + ';font-size:0.6rem;font-style:italic;text-align:center;background:' + (isFrozen?'#eeeeee':'#c5e8c3') + ';">EP (%)</th>';
+                            var isFullStop = isProjectOnStoppage(pp);
+                            var isFinished = !!pp.dateFinished;
+                            var statusNote = isFinished
+                                ? ' [FINISHED: ' + pp.dateFinished + ']'
+                                : isFullStop
+                                    ? ' [WORK STOPPAGE — excluded from computation]'
+                                    : isFrozen
+                                        ? ' [MONTH EXCLUDED — work stoppage period]'
+                                        : '';
+                            var tooltipText = (pp.name + statusNote).replace(/"/g, '&quot;');
+                            return '<th style="padding:4px 6px;border:1px solid #c8e6c9;color:' + (isFrozen?'#c62828':'#1b5e20') + ';font-size:0.6rem;font-style:italic;text-align:center;width:68px;min-width:68px;max-width:68px;background:' + (isFrozen?'#fce4ec':'#c5e8c3') + ';" title="' + tooltipText + '">EP (%)</th>';
                         }).join('');
 
                         return '<table style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;table-layout:fixed;">'
@@ -19010,7 +19228,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         }
                         var epSelects = document.querySelectorAll('[id^="kpmmod-ep-' + regKey + '-' + rowId + '-"]');
                         var sum=0,count=0;
-                        epSelects.forEach(function(s){ var r=parseFloat((s.value||'').replace('%','').trim()); if(!isNaN(r)&&r>0){sum+=r/100;count++;} });
+                        epSelects.forEach(function(s){ if(s.disabled) return; var r=parseFloat((s.value||'').replace('%','').trim()); if(!isNaN(r)&&r>0){sum+=r/100;count++;} });
                         var avgEp = count>0?sum/count:0;
                         var total = avgEp*dw;
                         var avgEl = document.getElementById('kpmmod-avg-ep-' + regKey + '-' + rowId);
@@ -19028,7 +19246,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var activeMo = modal.getAttribute('data-month');
                         if (!reg || !activeMo) { modal.remove(); render(); return; }
 
-                        var regProjs = (state.filteredProjects || state.projects).filter(function(p){ return p.region === reg && !kpmIsNA(p) && !isProjectOnStoppage(p) && !p.dateFinished; });
+                        var regProjs = state.projects.filter(function(p){ return p.region === reg && (!kpmIsNA(p) || isProjectOnStoppage(p)) && !p.dateFinished; });
 
                         // RBAC check on first project
                         if (regProjs.length) {
@@ -26582,15 +26800,15 @@ document.addEventListener('DOMContentLoaded', function() {
         h += 'Next <i class="fas fa-chevron-right"></i></button>';
         h += '</div>';
 
-        h += '<div style="overflow-x:auto;overflow-y:auto;max-height:520px;position:relative;">';
+        h += '<div style="overflow-x:auto;overflow-y:auto;max-height:75vh;position:relative;">';
         h += '<table class="got-tbl" style="width:auto;border-collapse:collapse;">';
 
         h += '<thead style="position:sticky;top:0;z-index:4;">';
         h += '<tr>';
-        h += '<th class="got-th-dark got-th-left" rowspan="2" style="position:sticky;left:0;z-index:5;min-width:155px;max-width:155px;white-space:normal;box-shadow:2px 0 4px rgba(0,0,0,0.08);">GOALS</th>';
-        h += '<th class="got-th-dark got-th-left" rowspan="2" style="position:sticky;left:155px;z-index:5;min-width:130px;max-width:130px;white-space:normal;">TARGETS</th>';
-        h += '<th class="got-th-dark got-th-left" rowspan="2" style="position:sticky;left:285px;z-index:5;min-width:125px;white-space:normal;">RESPONSIBLE</th>';
-        h += '<th class="got-th-dark got-th-left" rowspan="2" style="position:sticky;left:410px;z-index:5;min-width:130px;max-width:130px;white-space:normal;box-shadow:3px 0 6px rgba(0,0,0,0.12);">EVIDENCE OF IMPLEMENTATION</th>';
+        h += '<th class="got-th-dark got-th-left" rowspan="2" style="position:sticky;left:0;z-index:5;min-width:180px;max-width:180px;white-space:normal;box-shadow:2px 0 4px rgba(0,0,0,0.08);">GOALS</th>';
+        h += '<th class="got-th-dark got-th-left" rowspan="2" style="position:sticky;left:180px;z-index:5;min-width:150px;max-width:150px;white-space:normal;">TARGETS</th>';
+        h += '<th class="got-th-dark got-th-left" rowspan="2" style="position:sticky;left:330px;z-index:5;min-width:140px;white-space:normal;">RESPONSIBLE</th>';
+        h += '<th class="got-th-dark got-th-left" rowspan="2" style="position:sticky;left:470px;z-index:5;min-width:150px;max-width:150px;white-space:normal;box-shadow:3px 0 6px rgba(0,0,0,0.12);">EVIDENCE OF IMPLEMENTATION</th>';
         h += '<th colspan="12" style="background:#1b5e20;color:white;font-size:0.63rem;text-align:center;padding:3px 6px;">MONTHLY RATING</th>';
         h += '<th class="got-th-dark" rowspan="2" style="white-space:nowrap;font-size:0.59rem;">AVG</th>';
         h += '<th class="got-th-dark" rowspan="2" style="white-space:nowrap;">% COMPLIANCE</th>';
@@ -26620,10 +26838,10 @@ document.addEventListener('DOMContentLoaded', function() {
             measures.forEach(function(measure, mi) {
                 h += '<tr' + (mi % 2 === 0 ? '' : ' style="background:rgba(0,0,0,0.015);"') + '>';
                 if (mi === 0) {
-                    h += '<td rowspan="' + nMeasures + '" style="position:sticky;left:0;z-index:2;text-align:left;font-weight:700;font-size:0.66rem;color:' + gCatColor + ';vertical-align:top;padding:5px 8px;white-space:normal;min-width:155px;max-width:155px;background:' + gCatBg + ';box-shadow:2px 0 4px rgba(0,0,0,0.06);">' + g.goal + '</td>';
-                    h += '<td rowspan="' + nMeasures + '" style="position:sticky;left:155px;z-index:2;text-align:left;font-size:0.62rem;vertical-align:top;padding:5px 7px;white-space:normal;min-width:130px;max-width:130px;background:' + gCatBg + ';">' + (g.target||'').split('\n').join('<br>') + '</td>';
-                    h += '<td rowspan="' + nMeasures + '" style="position:sticky;left:285px;z-index:2;font-size:0.62rem;vertical-align:top;padding:5px 7px;white-space:normal;min-width:125px;background:' + gCatBg + ';">' + (g.responsible||'') + '</td>';
-                    h += '<td rowspan="' + nMeasures + '" style="position:sticky;left:410px;z-index:2;text-align:left;font-size:0.62rem;vertical-align:top;padding:5px 7px;white-space:normal;min-width:130px;max-width:130px;background:' + gCatBg + ';box-shadow:3px 0 6px rgba(0,0,0,0.10);">' + (g.evidence||'').split('\n').join('<br>') + '</td>';
+                    h += '<td rowspan="' + nMeasures + '" style="position:sticky;left:0;z-index:2;text-align:left;font-weight:700;font-size:0.66rem;color:' + gCatColor + ';vertical-align:top;padding:5px 8px;white-space:normal;min-width:180px;max-width:180px;background:' + gCatBg + ';box-shadow:2px 0 4px rgba(0,0,0,0.06);">' + g.goal + '</td>';
+                    h += '<td rowspan="' + nMeasures + '" style="position:sticky;left:180px;z-index:2;text-align:left;font-size:0.62rem;vertical-align:top;padding:5px 7px;white-space:normal;min-width:150px;max-width:150px;background:' + gCatBg + ';">' + (g.target||'').split('\n').join('<br>') + '</td>';
+                    h += '<td rowspan="' + nMeasures + '" style="position:sticky;left:330px;z-index:2;font-size:0.62rem;vertical-align:top;padding:5px 7px;white-space:normal;min-width:140px;background:' + gCatBg + ';">' + (g.responsible||'') + '</td>';
+                    h += '<td rowspan="' + nMeasures + '" style="position:sticky;left:470px;z-index:2;text-align:left;font-size:0.62rem;vertical-align:top;padding:5px 7px;white-space:normal;min-width:150px;max-width:150px;background:' + gCatBg + ';box-shadow:3px 0 6px rgba(0,0,0,0.10);">' + (g.evidence||'').split('\n').join('<br>') + '</td>';
                 }
                 var _gotSelYear = state.selectedYear || new Date().getFullYear();
                 for (var m = 1; m <= 12; m++) {
@@ -26657,7 +26875,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         h += '<tr class="got-tr-overall">';
-        h += '<td colspan="4" style="position:sticky;left:0;z-index:2;text-align:right;padding:5px 10px;font-size:0.65rem;background:#e8f5e9;box-shadow:3px 0 6px rgba(0,0,0,0.08);">OVERALL AVERAGE</td>';
+        h += '<td colspan="4" style="position:sticky;left:0;z-index:2;text-align:right;padding:5px 10px;font-size:0.65rem;font-weight:800;color:#1b5e20;background:#e8f5e9;box-shadow:3px 0 6px rgba(0,0,0,0.08);">OVERALL AVERAGE</td>';
         for (var m2 = 1; m2 <= 12; m2++) {
             var monthVals = [];
             COMPLIANCE_GOALS.forEach(function(g) {
@@ -27092,7 +27310,7 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.id = 'got-compliance-modal';
         modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.58);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;';
 
-        modal.innerHTML = '<div style="border-radius:12px;width:min(1200px,97vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
+        modal.innerHTML = '<div style="border-radius:12px;width:min(1600px,98vw);min-width:min(1100px,98vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
             // Header
             + '<div style="background:linear-gradient(90deg,#0d3311,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
             + '<div>'
@@ -27112,7 +27330,7 @@ document.addEventListener('DOMContentLoaded', function() {
             + '<span style="font-size:0.6rem;color:#888;margin-left:auto;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll table horizontally</span>'
             + '</div>'
             // Table
-            + '<div style="overflow-x:auto;max-height:60vh;overflow-y:auto;background:var(--bg-card);">'
+            + '<div style="overflow-x:auto;max-height:75vh;overflow-y:auto;background:var(--bg-card);">'
             + tableHtml
             + '</div>'
             // Legend
@@ -39661,14 +39879,13 @@ async function exportKpmExcel() {
     const MO_SHORT = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
     const REGIONS  = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
 
-    // ── Collect projects (exclude Corporate) ──────────────────────────────────
-    // ── Collect projects — exclude Corporate, Plant Ops, finished, and work-stoppage ──
+    // ── Collect projects — exclude Corporate, Plant Ops, and kpm_na only ──
+    // ALL projects included: active, work-stoppage, resumed, AND finished
     const allProjs = (state.filteredProjects || state.projects || []).filter(p => {
         const r = (p.region || '').toUpperCase();
         if (r === 'CORPORATE') return false;
         if (r === 'PLANT OPERATIONS') return false;
-        if (p.dateFinished) return false;
-        if (p.status === 'work-stoppage') return false;
+        if (typeof kpmIsNA === 'function' && kpmIsNA(p)) return false;
         return true;
     });
 
@@ -39678,6 +39895,14 @@ async function exportKpmExcel() {
     }
 
     showToast('⏳ Generating KPM Excel file...', 'info');
+
+    // ── ExcelJS workbook ──────────────────────────────────────────────────────
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'ESH Monitoring System';
+    wb.created = new Date();
+
+    // ── Pre-create OVERALL SUMMARY as first sheet ─────────────────────────────
+    wb.addWorksheet('OVERALL SUMMARY');
 
     // ── Helpers ───────────────────────────────────────────────────────────────
     function getKpmVal(proj, mo, rowId) {
@@ -39695,7 +39920,28 @@ async function exportKpmExcel() {
         const n = parseFloat(String(s).replace('%', ''));
         return isNaN(n) ? null : n;
     }
+    // Returns true if this project's month should be excluded from computation
+    // Covers: work-stoppage blacklisted months AND post-finish months
+    function isMonthFrozenForExcel(proj, mo) {
+        // Finished project — months after finish date are excluded
+        if (proj.dateFinished) {
+            const moIdx0 = MO_LONG.indexOf(mo); // 0-based
+            const finD = new Date(proj.dateFinished);
+            const finAbsMo = finD.getFullYear() * 12 + finD.getMonth();
+            const cellAbsMo = (year * 12) + moIdx0;
+            if (cellAbsMo > finAbsMo) return true;
+        }
+        // Work-stoppage blacklisted months
+        const moIdx1 = MO_LONG.indexOf(mo) + 1; // 1-based
+        if (typeof isMonthBlacklistedForProject === 'function') {
+            return isMonthBlacklistedForProject(proj, moIdx1, year);
+        }
+        // Fallback: full stoppage with no resume
+        return !!(proj.workStoppageDate && !proj.workResumeDate);
+    }
+
     function projMonthScore(proj, mo) {
+        if (isMonthFrozenForExcel(proj, mo)) return null; // excluded from computation
         let wSum = 0, wTot = 0;
         rows.forEach(r => {
             const v = parsePct(getKpmVal(proj, mo, r.id));
@@ -39716,11 +39962,6 @@ async function exportKpmExcel() {
         if (v >= 75) return { bg: 'FFF9C4', fg: '82500D' };
         return { bg: 'FFCDD2', fg: 'B71C1C' };
     }
-
-    // ── ExcelJS workbook ──────────────────────────────────────────────────────
-    const wb = new ExcelJS.Workbook();
-    wb.creator = 'ESH Monitoring System';
-    wb.created = new Date();
 
     const C_DARK_GREEN  = '1B5E20';
     const C_MED_GREEN   = '2E7D32';
@@ -39917,7 +40158,18 @@ async function exportKpmExcel() {
                 applyHeaderStyle(hdrRow.getCell(ci), '1A237E', 'FFFFFF');
                 hdrRow.getCell(ci).value = 'OVERALL\nAVG';
             } else {
-                applyHeaderStyle(hdrRow.getCell(ci), C_COL_HDR_BG, C_COL_HDR_FG);
+                // Color-code by project status:
+                //   work-stoppage (full, no resume) → pink header
+                //   finished → grey-blue header
+                //   active/resumed → dark green header
+                const isFullStop = cm.proj.workStoppageDate && !cm.proj.workResumeDate;
+                const isFinished = !!cm.proj.dateFinished;
+                const hBg = isFullStop ? 'FCE4EC' : isFinished ? '90A4AE' : C_COL_HDR_BG;
+                const hFg = isFullStop ? '880E4F' : isFinished ? 'FFFFFF' : C_COL_HDR_FG;
+                applyHeaderStyle(hdrRow.getCell(ci), hBg, hFg);
+                // Add status badge suffix to project name in header
+                const badge = isFullStop ? ' ⏸ STOPPED' : isFinished ? ' ✓ DONE' : '';
+                if (badge) hdrRow.getCell(ci).value = (cm.proj.name || '') + badge;
             }
         });
 
@@ -39980,20 +40232,64 @@ async function exportKpmExcel() {
                 const ci = LEFT_COLS + 1 + i;
                 const cell = dataRow.getCell(ci);
                 if (cm.type === 'proj') {
-                    const rawVal = getKpmVal(cm.proj, mo, kpmRow.id);
-                    const status = getKpmStatus(cm.proj, mo);
-                    applyScoreCell(cell, rawVal, status);
+                    if (cm.proj.dateFinished) {
+                        // Grey-blue "FINISHED" cell — project is done, excluded from computation
+                        const finDate = cm.proj.dateFinished;
+                        const finMoIdx = MO_LONG.indexOf(mo); // 0-based
+                        const finD = new Date(finDate);
+                        const finAbsMo = finD.getFullYear() * 12 + finD.getMonth(); // 0-based abs month
+                        const cellAbsMo = (year * 12) + finMoIdx;
+                        // Months AFTER finish date → grey "FINISHED"
+                        // Months ON or BEFORE finish date → show actual data if any
+                        if (cellAbsMo > finAbsMo) {
+                            cell.value     = '—';
+                            cell.font      = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FFB0BEC5' } };
+                            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEcEff1' } };
+                            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: false };
+                            cell.border    = {
+                                top:    { style: 'thin', color: { argb: 'FFB0BEC5' } },
+                                bottom: { style: 'thin', color: { argb: 'FFB0BEC5' } },
+                                left:   { style: 'thin', color: { argb: 'FFB0BEC5' } },
+                                right:  { style: 'thin', color: { argb: 'FFB0BEC5' } }
+                            };
+                        } else {
+                            const rawVal = getKpmVal(cm.proj, mo, kpmRow.id);
+                            const status = getKpmStatus(cm.proj, mo);
+                            applyScoreCell(cell, rawVal, status);
+                        }
+                    } else if (isMonthFrozenForExcel(cm.proj, mo)) {
+                        // Pink cell with "—" — excluded from computation (header already says STOPPED)
+                        cell.value     = '—';
+                        cell.font      = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FFE57373' } };
+                        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4EC' } };
+                        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: false };
+                        cell.border    = {
+                            top:    { style: 'thin', color: { argb: 'FFF48FB1' } },
+                            bottom: { style: 'thin', color: { argb: 'FFF48FB1' } },
+                            left:   { style: 'thin', color: { argb: 'FFF48FB1' } },
+                            right:  { style: 'thin', color: { argb: 'FFF48FB1' } }
+                        };
+                    } else {
+                        const rawVal = getKpmVal(cm.proj, mo, kpmRow.id);
+                        const status = getKpmStatus(cm.proj, mo);
+                        applyScoreCell(cell, rawVal, status);
+                    }
                 } else if (cm.type === 'overall') {
-                    const vals = orderedProjs.map(p => parsePct(getKpmVal(p, mo, kpmRow.id))).filter(v => v !== null);
+                    // Overall AVG — exclude frozen projects from computation
+                    const vals = orderedProjs
+                        .filter(p => !isMonthFrozenForExcel(p, mo))
+                        .map(p => parsePct(getKpmVal(p, mo, kpmRow.id))).filter(v => v !== null);
                     const avg  = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
                     applyAvgCell(cell, avg);
                     // Extra styling to distinguish overall col
                     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
                     cell.font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF1A237E' } };
                 } else {
-                    // AVG cell
+                    // Region AVG — exclude frozen projects from computation
                     const regProjs = projsByRegion[cm.region];
-                    const vals = regProjs.map(p => parsePct(getKpmVal(p, mo, kpmRow.id))).filter(v => v !== null);
+                    const vals = regProjs
+                        .filter(p => !isMonthFrozenForExcel(p, mo))
+                        .map(p => parsePct(getKpmVal(p, mo, kpmRow.id))).filter(v => v !== null);
                     const avg  = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
                     applyAvgCell(cell, avg);
                 }
@@ -40006,15 +40302,25 @@ async function exportKpmExcel() {
         const scoreArr = ['KPI SCORE', '', '', ''];
         colMap.forEach(cm => {
             if (cm.type === 'proj') {
-                const score = projMonthScore(cm.proj, mo);
-                scoreArr.push(score !== null ? Math.round(score) + '%' : '—');
+                if (cm.proj.dateFinished && isMonthFrozenForExcel(cm.proj, mo)) {
+                    scoreArr.push('—'); // finished project — post-completion month
+                } else if (isMonthFrozenForExcel(cm.proj, mo)) {
+                    scoreArr.push('—'); // work-stoppage frozen — excluded from KPI score
+                } else {
+                    const score = projMonthScore(cm.proj, mo);
+                    scoreArr.push(score !== null ? Math.round(score) + '%' : '—');
+                }
             } else if (cm.type === 'overall') {
-                const scores = orderedProjs.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                const scores = orderedProjs
+                    .filter(p => !isMonthFrozenForExcel(p, mo))
+                    .map(p => projMonthScore(p, mo)).filter(v => v !== null);
                 const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
                 scoreArr.push(avg !== null ? Math.round(avg) + '%' : '—');
             } else {
                 const regProjs = projsByRegion[cm.region];
-                const scores = regProjs.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                const scores = regProjs
+                    .filter(p => !isMonthFrozenForExcel(p, mo))
+                    .map(p => projMonthScore(p, mo)).filter(v => v !== null);
                 const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
                 scoreArr.push(avg !== null ? Math.round(avg) + '%' : '—');
             }
@@ -40104,8 +40410,8 @@ async function exportKpmExcel() {
         ws.views = [{ state: 'frozen', xSplit: LEFT_COLS, ySplit: 4, activeCell: 'E5' }];
     });
 
-    // ── OVERALL SUMMARY SHEET ─────────────────────────────────────────────────
-    const sumWs = wb.addWorksheet('OVERALL SUMMARY');
+    // ── OVERALL SUMMARY SHEET — already created first (see top), now populating ─
+    const sumWs = wb.getWorksheet('OVERALL SUMMARY');
     addNotesRow(sumWs, totalCols);
     sumWs.addRow([]); sumWs.getRow(2).height = 6;
 
@@ -40146,8 +40452,17 @@ async function exportKpmExcel() {
         const ci = LEFT_COLS + 1 + i;
         if (cm.type === 'overall') {
             applyHeaderStyle(sHdrRow.getCell(ci), '1A237E', 'FFFFFF');
+        } else if (cm.type === 'avg') {
+            applyHeaderStyle(sHdrRow.getCell(ci), C_MED_GREEN, C_COL_HDR_FG);
         } else {
-            applyHeaderStyle(sHdrRow.getCell(ci), cm.type === 'avg' ? C_MED_GREEN : C_COL_HDR_BG, C_COL_HDR_FG);
+            // Color-code by project status (same as monthly sheets)
+            const isFullStop = cm.proj.workStoppageDate && !cm.proj.workResumeDate;
+            const isFinished = !!cm.proj.dateFinished;
+            const hBg = isFullStop ? 'FCE4EC' : isFinished ? '90A4AE' : C_COL_HDR_BG;
+            const hFg = isFullStop ? '880E4F' : isFinished ? 'FFFFFF' : C_COL_HDR_FG;
+            applyHeaderStyle(sHdrRow.getCell(ci), hBg, hFg);
+            const badge = isFullStop ? ' ⏸ STOPPED' : isFinished ? ' ✓ DONE' : '';
+            if (badge) sHdrRow.getCell(ci).value = (cm.proj.name || '') + badge;
         }
     });
 
@@ -40188,6 +40503,33 @@ async function exportKpmExcel() {
                 applyAvgCell(cell, avg);
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
                 cell.font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF1A237E' } };
+            } else if (cm.type === 'proj') {
+                const thinBorder = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
+                // Check if finished project — post-finish months → grey
+                if (cm.proj.dateFinished) {
+                    const finD = new Date(cm.proj.dateFinished);
+                    const finAbsMo = finD.getFullYear() * 12 + finD.getMonth();
+                    const cellAbsMo = (year * 12) + moIdx;
+                    if (cellAbsMo > finAbsMo) {
+                        cell.value     = '—';
+                        cell.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FFB0BEC5' } };
+                        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECEFF1' } };
+                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                        cell.border    = thinBorder;
+                        return;
+                    }
+                }
+                // Check if month is frozen (work-stoppage)
+                if (isMonthFrozenForExcel(cm.proj, mo)) {
+                    cell.value     = '—';
+                    cell.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FFE57373' } };
+                    cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4EC' } };
+                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    cell.border    = { top:{style:'thin',color:{argb:'FFF48FB1'}}, bottom:{style:'thin',color:{argb:'FFF48FB1'}}, left:{style:'thin',color:{argb:'FFF48FB1'}}, right:{style:'thin',color:{argb:'FFF48FB1'}} };
+                    return;
+                }
+                // Normal — apply score color
+                applyAvgCell(cell, projMonthScore(cm.proj, mo));
             } else {
                 applyAvgCell(cell, cm.type === 'proj'
                     ? projMonthScore(cm.proj, mo)
@@ -40233,6 +40575,25 @@ async function exportKpmExcel() {
             applyAvgCell(cell, avg);
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
             cell.font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
+        } else if (cm.type === 'proj') {
+            const thinBorder = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
+            const isFullStop = cm.proj.workStoppageDate && !cm.proj.workResumeDate;
+            const isFinished = !!cm.proj.dateFinished;
+            if (isFinished) {
+                cell.value     = projOverallScore(cm.proj) !== null ? Math.round(projOverallScore(cm.proj)) + '%' : '—';
+                cell.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF78909C' } };
+                cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECEFF1' } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.border    = thinBorder;
+            } else if (isFullStop) {
+                cell.value     = '⏸';
+                cell.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FFE57373' } };
+                cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4EC' } };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.border    = { top:{style:'thin',color:{argb:'FFF48FB1'}}, bottom:{style:'thin',color:{argb:'FFF48FB1'}}, left:{style:'thin',color:{argb:'FFF48FB1'}}, right:{style:'thin',color:{argb:'FFF48FB1'}} };
+            } else {
+                applyAvgCell(cell, projOverallScore(cm.proj));
+            }
         } else {
             applyAvgCell(cell, cm.type === 'proj'
                 ? projOverallScore(cm.proj)
@@ -40250,6 +40611,16 @@ async function exportKpmExcel() {
     for (let ci = 2; ci <= LEFT_COLS; ci++) sumWs.getColumn(ci).width = 5;
     colMap.forEach((cm, i) => { sumWs.getColumn(LEFT_COLS + 1 + i).width = cm.type === 'avg' ? 8 : cm.type === 'overall' ? 10 : 14; });
     sumWs.views = [{ state: 'frozen', xSplit: LEFT_COLS, ySplit: 4, activeCell: 'E5' }];
+
+    // Legend row — status color guide
+    const legendRow = sumWs.addRow([]);
+    legendRow.height = 16;
+    sumWs.mergeCells(legendRow.number, 1, legendRow.number, totalCols);
+    const lgCell = legendRow.getCell(1);
+    lgCell.value = '  LEGEND:  🔲 Grey column = FINISHED project   🔲 Pink column = WORK-STOPPAGE (no resume)   🟩 ≥90%   🟨 75–89%   🟥 <75%';
+    lgCell.font      = { size: 7.5, name: 'Calibri', color: { argb: 'FF5D4037' }, italic: true };
+    lgCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF9C4' } };
+    lgCell.alignment = { vertical: 'middle', wrapText: false };
 
     // ── Download ──────────────────────────────────────────────────────────────
     try {
