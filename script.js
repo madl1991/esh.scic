@@ -11765,6 +11765,9 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const label = entry?.name || `LTA entry #${idx + 1}`;
             showDeleteDialog('LTA Entry', `${label} from ${pName}`).then(confirmed => {
                 if (!confirmed) return;
+                // Close the entry modal immediately if it's open (so deleted entry disappears right away)
+                const _openModal = document.getElementById('lta-entry-modal');
+                if (_openModal) _openModal.remove();
                 p.vals['lta-registry_entries'].splice(idx, 1);
                 syncIncidentClassificationsFromRegistry();
                 syncDaysLostFromLtaRegistry();
@@ -20679,7 +20682,7 @@ function showDeleteDialog(itemLabel, itemName) {
     return new Promise((resolve) => {
         // Temporarily lower any open full-screen modals so the confirmation
         // dialog is never obscured (they create new stacking contexts)
-        const _modalsToLower = ['osh-nov-modal','env-nov-modal','got-compliance-modal','lta-modal'];
+        const _modalsToLower = ['osh-nov-modal','env-nov-modal','got-compliance-modal','lta-modal','lta-entry-modal'];
         const _savedZIndex = {};
         _modalsToLower.forEach(id => {
             const el = document.getElementById(id);
