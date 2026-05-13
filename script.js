@@ -12022,7 +12022,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         </div>
                         <div class="lta-field lta-field-full">
                             <label>Details / Facts of Incident</label>
-                            <textarea name="ltamod-detailsFacts" ${dis} style="min-height:70px;">${e.detailsFacts||''}</textarea>
+                            <textarea name="ltamod-detailsFacts" ${dis} style="min-height:160px;">${e.detailsFacts||''}</textarea>
                         </div>
 
                         <div class="lta-section-label lta-field-full" style="margin-top:4px;">
