@@ -22817,9 +22817,13 @@ function populateProjectFilter(tabType) {
             ? state.projects
             : state.projects.filter(p => p.region === regionVal);
         
-        // Exclude PLANT OPERATIONS and CORPORATE for audit, cshp, reg tabs
+        // Exclude PLANT OPERATIONS for rates, medical, audit, cshp, reg tabs
+        if (suffix && ['rates', 'medical', 'audit', 'cshp', 'reg'].includes(suffix)) {
+            projects = projects.filter(p => p.region !== 'PLANT OPERATIONS');
+        }
+        // Also exclude CORPORATE for audit, cshp, reg tabs
         if (suffix && ['audit', 'cshp', 'reg'].includes(suffix)) {
-            projects = projects.filter(p => p.region !== 'PLANT OPERATIONS' && p.region !== 'CORPORATE');
+            projects = projects.filter(p => p.region !== 'CORPORATE');
         }
         
         projectFilter.innerHTML = '<option value="all">All Projects</option>';
@@ -22832,7 +22836,7 @@ function populateProjectFilter(tabType) {
     });
 }
 
-let trendChartInstance = null;
+const trendChartInstances = {};
 let _trendChartDebounce = null;
 
 function updateTrendChart(tabType) {
@@ -22848,16 +22852,20 @@ function _doUpdateTrendChart(tabType) {
     
     if (!canvas) return;
     
-    if (trendChartInstance) {
-        trendChartInstance.destroy();
-        trendChartInstance = null;
+    if (trendChartInstances[tabType]) {
+        trendChartInstances[tabType].destroy();
+        trendChartInstances[tabType] = null;
     }
     
     let filteredProjects = state.projects;
     
-    // Exclude PLANT OPERATIONS and CORPORATE for audit, cshp, reg tabs
+    // Exclude PLANT OPERATIONS for rates, medical, audit, cshp, reg tabs
+    if (['rates', 'medical', 'audit', 'cshp', 'reg'].includes(tabType)) {
+        filteredProjects = filteredProjects.filter(p => p.region !== 'PLANT OPERATIONS');
+    }
+    // Also exclude CORPORATE for audit, cshp, reg tabs
     if (['audit', 'cshp', 'reg'].includes(tabType)) {
-        filteredProjects = filteredProjects.filter(p => p.region !== 'PLANT OPERATIONS' && p.region !== 'CORPORATE');
+        filteredProjects = filteredProjects.filter(p => p.region !== 'CORPORATE');
     }
     
     if (regionFilter !== 'all') {
@@ -22872,37 +22880,42 @@ function _doUpdateTrendChart(tabType) {
     const datasets = [];
     
     if (tabType === 'rates') {
+        const _rateBase = (state.ratesStandard === 'osha') ? 200000 : 1000000;
         const rateTypes = ['LTIR', 'TRIR', 'SEVERITY RATE'];
         const colors = ['#1b5e20', '#1565c0', '#b71c1c'];
-        
+
         rateTypes.forEach((rateType, idx) => {
-            const data = new Array(12).fill(0);
-            const counts = new Array(12).fill(0);
-            
-            filteredProjects.forEach(p => {
-                const key = `rates_${rateType}`;
-                if (p.vals && p.vals[key]) {
-                    for (let i = 1; i <= 12; i++) {
-                        const val = parseFloat(p.vals[key][i]) || 0;
-                        if (val > 0) {
-                            data[i-1] += val;
-                            counts[i-1]++;
-                        }
-                    }
+            const data = new Array(12).fill(null);
+
+            for (let i = 1; i <= 12; i++) {
+                let mh = 0, lta = 0, med = 0, fat = 0, hip = 0, dL = 0;
+                filteredProjects.forEach(p => {
+                    if (!p.vals) return;
+                    mh  += parseFloat(p.vals['exposures_Total Exposed Manhour']?.[i]) || 0;
+                    lta += parseFloat(p.vals['medical_LTA']?.[i]) || 0;
+                    med += parseFloat(p.vals['medical_Medical Treatment']?.[i]) || 0;
+                    fat += parseFloat(p.vals['medical_Fatality']?.[i]) || 0;
+                    hip += parseFloat(p.vals['medical_High-Potential incident']?.[i]) || 0;
+                    dL  += parseFloat(p.vals['medical_Days Lost/Charged']?.[i]) || 0;
+                });
+                if (mh > 0) {
+                    const rec = lta + med + fat + hip;
+                    if      (rateType === 'LTIR')          data[i-1] = parseFloat(((lta * _rateBase) / mh).toFixed(4));
+                    else if (rateType === 'TRIR')          data[i-1] = parseFloat(((rec * _rateBase) / mh).toFixed(4));
+                    else if (rateType === 'SEVERITY RATE') data[i-1] = parseFloat(((dL  * _rateBase) / mh).toFixed(4));
                 }
-            });
-            
-            const avgData = data.map((sum, i) => counts[i] > 0 ? (sum / counts[i]).toFixed(2) : 0);
-            
+            }
+
             datasets.push({
                 label: rateType,
-                data: avgData,
+                data: data,
                 borderColor: colors[idx],
                 backgroundColor: colors[idx] + '20',
                 tension: 0.4,
                 fill: true,
                 pointRadius: 4,
-                pointHoverRadius: 6
+                pointHoverRadius: 6,
+                spanGaps: false
             });
         });
         
@@ -22996,7 +23009,7 @@ function _doUpdateTrendChart(tabType) {
         };
     });
     
-    trendChartInstance = new Chart(ctx, {
+    trendChartInstances[tabType] = new Chart(ctx, {
         type: 'line',
         data: {
             labels: months,
