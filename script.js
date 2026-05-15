@@ -6671,9 +6671,6 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const statusCounts = { 'on-going': 0, 'work-stoppage': 0, 'finished': 0 };
             chartProjects.forEach(p => statusCounts[p.status] = (statusCounts[p.status] || 0) + 1);
 
-            // Only destroy regionChart — statusChart is static and should not flicker on prev/next
-            if (state.charts.region) { state.charts.region.destroy(); state.charts.region = null; }
-
             setTimeout(() => {
                 // ── Inject prev/next nav into chart-box header (inside setTimeout so DOM is ready) ──
                     const _rcBox = document.querySelector('.chart-box:has(#regionChart)') ||
@@ -6697,6 +6694,17 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
 
                 const regionCtx = document.getElementById('regionChart');
                 if (regionCtx) {
+                    // --- Smooth animated update: reuse existing chart if still attached to this canvas ---
+                    const _attachedChart = Chart.getChart(regionCtx);
+                    if (state.charts.region && _attachedChart === state.charts.region) {
+                        state.charts.region.data.datasets[0].data = regionAvgs;
+                        state.charts.region.update({
+                            duration: 600,
+                            easing: 'easeInOutQuart'
+                        });
+                    } else {
+                    // Instance is stale or canvas was re-created — destroy and recreate
+                    if (state.charts.region) { state.charts.region.destroy(); state.charts.region = null; }
                     const existingChart = Chart.getChart(regionCtx);
                     if (existingChart) existingChart.destroy();
                     
@@ -6745,6 +6753,10 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                             }]
                         },
                         options: {
+                            animation: {
+                                duration: 700,
+                                easing: 'easeOutQuart'
+                            },
                             responsive: true,
                             maintainAspectRatio: false,
                             plugins: { 
@@ -6775,6 +6787,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                             }
                         }
                     });
+                    } // end else (first render)
                 }
 
                 const statusCtx = document.getElementById('statusChart');
@@ -10127,7 +10140,19 @@ function renderTabulation() {
             setTimeout(() => {
                 const regionCtx = document.getElementById('regionChart');
                 if (!regionCtx) return;
-                // Destroy only regionChart — statusChart is left completely alone
+
+                // --- Smooth animated update: reuse only if instance is still attached to this canvas ---
+                const _attachedChart = Chart.getChart(regionCtx);
+                if (state.charts.region && _attachedChart === state.charts.region) {
+                    state.charts.region.data.datasets[0].data = regionAvgs;
+                    state.charts.region.update({
+                        duration: 600,
+                        easing: 'easeInOutQuart'
+                    });
+                    return;
+                }
+
+                // Stale or first render: destroy any orphan chart then create fresh
                 if (state.charts.region) { state.charts.region.destroy(); state.charts.region = null; }
                 const existingChart = Chart.getChart(regionCtx);
                 if (existingChart) existingChart.destroy();
@@ -10154,6 +10179,10 @@ function renderTabulation() {
                         datasets: [{ label: 'Compliance %', data: regionAvgs, backgroundColor: gradients, borderWidth: 0, borderRadius: 8 }]
                     },
                     options: {
+                        animation: {
+                            duration: 700,
+                            easing: 'easeOutQuart'
+                        },
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
@@ -18529,18 +18558,23 @@ function computeAggregateTabulation() {
     let highPotential   = 0;
     let lostDays        = 0;   // from medical_Days Lost/Charged (direct field)
 
-    state.projects.forEach(p => {
+    state.projects
+        .filter(p => p.region !== 'PLANT OPERATIONS')
+        .forEach(p => {
+        let pMh = 0;
         for (let i = 1; i <= 12; i++) {
-            totalManHours += parseFloat(p.vals['exposures_Total Exposed Manhour']?.[i])      || 0;
+            const mh = parseFloat(p.vals['exposures_Total Exposed Manhour']?.[i]) || 0;
+            totalManHours += mh;
+            pMh           += mh;
             ltaCases      += parseFloat(p.vals['medical_LTA']?.[i])                          || 0;
             medTreatment  += parseFloat(p.vals['medical_Medical Treatment']?.[i])            || 0;
             firstAid      += parseFloat(p.vals['medical_First Aid']?.[i])                   || 0;
             fatality      += parseFloat(p.vals['medical_Fatality']?.[i])                    || 0;
             highPotential += parseFloat(p.vals['medical_High-Potential incident']?.[i])     || 0;
-            lostDays      += parseFloat(p.vals['medical_Days Lost/Charged']?.[i])         || 0;
+            lostDays      += parseFloat(p.vals['medical_Days Lost/Charged']?.[i])           || 0;
         }
         const prevMh = parseFloat(p.vals['exposures_Total Exposed Man-hour to date']?.[0]) || 0;
-        totalManHoursToDate += prevMh + totalManHours;
+        totalManHoursToDate += prevMh + pMh;
     });
 
     const recordableCases = ltaCases + medTreatment + fatality + highPotential;
@@ -18726,14 +18760,14 @@ function buildTrendChartHTML(tabType) {
       <div style="background: var(--bg-card); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color); margin-bottom: 16px;">
         <div style="background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 25%, #2e7d32 50%, #43a047 75%, #66bb6a 100%); color: white; padding: 14px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1); position: relative; overflow: hidden;">
           <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%); pointer-events: none; z-index: 1;"></div>
-          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; position: relative; z-index: 2;">
-            <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 15px; position: relative; z-index: 2;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
               <i class="fas ${icon}" style="font-size: 1.1rem;"></i>
               <span style="font-weight: 700; font-size: 1rem; letter-spacing: 0.5px;">${title}</span>
             </div>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div style="display: flex; gap: 10px; flex-wrap: nowrap; flex-shrink: 0;">
               <select id="trendRegionFilter_${tabType}" onchange="populateProjectFilter('${tabType}'); updateTrendChart('${tabType}')"
-                      style="padding: 6px 12px; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; background: white; color: #1b5e20; cursor: pointer;">
+                      style="padding: 6px 28px 6px 12px; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; background: white; color: #1b5e20; cursor: pointer; width: 150px;">
                 <option value="all">ALL REGIONS</option>
                 <option value="NCR">NCR</option>
                 <option value="SOUTH LUZON">SOUTH LUZON</option>
@@ -18742,7 +18776,7 @@ function buildTrendChartHTML(tabType) {
                 ${['audit', 'cshp', 'reg'].includes(tabType) ? '' : '<option value="CORPORATE">CORPORATE</option>'}
               </select>
               <select id="trendProjectFilter_${tabType}" onchange="updateTrendChart('${tabType}')"
-                      style="padding: 6px 12px; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; background: white; color: #1b5e20; cursor: pointer;">
+                      style="padding: 6px 28px 6px 12px; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 600; background: white; color: #1b5e20; cursor: pointer; width: 180px;">
                 <option value="all">All Projects</option>
               </select>
             </div>
@@ -18809,10 +18843,7 @@ function _doUpdateTrendChart(tabType) {
     
     if (!canvas) return;
     
-    if (trendChartInstances[tabType]) {
-        trendChartInstances[tabType].destroy();
-        trendChartInstances[tabType] = null;
-    }
+    const _existingChart = trendChartInstances[tabType] || null;
     
     let filteredProjects = state.projects;
     
@@ -18966,6 +18997,26 @@ function _doUpdateTrendChart(tabType) {
         };
     });
     
+    // --- Smooth animated update (no destroy/recreate) ---
+    if (_existingChart) {
+        // Update each dataset's data in place so Chart.js can animate the transition
+        datasetsWithGradients.forEach((ds, i) => {
+            if (_existingChart.data.datasets[i]) {
+                _existingChart.data.datasets[i].data = ds.data;
+                _existingChart.data.datasets[i].backgroundColor = ds.backgroundColor;
+            } else {
+                _existingChart.data.datasets.push(ds);
+            }
+        });
+        // Remove any extra datasets if new data has fewer series
+        _existingChart.data.datasets.splice(datasetsWithGradients.length);
+        _existingChart.update({
+            duration: 600,
+            easing: 'easeInOutQuart'
+        });
+        return;
+    }
+
     trendChartInstances[tabType] = new Chart(ctx, {
         type: 'line',
         data: {
@@ -18973,7 +19024,10 @@ function _doUpdateTrendChart(tabType) {
             datasets: datasetsWithGradients
         },
         options: {
-            animation: false,
+            animation: {
+                duration: 800,
+                easing: 'easeInOutQuart'
+            },
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
