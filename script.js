@@ -10326,6 +10326,7 @@ function renderTabulation() {
             if (state.currentTab === 'rates') {
                 html += buildIncidentTabulationHTML();
                 html += buildTrendChartHTML('rates');
+                html += buildIncidentRecommendationsHTML('rates');
             }
 
             const complianceProjects = state.projects.filter(p =>
@@ -10431,6 +10432,7 @@ function renderTabulation() {
                 if (typeof syncIncidentClassificationsFromRegistry === 'function') syncIncidentClassificationsFromRegistry();
                 if (typeof syncDaysLostFromLtaRegistry === 'function') syncDaysLostFromLtaRegistry();
                 html += buildTrendChartHTML('medical');
+                html += buildIncidentRecommendationsHTML('medical');
             }
 
             if (['exposures', 'medical', 'activities', 'nov'].includes(state.currentTab) && displayProjects.length > 0) {
@@ -18746,6 +18748,187 @@ function buildIncidentTabulationHTML() {
 
       </div>
     </div>`;
+}
+
+function buildIncidentRecommendationsHTML(tabType) {
+    // ── Compute YTD incident/rate data from all active, non-Corp/Plant projects ──
+    const _selYear = state.selectedYear || new Date().getFullYear();
+    const _curMonth = new Date().getFullYear() === _selYear ? new Date().getMonth() + 1 : 12; // months 1-12 completed so far
+    const _moShort  = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    const _moFull   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    const _projs = state.projects.filter(function(p) {
+        return p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS'
+            && !isProjectOnStoppage(p) && !p.dateFinished;
+    });
+
+    // ── Per-month totals (indices 1-12) ──
+    var _moLTA  = new Array(12).fill(0);
+    var _moMed  = new Array(12).fill(0);
+    var _moFA   = new Array(12).fill(0);
+    var _moFat  = new Array(12).fill(0);
+    var _moHIP  = new Array(12).fill(0);
+    var _moDL   = new Array(12).fill(0);
+    var _moMH   = new Array(12).fill(0); // manhours (for rates tab)
+
+    _projs.forEach(function(p) {
+        for (var i = 1; i <= _curMonth; i++) {
+            _moLTA[i-1]  += parseFloat(p.vals['medical_LTA']?.[i])                      || 0;
+            _moMed[i-1]  += parseFloat(p.vals['medical_Medical Treatment']?.[i])         || 0;
+            _moFA[i-1]   += parseFloat(p.vals['medical_First Aid']?.[i])                 || 0;
+            _moFat[i-1]  += parseFloat(p.vals['medical_Fatality']?.[i])                  || 0;
+            _moHIP[i-1]  += parseFloat(p.vals['medical_High-Potential incident']?.[i])   || 0;
+            _moDL[i-1]   += parseFloat(p.vals['medical_Days Lost/Charged']?.[i])         || 0;
+            _moMH[i-1]   += parseFloat(p.vals['exposures_Total Exposed Manhour']?.[i])   || 0;
+        }
+    });
+
+    // ── YTD totals ──
+    var ytdLTA = 0, ytdMed = 0, ytdFA = 0, ytdFat = 0, ytdHIP = 0, ytdDL = 0, ytdMH = 0;
+    for (var _mi = 0; _mi < _curMonth; _mi++) {
+        ytdLTA  += _moLTA[_mi];  ytdMed += _moMed[_mi];  ytdFA  += _moFA[_mi];
+        ytdFat  += _moFat[_mi];  ytdHIP += _moHIP[_mi];  ytdDL  += _moDL[_mi];
+        ytdMH   += _moMH[_mi];
+    }
+    var ytdTotal = ytdLTA + ytdMed + ytdFA + ytdFat + ytdHIP;
+
+    // ── Month with highest total incidents (for incident tab) ──
+    var _peakVal = 0, _peakMo = -1, _valleyVal = Infinity, _valleyMo = -1;
+    for (var _mi2 = 0; _mi2 < _curMonth; _mi2++) {
+        var _tot = _moLTA[_mi2] + _moMed[_mi2] + _moFA[_mi2] + _moFat[_mi2] + _moHIP[_mi2];
+        if (_tot > _peakVal)     { _peakVal = _tot;    _peakMo   = _mi2; }
+        if (_tot < _valleyVal)   { _valleyVal = _tot;  _valleyMo = _mi2; }
+    }
+
+    // ── Trend: compare last two months with data ──
+    var _trendMsg = '';
+    var _trendColor = '#1b5e20';
+    var _trendIcon  = 'fa-circle-check';
+    if (_curMonth >= 2) {
+        var _prev = _moLTA[_curMonth-2] + _moMed[_curMonth-2] + _moFA[_curMonth-2] + _moFat[_curMonth-2] + _moHIP[_curMonth-2];
+        var _curr = _moLTA[_curMonth-1] + _moMed[_curMonth-1] + _moFA[_curMonth-1] + _moFat[_curMonth-1] + _moHIP[_curMonth-1];
+        if (_curr === 0 && _prev === 0) {
+            _trendMsg = 'Zero incidents recorded in the last two months — excellent safety performance!';
+            _trendColor = '#1b5e20'; _trendIcon = 'fa-circle-check';
+        } else if (_curr < _prev) {
+            _trendMsg = 'Incident count is <strong>decreasing</strong> (' + _moShort[_curMonth-2] + ': ' + _prev + ' → ' + _moShort[_curMonth-1] + ': ' + _curr + '). Keep reinforcing effective controls.';
+            _trendColor = '#2e7d32'; _trendIcon = 'fa-arrow-trend-down';
+        } else if (_curr === _prev) {
+            _trendMsg = 'Incident count is <strong>unchanged</strong> month-over-month (' + _curr + ' incidents). Review controls to drive further reduction.';
+            _trendColor = '#7a5c00'; _trendIcon = 'fa-minus';
+        } else {
+            _trendMsg = 'Incident count is <strong>increasing</strong> (' + _moShort[_curMonth-2] + ': ' + _prev + ' → ' + _moShort[_curMonth-1] + ': ' + _curr + '). Immediately review root causes and reinforce controls.';
+            _trendColor = '#c62828'; _trendIcon = 'fa-arrow-trend-up';
+        }
+    }
+
+    var _rateBase = (state.ratesStandard === 'osha') ? 200000 : 1000000;
+    var _rateLabel = (state.ratesStandard === 'osha') ? 'OSHA (200K hrs)' : 'OSHS (1M hrs)';
+    var ytdLTIR   = ytdMH > 0 ? (ytdLTA  * _rateBase / ytdMH).toFixed(3) : '—';
+    var ytdTRIR   = ytdMH > 0 ? ((ytdLTA + ytdMed + ytdFat) * _rateBase / ytdMH).toFixed(3) : '—';
+    var ytdSevR   = ytdMH > 0 ? (ytdDL   * _rateBase / ytdMH).toFixed(3) : '—';
+
+    // ── Build recommendation lines ──
+    var recLines = [];
+
+    if (tabType === 'rates') {
+        // Rate-focused recommendations
+        if (ytdMH === 0) {
+            recLines.push('<li>No manhour data entered yet — LTIR, TRIR, and Severity Rate cannot be computed. Ensure manhour exposures are encoded for all active projects.</li>');
+        } else {
+            var _ltirVal = parseFloat(ytdLTIR);
+            var _trirVal = parseFloat(ytdTRIR);
+            var _sevVal  = parseFloat(ytdSevR);
+            if (ytdFat > 0) {
+                recLines.push('<li><i class="fas fa-skull" style="color:#c62828;margin-right:4px;"></i><strong>FATALITY RECORDED:</strong> ' + ytdFat + ' fatality/ies recorded YTD. Conduct mandatory fatality investigation, report to DOLE within 24 hours, and immediately review all site safety protocols.</li>');
+            }
+            if (_ltirVal === 0) {
+                recLines.push('<li><i class="fas fa-shield-halved" style="color:#1b5e20;margin-right:4px;"></i><strong>LTIR of 0.000</strong> — No Lost Time Accidents recorded YTD. Sustain LTA-free performance through continued hazard controls and toolbox meetings.</li>');
+            } else if (_ltirVal <= 1.0) {
+                recLines.push('<li><strong>LTIR is ' + ytdLTIR + '</strong> (' + _rateLabel + '). LTA rate is within acceptable range. Monitor closely to prevent further incidents.</li>');
+            } else {
+                recLines.push('<li><i class="fas fa-triangle-exclamation" style="color:#c62828;margin-right:4px;"></i><strong>LTIR of ' + ytdLTIR + '</strong> (' + _rateLabel + ') is elevated. Conduct urgent hazard analysis and implement corrective actions for LTA-prone activities.</li>');
+            }
+            if (_trirVal === 0) {
+                recLines.push('<li><strong>TRIR of 0.000</strong> — Zero recordable injuries YTD. Commendable performance; maintain rigorous medical surveillance and near-miss reporting.</li>');
+            } else {
+                recLines.push('<li><strong>TRIR is ' + ytdTRIR + '</strong> — ' + (ytdLTA + ytdMed + ytdFat) + ' recordable case(s) YTD. Review incident classifications and ensure all cases are properly documented and investigated.</li>');
+            }
+            if (ytdHIP > 0) {
+                recLines.push('<li><i class="fas fa-radiation" style="color:#7a5c00;margin-right:4px;"></i><strong>' + ytdHIP + ' High-Potential Incident(s)</strong> recorded. These require root cause analysis equal to LTAs — escalate findings to management immediately.</li>');
+            }
+            if (_sevVal > 0) {
+                recLines.push('<li><strong>Severity Rate of ' + ytdSevR + '</strong> — ' + ytdDL + ' total days lost/charged YTD. Focus on reducing severity through prompt medical management and light-duty return-to-work programs.</li>');
+            }
+        }
+    } else {
+        // Incident-record focused recommendations
+        if (ytdFat > 0) {
+            recLines.push('<li><i class="fas fa-skull" style="color:#c62828;margin-right:4px;"></i><strong>FATALITY:</strong> ' + ytdFat + ' fatality/ies recorded YTD. Mandatory incident investigation, DOLE notification within 24 hours, and management review required.</li>');
+        }
+        if (ytdTotal === 0) {
+            recLines.push('<li><i class="fas fa-circle-check" style="color:#1b5e20;margin-right:4px;"></i><strong>Zero incidents recorded YTD</strong> — Outstanding safety performance across all projects. Sustain through consistent toolbox meetings and hazard identification activities.</li>');
+        } else {
+            recLines.push('<li><strong>YTD total: ' + ytdTotal + ' incident(s)</strong> — LTA: ' + ytdLTA + ' | Medical Treatment: ' + ytdMed + ' | First Aid: ' + ytdFA + ' | High-Potential: ' + ytdHIP + '. Ensure all incidents are root-cause analyzed and corrective actions are closed out.</li>');
+        }
+        if (_trendMsg) {
+            recLines.push('<li><i class="fas ' + _trendIcon + '" style="color:' + _trendColor + ';margin-right:4px;"></i>' + _trendMsg + '</li>');
+        }
+        if (_peakMo >= 0 && _peakVal > 0) {
+            recLines.push('<li><i class="fas fa-calendar-xmark" style="color:#c62828;margin-right:4px;"></i><strong>' + _moShort[_peakMo] + '</strong> had the highest incident count (' + _peakVal + '). Investigate contributing factors and ensure preventive measures are in place for similar periods.</li>');
+        }
+        if (ytdHIP > 0) {
+            recLines.push('<li><i class="fas fa-radiation" style="color:#7a5c00;margin-right:4px;"></i><strong>' + ytdHIP + ' High-Potential Incident(s)</strong> recorded — these are near-fatalities. Conduct thorough investigation and share learnings company-wide.</li>');
+        }
+        if (ytdLTA === 0 && ytdTotal > 0) {
+            recLines.push('<li><i class="fas fa-shield-halved" style="color:#2e7d32;margin-right:4px;"></i><strong>No Lost Time Accidents recorded YTD</strong> — Incidents are being managed below LTA level. Continue medical surveillance and ensure first aid cases are not escalating.</li>');
+        }
+    }
+
+    var recsHtml = recLines.length
+        ? '<ul style="margin:0;padding-left:18px;font-size:0.62rem;color:#333;line-height:1.7;">' + recLines.join('') + '</ul>'
+        : '<p style="font-size:0.62rem;color:#888;margin:0;">No data available yet to generate recommendations.</p>';
+
+    // ── KPI summary chips (always shown) ──
+    var _chipsHTML = '';
+    if (tabType === 'rates') {
+        _chipsHTML =
+            '<span style="background:#e8f5e9;color:#1b5e20;font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid #a5d6a7;white-space:nowrap;">LTIR: ' + ytdLTIR + '</span>' +
+            '<span style="background:#e3f2fd;color:#1565c0;font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid #90caf9;white-space:nowrap;">TRIR: ' + ytdTRIR + '</span>' +
+            '<span style="background:#ffebee;color:#c62828;font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid #ef9a9a;white-space:nowrap;">SEV RATE: ' + ytdSevR + '</span>' +
+            '<span style="background:#fff8e1;color:#7a5c00;font-size:0.58rem;font-weight:600;padding:3px 9px;border-radius:20px;border:1px solid #ffe082;white-space:nowrap;">' + _rateLabel + '</span>';
+    } else {
+        var _zeroStyle  = 'background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;';
+        var _ltaChipBg  = ytdLTA  > 0 ? 'background:#ffebee;color:#c62828;border:1px solid #ef9a9a;' : _zeroStyle;
+        var _fatChipBg  = ytdFat  > 0 ? 'background:#b71c1c;color:#fff;border:1px solid #c62828;'    : _zeroStyle;
+        var _hipChipBg  = ytdHIP  > 0 ? 'background:#fff3e0;color:#e65100;border:1px solid #ffcc80;' : _zeroStyle;
+        _chipsHTML =
+            '<span style="' + _ltaChipBg + 'font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;">LTA: ' + ytdLTA + '</span>' +
+            '<span style="background:#e3f2fd;color:#1565c0;font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid #90caf9;white-space:nowrap;">Med Tx: ' + ytdMed + '</span>' +
+            '<span style="background:#f3e5f5;color:#6a1b9a;font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid #ce93d8;white-space:nowrap;">First Aid: ' + ytdFA + '</span>' +
+            '<span style="' + _fatChipBg + 'font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;">Fatality: ' + ytdFat + '</span>' +
+            '<span style="' + _hipChipBg + 'font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;">Hi-Pot: ' + ytdHIP + '</span>';
+    }
+
+    var _tabTitle   = tabType === 'rates' ? 'STATISTICS RATE — YTD SUMMARY' : 'ACCIDENT/INCIDENT RECORD — YTD SUMMARY';
+    var _tabSubtitle = tabType === 'rates'
+        ? 'Auto-computed rates based on encoded manhours and incident data from all active projects · Standard: ' + _rateLabel
+        : 'Consolidated incident counts from January to ' + _moFull[_curMonth - 1] + ' ' + _selYear + ' across all active projects';
+    var _tabIcon = tabType === 'rates' ? '📈' : '🚨';
+
+    return '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">' +
+        '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;">' +
+        '<div style="font-family:Poppins,sans-serif;font-size:0.88rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">' + _tabIcon + ' ' + _tabTitle + '</div>' +
+        '<div style="font-size:0.59rem;color:#388e3c;font-weight:500;margin-top:2px;">' + _tabSubtitle + '</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">' + _chipsHTML + '</div>' +
+        '</div>' +
+        '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.08);border:1px solid #c8e6c9;border-left:5px solid #43a047;margin:12px 14px 12px;">' +
+        '<div style="padding:9px 16px 8px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;">' +
+        '<div style="font-family:Poppins,sans-serif;font-size:0.78rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">💡 Recommendations based on YTD ' + (tabType === 'rates' ? 'Statistics Rate' : 'Incident') + ' Performance</div>' +
+        '</div>' +
+        '<div style="padding:10px 18px 12px;">' + recsHtml + '</div>' +
+        '</div>' +
+        '</div>';
 }
 
 function buildTrendChartHTML(tabType) {
