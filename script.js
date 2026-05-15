@@ -18665,11 +18665,20 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     // ── KPM: region banners → monthly list (per region) → dialog ────
                     function kpmRegionMonthScore(reg, mo) {
                         // Only active (non-stopped, non-NA) projects count toward score
-                        var projs = state.projects.filter(function(p){ return p.region === reg && !kpmIsNA(p) && !isProjectOnStoppage(p) && !p.dateFinished; });
+                        var _selYear = state.selectedYear || new Date().getFullYear();
+                        var _moIdx1 = KPM_MONTHS.indexOf(mo) + 1; // 1-based
+                        var projs = state.projects.filter(function(p) {
+                            if (p.region !== reg) return false;
+                            if (kpmIsNA(p)) return false;
+                            if (p.dateFinished) return false;
+                            // Exclude full work-stoppage (no resume) AND month-blacklisted (resumed but still in frozen window)
+                            if (isMonthBlacklistedForProject(p, _moIdx1, _selYear)) return false;
+                            return true;
+                        });
                         if (!projs.length) return null;
                         var grand = 0, hasAny = false;
                         KPM_ESH_ROWS.forEach(function(row) {
-                            // FIX: All active projects in the region are included in the denominator.
+                            // All active projects in the region are included in the denominator.
                             // Projects with no input yet are treated as 0 — not excluded.
                             var allEPs = projs.map(function(p) {
                                 var v = p.vals['kpm_v3_' + mo + '_' + row.id];
@@ -40361,7 +40370,9 @@ async function exportKpmExcel() {
             const ci = LEFT_COLS + 1 + i;
             const cell = scoreRow.getCell(ci);
             if (cm.type === 'overall') {
-                const scores = orderedProjs.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                const scores = orderedProjs
+                    .filter(p => !isMonthFrozenForExcel(p, mo))
+                    .map(p => projMonthScore(p, mo)).filter(v => v !== null);
                 const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
                 applyAvgCell(cell, avg);
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
@@ -40371,7 +40382,9 @@ async function exportKpmExcel() {
                     ? projMonthScore(cm.proj, mo)
                     : (function() {
                         const rp = projsByRegion[cm.region];
-                        const sv = rp.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                        const sv = rp
+                            .filter(p => !isMonthFrozenForExcel(p, mo))
+                            .map(p => projMonthScore(p, mo)).filter(v => v !== null);
                         return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
                       })()
                 );
@@ -40499,12 +40512,16 @@ async function exportKpmExcel() {
                 const s = projMonthScore(cm.proj, mo);
                 mRowData.push(s !== null ? Math.round(s) + '%' : '—');
             } else if (cm.type === 'overall') {
-                const sv = orderedProjs.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                const sv = orderedProjs
+                    .filter(p => !isMonthFrozenForExcel(p, mo))
+                    .map(p => projMonthScore(p, mo)).filter(v => v !== null);
                 const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
                 mRowData.push(avg !== null ? Math.round(avg) + '%' : '—');
             } else {
                 const rp = projsByRegion[cm.region];
-                const sv = rp.map(p => projMonthScore(p, mo)).filter(v => v !== null);
+                const sv = rp
+                    .filter(p => !isMonthFrozenForExcel(p, mo))
+                    .map(p => projMonthScore(p, mo)).filter(v => v !== null);
                 const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
                 mRowData.push(avg !== null ? Math.round(avg) + '%' : '—');
             }
