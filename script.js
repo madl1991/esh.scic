@@ -6698,7 +6698,9 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     // --- Smooth animated update: reuse existing chart if still attached to this canvas ---
                     const _attachedChart = Chart.getChart(regionCtx);
                     if (state.charts.region && _attachedChart === state.charts.region) {
+                        const _upBorderColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#2e7d32' : v >= 75 ? '#f9a825' : '#c62828');
                         state.charts.region.data.datasets[0].data = regionAvgs;
+                        state.charts.region.data.datasets[0].borderColor = _upBorderColors;
                         state.charts.region.update({
                             duration: 600,
                             easing: 'easeInOutQuart'
@@ -6708,39 +6710,63 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     if (state.charts.region) { state.charts.region.destroy(); state.charts.region = null; }
                     const existingChart = Chart.getChart(regionCtx);
                     if (existingChart) existingChart.destroy();
-                    
-                    const ctx = regionCtx.getContext('2d');
-                    
-                    const gradients = [];
-                    
-                    // NCR — deep purple
-                    const gradient1 = ctx.createLinearGradient(0, 0, 0, 300);
-                    gradient1.addColorStop(0, '#5e35b1');
-                    gradient1.addColorStop(0.5, '#4527a0');
-                    gradient1.addColorStop(1, '#311b92');
-                    gradients.push(gradient1);
-                    
-                    // South Luzon — dark teal
-                    const gradient2 = ctx.createLinearGradient(0, 0, 0, 300);
-                    gradient2.addColorStop(0, '#00897b');
-                    gradient2.addColorStop(0.5, '#00695c');
-                    gradient2.addColorStop(1, '#004d40');
-                    gradients.push(gradient2);
-                    
-                    // North Luzon — deep brown
-                    const gradient3 = ctx.createLinearGradient(0, 0, 0, 300);
-                    gradient3.addColorStop(0, '#6d4c41');
-                    gradient3.addColorStop(0.5, '#4e342e');
-                    gradient3.addColorStop(1, '#3e2723');
-                    gradients.push(gradient3);
-                    
-                    // Visayas & Mindanao — slate gray
-                    const gradient4 = ctx.createLinearGradient(0, 0, 0, 300);
-                    gradient4.addColorStop(0, '#546e7a');
-                    gradient4.addColorStop(0.5, '#37474f');
-                    gradient4.addColorStop(1, '#263238');
-                    gradients.push(gradient4);
-                    
+
+                    // ── Region identity colors (vibrant) ──
+                    const _REGION_COLORS = {
+                        'NCR':                '#5C6BC0',
+                        'SOUTH LUZON':        '#26A69A',
+                        'NORTH LUZON':        '#EF5350',
+                        'VISAYAS & MINDANAO': '#FFA726'
+                    };
+                    const _DEFAULT_COLORS = ['#5C6BC0','#26A69A','#EF5350','#FFA726','#AB47BC','#29B6F6'];
+                    const _bgColors = chartRegions.map((r, i) => _REGION_COLORS[r] || _DEFAULT_COLORS[i % _DEFAULT_COLORS.length]);
+
+                    // ── Compliance-coded border + label colors (Option C) ──
+                    function _compBorderColor(v) {
+                        if (v === null || v === undefined) return '#9e9e9e';
+                        return v >= 90 ? '#2e7d32' : v >= 75 ? '#f9a825' : '#c62828';
+                    }
+                    const _borderColors = regionAvgs.map(_compBorderColor);
+
+                    // ── Threshold + value label plugin (animation-aware, no external dependency) ──
+                    const _thresholdPlugin = {
+                        id: 'thresholdLine',
+                        afterDraw(chart) {
+                            const { ctx: c, chartArea: { left, right }, scales: { y } } = chart;
+                            // Threshold lines — always visible
+                            [{val:90,color:'#2e7d32',label:'90%'},{val:75,color:'#f9a825',label:'75%'}].forEach(({val,color,label}) => {
+                                const yPos = y.getPixelForValue(val);
+                                c.save();
+                                c.setLineDash([5,4]);
+                                c.strokeStyle = color;
+                                c.lineWidth = 1.5;
+                                c.globalAlpha = 0.75;
+                                c.beginPath(); c.moveTo(left, yPos); c.lineTo(right, yPos); c.stroke();
+                                c.setLineDash([]);
+                                c.globalAlpha = 1;
+                                c.fillStyle = color;
+                                c.font = 'bold 10px sans-serif';
+                                c.fillText(label, right + 4, yPos + 4);
+                                c.restore();
+                            });
+                            // Value labels — only after animation completes
+                            if (chart._animatingLabels === false) {
+                                const ds = chart.data.datasets[0];
+                                chart.getDatasetMeta(0).data.forEach((bar, i) => {
+                                    const val = ds.data[i];
+                                    if (val === null || val === undefined) return;
+                                    const color = val >= 90 ? '#2e7d32' : val >= 75 ? '#f9a825' : '#c62828';
+                                    c.save();
+                                    c.fillStyle = color;
+                                    c.font = 'bold 12px sans-serif';
+                                    c.textAlign = 'center';
+                                    c.fillText(val + '%', bar.x, bar.y - 6);
+                                    c.restore();
+                                });
+                            }
+                        }
+                    };
+
                     state.charts.region = new Chart(regionCtx, {
                         type: 'bar',
                         data: {
@@ -6748,45 +6774,41 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                             datasets: [{
                                 label: 'Compliance %',
                                 data: regionAvgs,
-                                backgroundColor: gradients,
-                                borderWidth: 0,
+                                backgroundColor: _bgColors,
+                                borderColor: _borderColors,
+                                borderWidth: 3,
+                                borderSkipped: false,
                                 borderRadius: 8
                             }]
                         },
                         options: {
                             animation: {
                                 duration: 700,
-                                easing: 'easeOutQuart'
+                                easing: 'easeOutQuart',
+                                onStart(anim) { anim.chart._animatingLabels = true; },
+                                onComplete(anim) { anim.chart._animatingLabels = false; anim.chart.draw(); }
                             },
                             responsive: true,
                             maintainAspectRatio: false,
-                            plugins: { 
+                            layout: { padding: { top: 20, right: 30 } },
+                            plugins: {
                                 legend: { display: false },
                                 tooltip: {
-                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                    backgroundColor: 'rgba(0,0,0,0.8)',
                                     padding: 12,
                                     cornerRadius: 8,
                                     callbacks: {
                                         title: (items) => items[0].label,
-                                        label: (item) => ` ${item.raw}% compliance`
+                                        label: (item) => ` ${item.raw !== null ? item.raw : '—'}% compliance`
                                     }
                                 }
                             },
-                            scales: { 
-                                y: { 
-                                    beginAtZero: true, 
-                                    max: 100,
-                                    grid: {
-                                        color: 'rgba(0, 0, 0, 0.05)'
-                                    }
-                                },
-                                x: {
-                                    grid: {
-                                        display: false
-                                    }
-                                }
+                            scales: {
+                                y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
+                                x: { grid: { display: false } }
                             }
-                        }
+                        },
+                        plugins: [_thresholdPlugin]
                     });
                     } // end else (first render)
                 }
@@ -10145,7 +10167,9 @@ function renderTabulation() {
                 // --- Smooth animated update: reuse only if instance is still attached to this canvas ---
                 const _attachedChart = Chart.getChart(regionCtx);
                 if (state.charts.region && _attachedChart === state.charts.region) {
+                    const _rcUpBorderColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#2e7d32' : v >= 75 ? '#f9a825' : '#c62828');
                     state.charts.region.data.datasets[0].data = regionAvgs;
+                    state.charts.region.data.datasets[0].borderColor = _rcUpBorderColors;
                     state.charts.region.update({
                         duration: 600,
                         easing: 'easeInOutQuart'
@@ -10158,46 +10182,99 @@ function renderTabulation() {
                 const existingChart = Chart.getChart(regionCtx);
                 if (existingChart) existingChart.destroy();
 
-                const ctx = regionCtx.getContext('2d');
-                const gradients = [];
-                const g1 = ctx.createLinearGradient(0, 0, 0, 300);
-                g1.addColorStop(0, '#5e35b1'); g1.addColorStop(0.5, '#4527a0'); g1.addColorStop(1, '#311b92');
-                gradients.push(g1);
-                const g2 = ctx.createLinearGradient(0, 0, 0, 300);
-                g2.addColorStop(0, '#00897b'); g2.addColorStop(0.5, '#00695c'); g2.addColorStop(1, '#004d40');
-                gradients.push(g2);
-                const g3 = ctx.createLinearGradient(0, 0, 0, 300);
-                g3.addColorStop(0, '#6d4c41'); g3.addColorStop(0.5, '#4e342e'); g3.addColorStop(1, '#3e2723');
-                gradients.push(g3);
-                const g4 = ctx.createLinearGradient(0, 0, 0, 300);
-                g4.addColorStop(0, '#546e7a'); g4.addColorStop(0.5, '#37474f'); g4.addColorStop(1, '#263238');
-                gradients.push(g4);
+                // ── Region identity colors (vibrant) ──
+                const _RC_REGION_COLORS = {
+                    'NCR':                '#5C6BC0',
+                    'SOUTH LUZON':        '#26A69A',
+                    'NORTH LUZON':        '#EF5350',
+                    'VISAYAS & MINDANAO': '#FFA726'
+                };
+                const _RC_DEFAULT_COLORS = ['#5C6BC0','#26A69A','#EF5350','#FFA726','#AB47BC','#29B6F6'];
+                const _rcBgColors = chartRegions.map((r, i) => _RC_REGION_COLORS[r] || _RC_DEFAULT_COLORS[i % _RC_DEFAULT_COLORS.length]);
+
+                // ── Compliance-coded border + label colors (Option C) ──
+                function _rcCompColor(v) {
+                    if (v === null || v === undefined) return '#9e9e9e';
+                    return v >= 90 ? '#2e7d32' : v >= 75 ? '#f9a825' : '#c62828';
+                }
+                const _rcBorderColors = regionAvgs.map(_rcCompColor);
+
+                // ── Threshold + value label plugin (animation-aware, no external dependency) ──
+                const _rcThresholdPlugin = {
+                    id: 'thresholdLine',
+                    afterDraw(chart) {
+                        const { ctx: c, chartArea: { left, right }, scales: { y } } = chart;
+                        // Threshold lines — always visible
+                        [{val:90,color:'#2e7d32',label:'90%'},{val:75,color:'#f9a825',label:'75%'}].forEach(({val,color,label}) => {
+                            const yPos = y.getPixelForValue(val);
+                            c.save();
+                            c.setLineDash([5,4]);
+                            c.strokeStyle = color;
+                            c.lineWidth = 1.5;
+                            c.globalAlpha = 0.75;
+                            c.beginPath(); c.moveTo(left, yPos); c.lineTo(right, yPos); c.stroke();
+                            c.setLineDash([]);
+                            c.globalAlpha = 1;
+                            c.fillStyle = color;
+                            c.font = 'bold 10px sans-serif';
+                            c.fillText(label, right + 4, yPos + 4);
+                            c.restore();
+                        });
+                        // Value labels — only after animation completes
+                        if (chart._animatingLabels === false) {
+                            const ds = chart.data.datasets[0];
+                            chart.getDatasetMeta(0).data.forEach((bar, i) => {
+                                const val = ds.data[i];
+                                if (val === null || val === undefined) return;
+                                const color = val >= 90 ? '#2e7d32' : val >= 75 ? '#f9a825' : '#c62828';
+                                c.save();
+                                c.fillStyle = color;
+                                c.font = 'bold 12px sans-serif';
+                                c.textAlign = 'center';
+                                c.fillText(val + '%', bar.x, bar.y - 6);
+                                c.restore();
+                            });
+                        }
+                    }
+                };
 
                 state.charts.region = new Chart(regionCtx, {
                     type: 'bar',
                     data: {
                         labels: chartRegions,
-                        datasets: [{ label: 'Compliance %', data: regionAvgs, backgroundColor: gradients, borderWidth: 0, borderRadius: 8 }]
+                        datasets: [{
+                            label: 'Compliance %',
+                            data: regionAvgs,
+                            backgroundColor: _rcBgColors,
+                            borderColor: _rcBorderColors,
+                            borderWidth: 3,
+                            borderSkipped: false,
+                            borderRadius: 8
+                        }]
                     },
                     options: {
                         animation: {
                             duration: 700,
-                            easing: 'easeOutQuart'
+                            easing: 'easeOutQuart',
+                            onStart(anim) { anim.chart._animatingLabels = true; },
+                            onComplete(anim) { anim.chart._animatingLabels = false; anim.chart.draw(); }
                         },
                         responsive: true,
                         maintainAspectRatio: false,
+                        layout: { padding: { top: 20, right: 30 } },
                         plugins: {
                             legend: { display: false },
                             tooltip: {
                                 backgroundColor: 'rgba(0,0,0,0.8)', padding: 12, cornerRadius: 8,
-                                callbacks: { title: (i) => i[0].label, label: (i) => ` ${i.raw}% compliance` }
+                                callbacks: { title: (i) => i[0].label, label: (i) => ` ${i.raw !== null ? i.raw : '—'}% compliance` }
                             }
                         },
                         scales: {
                             y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
                             x: { grid: { display: false } }
                         }
-                    }
+                    },
+                    plugins: [_rcThresholdPlugin]
                 });
             }, 100);
         };
