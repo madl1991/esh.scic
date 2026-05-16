@@ -6170,6 +6170,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             // Area 10 — DOE Reportorial            (4 quarters; renewable only; client-provided → exempt)
 
             if (proj.workStoppageDate && !proj.workResumeDate) return null;
+            if (proj.dateFinished) return null;
 
             const selectedYear = (state && state.selectedYear) || new Date().getFullYear();
             function isMonthBlacklisted(monthIdx1Based) {
@@ -10214,7 +10215,7 @@ function renderTabulation() {
 
             // Compute overallAvg inline
             const _cpProjects = state.projects.filter(p =>
-                p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS' && !isProjectOnStoppage(p)
+                p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS' && !isProjectOnStoppage(p) && !p.dateFinished
             );
             let _gTotal = 0, _gCount = 0;
             _cpProjects.forEach(p => { const v = getPerc(p); if (v !== null) { _gTotal += v; _gCount++; } });
@@ -10330,7 +10331,7 @@ function renderTabulation() {
             }
 
             const complianceProjects = state.projects.filter(p =>
-                p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS' && !isProjectOnStoppage(p)
+                p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS' && !isProjectOnStoppage(p) && !p.dateFinished
             );
             let grandTotal = 0, grandCount = 0;
             complianceProjects.forEach(p => {
@@ -32587,7 +32588,7 @@ async function exportCurrentTabToExcel() {
         const _ovOngoing  = _ovAllProjs.filter(function(p){return p.status==='on-going';});
         const _ovFinished = _ovAllProjs.filter(function(p){return !!p.dateFinished;});
         const _ovStopped  = _ovAllProjs.filter(function(p){return p.status==='work-stoppage';});
-        const _ovCompPool = _ovAllProjs.filter(function(p){return p.status!=='work-stoppage'&&!(typeof isProjectOnStoppage==='function'&&isProjectOnStoppage(p));});
+        const _ovCompPool = _ovAllProjs.filter(function(p){return p.status!=='work-stoppage'&&!p.dateFinished&&!(typeof isProjectOnStoppage==='function'&&isProjectOnStoppage(p));});
 
         // ── Grand KPI totals (all projects) ──────────────────────────────────
         const _ovTotalMH  = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'exposures_Total Exposed Manhour');},0);
