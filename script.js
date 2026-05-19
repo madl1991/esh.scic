@@ -6698,9 +6698,10 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     // --- Smooth animated update: reuse existing chart if still attached to this canvas ---
                     const _attachedChart = Chart.getChart(regionCtx);
                     if (state.charts.region && _attachedChart === state.charts.region) {
-                        const _upBorderColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#2e7d32' : v >= 75 ? '#f9a825' : '#c62828');
+                        const _upBgColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#007A33' : v >= 75 ? '#E56020' : '#871012');
                         state.charts.region.data.datasets[0].data = regionAvgs;
-                        state.charts.region.data.datasets[0].borderColor = _upBorderColors;
+                        state.charts.region.data.datasets[0].backgroundColor = _upBgColors;
+                        state.charts.region.data.datasets[0].borderWidth = 0;
                         state.charts.region.update({
                             duration: 600,
                             easing: 'easeInOutQuart'
@@ -6711,22 +6712,13 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     const existingChart = Chart.getChart(regionCtx);
                     if (existingChart) existingChart.destroy();
 
-                    // ── Region identity colors (vibrant) ──
-                    const _REGION_COLORS = {
-                        'NCR':                '#5C6BC0',
-                        'SOUTH LUZON':        '#26A69A',
-                        'NORTH LUZON':        '#EF5350',
-                        'VISAYAS & MINDANAO': '#FFA726'
-                    };
-                    const _DEFAULT_COLORS = ['#5C6BC0','#26A69A','#EF5350','#FFA726','#AB47BC','#29B6F6'];
-                    const _bgColors = chartRegions.map((r, i) => _REGION_COLORS[r] || _DEFAULT_COLORS[i % _DEFAULT_COLORS.length]);
-
-                    // ── Compliance-coded border + label colors (Option C) ──
+                    // ── Status-only colors: no per-region identity, color = compliance level ──
                     function _compBorderColor(v) {
                         if (v === null || v === undefined) return '#9e9e9e';
-                        return v >= 90 ? '#2e7d32' : v >= 75 ? '#f9a825' : '#c62828';
+                        return v >= 90 ? '#007A33' : v >= 75 ? '#E56020' : '#871012';
                     }
-                    const _borderColors = regionAvgs.map(_compBorderColor);
+                    const _bgColors = regionAvgs.map(_compBorderColor);
+                    const _borderColors = _bgColors; // unused but kept to avoid breakage
 
                     // ── Threshold + value label plugin (animation-aware, no external dependency) ──
                     const _thresholdPlugin = {
@@ -6734,7 +6726,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         afterDraw(chart) {
                             const { ctx: c, chartArea: { left, right }, scales: { y } } = chart;
                             // Threshold lines — always visible
-                            [{val:90,color:'#2e7d32',label:'90%'},{val:75,color:'#f9a825',label:'75%'}].forEach(({val,color,label}) => {
+                            [{val:90,color:'#007A33',label:'90%'},{val:75,color:'#E56020',label:'75%'}].forEach(({val,color,label}) => {
                                 const yPos = y.getPixelForValue(val);
                                 c.save();
                                 c.setLineDash([5,4]);
@@ -6755,7 +6747,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                                 chart.getDatasetMeta(0).data.forEach((bar, i) => {
                                     const val = ds.data[i];
                                     if (val === null || val === undefined) return;
-                                    const color = val >= 90 ? '#2e7d32' : val >= 75 ? '#f9a825' : '#c62828';
+                                    const color = val >= 90 ? '#007A33' : val >= 75 ? '#E56020' : '#871012';
                                     c.save();
                                     c.fillStyle = color;
                                     c.font = 'bold 12px sans-serif';
@@ -6775,8 +6767,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                                 label: 'Compliance %',
                                 data: regionAvgs,
                                 backgroundColor: _bgColors,
-                                borderColor: _borderColors,
-                                borderWidth: 3,
+                                borderWidth: 0,
                                 borderSkipped: false,
                                 borderRadius: 8
                             }]
@@ -10167,9 +10158,10 @@ function renderTabulation() {
                 // --- Smooth animated update: reuse only if instance is still attached to this canvas ---
                 const _attachedChart = Chart.getChart(regionCtx);
                 if (state.charts.region && _attachedChart === state.charts.region) {
-                    const _rcUpBorderColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#2e7d32' : v >= 75 ? '#f9a825' : '#c62828');
+                    const _rcUpBgColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#007A33' : v >= 75 ? '#E56020' : '#871012');
                     state.charts.region.data.datasets[0].data = regionAvgs;
-                    state.charts.region.data.datasets[0].borderColor = _rcUpBorderColors;
+                    state.charts.region.data.datasets[0].backgroundColor = _rcUpBgColors;
+                    state.charts.region.data.datasets[0].borderWidth = 0;
                     state.charts.region.update({
                         duration: 600,
                         easing: 'easeInOutQuart'
@@ -10182,22 +10174,12 @@ function renderTabulation() {
                 const existingChart = Chart.getChart(regionCtx);
                 if (existingChart) existingChart.destroy();
 
-                // ── Region identity colors (vibrant) ──
-                const _RC_REGION_COLORS = {
-                    'NCR':                '#5C6BC0',
-                    'SOUTH LUZON':        '#26A69A',
-                    'NORTH LUZON':        '#EF5350',
-                    'VISAYAS & MINDANAO': '#FFA726'
-                };
-                const _RC_DEFAULT_COLORS = ['#5C6BC0','#26A69A','#EF5350','#FFA726','#AB47BC','#29B6F6'];
-                const _rcBgColors = chartRegions.map((r, i) => _RC_REGION_COLORS[r] || _RC_DEFAULT_COLORS[i % _RC_DEFAULT_COLORS.length]);
-
-                // ── Compliance-coded border + label colors (Option C) ──
+                // ── Status-only colors: color = compliance level, no per-region identity ──
                 function _rcCompColor(v) {
                     if (v === null || v === undefined) return '#9e9e9e';
-                    return v >= 90 ? '#2e7d32' : v >= 75 ? '#f9a825' : '#c62828';
+                    return v >= 90 ? '#007A33' : v >= 75 ? '#E56020' : '#871012';
                 }
-                const _rcBorderColors = regionAvgs.map(_rcCompColor);
+                const _rcBgColors = regionAvgs.map(_rcCompColor);
 
                 // ── Threshold + value label plugin (animation-aware, no external dependency) ──
                 const _rcThresholdPlugin = {
@@ -10205,7 +10187,7 @@ function renderTabulation() {
                     afterDraw(chart) {
                         const { ctx: c, chartArea: { left, right }, scales: { y } } = chart;
                         // Threshold lines — always visible
-                        [{val:90,color:'#2e7d32',label:'90%'},{val:75,color:'#f9a825',label:'75%'}].forEach(({val,color,label}) => {
+                        [{val:90,color:'#007A33',label:'90%'},{val:75,color:'#E56020',label:'75%'}].forEach(({val,color,label}) => {
                             const yPos = y.getPixelForValue(val);
                             c.save();
                             c.setLineDash([5,4]);
@@ -10226,7 +10208,7 @@ function renderTabulation() {
                             chart.getDatasetMeta(0).data.forEach((bar, i) => {
                                 const val = ds.data[i];
                                 if (val === null || val === undefined) return;
-                                const color = val >= 90 ? '#2e7d32' : val >= 75 ? '#f9a825' : '#c62828';
+                                const color = val >= 90 ? '#007A33' : val >= 75 ? '#E56020' : '#871012';
                                 c.save();
                                 c.fillStyle = color;
                                 c.font = 'bold 12px sans-serif';
@@ -10246,8 +10228,7 @@ function renderTabulation() {
                             label: 'Compliance %',
                             data: regionAvgs,
                             backgroundColor: _rcBgColors,
-                            borderColor: _rcBorderColors,
-                            borderWidth: 3,
+                            borderWidth: 0,
                             borderSkipped: false,
                             borderRadius: 8
                         }]
