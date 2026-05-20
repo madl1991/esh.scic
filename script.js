@@ -10360,13 +10360,9 @@ function renderTabulation() {
             const _mcMaxMonth = (_mcSelYear === _mcCurYear) ? (_mcCurMonth > 1 ? _mcCurMonth - 1 : 12) : 12;
             const _cv = state.complianceView || 0;
 
-            if (_cv === 0) {
-                _gapWrap.style.display = 'none';
-                return;
-            }
+            // When Overall is selected, show gap analysis for the latest available month
+            const selMonth = _cv === 0 ? _mcMaxMonth : _cv;
             _gapWrap.style.display = 'block';
-
-            const selMonth = _cv;
             const moName   = _KPM_MONTHS[selMonth - 1];
             const selYear  = _mcSelYear;
             const mi       = selMonth - 1;
@@ -10396,7 +10392,9 @@ function renderTabulation() {
                 const projects = (state.projects || []).filter(p =>
                     p.region === region &&
                     !isProjectOnStoppage(p) &&
-                    !p.dateFinished
+                    !p.dateFinished &&
+                    !isProjectFinishedForMonth(p, selMonth, selYear) &&
+                    !isMonthBlacklistedForProject(p, selMonth, selYear)
                 );
                 if (projects.length === 0) return null;
 
@@ -10406,45 +10404,45 @@ function renderTabulation() {
                 };
 
                 projects.forEach(proj => {
-                    const projKey = proj.name;
-                    const vals = (typeof getProjectStorage === 'function') ? getProjectStorage(projKey) : {};
+                    const vals = proj.vals || {};
 
                     // Area 1 – Drills & Training
-                    const _dtKey = `${selYear}|drills-training|${projKey}`;
-                    const _dtVal = (typeof getEshStorage === 'function') ? (_calStor[`${selYear}|drills-training|${projKey}|${mi}|done`] || '') : '';
-                    const _dtNa  = _calStor[`${selYear}|drills-training|${projKey}|${mi}|na`];
-                    if (!_dtNa) {
+                    ['activities_Drills Conducted','activities_Training Conducted'].forEach(key => {
                         acc.drillsTraining.t++;
-                        if (_dtVal && _dtVal !== '') acc.drillsTraining.f++;
-                    }
+                        const v = vals[key] && vals[key][selMonth];
+                        if (v !== undefined && v !== null && v !== '' && v !== '0') acc.drillsTraining.f++;
+                    });
 
                     // Area 2 – KPM
-                    const kpmNa = vals['kpm_na'] && vals['kpm_na'][selMonth];
-                    if (!kpmNa) {
+                    if (!(vals && vals['kpm_na'] === '1')) {
                         acc.kpm.t++;
-                        const kpmVal = vals['kpm_submitted'] && vals['kpm_submitted'][selMonth];
-                        if (kpmVal && kpmVal.toString().trim() !== '') acc.kpm.f++;
+                        const _dateKey = 'kpm_v3_' + moName + '_dateSubmitted';
+                        const _peers = (state.projects || []).filter(p =>
+                            !isMonthBlacklistedForProject(p, selMonth, selYear) &&
+                            !(p.vals && p.vals['kpm_na'] === '1') &&
+                            (p.region || '').toUpperCase() === region
+                        );
+                        if (_peers.some(p => { const v = p.vals && p.vals[_dateKey]; return v && v.toString().trim() !== ''; })) acc.kpm.f++;
                     }
 
                     // Area 3 – DOLE
-                    const doleNa = vals['dole_na'] && vals['dole_na'][selMonth];
-                    if (!doleNa) {
+                    ['dole_WAIR','dole_RSO','dole_MOM'].forEach(key => {
                         acc.dole.t++;
-                        const doleVal = vals['dole_submitted'] && vals['dole_submitted'][selMonth];
-                        if (doleVal && doleVal.toString().trim() !== '') acc.dole.f++;
-                    }
+                        const v = vals[key] && vals[key][selMonth];
+                        if (v !== undefined && v !== null && v !== '' && v !== '0') acc.dole.f++;
+                    });
 
                     // Area 4 – GOT
-                    const gotNa = vals['got_na'] && vals['got_na'][selMonth];
-                    if (!gotNa) {
-                        acc.got.t++;
-                        const gotVal = vals['got_done'] && vals['got_done'][selMonth];
-                        if (gotVal && gotVal.toString().trim() !== '') acc.got.f++;
+                    if (typeof window.gotGetCell === 'function') {
+                        ['E1','E2','E3','S1','S2','S3'].forEach(goalId => {
+                            acc.got.t++;
+                            const _gotVal = window.gotGetCell(proj, goalId, 0, selMonth).r;
+                            if (_gotVal && _gotVal.toString().trim() !== '') acc.got.f++;
+                        });
                     }
 
                     // Area 5 – ESH Calendar
-                    const _eshTypes = ['esh-calendar-safety','esh-calendar-health','esh-calendar-env','esh-calendar-corp-drills'];
-                    _eshTypes.forEach(tt => {
+                    ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
                         const rows = _ESH_DEF_ROWS[tt] || [];
                         rows.forEach((_, ti) => {
                             const naRowKey = `${selYear}|${tt}|${proj.name}|${ti}|na_row`;
@@ -10718,8 +10716,8 @@ function renderTabulation() {
                     };
 
                     const _cv = state.complianceView || 0;
-                    if (_cv === 0) return; // Overall average mode — no specific month to gap-analyze
-                    const selMonth = _cv;
+                    // When Overall is selected, show gap analysis for the latest available month
+                    const selMonth = _cv === 0 ? _mcMaxMonth : _cv;
                     const moName   = _KPM_MONTHS[selMonth - 1];
                     const mi       = selMonth - 1;
                     const selYear  = state.selectedYear || new Date().getFullYear();
