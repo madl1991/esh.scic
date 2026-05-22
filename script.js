@@ -3676,6 +3676,9 @@ debugCommands.help() - Show this help
                             const deficiencies = [];
                             if (req.firstAider    > 0 && actual.firstAider    < req.firstAider)    deficiencies.push(`First Aider (${actual.firstAider}/${req.firstAider})`);
                             if (req.safetyOfficer > 0 && actual.safetyOfficer < req.safetyOfficer) deficiencies.push(`Safety Officer (${actual.safetyOfficer}/${req.safetyOfficer})`);
+                            // Extra check: when SO4 is required (soLabel contains 'SO4'), verify at least 1 actual SO4 is present.
+                            // ESH Superintendent and ESH Head are SO3-level and do NOT satisfy the SO4 slot.
+                            if (req.soLabel && req.soLabel.includes('SO4') && actual.so4Count < 1) deficiencies.push(`Safety Officer IV required (0 SO4 assigned — ESH Head/Superintendent are SO3 only)`);
                             if (req.ohNurse       > 0 && actual.ohNurse       < req.ohNurse)       deficiencies.push(`OH Nurse (${actual.ohNurse}/${req.ohNurse})`);
                             if (req.ohDentist     > 0 && actual.ohDentist     < req.ohDentist)     deficiencies.push(`OH Dentist (${actual.ohDentist}/${req.ohDentist})`);
                             if (req.ohPhysician   > 0 && actual.ohPhysician   < req.ohPhysician)   deficiencies.push(`OH Physician (${actual.ohPhysician}/${req.ohPhysician})`);
@@ -22517,9 +22520,18 @@ function computeOshRequirements(manpower) {
 
 function classifyOshPosition(pos) {
     if (!pos) return null;
-    const p = pos.toLowerCase();
+    const p = pos.toLowerCase().trim();
     if (p.includes('first aid')) return 'firstAider';
-    if (p.includes('safety officer') || p === 'esh superintendent' || p === 'esh head') return 'safetyOfficer';
+    // Safety Officer IV is the only position that satisfies SO4 requirement.
+    // ESH Superintendent and ESH Head are SO3-level — they do NOT qualify as SO4.
+    if (p.includes('safety officer iv') || p === 'safety officer 4') return 'safetyOfficerSO4';
+    if (
+        p.includes('safety officer iii') || p === 'safety officer 3' ||
+        p === 'esh superintendent' || p === 'esh head'
+    ) return 'safetyOfficerSO3';
+    if (p.includes('safety officer ii') || p === 'safety officer 2') return 'safetyOfficerSO2';
+    if (p.includes('safety officer i')  || p === 'safety officer 1') return 'safetyOfficerSO1';
+    if (p.includes('safety officer')) return 'safetyOfficerSO2'; // generic fallback → SO2
     if (p.includes('nurse')) return 'ohNurse';
     if (p.includes('dentist')) return 'ohDentist';
     if (p.includes('physician') || p.includes('doctor')) return 'ohPhysician';
@@ -22575,12 +22587,29 @@ function saveOshData() {
 
 function countActualOshPersonnel(projectName) {
     const data = state.personnelData || [];
-    const counts = { firstAider: 0, safetyOfficer: 0, ohNurse: 0, ohDentist: 0, ohPhysician: 0, names: [] };
+    const counts = {
+        firstAider: 0,
+        safetyOfficer: 0,  // total of all SO levels (SO1+SO2+SO3+SO4)
+        so4Count: 0,        // SO4-only count for SO4-specific requirement checks
+        safetyOfficerSO4: 0,
+        safetyOfficerSO3: 0,
+        safetyOfficerSO2: 0,
+        safetyOfficerSO1: 0,
+        ohNurse: 0, ohDentist: 0, ohPhysician: 0, names: []
+    };
     data.forEach(p => {
         if (p.current === projectName) {
             const cat = classifyOshPosition(p.pos);
             if (cat) {
-                counts[cat]++;
+                // Aggregate all SO sub-levels into safetyOfficer total
+                if (cat === 'safetyOfficerSO4' || cat === 'safetyOfficerSO3' ||
+                    cat === 'safetyOfficerSO2' || cat === 'safetyOfficerSO1') {
+                    counts.safetyOfficer++;
+                    counts[cat]++;
+                    if (cat === 'safetyOfficerSO4') counts.so4Count++;
+                } else {
+                    counts[cat]++;
+                }
                 counts.names.push({ name: p.name || '?', pos: p.pos, cat });
             }
         }
@@ -22638,6 +22667,12 @@ function renderOsh2() {
                         defGaps.push(cat);
                     }
                 });
+                // Extra check: when SO4 is required (soLabel contains 'SO4'), verify at least 1 actual SO4 is present.
+                // ESH Superintendent and ESH Head are SO3-level and do NOT satisfy the SO4 slot.
+                if (req.soLabel && req.soLabel.includes('SO4') && actual.so4Count < 1) {
+                    hasDeficiency = true;
+                    defGaps.push('safetyOfficerSO4');
+                }
                 rowStatus = hasDeficiency ? 'deficient' : 'compliant';
                 if (hasDeficiency) rDeficient++; else rCompliant++;
             } else {
@@ -22663,18 +22698,33 @@ function renderOsh2() {
                         <span style="opacity:0.5;">N/R</span>
                     </td>`;
                 }
-                const ok = actCount >= reqCount;
+
+                // For the safetyOfficer cell, also check SO4 sub-requirement
+                let ok = actCount >= reqCount;
+                if (cat === 'safetyOfficer' && req.soLabel && req.soLabel.includes('SO4') && actual.so4Count < 1) {
+                    ok = false; // has enough total SOs but missing required SO4
+                }
+
                 const bg = ok ? '#e8f5e9' : '#fff3e0';
                 const bord = ok ? '#a5d6a7' : '#ffcc80';
                 const icon = ok ? '✓' : '⚠';
                 const icolor = ok ? '#2e7d32' : '#e65100';
 
-                const peopleInCat = actual.names.filter(n => n.cat === cat);
+                // For safetyOfficer, collect all SO sub-level names
+                const SO_CATS = ['safetyOfficerSO4','safetyOfficerSO3','safetyOfficerSO2','safetyOfficerSO1'];
+                const peopleInCat = cat === 'safetyOfficer'
+                    ? actual.names.filter(n => SO_CATS.includes(n.cat))
+                    : actual.names.filter(n => n.cat === cat);
                 const namesTooltip = peopleInCat.length
                     ? peopleInCat.map(n => n.name + ' (' + n.pos + ')').join('\n')
                     : 'None assigned';
 
-                return `<td style="text-align:center;background:${bg};border-left:1px solid ${bord};padding:8px 6px;" title="${namesTooltip}">
+                // Append SO4 warning to tooltip when applicable
+                const so4Warning = (cat === 'safetyOfficer' && req.soLabel && req.soLabel.includes('SO4') && actual.so4Count < 1)
+                    ? '\n⚠ No Safety Officer IV assigned (ESH Head/Supt are SO3 only)'
+                    : '';
+
+                return `<td style="text-align:center;background:${bg};border-left:1px solid ${bord};padding:8px 6px;" title="${namesTooltip}${so4Warning}">
                     <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
                         <span style="font-size:0.75rem;font-weight:800;color:${icolor};">${icon} ${actCount}/${reqCount}</span>
                         <span style="font-size:0.6rem;color:#5d4037;font-weight:600;">${label || ''}</span>
