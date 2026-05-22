@@ -10429,19 +10429,21 @@ function renderTabulation() {
                     }
 
                     // Area 3 – DOLE
-                    ['dole_WAIR','dole_RSO','dole_MOM'].forEach(key => {
-                        acc.dole.t++;
+                    acc.dole.t++;
+                    const _doleAllFilled = ['dole_WAIR','dole_RSO','dole_MOM'].every(key => {
                         const v = vals[key] && vals[key][selMonth];
-                        if (v !== undefined && v !== null && v !== '' && v !== '0') acc.dole.f++;
+                        return v !== undefined && v !== null && v !== '' && v !== '0';
                     });
+                    if (_doleAllFilled) acc.dole.f++;
 
                     // Area 4 – GOT
                     if (typeof window.gotGetCell === 'function') {
-                        ['E1','E2','E3','S1','S2','S3'].forEach(goalId => {
-                            acc.got.t++;
+                        acc.got.t++;
+                        const _gotAllFilled = ['E1','E2','E3','S1','S2','S3'].every(goalId => {
                             const _gotVal = window.gotGetCell(proj, goalId, 0, selMonth).r;
-                            if (_gotVal && _gotVal.toString().trim() !== '') acc.got.f++;
+                            return _gotVal && _gotVal.toString().trim() !== '';
                         });
+                        if (_gotAllFilled) acc.got.f++;
                     }
 
                     // Area 5 – ESH Calendar
@@ -10771,19 +10773,21 @@ function renderTabulation() {
                             }
 
                             // Area 3 – DOLE
-                            ['dole_WAIR','dole_RSO','dole_MOM'].forEach(key => {
-                                acc.dole.t++;
+                            acc.dole.t++;
+                            const _doleAllFilled = ['dole_WAIR','dole_RSO','dole_MOM'].every(key => {
                                 const v = vals[key] && vals[key][selMonth];
-                                if (v !== undefined && v !== null && v !== '' && v !== '0') acc.dole.f++;
+                                return v !== undefined && v !== null && v !== '' && v !== '0';
                             });
+                            if (_doleAllFilled) acc.dole.f++;
 
                             // Area 4 – GOT
                             if (typeof window.gotGetCell === 'function') {
-                                ['E1','E2','E3','S1','S2','S3'].forEach(goalId => {
-                                    acc.got.t++;
+                                acc.got.t++;
+                                const _gotAllFilled = ['E1','E2','E3','S1','S2','S3'].every(goalId => {
                                     const _gotVal = window.gotGetCell(proj, goalId, 0, selMonth).r;
-                                    if (_gotVal && _gotVal.toString().trim() !== '') acc.got.f++;
+                                    return _gotVal && _gotVal.toString().trim() !== '';
                                 });
+                                if (_gotAllFilled) acc.got.f++;
                             }
 
                             // Area 5 – ESH Calendar
