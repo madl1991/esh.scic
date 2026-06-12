@@ -36392,7 +36392,7 @@ window.renderCorporateKpm = function() {
     // ── Assemble ──
     container.innerHTML = '<div style="padding:14px 10px;">'
         + summaryHtml
-        + (!isWdaAdmin ? '<div style="background:#e3f2fd;border:1.5px solid #90caf9;border-radius:6px;padding:7px 14px;font-size:0.72rem;color:#1565c0;font-weight:600;margin:0 16px 12px;"><i class="fas fa-info-circle" style="margin-right:5px;"></i>You have view-only access. Only the WDA System Admin can make changes.</div>' : '')
+        + (!isWdaAdmin ? '<div style="background:#e3f2fd;border:1.5px solid #90caf9;border-radius:6px;padding:7px 14px;font-size:0.72rem;color:#1565c0;font-weight:600;margin:0 16px 12px;"><i class="fas fa-info-circle" style="margin-right:5px;"></i>You have view-only access. Only WDA can make changes.</div>' : '')
         + managersHtml
         + '</div>';
 };
