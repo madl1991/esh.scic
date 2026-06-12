@@ -45,7 +45,16 @@
      Safe additive overrides only. No JS or saving logic touched.
      ═══════════════════════════════════════════════════════════════ -->
 
-    <link rel="stylesheet" href="styles.css">
+    <script>
+        // Auto cache-bust — no manual version update needed on every deploy
+        (function() {
+            var ts = Date.now();
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'styles.css?v=' + ts;
+            document.head.appendChild(link);
+        })();
+    </script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, sendPasswordResetEmail, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -2014,5 +2023,13 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="script.js?v=20260612_CORPORATE_KPM"></script>
+    <script>
+        // Auto cache-bust — no manual version update needed on every deploy
+        (function() {
+            var ts = Date.now();
+            var script = document.createElement('script');
+            script.src = 'script.js?v=' + ts;
+            document.body.appendChild(script);
+        })();
+    </script>
 </body>
