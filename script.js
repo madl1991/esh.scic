@@ -1794,7 +1794,7 @@ function applyNumFmtToInputs() {
 
             PCO_VIEW_TABS: [
                 'overall', 'rates', 'exposures', 'medical', 'nov', 'nov-monitoring',
-                'activities', 'kpm', 'dole', 'doe', 'doe-permit', 'cshp', 'reg', 'audit',
+                'activities', 'corporate-kpm', 'kpm', 'dole', 'doe', 'doe-permit', 'cshp', 'reg', 'audit',
                 'esh-calendar-safety', 'esh-calendar-health', 'esh-calendar-drills',
                 'personnel', 'osh-requirement', 'health-report', 'tabulation',
                 'got-monitoring', 'nov-monitoring', 'exposures', 'lta-registry', 'medical'
@@ -1850,6 +1850,13 @@ function applyNumFmtToInputs() {
                             return { allowed: false, reason: '🔒 Internal ESH Audit Report can only be edited by the WDA System Admin.' };
                         }
                         return { allowed: true, reason: 'WDA Admin: audit write access' };
+                    }
+                    // CORPORATE KPM tab: edit exclusively for esh@wda.com.ph; others in allowed list are view-only
+                    if (tab === 'corporate-kpm') {
+                        if (userEmail !== 'esh@wda.com.ph') {
+                            return { allowed: false, reason: '🔒 Corporate KPM Report can only be edited by the WDA System Admin (esh@wda.com.ph). You have view-only access.' };
+                        }
+                        return { allowed: true, reason: 'WDA Admin: Corporate KPM write access' };
                     }
                     const _adminProjReg = (projectRegion || '').trim().toUpperCase();
                     if (projectRegion && _adminProjReg !== 'CORPORATE') {
@@ -5104,7 +5111,7 @@ debugCommands.help() - Show this help
                 'nov-monitoring': 'ESH NOV MONITORING',
                 'lta-registry': 'INCIDENT AND ACCIDENT REGISTRY',
                 'tabulation': 'INCIDENT / ACCIDENT TABULATION',
-                'activities': 'ESH ACTIVITIES AND PROGRAMS','kpm': 'KEY PERFORMANCE MEASURES REPORT','reg': 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)','audit': 'INTERNAL ESH AUDIT REPORT',
+                'activities': 'ESH ACTIVITIES AND PROGRAMS','corporate-kpm': 'CORPORATE KPM MONTHLY REPORT','kpm': 'KEY PERFORMANCE MEASURES REPORT','reg': 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)','audit': 'INTERNAL ESH AUDIT REPORT',
                 'cshp': 'CONSTRUCTION SAFETY & HEALTH PROGRAM (DATE APPROVED)', 'dole': 'DOLE REPORTORIAL','permits': 'ENVIRONMENTAL PERMITS/LICENSES/CLEARANCE','emb': ["EMB REPORTORIAL"],
                 'doe': 'DOE REPORTORIAL - RENEWABLE ENERGY PROJECTS', 'doe-permit': 'DOE SAFETY OFFICER PERMIT',
                 'personnel': 'ESH PERSONNEL MONITORING', 'settings': 'SETTINGS',
@@ -5202,6 +5209,15 @@ debugCommands.help() - Show this help
             if (t === 'osh-requirement') { setTimeout(renderOsh2, 100); }
             
             renderRbacBanner();
+
+            if (t === 'corporate-kpm') {
+                const _ckAllowed = ['esh@wda.com.ph','esh@tgm.com.ph','esh@mab.com.ph','esh@lmp.com.ph','esh@corpdc.com.ph','esh@cbmganda.com.ph','esh@scic.com.ph'];
+                if (!_ckAllowed.includes(state.currentUser?.email)) {
+                    showToast('🔒 Corporate KPM Report is restricted. Contact WDA System Admin for access.', 'warning');
+                    changeTab('overall');
+                    return;
+                }
+            }
 
             if (t === 'personnel' && state.userRole === 'pco') {
                 showToast('🔒 ESH Personnel Monitoring is not accessible for PCO accounts.', 'warning');
@@ -6943,6 +6959,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 'activities':         'ESH ACTIVITIES AND PROGRAMS',
                 'nov':                'OSH REGULATORY ISSUED NOV',
                 'nov-env':            'ENVIRONMENTAL REGULATORY ISSUED NOV',
+                'corporate-kpm':      'CORPORATE KPM MONTHLY REPORT',
                 'kpm':                'KEY PERFORMANCE MEASURES REPORT',
                 'dole':               'DOLE REPORTORIAL',
                 'emb':                'EMB REPORTORIAL',
@@ -7025,6 +7042,22 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const oshNavItem = document.querySelector('.nav-item[data-tab="osh-requirement"]');
             if (oshNavItem) oshNavItem.style.display = isPCO ? 'none' : '';
 
+            // ── CORPORATE KPM nav item: visible to wda admin + designated viewers ──
+            const _CORP_KPM_ALLOWED = [
+                'esh@wda.com.ph',      // WDA Admin — full edit
+                'esh@scic.com.ph',     // ESH Admin — view only
+                'esh@tgm.com.ph',      // TGM Manager — view only
+                'esh@mab.com.ph',      // MAB Manager — view only
+                'esh@lmp.com.ph',      // LMP Manager — view only
+                'esh@corpdc.com.ph',   // Corporate Doc Controller — view only
+                'esh@cbmganda.com.ph', // Environmental Head — view only
+            ];
+            const _corpKpmNav = document.querySelector('.nav-item[data-tab="corporate-kpm"]');
+            if (_corpKpmNav) {
+                const _canSeeCorporateKpm = _CORP_KPM_ALLOWED.includes(state.currentUser?.email);
+                _corpKpmNav.style.display = _canSeeCorporateKpm ? '' : 'none';
+            }
+
             const pcoNonEnvTabs = ['rates','exposures','activities','kpm','dole','doe','doe-permit',
                                    'medical','nov','nov-monitoring','cshp','reg']; // 'audit' excluded — uses #audit-nav-lock instead
             pcoNonEnvTabs.forEach(tab => {
@@ -7096,7 +7129,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             }
 
             const _validTabs = ['overall','rates','exposures','medical','nov','nov-env','nov-monitoring',
-                'activities','kpm','dole','emb','doe','doe-permit','env-monthly-report',
+                'activities','corporate-kpm','kpm','dole','emb','doe','doe-permit','env-monthly-report',
                 'permits','env-monitoring','cshp','reg','audit','personnel','osh-requirement','nov-env',
                 'health-report','got-monitoring','lta-registry','tabulation',
                 'esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
@@ -10576,11 +10609,17 @@ function renderTabulation() {
             const _rxUniBtn   = document.getElementById('export-excel-btn');
             if (_rxUniBtn) _rxUniBtn.style.display = _rxShowXl ? 'inline-block' : 'none';
             const _eshCalTabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
-            const _nonTableTabs = ['settings','personnel','env-monitoring','osh-requirement','nov','got-monitoring'];
+            const _nonTableTabs = ['settings','personnel','env-monitoring','osh-requirement','nov','got-monitoring','corporate-kpm'];
 
             // LTA Registry has its own container — render it directly and return
             if (state.currentTab === 'lta-registry') {
                 if (typeof renderLtaRegistryTab === 'function') renderLtaRegistryTab();
+                return;
+            }
+
+            // Corporate KPM tab — admin-exclusive; render and return
+            if (state.currentTab === 'corporate-kpm') {
+                if (typeof window.renderCorporateKpm === 'function') window.renderCorporateKpm();
                 return;
             }
 
@@ -31049,6 +31088,7 @@ async function exportCurrentTabToExcel() {
     // Route to dedicated exporters for tabs that already have them
     if (tab === 'personnel')       { exportPersonnelExcel();       return; }
     if (tab === 'emb')             { exportEmbExcel();             return; }
+    if (tab === 'corporate-kpm')   { exportCorporateKpmExcel();    return; }
     if (tab === 'kpm')             { exportKpmExcel();             return; }
     if (tab === 'dole')            { exportDoleExcel();            return; }
     if (tab === 'env-monitoring')  { exportEnvMonitoringExcel();   return; }
@@ -35867,6 +35907,663 @@ async function exportEnvMonitoringExcel() {
     } catch(err) {
         console.error('Env Monitoring Excel export error:', err);
         showToast('❌ Environmental Monitoring export failed. Check console for details.', 'error');
+    }
+}
+
+// ── CORPORATE KPM — Row definitions (from CO-KPM-WDA-ESH reference) ──────────
+window.CORP_KPM_ROWS = [
+    { id:'c1', kpm:'1', wp:'ESH Manager', del:'Corporate',
+      dw:0.45, measure:'Timeliness of submission of ESH reports & Compliance',
+      kpi:['75%','80%','85%','90%','95%'] },
+    { id:'c2', kpm:'2', wp:'ISO Compliance', del:'IMS / ISO Requirements',
+      dw:0.15, measure:'Timeliness of compliance to<br>- IMS Documentation<br>- Audit Response/ROTP, etc.',
+      kpi:['≥75% on time','≥80% on time','≥85% on time','≥90% on time',''] },
+    { id:'c3', kpm:'3', wp:'Average KPI for ESH Heads, PCO & Nurses',
+      del:'Consolidation of ESH reports of ESH Superintendents, ESH Heads, PCO & Nurse',
+      dw:0.25, measure:'Timeliness of submission of reports of<br>-ESH Superintendents<br>-Corporate Nurse<br>-Corporate PCO<br>-ESH Heads',
+      kpi:['≥76% on time','≥81% on time','≥86% on time','≥91% on time',''] },
+    { id:'c4', kpm:'4', wp:'Compliance', del:'Environmental Programs',
+      dw:0.07, measure:'Zero environmental complaints, violations or environmental findings',
+      kpi:['with environmental violations, ESH committee findings or environmental complaints from other stakeholders','','','','ZERO environmental violation report, ESH committee findings or environmental'] },
+    { id:'c5', kpm:'', wp:'', del:'Occupational Safety and Health Programs',
+      dw:0.08, measure:'Zero OS&H accidents/incidents, violations, complaints and findings',
+      kpi:['incurred accidents, OSH violations and complaints or with','','','','ZERO accident, OSH violation, complaints or ESH Committee'] },
+];
+
+// ── renderCorporateKpm: renders the Corporate KPM tab, matching the KPM tab layout ──
+window.renderCorporateKpm = function() {
+    const container = document.getElementById('dashboard-content');
+    if (!container) return;
+
+    const CORP_KPM_ALLOWED = ['esh@wda.com.ph','esh@tgm.com.ph','esh@mab.com.ph','esh@lmp.com.ph','esh@corpdc.com.ph','esh@cbmganda.com.ph','esh@scic.com.ph'];
+    const isWdaAdmin = (state.currentUser?.email === 'esh@wda.com.ph');
+    if (!CORP_KPM_ALLOWED.includes(state.currentUser?.email)) {
+        container.innerHTML = '<div style="padding:40px;text-align:center;color:#c62828;font-weight:700;">🔒 Access Restricted — Corporate KPM is not accessible for your account.</div>';
+        return;
+    }
+
+    const CORP_KPM_ROWS = window.CORP_KPM_ROWS || [];
+    const year = state.selectedYear || new Date().getFullYear();
+    const KPM_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const MO_SHORT   = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    const MANAGERS   = ['WILLIAM D. ABELA', 'LARRY M. PAYBA'];
+    const curMoIdx   = new Date().getMonth();
+
+    // ── Data helpers — per-manager keys ──
+    function ckGet(mgrIdx, mo, key) {
+        return ((state.companyData || {})['corp_kpm_' + year + '_' + mgrIdx + '_' + mo + '_' + key]) || '';
+    }
+    function ckSet(mgrIdx, mo, key, val) {
+        var k = 'corp_kpm_' + year + '_' + mgrIdx + '_' + mo + '_' + key;
+        if (!state.companyData) state.companyData = {};
+        state.companyData[k] = val;
+        if (window.firebaseDb) { try { window.firebaseDb.ref('companyData/' + k).set(val); } catch(e) {} }
+    }
+    function ckIsNA(mgrIdx, mo) {
+        return !!((state.companyData || {})['corp_kpm_na_' + year + '_' + mgrIdx + '_' + mo]);
+    }
+    function mgrMonthScore(mgrIdx, mo) {
+        var grand = 0, hasAny = false;
+        CORP_KPM_ROWS.forEach(function(row) {
+            var raw = String(ckGet(mgrIdx, mo, row.id + '_ep') || '').replace('%','').trim();
+            var n = parseFloat(raw);
+            if (!isNaN(n)) { hasAny = true; grand += (n / 100) * row.dw; }
+        });
+        return hasAny ? grand : null;
+    }
+
+    // ── Summary scorecard ──
+    var moScores = MANAGERS.map(function(mgr, mi) {
+        return KPM_MONTHS.map(function(mo) { return mgrMonthScore(mi, mo); });
+    });
+    function cellBg(v){ return v>=0.90?'#e8f5e9':v>=0.85?'#fff8e1':'#ffebee'; }
+    function cellFg(v){ return v>=0.90?'#1b5e20':v>=0.85?'#7a5c00':'#c62828'; }
+
+    var thCells = '<th style="min-width:160px;text-align:left;background:#1b5e20;color:#fff;font-size:0.62rem;padding:7px 10px;border:1px solid #388e3c;position:sticky;left:0;z-index:3;">MANAGER</th>';
+    MO_SHORT.forEach(function(m, mi) {
+        var isLive = mi <= curMoIdx;
+        thCells += '<th style="min-width:46px;text-align:center;background:' + (isLive?'#1b5e20':'#388e3c') + ';color:#fff;font-size:0.6rem;padding:6px 4px;border:1px solid #388e3c;opacity:' + (isLive?'1':'0.65') + ';">' + m + '</th>';
+    });
+    thCells += '<th style="min-width:60px;text-align:center;background:#0d3311;color:#ffd54f;font-size:0.62rem;padding:7px 6px;border:1px solid #0d3311;">AVG</th>';
+
+    var bodyRows = MANAGERS.map(function(mgr, mi) {
+        var scores = moScores[mi];
+        var validScores = scores.filter(function(v){return v!==null;});
+        var avg = validScores.length ? validScores.reduce(function(s,v){return s+v;},0)/validScores.length : null;
+        var cells = '<td style="text-align:left;font-weight:700;font-size:0.62rem;color:#1b5e20;background:#f1f8e9;padding:6px 10px;border:1px solid #c8e6c9;white-space:nowrap;position:sticky;left:0;z-index:2;box-shadow:2px 0 4px rgba(0,0,0,0.06);">' + mgr + '</td>';
+        scores.forEach(function(v, idx) {
+            var isFut = idx > curMoIdx;
+            if (v === null) {
+                cells += '<td style="text-align:center;font-size:0.6rem;color:#bdbdbd;background:' + (isFut?'#f9f9f9':'#fff8f8') + ';padding:5px 3px;border:1px solid #c8e6c9;opacity:' + (isFut?'0.5':'1') + ';">—</td>';
+            } else {
+                cells += '<td style="text-align:center;font-size:0.63rem;font-weight:700;color:' + cellFg(v) + ';background:' + cellBg(v) + ';padding:5px 3px;border:1px solid #c8e6c9;">' + (v*100).toFixed(1) + '%</td>';
+            }
+        });
+        cells += '<td style="text-align:center;font-weight:900;font-size:0.66rem;color:' + (avg!==null?cellFg(avg):'#bdbdbd') + ';background:' + (avg!==null?cellBg(avg):'#f5f5f5') + ';padding:6px 5px;border:2px solid #a5d6a7;">' + (avg!==null?(avg*100).toFixed(1)+'%':'—') + '</td>';
+        return '<tr>' + cells + '</tr>';
+    }).join('');
+
+    var summaryHtml = '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">'
+        + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+        +   '<div>'
+        +     '<div style="font-family:Poppins,sans-serif;font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">🏢 CORPORATE KPM MONTHLY REPORT</div>'
+        +     '<div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Corporate ESH KPM — CO-KPM-WDA-ESH | Weighted % per manager per month · Year: ' + year + '</div>'
+        +   '</div>'
+        +   (isWdaAdmin
+              ? '<span style="margin-left:auto;background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;border-radius:4px;padding:2px 9px;font-size:0.62rem;font-weight:700;">WDA ADMIN</span>'
+              : '<span style="margin-left:auto;background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:4px;padding:2px 9px;font-size:0.62rem;font-weight:700;"><i class="fas fa-eye" style="margin-right:3px;"></i>VIEW ONLY</span>')
+        + '</div>'
+        + '<div style="overflow-x:auto;padding:14px 16px 10px;">'
+        +   '<table style="border-collapse:collapse;width:100%;min-width:620px;"><thead><tr>' + thCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table>'
+        + '</div>'
+        + '<div style="padding:6px 18px;background:#f9fdf9;border-top:1px solid #c8e6c9;display:flex;gap:14px;flex-wrap:wrap;">'
+        +   '<span style="font-size:0.59rem;color:#1b5e20;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#c8e6c9;display:inline-block;"></span>≥90% Excellent</span>'
+        +   '<span style="font-size:0.59rem;color:#7a5c00;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#fff9c4;display:inline-block;"></span>85–89% Satisfactory</span>'
+        +   '<span style="font-size:0.59rem;color:#c62828;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#ffcdd2;display:inline-block;"></span>&lt;85% Needs Improvement</span>'
+        +   '<span style="font-size:0.59rem;color:#888;margin-left:auto;">— = no data entered</span>'
+        + '</div></div>';
+
+    // ── Build per-manager region sections ──
+    var managersHtml = '';
+    MANAGERS.forEach(function(mgr, mi) {
+        var lsKey = 'corpKpmCollapsed_' + mi;
+        var isCollapsed = (function(){ try { return localStorage.getItem(lsKey) === '1'; } catch(e){ return false; } })();
+
+        var submittedCount = 0;
+        KPM_MONTHS.forEach(function(mo, idx) {
+            if (idx > curMoIdx) return;
+            if (ckGet(mi, mo, 'dateSubmitted')) submittedCount++;
+        });
+
+        // Region banner for this manager
+        managersHtml += '<div id="ckpm-mgr-banner-' + mi + '" class="region-banner' + (isCollapsed?' collapsed':'') + ' rb-editable"'
+            + ' onclick="window.corpKpmToggleMgr(' + mi + ',event)">'
+            + '<div class="region-banner-inner">'
+            +   '<div class="region-banner-left">'
+            +     '<span style="background:rgba(255,255,255,0.22);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;margin-right:4px;">' + (mi+1) + '</span>'
+            +     '<span style="background:rgba(255,255,255,0.15);color:#fff;border-radius:5px;padding:2px 7px;font-size:0.63rem;font-weight:800;margin-right:6px;">MGR</span>'
+            +     '<span class="region-name">' + mgr + '</span>'
+            +   '</div>'
+            +   '<div class="region-banner-right">'
+            +     '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">Corporate Manager</span>'
+            +     '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">' + submittedCount + '/' + (curMoIdx+1) + ' submitted</span>'
+            +     (isWdaAdmin ? '<button class="lta-add-btn" onclick="event.stopPropagation();window.openCorpKpmModal(' + mi + ',null,true)" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-plus"></i> Add Entry</button>' : '')
+            +     '<i class="fas fa-chevron-down region-toggle-icon"></i>'
+            +   '</div>'
+            + '</div></div>'
+            + '<div id="ckpm-content-' + mi + '" class="region-content' + (isCollapsed?' collapsed':'') + '">';
+
+        // Month rows inside this manager section
+        var hasAnyRow = false;
+        KPM_MONTHS.forEach(function(mo, moIdx) {
+            if (moIdx > curMoIdx) return;
+            var score = mgrMonthScore(mi, mo);
+            var dateSubm = ckGet(mi, mo, 'dateSubmitted');
+            var isNA = ckIsNA(mi, mo);
+            // Show row if has any data, or is NA, or just show all past months always
+            hasAnyRow = true;
+
+            var scoreBg = score===null ? '#f5f5f5' : cellBg(score);
+            var scoreFg = score===null ? '#aaa' : cellFg(score);
+            var scoreLabel = score===null ? '—' : (score*100).toFixed(1)+'%';
+            var submFg = dateSubm ? '#2e7d32' : '#c62828';
+            var submLabel = dateSubm ? dateSubm : (isNA ? 'N/A' : 'Not submitted');
+
+            managersHtml += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
+                + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
+                + ' onclick="window.openCorpKpmModal(' + mi + ',\'' + mo.replace(/'/g,"\\'") + '\',false)">'
+                + '<span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">' + (moIdx+1) + '</span>'
+                + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:36px;text-align:center;">' + mo.substring(0,3).toUpperCase() + '</span>'
+                + '<div style="flex:1;min-width:0;">'
+                +   '<div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);">' + mo + ' ' + year + '</div>'
+                +   '<div style="font-size:0.62rem;color:#888;margin-top:1px;">Submitted: <span style="color:' + submFg + ';font-weight:600;">' + submLabel + '</span>' + (isNA?' <span style="color:#e65100;font-size:0.6rem;">[N/A]</span>':'') + '</div>'
+                + '</div>'
+                + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
+                + '<span style="background:' + scoreBg + ';color:' + scoreFg + ';border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">' + scoreLabel + '</span>'
+                + (isWdaAdmin ? '<button onclick="event.stopPropagation();window.openCorpKpmModal(' + mi + ',\'' + mo.replace(/'/g,"\\'") + '\',true)" title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen"></i></button>' : '')
+                + '</div>'
+                + '</div>';
+        });
+
+        if (!hasAnyRow) {
+            managersHtml += '<div style="padding:18px;text-align:center;color:#aaa;font-size:0.76rem;font-style:italic;">'
+                + '<i class="fas fa-inbox" style="margin-right:6px;"></i>No KPM entries yet.'
+                + (isWdaAdmin ? ' Click "+ Add Entry" to begin.' : '') + '</div>';
+        }
+
+        managersHtml += '</div>'; // close ckpm-content
+    });
+
+    // ── Toggle function for manager sections ──
+    window.corpKpmToggleMgr = function(mi, event) {
+        if (event && (event.target.tagName==='BUTTON'||event.target.tagName==='SELECT'||
+                      event.target.closest('button')||event.target.closest('select'))) return;
+        var content = document.getElementById('ckpm-content-' + mi);
+        var banner  = document.getElementById('ckpm-mgr-banner-' + mi);
+        if (!content || !banner) return;
+        var nowCollapsed = content.classList.contains('collapsed');
+        var lsKey = 'corpKpmCollapsed_' + mi;
+        if (nowCollapsed) {
+            content.classList.remove('collapsed'); banner.classList.remove('collapsed');
+            try { localStorage.setItem(lsKey,'0'); } catch(e) {}
+        } else {
+            content.classList.add('collapsed'); banner.classList.add('collapsed');
+            try { localStorage.setItem(lsKey,'1'); } catch(e) {}
+        }
+    };
+
+    // ── Modal: open KPM table for a specific manager + month ──
+    window.openCorpKpmModal = function(mgrIdx, month, editMode) {
+        var mgrName  = MANAGERS[mgrIdx];
+        var isNA     = month ? ckIsNA(mgrIdx, month) : false;
+        var dis      = (!isWdaAdmin || !editMode || isNA) ? 'disabled' : '';
+        var canEdit  = isWdaAdmin && editMode;
+
+        // Auto-enable editing state
+        if (canEdit && !state.isEditing) {
+            state.isEditing = true;
+            document.body.classList.add('is-editing');
+            var _fb = document.getElementById('floating-edit-btn');
+            var _fi = document.getElementById('floating-edit-icon');
+            var _ft = document.getElementById('floating-edit-tooltip');
+            if (_fb) { _fb.classList.add('save-mode'); _fb.setAttribute('onclick','saveData()'); }
+            if (_fi) _fi.className = 'fas fa-save';
+            if (_ft) _ft.textContent = 'Click to Save';
+        }
+
+        // Determine active month
+        var filledMonths = {};
+        KPM_MONTHS.forEach(function(mo) {
+            var hasData = CORP_KPM_ROWS.some(function(row){ return ckGet(mgrIdx, mo, row.id+'_ep'); });
+            var hasDate = !!ckGet(mgrIdx, mo, 'dateSubmitted');
+            filledMonths[mo] = hasData || hasDate;
+        });
+        var activeMo = month;
+        if (!activeMo) {
+            var avail = KPM_MONTHS.filter(function(mo){ return !filledMonths[mo]; });
+            activeMo = avail.length ? avail[0] : KPM_MONTHS[curMoIdx];
+        }
+
+        var moSafe = activeMo.replace(/'/g,"\\'");
+        var isNewEntry = !month;
+        var dateSubm = ckGet(mgrIdx, activeMo, 'dateSubmitted');
+
+        // Remove any existing modal
+        var existing = document.getElementById('corp-kpm-modal');
+        if (existing) existing.remove();
+
+        // Month dropdown (Add Entry only)
+        var monthDropHtml = '';
+        if (isNewEntry) {
+            var moOpts = KPM_MONTHS.map(function(mo) {
+                var isFilled = filledMonths[mo];
+                var isSel = mo === activeMo;
+                return '<option value="' + mo + '"' + (isSel?' selected':'') + (isFilled?' disabled style="color:#bbb;"':'') + '>'
+                    + mo + (isFilled?' ✓':'') + '</option>';
+            }).join('');
+            monthDropHtml = '<label style="display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:0.67rem;color:#555;">'
+                + '<i class="fas fa-calendar-alt" style="color:#1b5e20;"></i>'
+                + '<span style="font-weight:700;font-size:0.64rem;color:#444;">Month:</span>'
+                + '<select id="ckpm-modal-month-sel"'
+                + ' onchange="(function(v){var m=document.getElementById(\'corp-kpm-modal\');if(m)m.remove();window.openCorpKpmModal(' + mgrIdx + ',v,true);})(this.value)"'
+                + ' style="border:1px solid #a5d6a7;border-radius:4px;padding:3px 7px;font-size:0.67rem;font-weight:700;background:#e8f5e9;color:#1b5e20;cursor:pointer;min-width:110px;">'
+                + moOpts + '</select></label>';
+        }
+
+        // Build table rows
+        var GRADE_PERC_MODAL  = [0.75, 0.80, 0.85, 0.90, 0.95];
+        var GRADE_SCALE_MODAL = [1, 2, 3, 4, 5];
+        var tableRows = '';
+        CORP_KPM_ROWS.forEach(function(row) {
+            var rawVal = ckGet(mgrIdx, activeMo, row.id + '_ep');
+            var n = parseFloat(String(rawVal||'').replace('%',''));
+            var ep = isNaN(n) ? null : n/100;
+            var tot = ep !== null ? ep * row.dw : null;
+            var epColor = ep !== null ? (ep>=0.90?'#2e7d32':ep>=0.85?'#e65100':'#c62828') : '#aaa';
+            var dwDisplay = row.dw ? (row.dw*100).toFixed(0)+'%' : '';
+
+            // Statistics = EP as percentage string; EG = equivalent grade (1-5)
+            var statDisplay = ep !== null ? (ep*100).toFixed(2)+'%' : '\u2014';
+            var egVal = '\u2014';
+            if (ep !== null) {
+                for (var gi = 0; gi < GRADE_PERC_MODAL.length; gi++) {
+                    if (Math.abs(ep - GRADE_PERC_MODAL[gi]) < 0.001) { egVal = String(GRADE_SCALE_MODAL[gi]); break; }
+                }
+            }
+
+            var kpiCells = (row.kpi||[]).map(function(k){
+                return '<td style=\"text-align:center;padding:3px 5px;border:1px solid #c8e6c9;font-size:0.65rem;font-weight:600;background:#f0faf0;color:#1b5e20;white-space:normal;max-width:90px;\">' + (k||'') + '</td>';
+            }).join('');
+
+            var validOpts = (row.kpi||[]).filter(function(v){return v!==null&&v!==undefined&&v!=='';});
+            var opts = '<option value=\"\">—</option>' + validOpts.map(function(opt){
+                return '<option value=\"' + opt + '\"' + (rawVal===opt?' selected':'') + '>' + opt + '</option>';
+            }).join('');
+            var inputColor = (!rawVal||isNaN(n)) ? '#555' : ep>=0.90?'#2e7d32':ep>=0.85?'#e65100':'#c62828';
+
+            var impIa  = ckGet(mgrIdx, activeMo, 'imp_ia_'  + row.id);
+            var impRc  = ckGet(mgrIdx, activeMo, 'imp_rc_'  + row.id);
+            var impCa  = ckGet(mgrIdx, activeMo, 'imp_ca_'  + row.id);
+            var impDoi = ckGet(mgrIdx, activeMo, 'imp_doi_' + row.id);
+            var impSt  = ckGet(mgrIdx, activeMo, 'imp_st_'  + row.id);
+
+            tableRows += '<tr style="background:' + (row.kpm?'#edf7ed':'#f9fdf9') + ';border-bottom:1px solid #c8e6c9;">'
+                + '<td style="text-align:center;font-weight:800;color:#1b5e20;padding:3px 2px;border:1px solid #c8e6c9;font-size:0.73rem;width:28px;min-width:28px;max-width:28px;">' + (row.kpm||'') + '</td>'
+                + '<td style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;font-weight:' + (row.wp?'700':'400') + ';min-width:110px;white-space:normal;max-width:130px;">' + (row.wp||'') + '</td>'
+                + '<td style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;min-width:110px;white-space:normal;max-width:130px;">' + (row.del||'') + '</td>'
+                + '<td style="text-align:center;padding:4px 5px;border:1px solid #c8e6c9;font-size:0.72rem;font-weight:800;color:#c62828;min-width:40px;">' + dwDisplay + '</td>'
+                + '<td style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;min-width:130px;white-space:normal;max-width:150px;text-align:left;">' + (row.measure||'') + '</td>'
+                + kpiCells
+                + '<td id="ckpm-modal-stat-' + row.id + '" style="text-align:center;padding:4px 5px;border:1px solid #c8e6c9;font-size:0.72rem;font-weight:700;color:' + epColor + ';min-width:62px;background:#f9fdf9;">' + statDisplay + '</td>'
+                + '<td id="ckpm-modal-eg-' + row.id + '" style="text-align:center;padding:4px 5px;border:1px solid #c8e6c9;font-size:0.75rem;font-weight:800;color:' + epColor + ';min-width:38px;background:#f9fdf9;">' + egVal + '</td>'
+                + '<td style="text-align:center;padding:2px 6px;border:1px solid #c8e6c9;width:80px;min-width:80px;">'
+                +   '<select ' + dis + ' onchange="window._ckpmEpChange(' + mgrIdx + ',\''+moSafe+'\',\''+row.id+'\',this.value)"'
+                +   ' style="width:68px;text-align:center;border:1px solid #b0c8b0;border-radius:3px;padding:2px 1px;font-size:0.72rem;font-weight:700;color:' + inputColor + ';background:#fff;cursor:' + (dis?'not-allowed':'pointer') + ';">'
+                +   opts + '</select></td>'
+                + '<td id="ckpm-modal-tot-' + row.id + '" style="text-align:center;padding:4px 5px;border:1px solid #c8e6c9;font-size:0.73rem;font-weight:800;color:' + epColor + ';min-width:62px;">' + (tot!==null?(tot*100).toFixed(2)+'%':'\u2014') + '</td>'
+                + '<td style="padding:3px 4px;border:1px solid #c8e6c9;min-width:90px;"><textarea ' + dis + ' placeholder="Immediate Action" rows="2" onchange="window._ckpmImpChange(' + mgrIdx + ',\''+moSafe+'\',\'ia_'+row.id+'\',this.value)" style="width:100%;font-size:0.63rem;border:1px solid #ccc;border-radius:3px;resize:vertical;">' + impIa + '</textarea></td>'
+                + '<td style="padding:3px 4px;border:1px solid #c8e6c9;min-width:80px;"><textarea ' + dis + ' placeholder="Root Cause" rows="2" onchange="window._ckpmImpChange(' + mgrIdx + ',\''+moSafe+'\',\'rc_'+row.id+'\',this.value)" style="width:100%;font-size:0.63rem;border:1px solid #ccc;border-radius:3px;resize:vertical;">' + impRc + '</textarea></td>'
+                + '<td style="padding:3px 4px;border:1px solid #c8e6c9;min-width:90px;"><textarea ' + dis + ' placeholder="Corrective Action" rows="2" onchange="window._ckpmImpChange(' + mgrIdx + ',\''+moSafe+'\',\'ca_'+row.id+'\',this.value)" style="width:100%;font-size:0.63rem;border:1px solid #ccc;border-radius:3px;resize:vertical;">' + impCa + '</textarea></td>'
+                + '<td style="padding:3px 4px;border:1px solid #c8e6c9;min-width:80px;"><input type="date" value="' + impDoi + '" ' + dis + ' onchange="window._ckpmImpChange(' + mgrIdx + ',\''+moSafe+'\',\'doi_'+row.id+'\',this.value)" style="width:100%;font-size:0.62rem;border:1px solid #ccc;border-radius:3px;padding:2px;"></td>'
+                + '<td style="padding:3px 4px;border:1px solid #c8e6c9;min-width:72px;"><select ' + dis + ' onchange="window._ckpmImpChange(' + mgrIdx + ',\''+moSafe+'\',\'st_'+row.id+'\',this.value)" style="width:100%;font-size:0.63rem;border:1px solid #ccc;border-radius:3px;padding:2px;"><option value="">\u2014</option><option value="Closed"' + (impSt==='Closed'?' selected':'') + '>Closed</option><option value="Not Effective"' + (impSt==='Not Effective'?' selected':'') + '>Not Effective</option></select></td>'
+                + '</tr>';
+        });
+
+
+        var grand = 0, hasAny = false;
+        CORP_KPM_ROWS.forEach(function(row) {
+            var raw = String(ckGet(mgrIdx, activeMo, row.id + '_ep') || '').replace('%','').trim();
+            var n = parseFloat(raw);
+            if (!isNaN(n)) { hasAny = true; grand += (n/100) * row.dw; }
+        });
+        var grandColor = grand>=0.90?'#2e7d32':grand>=0.85?'#e65100':hasAny?'#c62828':'#aaa';
+        var totalDW = CORP_KPM_ROWS.reduce(function(s,r){return s+r.dw;},0);
+
+        var modal = document.createElement('div');
+        modal.id = 'corp-kpm-modal';
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.58);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:6px 0;';
+
+        modal.innerHTML = '<div style="border-radius:12px;width:min(1400px,99vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
+            // Header
+            + '<div style="background:linear-gradient(90deg,#0d3d0f,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
+            +   '<div>'
+            +     '<div style="color:white;font-weight:800;font-size:0.95rem;font-family:Poppins,sans-serif;">'
+            +       (isNewEntry ? '➕ New KPM Entry' : (canEdit ? '✏️ Edit KPM' : '🔍 View KPM'))
+            +       ' — <span style="color:#fbc02d;">' + activeMo + ' ' + year + '</span>'
+            +     '</div>'
+            +     '<div style="color:#a5d6a7;font-size:0.67rem;margin-top:3px;">'
+            +       '<i class="fas fa-user-tie" style="margin-right:4px;"></i>' + mgrName
+            +     '</div>'
+            +   '</div>'
+            +   '<button onclick="document.getElementById(\'corp-kpm-modal\').remove()" style="background:rgba(255,255,255,0.15);color:white;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background=\'rgba(255,255,255,0.3)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'"><i class="fas fa-times"></i></button>'
+            + '</div>'
+            // Meta bar
+            + '<div style="background:#f1f8e9;border-bottom:1px solid #c8e6c9;padding:6px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+            +   '<span style="font-size:0.64rem;color:#2e7d32;font-weight:600;white-space:nowrap;"><i class="fas fa-table" style="margin-right:5px;"></i>' + mgrName + ' — ' + activeMo + ' ' + year + '</span>'
+            +   monthDropHtml
+            +   '<label style="display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:0.67rem;color:#555;margin-left:4px;">'
+            +     '<i class="fas fa-calendar-check" style="color:' + (dateSubm?'#2e7d32':'#c62828') + ';"></i>'
+            +     '<span style="font-weight:700;font-size:0.64rem;color:#444;">Date Submitted:</span>'
+            +     '<input type="date" id="ckpm-modal-date" value="' + dateSubm + '" ' + (!isWdaAdmin?'disabled':'')
+            +     ' oninput="(function(el,v){window._ckpmDateChange(' + mgrIdx + ',\'' + moSafe + '\',v);var ok=!!v;el.style.background=ok?\'#c8e6c9\':\'#ffcdd2\';el.style.color=ok?\'#2e7d32\':\'#c62828\';el.style.borderColor=ok?\'#a5d6a7\':\'#ef9a9a\';})(this,this.value)"'
+            +     ' style="border:1px solid ' + (dateSubm?'#a5d6a7':'#ef9a9a') + ';border-radius:4px;padding:3px 7px;font-size:0.67rem;font-weight:700;background:' + (dateSubm?'#c8e6c9':'#ffcdd2') + ';color:' + (dateSubm?'#2e7d32':'#c62828') + ';cursor:' + (isWdaAdmin?'pointer':'not-allowed') + ';">'
+            +   '</label>'
+            +   (isWdaAdmin
+                  ? '<button onclick="window._ckpmToggleNA(' + mgrIdx + ',\'' + moSafe + '\')" style="background:' + (isNA?'#ff9800':'#fff8e1') + ';color:' + (isNA?'white':'#e65100') + ';border:1.5px solid ' + (isNA?'#f57c00':'#ffc107') + ';border-radius:5px;padding:4px 12px;font-size:0.62rem;font-weight:800;cursor:pointer;">' + (isNA?'✓ Unmark N/A':'⊘ Mark as N/A') + '</button>'
+                  : '')
+            +   '<span style="font-size:0.6rem;color:#888;margin-left:auto;white-space:nowrap;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll table horizontally</span>'
+            + '</div>'
+            + (isNA ? '<div style="background:#fff8e1;border-bottom:1px solid #fbc02d;padding:8px 16px;font-size:0.73rem;color:#7a5c00;font-weight:700;">⚠️ ' + activeMo + ' is marked as N/A / Exempt.</div>' : '')
+            // Table
+            + '<div style="overflow-x:auto;max-height:72vh;overflow-y:auto;background:var(--bg-card);">'
+            +   '<table style="border-collapse:collapse;width:100%;font-family:Poppins,sans-serif;">'
+            +   '<thead>'
+            +   '<tr style="background:#1b5e20;">'
+            +     '<th colspan="4" style="padding:6px 4px;border:1px solid #388e3c;font-size:0.7rem;color:#fff;font-weight:700;">KEY PERFORMANCE MEASURES</th>'
+            +     '<th colspan="6" style="padding:6px 4px;border:1px solid #388e3c;font-size:0.7rem;color:#fff;font-weight:700;">KEY PERFORMANCE INDICATORS</th>'
+            +     '<th colspan="4" style="padding:6px 4px;border:1px solid #388e3c;font-size:0.7rem;color:#ffd54f;font-weight:800;background:#0d3d0f;">ACTUAL PERFORMANCE RATING</th>'
+            +     '<th colspan="5" style="padding:6px 4px;border:1px solid #388e3c;font-size:0.57rem;font-weight:400;font-style:italic;color:#a5d6a7;">Note: Accomplish if grade below 3</th>'
+            +   '</tr>'
+            +   '<tr style="background:#2e7d32;color:#fff;font-size:0.62rem;font-weight:700;text-align:center;">'
+            +     '<th style="padding:5px 4px;border:1px solid #388e3c;width:28px;min-width:28px;max-width:28px;">#</th>'
+            +     '<th style="padding:5px 4px;border:1px solid #388e3c;min-width:130px;white-space:normal;">Work Process</th>'
+            +     '<th style="padding:5px 4px;border:1px solid #388e3c;min-width:130px;white-space:normal;">Deliverables</th>'
+            +     '<th style="padding:5px 4px;border:1px solid #388e3c;min-width:46px;">DW</th>'
+            +     '<th style="padding:5px 4px;border:1px solid #388e3c;min-width:150px;white-space:normal;">Measure</th>'
+            +     '<th style="padding:5px 2px;border:1px solid #388e3c;min-width:55px;">75%<br><span style=\"font-size:0.55rem;font-weight:400;opacity:0.85;\">1</span></th>'
+            +     '<th style="padding:5px 2px;border:1px solid #388e3c;min-width:55px;">80%<br><span style=\"font-size:0.55rem;font-weight:400;opacity:0.85;\">2</span></th>'
+            +     '<th style="padding:5px 2px;border:1px solid #388e3c;min-width:55px;">85%<br><span style=\"font-size:0.55rem;font-weight:400;opacity:0.85;\">3</span></th>'
+            +     '<th style="padding:5px 2px;border:1px solid #388e3c;min-width:55px;">90%<br><span style=\"font-size:0.55rem;font-weight:400;opacity:0.85;\">4</span></th>'
+            +     '<th style="padding:5px 2px;border:1px solid #388e3c;min-width:55px;">95%<br><span style=\"font-size:0.55rem;font-weight:400;opacity:0.85;\">5</span></th>'
+            +     '<th style="padding:5px 4px;border:1px solid #388e3c;min-width:60px;background:#0d3d0f;color:#ffd54f;">Statistics</th>'
+            +     '<th style="padding:5px 4px;border:1px solid #388e3c;min-width:38px;background:#0d3d0f;color:#ffd54f;">Equivalent<br>Grade<br><span style=\"font-size:0.55rem;font-weight:400;\">(EG)</span></th>'
+            +     '<th style="padding:4px 2px;border:1px solid #388e3c;min-width:80px;background:#0d3d0f;color:#ffd54f;">Equivalent<br>Percentage<br><span style=\"font-size:0.55rem;font-weight:400;\">(EP)</span></th>'
+            +     '<th style="padding:5px 4px;border:1px solid #388e3c;min-width:68px;white-space:normal;background:#0d3d0f;color:#ffd54f;">Total %<br>Perf.<br><span style=\"font-size:0.57rem;font-weight:400;\">(EP×DW)</span></th>'
+            +     '<th colspan="5" style="padding:5px 4px;border:1px solid #388e3c;font-size:0.58rem;font-weight:700;background:#1a3a1a;color:#a5d6a7;">IMPROVEMENT PLAN</th>'
+            +   '</tr>'
+            +   '</thead>'
+            +   '<tbody>' + tableRows + '</tbody>'
+            +   '<tfoot><tr style="background:#2e7d32;color:#fff;font-weight:800;border-top:2px solid #1b5e20;">'
+            +     '<td colspan="3" style="border:1px solid #388e3c;padding:6px 8px;font-size:0.7rem;color:#fff;">TOTAL</td>'
+            +     '<td style="text-align:center;color:#ffd54f;font-size:0.75rem;font-weight:800;border:1px solid #388e3c;">' + (totalDW*100).toFixed(0) + '%</td>'
+            +     '<td colspan="8" style="border:1px solid #388e3c;"></td>'
+            +     '<td id="ckpm-modal-grand" style="text-align:center;font-size:0.82rem;font-weight:800;color:' + grandColor + ';border:1px solid #388e3c;background:#0d3d0f;">' + (hasAny?(grand*100).toFixed(2)+'%':'—') + '</td>'
+            +     '<td colspan="5" style="border:1px solid #388e3c;"></td>'
+            +   '</tr></tfoot>'
+            +   '</table>'
+            + '</div>'
+            // Legend
+            + '<div style="padding:6px 16px;background:#f9fdf9;border-top:1px solid #c8e6c9;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">'
+            +   '<span style="font-size:0.59rem;color:#1b5e20;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#c8e6c9;display:inline-block;"></span>≥90% Excellent</span>'
+            +   '<span style="font-size:0.59rem;color:#7a5c00;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#fff9c4;display:inline-block;"></span>85–89% Satisfactory</span>'
+            +   '<span style="font-size:0.59rem;color:#c62828;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#ffcdd2;display:inline-block;"></span>&lt;85% Needs Improvement</span>'
+            +   '<span style="font-size:0.59rem;color:#888;margin-left:auto;">FM-CO-KPM-WDA-ESH | Eff. Date: 06 Aug 2018</span>'
+            + '</div>'
+            // Footer
+            + '<div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;background:var(--bg-card);">'
+            + (canEdit
+                ? '<button onclick="window._ckpmSaveModal(' + mgrIdx + ',\'' + moSafe + '\')" style="background:#2e7d32;color:white;border:none;border-radius:7px;padding:8px 22px;font-size:0.78rem;font-weight:700;cursor:pointer;"><i class="fas fa-save" style="margin-right:6px;"></i>Save Changes</button>'
+                : '')
+
+            + '</div>'
+            + '</div>';
+
+        document.body.appendChild(modal);
+        // Close on backdrop click
+        modal.addEventListener('click', function(e){ if (e.target === modal) modal.remove(); });
+    };
+
+    // ── Modal data callbacks ──
+    window._ckpmEpChange = function(mgrIdx, mo, rowId, val) {
+        ckSet(mgrIdx, mo, rowId + '_ep', val);
+        var _GP = [0.75, 0.80, 0.85, 0.90, 0.95];
+        var _GS = [1, 2, 3, 4, 5];
+        // Recompute grand total and refresh Statistics + EG cells in modal
+        var grand = 0, hasAny = false;
+        CORP_KPM_ROWS.forEach(function(row) {
+            var raw = String(ckGet(mgrIdx, mo, row.id + '_ep') || '').replace('%','').trim();
+            var n = parseFloat(raw);
+            var epFrac = isNaN(n) ? null : n/100;
+            var c = epFrac!==null ? (epFrac>=0.90?'#2e7d32':epFrac>=0.85?'#e65100':'#c62828') : '#aaa';
+            // Statistics cell
+            var statCell = document.getElementById('ckpm-modal-stat-' + row.id);
+            if (statCell) { statCell.textContent = epFrac!==null?(epFrac*100).toFixed(2)+'%':'—'; statCell.style.color = c; }
+            // EG cell
+            var egCell = document.getElementById('ckpm-modal-eg-' + row.id);
+            if (egCell) {
+                var eg = '—';
+                if (epFrac!==null) { for (var gi=0;gi<_GP.length;gi++) { if (Math.abs(epFrac-_GP[gi])<0.001) { eg=String(_GS[gi]); break; } } }
+                egCell.textContent = eg; egCell.style.color = c;
+            }
+            if (epFrac !== null) {
+                hasAny = true;
+                grand += epFrac * row.dw;
+                var tot = epFrac * row.dw;
+                var totCell = document.getElementById('ckpm-modal-tot-' + row.id);
+                if (totCell) { totCell.textContent = (tot*100).toFixed(2)+'%'; totCell.style.color = c; }
+            } else {
+                var totCell = document.getElementById('ckpm-modal-tot-' + row.id);
+                if (totCell) { totCell.textContent = '—'; totCell.style.color = '#aaa'; }
+            }
+        });
+        var grandCell = document.getElementById('ckpm-modal-grand');
+        if (grandCell) {
+            grandCell.textContent = hasAny ? (grand*100).toFixed(2)+'%' : '—';
+            grandCell.style.color = grand>=0.90?'#2e7d32':grand>=0.85?'#e65100':'#c62828';
+        }
+    };
+    window._ckpmImpChange = function(mgrIdx, mo, field, val) { ckSet(mgrIdx, mo, 'imp_' + field, val); };
+    window._ckpmDateChange = function(mgrIdx, mo, val) { ckSet(mgrIdx, mo, 'dateSubmitted', val); };
+    window._ckpmToggleNA = function(mgrIdx, mo) {
+        var k = 'corp_kpm_na_' + year + '_' + mgrIdx + '_' + mo;
+        if (!state.companyData) state.companyData = {};
+        state.companyData[k] = ckIsNA(mgrIdx, mo) ? '' : '1';
+        if (window.firebaseDb) { try { window.firebaseDb.ref('companyData/' + k).set(state.companyData[k]); } catch(e) {} }
+        var m = document.getElementById('corp-kpm-modal'); if (m) m.remove();
+        window.openCorpKpmModal(mgrIdx, mo, true);
+    };
+    window._ckpmSaveModal = function(mgrIdx, mo) {
+        if (typeof saveData === 'function') saveData();
+        var m = document.getElementById('corp-kpm-modal'); if (m) m.remove();
+        window.renderCorporateKpm();
+        if (typeof showToast === 'function') showToast('✅ Corporate KPM saved!', 'success');
+    };
+
+    // ── Assemble ──
+    container.innerHTML = '<div style="padding:14px 10px;">'
+        + summaryHtml
+        + (!isWdaAdmin ? '<div style="background:#e3f2fd;border:1.5px solid #90caf9;border-radius:6px;padding:7px 14px;font-size:0.72rem;color:#1565c0;font-weight:600;margin:0 16px 12px;"><i class="fas fa-info-circle" style="margin-right:5px;"></i>You have view-only access. Only the WDA System Admin can make changes.</div>' : '')
+        + managersHtml
+        + '</div>';
+};
+
+// ── exportCorporateKpmExcel: Excel export for Corporate KPM ──────────────────
+async function exportCorporateKpmExcel() {
+    const _ckExportAllowed = ['esh@wda.com.ph','esh@tgm.com.ph','esh@mab.com.ph','esh@lmp.com.ph','esh@corpdc.com.ph','esh@cbmganda.com.ph','esh@scic.com.ph'];
+    if (!_ckExportAllowed.includes(state.currentUser?.email)) {
+        showToast('🔒 Corporate KPM export is restricted. Contact WDA System Admin for access.', 'warning');
+        return;
+    }
+    if (typeof ExcelJS === 'undefined') {
+        showToast('❌ Excel library not loaded. Refresh and try again.', 'error');
+        return;
+    }
+
+    const CORP_KPM_ROWS = window.CORP_KPM_ROWS || [];
+    const year = state.selectedYear || new Date().getFullYear();
+    const MO_LONG  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const MANAGERS = ['WILLIAM D. ABELA', 'LARRY M. PAYBA'];
+    const GRADE_PERC  = [0.75, 0.80, 0.85, 0.90, 0.95];
+    const GRADE_SCALE = [1, 2, 3, 4, 5];
+
+    // ── Key helpers — mirrors modal's ckGet / ckIsNA exactly ─────────────────
+    function ckGet(mgrIdx, mo, key) {
+        return ((state.companyData || {})['corp_kpm_' + year + '_' + mgrIdx + '_' + mo + '_' + key]) || '';
+    }
+    function ckIsNA(mgrIdx, mo) {
+        return !!((state.companyData || {})['corp_kpm_na_' + year + '_' + mgrIdx + '_' + mo]);
+    }
+
+    try {
+        showToast('⏳ Generating Corporate KPM Excel...', 'info');
+        const wb = new ExcelJS.Workbook();
+        wb.creator = 'SCIC ESH Dashboard';
+        wb.created = new Date();
+
+        // ── One sheet per manager per month ───────────────────────────────────
+        MANAGERS.forEach(function(mgrName, mgrIdx) {
+            MO_LONG.forEach(function(mo) {
+                const isNA = ckIsNA(mgrIdx, mo);
+                // Use short manager tag for sheet name: WDA or LMP
+                const mgrTag = mgrIdx === 0 ? 'WDA' : 'LMP';
+                const sheetName = (mo.substring(0,3).toUpperCase() + '-' + mgrTag).substring(0, 31);
+                const ws = wb.addWorksheet(sheetName);
+
+                // Title
+                ws.mergeCells('A1:S1');
+                const titleCell = ws.getCell('A1');
+                titleCell.value = 'KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT — CORPORATE';
+                titleCell.font = { bold: true, size: 12, color: { argb: 'FF1B5E20' } };
+                titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC8E6C9' } };
+                ws.getRow(1).height = 24;
+
+                // Meta rows
+                ws.getRow(2).values = ['Manager:', mgrName, '', '', '', '', '', '', 'Period Covered:', mo + ' 1-' + (new Date(year, MO_LONG.indexOf(mo)+1, 0).getDate()) + ', ' + year];
+                ws.getRow(3).values = ['Prepared by:', 'William D. Abela', '', '', '', '', '', '', 'Year:', year];
+                ws.getRow(4).values = ['Ref Doc:', 'CO-KPM-WDA-ESH-' + String(year).slice(-2) + '-XX', '', '', '', '', '', '', 'Status:', isNA ? 'N/A — EXEMPT' : 'ACTIVE'];
+
+                // Date Submitted
+                const dateSubm = ckGet(mgrIdx, mo, 'dateSubmitted');
+                ws.getRow(5).values = ['Date Submitted:', dateSubm || '—', '', '', '', '', '', '', '', ''];
+                [2,3,4,5].forEach(function(r){ ws.getRow(r).getCell(1).font = {bold:true,size:9}; ws.getRow(r).getCell(9).font = {bold:true,size:9}; });
+
+                // Header row
+                const hRow = ws.getRow(7);
+                hRow.values = ['#','Work Process','Deliverables','DW','Measure','G1 (75%)','G2 (80%)','G3 (85%)','G4 (90%)','G5 (95%)','EP (%)','EP×DW','Imm. Action','Root Cause','Corrective Action','Date of Impl.','Status'];
+                hRow.font = { bold: true, size: 8.5, color: { argb: 'FF1B5E20' } };
+                hRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC8E6C9' } };
+                hRow.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
+                hRow.height = 30;
+
+                let totalPerf = 0;
+                CORP_KPM_ROWS.forEach(function(row, ri) {
+                    // ── Read EP using the same key as modal: {rowId}_ep ──
+                    const rawEp = ckGet(mgrIdx, mo, row.id + '_ep');
+                    const epNum = parseFloat(String(rawEp || '').replace('%', ''));
+                    const epVal = isNaN(epNum) ? '' : epNum / 100;          // stored as "75%" → 0.75
+                    const tot   = (epVal !== '' && row.dw) ? epVal * row.dw : '';
+                    if (tot !== '') totalPerf += tot;
+
+                    // EP display: show as percentage string e.g. "75%"
+                    const epDisplay = epVal !== '' ? (epVal * 100).toFixed(0) + '%' : '';
+                    const totDisplay = tot !== '' ? (tot * 100).toFixed(2) + '%' : '';
+
+                    // EG: grade scale derived from EP value
+                    const epFrac = epVal !== '' ? epVal : null;
+                    let egVal = '';
+                    if (epFrac !== null) {
+                        const gIdx = GRADE_PERC.indexOf(epFrac);
+                        egVal = gIdx >= 0 ? GRADE_SCALE[gIdx] : '';
+                    }
+
+                    // ── Improvement plan — same key pattern as modal ──
+                    const impIa  = ckGet(mgrIdx, mo, 'imp_ia_'  + row.id);
+                    const impRc  = ckGet(mgrIdx, mo, 'imp_rc_'  + row.id);
+                    const impCa  = ckGet(mgrIdx, mo, 'imp_ca_'  + row.id);
+                    const impDoi = ckGet(mgrIdx, mo, 'imp_doi_' + row.id);
+                    const impSt  = ckGet(mgrIdx, mo, 'imp_st_'  + row.id);
+
+                    const dataRow = ws.getRow(8 + ri);
+                    dataRow.values = [
+                        row.kpm||'', row.wp||'', row.del||'', (row.dw*100).toFixed(0)+'%', row.measure,
+                        row.kpi[0]||'', row.kpi[1]||'', row.kpi[2]||'', row.kpi[3]||'', row.kpi[4]||'',
+                        epDisplay, totDisplay,
+                        impIa, impRc, impCa, impDoi, impSt
+                    ];
+                    dataRow.font = { size: 8 };
+                    dataRow.alignment = { wrapText: true, vertical: 'middle' };
+                    dataRow.height = 24;
+                    if (row.kpm) {
+                        dataRow.getCell(1).font = { bold: true, size: 8, color: { argb: 'FF1B5E20' } };
+                        dataRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEDF7ED' } };
+                    }
+
+                    // Color-code EP and Total columns
+                    if (epVal !== '') {
+                        const epColor = epVal >= 0.90 ? { bg: 'FFC8E6C9', fg: 'FF1B5E20' }
+                                       : epVal >= 0.85 ? { bg: 'FFFFF9C4', fg: 'FF7A5C00' }
+                                       : { bg: 'FFFFCDD2', fg: 'FFC62828' };
+                        dataRow.getCell(11).fill = { type:'pattern', pattern:'solid', fgColor:{argb:epColor.bg} };
+                        dataRow.getCell(11).font = { bold:true, size:8, color:{argb:epColor.fg} };
+                        dataRow.getCell(12).fill = { type:'pattern', pattern:'solid', fgColor:{argb:epColor.bg} };
+                        dataRow.getCell(12).font = { bold:true, size:8, color:{argb:epColor.fg} };
+                    }
+                });
+
+                // Total row
+                const totRow = ws.getRow(8 + CORP_KPM_ROWS.length);
+                const grandDisplay = totalPerf ? (totalPerf * 100).toFixed(2) + '%' : '—';
+                totRow.values = ['','','TOTAL','100%','','','','','','','',grandDisplay,'','','','',''];
+                totRow.font = { bold: true, size: 9, color: { argb: 'FF1B5E20' } };
+                totRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+                totRow.height = 20;
+                // Color grand total cell
+                if (totalPerf) {
+                    const gc = totRow.getCell(12);
+                    const gcColor = totalPerf >= 0.90 ? { bg: 'FFC8E6C9', fg: 'FF1B5E20' }
+                                   : totalPerf >= 0.85 ? { bg: 'FFFFF9C4', fg: 'FF7A5C00' }
+                                   : { bg: 'FFFFCDD2', fg: 'FFC62828' };
+                    gc.fill = { type:'pattern', pattern:'solid', fgColor:{argb:gcColor.bg} };
+                    gc.font = { bold:true, size:10, color:{argb:gcColor.fg} };
+                }
+
+                // Column widths — matches the 17-column header
+                [6,20,26,7,30,11,11,11,11,11,9,10,18,18,22,12,12].forEach(function(w,i){ ws.getColumn(i+1).width = w; });
+
+                if (isNA) {
+                    const naRowNum = 10 + CORP_KPM_ROWS.length;
+                    const naCell = ws.getCell('A' + naRowNum);
+                    naCell.value = '⚠️ ' + mo + ' ' + year + ' (' + mgrName + ') is marked as N/A / Exempt.';
+                    naCell.font = { bold: true, color: { argb: 'FF7A5C00' }, size: 9 };
+                    naCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF8E1' } };
+                    ws.mergeCells('A' + naRowNum + ':Q' + naRowNum);
+                }
+            });
+        });
+
+        const buf = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'SCIC_ESH_CORPORATE_KPM_' + year + '_' + new Date().toISOString().slice(0,10) + '.xlsx';
+        a.click();
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+        showToast('✅ Corporate KPM Excel exported successfully!', 'success');
+    } catch(err) {
+        console.error('Corporate KPM Excel export error:', err);
+        showToast('❌ Corporate KPM export failed. Check console for details.', 'error');
     }
 }
 
