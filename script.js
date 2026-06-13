@@ -36212,7 +36212,7 @@ window.renderCorporateKpm = function() {
                 + '<td style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;font-weight:' + (row.wp?'700':'400') + ';min-width:110px;white-space:normal;max-width:130px;">' + (row.wp||'') + '</td>'
                 + '<td style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;min-width:110px;white-space:normal;max-width:130px;">' + (row.del||'') + '</td>'
                 + '<td style="text-align:center;padding:4px 5px;border:1px solid #c8e6c9;font-size:0.72rem;font-weight:800;color:#c62828;min-width:40px;">' + dwDisplay + '</td>'
-                + '<td style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;min-width:130px;white-space:normal;max-width:150px;text-align:left;">' + (row.measure||'') + '</td>'
+                + '<td style="padding:4px 7px;border:1px solid #c8e6c9;font-size:0.68rem;min-width:130px;white-space:normal;max-width:150px;">' + (row.measure||'') + '</td>'
                 + kpiCells
                 + '<td id="ckpm-modal-stat-' + row.id + '" style="text-align:center;padding:4px 5px;border:1px solid #c8e6c9;font-size:0.72rem;font-weight:700;color:' + epColor + ';min-width:62px;background:#f9fdf9;">' + statDisplay + '</td>'
                 + '<td id="ckpm-modal-eg-' + row.id + '" style="text-align:center;padding:4px 5px;border:1px solid #c8e6c9;font-size:0.75rem;font-weight:800;color:' + epColor + ';min-width:38px;background:#f9fdf9;">' + egVal + '</td>'
@@ -36324,7 +36324,6 @@ window.renderCorporateKpm = function() {
             + (canEdit
                 ? '<button onclick="window._ckpmSaveModal(' + mgrIdx + ',\'' + moSafe + '\')" style="background:#2e7d32;color:white;border:none;border-radius:7px;padding:8px 22px;font-size:0.78rem;font-weight:700;cursor:pointer;"><i class="fas fa-save" style="margin-right:6px;"></i>Save Changes</button>'
                 : '')
-
             + '</div>'
             + '</div>';
 
@@ -36392,13 +36391,13 @@ window.renderCorporateKpm = function() {
     // ── Assemble ──
     container.innerHTML = '<div style="padding:14px 10px;">'
         + summaryHtml
-        + (!isWdaAdmin ? '<div style="background:#e3f2fd;border:1.5px solid #90caf9;border-radius:6px;padding:7px 14px;font-size:0.72rem;color:#1565c0;font-weight:600;margin:0 16px 12px;"><i class="fas fa-info-circle" style="margin-right:5px;"></i>You have view-only access. Only WDA can make changes.</div>' : '')
+        + (!isWdaAdmin ? '<div style="background:#e3f2fd;border:1.5px solid #90caf9;border-radius:6px;padding:7px 14px;font-size:0.72rem;color:#1565c0;font-weight:600;margin:0 16px 12px;"><i class="fas fa-info-circle" style="margin-right:5px;"></i>You have view-only access. Only the WDA System Admin can make changes.</div>' : '')
         + managersHtml
         + '</div>';
 };
 
-// ── exportCorporateKpmExcel: Excel export for Corporate KPM ──────────────────
-async function exportCorporateKpmExcel() {
+// ── exportCorporateKpmExcel: picker modal, then export per manager ───────────
+function exportCorporateKpmExcel() {
     const _ckExportAllowed = ['esh@wda.com.ph','esh@tgm.com.ph','esh@mab.com.ph','esh@lmp.com.ph','esh@corpdc.com.ph','esh@cbmganda.com.ph','esh@scic.com.ph'];
     if (!_ckExportAllowed.includes(state.currentUser?.email)) {
         showToast('🔒 Corporate KPM export is restricted. Contact WDA System Admin for access.', 'warning');
@@ -36408,159 +36407,360 @@ async function exportCorporateKpmExcel() {
         showToast('❌ Excel library not loaded. Refresh and try again.', 'error');
         return;
     }
+    const _ex = document.getElementById('corp-kpm-export-modal');
+    if (_ex) _ex.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'corp-kpm-export-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = '<div style="background:#fff;border-radius:14px;box-shadow:0 24px 80px rgba(0,0,0,0.4);width:min(420px,92vw);overflow:hidden;font-family:Calibri,Arial,sans-serif;">'
+        + '<div style="background:#1B5E20;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">'
+        +   '<div><div style="color:#fff;font-weight:700;font-size:1rem;">📥 Export Corporate KPM</div>'
+        +   '<div style="color:#A5D6A7;font-size:0.72rem;margin-top:2px;">Select which manager(s) to export</div></div>'
+        +   '<button onclick="document.getElementById(\'corp-kpm-export-modal\').remove()" style="background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:1.1rem;line-height:1;">&times;</button>'
+        + '</div>'
+        + '<div style="padding:22px 24px 10px;">'
+        +   '<div style="font-size:0.78rem;color:#555;margin-bottom:14px;font-weight:600;">Choose export option:</div>'
+        +   '<div style="display:flex;flex-direction:column;gap:10px;">'
+        +     '<button onclick="window._corpKpmDoExport([0])" style="background:#E8F5E9;border:2px solid #2E7D32;color:#1B5E20;border-radius:9px;padding:13px 18px;font-size:0.88rem;font-weight:700;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">'
+        +       '<span style="font-size:1.2rem;">📄</span>'
+        +       '<span><span style="font-size:0.95rem;">WDA</span><br><span style="font-weight:400;font-size:0.72rem;color:#388E3C;">William D. Abela — 1 file</span></span></button>'
+        +     '<button onclick="window._corpKpmDoExport([1])" style="background:#E3F2FD;border:2px solid #1565C0;color:#0D47A1;border-radius:9px;padding:13px 18px;font-size:0.88rem;font-weight:700;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">'
+        +       '<span style="font-size:1.2rem;">📄</span>'
+        +       '<span><span style="font-size:0.95rem;">LMP</span><br><span style="font-weight:400;font-size:0.72rem;color:#1976D2;">Larry M. Payba — 1 file</span></span></button>'
+        +     '<button onclick="window._corpKpmDoExport([0,1])" style="background:#F3E5F5;border:2px solid #6A1B9A;color:#4A148C;border-radius:9px;padding:13px 18px;font-size:0.88rem;font-weight:700;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">'
+        +       '<span style="font-size:1.2rem;">📦</span>'
+        +       '<span><span style="font-size:0.95rem;">Both</span><br><span style="font-weight:400;font-size:0.72rem;color:#7B1FA2;">WDA + LMP — 2 separate files</span></span></button>'
+        +   '</div>'
+        + '</div>'
+        + '<div style="padding:12px 24px 18px;text-align:right;">'
+        +   '<button onclick="document.getElementById(\'corp-kpm-export-modal\').remove()" style="background:#f5f5f5;color:#555;border:1px solid #ddd;border-radius:7px;padding:8px 18px;font-size:0.78rem;font-weight:700;cursor:pointer;">Cancel</button>'
+        + '</div></div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+}
 
+window._corpKpmDoExport = async function(mgrIndices) {
+    const overlay = document.getElementById('corp-kpm-export-modal');
+    if (overlay) overlay.remove();
     const CORP_KPM_ROWS = window.CORP_KPM_ROWS || [];
-    const year = state.selectedYear || new Date().getFullYear();
+    const year     = state.selectedYear || new Date().getFullYear();
     const MO_LONG  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const MO_SHORT = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
     const MANAGERS = ['WILLIAM D. ABELA', 'LARRY M. PAYBA'];
     const GRADE_PERC  = [0.75, 0.80, 0.85, 0.90, 0.95];
     const GRADE_SCALE = [1, 2, 3, 4, 5];
 
-    // ── Key helpers — mirrors modal's ckGet / ckIsNA exactly ─────────────────
+    // ── Total columns: # | Work Process | Deliverables | DW | Measure | G1–G5 | Statistics | EG | EP | EP×DW | Imm.Action | Root Cause | CA | Date | Status
+    // Col:              1        2               3         4      5      6-10      11         12  13    14      15            16          17    18     19
+    const TOTAL_COLS = 19;
+
+    // ── Color constants (matching KPM template) ───────────────────────────────
+    const C_DARK_GREEN  = 'FF0D3D0F';
+    const C_MED_GREEN   = 'FF1B5E20';
+    const C_GREEN_HDR   = 'FF2E7D32';
+    const C_LIGHT_GREEN = 'FFC8E6C9';
+    const C_YELLOW_HDR  = 'FFFFD54F';
+    const C_PERF_BG     = 'FF0D3D0F';   // dark bg for ACTUAL PERFORMANCE RATING group
+    const C_WHITE       = 'FFFFFFFF';
+    const C_GRAY_ROW    = 'FFF9FDF9';
+    const C_GREEN_ROW   = 'FFEDF7ED';
+    const C_THIN_BORDER = 'FF388E3C';
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
     function ckGet(mgrIdx, mo, key) {
         return ((state.companyData || {})['corp_kpm_' + year + '_' + mgrIdx + '_' + mo + '_' + key]) || '';
     }
     function ckIsNA(mgrIdx, mo) {
         return !!((state.companyData || {})['corp_kpm_na_' + year + '_' + mgrIdx + '_' + mo]);
     }
+    function thinBorder(color) {
+        return {
+            top:    { style: 'thin', color: { argb: color || C_THIN_BORDER } },
+            bottom: { style: 'thin', color: { argb: color || C_THIN_BORDER } },
+            left:   { style: 'thin', color: { argb: color || C_THIN_BORDER } },
+            right:  { style: 'thin', color: { argb: color || C_THIN_BORDER } }
+        };
+    }
+    function epColor(epFrac) {
+        if (epFrac === null || epFrac === '') return null;
+        if (epFrac >= 0.90) return { bg: 'FFC8E6C9', fg: 'FF1B5E20' };
+        if (epFrac >= 0.85) return { bg: 'FFFFF9C4', fg: 'FF7A5C00' };
+        return { bg: 'FFFFCDD2', fg: 'FFC62828' };
+    }
+    function applyCell(cell, val, bold, size, fgArgb, bgArgb, hAlign, wrapText, border) {
+        cell.value     = val !== undefined ? val : '';
+        cell.font      = { bold: !!bold, size: size || 8.5, name: 'Calibri', color: { argb: fgArgb || 'FF000000' } };
+        cell.fill      = bgArgb ? { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } } : { type: 'pattern', pattern: 'none' };
+        cell.alignment = { horizontal: hAlign || 'center', vertical: 'middle', wrapText: !!wrapText };
+        if (border) cell.border = border;
+    }
 
     try {
-        showToast('⏳ Generating Corporate KPM Excel...', 'info');
-        const wb = new ExcelJS.Workbook();
-        wb.creator = 'SCIC ESH Dashboard';
-        wb.created = new Date();
+        const _nowYear  = new Date().getFullYear();
+        const _curMoIdx = new Date().getMonth();
+        const _dateTag  = new Date().toISOString().slice(0, 10);
 
         // ── One sheet per manager per month ───────────────────────────────────
-        MANAGERS.forEach(function(mgrName, mgrIdx) {
-            MO_LONG.forEach(function(mo) {
-                const isNA = ckIsNA(mgrIdx, mo);
-                // Use short manager tag for sheet name: WDA or LMP
-                const mgrTag = mgrIdx === 0 ? 'WDA' : 'LMP';
-                const sheetName = (mo.substring(0,3).toUpperCase() + '-' + mgrTag).substring(0, 31);
-                const ws = wb.addWorksheet(sheetName);
+        for (let _mi = 0; _mi < mgrIndices.length; _mi++) {
+            const mgrIdx  = mgrIndices[_mi];
+            const mgrName = MANAGERS[mgrIdx];
+            const wb = new ExcelJS.Workbook();
+            wb.creator = 'SCIC ESH Dashboard';
+            wb.created = new Date();
+            MO_LONG.forEach(function(mo, moIdx) {
+                if (year >= _nowYear && moIdx >= _curMoIdx) return;
+                const isNA      = ckIsNA(mgrIdx, mo);
+                const mgrTag    = mgrIdx === 0 ? 'WDA' : 'LMP';
+                const moShort   = MO_SHORT[moIdx];
+                const sheetName = (moShort + '-' + mgrTag).substring(0, 31);
+                const ws        = wb.addWorksheet(sheetName);
+                const dateSubm  = ckGet(mgrIdx, mo, 'dateSubmitted');
+                const lastDay   = new Date(year, moIdx + 1, 0).getDate();
 
-                // Title
-                ws.mergeCells('A1:S1');
-                const titleCell = ws.getCell('A1');
-                titleCell.value = 'KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT — CORPORATE';
-                titleCell.font = { bold: true, size: 12, color: { argb: 'FF1B5E20' } };
+                // ── Column widths (19 cols) ────────────────────────────────────
+                // #  | WP  | Del  | DW  | Measure | G1  | G2  | G3  | G4  | G5  | Stat | EG  | EP  | Tot | IA  | RC  | CA  | Doi | St
+                [5,   22,   24,    6,    30,        12,   12,   12,   12,   12,   10,    7,    10,   10,   20,   18,   22,   12,   12]
+                    .forEach(function(w, i) { ws.getColumn(i + 1).width = w; });
+
+                // ── ROW 1: Notes ───────────────────────────────────────────────
+                ws.mergeCells(1, 1, 1, TOTAL_COLS);
+                const notesCell = ws.getCell('A1');
+                notesCell.value = 'NOTES: 1) If the KPM or KPI is not applicable, do not delete the cell/row, put "N/A" instead.  2) Attach corresponding evidences and/or records.  |  FM-CO-KPM-WDA-ESH | Eff. Date: 06 Aug 2018';
+                notesCell.font      = { size: 8, name: 'Calibri', color: { argb: 'FF5D4037' }, italic: true };
+                notesCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF9C4' } };
+                notesCell.alignment = { vertical: 'middle', wrapText: false };
+                ws.getRow(1).height = 18;
+
+                // ── ROW 2: Spacer ──────────────────────────────────────────────
+                ws.addRow([]);
+                ws.getRow(2).height = 5;
+
+                // ── ROW 3: Title ───────────────────────────────────────────────
+                ws.mergeCells(3, 1, 3, TOTAL_COLS);
+                const titleCell = ws.getCell('A3');
+                titleCell.value     = 'KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT — CORPORATE';
+                titleCell.font      = { bold: true, size: 12, name: 'Calibri', color: { argb: C_WHITE } };
+                titleCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: C_MED_GREEN } };
                 titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-                titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC8E6C9' } };
-                ws.getRow(1).height = 24;
+                ws.getRow(3).height = 26;
 
-                // Meta rows
-                ws.getRow(2).values = ['Manager:', mgrName, '', '', '', '', '', '', 'Period Covered:', mo + ' 1-' + (new Date(year, MO_LONG.indexOf(mo)+1, 0).getDate()) + ', ' + year];
-                ws.getRow(3).values = ['Prepared by:', 'William D. Abela', '', '', '', '', '', '', 'Year:', year];
-                ws.getRow(4).values = ['Ref Doc:', 'CO-KPM-WDA-ESH-' + String(year).slice(-2) + '-XX', '', '', '', '', '', '', 'Status:', isNA ? 'N/A — EXEMPT' : 'ACTIVE'];
+                // ── ROW 4: Meta info ───────────────────────────────────────────
+                ws.mergeCells(4, 1, 4, 4);   ws.mergeCells(4, 5, 4, 10);
+                ws.mergeCells(4, 11, 4, 14); ws.mergeCells(4, 15, 4, TOTAL_COLS);
+                const metaFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+                const metaFont = { size: 8.5, name: 'Calibri' };
+                const metaBold = { bold: true, size: 8.5, name: 'Calibri', color: { argb: C_MED_GREEN } };
+                [
+                    [4, 1,  'Manager: ' + mgrName],
+                    [4, 5,  'Period Covered: ' + mo + ' 1–' + lastDay + ', ' + year],
+                    [4, 11, 'Date Submitted: ' + (dateSubm || '—')],
+                    [4, 15, 'Status: ' + (isNA ? 'N/A — EXEMPT' : 'ACTIVE')]
+                ].forEach(function(item) {
+                    const c = ws.getCell(item[0], item[1]);
+                    c.value     = item[2];
+                    c.font      = metaBold;
+                    c.fill      = metaFill;
+                    c.alignment = { vertical: 'middle', wrapText: false };
+                    c.border    = thinBorder('FFB0BEC5');
+                });
+                ws.getRow(4).height = 18;
 
-                // Date Submitted
-                const dateSubm = ckGet(mgrIdx, mo, 'dateSubmitted');
-                ws.getRow(5).values = ['Date Submitted:', dateSubm || '—', '', '', '', '', '', '', '', ''];
-                [2,3,4,5].forEach(function(r){ ws.getRow(r).getCell(1).font = {bold:true,size:9}; ws.getRow(r).getCell(9).font = {bold:true,size:9}; });
+                // ── ROW 5: Group header spans ──────────────────────────────────
+                // KEY PERFORMANCE MEASURES (cols 1–4) | KEY PERFORMANCE INDICATORS (5–10) | ACTUAL PERFORMANCE RATING (11–14) | IMPROVEMENT PLAN (15–19)
+                ws.mergeCells(5, 1, 5, 4);
+                ws.mergeCells(5, 5, 5, 10);
+                ws.mergeCells(5, 11, 5, 14);
+                ws.mergeCells(5, 15, 5, TOTAL_COLS);
+                [
+                    [5, 1,  'KEY PERFORMANCE MEASURES',   C_MED_GREEN,  C_WHITE],
+                    [5, 5,  'KEY PERFORMANCE INDICATORS',  C_MED_GREEN,  C_WHITE],
+                    [5, 11, 'ACTUAL PERFORMANCE RATING',   C_PERF_BG,    C_YELLOW_HDR],
+                    [5, 15, 'IMPROVEMENT PLAN (Accomplish if grade below 3)', 'FF1A3A1A', 'FFA5D6A7']
+                ].forEach(function(item) {
+                    const c = ws.getCell(item[0], item[1]);
+                    c.value     = item[2];
+                    c.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: item[4] } };
+                    c.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: item[3] } };
+                    c.alignment = { horizontal: 'center', vertical: 'middle' };
+                    c.border    = thinBorder(C_THIN_BORDER);
+                });
+                ws.getRow(5).height = 20;
 
-                // Header row
-                const hRow = ws.getRow(7);
-                hRow.values = ['#','Work Process','Deliverables','DW','Measure','G1 (75%)','G2 (80%)','G3 (85%)','G4 (90%)','G5 (95%)','EP (%)','EP×DW','Imm. Action','Root Cause','Corrective Action','Date of Impl.','Status'];
-                hRow.font = { bold: true, size: 8.5, color: { argb: 'FF1B5E20' } };
-                hRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC8E6C9' } };
-                hRow.alignment = { wrapText: true, vertical: 'middle', horizontal: 'center' };
-                hRow.height = 30;
+                // ── ROW 6: Column headers ──────────────────────────────────────
+                const hdrDefs = [
+                    { v: '#',                          bg: C_GREEN_HDR, fg: C_WHITE      },
+                    { v: 'Work Process',               bg: C_GREEN_HDR, fg: C_WHITE      },
+                    { v: 'Deliverables',               bg: C_GREEN_HDR, fg: C_WHITE      },
+                    { v: 'DW',                         bg: C_GREEN_HDR, fg: C_WHITE      },
+                    { v: 'Measure',                    bg: C_GREEN_HDR, fg: C_WHITE      },
+                    { v: '75%\n1',                     bg: C_GREEN_HDR, fg: C_WHITE      },
+                    { v: '80%\n2',                     bg: C_GREEN_HDR, fg: C_WHITE      },
+                    { v: '85%\n3',                     bg: C_GREEN_HDR, fg: C_WHITE      },
+                    { v: '90%\n4',                     bg: C_GREEN_HDR, fg: C_WHITE      },
+                    { v: '95%\n5',                     bg: C_GREEN_HDR, fg: C_WHITE      },
+                    { v: 'Statistics',                 bg: C_PERF_BG,   fg: C_YELLOW_HDR },
+                    { v: 'Equivalent\nGrade\n(EG)',    bg: C_PERF_BG,   fg: C_YELLOW_HDR },
+                    { v: 'Equivalent\nPercentage\n(EP)', bg: C_PERF_BG, fg: C_YELLOW_HDR },
+                    { v: 'Total %\nPerf.\n(EP×DW)',    bg: C_PERF_BG,   fg: C_YELLOW_HDR },
+                    { v: 'Immediate\nAction',          bg: 'FF1A3A1A',  fg: 'FFA5D6A7'   },
+                    { v: 'Root\nCause',                bg: 'FF1A3A1A',  fg: 'FFA5D6A7'   },
+                    { v: 'Corrective\nAction',         bg: 'FF1A3A1A',  fg: 'FFA5D6A7'   },
+                    { v: 'Date of\nImpl.',             bg: 'FF1A3A1A',  fg: 'FFA5D6A7'   },
+                    { v: 'Status',                     bg: 'FF1A3A1A',  fg: 'FFA5D6A7'   }
+                ];
+                hdrDefs.forEach(function(h, i) {
+                    const c = ws.getCell(6, i + 1);
+                    c.value     = h.v;
+                    c.font      = { bold: true, size: 8, name: 'Calibri', color: { argb: h.fg } };
+                    c.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: h.bg } };
+                    c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+                    c.border    = thinBorder(C_THIN_BORDER);
+                });
+                ws.getRow(6).height = 36;
 
-                let totalPerf = 0;
+                // ── DATA ROWS (one per KPM row) ────────────────────────────────
+                let grandTotal = 0, hasAny = false;
+
                 CORP_KPM_ROWS.forEach(function(row, ri) {
-                    // ── Read EP using the same key as modal: {rowId}_ep ──
-                    const rawEp = ckGet(mgrIdx, mo, row.id + '_ep');
-                    const epNum = parseFloat(String(rawEp || '').replace('%', ''));
-                    const epVal = isNaN(epNum) ? '' : epNum / 100;          // stored as "75%" → 0.75
-                    const tot   = (epVal !== '' && row.dw) ? epVal * row.dw : '';
-                    if (tot !== '') totalPerf += tot;
+                    const wsRowNum  = 7 + ri;
+                    const rawEp     = ckGet(mgrIdx, mo, row.id + '_ep');
+                    const epNum     = parseFloat(String(rawEp || '').replace('%', ''));
+                    const epFrac    = isNaN(epNum) ? null : epNum / 100;
+                    const tot       = epFrac !== null ? epFrac * row.dw : null;
+                    if (tot !== null) { hasAny = true; grandTotal += tot; }
 
-                    // EP display: show as percentage string e.g. "75%"
-                    const epDisplay = epVal !== '' ? (epVal * 100).toFixed(0) + '%' : '';
-                    const totDisplay = tot !== '' ? (tot * 100).toFixed(2) + '%' : '';
-
-                    // EG: grade scale derived from EP value
-                    const epFrac = epVal !== '' ? epVal : null;
-                    let egVal = '';
+                    // Statistics = EP as percentage (same value, different label)
+                    const statDisplay = epFrac !== null ? (epFrac * 100).toFixed(2) + '%' : '—';
+                    // EG = exact-match grade
+                    let egVal = '—';
                     if (epFrac !== null) {
-                        const gIdx = GRADE_PERC.indexOf(epFrac);
-                        egVal = gIdx >= 0 ? GRADE_SCALE[gIdx] : '';
+                        for (var gi = 0; gi < GRADE_PERC.length; gi++) {
+                            if (Math.abs(epFrac - GRADE_PERC[gi]) < 0.001) { egVal = GRADE_SCALE[gi]; break; }
+                        }
                     }
+                    const epDisplay  = epFrac !== null ? (epFrac * 100).toFixed(0) + '%' : '—';
+                    const totDisplay = tot !== null    ? (tot * 100).toFixed(2) + '%'     : '—';
 
-                    // ── Improvement plan — same key pattern as modal ──
                     const impIa  = ckGet(mgrIdx, mo, 'imp_ia_'  + row.id);
                     const impRc  = ckGet(mgrIdx, mo, 'imp_rc_'  + row.id);
                     const impCa  = ckGet(mgrIdx, mo, 'imp_ca_'  + row.id);
                     const impDoi = ckGet(mgrIdx, mo, 'imp_doi_' + row.id);
                     const impSt  = ckGet(mgrIdx, mo, 'imp_st_'  + row.id);
 
-                    const dataRow = ws.getRow(8 + ri);
-                    dataRow.values = [
-                        row.kpm||'', row.wp||'', row.del||'', (row.dw*100).toFixed(0)+'%', row.measure,
-                        row.kpi[0]||'', row.kpi[1]||'', row.kpi[2]||'', row.kpi[3]||'', row.kpi[4]||'',
-                        epDisplay, totDisplay,
-                        impIa, impRc, impCa, impDoi, impSt
-                    ];
-                    dataRow.font = { size: 8 };
-                    dataRow.alignment = { wrapText: true, vertical: 'middle' };
-                    dataRow.height = 24;
-                    if (row.kpm) {
-                        dataRow.getCell(1).font = { bold: true, size: 8, color: { argb: 'FF1B5E20' } };
-                        dataRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEDF7ED' } };
-                    }
+                    const rowBg = row.kpm ? C_GREEN_ROW : C_GRAY_ROW;
+                    const ec    = epColor(epFrac);
+                    const dataRow = ws.getRow(wsRowNum);
+                    dataRow.height = 30;
 
-                    // Color-code EP and Total columns
-                    if (epVal !== '') {
-                        const epColor = epVal >= 0.90 ? { bg: 'FFC8E6C9', fg: 'FF1B5E20' }
-                                       : epVal >= 0.85 ? { bg: 'FFFFF9C4', fg: 'FF7A5C00' }
-                                       : { bg: 'FFFFCDD2', fg: 'FFC62828' };
-                        dataRow.getCell(11).fill = { type:'pattern', pattern:'solid', fgColor:{argb:epColor.bg} };
-                        dataRow.getCell(11).font = { bold:true, size:8, color:{argb:epColor.fg} };
-                        dataRow.getCell(12).fill = { type:'pattern', pattern:'solid', fgColor:{argb:epColor.bg} };
-                        dataRow.getCell(12).font = { bold:true, size:8, color:{argb:epColor.fg} };
-                    }
+                    // Col 1: #
+                    applyCell(ws.getCell(wsRowNum, 1),  row.kpm || '',      true,  8.5, C_MED_GREEN, rowBg,       'center', false, thinBorder(C_THIN_BORDER));
+                    // Col 2: Work Process
+                    applyCell(ws.getCell(wsRowNum, 2),  row.wp  || '',      !!row.wp, 8, 'FF000000', rowBg,       'left',   true,  thinBorder(C_THIN_BORDER));
+                    // Col 3: Deliverables
+                    applyCell(ws.getCell(wsRowNum, 3),  row.del || '',      false, 8,   'FF000000',  rowBg,       'left',   true,  thinBorder(C_THIN_BORDER));
+                    // Col 4: DW
+                    applyCell(ws.getCell(wsRowNum, 4),  row.dw ? (row.dw * 100).toFixed(0) + '%' : '', true, 8.5, 'FFC62828', rowBg, 'center', false, thinBorder(C_THIN_BORDER));
+                    // Col 5: Measure
+                    applyCell(ws.getCell(wsRowNum, 5),  row.measure || '',  false, 7.5, 'FF000000',  rowBg,       'left',   true,  thinBorder(C_THIN_BORDER));
+                    // Cols 6–10: KPI grades G1–G5
+                    (row.kpi || []).forEach(function(kv, ki) {
+                        applyCell(ws.getCell(wsRowNum, 6 + ki), kv || '', false, 7.5, 'FF1B5E20', 'FFF0FAF0', 'center', true, thinBorder(C_THIN_BORDER));
+                    });
+                    // Col 11: Statistics (= EP value)
+                    const statC = ws.getCell(wsRowNum, 11);
+                    statC.value     = statDisplay;
+                    statC.font      = { bold: epFrac !== null, size: 8.5, name: 'Calibri', color: { argb: ec ? ec.fg : 'FFAAAAAA' } };
+                    statC.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: ec ? ec.bg : 'FFF9FDF9' } };
+                    statC.alignment = { horizontal: 'center', vertical: 'middle' };
+                    statC.border    = thinBorder(C_THIN_BORDER);
+                    // Col 12: EG
+                    const egC = ws.getCell(wsRowNum, 12);
+                    egC.value     = egVal;
+                    egC.font      = { bold: egVal !== '—', size: 9, name: 'Calibri', color: { argb: ec ? ec.fg : 'FFAAAAAA' } };
+                    egC.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: ec ? ec.bg : 'FFF9FDF9' } };
+                    egC.alignment = { horizontal: 'center', vertical: 'middle' };
+                    egC.border    = thinBorder(C_THIN_BORDER);
+                    // Col 13: EP (Equivalent Percentage)
+                    const epC = ws.getCell(wsRowNum, 13);
+                    epC.value     = epDisplay;
+                    epC.font      = { bold: epFrac !== null, size: 8.5, name: 'Calibri', color: { argb: ec ? ec.fg : 'FFAAAAAA' } };
+                    epC.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: ec ? ec.bg : 'FFF9FDF9' } };
+                    epC.alignment = { horizontal: 'center', vertical: 'middle' };
+                    epC.border    = thinBorder(C_THIN_BORDER);
+                    // Col 14: Total % Perf (EP×DW)
+                    const totC = ws.getCell(wsRowNum, 14);
+                    totC.value     = totDisplay;
+                    totC.font      = { bold: tot !== null, size: 8.5, name: 'Calibri', color: { argb: ec ? ec.fg : 'FFAAAAAA' } };
+                    totC.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: ec ? ec.bg : 'FFF9FDF9' } };
+                    totC.alignment = { horizontal: 'center', vertical: 'middle' };
+                    totC.border    = thinBorder(C_THIN_BORDER);
+                    // Cols 15–19: Improvement plan
+                    [impIa, impRc, impCa, impDoi, impSt].forEach(function(v, vi) {
+                        applyCell(ws.getCell(wsRowNum, 15 + vi), v || '', false, 8, 'FF333333', rowBg, 'left', true, thinBorder(C_THIN_BORDER));
+                    });
                 });
 
-                // Total row
-                const totRow = ws.getRow(8 + CORP_KPM_ROWS.length);
-                const grandDisplay = totalPerf ? (totalPerf * 100).toFixed(2) + '%' : '—';
-                totRow.values = ['','','TOTAL','100%','','','','','','','',grandDisplay,'','','','',''];
-                totRow.font = { bold: true, size: 9, color: { argb: 'FF1B5E20' } };
-                totRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
-                totRow.height = 20;
-                // Color grand total cell
-                if (totalPerf) {
-                    const gc = totRow.getCell(12);
-                    const gcColor = totalPerf >= 0.90 ? { bg: 'FFC8E6C9', fg: 'FF1B5E20' }
-                                   : totalPerf >= 0.85 ? { bg: 'FFFFF9C4', fg: 'FF7A5C00' }
-                                   : { bg: 'FFFFCDD2', fg: 'FFC62828' };
-                    gc.fill = { type:'pattern', pattern:'solid', fgColor:{argb:gcColor.bg} };
-                    gc.font = { bold:true, size:10, color:{argb:gcColor.fg} };
-                }
+                // ── TOTAL ROW ──────────────────────────────────────────────────
+                const totRowNum = 7 + CORP_KPM_ROWS.length;
+                ws.mergeCells(totRowNum, 1, totRowNum, 3);
+                ws.mergeCells(totRowNum, 5, totRowNum, 12);
+                ws.mergeCells(totRowNum, 15, totRowNum, TOTAL_COLS);
+                const grandDisplay = hasAny ? (grandTotal * 100).toFixed(2) + '%' : '—';
+                const gc = epColor(hasAny ? grandTotal : null);
 
-                // Column widths — matches the 17-column header
-                [6,20,26,7,30,11,11,11,11,11,9,10,18,18,22,12,12].forEach(function(w,i){ ws.getColumn(i+1).width = w; });
+                applyCell(ws.getCell(totRowNum, 1),  'TOTAL', true, 10, C_WHITE, C_MED_GREEN, 'center', false, thinBorder(C_THIN_BORDER));
+                applyCell(ws.getCell(totRowNum, 4),  '100%',  true, 9,  'FFFFD54F', C_MED_GREEN, 'center', false, thinBorder(C_THIN_BORDER));
+                applyCell(ws.getCell(totRowNum, 5),  '',      false, 8, C_WHITE, C_MED_GREEN, 'center', false, thinBorder(C_THIN_BORDER));
+                // Grand total goes in col 14 (EP×DW / Total % Perf)
+                const grandCell = ws.getCell(totRowNum, 14);
+                grandCell.value     = grandDisplay;
+                grandCell.font      = { bold: true, size: 11, name: 'Calibri', color: { argb: gc ? gc.fg : C_YELLOW_HDR } };
+                grandCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: C_PERF_BG } };
+                grandCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                grandCell.border    = thinBorder(C_THIN_BORDER);
+                applyCell(ws.getCell(totRowNum, 15), '', false, 8, C_WHITE, C_MED_GREEN, 'center', false, thinBorder(C_THIN_BORDER));
+                ws.getRow(totRowNum).height = 22;
 
+                // ── LEGEND ROW ─────────────────────────────────────────────────
+                const legRowNum = totRowNum + 1;
+                ws.mergeCells(legRowNum, 1, legRowNum, TOTAL_COLS);
+                const legCell = ws.getCell(legRowNum, 1);
+                legCell.value     = '  LEGEND:  🟩 ≥90% Excellent   🟨 85–89% Satisfactory   🟥 <85% Needs Improvement   |   FM-CO-KPM-WDA-ESH | Eff. Date: 06 Aug 2018';
+                legCell.font      = { size: 7.5, name: 'Calibri', color: { argb: 'FF5D4037' }, italic: true };
+                legCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF9C4' } };
+                legCell.alignment = { vertical: 'middle', wrapText: false };
+                ws.getRow(legRowNum).height = 16;
+
+                // ── N/A overlay notice ─────────────────────────────────────────
                 if (isNA) {
-                    const naRowNum = 10 + CORP_KPM_ROWS.length;
-                    const naCell = ws.getCell('A' + naRowNum);
+                    const naRowNum = legRowNum + 1;
+                    ws.mergeCells(naRowNum, 1, naRowNum, TOTAL_COLS);
+                    const naCell = ws.getCell(naRowNum, 1);
                     naCell.value = '⚠️ ' + mo + ' ' + year + ' (' + mgrName + ') is marked as N/A / Exempt.';
-                    naCell.font = { bold: true, color: { argb: 'FF7A5C00' }, size: 9 };
-                    naCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF8E1' } };
-                    ws.mergeCells('A' + naRowNum + ':Q' + naRowNum);
+                    naCell.font  = { bold: true, color: { argb: 'FF7A5C00' }, size: 9, name: 'Calibri' };
+                    naCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF8E1' } };
+                    naCell.alignment = { vertical: 'middle' };
+                    ws.getRow(naRowNum).height = 18;
                 }
-            });
-        });
 
-        const buf = await wb.xlsx.writeBuffer();
-        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'SCIC_ESH_CORPORATE_KPM_' + year + '_' + new Date().toISOString().slice(0,10) + '.xlsx';
-        a.click();
-        setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-        showToast('✅ Corporate KPM Excel exported successfully!', 'success');
+                // ── Freeze panes at row 7 col 2 ───────────────────────────────
+                ws.views = [{ state: 'frozen', xSplit: 1, ySplit: 6, activeCell: 'B7' }];
+            });
+            // ── Download this manager's workbook
+            const mgrFileTag = mgrIdx === 0 ? 'WDA' : 'LMP';
+            const buf  = await wb.xlsx.writeBuffer();
+            const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            a.download = 'SCIC_ESH_CORP_KPM_' + year + '_' + mgrFileTag + '_' + _dateTag + '.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(function() { URL.revokeObjectURL(url); }, 1500);
+        }
+        const fileWord = mgrIndices.length > 1 ? '2 files' : '1 file';
+        showToast('✅ Corporate KPM exported — ' + fileWord + ' generated!', 'success');
     } catch(err) {
         console.error('Corporate KPM Excel export error:', err);
         showToast('❌ Corporate KPM export failed. Check console for details.', 'error');
