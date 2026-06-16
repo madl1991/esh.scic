@@ -5442,18 +5442,23 @@ function updateAuditData(pName, qtr, field, val) {
             // Note: _skipRenderTabs are re-rendered by saveData() and _doSnapshotRender()
             // No deferred render here — avoids wiping active input while user is typing
 
-            // FIX: Deferred render for 'exposures' and 'nov-monitoring' tabs so values
-            // update visually after input without wiping the active field.
-            // Also: instant DOM update of Overall Summary cells for exposures tab.
+            // FIX: For 'exposures' tab — use targeted DOM updates ONLY (no full render).
+            // Full render() during typing destroys the active input even with focus-restore,
+            // because the restored element is a NEW DOM node and focus behavior is unreliable.
+            // All visible derived values (summary row, Man-hour to date) are updated in-place
+            // via _updateExposuresSummaryCells and updateToDateMonthCells — no re-render needed.
             if (state.currentTab === 'exposures') {
-                // Instant update of summary cells (no re-render needed for simple totals)
                 if (key !== 'exposures_Total Exposed Man-hour to date') {
                     _updateExposuresSummaryCells(key, mIdx);
                 }
+                if (key === 'exposures_Total Exposed Manhour' || key === 'exposures_Total Exposed Man-hour to date') {
+                    updateToDateMonthCells(pName);
+                }
             }
-            if (state.currentTab === 'exposures' || state.currentTab === 'nov-monitoring') {
-                const _deferredTabKey = state.currentTab === 'exposures' ? '_exposuresDeferredRender' : '_novMonitoringDeferredRender';
-                const _deferredTabName = state.currentTab;
+            // nov-monitoring still uses deferred render (no DOM-surgery helpers available for it yet)
+            if (state.currentTab === 'nov-monitoring') {
+                const _deferredTabKey = '_novMonitoringDeferredRender';
+                const _deferredTabName = 'nov-monitoring';
                 clearTimeout(window[_deferredTabKey]);
                 window[_deferredTabKey] = setTimeout(function() {
                     if (state.currentTab !== _deferredTabName) return;
