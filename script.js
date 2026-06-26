@@ -17516,11 +17516,15 @@ function openAddPersonnelModal() {
     document.getElementById('personnelAddressInput').value = '';
     document.getElementById('personnelModalError').textContent = '';
     
-    document.getElementById('addPersonnelModal').classList.add('show');
+    const _apm = document.getElementById('addPersonnelModal');
+    _apm.style.display = 'flex';
+    _apm.classList.add('show');
 }
 
 function closeAddPersonnelModal() {
-    document.getElementById('addPersonnelModal').classList.remove('show');
+    const _apm = document.getElementById('addPersonnelModal');
+    _apm.classList.remove('show');
+    _apm.style.display = 'none';
 }
 
 function confirmAddPersonnel() {
