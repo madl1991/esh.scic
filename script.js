@@ -4276,7 +4276,9 @@ debugCommands.help() - Show this help
             document.getElementById('projectModalError').innerText = '';
             document.getElementById('projectAddressInput').value = '';
             onProjectRegionChange(region || ''); // Show/hide date fields based on region
-            document.getElementById('addProjectModal').classList.add('show');
+            const _aprojm = document.getElementById('addProjectModal');
+            _aprojm.style.display = 'flex';
+            _aprojm.classList.add('show');
         }
 
         function onProjectRegionChange(region) {
@@ -4309,7 +4311,9 @@ debugCommands.help() - Show this help
         }
 
         function closeAddProjectModal() {
-            document.getElementById('addProjectModal').classList.remove('show');
+            const _aprojm = document.getElementById('addProjectModal');
+            _aprojm.classList.remove('show');
+            _aprojm.style.display = 'none';
         }
 
         let confirmModalResolve = null;
@@ -4318,6 +4322,7 @@ debugCommands.help() - Show this help
             return new Promise((resolve) => {
                 confirmModalResolve = resolve;
                 const modal = document.getElementById('confirmModal');
+                modal.style.display = 'flex';
                 modal.classList.add('show');
             });
         }
@@ -4325,6 +4330,7 @@ debugCommands.help() - Show this help
         function closeConfirmModal(confirmed) {
             const modal = document.getElementById('confirmModal');
             modal.classList.remove('show');
+            modal.style.display = 'none';
             if (confirmModalResolve) {
                 confirmModalResolve(confirmed);
                 confirmModalResolve = null;
@@ -4354,6 +4360,7 @@ debugCommands.help() - Show this help
 
         function showSuccessModal() {
             const modal = document.getElementById('successModal');
+            modal.style.display = 'flex';
             modal.classList.add('show');
             
             let seconds = 3;
@@ -4376,6 +4383,7 @@ debugCommands.help() - Show this help
         function closeSuccessModal() {
             const modal = document.getElementById('successModal');
             modal.classList.remove('show');
+            modal.style.display = 'none';
             
             if (countdownInterval) {
                 clearInterval(countdownInterval);
@@ -4510,11 +4518,15 @@ debugCommands.help() - Show this help
             document.getElementById('editProjectWorkStoppageFields').style.display = (project.region === 'CORPORATE') ? 'none' : '';
             document.getElementById('editProjectModalError').innerText = '';
             onEditProjectRegionChange(project.region); // show/hide date fields based on region
-            document.getElementById('editProjectModal').classList.add('show');
+            const _eprojm = document.getElementById('editProjectModal');
+            _eprojm.style.display = 'flex';
+            _eprojm.classList.add('show');
         }
 
         function closeEditProjectModal() {
-            document.getElementById('editProjectModal').classList.remove('show');
+            const _eprojm = document.getElementById('editProjectModal');
+            _eprojm.classList.remove('show');
+            _eprojm.style.display = 'none';
             editingProjectOriginalName = '';
         }
 
@@ -17787,7 +17799,9 @@ function openEditPersonnelModal(index) {
         }
     });
     
-    document.getElementById('editPersonnelModal').classList.add('show');
+    const _eepm = document.getElementById('editPersonnelModal');
+    _eepm.style.display = 'flex';
+    _eepm.classList.add('show');
 
     const deleteBtn = document.getElementById('editPersonnelDeleteBtn');
     const transferBtn = document.getElementById('editPersonnelTransferBtn');
@@ -17810,7 +17824,9 @@ function openEditPersonnelModal(index) {
 }
 
 function closeEditPersonnelModal() {
-    document.getElementById('editPersonnelModal').classList.remove('show');
+    const _eepm = document.getElementById('editPersonnelModal');
+    _eepm.classList.remove('show');
+    _eepm.style.display = 'none';
 }
 
 // ── EDIT MODAL CERT HELPERS ────────────────────────────────────────────────
@@ -18033,7 +18049,9 @@ function openTransferPersonnelModal() {
         }
     }
 
-    document.getElementById('transferPersonnelModal').classList.add('show');
+    const _tpm = document.getElementById('transferPersonnelModal');
+    _tpm.style.display = 'flex';
+    _tpm.classList.add('show');
 }
 
 function renderTransferProjectList(projects) {
@@ -18110,7 +18128,9 @@ function selectTransferProject(projName, el) {
 }
 
 function closeTransferPersonnelModal() {
-    document.getElementById('transferPersonnelModal').classList.remove('show');
+    const _tpm = document.getElementById('transferPersonnelModal');
+    _tpm.classList.remove('show');
+    _tpm.style.display = 'none';
     _transferSelectedProject = null;
 }
 
@@ -21647,12 +21667,12 @@ console.log('🔥 Firebase integration loaded - OPTIMIZED: Save button only!');
         _leavePendingUrl = null;
         _leaveCallback   = null;
         const m = document.getElementById('leaveSiteModal');
-        if (m) m.classList.remove('show');
+        if (m) { m.classList.remove('show'); m.style.display = 'none'; }
     };
 
     window.leaveSiteConfirm = function() {
         const m = document.getElementById('leaveSiteModal');
-        if (m) m.classList.remove('show');
+        if (m) { m.classList.remove('show'); m.style.display = 'none'; }
         if (_leaveCallback) {
             const cb = _leaveCallback;
             _leaveCallback = null;
@@ -21667,7 +21687,7 @@ console.log('🔥 Firebase integration loaded - OPTIMIZED: Save button only!');
     function showLeaveSiteModal(callback) {
         _leaveCallback = callback || null;
         const m = document.getElementById('leaveSiteModal');
-        if (m) m.classList.add('show');
+        if (m) { m.style.display = 'flex'; m.classList.add('show'); }
     }
 
     document.addEventListener('click', function(e) {
@@ -29304,11 +29324,15 @@ window.pcViewPersonnel = function(idx) {
         certList.innerHTML = _certCardView(certCfg, certData);
     }
 
-    document.getElementById('pc-view-modal').classList.add('show');
+    const _pcvm = document.getElementById('pc-view-modal');
+    _pcvm.style.display = 'flex';
+    _pcvm.classList.add('show');
 };
 
 window.pcCloseView = function() {
-    document.getElementById('pc-view-modal').classList.remove('show');
+    const _pcvm = document.getElementById('pc-view-modal');
+    _pcvm.classList.remove('show');
+    _pcvm.style.display = 'none';
 };
 
 window.pcOpenEditFromView = function() {
@@ -35926,17 +35950,21 @@ window.CORP_KPM_ROWS = [
       kpi:['75%','80%','85%','90%','95%'] },
     { id:'c2', kpm:'2', wp:'ISO Compliance', del:'IMS / ISO Requirements',
       dw:0.15, measure:'Timeliness of compliance to<br>- IMS Documentation<br>- Audit Response/ROTP, etc.',
-      kpi:['≥75% on time','≥80% on time','≥85% on time','≥90% on time',''] },
+      kpi:['≥75% on time','≥80% on time','≥85% on time','≥90% on time',''],
+      epOpts:['75%','80%','85%','90%'] },
     { id:'c3', kpm:'3', wp:'Average KPI for ESH Heads, PCO & Nurses',
       del:'Consolidation of ESH reports of ESH Superintendents, ESH Heads, PCO & Nurse',
       dw:0.25, measure:'Timeliness of submission of reports of<br>-ESH Superintendents<br>-Corporate Nurse<br>-Corporate PCO<br>-ESH Heads',
-      kpi:['≥76% on time','≥81% on time','≥86% on time','≥91% on time',''] },
+      kpi:['≥76% on time','≥81% on time','≥86% on time','≥91% on time',''],
+      epOpts:['75%','80%','85%','90%'] },
     { id:'c4', kpm:'4', wp:'Compliance', del:'Environmental Programs',
       dw:0.07, measure:'Zero environmental complaints, violations or environmental findings',
-      kpi:['with environmental violations, ESH committee findings or environmental complaints from other stakeholders','','','','ZERO environmental violation report, ESH committee findings or environmental'] },
+      kpi:['with environmental violations, ESH committee findings or environmental complaints from other stakeholders','','','','ZERO environmental violation report, ESH committee findings or environmental'],
+      epOpts:['75%','95%'] },
     { id:'c5', kpm:'', wp:'', del:'Occupational Safety and Health Programs',
       dw:0.08, measure:'Zero OS&H accidents/incidents, violations, complaints and findings',
-      kpi:['incurred accidents, OSH violations and complaints or with','','','','ZERO accident, OSH violation, complaints or ESH Committee'] },
+      kpi:['incurred accidents, OSH violations and complaints or with','','','','ZERO accident, OSH violation, complaints or ESH Committee'],
+      epOpts:['75%','95%'] },
 ];
 
 // ── renderCorporateKpm: renders the Corporate KPM tab, matching the KPM tab layout ──
@@ -36204,8 +36232,8 @@ window.renderCorporateKpm = function() {
                 return '<td style=\"text-align:center;padding:3px 5px;border:1px solid #c8e6c9;font-size:0.65rem;font-weight:600;background:#f0faf0;color:#1b5e20;white-space:normal;max-width:90px;\">' + (k||'') + '</td>';
             }).join('');
 
-            var validOpts = (row.kpi||[]).filter(function(v){return v!==null&&v!==undefined&&v!=='';});
-            var opts = '<option value=\"\">—</option>' + validOpts.map(function(opt){
+            var validOpts = (row.epOpts || (row.kpi||[]).filter(function(v){return v!==null&&v!==undefined&&v!=='';}));
+            var opts = '<option value="">—</option>' + validOpts.map(function(opt){
                 return '<option value=\"' + opt + '\"' + (rawVal===opt?' selected':'') + '>' + opt + '</option>';
             }).join('');
             var inputColor = (!rawVal||isNaN(n)) ? '#555' : ep>=0.90?'#2e7d32':ep>=0.85?'#e65100':'#c62828';
