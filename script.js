@@ -13399,7 +13399,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     window.openDoleDialog = function(regKey, reg, month, editMode) {
                         var selYear  = state.selectedYear || new Date().getFullYear();
                         var curMoIdx = new Date().getMonth();
-                        var regProjs = (state.filteredProjects || state.projects).filter(function(p){ return p.region === reg && !p.dateFinished; });
+                        var regProjs = (state.filteredProjects || state.projects).filter(function(p){ return p.region === reg; }); // FIX: keep finished projects visible for past-month data
                         if (!regProjs.length) { if (typeof showToast === 'function') showToast('No projects in ' + reg, 'info'); return; }
 
                         var isNew = !month;
@@ -13445,10 +13445,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         // Build table: rows = WAIR/RSO/MOM, cols = projects
                         var projHeaderCols = regProjs.map(function(p){
                             var isStopped = isProjectOnStoppage(p);
+                            var isFinished = !!p.dateFinished;
                             var hdrStyle = 'padding:5px 8px;border:1px solid #c8e6c9;font-size:0.67rem;font-weight:700;text-align:center;min-width:160px;white-space:normal;word-break:break-word;'
-                                + (isStopped ? 'background:#f5f5f5;color:#9e9e9e;opacity:0.7;' : 'background:#b7ddb5;color:#1b5e20;');
+                                + ((isStopped||isFinished) ? 'background:#f5f5f5;color:#9e9e9e;opacity:0.7;' : 'background:#b7ddb5;color:#1b5e20;');
                             return '<th style="' + hdrStyle + '">' + p.name
-                                + (isStopped ? '' : '')
+                                + (isFinished ? ' <span title="Finished — read only"><i class="fas fa-lock"></i></span>' : '')
                                 + '</th>';
                         }).join('');
 
@@ -13456,12 +13457,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var moIdx = DOLE_MONTHS.indexOf(activeMo);
                             var projCells = regProjs.map(function(p) {
                                 var isStopped = isProjectOnStoppage(p);
+                                var isFinished = !!p.dateFinished;
                                 // ── Work-stoppage exempt check (covers resumed projects too) ─────
                                 // A month is "stoppage-exempt" if the project was on work stoppage
                                 // during that month — even if it has since resumed.
                                 var _moIdx1 = moIdx + 1; // 1-based
                                 var isStoppageExempt = !isStopped && isMonthBlacklistedForProject(p, _moIdx1, selYear);
-                                var cellDis = (isStopped || isStoppageExempt || !canEdit) ? 'disabled' : '';
+                                var cellDis = (isStopped || isStoppageExempt || isFinished || !canEdit) ? 'disabled' : '';
                                 var k = 'dole_' + row;
                                 var v = p.vals[k] ? (p.vals[k][moIdx+1] || '') : '';
                                 var pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -14034,7 +14036,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     window.openEmbDialog = function(regKey, reg, periodKey, editMode) {
                         var selYear = state.selectedYear || new Date().getFullYear();
-                        var regProjs = (state.filteredProjects||state.projects).filter(function(p){ return p.region===reg && !p.dateFinished; });
+                        var regProjs = (state.filteredProjects||state.projects).filter(function(p){ return p.region===reg; }); // FIX: keep finished projects visible for past-month data
                         if (!regProjs.length) return;
                         var canEdit = !!editMode;
                         var dis = canEdit ? '' : 'disabled';
@@ -14098,6 +14100,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         function _buildEmbProjectCol(p, projIdx) {
                             var stopped = isProjectOnStoppage(p);
+                            var isFinished = !!p.dateFinished;
+                            var pCanEdit = canEdit && !isFinished; // freeze all fields once project is Finished
                             var pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
                             var pnJs   = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 
@@ -14116,7 +14120,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             // Extra entries from emb_extra_smr / emb_extra_cmr
                             var extras = (p.vals[extraKey] && Array.isArray(p.vals[extraKey])) ? p.vals[extraKey] : [];
 
-                            var html = '<td style="padding:8px;border:1px solid '+(stopped?'#e0e0e0':_cocExempt?'#81c784':'#c8e6c9')+';width:220px;min-width:220px;max-width:220px;vertical-align:top;text-align:left;background:'+(stopped?'#fafafa':_cocExempt?'#f1fff1':'')+';">';
+                            var html = '<td style="padding:8px;border:1px solid '+((stopped||isFinished)?'#e0e0e0':_cocExempt?'#81c784':'#c8e6c9')+';width:220px;min-width:220px;max-width:220px;vertical-align:top;text-align:left;background:'+((stopped||isFinished)?'#fafafa':_cocExempt?'#f1fff1':'')+';">'
+                                + (isFinished ? '<div style="font-size:0.58rem;font-weight:800;color:#9e9e9e;margin-bottom:4px;"><i class="fas fa-lock"></i> FINISHED — read only</div>' : '');
 
                             // ── Primary entry block ──
                             var facKey = isSmr ? 'emb_SMR (Quarterly) - Facility' : 'emb_CMR (Semi-Annual) - Facility';
@@ -14130,7 +14135,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 html += '<div style="margin-bottom:6px;">';
                                 html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">🏭 Facility</div>';
                                 var _facBg = _embCellBg(facVal); var _facBd = _embCellBorder(facVal); var _facC = _embCellColor(facVal);
-                                html += '<input type="text" value="' + (facVal||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
+                                html += '<input type="text" value="' + (facVal||'').replace(/"/g,'&quot;') + '" ' + (pCanEdit?'':'disabled')
                                     + ' data-pname="' + pnSafe + '" data-key="' + facKey + '" data-idx="' + periodIdx + '"'
                                     + ' placeholder="Facility name..."'
                                     + ' style="width:100%;border:1px solid ' + _facBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _facBg + ';color:' + _facC + ';box-sizing:border-box;text-align:left;display:block;"'
@@ -14146,7 +14151,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 var _sdBg = _embCellBg(_sdEffective); var _sdBd = _embCellBorder(_sdEffective); var _sdC = _embCellColor(_sdEffective);
                                 html += '<div style="margin-bottom:6px;">';
                                 html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">📅 Submission Date</div>';
-                                html += '<input type="date" value="' + sdVal + '" ' + (canEdit?'':'disabled')
+                                html += '<input type="date" value="' + sdVal + '" ' + (pCanEdit?'':'disabled')
                                     + ' data-pname="' + pnSafe + '" data-key="' + sdKey + '" data-idx="' + periodIdx + '"'
                                     + ' style="width:100%;border:1px solid ' + _sdBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _sdBg + ';color:' + _sdC + ';box-sizing:border-box;text-align:left;display:block;"'
                                     + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';">';
@@ -14156,7 +14161,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 var _rnBg = _embCellBg(_rnEffective); var _rnBd = _embCellBorder(_rnEffective); var _rnC = _embCellColor(_rnEffective);
                                 html += '<div style="margin-bottom:6px;">';
                                 html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">🔢 Reference No.</div>';
-                                html += '<input type="text" inputmode="numeric" pattern="[0-9]*" value="' + (rnVal||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
+                                html += '<input type="text" inputmode="numeric" pattern="[0-9]*" value="' + (rnVal||'').replace(/"/g,'&quot;') + '" ' + (pCanEdit?'':'disabled')
                                     + ' data-pname="' + pnSafe + '" data-key="' + rnKey + '" data-idx="' + periodIdx + '"'
                                     + ' placeholder="Ref number..."'
                                     + ' style="width:100%;border:1px solid ' + _rnBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _rnBg + ';color:' + _rnC + ';box-sizing:border-box;text-align:left;display:block;"'
@@ -14167,7 +14172,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                             // Care of Client checkbox — when checked, project is permanently exempt for this period
                             html += '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;padding:5px 6px;border-radius:4px;background:' + (_cocExempt?'#c8e6c9':'#f5f5f5') + ';border:1px solid '+(_cocExempt?'#a5d6a7':'#ddd')+';cursor:pointer;" onclick="this.querySelector(\'input[type=checkbox]\').click()">';
-                            html += '<input type="checkbox"' + (cocVal?' checked':'') + ' ' + (canEdit?'':'disabled')
+                            html += '<input type="checkbox"' + (cocVal?' checked':'') + ' ' + (pCanEdit?'':'disabled')
                                 + ' data-pname="' + pnSafe + '" data-key="' + cocKey + '" data-idx="' + periodIdx + '" data-inputtype="checkbox"'
                                 + ' style="width:14px;height:14px;accent-color:#2e7d32;cursor:' + (canEdit?'pointer':'not-allowed') + ';"'
                                 + ' onclick="event.stopPropagation()"'
@@ -14199,7 +14204,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 html += '<div style="margin-bottom:6px;">';
                                 html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">🏭 Facility</div>';
                                 var _eFacBg = _embCellBg(eFac); var _eFacBd = _embCellBorder(eFac); var _eFacC = _embCellColor(eFac);
-                                html += '<input type="text" value="' + (eFac||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
+                                html += '<input type="text" value="' + (eFac||'').replace(/"/g,'&quot;') + '" ' + (pCanEdit?'':'disabled')
                                     + ' data-pname="' + pnSafe + '" data-extrakey="' + extraKey + '" data-eidx="' + eIdx + '" data-field="fac" data-period="' + periodIdx + '"'
                                     + ' placeholder="Facility name..."'
                                     + ' style="width:100%;border:1px solid ' + _eFacBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _eFacBg + ';color:' + _eFacC + ';box-sizing:border-box;text-align:left;display:block;"'
@@ -14214,7 +14219,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 // Extra Submission Date
                                 html += '<div style="margin-bottom:6px;">';
                                 html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">📅 Submission Date</div>';
-                                html += '<input type="date" value="' + eSd + '" ' + (canEdit?'':'disabled')
+                                html += '<input type="date" value="' + eSd + '" ' + (pCanEdit?'':'disabled')
                                     + ' data-pname="' + pnSafe + '" data-extrakey="' + extraKey + '" data-eidx="' + eIdx + '" data-field="sd" data-period="' + periodIdx + '"'
                                     + ' style="width:100%;border:1px solid ' + _eSdBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _eSdBg + ';color:' + _eSdC + ';box-sizing:border-box;text-align:left;display:block;"'
                                     + ' oninput="updateEmbEntry(this.dataset.pname,\'' + eType + '\',' + eIdx + ',\'sd\',' + periodIdx + ',this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';">';
@@ -14223,7 +14228,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 // Extra Reference No.
                                 html += '<div style="margin-bottom:6px;">';
                                 html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">🔢 Reference No.</div>';
-                                html += '<input type="text" inputmode="numeric" pattern="[0-9]*" value="' + (eRn||'').replace(/"/g,'&quot;') + '" ' + (canEdit?'':'disabled')
+                                html += '<input type="text" inputmode="numeric" pattern="[0-9]*" value="' + (eRn||'').replace(/"/g,'&quot;') + '" ' + (pCanEdit?'':'disabled')
                                     + ' data-pname="' + pnSafe + '" data-extrakey="' + extraKey + '" data-eidx="' + eIdx + '" data-field="rn" data-period="' + periodIdx + '"'
                                     + ' placeholder="Ref number..."'
                                     + ' style="width:100%;border:1px solid ' + _eRnBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _eRnBg + ';color:' + _eRnC + ';box-sizing:border-box;text-align:left;display:block;"'
@@ -14567,7 +14572,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     window.openEmrDialog = function(regKey, reg, periodKey, editMode) {
                         var selYear = state.selectedYear || new Date().getFullYear();
                         var curMoIdx = new Date().getMonth();
-                        var regProjs = (state.filteredProjects||state.projects).filter(function(p){ return p.region===reg && !p.dateFinished; });
+                        var regProjs = (state.filteredProjects||state.projects).filter(function(p){ return p.region===reg; }); // FIX: keep finished projects visible for past-month data
                         if (!regProjs.length) return;
 
                         var isNew = !periodKey;
@@ -14610,12 +14615,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var EMR_NA_KEY_MODAL = 'env-monthly-report_na';
                         var rowDefs = [
                             { label: 'N/A', desc: 'Mark as Not Applicable — project is exempt from EMR compliance for this month',
-                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); var naVal=p.vals[EMR_NA_KEY_MODAL]?!!p.vals[EMR_NA_KEY_MODAL][mIdx]:false; return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_NA_KEY_MODAL,idx:mIdx,val:naVal,dis:(stopped||!(canEdit||state.isEditing))?'disabled':'',inputType:'checkbox',stopped:stopped}; }) },
+                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); var isFinished=!!p.dateFinished; var naVal=p.vals[EMR_NA_KEY_MODAL]?!!p.vals[EMR_NA_KEY_MODAL][mIdx]:false; return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_NA_KEY_MODAL,idx:mIdx,val:naVal,dis:(stopped||isFinished||!(canEdit||state.isEditing))?'disabled':'',inputType:'checkbox',stopped:stopped}; }) },
                             { label: 'EMR Date', desc: 'Environmental Monthly Report submission date — '+mLabel,
-                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); var _pNa=p.vals[EMR_NA_KEY_MODAL]?!!p.vals[EMR_NA_KEY_MODAL][mIdx]:false; return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_KEY,idx:mIdx,val:p.vals[EMR_KEY]?p.vals[EMR_KEY][mIdx]||'':'',dis:(stopped||(!canEdit&&!state.isEditing))?'disabled':((_pNa||(!canEdit&&state.isEditing))?'disabled':dis),inputType:'date',stopped:stopped,naChecked:_pNa}; }) }
+                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); var isFinished=!!p.dateFinished; var _pNa=p.vals[EMR_NA_KEY_MODAL]?!!p.vals[EMR_NA_KEY_MODAL][mIdx]:false; return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_KEY,idx:mIdx,val:p.vals[EMR_KEY]?p.vals[EMR_KEY][mIdx]||'':'',dis:(stopped||isFinished||(!canEdit&&!state.isEditing))?'disabled':((_pNa||(!canEdit&&state.isEditing))?'disabled':dis),inputType:'date',stopped:stopped,naChecked:_pNa}; }) }
                         ];
 
-                        var tableHtml = _modalTable(rowDefs, null, regProjs.map(function(p){ return p.name + (isProjectOnStoppage(p) ? ' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;"><i class=\'fas fa-pause-circle\'></i></span>' : ''); }));
+                        var tableHtml = _modalTable(rowDefs, null, regProjs.map(function(p){ return p.name + (isProjectOnStoppage(p) ? ' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;"><i class=\'fas fa-pause-circle\'></i></span>' : '') + (p.dateFinished ? ' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;"><i class=\'fas fa-lock\'></i> Finished</span>' : ''); }));
                         var header = _modalHeader('linear-gradient(90deg,#0d3d0f,#1b5e20,#2e7d32)',
                             (isNew ? '➕ New EMR Entry' : canEdit?'✏️ Edit':'🔍 View')+' EMR — <span style="color:#fbc02d;">'+mLabel+'</span>',
                             '<i class="fas fa-location-dot" style="margin-right:4px;"></i>'+reg+' · '+regProjs.length+' project'+(regProjs.length!==1?'s':'')+' &nbsp;·&nbsp; '+selYear,
@@ -15244,7 +15249,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     REGIONS.forEach(function(reg) {
                         if (reg === 'CORPORATE' || reg === 'PLANT OPERATIONS') return;
                         // Use state.projects directly so work-stoppage projects always appear regardless of status filter
-                        var projs = state.projects.filter(function(p) { return p.region === reg && !kpmIsNA(p) && !p.dateFinished; });
+                        var projs = state.projects.filter(function(p) { return p.region === reg && !kpmIsNA(p); }); // FIX: keep finished projects visible for past-month data
                         if (!projs.length) return;
                         // Active projects (not stopped, not N/A) — used for score computations only
                         var activeProjs = projs.filter(function(p) { return !isProjectOnStoppage(p); });
@@ -15336,7 +15341,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var curMoIdx = new Date().getMonth();
                         // Always use state.projects (not filteredProjects) so work-stoppage projects appear
                         // even when the status filter is set to "on-going" only
-                        var regProjs = state.projects.filter(function(p){ return p.region === reg && (!kpmIsNA(p) || isProjectOnStoppage(p)) && !p.dateFinished; });
+                        var regProjs = state.projects.filter(function(p){ return p.region === reg && (!kpmIsNA(p) || isProjectOnStoppage(p)); }); // FIX: keep finished projects visible for past-month data
                         if (!regProjs.length) { if (typeof showToast === 'function') showToast('No active projects in ' + reg, 'info'); return; }
 
                         var isNew = !month; // ← declare here, used for month dropdown
@@ -15441,8 +15446,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '</div>'
                             + '<div style="color:#a5d6a7;font-size:0.67rem;margin-top:3px;">'
                             + '<i class="fas fa-location-dot" style="margin-right:4px;"></i>' + reg
-                            + ' · <span style="color:#c8e6c9;">' + regProjs.filter(function(p){return !isProjectOnStoppage(p);}).length + ' active project' + (regProjs.filter(function(p){return !isProjectOnStoppage(p);}).length!==1?'s':'') + '</span>'
+                            + ' · <span style="color:#c8e6c9;">' + regProjs.filter(function(p){return !isProjectOnStoppage(p) && !p.dateFinished;}).length + ' active project' + (regProjs.filter(function(p){return !isProjectOnStoppage(p) && !p.dateFinished;}).length!==1?'s':'') + '</span>'
                             + (regProjs.filter(function(p){return isProjectOnStoppage(p);}).length ? ' · <span style="color:#f48fb1;font-size:0.63rem;"><i class="fas fa-pause-circle" style="margin-right:3px;"></i>' + regProjs.filter(function(p){return isProjectOnStoppage(p);}).length + ' on work stop (excluded)</span>' : '')
+                            + (regProjs.filter(function(p){return !!p.dateFinished;}).length ? ' · <span style="color:#bdbdbd;font-size:0.63rem;"><i class="fas fa-lock" style="margin-right:3px;"></i>' + regProjs.filter(function(p){return !!p.dateFinished;}).length + ' finished (read only)</span>' : '')
                             + '</div>'
                             + '</div>'
                             + '<button onclick="document.getElementById(\'kpm-month-modal\').remove()" title="Close" style="background:rgba(255,255,255,0.15);color:white;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.3)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'"><i class="fas fa-times"></i></button>'
@@ -15483,14 +15489,18 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var moIdx1Based = KPM_MONTHS.indexOf(activeMo) + 1; // 1-based month index
 
                         // Pre-compute which projects are frozen for this specific month
-                        // A project column is frozen if: (a) it is on work-stoppage (entire column frozen), or (b) this specific month is blacklisted for it
+                        // A project column is frozen (blank, "—") if: (a) it is on work-stoppage (entire column frozen), or
+                        // (b) this specific month is blacklisted for it. These months genuinely have no data.
                         var _projWsFrozen = regProjs.map(function(pp) {
                             return isProjectOnStoppage(pp) || isMonthBlacklistedForProject(pp, moIdx1Based, selYear);
                         });
+                        // Finished projects: read-only (cannot input new data, excluded from compliance),
+                        // but any real historical value already saved for this month must still be shown — not blanked out.
+                        var _projFinished = regProjs.map(function(pp) { return !!pp.dateFinished; });
 
                         rows.forEach(function(row) {
                             var projEPs = regProjs.map(function(pp, pi) {
-                                if (_projWsFrozen[pi]) return ''; // exclude frozen projects from avg
+                                if (_projWsFrozen[pi] || _projFinished[pi]) return ''; // exclude frozen/finished projects from avg
                                 var k = 'kpm_v3_' + activeMo + '_' + row.id;
                                 var raw = String(pp.vals[k]||'').replace('%','').trim();
                                 var n = parseFloat(raw);
@@ -15512,7 +15522,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                             var projCells = regProjs.map(function(pp, pi) {
                                 if (_projWsFrozen[pi]) {
-                                    // All frozen months (full stoppage OR month-blacklisted) use same pink style
+                                    // Work-stoppage / month-blacklisted — genuinely no data for this month
                                     return '<td style="text-align:center;padding:2px 6px;border:1px solid #c8e6c9;width:68px;min-width:68px;max-width:68px;background:#fce4ec;">'
                                         + '<input type="text" value="—" disabled title="Work Stoppage — excluded from compliance"'
                                         + ' style="width:52px;text-align:center;border:1px solid #f48fb1;border-radius:3px;padding:3px 2px;font-size:0.72rem;font-weight:700;color:#880e4f;background:#f8bbd0;cursor:not-allowed;">'
@@ -15528,12 +15538,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 var optionsHtmlMod = '<option value="">—</option>' + validKpiOptsMod.map(function(opt){
                                     return '<option value="' + opt + '"' + (rawVal === opt ? ' selected' : '') + '>' + opt + '</option>';
                                 }).join('');
-                                return '<td style="text-align:center;padding:2px 6px;border:1px solid #c8e6c9;width:68px;min-width:68px;max-width:68px;">'
+                                // Finished projects: still show their real saved value, but frozen (disabled) — cannot be edited, excluded from compliance avg above.
+                                var _isFin = _projFinished[pi];
+                                return '<td style="text-align:center;padding:2px 6px;border:1px solid #c8e6c9;width:68px;min-width:68px;max-width:68px;' + (_isFin ? 'background:#f5f5f5;' : '') + '">'
                                     + '<select id="kpmmod-ep-' + modKey + '-' + row.id + '-' + pk + '"'
-                                    + (dis?' disabled':'')
+                                    + ((dis || _isFin) ? ' disabled' : '')
+                                    + (_isFin ? ' title="Finished — read only, excluded from compliance"' : '')
                                     + ' data-regkey="' + modKey + '" data-rowid="' + row.id + '" data-dw="' + row.dw + '" data-pname="' + pnSafeInner + '" data-activemo="' + activeMo + '"'
                                     + ' onchange="window.kpmEpSelectChangeMod(this)"'
-                                    + ' style="width:56px;text-align:center;border:1px solid #b0c8b0;border-radius:3px;padding:2px 1px;font-size:0.72rem;font-weight:700;color:' + inputColor + ';background:#fff;cursor:pointer;">'
+                                    + ' style="width:56px;text-align:center;border:1px solid ' + (_isFin?'#ccc':'#b0c8b0') + ';border-radius:3px;padding:2px 1px;font-size:0.72rem;font-weight:700;color:' + (_isFin?'#9e9e9e':inputColor) + ';background:' + (_isFin?'#eee':'#fff') + ';cursor:' + (_isFin?'not-allowed':'pointer') + ';">'
                                     + optionsHtmlMod
                                     + '</select>'
                                     + '</td>';
@@ -15787,7 +15800,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var activeMo = modal.getAttribute('data-month');
                         if (!reg || !activeMo) { modal.remove(); render(); return; }
 
-                        var regProjs = state.projects.filter(function(p){ return p.region === reg && (!kpmIsNA(p) || isProjectOnStoppage(p)) && !p.dateFinished; });
+                        var regProjs = state.projects.filter(function(p){ return p.region === reg && (!kpmIsNA(p) || isProjectOnStoppage(p)); }); // FIX: keep finished projects visible for past-month data
 
                         // RBAC check on first project
                         if (regProjs.length) {
