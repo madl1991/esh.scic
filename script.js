@@ -5312,21 +5312,44 @@ function updateAuditData(pName, qtr, field, val) {
             return val.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
         }
 
-        function updateToDateMonthCells(pName) {
-            const p = state.projects.find(x => x.name === pName);
-            if (!p) return;
+        // Computes the "Total Exposed Man-hour to date" running series for a project (months 1-12).
+        // Logic: cumulative Previous-year base + running sum of monthly "Total Exposed Manhour".
+        // RESET RULE: if an LTA and/or Fatality is recorded (in the ACCIDENT/INCIDENT RECORD tab,
+        // synced to medical_LTA / medical_Fatality) for a given month, the cumulative to-date value
+        // for that month automatically resets to 0. Accumulation then resumes from 0 the following month.
+        function computeExposureToDateSeries(p) {
             const key = 'exposures_Total Exposed Man-hour to date';
             const manhourKey = 'exposures_Total Exposed Manhour';
             const prevBase = parseFloat(p.vals[key] ? (p.vals[key][0] ?? 0) : 0) || 0;
             let cumulative = prevBase;
+            const series = new Array(13).fill(0); // index 1..12 used
 
             for (let i = 1; i <= 12; i++) {
                 const monthManhour = parseFloat(p.vals[manhourKey] ? (p.vals[manhourKey][i] ?? '') : '') || 0;
                 if (monthManhour > 0) cumulative += monthManhour;
 
+                const lta = parseFloat(p.vals['medical_LTA'] ? (p.vals['medical_LTA'][i] ?? '') : '') || 0;
+                const fatality = parseFloat(p.vals['medical_Fatality'] ? (p.vals['medical_Fatality'][i] ?? '') : '') || 0;
+                if (lta > 0 || fatality > 0) {
+                    cumulative = 0; // reset to-date exposure hours for this LTA/Fatality month
+                }
+
+                series[i] = cumulative;
+            }
+            return series;
+        }
+        window.computeExposureToDateSeries = computeExposureToDateSeries;
+
+        function updateToDateMonthCells(pName) {
+            const p = state.projects.find(x => x.name === pName);
+            if (!p) return;
+            const series = computeExposureToDateSeries(p);
+
+            for (let i = 1; i <= 12; i++) {
+                const cumulative = series[i];
                 const cell = document.querySelector(`[data-todate-proj="${CSS.escape(pName)}"][data-todate-month="${i}"]`);
                 if (cell) {
-                    cell.textContent = cumulative > 0 ? fmtNum(cumulative) : '';
+                    cell.textContent = cumulative > 0 ? fmtNum(cumulative) : (cumulative === 0 ? '0' : '');
                     cell.style.color = '';
                     cell.style.fontWeight = '700';
                 }
@@ -5334,11 +5357,8 @@ function updateAuditData(pName, qtr, field, val) {
 
             const ytdCell = document.querySelector(`[data-todate-proj="${CSS.escape(pName)}"][data-todate-month="ytd"]`);
             if (ytdCell) {
-                let ytdCum = prevBase;
-                for (let i = 1; i <= 12; i++) {
-                    ytdCum += parseFloat(p.vals[manhourKey] ? (p.vals[manhourKey][i] ?? '') : '') || 0;
-                }
-                ytdCell.textContent = ytdCum > 0 ? fmtNum(ytdCum) : '';
+                const ytdCum = series[12];
+                ytdCell.textContent = ytdCum > 0 ? fmtNum(ytdCum) : (ytdCum === 0 ? '0' : '');
             }
         }
 
@@ -11121,14 +11141,9 @@ function renderTabulation() {
                             const scolor = row === 'LTIR' ? '#1b5e20' : row === 'TRIR' ? '#1565c0' : '#b71c1c';
                             html += `<td class="monthly-data" style="font-weight:800;background:${smh>0?'rgba(27,94,32,0.06)':''};text-align:center;color:${smh>0?scolor:''}">${sval}</td>`;
                         } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
-                            const _mhSumKey = 'exposures_Total Exposed Manhour';
                             displayProjects.forEach(p => {
-                                const _prevBase = parseFloat(p.vals[key] ? (p.vals[key][0] ?? 0) : 0) || 0;
-                                let _cum = _prevBase;
-                                for (let _j = 1; _j <= i; _j++) {
-                                    _cum += parseFloat(p.vals[_mhSumKey] ? (p.vals[_mhSumKey][_j] ?? '') : '') || 0;
-                                }
-                                monthTotal += _cum;
+                                const _series = computeExposureToDateSeries(p);
+                                monthTotal += _series[i] || 0;
                             });
                             html += `<td class="monthly-data" style="font-weight:700;background:#f1f8e9;text-align:center;">${monthTotal > 0 ? fmtNum(monthTotal) : ''}</td>`;
                         } else {
@@ -11251,14 +11266,9 @@ function renderTabulation() {
                             const ycolor = row === 'LTIR' ? '#1b5e20' : row === 'TRIR' ? '#1565c0' : '#b71c1c';
                             html += `<td class="ytd-cell" style="font-weight:800;color:${ymh>0?ycolor:''};">${yval}</td>`;
                         } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
-                            const _mhYtdKey = 'exposures_Total Exposed Manhour';
                             displayProjects.forEach(p => {
-                                const _prevBase = parseFloat(p.vals[key] ? (p.vals[key][0] ?? 0) : 0) || 0;
-                                let _cum = _prevBase;
-                                for (let _j = 1; _j <= 12; _j++) {
-                                    _cum += parseFloat(p.vals[_mhYtdKey] ? (p.vals[_mhYtdKey][_j] ?? '') : '') || 0;
-                                }
-                                ytdTotal += _cum;
+                                const _series = computeExposureToDateSeries(p);
+                                ytdTotal += _series[12] || 0;
                             });
                             html += `<td class="ytd-cell" style="font-weight:800;font-size:0.7rem;">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
                         } else {
@@ -12863,16 +12873,19 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         </td>`;
                     }
                 } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
-                    const manhourKey = `exposures_Total Exposed Manhour`;
-                    const prevBase = parseFloat(p.vals[key] ? (p.vals[key][0] ?? 0) : 0) || 0;
-                    let cumulative = prevBase;
+                    const _toDateSeries = computeExposureToDateSeries(p);
                     for (let i = 1; i <= 12; i++) {
-                        const monthManhour = parseFloat(p.vals[manhourKey] ? (p.vals[manhourKey][i] ?? '') : '') || 0;
-                        if (monthManhour > 0) cumulative += monthManhour;
-                        const displayVal = cumulative > 0 ? fmtNum(cumulative) : '';
-                        html += `<td class="monthly-data" data-todate-proj="${p.name}" data-todate-month="${i}" style="text-align:center;" title="Auto-computed: Previous + sum of Total Exposed Manhour up to this month">
-                            <span data-todate-proj="${p.name}" data-todate-month="${i}" style="font-size:0.7rem;color:var(--text-primary);font-weight:700;">
-                                ${displayVal}
+                        const cumulative = _toDateSeries[i];
+                        const _lta = parseFloat(p.vals['medical_LTA'] ? (p.vals['medical_LTA'][i] ?? '') : '') || 0;
+                        const _fat = parseFloat(p.vals['medical_Fatality'] ? (p.vals['medical_Fatality'][i] ?? '') : '') || 0;
+                        const _wasReset = (_lta > 0 || _fat > 0);
+                        const displayVal = cumulative > 0 ? fmtNum(cumulative) : (_wasReset ? '0' : '');
+                        const _title = _wasReset
+                            ? 'Reset to 0 — LTA/Fatality recorded this month (Accident/Incident Record)'
+                            : 'Auto-computed: Previous + sum of Total Exposed Manhour up to this month';
+                        html += `<td class="monthly-data" data-todate-proj="${p.name}" data-todate-month="${i}" style="text-align:center;background:${_wasReset ? '#ffebee' : ''};" title="${_title}">
+                            <span data-todate-proj="${p.name}" data-todate-month="${i}" style="font-size:0.7rem;color:${_wasReset ? '#c62828' : 'var(--text-primary)'};font-weight:700;">
+                                ${displayVal}${_wasReset ? ' <i class="fas fa-triangle-exclamation" style="font-size:0.55rem;"></i>' : ''}
                             </span>
                         </td>`;
                     }
@@ -13067,12 +13080,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     }).length;
                     html += `<td class="ytd-cell" style="color:${_nmYtdCount>0?'#e65100':''};font-weight:800;">${_nmYtdCount > 0 ? fmtNum(_nmYtdCount) : ''}</td>`;
                 } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
-                    const _mhKey = `exposures_Total Exposed Manhour`;
-                    const _prevBase = parseFloat(p.vals[key] ? (p.vals[key][0] ?? 0) : 0) || 0;
-                    let _cum = _prevBase;
-                    for (let _i = 1; _i <= 12; _i++) {
-                        _cum += parseFloat(p.vals[_mhKey] ? (p.vals[_mhKey][_i] ?? '') : '') || 0;
-                    }
+                    const _cum = computeExposureToDateSeries(p)[12];
                     html += `<td class="ytd-cell" data-todate-proj="${p.name}" data-todate-month="ytd">${_cum > 0 ? fmtNum(_cum) : ''}</td>`;
                 } else if (state.currentTab === 'rates' && ['LTIR','TRIR','SEVERITY RATE'].includes(row)) {
                     const _rateBase = (state.ratesStandard === 'osha') ? 200000 : 1000000;
@@ -31263,10 +31271,9 @@ async function exportCurrentTabToExcel() {
         // ── Value helpers ─────────────────────────────────────────────────────
         function expGetVal(proj, measureKey, monthIdx) {
             if (measureKey === 'Total Exposed Man-hour to date') {
-                const base = parseFloat((proj.vals && proj.vals['exposures_Total Exposed Man-hour to date'] && proj.vals['exposures_Total Exposed Man-hour to date'][0]) || 0) || 0;
-                const mhKey = 'exposures_Total Exposed Manhour';
-                let cum = base;
-                for (let i = 1; i <= monthIdx; i++) cum += parseFloat(_v(proj, mhKey, i)) || 0;
+                // Reset to 0 for any month with a recorded LTA/Fatality (see computeExposureToDateSeries)
+                const _series = (typeof computeExposureToDateSeries === 'function') ? computeExposureToDateSeries(proj) : null;
+                const cum = _series ? (_series[monthIdx] || 0) : 0;
                 return cum > 0 ? cum : null;
             }
             const raw = _v(proj, 'exposures_' + measureKey, monthIdx);
@@ -32212,11 +32219,8 @@ async function exportCurrentTabToExcel() {
                     const vals = schemaRows.map(function(row){
                         const key = tab+'_'+row;
                         if (row === 'Total Exposed Man-hour to date') {
-                            // Cumulative: prevBase + sum of all monthly manhours
-                            const prevBase = parseFloat((proj.vals&&proj.vals[key]&&proj.vals[key][0])||0)||0;
-                            const manhourKey = tab+'_Total Exposed Manhour';
-                            let cum = prevBase;
-                            for (let i=1;i<=12;i++) cum += parseFloat(_v(proj,manhourKey,i))||0;
+                            // Cumulative: prevBase + sum of monthly manhours, reset to 0 on LTA/Fatality months
+                            const cum = (typeof computeExposureToDateSeries === 'function') ? computeExposureToDateSeries(proj)[12] : 0;
                             return cum > 0 ? cum : '';
                         }
                         const ytd = _ytd(proj, key);
@@ -32259,13 +32263,11 @@ async function exportCurrentTabToExcel() {
                         const raw=proj.vals&&proj.vals[key];
                         moVals = MO_SHORT.map(function(_,i){ return raw&&raw[i+1]?String(raw[i+1]):''; });
                     } else if (isToDate) {
-                        // Cumulative: prevBase (index[0]) + running sum of Total Exposed Manhour
-                        const prevBase = parseFloat((proj.vals&&proj.vals[key]&&proj.vals[key][0])||0) || 0;
-                        const manhourKey = tab+'_Total Exposed Manhour';
-                        let cum = prevBase;
+                        // Cumulative: prevBase (index[0]) + running sum of Total Exposed Manhour,
+                        // reset to 0 for any month with a recorded LTA/Fatality
+                        const _series = (typeof computeExposureToDateSeries === 'function') ? computeExposureToDateSeries(proj) : null;
                         moVals = MO_SHORT.map(function(_,i){
-                            const mh = parseFloat(_v(proj, manhourKey, i+1)) || 0;
-                            if (mh > 0) cum += mh;
+                            const cum = _series ? (_series[i+1] || 0) : 0;
                             return cum > 0 ? cum : '';
                         });
                     } else {
@@ -32273,10 +32275,7 @@ async function exportCurrentTabToExcel() {
                     }
                     const ytdVal = isToDate
                         ? (function(){
-                            const prevBase = parseFloat((proj.vals&&proj.vals[key]&&proj.vals[key][0])||0)||0;
-                            const manhourKey = tab+'_Total Exposed Manhour';
-                            let cum = prevBase;
-                            for (let i=1;i<=12;i++) cum += parseFloat(_v(proj,manhourKey,i))||0;
+                            const cum = (typeof computeExposureToDateSeries === 'function') ? computeExposureToDateSeries(proj)[12] : 0;
                             return cum > 0 ? cum : '';
                           })()
                         : (function(){const y=_ytd(proj,key);return y!==''?y:'';})();
