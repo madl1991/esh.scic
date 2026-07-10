@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESH COMPLIANCE DASHBOARD - SCIC</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><defs><linearGradient id=%22g1%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%25%22 stop-color=%22%232e7d32%22/><stop offset=%22100%25%22 stop-color=%22%231b5e20%22/></linearGradient></defs><path d=%22M16 2 L28 7 L28 17 C28 23 22 28 16 30 C10 28 4 23 4 17 L4 7 Z%22 fill=%22url(%23g1)%22/><path d=%22M16 2 L28 7 L28 17 C28 23 22 28 16 30 C10 28 4 23 4 17 L4 7 Z%22 fill=%22none%22 stroke=%22%23fbc02d%22 stroke-width=%221.5%22/><text x=%2216%22 y=%2219.5%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-weight=%22900%22 font-size=%228.5%22 fill=%22white%22 letter-spacing=%22-0.5%22>ESH</text></svg>">
+    <link rel="stylesheet" href="styles.css?v=1">
     <!-- OPTIMIZED: consolidated font load — only weights actually used, preconnect for speed -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,17 +45,6 @@
      ESH DASHBOARD — UI / READABILITY / ACCESSIBILITY PATCH
      Safe additive overrides only. No JS or saving logic touched.
      ═══════════════════════════════════════════════════════════════ -->
-
-    <script>
-        // Auto cache-bust — no manual version update needed on every deploy
-        (function() {
-            var ts = Date.now();
-            var link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = 'styles.css?v=' + ts;
-            document.head.appendChild(link);
-        })();
-    </script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, sendPasswordResetEmail, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
