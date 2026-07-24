@@ -6754,10 +6754,12 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     // --- Smooth animated update: reuse existing chart if still attached to this canvas ---
                     const _attachedChart = Chart.getChart(regionCtx);
                     if (state.charts.region && _attachedChart === state.charts.region) {
-                        const _upBgColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#6FA97A' : v >= 75 ? '#E8A25A' : '#C97064');
+                        const _upBgColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#4EAE5E' : v >= 75 ? '#FF9123' : '#DE4531');
                         state.charts.region.data.datasets[0].data = regionAvgs;
                         state.charts.region.data.datasets[0].backgroundColor = _upBgColors;
+                        state.charts.region.data.datasets[0].hoverBackgroundColor = _upBgColors;
                         state.charts.region.data.datasets[0].borderWidth = 0;
+                        state.charts.region.data.datasets[0].hoverBorderWidth = 0;
                         state.charts.region.update({
                             duration: 600,
                             easing: 'easeInOutQuart'
@@ -6771,7 +6773,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     // ── Status-only colors: no per-region identity, color = compliance level ──
                     function _compBorderColor(v) {
                         if (v === null || v === undefined) return '#9e9e9e';
-                        return v >= 90 ? '#6FA97A' : v >= 75 ? '#E8A25A' : '#C97064';
+                        return v >= 90 ? '#4EAE5E' : v >= 75 ? '#FF9123' : '#DE4531';
                     }
                     const _bgColors = regionAvgs.map(_compBorderColor);
                     const _borderColors = _bgColors; // unused but kept to avoid breakage
@@ -6782,7 +6784,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         afterDraw(chart) {
                             const { ctx: c, chartArea: { left, right }, scales: { y } } = chart;
                             // Threshold lines — always visible
-                            [{val:90,color:'#6FA97A',label:'90%'},{val:75,color:'#E8A25A',label:'75%'}].forEach(({val,color,label}) => {
+                            [{val:90,color:'#4EAE5E',label:'90%'},{val:75,color:'#FF9123',label:'75%'}].forEach(({val,color,label}) => {
                                 const yPos = y.getPixelForValue(val);
                                 c.save();
                                 c.setLineDash([5,4]);
@@ -6803,7 +6805,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                                 chart.getDatasetMeta(0).data.forEach((bar, i) => {
                                     const val = ds.data[i];
                                     if (val === null || val === undefined) return;
-                                    const color = val >= 90 ? '#6FA97A' : val >= 75 ? '#E8A25A' : '#C97064';
+                                    const color = val >= 90 ? '#4EAE5E' : val >= 75 ? '#FF9123' : '#DE4531';
                                     c.save();
                                     c.fillStyle = color;
                                     c.font = 'bold 12px sans-serif';
@@ -6823,7 +6825,9 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                                 label: 'Compliance %',
                                 data: regionAvgs,
                                 backgroundColor: _bgColors,
+                                hoverBackgroundColor: _bgColors,
                                 borderWidth: 0,
+                                hoverBorderWidth: 0,
                                 borderSkipped: false,
                                 borderRadius: 8
                             }]
@@ -6834,6 +6838,9 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                                 easing: 'easeOutQuart',
                                 onStart(anim) { anim.chart._animatingLabels = true; },
                                 onComplete(anim) { anim.chart._animatingLabels = false; anim.chart.draw(); }
+                            },
+                            transitions: {
+                                active: { animation: { duration: 0 } }
                             },
                             responsive: true,
                             maintainAspectRatio: false,
@@ -10231,10 +10238,12 @@ function renderTabulation() {
                 // --- Smooth animated update: reuse only if instance is still attached to this canvas ---
                 const _attachedChart = Chart.getChart(regionCtx);
                 if (state.charts.region && _attachedChart === state.charts.region) {
-                    const _rcUpBgColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#6FA97A' : v >= 75 ? '#E8A25A' : '#C97064');
+                    const _rcUpBgColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#4EAE5E' : v >= 75 ? '#FF9123' : '#DE4531');
                     state.charts.region.data.datasets[0].data = regionAvgs;
                     state.charts.region.data.datasets[0].backgroundColor = _rcUpBgColors;
+                    state.charts.region.data.datasets[0].hoverBackgroundColor = _rcUpBgColors;
                     state.charts.region.data.datasets[0].borderWidth = 0;
+                    state.charts.region.data.datasets[0].hoverBorderWidth = 0;
                     state.charts.region.update({
                         duration: 600,
                         easing: 'easeInOutQuart'
@@ -10250,7 +10259,7 @@ function renderTabulation() {
                 // ── Status-only colors: color = compliance level, no per-region identity ──
                 function _rcCompColor(v) {
                     if (v === null || v === undefined) return '#9e9e9e';
-                    return v >= 90 ? '#6FA97A' : v >= 75 ? '#E8A25A' : '#C97064';
+                    return v >= 90 ? '#4EAE5E' : v >= 75 ? '#FF9123' : '#DE4531';
                 }
                 const _rcBgColors = regionAvgs.map(_rcCompColor);
 
@@ -10260,7 +10269,7 @@ function renderTabulation() {
                     afterDraw(chart) {
                         const { ctx: c, chartArea: { left, right }, scales: { y } } = chart;
                         // Threshold lines — always visible
-                        [{val:90,color:'#6FA97A',label:'90%'},{val:75,color:'#E8A25A',label:'75%'}].forEach(({val,color,label}) => {
+                        [{val:90,color:'#4EAE5E',label:'90%'},{val:75,color:'#FF9123',label:'75%'}].forEach(({val,color,label}) => {
                             const yPos = y.getPixelForValue(val);
                             c.save();
                             c.setLineDash([5,4]);
@@ -10281,7 +10290,7 @@ function renderTabulation() {
                             chart.getDatasetMeta(0).data.forEach((bar, i) => {
                                 const val = ds.data[i];
                                 if (val === null || val === undefined) return;
-                                const color = val >= 90 ? '#6FA97A' : val >= 75 ? '#E8A25A' : '#C97064';
+                                const color = val >= 90 ? '#4EAE5E' : val >= 75 ? '#FF9123' : '#DE4531';
                                 c.save();
                                 c.fillStyle = color;
                                 c.font = 'bold 12px sans-serif';
@@ -10301,7 +10310,9 @@ function renderTabulation() {
                             label: 'Compliance %',
                             data: regionAvgs,
                             backgroundColor: _rcBgColors,
+                            hoverBackgroundColor: _rcBgColors,
                             borderWidth: 0,
+                            hoverBorderWidth: 0,
                             borderSkipped: false,
                             borderRadius: 8
                         }]
@@ -10312,6 +10323,9 @@ function renderTabulation() {
                             easing: 'easeOutQuart',
                             onStart(anim) { anim.chart._animatingLabels = true; },
                             onComplete(anim) { anim.chart._animatingLabels = false; anim.chart.draw(); }
+                        },
+                        transitions: {
+                            active: { animation: { duration: 0 } }
                         },
                         responsive: true,
                         maintainAspectRatio: false,
