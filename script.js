@@ -6754,7 +6754,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     // --- Smooth animated update: reuse existing chart if still attached to this canvas ---
                     const _attachedChart = Chart.getChart(regionCtx);
                     if (state.charts.region && _attachedChart === state.charts.region) {
-                        const _upBgColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#007A33' : v >= 75 ? '#E56020' : '#871012');
+                        const _upBgColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#6FA97A' : v >= 75 ? '#E8A25A' : '#C97064');
                         state.charts.region.data.datasets[0].data = regionAvgs;
                         state.charts.region.data.datasets[0].backgroundColor = _upBgColors;
                         state.charts.region.data.datasets[0].borderWidth = 0;
@@ -6771,7 +6771,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     // ── Status-only colors: no per-region identity, color = compliance level ──
                     function _compBorderColor(v) {
                         if (v === null || v === undefined) return '#9e9e9e';
-                        return v >= 90 ? '#007A33' : v >= 75 ? '#E56020' : '#871012';
+                        return v >= 90 ? '#6FA97A' : v >= 75 ? '#E8A25A' : '#C97064';
                     }
                     const _bgColors = regionAvgs.map(_compBorderColor);
                     const _borderColors = _bgColors; // unused but kept to avoid breakage
@@ -6782,7 +6782,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         afterDraw(chart) {
                             const { ctx: c, chartArea: { left, right }, scales: { y } } = chart;
                             // Threshold lines — always visible
-                            [{val:90,color:'#007A33',label:'90%'},{val:75,color:'#E56020',label:'75%'}].forEach(({val,color,label}) => {
+                            [{val:90,color:'#6FA97A',label:'90%'},{val:75,color:'#E8A25A',label:'75%'}].forEach(({val,color,label}) => {
                                 const yPos = y.getPixelForValue(val);
                                 c.save();
                                 c.setLineDash([5,4]);
@@ -6803,7 +6803,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                                 chart.getDatasetMeta(0).data.forEach((bar, i) => {
                                     const val = ds.data[i];
                                     if (val === null || val === undefined) return;
-                                    const color = val >= 90 ? '#007A33' : val >= 75 ? '#E56020' : '#871012';
+                                    const color = val >= 90 ? '#6FA97A' : val >= 75 ? '#E8A25A' : '#C97064';
                                     c.save();
                                     c.fillStyle = color;
                                     c.font = 'bold 12px sans-serif';
@@ -10231,7 +10231,7 @@ function renderTabulation() {
                 // --- Smooth animated update: reuse only if instance is still attached to this canvas ---
                 const _attachedChart = Chart.getChart(regionCtx);
                 if (state.charts.region && _attachedChart === state.charts.region) {
-                    const _rcUpBgColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#007A33' : v >= 75 ? '#E56020' : '#871012');
+                    const _rcUpBgColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#6FA97A' : v >= 75 ? '#E8A25A' : '#C97064');
                     state.charts.region.data.datasets[0].data = regionAvgs;
                     state.charts.region.data.datasets[0].backgroundColor = _rcUpBgColors;
                     state.charts.region.data.datasets[0].borderWidth = 0;
@@ -10250,7 +10250,7 @@ function renderTabulation() {
                 // ── Status-only colors: color = compliance level, no per-region identity ──
                 function _rcCompColor(v) {
                     if (v === null || v === undefined) return '#9e9e9e';
-                    return v >= 90 ? '#007A33' : v >= 75 ? '#E56020' : '#871012';
+                    return v >= 90 ? '#6FA97A' : v >= 75 ? '#E8A25A' : '#C97064';
                 }
                 const _rcBgColors = regionAvgs.map(_rcCompColor);
 
@@ -10260,7 +10260,7 @@ function renderTabulation() {
                     afterDraw(chart) {
                         const { ctx: c, chartArea: { left, right }, scales: { y } } = chart;
                         // Threshold lines — always visible
-                        [{val:90,color:'#007A33',label:'90%'},{val:75,color:'#E56020',label:'75%'}].forEach(({val,color,label}) => {
+                        [{val:90,color:'#6FA97A',label:'90%'},{val:75,color:'#E8A25A',label:'75%'}].forEach(({val,color,label}) => {
                             const yPos = y.getPixelForValue(val);
                             c.save();
                             c.setLineDash([5,4]);
@@ -10281,7 +10281,7 @@ function renderTabulation() {
                             chart.getDatasetMeta(0).data.forEach((bar, i) => {
                                 const val = ds.data[i];
                                 if (val === null || val === undefined) return;
-                                const color = val >= 90 ? '#007A33' : val >= 75 ? '#E56020' : '#871012';
+                                const color = val >= 90 ? '#6FA97A' : val >= 75 ? '#E8A25A' : '#C97064';
                                 c.save();
                                 c.fillStyle = color;
                                 c.font = 'bold 12px sans-serif';
@@ -17513,7 +17513,7 @@ function openAddPersonnelModal() {
         if (cb) { cb.checked = false; toggleToUpdateField(fieldId, false); }
     });
     const assignmentSelect = document.getElementById('personnelAssignmentInput');
-    let options = '<option value="">Select Assignment</option>';
+    let options = '<option value="">Select Project</option>';
     if (state.isAdmin) {
         options += '<option value="Corporate Office">Corporate Office</option>';
     }
@@ -17575,6 +17575,7 @@ function confirmAddPersonnel() {
     if (document.getElementById('tu_email')?.checked) toUpdate.push('email');
     if (document.getElementById('tu_contact')?.checked) toUpdate.push('contact');
     if (document.getElementById('tu_address')?.checked) toUpdate.push('address');
+    if (document.getElementById('tu_area')?.checked) toUpdate.push('area');
     
     let fullName = `${lastName}, ${firstName}`;
     if (middleName) {
@@ -17588,6 +17589,7 @@ function confirmAddPersonnel() {
     const id = document.getElementById('personnelIdInput').value.trim();
     const hired = document.getElementById('personnelHiredInput').value;
     const current = document.getElementById('personnelAssignmentInput').value;
+    const area = document.getElementById('personnelAreaInput').value.trim().toUpperCase();
     const age = document.getElementById('personnelAgeInput').value;
     const gen = document.getElementById('personnelGenderInput').value;
     const mail = document.getElementById('personnelEmailInput').value.trim();
@@ -17621,7 +17623,7 @@ function confirmAddPersonnel() {
         return;
     }
     if (!current) {
-        errorEl.textContent = '⚠️ Please select current assignment';
+        errorEl.textContent = '⚠️ Please select project';
         return;
     }
     if ((!age || age < 18 || age > 100) && !toUpdate.includes('age')) {
@@ -17673,10 +17675,15 @@ function confirmAddPersonnel() {
     if (!state.personnelData) state.personnelData = [];
     const newPerson = {
         name: fullName,
+        lastName: lastName || '',
+        firstName: firstName || '',
+        middleName: middleName || '',
+        nameExt: nameExt || '',
         pos: pos || '',
         id: id || '',
         hired: hired || '',
         current: current || '',
+        area: area || '',
         age: age || '',
         gen: gen || '',
         mail: mail || '',
@@ -17732,7 +17739,7 @@ function openEditPersonnelModal(index) {
     }
     
     const assignmentSelect = document.getElementById('editPersonnelAssignmentInput');
-    let options = '<option value="">Select Assignment</option>';
+    let options = '<option value="">Select Project</option>';
     if (state.isAdmin) {
         options += '<option value="Corporate Office">Corporate Office</option>';
     }
@@ -17753,32 +17760,43 @@ function openEditPersonnelModal(index) {
     
     document.getElementById('editPersonnelIndex').value = index;
     
-    const fullName = person.name || '';
-    const nameParts = fullName.split(',').map(s => s.trim());
-    
     let lastName = '';
     let firstName = '';
     let middleName = '';
     let nameExt = '';
-    
-    if (nameParts.length >= 1) {
-        lastName = nameParts[0];
-        
-        if (nameParts.length >= 2) {
-            const restOfName = nameParts[1].trim().split(' ');
-            firstName = restOfName[0] || '';
-            
-            const extensions = ['JR.', 'SR.', 'II', 'III', 'IV', 'V'];
-            const lastPart = restOfName[restOfName.length - 1];
-            
-            if (extensions.includes(lastPart.toUpperCase())) {
-                nameExt = lastPart.toUpperCase();
-                if (restOfName.length > 2) {
-                    middleName = restOfName.slice(1, -1).join(' ');
-                }
-            } else {
-                if (restOfName.length > 1) {
-                    middleName = restOfName.slice(1).join(' ');
+
+    // Prefer the separately-stored name parts (saved since the name-splitting fix).
+    // This avoids re-parsing the concatenated "name" string, which incorrectly
+    // treated multi-word first names (e.g. "MICHAEL ANGELO") as First + Middle name.
+    if (person.firstName || person.lastName) {
+        lastName = person.lastName || '';
+        firstName = person.firstName || '';
+        middleName = person.middleName || '';
+        nameExt = person.nameExt || '';
+    } else {
+        // Fallback for legacy records saved before name parts were stored separately.
+        const fullName = person.name || '';
+        const nameParts = fullName.split(',').map(s => s.trim());
+
+        if (nameParts.length >= 1) {
+            lastName = nameParts[0];
+
+            if (nameParts.length >= 2) {
+                const restOfName = nameParts[1].trim().split(' ');
+                firstName = restOfName[0] || '';
+
+                const extensions = ['JR.', 'SR.', 'II', 'III', 'IV', 'V'];
+                const lastPart = restOfName[restOfName.length - 1];
+
+                if (extensions.includes(lastPart.toUpperCase())) {
+                    nameExt = lastPart.toUpperCase();
+                    if (restOfName.length > 2) {
+                        middleName = restOfName.slice(1, -1).join(' ');
+                    }
+                } else {
+                    if (restOfName.length > 1) {
+                        middleName = restOfName.slice(1).join(' ');
+                    }
                 }
             }
         }
@@ -17792,6 +17810,7 @@ function openEditPersonnelModal(index) {
     document.getElementById('editPersonnelIdInput').value = person.id || '';
     document.getElementById('editPersonnelHiredInput').value = person.hired || '';
     document.getElementById('editPersonnelAssignmentInput').value = person.current || '';
+    document.getElementById('editPersonnelAreaInput').value = person.area || '';
     document.getElementById('editPersonnelOicInput').checked = person.oic || false;
     document.getElementById('editPersonnelAgeInput').value = person.age || '';
     document.getElementById('editPersonnelGenderInput').value = person.gen || '';
@@ -17808,7 +17827,8 @@ function openEditPersonnelModal(index) {
         etu_age:        { cbId: 'etu_age',         fieldId: 'editPersonnelAgeInput',        key: 'age' },
         etu_email:      { cbId: 'etu_email',       fieldId: 'editPersonnelEmailInput',      key: 'email' },
         etu_contact:    { cbId: 'etu_contact',     fieldId: 'editPersonnelContactInput',    key: 'contact' },
-        etu_address:    { cbId: 'etu_address',     fieldId: 'editPersonnelAddressInput',    key: 'address' }
+        etu_address:    { cbId: 'etu_address',     fieldId: 'editPersonnelAddressInput',    key: 'address' },
+        etu_area:       { cbId: 'etu_area',         fieldId: 'editPersonnelAreaInput',       key: 'area' }
     };
     const existingToUpdate = Array.isArray(person.toUpdate) ? person.toUpdate : [];
     Object.values(etuMap).forEach(({ cbId, fieldId, key }) => {
@@ -18286,6 +18306,7 @@ function confirmEditPersonnel() {
     if (document.getElementById('etu_email')?.checked)      toUpdate.push('email');
     if (document.getElementById('etu_contact')?.checked)    toUpdate.push('contact');
     if (document.getElementById('etu_address')?.checked)    toUpdate.push('address');
+    if (document.getElementById('etu_area')?.checked)       toUpdate.push('area');
 
     let fullName = `${lastName}, ${firstName}`;
     if (middleName) {
@@ -18299,6 +18320,7 @@ function confirmEditPersonnel() {
     const id = document.getElementById('editPersonnelIdInput').value.trim();
     const hired = document.getElementById('editPersonnelHiredInput').value;
     const current = document.getElementById('editPersonnelAssignmentInput').value;
+    const area = document.getElementById('editPersonnelAreaInput').value.trim().toUpperCase();
     const oic = document.getElementById('editPersonnelOicInput').checked;
     const age = document.getElementById('editPersonnelAgeInput').value;
     const gen = document.getElementById('editPersonnelGenderInput').value;
@@ -18333,7 +18355,7 @@ function confirmEditPersonnel() {
         return;
     }
     if (!current) {
-        errorEl.textContent = '⚠️ Please select current assignment';
+        errorEl.textContent = '⚠️ Please select project';
         return;
     }
     if ((!age || age < 18 || age > 100) && !toUpdate.includes('age')) {
@@ -18367,10 +18389,15 @@ function confirmEditPersonnel() {
     const existingPid = state.personnelData[index]?._pid || null;
     const updatedPerson = {
         name: fullName,
+        lastName: lastName || '',
+        firstName: firstName || '',
+        middleName: middleName || '',
+        nameExt: nameExt || '',
         pos: pos || '',
         id: id || '',
         hired: hired || '',
         current: current || '',
+        area: area || '',
         age: age || '',
         gen: gen || '',
         mail: mail || '',
@@ -34326,9 +34353,9 @@ async function exportPersonnelExcel() {
     const COLOR_WHITE      = 'FFFFFFFF';
     const COLOR_TOTAL_BG   = 'E8F5E9'; // light green — TOTAL row in summary
 
-    const COL_HEADERS = ['REGION','PROJECT','#','Full Name','Position','EMP ID','Gender','Age','Date Hired','Length of Service','Certification','Cert Expiry','Status'];
+    const COL_HEADERS = ['REGION','PROJECT','AREA OF ASSIGNMENT','#','Full Name','Position','EMP ID','Gender','Age','Date Hired','Length of Service','Certification','Cert Expiry','Status'];
     // Reference column widths (exact match to reference file)
-    const COL_WIDTHS  = [18, 35, 5, 30, 25, 12, 10, 8, 15, 18, 15, 15, 12];
+    const COL_WIDTHS  = [18, 35, 25, 5, 30, 25, 12, 10, 8, 15, 18, 15, 15, 12];
 
     // ── Shared style builders ─────────────────────────────────────────────────
     function applyHeaderStyle(cell) {
@@ -34352,7 +34379,7 @@ async function exportPersonnelExcel() {
     function applyDataStyle(cell, colIdx) {
         cell.font      = { size: 11, name: 'Calibri' };
         cell.alignment = { vertical: 'middle', wrapText: false };
-        if (colIdx === 3) cell.alignment.horizontal = 'center'; // # column centered
+        if (colIdx === 4) cell.alignment.horizontal = 'center'; // # column centered
     }
 
     function applyTotalStyle(cell) {
@@ -34446,7 +34473,7 @@ async function exportPersonnelExcel() {
                 const expiryStr = certData && certData.expiry ? _fmtDate(certData.expiry) : certData && certData.pdfUrl ? 'No expiry set' : (certKey ? 'Not uploaded' : '—');
                 const status   = certKey ? _certStatus(certData && certData.expiry) : '—';
                 allDataRows.push([
-                    region, projName, mi + 1,
+                    region, projName, p.area || '—', mi + 1,
                     (p.name || '').toUpperCase(),
                     p.pos || '—',
                     p.id || '—',
@@ -34472,10 +34499,10 @@ async function exportPersonnelExcel() {
             const members = projMap[projName] || [];
             if (!members.length) return;
 
-            // Project banner row — merged across all 13 columns
-            const bannerRow = ws.addRow([`📌 ${projName}`, '', '', '', '', '', '', '', '', '', '', '', '']);
+            // Project banner row — merged across all 14 columns
+            const bannerRow = ws.addRow([`📌 ${projName}`, '', '', '', '', '', '', '', '', '', '', '', '', '']);
             bannerRow.height = 18;
-            ws.mergeCells(bannerRow.number, 1, bannerRow.number, 13);
+            ws.mergeCells(bannerRow.number, 1, bannerRow.number, 14);
             applyBannerStyle(bannerRow.getCell(1));
 
             // Personnel data rows
@@ -34488,7 +34515,7 @@ async function exportPersonnelExcel() {
                 const status   = certKey ? _certStatus(certData && certData.expiry) : '—';
 
                 const dataRow = ws.addRow([
-                    region, projName, mi + 1,
+                    region, projName, p.area || '—', mi + 1,
                     (p.name || '').toUpperCase(),
                     p.pos || '—',
                     p.id || '—',
@@ -34504,7 +34531,7 @@ async function exportPersonnelExcel() {
 
             // ── Spacer row after each project (except last) ───────────────────
             if (projIdx < projNames.length - 1) {
-                const spacer = ws.addRow(['', '', '', '', '', '', '', '', '', '', '', '', '']);
+                const spacer = ws.addRow(['', '', '', '', '', '', '', '', '', '', '', '', '', '']);
                 spacer.height = 8;
             }
         });
