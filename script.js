@@ -17467,26 +17467,34 @@ function formatDateDMY(isoStr) {
 
 function calculateYearsOfService(hireDate) {
     if (!hireDate) return '';
-    
+
     const hired = new Date(hireDate);
     const today = new Date();
-    
-    let years = today.getFullYear() - hired.getFullYear();
-    const monthDiff = today.getMonth() - hired.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < hired.getDate())) {
+    if (isNaN(hired)) return '';
+    if (hired > today) return '';
+
+    let years  = today.getFullYear() - hired.getFullYear();
+    let months = today.getMonth() - hired.getMonth();
+    let days   = today.getDate() - hired.getDate();
+
+    if (days < 0) {
+        months--;
+        const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+        days += prevMonth.getDate();
+    }
+    if (months < 0) {
         years--;
+        months += 12;
     }
-    
-    if (years < 0) return '0 mos.';
-    if (years === 0) {
-        let months = (today.getFullYear() - hired.getFullYear()) * 12 + (today.getMonth() - hired.getMonth());
-        if (today.getDate() < hired.getDate()) months--;
-        if (months < 0) months = 0;
-        return months + ' mos.';
-    }
-    
-    return years;
+
+    if (years  >= 1) return `${years} Year${years !== 1 ? 's' : ''}`;
+    if (months >= 1) return `${months} Month${months !== 1 ? 's' : ''}`;
+
+    const totalDays = Math.floor((today - hired) / (1000 * 60 * 60 * 24));
+    const weeks = Math.floor(totalDays / 7);
+    if (weeks >= 1) return `${weeks} Week${weeks !== 1 ? 's' : ''}`;
+
+    return `${totalDays} Day${totalDays !== 1 ? 's' : ''}`;
 }
 
 function addPRow() {
@@ -29241,12 +29249,41 @@ window.pcViewPersonnel = function(idx) {
     }
 
     const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return isNaN(d)?s:d.toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'}); };
-    const calcYOS = s => { if(!s) return '—'; const y=new Date().getFullYear()-new Date(s).getFullYear(); return `${y} yr${y!==1?'s':''}`; };
+    const calcYOS = s => {
+        if(!s) return '—';
+        const start = new Date(s);
+        if(isNaN(start)) return '—';
+        const now = new Date();
+        if(start > now) return '—';
+
+        let years  = now.getFullYear() - start.getFullYear();
+        let months = now.getMonth() - start.getMonth();
+        let days   = now.getDate() - start.getDate();
+
+        if(days < 0){
+            months--;
+            const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+            days += prevMonth.getDate();
+        }
+        if(months < 0){
+            years--;
+            months += 12;
+        }
+
+        if(years  >= 1) return `${years} Year${years!==1?'s':''}`;
+        if(months >= 1) return `${months} Month${months!==1?'s':''}`;
+
+        const totalDays = Math.floor((now - start) / (1000*60*60*24));
+        const weeks = Math.floor(totalDays / 7);
+        if(weeks >= 1) return `${weeks} Week${weeks!==1?'s':''}`;
+
+        return `${totalDays} Day${totalDays!==1?'s':''}`;
+    };
 
     document.getElementById('pc-view-info-grid').innerHTML = [
-        _iRow('ID Number',        p.id   || '—'),
-        _iRow('Date Hired',       fmtDate(p.hired)),
-        _iRow('Years of Service', calcYOS(p.hired)),
+        _iRow('ID Number',         p.id   || '—'),
+        _iRow('Date Hired',        fmtDate(p.hired)),
+        _iRow('Length of Service', calcYOS(p.hired)),
         _iRow('Age',              p.age  ? `${p.age} yrs old` : '—'),
         _iRow('Gender',           p.gen  || '—'),
         _iRow('Email',            p.mail || '—'),
@@ -34317,16 +34354,9 @@ async function exportPersonnelExcel() {
     }
     function _fmtLen(len) {
         if (!len) return '—';
-        const s = String(len).trim();
-        if (s.toLowerCase().includes('mo')) {
-            const m = parseFloat(s);
-            if (isNaN(m)) return s;
-            return `${m} mo${m !== 1 ? 's' : ''}`;
-        }
-        const yrs = parseFloat(s);
-        if (isNaN(yrs)) return s;
-        if (yrs === 0) return '< 1 mo';
-        return yrs === 1 ? '1 yr' : `${yrs} yrs`;
+        // calculateYearsOfService() already returns a fully formatted
+        // string, e.g. "1 Day", "3 Weeks", "6 Months", "2 Years".
+        return String(len).trim();
     }
 
     // ── Ordering ──────────────────────────────────────────────────────────────
@@ -34494,7 +34524,7 @@ async function exportPersonnelExcel() {
                     p.gen || p.gender || '—',
                     p.age || '—',
                     p.hired ? _fmtDate(p.hired) : '—',
-                    _fmtLen(p.len),
+                    _fmtLen(p.hired ? calculateYearsOfService(p.hired) : p.len),
                     certLabel, expiryStr, status
                 ]);
             });
@@ -34536,7 +34566,7 @@ async function exportPersonnelExcel() {
                     p.gen || p.gender || '—',
                     p.age || '—',
                     p.hired ? _fmtDate(p.hired) : '—',
-                    _fmtLen(p.len),
+                    _fmtLen(p.hired ? calculateYearsOfService(p.hired) : p.len),
                     certLabel, expiryStr, status
                 ]);
                 dataRow.height = 16;
