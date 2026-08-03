@@ -21384,6 +21384,10 @@ function setupAuthObserver() {
                 console.warn('⚠️ Could not attach role listener:', e.message);
             }
             // ─────────────────────────────────────────────────────────────────
+
+            // ── Corporate KPM real-time sync — keeps state.companyData current
+            // across devices/tabs (fixes data not reflecting on other computers) ──
+            if (typeof window.corpKpmAttachSync === 'function') window.corpKpmAttachSync();
             
             if (window._isNewLogin) { playLoginSound(); window._isNewLogin = false; }
 
@@ -36050,6 +36054,50 @@ window.CORP_KPM_ROWS = [
       epOpts:['75%','95%'] },
 ];
 
+// ── Corporate KPM Firestore persistence ──────────────────────────────────────
+// Shared doc lives under the master admin UID's sharedData subcollection, which
+// firestore.rules already allows: read for any SCIC user, write for
+// admin/superintendent/pco/envi_head roles (the WDA System Admin account has
+// role 'admin', so it can write here).
+window.CORP_KPM_ADMIN_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
+window.CORP_KPM_DOC_PATH  = ['users', window.CORP_KPM_ADMIN_UID, 'sharedData', 'corporateKpm'];
+
+window.corpKpmSaveToFirestore = function(key, val) {
+    if (!window.firebaseDb || !window.firebase?.doc || !window.firebase?.setDoc) {
+        console.warn('⚠️ Corporate KPM: Firestore not ready, change kept locally only for now.');
+        return;
+    }
+    try {
+        var ref = window.firebase.doc.apply(null, [window.firebaseDb].concat(window.CORP_KPM_DOC_PATH.slice(1)));
+        window.firebase.setDoc(ref, { [key]: val, _updatedAt: new Date().toISOString() }, { merge: true })
+            .catch(function(e) { console.error('❌ Corporate KPM save failed:', e.message); if (typeof showToast === 'function') showToast('❌ Failed to save Corporate KPM to cloud: ' + e.message, 'error'); });
+    } catch(e) {
+        console.error('❌ Corporate KPM save error:', e.message);
+    }
+};
+
+// Real-time listener — call once after login so state.companyData stays in
+// sync across devices/tabs. Re-renders the Corporate KPM tab if it's open.
+window.corpKpmAttachSync = function() {
+    if (!window.firebaseDb || !window.firebase?.doc || !window.firebase?.onSnapshot) return;
+    if (window._corpKpmUnsubscribe) { try { window._corpKpmUnsubscribe(); } catch(e) {} }
+    try {
+        var ref = window.firebase.doc.apply(null, [window.firebaseDb].concat(window.CORP_KPM_DOC_PATH.slice(1)));
+        window._corpKpmUnsubscribe = window.firebase.onSnapshot(ref, function(snap) {
+            if (!snap.exists()) return;
+            var data = snap.data();
+            if (!state.companyData) state.companyData = {};
+            Object.keys(data).forEach(function(k) { if (k !== '_updatedAt') state.companyData[k] = data[k]; });
+            if (document.getElementById('ckpm-mgr-banner-0') || document.getElementById('ckpm-mgr-banner-1')) {
+                if (typeof window.renderCorporateKpm === 'function') window.renderCorporateKpm();
+            }
+        }, function(err) { console.warn('⚠️ Corporate KPM sync error:', err.message); });
+        console.log('✅ Corporate KPM real-time sync active');
+    } catch(e) {
+        console.warn('⚠️ Could not attach Corporate KPM listener:', e.message);
+    }
+};
+
 // ── renderCorporateKpm: renders the Corporate KPM tab, matching the KPM tab layout ──
 window.renderCorporateKpm = function() {
     const container = document.getElementById('dashboard-content');
@@ -36077,7 +36125,7 @@ window.renderCorporateKpm = function() {
         var k = 'corp_kpm_' + year + '_' + mgrIdx + '_' + mo + '_' + key;
         if (!state.companyData) state.companyData = {};
         state.companyData[k] = val;
-        if (window.firebaseDb) { try { window.firebaseDb.ref('companyData/' + k).set(val); } catch(e) {} }
+        window.corpKpmSaveToFirestore(k, val);
     }
     function ckIsNA(mgrIdx, mo) {
         return !!((state.companyData || {})['corp_kpm_na_' + year + '_' + mgrIdx + '_' + mo]);
@@ -36497,7 +36545,7 @@ window.renderCorporateKpm = function() {
         var k = 'corp_kpm_na_' + year + '_' + mgrIdx + '_' + mo;
         if (!state.companyData) state.companyData = {};
         state.companyData[k] = ckIsNA(mgrIdx, mo) ? '' : '1';
-        if (window.firebaseDb) { try { window.firebaseDb.ref('companyData/' + k).set(state.companyData[k]); } catch(e) {} }
+        window.corpKpmSaveToFirestore(k, state.companyData[k]);
         var m = document.getElementById('corp-kpm-modal'); if (m) m.remove();
         window.openCorpKpmModal(mgrIdx, mo, true);
     };
