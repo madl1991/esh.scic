@@ -36068,7 +36068,7 @@ window.corpKpmSaveToFirestore = function(key, val) {
         return;
     }
     try {
-        var ref = window.firebase.doc.apply(null, [window.firebaseDb].concat(window.CORP_KPM_DOC_PATH.slice(1)));
+        var ref = window.firebase.doc.apply(null, [window.firebaseDb].concat(window.CORP_KPM_DOC_PATH));
         window.firebase.setDoc(ref, { [key]: val, _updatedAt: new Date().toISOString() }, { merge: true })
             .catch(function(e) { console.error('❌ Corporate KPM save failed:', e.message); if (typeof showToast === 'function') showToast('❌ Failed to save Corporate KPM to cloud: ' + e.message, 'error'); });
     } catch(e) {
@@ -36082,7 +36082,7 @@ window.corpKpmAttachSync = function() {
     if (!window.firebaseDb || !window.firebase?.doc || !window.firebase?.onSnapshot) return;
     if (window._corpKpmUnsubscribe) { try { window._corpKpmUnsubscribe(); } catch(e) {} }
     try {
-        var ref = window.firebase.doc.apply(null, [window.firebaseDb].concat(window.CORP_KPM_DOC_PATH.slice(1)));
+        var ref = window.firebase.doc.apply(null, [window.firebaseDb].concat(window.CORP_KPM_DOC_PATH));
         window._corpKpmUnsubscribe = window.firebase.onSnapshot(ref, function(snap) {
             if (!snap.exists()) return;
             var data = snap.data();
