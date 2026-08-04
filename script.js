@@ -5801,38 +5801,21 @@ function updateAuditData(pName, qtr, field, val) {
                 const project = state.projects.find(p => p.name === projectName);
                 if (!project) throw new Error('Project not found: ' + projectName);
 
-                if (isReplacement && project.vals[pdfKey] && project.vals[pdfKey][1]) {
-                    const oldPdfData = project.vals[pdfKey][1];
-                    if (window.firebaseStorage && window.firebase && oldPdfData.storagePath) {
-                        try {
-                            const oldStorageRef = window.firebase.ref(window.firebaseStorage, oldPdfData.storagePath);
-                            await window.firebase.deleteObject(oldStorageRef);
-                        } catch (deleteError) {
-                            console.warn('⚠️ Could not delete old file from storage:', deleteError);
-                        }
-                    }
-                }
+                // Note: old file (if replacing) is left in Cloudinary storage — unsigned
+                // uploads can't be deleted from the browser for security reasons. Harmless
+                // since files are capped at 500KB and the free tier gives 25GB.
 
-                if (!window.firebaseStorage || !window.firebase) {
-                    throw new Error('Firebase Storage not initialized');
-                }
-
-                const STORAGE_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
                 const timestamp = Date.now();
-                const fileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-                const storagePath = 'compliance-pdfs/' + STORAGE_UID + '/' + projectName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + pdfKey.replace(/[^a-zA-Z0-9]/g,'_') + '_' + timestamp + '_' + fileName;
+                const folder = 'compliance-pdfs/' + projectName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + pdfKey.replace(/[^a-zA-Z0-9]/g,'_') + '_' + timestamp;
+                const { url: downloadURL, publicId } = await uploadPdfToCloudinary(file, folder);
 
-                const storageRef = window.firebase.ref(window.firebaseStorage, storagePath);
-                await window.firebase.uploadBytes(storageRef, file);
-                const downloadURL = await window.firebase.getDownloadURL(storageRef);
-
-                console.log('✅ PDF uploaded to Firebase Storage:', storagePath);
+                console.log('✅ PDF uploaded to Cloudinary:', publicId);
 
                 if (!project.vals[pdfKey]) project.vals[pdfKey] = new Array(13).fill('');
                 project.vals[pdfKey][1] = {
                     name: file.name,
                     url: downloadURL,
-                    storagePath: storagePath,
+                    cloudinaryId: publicId,
                     uploadedAt: new Date().toISOString(),
                     size: file.size
                 };
@@ -5935,18 +5918,9 @@ function updateAuditData(pName, qtr, field, val) {
             if (!confirmed) return;
 
             try {
-                const pdfData = project.vals[pdfKey][1];
-                
-                if (window.firebaseStorage && window.firebase && pdfData.storagePath) {
-                    try {
-                        const storageRef = window.firebase.ref(window.firebaseStorage, pdfData.storagePath);
-                        await window.firebase.deleteObject(storageRef);
-                        console.log('✅ PDF deleted from Firebase Storage:', pdfData.name);
-                    } catch (storageError) {
-                        console.warn('⚠️ Could not delete from storage:', storageError);
-                    }
-                }
-
+                // Note: the file itself stays in Cloudinary storage — unsigned uploads can't
+                // be deleted from the browser for security reasons. Harmless since files are
+                // capped at 500KB and the free tier gives 25GB.
                 project.vals[pdfKey][1] = null;
 
                 _pdfSetStatus('Deleting PDF for <strong>' + projectName + '</strong>…', 'saving');
@@ -18018,10 +17992,9 @@ window._saveEditCert = async function(personIdx) {
 
     const db      = window.firebaseDb;
     const storage = window.firebaseStorage;
-    if (!db || !storage) return;
+    if (!db) return;
 
     const { doc, setDoc, getDoc, updateDoc } = window.firebase;
-    const { ref, uploadBytes, getDownloadURL } = window.firebase;
 
     let pdfUrl = null, fileName = null;
 
@@ -18029,11 +18002,11 @@ window._saveEditCert = async function(personIdx) {
         document.getElementById('editCertProgress').style.display = 'block';
         const bar = document.getElementById('editCertProgressBar');
         bar.style.width = '20%';
-        const path = `personnel_certificates/${pid}/${cfg.key}_${Date.now()}.pdf`;
+        const folder = `personnel_certificates/${pid}`;
         bar.style.width = '50%';
-        const snap = await uploadBytes(ref(storage, path), window._editCertFile);
+        const { url } = await uploadPdfToCloudinary(window._editCertFile, folder);
         bar.style.width = '85%';
-        pdfUrl    = await getDownloadURL(snap.ref);
+        pdfUrl    = url;
         fileName  = window._editCertFile.name;
         bar.style.width = '100%';
     }
@@ -22225,6 +22198,36 @@ document.addEventListener('input', function(e) {
     }
 });
 
+// ── CLOUDINARY CONFIG (replaces Firebase Storage for PDF uploads) ──────────
+// 1. Sign up at cloudinary.com (free tier)
+// 2. Copy your "Cloud Name" from the dashboard and paste it below
+// 3. Create an UNSIGNED upload preset (Settings → Upload → Upload presets)
+//    and paste its name below
+const CLOUDINARY_CLOUD_NAME   = 'xs57zpaa';
+const CLOUDINARY_UPLOAD_PRESET = 'esh_dashboard_unsigned';
+
+// Uploads a PDF file to Cloudinary and returns { url, publicId }.
+// PDFs must go through the "raw" resource type endpoint (not "image").
+async function uploadPdfToCloudinary(file, folder) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    if (folder) formData.append('folder', folder);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/raw/upload`, {
+        method: 'POST',
+        body: formData
+    });
+
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error('Cloudinary upload failed: ' + errText);
+    }
+
+    const data = await res.json();
+    return { url: data.secure_url, publicId: data.public_id };
+}
+
 async function uploadDoePdf(projectName, quarter) {
     const input = document.createElement('input');
     input.type = 'file';
@@ -22247,14 +22250,9 @@ async function uploadDoePdf(projectName, quarter) {
         try {
             showToast(`📤 Uploading PDF for Q${quarter}...`, 'info');
             
-            const STORAGE_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452'; // Always admin UID so all users can access
             const year = state.selectedYear;
-            const fileName = `${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_Q${quarter}_${Date.now()}.pdf`;
-            const storagePath = `doe-reports/${STORAGE_UID}/${year}/${fileName}`;
-            
-            const storageRef = window.firebase.ref(window.firebaseStorage, storagePath);
-            await window.firebase.uploadBytes(storageRef, file);
-            const downloadURL = await window.firebase.getDownloadURL(storageRef);
+            const folder = `doe-reports/${year}`;
+            const { url: downloadURL, publicId } = await uploadPdfToCloudinary(file, folder);
             
             const project = state.projects.find(p => p.name === projectName);
             if (project) {
@@ -22262,7 +22260,7 @@ async function uploadDoePdf(projectName, quarter) {
                 project.doePdfFiles[`Q${quarter}`] = {
                     url: downloadURL,
                     fileName: file.name,
-                    storagePath: storagePath,
+                    cloudinaryId: publicId,
                     uploadedAt: new Date().toISOString()
                 };
                 
@@ -22329,16 +22327,16 @@ async function deleteDoePdf(projectName, quarter) {
             return;
         }
         
-        const pdfData = project.doePdfFiles[`Q${quarter}`];
-        
-        const storageRef = window.firebase.ref(window.firebaseStorage, pdfData.storagePath);
-        await window.firebase.deleteObject(storageRef);
-        
+        // Note: unsigned Cloudinary uploads can't be deleted from the browser for security
+        // reasons (real deletion needs your Cloudinary API secret, which should never sit in
+        // client-side code). We remove the reference here so it disappears from the dashboard;
+        // the actual file just stays in your Cloudinary storage (harmless — files are capped
+        // at 500KB and the free tier gives you 25GB).
         delete project.doePdfFiles[`Q${quarter}`];
         
         await saveToFirebase();
         render();
-        showToast(`✅ PDF deleted for Q${quarter}`, 'success');
+        showToast(`✅ PDF removed for Q${quarter}`, 'success');
     } catch (error) {
         console.error('Error deleting PDF:', error);
         showToast('❌ Failed to delete PDF: ' + error.message, 'error');
@@ -22454,14 +22452,9 @@ async function uploadDoePermitPdf(projectName) {
 
             showToast('📤 Uploading DOE Safety Officer Permit...', 'info', 3000);
             
-            const STORAGE_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
             const year = state.selectedYear;
-            const fileName = `${projectName.replace(/[^a-zA-Z0-9]/g, '_')}_DOE_Permit_${Date.now()}.pdf`;
-            const storagePath = `doe-permits/${STORAGE_UID}/${year}/${fileName}`;
-            
-            const storageRef = window.firebase.ref(window.firebaseStorage, storagePath);
-            await window.firebase.uploadBytes(storageRef, file);
-            const downloadURL = await window.firebase.getDownloadURL(storageRef);
+            const folder = `doe-permits/${year}`;
+            const { url: downloadURL, publicId } = await uploadPdfToCloudinary(file, folder);
             
             const project = state.projects.find(p => p.name === projectName);
             if (project) {
@@ -22470,7 +22463,7 @@ async function uploadDoePermitPdf(projectName) {
                 
                 project.vals[key][3] = downloadURL;
                 project.vals[key].pdfFileName = file.name;
-                project.vals[key].pdfStoragePath = storagePath;
+                project.vals[key].cloudinaryId = publicId;
 
                 const hadPermitNo   = !!(project.vals[key][1]);
                 const hadValidUntil = !!(project.vals[key][2]);
@@ -22550,19 +22543,12 @@ async function deleteDoePermitPdf(projectName) {
             return;
         }
         
-        const storagePath = project.vals[key].pdfStoragePath;
-        if (storagePath) {
-            try {
-                const storageRef = window.firebase.ref(window.firebaseStorage, storagePath);
-                await window.firebase.deleteObject(storageRef);
-            } catch (storageErr) {
-                console.warn('Storage file already missing (safe to ignore):', storageErr.message);
-            }
-        }
-        
+        // Note: unsigned Cloudinary uploads can't be deleted from the browser for security
+        // reasons — we just clear the reference here. The old file stays harmlessly in
+        // Cloudinary storage (files are capped at 500KB, free tier gives 25GB).
         delete project.vals[key][3];
         delete project.vals[key].pdfFileName;
-        delete project.vals[key].pdfStoragePath;
+        delete project.vals[key].cloudinaryId;
 
         _pdfSetStatus('Clearing DOE Permit PDF for <strong>' + projectName + '</strong>…', 'saving');
         let saved = false;
@@ -30835,11 +30821,10 @@ Do not include any other text, explanation, or markdown. JSON only.`
     if (!expiry) { errEl.textContent = '⚠️ Please enter the expiry date.'; errEl.style.display = 'block'; return; }
     if (!getCurPid() || !_pcCurrentCertKey) { errEl.textContent = '⚠️ No person selected.'; errEl.style.display = 'block'; return; }
 
-    const db = window.firebaseDb, storage = window.firebaseStorage;
-    if (!db || !storage) { errEl.textContent = '⚠️ Firebase not ready. Please wait.'; errEl.style.display = 'block'; return; }
+    const db = window.firebaseDb;
+    if (!db) { errEl.textContent = '⚠️ Firebase not ready. Please wait.'; errEl.style.display = 'block'; return; }
 
     const { doc, setDoc, getDoc, updateDoc } = window.firebase;
-    const { ref, uploadBytes, getDownloadURL } = window.firebase;
 
     const saveBtn = document.getElementById('pc-upload-save-btn');
     saveBtn.disabled = true;
@@ -30852,11 +30837,11 @@ Do not include any other text, explanation, or markdown. JSON only.`
         document.getElementById('pc-upload-progress').style.display = 'block';
         const bar = document.getElementById('pc-upload-bar');
         bar.style.width = '25%';
-        const path = `personnel_certificates/${getCurPid()}/${_pcCurrentCertKey}_${Date.now()}.pdf`;
+        const folder = `personnel_certificates/${getCurPid()}`;
         bar.style.width = '55%';
-        const snap = await uploadBytes(ref(storage, path), _pcCurrentFile);
+        const { url } = await uploadPdfToCloudinary(_pcCurrentFile, folder);
         bar.style.width = '85%';
-        pdfUrl = await getDownloadURL(snap.ref);
+        pdfUrl = url;
         fileName = _pcCurrentFile.name;
         bar.style.width = '100%';
       }
