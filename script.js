@@ -6165,7 +6165,38 @@ function getReportProjects() {
     return (state.filteredProjects || state.projects || []).filter(p => !isProjectOnStoppage(p));
 }
 
+// Returns true if the given month falls before the project's dateStarted —
+// i.e. the project didn't exist yet, so no monthly report data should be required.
+// Example: project started March 3 → January and February are not required (this
+// returns true for them); March onward returns false (required as normal).
+function isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear) {
+    if (!p.dateStarted) return false;
+    const selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
+    const startD = new Date(p.dateStarted);
+    if (isNaN(startD)) return false;
+    const absStart = startD.getFullYear() * 12 + (startD.getMonth() + 1);
+    const absMo    = selY * 12 + monthIdx1Based;
+    return absMo < absStart; // months before the start month are not required (start month itself IS required)
+}
+
+// Returns the 1-based quarter (1-4) in which the project's dateStarted falls, for the
+// given year. Returns 1 if the project started before that year (all quarters required).
+// Returns 5 if the project starts AFTER that year (no quarters required that year) —
+// used by DOE Reportorial (quarterly) so quarters before the project existed aren't required.
+function getDoeStartQuarterForYear(p, year) {
+    if (!p.dateStarted) return 1;
+    const d = new Date(p.dateStarted);
+    if (isNaN(d)) return 1;
+    const y = d.getFullYear();
+    if (y < year) return 1;
+    if (y > year) return 5;
+    return Math.ceil((d.getMonth() + 1) / 3);
+}
+
 function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
+    // Months before the project's dateStarted are never required — the project
+    // didn't exist yet, so this always takes priority over the stoppage checks below.
+    if (isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear)) return true;
     if (!p.workStoppageDate) return false;
     const selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
     const stopD  = new Date(p.workStoppageDate);
@@ -6372,12 +6403,15 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 const _doeIsCP = vals['doe_client_provided'] === '1' || vals['doe-permit_client_provided'] === '1';
                 if (!_doeIsCP) {
                     const _doeKey = 'doe_DOE Quarterly Report Submission Date';
-                    let doeF = 0;
+                    const _doeStartQ = (typeof getDoeStartQuarterForYear === 'function') ? getDoeStartQuarterForYear(proj, selectedYear) : 1;
+                    let doeF = 0, doeT = 0;
                     for (let q = 1; q <= 4; q++) {
+                        if (q < _doeStartQ) continue; // quarter before project existed — not required
+                        doeT++;
                         const v = vals[_doeKey] && vals[_doeKey][q];
                         if (v && v.toString().trim() !== '') doeF++;
                     }
-                    areaScores.push(doeF / 4);
+                    if (doeT > 0) areaScores.push(doeF / doeT);
                 }
                 // client-provided → area excluded
             }
@@ -13464,9 +13498,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 var v = p.vals[k] ? (p.vals[k][moIdx+1] || '') : '';
                                 var pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 
-                                // Build stoppage period label for tooltip
+                                // Build exemption label for tooltip (not-yet-started takes priority over stoppage)
+                                var _isNotYetStarted = isStoppageExempt && isMonthBeforeProjectStart(p, _moIdx1, selYear);
                                 var _tooltipText = '';
-                                if (isStoppageExempt && p.workStoppageDate) {
+                                if (_isNotYetStarted) {
+                                    _tooltipText = 'Project not yet started (starts ' + formatDateDMY(p.dateStarted) + '). This month is not required.';
+                                } else if (isStoppageExempt && p.workStoppageDate) {
                                     var _sd = new Date(p.workStoppageDate);
                                     var _sdStr = (_sd.getMonth()+1) + '/' + _sd.getDate() + '/' + _sd.getFullYear();
                                     _tooltipText = 'Work stoppage: ' + _sdStr;
@@ -13522,7 +13559,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     + (isStopped
                                         ? '<div style="font-size:0.62rem;color:#9e9e9e;text-align:center;padding:4px;font-style:italic;"><i class="fas fa-ban"></i> Stopped</div>'
                                         : isStoppageExempt
-                                            ? '<div style="font-size:0.62rem;color:#9e9e9e;text-align:center;padding:5px 4px;font-style:italic;display:flex;align-items:center;justify-content:center;gap:4px;" title="' + _tooltipText.replace(/"/g,'&quot;') + '"><i class="fas fa-pause-circle" style="font-size:0.75rem;"></i> Exempt (Stoppage)</div>'
+                                            ? '<div style="font-size:0.62rem;color:#9e9e9e;text-align:center;padding:5px 4px;font-style:italic;display:flex;align-items:center;justify-content:center;gap:4px;" title="' + _tooltipText.replace(/"/g,'&quot;') + '"><i class="fas fa-pause-circle" style="font-size:0.75rem;"></i> ' + (_isNotYetStarted ? 'Not Yet Started' : 'Exempt (Stoppage)') + '</div>'
                                             : '<input type="date" value="' + v + '" ' + cellDis
                                                 + ' name="dolemod-' + row + '-' + p.name.replace(/[^a-zA-Z0-9]/g,'_') + '"'
                                                 + ' data-pname="' + pnSafe + '" data-row="' + row + '" data-moIdx="' + (moIdx+1) + '" data-overdue="' + (_modalIsOverdue ? '1' : '0') + '"'
@@ -14359,7 +14396,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     }
 
                     var doeTot=0, doeFill=0;
-                    doeActProjs.forEach(function(p){ for(var q=1;q<=doeDueQ;q++){ doeTot++; if(p.vals[DOE_KEY]&&p.vals[DOE_KEY][q]) doeFill++; } });
+                    doeActProjs.forEach(function(p){
+                        var _doeSQ = getDoeStartQuarterForYear(p, doeSelYear);
+                        for(var q=1;q<=doeDueQ;q++){ if(q<_doeSQ) continue; doeTot++; if(p.vals[DOE_KEY]&&p.vals[DOE_KEY][q]) doeFill++; }
+                    });
                     var doePct = doeTot>0?Math.round(doeFill/doeTot*100):0;
                     var doePctC = doePct>=90?'#2e7d32':doePct>=75?'#e65100':'#c62828';
                     var doePctBg = doePct>=90?'#e8f5e9':doePct>=75?'#fff3e0':'#ffebee';
@@ -14381,7 +14421,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
 
                         var doeComplete = 0;
-                        for(var q=1;q<=doeCurQ;q++){ var qOk=regProjs.every(function(p){ return p.vals[DOE_KEY]&&p.vals[DOE_KEY][q]; }); if(qOk) doeComplete++; }
+                        for(var q=1;q<=doeCurQ;q++){ var qOk=regProjs.every(function(p){ var _sq=getDoeStartQuarterForYear(p, doeSelYear); return q<_sq || (p.vals[DOE_KEY]&&p.vals[DOE_KEY][q]); }); if(qOk) doeComplete++; }
 
                         html += '<div id="region-banner-'+reg+'" class="region-banner region-'+reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+' '+(isCollapsed?'collapsed':'')+' '+(canEditReg?'rb-editable':'')+'" onclick="toggleRegion(\''+reg.replace(/'/g,"\\'")+'\',event)">'
                             +'<div class="region-banner-inner"><div class="region-banner-left">'
@@ -14425,17 +14465,22 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 + '</td>';
 
                             // Q1–Q4 cells
+                            var _doeStartQ = getDoeStartQuarterForYear(p, doeSelYear);
                             for(var q=1;q<=4;q++){
                                 var _val = (p.vals && p.vals[DOE_KEY]) ? (p.vals[DOE_KEY][q]||'') : '';
                                 var _doeNow2 = new Date();
                                 var _doeThisYr = doeSelYear === _doeNow2.getFullYear();
                                 var _doeFutQ = _doeThisYr && q > doeCurQ;
+                                var _doeBeforeStart = q < _doeStartQ;
                                 var _dueMon = {1:[3,20],2:[6,20],3:[9,20],4:[0,20]};
                                 var _dm = _dueMon[q];
                                 var _dueDt = q===4 ? new Date(doeSelYear+1,_dm[0],_dm[1]) : new Date(doeSelYear,_dm[0],_dm[1]);
                                 var _isPastDue = !_doeFutQ && _doeNow2 > _dueDt;
 
-                                if (_isCP) {
+                                if (_doeBeforeStart) {
+                                    html += '<td style="background:#f5f5f5;text-align:center;opacity:0.55;font-size:0.62rem;color:#aaa;padding:5px;font-style:italic;" title="Project not yet started (starts '+formatDateDMY(p.dateStarted)+'). Not required.">Not Started</td>';
+
+                                } else if (_isCP) {
                                     html += '<td style="text-align:center;background:#dceefb;padding:5px 8px;white-space:nowrap;">'
                                         + '<span style="display:inline-flex;align-items:center;justify-content:center;gap:4px;color:#1565c0;font-size:0.72rem;font-style:italic;font-weight:600;">'
                                         + '<i class="fas fa-building" style="font-size:0.72rem;"></i>Client-Provided'
@@ -15070,7 +15115,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var hBg = isFrozen ? '#e0e0e0' : (isNA ? '#f5f5f5' : '#b7ddb5');
                             var hColor = isFrozen ? '#aaa' : (isNA ? '#bdbdbd' : '#1b5e20');
                             var frozenBadge = '';
-                            var statusNote = isFrozen ? (isProjectOnStoppage(p) ? ' [WORK STOPPAGE — excluded from computation]' : ' [MONTH EXCLUDED — work stoppage period]') : '';
+                            var statusNote = isFrozen ? (isMonthBeforeProjectStart(p, moIdx1Based, selYear) ? ' [NOT YET STARTED — project starts ' + formatDateDMY(p.dateStarted) + ']' : isProjectOnStoppage(p) ? ' [WORK STOPPAGE — excluded from computation]' : ' [MONTH EXCLUDED — work stoppage period]') : '';
                             var tooltipAttr = 'title="' + (p.name + statusNote).replace(/"/g,'&quot;') + '"';
                             return '<th ' + tooltipAttr + ' style="padding:5px 4px;border:1px solid #c8e6c9;color:' + hColor + ';font-size:0.62rem;font-weight:700;text-align:center;min-width:72px;white-space:normal;word-break:break-word;background:' + hBg + ';">'
                                 + (isNA && !isFrozen
@@ -15655,11 +15700,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             // Tooltip: always show full project name + status if not normal
                             var statusNote = isFinished
                                 ? ' [FINISHED: ' + pp.dateFinished + ']'
-                                : isFullStop
-                                    ? ' [WORK STOPPAGE — excluded from computation]'
-                                    : isFrozen
-                                        ? ' [MONTH EXCLUDED — work stoppage period]'
-                                        : '';
+                                : isMonthBeforeProjectStart(pp, moIdx1Based, selYear)
+                                    ? ' [NOT YET STARTED — project starts ' + formatDateDMY(pp.dateStarted) + ']'
+                                    : isFullStop
+                                        ? ' [WORK STOPPAGE — excluded from computation]'
+                                        : isFrozen
+                                            ? ' [MONTH EXCLUDED — work stoppage period]'
+                                            : '';
                             var tooltipText = (pp.name + statusNote).replace(/"/g, '&quot;');
                             return '<th style="padding:5px 6px;border:1px solid #c8e6c9;color:' + hColor + ';font-size:0.62rem;font-weight:700;text-align:center;width:68px;min-width:68px;max-width:68px;background:' + hBg + ';" title="' + tooltipText + '">'
                                 + '<span class="kpm-proj-name-wrap"><span class="kpm-proj-name-txt">' + pp.name + '</span></span>'
@@ -15671,11 +15718,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var isFinished = !!pp.dateFinished;
                             var statusNote = isFinished
                                 ? ' [FINISHED: ' + pp.dateFinished + ']'
-                                : isFullStop
-                                    ? ' [WORK STOPPAGE — excluded from computation]'
-                                    : isFrozen
-                                        ? ' [MONTH EXCLUDED — work stoppage period]'
-                                        : '';
+                                : isMonthBeforeProjectStart(pp, moIdx1Based, selYear)
+                                    ? ' [NOT YET STARTED — project starts ' + formatDateDMY(pp.dateStarted) + ']'
+                                    : isFullStop
+                                        ? ' [WORK STOPPAGE — excluded from computation]'
+                                        : isFrozen
+                                            ? ' [MONTH EXCLUDED — work stoppage period]'
+                                            : '';
                             var tooltipText = (pp.name + statusNote).replace(/"/g, '&quot;');
                             return '<th style="padding:4px 6px;border:1px solid #c8e6c9;color:' + (isFrozen?'#c62828':'#1b5e20') + ';font-size:0.6rem;font-style:italic;text-align:center;width:68px;min-width:68px;max-width:68px;background:' + (isFrozen?'#fce4ec':'#c5e8c3') + ';" title="' + tooltipText + '">EP (%)</th>';
                         }).join('');
@@ -28338,7 +28387,7 @@ function buildDrillsSingleTable(projects, storage, col) {
                 if (_drillWsBlocked) {
                     const _drillWsTip = proj.workResumeDate
                         ? 'Work Stoppage period — this month is excluded.'
-                        : 'Work Stoppage — set a Resume Date in Project Settings to unlock.';
+                        : 'Not yet Started.';
                     html += `<td class="esh-td-plan esh-plan-locked" style="background:#e0e0e0 !important;cursor:not-allowed;" title="${_drillWsTip}"></td>`;
                     html += `<td class="esh-td-actual" style="background:#e0e0e0 !important;cursor:not-allowed;" title="${_drillWsTip}"></td>`;
                     html += `<td style="background:#e0e0e0 !important;cursor:not-allowed;text-align:center;border:1.5px solid #bbb;min-width:34px;padding:2px;" title="${_drillWsTip}"><span style="font-size:0.6rem;font-weight:700;color:#bbb;">—</span></td>`;
