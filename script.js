@@ -12977,9 +12977,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         const _wsBlocked = _isMoBlacklisted(i);
                         if (_wsBlocked) {
                             const _moName = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i-1];
-                            const _wsTip = p.workResumeDate
-                                ? `Work Stoppage period — ${_moName} is excluded from compliance counting.`
-                                : `Work Stoppage period — Set a Resume Date in Project Settings to unlock ${_moName} for input.`;
+                            const _notYetStarted = isMonthBeforeProjectStart(p, i, state.selectedYear || new Date().getFullYear());
+                            const _wsTip = _notYetStarted
+                                ? `Project not yet started — starts ${formatDateDMY(p.dateStarted)}. ${_moName} is not required.`
+                                : (p.workResumeDate
+                                    ? `Work Stoppage period — ${_moName} is excluded from compliance counting.`
+                                    : `Work Stoppage period — Set a Resume Date in Project Settings to unlock ${_moName} for input.`);
                             html += `<td class="${isNov ? 'nov-narrow-td' : (isDole ? 'dole-narrow-td' : 'monthly-data')}" style="background:#f0f0f0;cursor:not-allowed;" title="${_wsTip}"><input type="${isDateType ? 'date' : 'text'}" value="${vFmt}" disabled style="width:100%;background:#e8e8e8;color:#aaa;border:1px solid #ddd;border-radius:4px;padding:2px 3px;font-size:0.72rem;cursor:not-allowed;"></td>`;
                             continue;
                         }
@@ -13799,11 +13802,14 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         + '</tr>';
                     var tbody = rowDefs.map(function(rd){
                         var cells = rd.cells.map(function(c){
-                            // ── Work-stoppage: greyed out, exempt from reporting ──────────
+                            // ── Work-stoppage / not-yet-started: greyed out, exempt from reporting ──
                             if (c.stopped) {
-                                return '<td style="padding:6px 8px;border:1px solid #e0e0e0;min-width:160px;background:#f5f5f5;opacity:0.7;">'
+                                var _mtNotStarted = !!c.notStarted;
+                                var _mtLabel = _mtNotStarted ? 'Not Yet Started' : 'Work Stoppage — Exempt';
+                                var _mtTitle = _mtNotStarted ? ' title="Project has not started this month yet — not required."' : '';
+                                return '<td style="padding:6px 8px;border:1px solid #e0e0e0;min-width:160px;background:#f5f5f5;opacity:0.7;"' + _mtTitle + '>'
                                     + '<div style="display:flex;align-items:center;justify-content:center;gap:5px;color:#9e9e9e;font-size:0.67rem;font-style:italic;padding:4px 0;">'
-                                    + '<i class="fas fa-ban" style="font-size:0.65rem;"></i> Work Stoppage — Exempt'
+                                    + '<i class="fas ' + (_mtNotStarted?'fa-hourglass-start':'fa-ban') + '" style="font-size:0.65rem;"></i> ' + _mtLabel
                                     + '</div></td>';
                             }
                             // ── Checkbox input type (e.g. Care of Client) ────────────────
@@ -14538,6 +14544,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     // Skip months marked N/A — excluded from compliance computation
                     emrActProjs.forEach(function(p){
                         for(var m=1;m<=emrCurMoIdx;m++){
+                            if (isMonthBlacklistedForProject(p, m, emrSelYear)) continue; // not yet started / work stoppage — not required
                             var _naRaw = p.vals[EMR_NA_KEY] && p.vals[EMR_NA_KEY][m];
                             var isNaMonth = (_naRaw === true || _naRaw === 'true' || _naRaw === '1');
                             if(isNaMonth) continue; // N/A — excluded from compliance
@@ -14570,7 +14577,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         var emrComplete = 0;
                         for(var m=1;m<=emrCurMoIdx+1;m++){
-                            var nonNaProjs = activeProjs.filter(function(p){ var _r=p.vals[EMR_NA_KEY]&&p.vals[EMR_NA_KEY][m]; return !(_r===true||_r==='true'||_r==='1'); });
+                            var nonNaProjs = activeProjs.filter(function(p){ if(isMonthBeforeProjectStart(p,m,emrSelYear)) return false; var _r=p.vals[EMR_NA_KEY]&&p.vals[EMR_NA_KEY][m]; return !(_r===true||_r==='true'||_r==='1'); });
                             var mOk = nonNaProjs.length>0 && nonNaProjs.every(function(p){ return p.vals[EMR_KEY]&&p.vals[EMR_KEY][m]; });
                             if(mOk) emrComplete++;
                         }
@@ -14589,11 +14596,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var emrPeriods = [];
                         for(var m2=0;m2<=emrCurMoIdx;m2++){
                             var mIdx2 = m2+1;
-                            var nonNaProjs2 = activeProjs.filter(function(p){ return !(p.vals[EMR_NA_KEY]&&(p.vals[EMR_NA_KEY][mIdx2]===true||p.vals[EMR_NA_KEY][mIdx2]==='true'||p.vals[EMR_NA_KEY][mIdx2]==='1')); });
+                            var nonNaProjs2 = activeProjs.filter(function(p){ if(isMonthBeforeProjectStart(p,mIdx2,emrSelYear)) return false; return !(p.vals[EMR_NA_KEY]&&(p.vals[EMR_NA_KEY][mIdx2]===true||p.vals[EMR_NA_KEY][mIdx2]==='true'||p.vals[EMR_NA_KEY][mIdx2]==='1')); });
                             var mFill = nonNaProjs2.filter(function(p){ return p.vals[EMR_KEY]&&p.vals[EMR_KEY][mIdx2]; }).length;
                             var naCount = activeProjs.length - nonNaProjs2.length;
                             var subLabel = naCount > 0
-                                ? 'Submitted: <span style=\"color:'+(mFill===nonNaProjs2.length&&nonNaProjs2.length>0?'#2e7d32':mFill>0?'#e65100':'#c62828')+';font-weight:700;\">'+mFill+'/'+nonNaProjs2.length+'</span> &nbsp;<span style=\"color:#888;font-size:0.58rem;\">('+naCount+' N/A)</span>'
+                                ? 'Submitted: <span style=\"color:'+(mFill===nonNaProjs2.length&&nonNaProjs2.length>0?'#2e7d32':mFill>0?'#e65100':'#c62828')+';font-weight:700;\">'+mFill+'/'+nonNaProjs2.length+'</span> &nbsp;<span style=\"color:#888;font-size:0.58rem;\">('+naCount+' N/A or not yet started)</span>'
                                 : 'Submitted: <span style=\"color:'+(mFill===nonNaProjs2.length&&nonNaProjs2.length>0?'#2e7d32':mFill>0?'#e65100':'#c62828')+';font-weight:700;\">'+mFill+'/'+nonNaProjs2.length+'</span>';
                             emrPeriods.push({
                                 label: EMR_MONTHS[m2] + ' ' + emrSelYear,
@@ -14656,9 +14663,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var EMR_NA_KEY_MODAL = 'env-monthly-report_na';
                         var rowDefs = [
                             { label: 'N/A', desc: 'Mark as Not Applicable — project is exempt from EMR compliance for this month',
-                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); var isFinished=!!p.dateFinished; var naVal=p.vals[EMR_NA_KEY_MODAL]?!!p.vals[EMR_NA_KEY_MODAL][mIdx]:false; return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_NA_KEY_MODAL,idx:mIdx,val:naVal,dis:(stopped||isFinished||!(canEdit||state.isEditing))?'disabled':'',inputType:'checkbox',stopped:stopped}; }) },
+                              cells: regProjs.map(function(p){ var notStarted=isMonthBeforeProjectStart(p,mIdx,selYear); var stopped=isProjectOnStoppage(p)||isMonthBlacklistedForProject(p,mIdx,selYear); var isFinished=!!p.dateFinished; var naVal=p.vals[EMR_NA_KEY_MODAL]?!!p.vals[EMR_NA_KEY_MODAL][mIdx]:false; return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_NA_KEY_MODAL,idx:mIdx,val:naVal,dis:(stopped||isFinished||!(canEdit||state.isEditing))?'disabled':'',inputType:'checkbox',stopped:stopped,notStarted:notStarted}; }) },
                             { label: 'EMR Date', desc: 'Environmental Monthly Report submission date — '+mLabel,
-                              cells: regProjs.map(function(p){ var stopped=isProjectOnStoppage(p); var isFinished=!!p.dateFinished; var _pNa=p.vals[EMR_NA_KEY_MODAL]?!!p.vals[EMR_NA_KEY_MODAL][mIdx]:false; return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_KEY,idx:mIdx,val:p.vals[EMR_KEY]?p.vals[EMR_KEY][mIdx]||'':'',dis:(stopped||isFinished||(!canEdit&&!state.isEditing))?'disabled':((_pNa||(!canEdit&&state.isEditing))?'disabled':dis),inputType:'date',stopped:stopped,naChecked:_pNa}; }) }
+                              cells: regProjs.map(function(p){ var notStarted=isMonthBeforeProjectStart(p,mIdx,selYear); var stopped=isProjectOnStoppage(p)||isMonthBlacklistedForProject(p,mIdx,selYear); var isFinished=!!p.dateFinished; var _pNa=p.vals[EMR_NA_KEY_MODAL]?!!p.vals[EMR_NA_KEY_MODAL][mIdx]:false; return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_KEY,idx:mIdx,val:p.vals[EMR_KEY]?p.vals[EMR_KEY][mIdx]||'':'',dis:(stopped||isFinished||(!canEdit&&!state.isEditing))?'disabled':((_pNa||(!canEdit&&state.isEditing))?'disabled':dis),inputType:'date',stopped:stopped,naChecked:_pNa,notStarted:notStarted}; }) }
                         ];
 
                         var tableHtml = _modalTable(rowDefs, null, regProjs.map(function(p){ return p.name + (isProjectOnStoppage(p) ? ' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;"><i class=\'fas fa-pause-circle\'></i></span>' : '') + (p.dateFinished ? ' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;"><i class=\'fas fa-lock\'></i> Finished</span>' : ''); }));
@@ -15564,8 +15571,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var projCells = regProjs.map(function(pp, pi) {
                                 if (_projWsFrozen[pi]) {
                                     // Work-stoppage / month-blacklisted — genuinely no data for this month
+                                    var _pcNotYetStarted = isMonthBeforeProjectStart(pp, moIdx1Based, selYear);
+                                    var _pcTip = _pcNotYetStarted ? ('Project not yet started — starts ' + formatDateDMY(pp.dateStarted) + '. Not required.') : 'Work Stoppage — excluded from compliance';
                                     return '<td style="text-align:center;padding:2px 6px;border:1px solid #c8e6c9;width:68px;min-width:68px;max-width:68px;background:#fce4ec;">'
-                                        + '<input type="text" value="—" disabled title="Work Stoppage — excluded from compliance"'
+                                        + '<input type="text" value="—" disabled title="' + _pcTip + '"'
                                         + ' style="width:52px;text-align:center;border:1px solid #f48fb1;border-radius:3px;padding:3px 2px;font-size:0.72rem;font-weight:700;color:#880e4f;background:#f8bbd0;cursor:not-allowed;">'
                                         + '</td>';
                                 }
@@ -23776,7 +23785,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     var isFuture = m > curMonth;
                     var _gotWsBlocked = isMonthBlacklistedForProject(proj, m, _gotSelYear);
                     if (_gotWsBlocked) {
-                        h += '<td class="got-td-month" style="background:#eeeeee;cursor:not-allowed;" title="Work Stoppage — month frozen">'
+                        var _gotNotYetStarted = isMonthBeforeProjectStart(proj, m, _gotSelYear);
+                        var _gotTip = _gotNotYetStarted ? ('Project not yet started — starts ' + formatDateDMY(proj.dateStarted) + '. Not required.') : 'Work Stoppage — month frozen';
+                        h += '<td class="got-td-month" style="background:#eeeeee;cursor:not-allowed;" title="' + _gotTip + '">'
                            + '<select class="got-sel" disabled style="background:#e0e0e0;color:#bbb;border-color:#ddd;cursor:not-allowed;"><option>—</option></select></td>';
                         continue;
                     }
@@ -24321,7 +24332,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     var isFuture = m > curMonth;
                     var _gotModalWsBlocked = isMonthBlacklistedForProject(proj, m, state.selectedYear || new Date().getFullYear());
                     if (_gotModalWsBlocked) {
-                        h += '<td class="got-td-month" style="background:#eeeeee;cursor:not-allowed;" title="Work Stoppage — month frozen">'
+                        var _gotModalNotYetStarted = isMonthBeforeProjectStart(proj, m, state.selectedYear || new Date().getFullYear());
+                        var _gotModalTip = _gotModalNotYetStarted ? ('Project not yet started — starts ' + formatDateDMY(proj.dateStarted) + '. Not required.') : 'Work Stoppage — month frozen';
+                        h += '<td class="got-td-month" style="background:#eeeeee;cursor:not-allowed;" title="' + _gotModalTip + '">'
                            + '<select class="got-sel" disabled style="background:#e0e0e0;color:#bbb;border-color:#ddd;cursor:not-allowed;"><option>—</option></select></td>';
                         continue;
                     }
@@ -28185,9 +28198,12 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                 const _wsBlocked = (typeof isMonthBlacklistedForProject === 'function')
                     && isMonthBlacklistedForProject(proj, mi + 1, _eshSelYr);
                 if (_wsBlocked) {
-                    const _wsTip = proj.workResumeDate
-                        ? 'Work Stoppage period — this month is excluded.'
-                        : 'Work Stoppage — set a Resume Date in Project Settings to unlock.';
+                    const _notYetStarted = (typeof isMonthBeforeProjectStart === 'function') && isMonthBeforeProjectStart(proj, mi + 1, _eshSelYr);
+                    const _wsTip = _notYetStarted
+                        ? `Project not yet started — starts ${formatDateDMY(proj.dateStarted)}. Not required.`
+                        : (proj.workResumeDate
+                            ? 'Work Stoppage period — this month is excluded.'
+                            : 'Work Stoppage — set a Resume Date in Project Settings to unlock.');
                     html += `<td class="esh-td-plan esh-plan-locked" style="background:#e0e0e0 !important;cursor:not-allowed;" title="${_wsTip}"></td>`;
                     html += `<td class="esh-td-actual" style="background:#e0e0e0 !important;cursor:not-allowed;" title="${_wsTip}"></td>`;
                     return;
@@ -28385,9 +28401,12 @@ function buildDrillsSingleTable(projects, storage, col) {
                 const _drillWsBlocked = (typeof isMonthBlacklistedForProject === 'function')
                     && isMonthBlacklistedForProject(proj, mi + 1, _eshDrillSelYr);
                 if (_drillWsBlocked) {
-                    const _drillWsTip = proj.workResumeDate
-                        ? 'Work Stoppage period — this month is excluded.'
-                        : 'Not yet Started.';
+                    const _drillNotYetStarted = (typeof isMonthBeforeProjectStart === 'function') && isMonthBeforeProjectStart(proj, mi + 1, _eshDrillSelYr);
+                    const _drillWsTip = _drillNotYetStarted
+                        ? `Project not yet started — starts ${formatDateDMY(proj.dateStarted)}. Not required.`
+                        : (proj.workResumeDate
+                            ? 'Work Stoppage period — this month is excluded.'
+                            : 'Work Stoppage — set a Resume Date in Project Settings to unlock.');
                     html += `<td class="esh-td-plan esh-plan-locked" style="background:#e0e0e0 !important;cursor:not-allowed;" title="${_drillWsTip}"></td>`;
                     html += `<td class="esh-td-actual" style="background:#e0e0e0 !important;cursor:not-allowed;" title="${_drillWsTip}"></td>`;
                     html += `<td style="background:#e0e0e0 !important;cursor:not-allowed;text-align:center;border:1.5px solid #bbb;min-width:34px;padding:2px;" title="${_drillWsTip}"><span style="font-size:0.6rem;font-weight:700;color:#bbb;">—</span></td>`;
