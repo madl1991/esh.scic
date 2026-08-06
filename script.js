@@ -29236,8 +29236,6 @@ window.eshSetActual = function(tabType, projName, ti, mi, value, tdEl) {
 const CORP_DRILLS = [
     { name:'Earthquake',                                                              freq:'Quarterly',    color:'#43a047' },
     { name:'Fire',                                                                    freq:'Twice a year', color:'#fdd835' },
-    { name:'Death Caused by Accident',                                                freq:'Twice a year', color:'#fdd835' },
-    { name:'Death by Natural Causes',                                                 freq:'Twice a year', color:'#fdd835' },
     { name:'Medical Emergency',                                                       freq:'Twice a year', color:'#fdd835' },
     { name:'Explosion',                                                               freq:'Once a year',  color:'#42a5f5' },
     { name:'Bomb Threat',                                                             freq:'Once a year',  color:'#42a5f5' },
@@ -29368,7 +29366,7 @@ function renderCorpDrillsTab() {
             <span style="font-weight:700;color:var(--text-primary);font-size:0.72rem;">FREQUENCY:</span>
             <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#43a047;"></div>Quarterly — Earthquake</div>
             <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#fdd835;border:1px solid #c8a800;"></div>Twice a Year — Fire</div>
-            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#42a5f5;"></div>Once a Year — Death / Medical / Explosion / Bomb / Weather</div>
+            <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#42a5f5;"></div>Once a Year — Explosion / Bomb / Weather</div>
             <div style="width:1px;background:#ddd;align-self:stretch;"></div>
             <span style="font-weight:700;color:var(--text-primary);font-size:0.72rem;">STATUS:</span>
             <div class="esh-cal-legend-item"><div class="esh-cal-legend-box" style="background:#2e7d32;"></div>Completed</div>
