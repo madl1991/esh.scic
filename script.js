@@ -6679,6 +6679,277 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         }
         window.getMonthlyComplianceByRegion = getMonthlyComplianceByRegion;
 
+        // ── COMPLIANCE GAP BREAKDOWN ────────────────────────────────────────────
+        // Explains exactly WHY a region isn't at 100%, by listing every missing
+        // field/entry per project per area. monthIdx1Based = 0 → OVERALL (full-year,
+        function getComplianceGapDetails(region, monthIdx1Based) {
+            const selectedYear = (state && state.selectedYear) || new Date().getFullYear();
+            const isOverall = !monthIdx1Based;
+            const _KPM_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            const _calYear = selectedYear;
+            const _calStor = (typeof getEshStorage === 'function') ? getEshStorage() : {};
+            const _ESH_DEF_ROWS = (typeof ESH_DEFAULT_ROWS !== 'undefined') ? ESH_DEFAULT_ROWS : {};
+            const _ESH_DRILLS_LIST = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
+
+            function isBlk(p, mo) { return isMonthBlacklistedForProject(p, mo, selectedYear); }
+
+            let projects = (state.projects || []).filter(p => p.region === region);
+            if (isOverall) {
+                projects = projects.filter(p => !(p.workStoppageDate && !p.workResumeDate) && !p.dateFinished);
+            } else {
+                projects = projects.filter(p =>
+                    !isProjectOnStoppage(p) &&
+                    !isProjectFinishedForMonth(p, monthIdx1Based, selectedYear) &&
+                    !isBlk(p, monthIdx1Based)
+                );
+            }
+
+            // gaps: { area, count of missing, items: [{project, detail}] }
+            const areaGaps = {}; // areaLabel -> { missing:0, required:0, items:[] }
+            function addGap(area, project, detail) {
+                if (!areaGaps[area]) areaGaps[area] = { missing: 0, required: 0, items: [] };
+                areaGaps[area].missing++;
+                areaGaps[area].items.push({ project: project.name, detail });
+            }
+            function addRequired(area, count) {
+                if (!areaGaps[area]) areaGaps[area] = { missing: 0, required: 0, items: [] };
+                areaGaps[area].required += count;
+            }
+
+            projects.forEach(proj => {
+                const vals = proj.vals || {};
+                const moList = isOverall
+                    ? Array.from({length:12}, (_,i)=>i+1).filter(m => !isBlk(proj, m))
+                    : [monthIdx1Based];
+
+                // Area 1: Drills & Training
+                ['activities_Drills Conducted', 'activities_Training Conducted'].forEach(key => {
+                    const fieldLabel = key.endsWith('Drills Conducted') ? 'Drills Conducted' : 'Training Conducted';
+                    moList.forEach(mo => {
+                        addRequired('Drills & Training', 1);
+                        const v = vals[key] && vals[key][mo];
+                        if (v === undefined || v === null || v === '' || v === '0') {
+                            addGap('Drills & Training', proj, `${_KPM_MONTHS[mo-1]} — ${fieldLabel} missing`);
+                        }
+                    });
+                });
+
+                // Area 2: KPM (region-wide submission)
+                if (!(vals['kpm_na'] === '1')) {
+                    moList.forEach(mo => {
+                        addRequired('KPM Report', 1);
+                        const _kpmRegionPeers = (state.projects || []).filter(p =>
+                            !isBlk(p, mo) && !(p.vals && p.vals['kpm_na'] === '1') &&
+                            (p.region || '').toUpperCase() === (proj.region || '').toUpperCase()
+                        );
+                        const _dateKey = 'kpm_v3_' + _KPM_MONTHS[mo-1] + '_dateSubmitted';
+                        const _submitted = _kpmRegionPeers.some(p => { const v = p.vals && p.vals[_dateKey]; return v && v.toString().trim() !== ''; });
+                        if (!_submitted) addGap('KPM Report', proj, `${_KPM_MONTHS[mo-1]} — no KPM submission date from region`);
+                    });
+                }
+
+                // Area 3: DOLE
+                ['dole_WAIR','dole_RSO','dole_MOM'].forEach(key => {
+                    const lbl = key.split('_')[1];
+                    moList.forEach(mo => {
+                        addRequired('DOLE Reportorial', 1);
+                        const v = vals[key] && vals[key][mo];
+                        if (v === undefined || v === null || v === '' || v === '0') {
+                            addGap('DOLE Reportorial', proj, `${_KPM_MONTHS[mo-1]} — ${lbl} missing`);
+                        }
+                    });
+                });
+
+                // Area 4: GOT Monitoring
+                if (typeof window.gotGetCell === 'function') {
+                    ['E1','E2','E3','S1','S2','S3'].forEach(goalId => {
+                        moList.forEach(mo => {
+                            addRequired('GOT Monitoring', 1);
+                            const _gotVal = window.gotGetCell(proj, goalId, 0, mo).r;
+                            if (!_gotVal || _gotVal.toString().trim() === '') {
+                                addGap('GOT Monitoring', proj, `${_KPM_MONTHS[mo-1]} — Goal ${goalId} not updated`);
+                            }
+                        });
+                    });
+                }
+
+                // Area 5: ESH Calendar (env/safety/health)
+                const _ESH_CAL_TYPES = [['esh-calendar-env','Environmental'], ['esh-calendar-safety','Safety'], ['esh-calendar-health','Health']];
+                _ESH_CAL_TYPES.forEach(([tt, ttLabel]) => {
+                    const rows = _ESH_DEF_ROWS[tt] || [];
+                    rows.forEach((row, ti) => {
+                        const naRowKey = `${_calYear}|${tt}|${proj.name}|${ti}|na_row`;
+                        const naFrom = _calStor[naRowKey] !== undefined ? parseInt(_calStor[naRowKey]) : -1;
+                        moList.forEach(mo => {
+                            const mi = mo - 1;
+                            if (naFrom >= 0 && mi >= naFrom) return; // N/A — exempt
+                            addRequired('ESH Calendar', 1);
+                            const actualKey = `${_calYear}|${tt}|${proj.name}|${ti}|${mi}|actual`;
+                            if (!_calStor[actualKey] || _calStor[actualKey] === '') {
+                                addGap('ESH Calendar', proj, `${_KPM_MONTHS[mo-1]} — ${ttLabel}: "${row.name || row.label || ('Item ' + (ti+1))}" not filled`);
+                            }
+                        });
+                    });
+                });
+
+                // Area 6: Emergency Drills (planned only)
+                _ESH_DRILLS_LIST.forEach((drill, di) => {
+                    const _drillSi = (typeof getDrillStorageIdx === 'function') ? getDrillStorageIdx(drill, di) : (drill.id !== undefined ? drill.id : di);
+                    moList.forEach(mo => {
+                        const mi = mo - 1;
+                        const planKey = `${_calYear}|esh-calendar-drills|GLOBAL_PLAN|${_drillSi}|${mi}|plan`;
+                        if (!_calStor[planKey] || _calStor[planKey] === '__DELETED__') return; // not planned this month
+                        const naCellKey = `${_calYear}|esh-calendar-drills|${proj.name}|${_drillSi}|${mi}|na`;
+                        if (_calStor[naCellKey]) return;
+                        addRequired('Emergency Drills', 1);
+                        const actualKey = `${_calYear}|esh-calendar-drills|${proj.name}|${_drillSi}|${mi}|actual`;
+                        if (!_calStor[actualKey] || _calStor[actualKey] === '' || _calStor[actualKey] === '__DELETED__') {
+                            addGap('Emergency Drills', proj, `${_KPM_MONTHS[mo-1]} — "${drill.name || drill.label || ('Drill ' + (di+1))}" not conducted/logged`);
+                        }
+                    });
+                });
+
+                // Area 7: EMR
+                const _emrKey = 'env-monthly-report_Environmental Monthly Report (EMR)';
+                const _emrNaKey = 'env-monthly-report_na';
+                moList.forEach(mo => {
+                    const _naRaw = vals[_emrNaKey] && vals[_emrNaKey][mo];
+                    const _isNa = _naRaw === true || _naRaw === 'true' || _naRaw === '1' || _naRaw === 1;
+                    if (_isNa) return; // exempt
+                    addRequired('Environmental Monthly Report', 1);
+                    const v = vals[_emrKey] && vals[_emrKey][mo];
+                    if (!v || v.toString().trim() === '') {
+                        addGap('Environmental Monthly Report', proj, `${_KPM_MONTHS[mo-1]} — EMR Date missing`);
+                    }
+                });
+
+                // Overall-only areas (quarterly/semi-annual — not shown in the monthly view)
+                if (isOverall) {
+                    // Area 8: SMR Quarterly
+                    const _smrKey = 'emb_SMR (Quarterly) - Submission Date';
+                    const _smrCocKey = 'emb_SMR (Quarterly) - Care of Client';
+                    for (let q = 1; q <= 4; q++) {
+                        const _coc = vals[_smrCocKey] && vals[_smrCocKey][q];
+                        if (_coc === true || _coc === 'true' || _coc === '1' || _coc === 1) continue;
+                        addRequired('EMB Reportorial (SMR)', 1);
+                        const v = vals[_smrKey] && vals[_smrKey][q];
+                        if (!v || v.toString().trim() === '') addGap('EMB Reportorial (SMR)', proj, `Q${q} — SMR Submission Date missing`);
+                    }
+                    // Area 9: CMR Semi-Annual
+                    const _cmrKey = 'emb_CMR (Semi-Annual) - Submission Date';
+                    const _cmrCocKey = 'emb_CMR (Semi-Annual) - Care of Client';
+                    for (let p2 = 1; p2 <= 2; p2++) {
+                        const _coc = vals[_cmrCocKey] && vals[_cmrCocKey][p2];
+                        if (_coc === true || _coc === 'true' || _coc === '1' || _coc === 1) continue;
+                        addRequired('EMB Reportorial (CMR)', 1);
+                        const v = vals[_cmrKey] && vals[_cmrKey][p2];
+                        if (!v || v.toString().trim() === '') addGap('EMB Reportorial (CMR)', proj, `Period ${p2} — CMR Submission Date missing`);
+                    }
+                    // Area 10: DOE Reportorial (renewable only)
+                    if (proj.isRenewable === true) {
+                        const _doeIsCP = vals['doe_client_provided'] === '1' || vals['doe-permit_client_provided'] === '1';
+                        if (!_doeIsCP) {
+                            const _doeKey = 'doe_DOE Quarterly Report Submission Date';
+                            const _doeStartQ = (typeof getDoeStartQuarterForYear === 'function') ? getDoeStartQuarterForYear(proj, selectedYear) : 1;
+                            for (let q = 1; q <= 4; q++) {
+                                if (q < _doeStartQ) continue;
+                                addRequired('DOE Reportorial (Renewable)', 1);
+                                const v = vals[_doeKey] && vals[_doeKey][q];
+                                if (!v || v.toString().trim() === '') addGap('DOE Reportorial (Renewable)', proj, `Q${q} — DOE Submission Date missing`);
+                            }
+                        }
+                    }
+                }
+            });
+
+            return { region, monthIdx1Based, projectCount: projects.length, areaGaps };
+        }
+        window.getComplianceGapDetails = getComplianceGapDetails;
+
+        function showComplianceGapModal(region, monthIdx1Based, focusAreaLabel) {
+            const data = getComplianceGapDetails(region, monthIdx1Based);
+            const monthLabel = monthIdx1Based ? ['January','February','March','April','May','June','July','August','September','October','November','December'][monthIdx1Based-1] : 'Overall (Full Year)';
+            const areaKeys = Object.keys(data.areaGaps);
+            const totalRequired = areaKeys.reduce((s,k)=>s+data.areaGaps[k].required,0);
+            const totalMissing  = areaKeys.reduce((s,k)=>s+data.areaGaps[k].missing,0);
+            const scorePct = totalRequired > 0 ? Math.round(((totalRequired-totalMissing)/totalRequired)*100) : 100;
+
+            let bodyHtml = '';
+            if (data.projectCount === 0) {
+                bodyHtml = '<div style="text-align:center;padding:30px;color:#888;">No active projects requiring data for this period in ' + region + '.</div>';
+            } else if (totalMissing === 0) {
+                bodyHtml = '<div style="text-align:center;padding:30px;color:#2e7d32;font-weight:700;"><i class="fas fa-check-circle" style="font-size:2rem;display:block;margin-bottom:10px;"></i>All required fields are complete — ' + region + ' is at 100% for ' + monthLabel + '!</div>';
+            } else {
+                let _gapAreaIdx = 0;
+                areaKeys.forEach(area => {
+                    const g = data.areaGaps[area];
+                    if (g.missing === 0) return; // fully complete area — skip
+                    _gapAreaIdx++;
+                    const _areaId = 'gapArea' + _gapAreaIdx;
+                    const _areaPct = g.required > 0 ? Math.round(((g.required - g.missing) / g.required) * 100) : 100;
+                    // Group items by project for a per-project expandable breakdown
+                    const _byProject = {};
+                    g.items.forEach(item => {
+                        if (!_byProject[item.project]) _byProject[item.project] = [];
+                        _byProject[item.project].push(item.detail);
+                    });
+                    const _projectNames = Object.keys(_byProject);
+
+                    bodyHtml += '<div style="margin-bottom:12px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;">';
+                    // ── Area summary header (always visible, click to expand) ──
+                    bodyHtml += '<div data-arealabel="' + area.replace(/"/g,'&quot;') + '" onclick="var b=document.getElementById(\'' + _areaId + '\');var i=document.getElementById(\'' + _areaId + 'Icon\');'
+                        + 'if(b.style.display===\'none\'){b.style.display=\'block\';i.style.transform=\'rotate(90deg)\';}'
+                        + 'else{b.style.display=\'none\';i.style.transform=\'rotate(0deg)\';}" '
+                        + 'style="background:#fff3e0;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;">';
+                    bodyHtml += '<strong style="color:#e65100;font-size:0.85rem;"><i id="' + _areaId + 'Icon" class="fas fa-chevron-right" style="font-size:0.68rem;margin-right:6px;transition:transform 0.15s;"></i>' + area + '</strong>';
+                    bodyHtml += '<span style="display:flex;align-items:center;gap:8px;">'
+                        + '<span style="font-size:0.68rem;color:#a15b00;">' + _areaPct + '% done</span>'
+                        + '<span style="background:#e65100;color:white;font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:10px;">' + g.missing + ' / ' + g.required + ' missing</span>'
+                        + '</span>';
+                    bodyHtml += '</div>';
+                    // ── Expandable per-project detail (collapsed by default) ──
+                    bodyHtml += '<div id="' + _areaId + '" style="display:none;padding:8px 14px;max-height:220px;overflow-y:auto;background:#fffaf5;">';
+                    _projectNames.forEach(pname => {
+                        bodyHtml += '<div style="margin-bottom:8px;">';
+                        bodyHtml += '<div style="font-weight:700;color:#333;font-size:0.78rem;margin-bottom:2px;"><i class="fas fa-building" style="font-size:0.68rem;color:#999;margin-right:4px;"></i>' + pname + ' <span style="color:#e65100;font-weight:600;">(' + _byProject[pname].length + ')</span></div>';
+                        _byProject[pname].forEach(detail => {
+                            bodyHtml += '<div style="padding:3px 0 3px 20px;border-bottom:1px solid #f5f0e8;font-size:0.75rem;color:#666;">' + detail + '</div>';
+                        });
+                        bodyHtml += '</div>';
+                    });
+                    bodyHtml += '</div></div>';
+                });
+            }
+
+            const modalHtml = `
+                <div id="complianceGapModalOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this) this.remove()">
+                    <div style="background:white;border-radius:12px;max-width:640px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+                        <div style="padding:18px 22px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#1b5e20,#2e7d32);border-radius:12px 12px 0 0;">
+                            <div>
+                                <div style="color:white;font-weight:800;font-size:1rem;">Why isn't ${region} at 100%?</div>
+                                <div style="color:#c8e6c9;font-size:0.78rem;margin-top:2px;">${monthLabel} · Current score: ${scorePct}% (${totalRequired-totalMissing}/${totalRequired} required items complete)</div>
+                            </div>
+                            <button onclick="document.getElementById('complianceGapModalOverlay').remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:1rem;">×</button>
+                        </div>
+                        <div id="gapModalBody" style="padding:18px 22px;overflow-y:auto;flex:1;">${totalMissing > 0 ? `<div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:10px;"><a onclick="document.getElementById('gapModalBody').querySelectorAll('[id^=gapArea]:not([id$=Icon])').forEach(b=>b.style.display='block');document.getElementById('gapModalBody').querySelectorAll('[id$=Icon]').forEach(i=>i.style.transform='rotate(90deg)');" style="font-size:0.7rem;color:#1b5e20;cursor:pointer;font-weight:600;">Expand all</a><a onclick="document.getElementById('gapModalBody').querySelectorAll('[id^=gapArea]:not([id$=Icon])').forEach(b=>b.style.display='none');document.getElementById('gapModalBody').querySelectorAll('[id$=Icon]').forEach(i=>i.style.transform='rotate(0deg)');" style="font-size:0.7rem;color:#888;cursor:pointer;font-weight:600;">Collapse all</a></div>` : ''}${bodyHtml}</div>
+                    </div>
+                </div>`;
+            const existing = document.getElementById('complianceGapModalOverlay');
+            if (existing) existing.remove();
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            // If opened from a specific area row, auto-expand + scroll straight to it
+            if (focusAreaLabel) {
+                setTimeout(() => {
+                    const _target = document.querySelector('#complianceGapModalOverlay [data-arealabel="' + focusAreaLabel.replace(/"/g,'\\"') + '"]');
+                    if (_target) {
+                        _target.click();
+                        _target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 30);
+            }
+        }
+        window.showComplianceGapModal = showComplianceGapModal;
+
         function calculateYTD(vals, rowIndex) {
             if (!vals) return 0;
             let sum = 0;
@@ -6853,6 +7124,15 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                             responsive: true,
                             maintainAspectRatio: false,
                             layout: { padding: { top: 20, right: 30 } },
+                            onClick: (evt, elements) => {
+                                if (!elements || !elements.length) return;
+                                const idx = elements[0].index;
+                                const clickedRegion = chartRegions[idx];
+                                showComplianceGapModal(clickedRegion, _rcv || 0);
+                            },
+                            onHover: (evt, elements) => {
+                                evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+                            },
                             plugins: {
                                 legend: { display: false },
                                 tooltip: {
@@ -10338,6 +10618,15 @@ function renderTabulation() {
                         responsive: true,
                         maintainAspectRatio: false,
                         layout: { padding: { top: 20, right: 30 } },
+                        onClick: (evt, elements) => {
+                            if (!elements || !elements.length) return;
+                            const idx = elements[0].index;
+                            const clickedRegion = chartRegions[idx];
+                            showComplianceGapModal(clickedRegion, _rcv || 0);
+                        },
+                        onHover: (evt, elements) => {
+                            evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+                        },
                         plugins: {
                             legend: { display: false },
                             tooltip: {
@@ -10446,6 +10735,17 @@ function renderTabulation() {
                 eshCal:         'ESH Calendar',
                 emDrills:       'Emergency Drills',
                 emr:            'Environmental Report (EMR)',
+            };
+            // Maps this table's short area keys to the exact area labels used inside
+            // the detail modal (getComplianceGapDetails), so a row click can jump straight to it.
+            const _GAP_KEY_TO_DETAIL_LABEL = {
+                drillsTraining: 'Drills & Training',
+                kpm:            'KPM Report',
+                dole:           'DOLE Reportorial',
+                got:            'GOT Monitoring',
+                eshCal:         'ESH Calendar',
+                emDrills:       'Emergency Drills',
+                emr:            'Environmental Monthly Report',
             };
 
             const _mcNow = new Date();
@@ -10593,7 +10893,7 @@ function renderTabulation() {
                         <i class="fas fa-magnifying-glass-chart" style="color:#1b5e20;font-size:1.1rem;"></i>
                         <div>
                             <div style="font-family:Poppins,sans-serif;font-size:0.88rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">Monthly Compliance Gap Analysis</div>
-                            <div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Detected gaps for <strong>${moName} ${selYear}</strong> — areas that reduced compliance below 100%</div>
+                            <div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Detected gaps for <strong>${moName} ${selYear}</strong> — areas that reduced compliance below 100%. Click a region or area for the full breakdown.</div>
                         </div>
                     </div>
                     <div style="display:flex;align-items:center;gap:6px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:4px 8px;">
@@ -10611,16 +10911,18 @@ function renderTabulation() {
                     const rc = _RCOLOR[region] || '#546e7a';
                     const sc = score >= 90 ? '#2e7d32' : score >= 75 ? '#e65100' : '#c62828';
                     const sb = score >= 90 ? '#e8f5e9' : score >= 75 ? '#fff3e0' : '#ffebee';
+                    const _regionSafe = region.replace(/'/g, "\\'");
 
                     let gapRows = '';
                     if (gaps.length === 0) {
                         gapRows = `<div style="font-size:0.65rem;color:#2e7d32;padding:6px 0;display:flex;align-items:center;gap:6px;"><i class="fas fa-circle-check" style="color:#43a047;"></i> All compliance areas complete!</div>`;
                     } else {
-                        gaps.forEach(({ label, rate, missing, total }) => {
+                        gaps.forEach(({ key, label, rate, missing, total }) => {
                             const pct = Math.round(rate * 100);
                             const bc  = rate === 0 ? '#c62828' : rate < 0.5 ? '#e53935' : rate < 0.8 ? '#fb8c00' : '#fdd835';
+                            const _focusLabel = (_GAP_KEY_TO_DETAIL_LABEL[key] || label).replace(/'/g, "\\'");
                             gapRows += `
-                                <div style="margin-bottom:7px;">
+                                <div onclick="event.stopPropagation();showComplianceGapModal('${_regionSafe}', ${selMonth}, '${_focusLabel}');" style="margin-bottom:7px;cursor:pointer;" title="Click to see which projects/fields are missing">
                                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
                                         <span style="font-size:0.62rem;font-weight:600;color:#333;">${label}</span>
                                         <span style="font-size:0.6rem;font-weight:700;color:${bc};">${missing} missing / ${total}</span>
@@ -10633,9 +10935,9 @@ function renderTabulation() {
                     }
 
                     innerHtml += `
-                        <div style="background:#fafafa;border-radius:8px;border:1px solid #e0e0e0;border-top:3px solid ${rc};padding:12px 14px;">
+                        <div onclick="showComplianceGapModal('${_regionSafe}', ${selMonth});" style="background:#fafafa;border-radius:8px;border:1px solid #e0e0e0;border-top:3px solid ${rc};padding:12px 14px;cursor:pointer;transition:box-shadow 0.15s;" title="Click for full compliance breakdown" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
                             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                                <span style="font-size:0.7rem;font-weight:800;color:${rc};">${region}</span>
+                                <span style="font-size:0.7rem;font-weight:800;color:${rc};">${region} <i class="fas fa-circle-info" style="font-size:0.6rem;opacity:0.6;margin-left:2px;"></i></span>
                                 <span style="font-size:0.72rem;font-weight:900;color:${sc};background:${sb};padding:2px 8px;border-radius:12px;">${score}%</span>
                             </div>
                             ${gapRows}
@@ -10799,7 +11101,7 @@ function renderTabulation() {
                     </div>
                 </div>
                 <div class="charts-container">
-                    <div class="chart-box"><h3><i class="fas fa-chart-bar"></i> Compliance by Region</h3><canvas id="regionChart"></canvas></div>
+                    <div class="chart-box"><h3><i class="fas fa-chart-bar"></i> Compliance by Region <span style="font-size:0.68rem;font-weight:500;color:#888;margin-left:6px;"><i class="fas fa-hand-pointer"></i> click a bar to see what's missing</span></h3><canvas id="regionChart"></canvas></div>
                     <div class="chart-box"><h3><i class="fas fa-chart-pie"></i> Project Status</h3><canvas id="statusChart"></canvas></div>
                 </div>
                 `;
@@ -10816,6 +11118,15 @@ function renderTabulation() {
                         eshCal:         'ESH Calendar',
                         emDrills:       'Emergency Drills',
                         emr:            'Environmental Report (EMR)',
+                    };
+                    const _GAP_KEY_TO_DETAIL_LABEL = {
+                        drillsTraining: 'Drills & Training',
+                        kpm:            'KPM Report',
+                        dole:           'DOLE Reportorial',
+                        got:            'GOT Monitoring',
+                        eshCal:         'ESH Calendar',
+                        emDrills:       'Emergency Drills',
+                        emr:            'Environmental Monthly Report',
                     };
 
                     const _cv = state.complianceView || 0;
@@ -10961,7 +11272,7 @@ function renderTabulation() {
                                     <i class="fas fa-magnifying-glass-chart" style="color:#1b5e20;font-size:1.1rem;"></i>
                                     <div>
                                         <div style="font-family:Poppins,sans-serif;font-size:0.88rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">Monthly Compliance Gap Analysis</div>
-                                        <div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Detected gaps for <strong>${moName} ${selYear}</strong> — areas that reduced compliance below 100%</div>
+                                        <div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Detected gaps for <strong>${moName} ${selYear}</strong> — areas that reduced compliance below 100%. Click a region or area for the full breakdown.</div>
                                     </div>
                                 </div>
                                 <div style="display:flex;align-items:center;gap:6px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:4px 8px;">
@@ -10976,16 +11287,18 @@ function renderTabulation() {
                         const rc = _RCOLOR[region] || '#546e7a';
                         const sc = score >= 90 ? '#2e7d32' : score >= 75 ? '#e65100' : '#c62828';
                         const sb = score >= 90 ? '#e8f5e9' : score >= 75 ? '#fff3e0' : '#ffebee';
+                        const _regionSafe = region.replace(/'/g, "\\'");
 
                         let gapRows = '';
                         if (gaps.length === 0) {
                             gapRows = `<div style="font-size:0.65rem;color:#2e7d32;padding:6px 0;display:flex;align-items:center;gap:6px;"><i class="fas fa-circle-check" style="color:#43a047;"></i> All compliance areas complete!</div>`;
                         } else {
-                            gaps.forEach(({ label, rate, missing, total }) => {
+                            gaps.forEach(({ key, label, rate, missing, total }) => {
                                 const pct = Math.round(rate * 100);
                                 const bc  = rate === 0 ? '#c62828' : rate < 0.5 ? '#e53935' : rate < 0.8 ? '#fb8c00' : '#fdd835';
+                                const _focusLabel = (_GAP_KEY_TO_DETAIL_LABEL[key] || label).replace(/'/g, "\\'");
                                 gapRows += `
-                                    <div style="margin-bottom:7px;">
+                                    <div onclick="event.stopPropagation();showComplianceGapModal('${_regionSafe}', ${selMonth}, '${_focusLabel}');" style="margin-bottom:7px;cursor:pointer;" title="Click to see which projects/fields are missing">
                                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
                                             <span style="font-size:0.62rem;font-weight:600;color:#333;">${label}</span>
                                             <span style="font-size:0.6rem;font-weight:700;color:${bc};">${missing} missing / ${total}</span>
@@ -10998,9 +11311,9 @@ function renderTabulation() {
                         }
 
                         gapHtml += `
-                            <div style="background:#fafafa;border-radius:8px;border:1px solid #e0e0e0;border-top:3px solid ${rc};padding:12px 14px;">
+                            <div onclick="showComplianceGapModal('${_regionSafe}', ${selMonth});" style="background:#fafafa;border-radius:8px;border:1px solid #e0e0e0;border-top:3px solid ${rc};padding:12px 14px;cursor:pointer;transition:box-shadow 0.15s;" title="Click for full compliance breakdown" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
                                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                                    <span style="font-size:0.7rem;font-weight:800;color:${rc};">${region}</span>
+                                    <span style="font-size:0.7rem;font-weight:800;color:${rc};">${region} <i class="fas fa-circle-info" style="font-size:0.6rem;opacity:0.6;margin-left:2px;"></i></span>
                                     <span style="font-size:0.72rem;font-weight:900;color:${sc};background:${sb};padding:2px 8px;border-radius:12px;">${score}%</span>
                                 </div>
                                 ${gapRows}
