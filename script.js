@@ -7974,6 +7974,14 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             }
         }
 
+        // Expose to global scope so functions outside showUI() (e.g. computeAggregateTabulation)
+        // can compute Days Lost/Charged directly from the Incident & Accident Registry —
+        // same single source of truth used for the Medical Tab auto-sync.
+        window.SCHEDULED_CHARGES  = SCHEDULED_CHARGES;
+        window.LTA_INJURY_TYPES   = LTA_INJURY_TYPES;
+        window.computeDaysLost    = computeDaysLost;
+        window.computeDaysCharged = computeDaysCharged;
+
         
         function syncDaysLostFromLtaRegistry() {
             const selectedYear = (state && state.selectedYear) ? parseInt(state.selectedYear) : new Date().getFullYear();
@@ -7983,12 +7991,13 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 let hasCurrentYearEntries = false;
                 entries.forEach(e => {
                     if (e.injuryType === 'na') return;       // ← skip N/A entries
-                    if (!e.dateOfAccident) return;
-                    const accidentYear = new Date(e.dateOfAccident).getFullYear();
+                    const dateForYear = e.dateOfAccident || e.dateReported || ''; // fallback, same pattern used elsewhere in registry (e.g. sort/list rendering)
+                    if (!dateForYear) return;
+                    const accidentYear = new Date(dateForYear).getFullYear();
                     if (accidentYear !== selectedYear) return; // ← skip other years
                     const { daysCharged } = computeDaysCharged(e);
                     if (daysCharged <= 0) return;
-                    const month = new Date(e.dateOfAccident).getMonth() + 1; // 1-12
+                    const month = new Date(dateForYear).getMonth() + 1; // 1-12
                     monthTotals[month] += daysCharged;
                     hasCurrentYearEntries = true;
                 });
@@ -19531,7 +19540,10 @@ function computeAggregateTabulation() {
     let firstAid        = 0;
     let fatality        = 0;
     let highPotential   = 0;
-    let lostDays        = 0;   // from medical_Days Lost/Charged (direct field)
+    let lostDays        = 0;   // from Incident & Accident Registry (Scheduled Charge Item / actual dates)
+
+    const _selYear = state && state.selectedYear ? parseInt(state.selectedYear) : new Date().getFullYear();
+    const _hasDaysChargedFn = typeof window.computeDaysCharged === 'function';
 
     state.projects
         .filter(p => p.region !== 'PLANT OPERATIONS')
@@ -19546,8 +19558,31 @@ function computeAggregateTabulation() {
             firstAid      += parseFloat(p.vals['medical_First Aid']?.[i])                   || 0;
             fatality      += parseFloat(p.vals['medical_Fatality']?.[i])                    || 0;
             highPotential += parseFloat(p.vals['medical_High-Potential incident']?.[i])     || 0;
-            lostDays      += parseFloat(p.vals['medical_Days Lost/Charged']?.[i])           || 0;
         }
+
+        // No. of Lost Days — sourced directly from the Incident & Accident Registry
+        // (lta-registry_entries), same as the Medical Tab auto-sync: Scheduled Charge
+        // Item (Table 6, ANSI Z16.1) for permanent/amputation/vision/hearing/fatality,
+        // or actual Date of Accident → RTW for temporary/confinement entries. N/A
+        // entries and entries outside the selected year are excluded.
+        if (_hasDaysChargedFn) {
+            const entries = p.vals['lta-registry_entries'] || [];
+            entries.forEach(e => {
+                if (!e || e.injuryType === 'na') return;
+                const dateForYear = e.dateOfAccident || e.dateReported || ''; // fallback, same pattern used elsewhere in registry (e.g. sort/list rendering)
+                if (!dateForYear) return;
+                const accidentYear = new Date(dateForYear).getFullYear();
+                if (accidentYear !== _selYear) return;
+                lostDays += window.computeDaysCharged(e).daysCharged || 0;
+            });
+        } else {
+            // Fallback (should not normally trigger — window.computeDaysCharged is
+            // registered by showUI() before this card renders)
+            for (let i = 1; i <= 12; i++) {
+                lostDays += parseFloat(p.vals['medical_Days Lost/Charged']?.[i]) || 0;
+            }
+        }
+
         const prevMh = parseFloat(p.vals['exposures_Total Exposed Man-hour to date']?.[0]) || 0;
         totalManHoursToDate += prevMh + pMh;
     });
@@ -19608,7 +19643,7 @@ function buildIncidentTabulationHTML() {
           <div style="padding: 10px 14px; text-align: center; border-right: 1px solid var(--border-color);">
             <div style="font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 3px;">No. of Lost Days</div>
             <div style="font-size: 1.5rem; font-weight: 900; color: #1565c0; line-height: 1;">${d.lostDays}</div>
-            <div style="font-size: 0.57rem; color: var(--text-secondary); margin-top: 2px;">From Severity Rate data</div>
+            <div style="font-size: 0.57rem; color: var(--text-secondary); margin-top: 2px;">From Incident &amp; Accident Registry</div>
           </div>
 
           <div style="padding: 10px 14px; text-align: center; border-right: 1px solid var(--border-color);">
@@ -19649,9 +19684,8 @@ function buildIncidentTabulationHTML() {
                 </td>
                 <td style="background:#fff9c4;padding:8px;text-align:center;border:1px solid #fbc02d;">
                   <div style="font-size:1.3rem;font-weight:900;color:#f9a825;">0</div>
-                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;
-                    ${(d.fatalCases ?? 0) === 0 ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
-                    ${(d.fatalCases ?? 0) === 0 ? '✅ ON TARGET' : '⚠ EXCEEDED'}
+                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;background:#e8f5e9;color:#2e7d32;">
+                    ✅ TARGET
                   </div>
                 </td>
               </tr>
@@ -19661,18 +19695,25 @@ function buildIncidentTabulationHTML() {
                   <div style="font-size:0.61rem;opacity:0.9;margin-top:2px;">LTA Cases × 200K or 1M ÷ Total Man-hours</div>
                 </td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.3rem;font-weight:800;color:#1b5e20;">${d.ltirOsha}</div>
+                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.ltirOsha) <= 0.50 ? '#1b5e20' : '#c62828'};">${d.ltirOsha}</div>
                   <div style="font-size:0.58rem;color:var(--text-secondary);">OSHA (200K base)</div>
+                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;
+                    ${parseFloat(d.ltirOsha) <= 0.50 ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
+                    ${parseFloat(d.ltirOsha) <= 0.50 ? '✅ TARGET' : '⚠ EXCEEDED'}
+                  </div>
                 </td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.3rem;font-weight:800;color:#1b5e20;">${d.ltirOshs}</div>
+                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.ltirOshs) <= 0.50 ? '#1b5e20' : '#c62828'};">${d.ltirOshs}</div>
                   <div style="font-size:0.58rem;color:var(--text-secondary);">OSHS (1M base)</div>
+                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;
+                    ${parseFloat(d.ltirOshs) <= 0.50 ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
+                    ${parseFloat(d.ltirOshs) <= 0.50 ? '✅ TARGET' : '⚠ EXCEEDED'}
+                  </div>
                 </td>
                 <td style="background:#fff9c4;padding:8px;text-align:center;border:1px solid #fbc02d;">
                   <div style="font-size:1.3rem;font-weight:900;color:#f9a825;">0.50</div>
-                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;
-                    ${parseFloat(d.ltirOsha) <= 0.50 ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
-                    ${parseFloat(d.ltirOsha) <= 0.50 ? '✅ ON TARGET' : '⚠ EXCEEDED'}
+                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;background:#e8f5e9;color:#2e7d32;">
+                    ✅ TARGET
                   </div>
                 </td>
               </tr>
@@ -19682,18 +19723,25 @@ function buildIncidentTabulationHTML() {
                   <div style="font-size:0.61rem;opacity:0.9;margin-top:2px;">Recordable Cases × 200K or 1M ÷ Total Man-hours</div>
                 </td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.3rem;font-weight:800;color:#1565c0;">${d.trirOsha}</div>
+                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.trirOsha) <= 1.25 ? '#1565c0' : '#c62828'};">${d.trirOsha}</div>
                   <div style="font-size:0.58rem;color:var(--text-secondary);">OSHA (200K base)</div>
+                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;
+                    ${parseFloat(d.trirOsha) <= 1.25 ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
+                    ${parseFloat(d.trirOsha) <= 1.25 ? '✅ TARGET' : '⚠ EXCEEDED'}
+                  </div>
                 </td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.3rem;font-weight:800;color:#1565c0;">${d.trirOshs}</div>
+                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.trirOshs) <= 1.25 ? '#1565c0' : '#c62828'};">${d.trirOshs}</div>
                   <div style="font-size:0.58rem;color:var(--text-secondary);">OSHS (1M base)</div>
+                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;
+                    ${parseFloat(d.trirOshs) <= 1.25 ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
+                    ${parseFloat(d.trirOshs) <= 1.25 ? '✅ TARGET' : '⚠ EXCEEDED'}
+                  </div>
                 </td>
                 <td style="background:#fff9c4;padding:8px;text-align:center;border:1px solid #fbc02d;">
                   <div style="font-size:1.3rem;font-weight:900;color:#f9a825;">1.25</div>
-                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;
-                    ${parseFloat(d.trirOsha) <= 1.25 ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
-                    ${parseFloat(d.trirOsha) <= 1.25 ? '✅ ON TARGET' : '⚠ EXCEEDED'}
+                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;background:#e8f5e9;color:#2e7d32;">
+                    ✅ TARGET
                   </div>
                 </td>
               </tr>
