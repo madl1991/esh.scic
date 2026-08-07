@@ -19642,7 +19642,7 @@ function buildIncidentTabulationHTML() {
 
           <div style="padding: 10px 14px; text-align: center; border-right: 1px solid var(--border-color);">
             <div style="font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 3px;">No. of Lost Days</div>
-            <div style="font-size: 1.5rem; font-weight: 900; color: #1565c0; line-height: 1;">${d.lostDays}</div>
+            <div style="font-size: 1.5rem; font-weight: 900; color: #1565c0; line-height: 1;">${d.lostDays.toLocaleString()}</div>
             <div style="font-size: 0.57rem; color: var(--text-secondary); margin-top: 2px;">From Incident &amp; Accident Registry</div>
           </div>
 
