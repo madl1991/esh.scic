@@ -5135,7 +5135,8 @@ debugCommands.help() - Show this help
                 'esh-calendar-health': `${state.selectedYear} ESH CALENDAR — HEALTH AWARENESS`,
                 'esh-calendar-drills': `${state.selectedYear} ESH CALENDAR — EMERGENCY DRILLS`,
                 'esh-calendar-corp-drills': `${state.selectedYear} ESH CALENDAR — CORPORATE DRILLS`,
-                'got-monitoring': 'GOALS, OBJECTIVES & TARGETS (GOT) MONITORING'
+                'got-monitoring': 'GOALS, OBJECTIVES & TARGETS (GOT) MONITORING',
+                'safety-alerts': 'SAFETY ALERTS'
             };
             document.querySelector('.header-title').innerText = titles[t] || t.toUpperCase();
             document.getElementById('settings-view').classList.toggle('hidden', t !== 'settings');
@@ -5148,7 +5149,8 @@ debugCommands.help() - Show this help
             document.getElementById('osh-nov-view').classList.toggle('hidden', t !== 'nov');
             document.getElementById('lta-registry-view').classList.toggle('hidden', t !== 'lta-registry');
             document.getElementById('tabulation-view').classList.toggle('hidden', t !== 'tabulation');
-            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel' || t === 'osh-requirement' || t === 'env-monitoring' || t === 'health-report' || t === 'got-monitoring' || t === 'nov-env' || t === 'nov' || t === 'lta-registry' || t === 'tabulation');
+            document.getElementById('safety-alerts-view').classList.toggle('hidden', t !== 'safety-alerts');
+            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel' || t === 'osh-requirement' || t === 'env-monitoring' || t === 'health-report' || t === 'got-monitoring' || t === 'nov-env' || t === 'nov' || t === 'lta-registry' || t === 'tabulation' || t === 'safety-alerts');
             
             const pcRates = document.getElementById('trend-chart-persistent-rates');
             const pcMedical = document.getElementById('trend-chart-persistent-medical');
@@ -5216,6 +5218,14 @@ debugCommands.help() - Show this help
             if (t === 'nov') { setTimeout(renderOshNovTab, 100); }
             if (t === 'tabulation') { setTimeout(renderTabulation, 100); }
             if (t === 'lta-registry') { setTimeout(renderLtaRegistryTab, 100); }
+            if (t === 'overall') {
+                if (typeof initSafetyAlertAwardListeners === 'function') initSafetyAlertAwardListeners();
+                setTimeout(function(){ if (typeof renderSafetyAlertAwardPanel === 'function') renderSafetyAlertAwardPanel(); }, 150);
+            }
+            if (t === 'safety-alerts') {
+                if (typeof initSafetyAlertAwardListeners === 'function') initSafetyAlertAwardListeners();
+                setTimeout(function(){ if (typeof renderSafetyAlertsPage === 'function') renderSafetyAlertsPage(); }, 100);
+            }
             
             if (t === 'personnel') { renderPTable(); }
             if (t === 'osh-requirement') { setTimeout(renderOsh2, 100); }
@@ -7463,7 +7473,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const _validTabs = ['overall','rates','exposures','medical','nov','nov-env','nov-monitoring',
                 'activities','corporate-kpm','kpm','dole','emb','doe','doe-permit','env-monthly-report',
                 'permits','env-monitoring','cshp','reg','audit','personnel','osh-requirement','nov-env',
-                'health-report','got-monitoring','lta-registry','tabulation',
+                'health-report','got-monitoring','lta-registry','tabulation','safety-alerts',
                 'esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
             const _storedTab = localStorage.getItem('esh_last_tab') || 'overall';
             let lastTab = _validTabs.includes(_storedTab) ? _storedTab : 'overall';
@@ -10987,6 +10997,13 @@ function renderTabulation() {
                 return;
             }
 
+            // Safety Alerts has its own dedicated container — render it directly and return
+            if (state.currentTab === 'safety-alerts') {
+                if (typeof initSafetyAlertAwardListeners === 'function') initSafetyAlertAwardListeners();
+                if (typeof renderSafetyAlertsPage === 'function') renderSafetyAlertsPage();
+                return;
+            }
+
             // Corporate KPM tab — admin-exclusive; render and return
             if (state.currentTab === 'corporate-kpm') {
                 if (typeof window.renderCorporateKpm === 'function') window.renderCorporateKpm();
@@ -11044,6 +11061,7 @@ function renderTabulation() {
                         </div>
                     </div>
                 </div>
+                <div id="safety-alert-award-panel"></div>
                 `;
                 
                 // ── Build monthly compliance card ────────────────────────────────
@@ -17212,6 +17230,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
             container.innerHTML = html;
         setTimeout(applyRegionBannerColors, 0);
+            if (state.currentTab === 'overall') {
+                if (typeof initSafetyAlertAwardListeners === 'function') initSafetyAlertAwardListeners();
+                if (typeof renderSafetyAlertAwardPanel === 'function') renderSafetyAlertAwardPanel();
+            }
 
             
             applyNumFmtToInputs();
@@ -19770,6 +19792,796 @@ function buildIncidentTabulationHTML() {
       </div>
     </div>`;
 }
+
+// ════════════════════════════════════════════════════════════════════════
+// SAFETY ALERT & SAFETY AWARD MODULE
+// Company-wide by default (users/{ADMIN_UID}/safety_alerts|safety_awards),
+// each entry can optionally be tagged to a specific project.
+// Images hosted on Cloudinary (unsigned upload) — only the secure_url is
+// stored in Firestore, never the raw image data.
+// ════════════════════════════════════════════════════════════════════════
+const SAFETY_ADMIN_UID          = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
+const SAFETY_CLOUDINARY_CLOUD   = 'xs57zpaa';
+const SAFETY_CLOUDINARY_PRESET  = 'safety_dashboard';
+
+window._safetyAlerts = [];
+window._safetyAwards = [];
+window._safetyListenersAttached = false;
+
+// Only these two accounts may publish/edit/archive/delete Safety Alerts & Awards.
+// Everyone else can still VIEW them — this is a client-side UX gate; the real
+// enforcement lives in Firestore rules (isSafetyPublisher()).
+const SAFETY_PUBLISHER_EMAILS = ['esh@wda.com.ph', 'esh@scic.com.ph'];
+function isSafetyPublisher() {
+    const email = (window.firebaseAuth?.currentUser?.email || '').toLowerCase();
+    return SAFETY_PUBLISHER_EMAILS.includes(email);
+}
+window.isSafetyPublisher = isSafetyPublisher;
+
+function safetyAlertsColRef() {
+    return window.firebase.collection(window.firebaseDb, 'users', SAFETY_ADMIN_UID, 'safety_alerts');
+}
+function safetyAwardsColRef() {
+    return window.firebase.collection(window.firebaseDb, 'users', SAFETY_ADMIN_UID, 'safety_awards');
+}
+
+function initSafetyAlertAwardListeners() {
+    if (!window.firebaseDb || !window.firebase || window._safetyListenersAttached) return;
+    window._safetyListenersAttached = true;
+    try {
+        window.firebase.onSnapshot(safetyAlertsColRef(), function(snap) {
+            const arr = [];
+            snap.forEach(function(d){ arr.push(Object.assign({ id: d.id }, d.data())); });
+            arr.sort(function(a,b){ return (b.dateIssued||'').localeCompare(a.dateIssued||''); });
+            window._safetyAlerts = arr;
+            renderSafetyAlertAwardPanel();
+        });
+        window.firebase.onSnapshot(safetyAwardsColRef(), function(snap) {
+            const arr = [];
+            snap.forEach(function(d){ arr.push(Object.assign({ id: d.id }, d.data())); });
+            arr.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+            window._safetyAwards = arr;
+            renderSafetyAlertAwardPanel();
+        });
+    } catch(e) { console.warn('initSafetyAlertAwardListeners failed:', e.message); }
+}
+window.initSafetyAlertAwardListeners = initSafetyAlertAwardListeners;
+
+async function saveSafetyAlert(alert) {
+    const id  = alert.id || ('alert_' + Date.now());
+    const ref = window.firebase.doc(safetyAlertsColRef(), id);
+    await window.firebase.setDoc(ref, Object.assign({}, alert, { id: id, _savedAt: Date.now() }), { merge: true });
+    return id;
+}
+window.saveSafetyAlert = saveSafetyAlert;
+
+async function deleteSafetyAlert(id) {
+    if (!canManageSafety()) { showToast('Switch to Edit Mode to delete a Safety Alert.', 'error'); return; }
+    await window.firebase.deleteDoc(window.firebase.doc(safetyAlertsColRef(), id));
+}
+window.deleteSafetyAlert = deleteSafetyAlert;
+
+async function saveSafetyAward(award) {
+    const id  = award.id || ('award_' + Date.now());
+    const ref = window.firebase.doc(safetyAwardsColRef(), id);
+    await window.firebase.setDoc(ref, Object.assign({}, award, { id: id, _savedAt: Date.now() }), { merge: true });
+    return id;
+}
+window.saveSafetyAward = saveSafetyAward;
+
+async function deleteSafetyAward(id) {
+    if (!canManageSafety()) { showToast('Switch to Edit Mode to delete a Safety Award.', 'error'); return; }
+    await window.firebase.deleteDoc(window.firebase.doc(safetyAwardsColRef(), id));
+}
+window.deleteSafetyAward = deleteSafetyAward;
+
+// ── Cloudinary unsigned upload — returns secure_url ───────────────────────
+async function uploadImageToCloudinary(file, onProgress) {
+    const url = `https://api.cloudinary.com/v1_1/${SAFETY_CLOUDINARY_CLOUD}/image/upload`;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', SAFETY_CLOUDINARY_PRESET);
+    formData.append('folder', 'safety-dashboard');
+    return new Promise(function(resolve, reject) {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url, true);
+        xhr.upload.onprogress = function(e) {
+            if (onProgress && e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+        };
+        xhr.onload = function() {
+            try {
+                const data = JSON.parse(xhr.responseText);
+                if (xhr.status >= 200 && xhr.status < 300 && data.secure_url) resolve(data.secure_url);
+                else reject(new Error(data.error?.message || 'Cloudinary upload failed'));
+            } catch(e) { reject(e); }
+        };
+        xhr.onerror = function() { reject(new Error('Network error during upload')); };
+        xhr.send(formData);
+    });
+}
+window.uploadImageToCloudinary = uploadImageToCloudinary;
+
+function safetyProjectOptionsHTML(selected) {
+    const names = (state.projects || []).map(function(p){ return p.name; }).filter(Boolean);
+    let opts = `<option value="" ${!selected ? 'selected' : ''}>Company-wide</option>`;
+    names.forEach(function(n){
+        opts += `<option value="${n.replace(/"/g,'&quot;')}" ${selected === n ? 'selected' : ''}>${n}</option>`;
+    });
+    return opts;
+}
+
+// ── Image crop tool (Cropper.js, loaded on demand) ──────────────────────────
+let _cropperLoadPromise = null;
+function loadSafetyCropperLib() {
+    if (window.Cropper) return Promise.resolve();
+    if (_cropperLoadPromise) return _cropperLoadPromise;
+    _cropperLoadPromise = new Promise(function(resolve, reject) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css';
+        document.head.appendChild(link);
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js';
+        script.onload = function(){ resolve(); };
+        script.onerror = function(){ reject(new Error('Could not load the image crop tool.')); };
+        document.head.appendChild(script);
+    });
+    return _cropperLoadPromise;
+}
+
+// Opens a crop dialog for one image file. Resolves with a cropped Blob,
+// rejects (silently, caller should catch) if the user cancels.
+function safetyCropImage(file, aspectRatio) {
+    return loadSafetyCropperLib().then(function() {
+        return new Promise(function(resolve, reject) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px;';
+                overlay.innerHTML = `
+                <div style="background:#fff;border-radius:12px;max-width:540px;width:100%;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+                    <div style="padding:12px 18px;font-weight:800;font-size:0.85rem;color:#333;border-bottom:1px solid var(--border-color);">Adjust the photo — drag to reposition, corners to resize</div>
+                    <div style="max-height:56vh;background:#111;">
+                        <img id="safety-crop-img" src="${e.target.result}" style="max-width:100%;display:block;">
+                    </div>
+                    <div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;">
+                        <button id="safety-crop-cancel" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-color);background:transparent;cursor:pointer;">Skip this photo</button>
+                        <button id="safety-crop-confirm" style="padding:7px 18px;border-radius:6px;border:none;background:#2e7d32;color:#fff;font-weight:700;cursor:pointer;">Use this crop</button>
+                    </div>
+                </div>`;
+                document.body.appendChild(overlay);
+                const imgEl = overlay.querySelector('#safety-crop-img');
+                const cropper = new Cropper(imgEl, {
+                    aspectRatio: aspectRatio,
+                    viewMode: 1,
+                    autoCropArea: 1,
+                    background: false,
+                    responsive: true
+                });
+                overlay.querySelector('#safety-crop-cancel').onclick = function() {
+                    cropper.destroy(); overlay.remove(); reject(new Error('cancelled'));
+                };
+                overlay.querySelector('#safety-crop-confirm').onclick = function() {
+                    const canvas = cropper.getCroppedCanvas({ maxWidth: 1600, maxHeight: 1600 });
+                    canvas.toBlob(function(blob) {
+                        cropper.destroy(); overlay.remove();
+                        resolve(blob);
+                    }, 'image/jpeg', 0.9);
+                };
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+}
+window.safetyCropImage = safetyCropImage;
+
+// Unified, order-preserving photo list per form. Each item:
+// { id: uniqueId, kind: 'existing'|'new', url?: string, blob?: Blob }
+// Index 0 is always the "front"/cover photo.
+window._safetyPhotoItems = { alert: [], award: [] };
+
+async function safetyHandlePhotoSelect(inputEl, kind) {
+    const files = Array.from(inputEl.files || []);
+    inputEl.value = ''; // allow re-selecting the same file later
+    const aspect   = kind === 'award' ? (16/9) : 1; // award: hero widescreen, alert: square thumbnail
+    const statusId = kind === 'award' ? 'sw-upload-status' : 'sa-upload-status';
+    for (let i = 0; i < files.length; i++) {
+        const statusEl = document.getElementById(statusId);
+        if (statusEl) statusEl.textContent = `Adjusting photo ${i + 1}/${files.length}...`;
+        try {
+            const blob = await safetyCropImage(files[i], aspect);
+            window._safetyPhotoItems[kind].push({ id: 'new_' + Date.now() + '_' + i, kind: 'new', blob: blob });
+            safetyRenderPhotoPreview(kind);
+        } catch (e) { /* user skipped this photo */ }
+    }
+    const statusEl2 = document.getElementById(statusId);
+    if (statusEl2) statusEl2.textContent = '';
+}
+window.safetyHandlePhotoSelect = safetyHandlePhotoSelect;
+
+function safetyRenderPhotoPreview(kind) {
+    const previewId = kind === 'award' ? 'sw-photo-preview' : 'sa-photo-preview';
+    const el = document.getElementById(previewId);
+    if (!el) return;
+    const items = window._safetyPhotoItems[kind] || [];
+    if (items.length === 0) { el.innerHTML = ''; return; }
+    const label = document.createElement('div'); // not used, just placeholder to keep structure simple
+    el.innerHTML = `<div style="font-size:0.62rem;color:var(--text-secondary);margin-bottom:4px;">Click the star to set the front (cover) photo — it's the one shown first.</div>` +
+        items.map(function(item, i) {
+            const url = item.kind === 'existing' ? item.url : URL.createObjectURL(item.blob);
+            const isFront = i === 0;
+            return `<span style="position:relative;display:inline-block;margin:2px 8px 8px 0;">
+                <img src="${url}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:2px solid ${isFront ? '#2e7d32' : 'var(--border-color)'};">
+                ${isFront ? `<span style="position:absolute;bottom:-6px;left:0;right:0;text-align:center;background:#2e7d32;color:#fff;font-size:8px;font-weight:700;border-radius:4px;padding:1px 0;">FRONT</span>` : ''}
+                <span onclick="safetySetFrontPhoto('${kind}','${item.id}')" title="Set as front photo" style="position:absolute;top:-6px;left:-6px;width:18px;height:18px;border-radius:50%;background:${isFront ? '#2e7d32' : '#fff'};border:1px solid ${isFront ? '#2e7d32' : 'var(--border-color)'};color:${isFront ? '#fff' : '#f9a825'};font-size:11px;line-height:16px;text-align:center;cursor:pointer;">&#9733;</span>
+                <span onclick="safetyRemovePhotoItem('${kind}','${item.id}')" title="Remove" style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:#c62828;color:#fff;font-size:10px;line-height:16px;text-align:center;cursor:pointer;">&times;</span>
+            </span>`;
+        }).join('');
+}
+window.safetyRenderPhotoPreview = safetyRenderPhotoPreview;
+
+function safetySetFrontPhoto(kind, itemId) {
+    const items = window._safetyPhotoItems[kind];
+    const idx = items.findIndex(function(it){ return it.id === itemId; });
+    if (idx <= 0) return; // already front, or not found
+    const [chosen] = items.splice(idx, 1);
+    items.unshift(chosen);
+    safetyRenderPhotoPreview(kind);
+}
+window.safetySetFrontPhoto = safetySetFrontPhoto;
+
+function safetyRemovePhotoItem(kind, itemId) {
+    window._safetyPhotoItems[kind] = window._safetyPhotoItems[kind].filter(function(it){ return it.id !== itemId; });
+    safetyRenderPhotoPreview(kind);
+}
+window.safetyRemovePhotoItem = safetyRemovePhotoItem;
+
+// ── Full-screen photo viewer (lightbox) ─────────────────────────────────────
+function safetyOpenLightbox(url) {
+    if (!url) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'safety-lightbox-overlay';
+    overlay.onclick = function(){ overlay.remove(); };
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:10002;display:flex;align-items:center;justify-content:center;padding:24px;cursor:zoom-out;';
+    overlay.innerHTML = `
+        <span onclick="document.getElementById('safety-lightbox-overlay').remove()" style="position:absolute;top:18px;right:24px;color:#fff;font-size:2rem;cursor:pointer;line-height:1;">&times;</span>
+        <img src="${url}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;box-shadow:0 10px 50px rgba(0,0,0,0.5);">`;
+    document.body.appendChild(overlay);
+}
+window.safetyOpenLightbox = safetyOpenLightbox;
+
+
+// ── View full detail (opened by clicking a photo) ───────────────────────────
+function safetyViewAwardDetail(id) {
+    const aw = (window._safetyAwards || []).find(function(a){ return a.id === id; });
+    if (!aw) return;
+    const canManage = canManageSafety();
+    const photos = Array.isArray(aw.photos) && aw.photos.length ? aw.photos : [null];
+    const modal = document.createElement('div');
+    modal.id = 'safety-detail-modal-overlay';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = `
+    <div style="background:var(--bg-card);border-radius:12px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+        <div style="background:linear-gradient(135deg,#f57f17,#fbc02d);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-weight:800;font-size:0.95rem;"><i class="fas fa-trophy"></i> Safety Award</span>
+            <span onclick="document.getElementById('safety-detail-modal-overlay').remove()" style="cursor:pointer;font-size:1.2rem;">&times;</span>
+        </div>
+        ${photos[0] ? `<img src="${photos[0]}" onclick="safetyOpenLightbox('${photos[0]}')" style="width:100%;max-height:320px;object-fit:cover;object-position:${aw.photoPosition||'center'};display:block;cursor:zoom-in;">` : ''}
+        ${photos.length > 1 ? `<div style="display:flex;gap:6px;padding:10px 18px 0;flex-wrap:wrap;">${photos.map(function(u){return `<img src="${u}" onclick="safetyOpenLightbox('${u}')" style="width:52px;height:52px;object-fit:cover;border-radius:6px;cursor:zoom-in;">`;}).join('')}</div>` : ''}
+        <div style="padding:16px 18px;">
+            <div style="font-size:0.65rem;font-weight:800;color:#f57f17;letter-spacing:0.4px;">${(aw.awardTitle||'SAFETY AWARD').toUpperCase()}</div>
+            <div style="font-size:1.15rem;font-weight:800;color:#5d4200;margin:2px 0;">${(aw.awardeeName||'').replace(/</g,'&lt;')}</div>
+            <div style="font-size:0.72rem;color:#8d6a00;">${aw.project ? aw.project.replace(/</g,'&lt;') : 'Company-wide'} · ${aw.date || ''}${aw.awardingBody ? ' · Awarded by ' + aw.awardingBody.replace(/</g,'&lt;') : ''}</div>
+            ${aw.description ? `<div style="font-size:0.8rem;color:#3d2600;margin-top:10px;white-space:pre-wrap;">${aw.description.replace(/</g,'&lt;')}</div>` : ''}
+        </div>
+        ${canManage ? `<div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;">
+            <button onclick="document.getElementById('safety-detail-modal-overlay').remove();safetyEditAwardForm('${aw.id}');" style="padding:7px 14px;border-radius:6px;border:1px solid #1565c0;color:#1565c0;background:transparent;cursor:pointer;font-weight:700;">Edit</button>
+            <button onclick="deleteSafetyAward('${aw.id}');document.getElementById('safety-detail-modal-overlay').remove();" style="padding:7px 14px;border-radius:6px;border:1px solid #c62828;color:#c62828;background:transparent;cursor:pointer;font-weight:700;">Delete</button>
+        </div>` : ''}
+    </div>`;
+    document.body.appendChild(modal);
+}
+window.safetyViewAwardDetail = safetyViewAwardDetail;
+
+function safetyViewAlertDetail(id) {
+    const a = (window._safetyAlerts || []).find(function(x){ return x.id === id; });
+    if (!a) return;
+    const canManage = canManageSafety();
+    const photos = Array.isArray(a.photos) ? a.photos : [];
+    const modal = document.createElement('div');
+    modal.id = 'safety-detail-modal-overlay';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = `
+    <div style="background:var(--bg-card);border-radius:12px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+        <div style="background:linear-gradient(135deg,#e65100,#ff9800);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-weight:800;font-size:0.95rem;"><i class="fas fa-triangle-exclamation"></i> Safety Alert ${a.status === 'archived' ? '<span style="font-weight:400;font-size:0.7rem;">(archived)</span>' : ''}</span>
+            <span onclick="document.getElementById('safety-detail-modal-overlay').remove()" style="cursor:pointer;font-size:1.2rem;">&times;</span>
+        </div>
+        ${photos[0] ? `<img src="${photos[0]}" onclick="safetyOpenLightbox('${photos[0]}')" style="width:100%;max-height:320px;object-fit:cover;object-position:${a.photoPosition||'center'};display:block;cursor:zoom-in;">` : ''}
+        ${photos.length > 1 ? `<div style="display:flex;gap:6px;padding:10px 18px 0;flex-wrap:wrap;">${photos.map(function(u){return `<img src="${u}" onclick="safetyOpenLightbox('${u}')" style="width:52px;height:52px;object-fit:cover;border-radius:6px;cursor:zoom-in;">`;}).join('')}</div>` : ''}
+        <div style="padding:16px 18px;">
+            <div style="font-size:1.05rem;font-weight:800;color:#5d2c00;">${(a.title||'Untitled Alert').replace(/</g,'&lt;')}</div>
+            <div style="font-size:0.72rem;color:#8d5a2b;margin-top:2px;">${a.project ? a.project.replace(/</g,'&lt;') : 'Company-wide'} · ${a.dateIssued || ''}</div>
+            ${a.description ? `<div style="font-size:0.8rem;color:#5d2c00;margin-top:10px;white-space:pre-wrap;">${a.description.replace(/</g,'&lt;')}</div>` : ''}
+            ${a.correctiveActions ? `<div style="font-size:0.76rem;color:#6d4c00;margin-top:8px;"><b>Corrective Actions:</b> ${a.correctiveActions.replace(/</g,'&lt;')}</div>` : ''}
+        </div>
+        ${canManage ? `<div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;">
+            <button onclick="document.getElementById('safety-detail-modal-overlay').remove();safetyEditAlertForm('${a.id}');" style="padding:7px 14px;border-radius:6px;border:1px solid #1565c0;color:#1565c0;background:transparent;cursor:pointer;font-weight:700;">Edit</button>
+            ${a.status !== 'archived' ? `<button onclick="safetyArchiveAlert('${a.id}');document.getElementById('safety-detail-modal-overlay').remove();" style="padding:7px 14px;border-radius:6px;border:1px solid #e65100;color:#e65100;background:transparent;cursor:pointer;font-weight:700;">Archive</button>` : ''}
+            <button onclick="document.getElementById('safety-detail-modal-overlay').remove();safetyDeleteAlertConfirm('${a.id}');" style="padding:7px 14px;border-radius:6px;border:1px solid #c62828;color:#c62828;background:transparent;cursor:pointer;font-weight:700;">Delete</button>
+        </div>` : ''}
+    </div>`;
+    document.body.appendChild(modal);
+}
+window.safetyViewAlertDetail = safetyViewAlertDetail;
+
+// ── Main panel: renders active alerts + award spotlight into the placeholder ─
+let _safetyCarouselTimer = null;
+let _safetyCarouselIdx = 0;
+
+function renderSafetyAlertAwardPanel() {
+    const container = document.getElementById('safety-alert-award-panel');
+    if (!container) return;
+
+    if (_safetyCarouselTimer) { clearInterval(_safetyCarouselTimer); _safetyCarouselTimer = null; }
+
+    const canPublish   = canManageSafety();
+    const activeAlerts = (window._safetyAlerts || []).filter(function(a){ return a.status !== 'archived'; });
+    const awards       = (window._safetyAwards || []).slice(0, 8);
+
+    if (_safetyCarouselIdx >= awards.length) _safetyCarouselIdx = 0;
+
+    // ── Hero carousel (Safety Award) ──
+    let heroHtml;
+    if (awards.length === 0) {
+        heroHtml = `
+        <div style="width:100%;aspect-ratio:16/9;max-height:420px;background:#c8e6c9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;">
+            <i class="fas fa-trophy" style="font-size:2rem;color:#66bb6a;"></i>
+            <span style="font-size:0.72rem;color:#2e7d32;font-weight:600;">No safety awards recorded yet.</span>
+        </div>`;
+    } else {
+        const slides = awards.map(function(aw, i) {
+            const photo = (Array.isArray(aw.photos) && aw.photos[0]) ? aw.photos[0] : null;
+            return `
+            <div class="safety-award-slide" data-idx="${i}" onclick="safetyViewAwardDetail('${aw.id}')" style="position:absolute;inset:0;opacity:${i === _safetyCarouselIdx ? 1 : 0};pointer-events:${i === _safetyCarouselIdx ? 'auto' : 'none'};z-index:${i === _safetyCarouselIdx ? 1 : 0};transition:opacity 0.6s;cursor:pointer;">
+                ${photo
+                    ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;object-position:${aw.photoPosition||'center'};">`
+                    : `<div style="width:100%;height:100%;background:#c8e6c9;display:flex;align-items:center;justify-content:center;"><i class="fas fa-trophy" style="font-size:2.2rem;color:#66bb6a;"></i></div>`}
+                <div style="position:absolute;left:0;right:0;bottom:0;padding:20px 22px;background:linear-gradient(to top,rgba(27,94,32,0.85),rgba(27,94,32,0.15) 80%,transparent);">
+                    <div style="font-size:0.72rem;font-weight:700;color:#c8e6c9;letter-spacing:0.5px;">${(aw.awardTitle||'SAFETY AWARD').toUpperCase()}</div>
+                    <div style="font-size:1.5rem;font-weight:800;color:#fff;margin-top:4px;">${(aw.awardeeName||'').replace(/</g,'&lt;')}</div>
+                    <div style="font-size:0.78rem;color:#e8f5e9;margin-top:4px;">${aw.project ? aw.project.replace(/</g,'&lt;') : 'Company-wide'} · ${aw.date || ''}${aw.awardingBody ? ' · ' + aw.awardingBody.replace(/</g,'&lt;') : ''}</div>
+                </div>
+            </div>`;
+        }).join('');
+        const dots = awards.map(function(_, i) {
+            return `<span onclick="event.stopPropagation();safetyAwardGoTo(${i})" style="width:6px;height:6px;border-radius:50%;cursor:pointer;background:${i === _safetyCarouselIdx ? '#fff' : 'rgba(255,255,255,0.5)'};"></span>`;
+        }).join('');
+        heroHtml = `
+        <div id="safety-award-hero" style="position:relative;width:100%;aspect-ratio:16/9;max-height:420px;overflow:hidden;">
+            ${slides}
+            ${awards.length > 1 ? `
+            <button onclick="event.stopPropagation();safetyAwardPrev()" aria-label="Previous" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,0.9);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;"><i class="fas fa-chevron-left" style="font-size:0.85rem;color:#1b5e20;"></i></button>
+            <button onclick="event.stopPropagation();safetyAwardNext()" aria-label="Next" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,0.9);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;"><i class="fas fa-chevron-right" style="font-size:0.85rem;color:#1b5e20;"></i></button>
+            <div style="position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:2;">${dots}</div>
+            <div style="position:absolute;top:14px;right:16px;background:rgba(0,0,0,0.4);color:#fff;font-size:0.7rem;font-weight:600;padding:4px 10px;border-radius:20px;z-index:2;">${_safetyCarouselIdx + 1} of ${awards.length}</div>` : ''}
+        </div>`;
+    }
+
+    // ── Active alerts highlight strip (links out to the dedicated Safety Alerts tab) ──
+    let alertsHtml;
+    if (activeAlerts.length === 0) {
+        alertsHtml = '';
+    } else {
+        const top = activeAlerts[0];
+        alertsHtml = `
+        <div onclick="changeTab('safety-alerts')" style="cursor:pointer;display:flex;align-items:center;gap:12px;background:#fff3e0;border:1px solid #ffb74d;border-left:4px solid #e65100;border-radius:8px;padding:10px 14px;margin:0 20px 14px;">
+            <i class="fas fa-triangle-exclamation" style="color:#e65100;font-size:1.1rem;flex-shrink:0;"></i>
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:0.62rem;font-weight:800;color:#e65100;letter-spacing:0.4px;">${activeAlerts.length} ACTIVE SAFETY ALERT${activeAlerts.length > 1 ? 'S' : ''}</div>
+                <div style="font-size:0.78rem;color:#5d2c00;font-weight:600;margin-top:2px;">${(top.title||'Untitled Alert').replace(/</g,'&lt;')}${activeAlerts.length > 1 ? ` +${activeAlerts.length - 1} more` : ''}</div>
+            </div>
+            <span style="font-size:0.68rem;font-weight:700;color:#e65100;flex-shrink:0;">View All <i class="fas fa-chevron-right" style="font-size:0.6rem;"></i></span>
+        </div>`;
+    }
+
+    container.innerHTML = `
+    ${alertsHtml}
+    <div style="background:var(--bg-card);border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border:1px solid var(--border-color);overflow:hidden;margin:0 20px 14px;">
+        <div style="background:#e8f5e9;padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #c8e6c9;">
+            <i class="fas fa-trophy" style="color:#2e7d32;"></i>
+            <span style="font-weight:800;font-size:0.8rem;letter-spacing:0.4px;color:#1b5e20;">SAFETY AWARD</span>
+            <span style="margin-left:auto;display:flex;gap:6px;">
+                ${canPublish ? `<button onclick="safetyOpenAwardForm()" style="background:#2e7d32;border:none;color:#fff;border-radius:6px;padding:3px 8px;font-size:0.62rem;cursor:pointer;font-weight:700;">+ Award</button>` : ''}
+                <button onclick="safetyOpenArchiveModal('award')" style="background:transparent;border:1px solid #2e7d32;color:#2e7d32;border-radius:6px;padding:3px 8px;font-size:0.62rem;cursor:pointer;font-weight:700;">View All</button>
+            </span>
+        </div>
+        ${heroHtml}
+    </div>`;
+
+    if (awards.length > 1) {
+        _safetyCarouselTimer = setInterval(function(){ safetyAwardNext(); }, 4000);
+    }
+}
+window.renderSafetyAlertAwardPanel = renderSafetyAlertAwardPanel;
+
+function safetyAwardGoTo(idx) { _safetyCarouselIdx = idx; renderSafetyAlertAwardPanel(); }
+window.safetyAwardGoTo = safetyAwardGoTo;
+
+// ════════════════════════════════════════════════════════════════════════
+// Dedicated "Safety Alerts" tab — full page, its own nav item
+// ════════════════════════════════════════════════════════════════════════
+window._safetyAlertsPageFilter = 'active';
+
+function renderSafetyAlertsPage() {
+    const view = document.getElementById('safety-alerts-view');
+    if (!view) return;
+    const canManage = canManageSafety();
+    const filter = window._safetyAlertsPageFilter;
+    const all = window._safetyAlerts || [];
+    const items = filter === 'all' ? all : all.filter(function(a){ return filter === 'archived' ? a.status === 'archived' : a.status !== 'archived'; });
+
+    const filterBtn = function(key, label) {
+        const active = filter === key;
+        return `<button onclick="window._safetyAlertsPageFilter='${key}';renderSafetyAlertsPage();" style="padding:6px 14px;border-radius:20px;border:1px solid ${active ? '#e65100' : 'var(--border-color)'};background:${active ? '#e65100' : 'transparent'};color:${active ? '#fff' : 'var(--text-secondary)'};font-size:0.72rem;font-weight:700;cursor:pointer;">${label}</button>`;
+    };
+
+    let cardsHtml;
+    if (items.length === 0) {
+        cardsHtml = `<div style="padding:60px 20px;text-align:center;color:var(--text-secondary);">
+            <i class="fas fa-triangle-exclamation" style="font-size:2.2rem;color:#ffcc80;"></i>
+            <div style="margin-top:10px;font-size:0.85rem;">No ${filter === 'all' ? '' : filter + ' '}safety alerts.</div>
+        </div>`;
+    } else {
+        cardsHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;">` +
+            items.map(function(a) {
+                const photo = (Array.isArray(a.photos) && a.photos[0]) ? a.photos[0] : null;
+                return `
+                <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);border:1px solid var(--border-color);">
+                    <div onclick="safetyViewAlertDetail('${a.id}')" style="cursor:pointer;aspect-ratio:16/10;background:#ffe0b2;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                        ${photo ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;object-position:${a.photoPosition||'center'};">` : `<i class="fas fa-triangle-exclamation" style="font-size:2rem;color:#e65100;"></i>`}
+                    </div>
+                    <div style="padding:12px 14px;">
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <span style="font-weight:800;font-size:0.85rem;color:#3d2600;">${(a.title||'Untitled Alert').replace(/</g,'&lt;')}</span>
+                            ${a.status === 'archived' ? `<span style="font-size:0.58rem;font-weight:700;background:#eee;color:#888;border-radius:20px;padding:2px 8px;">ARCHIVED</span>` : `<span style="font-size:0.58rem;font-weight:700;background:#e65100;color:#fff;border-radius:20px;padding:2px 8px;">ACTIVE</span>`}
+                        </div>
+                        <div style="font-size:0.68rem;color:#8d6a00;margin-top:3px;">${a.project ? a.project.replace(/</g,'&lt;') : 'Company-wide'} · ${a.dateIssued || ''}</div>
+                        <div style="font-size:0.76rem;color:#5d2c00;margin-top:8px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${(a.description||'').replace(/</g,'&lt;')}</div>
+                        <div style="display:flex;gap:8px;margin-top:10px;">
+                            <button onclick="safetyViewAlertDetail('${a.id}')" style="flex:1;padding:6px;border-radius:6px;border:1px solid #e65100;color:#e65100;background:transparent;font-size:0.68rem;font-weight:700;cursor:pointer;">View Details</button>
+                            ${canManage ? `<button onclick="safetyEditAlertForm('${a.id}')" title="Edit" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border-color);background:transparent;cursor:pointer;color:#1565c0;"><i class="fas fa-pen" style="font-size:0.68rem;"></i></button>` : ''}
+                            ${canManage && a.status === 'archived' ? `<button onclick="safetyRestoreAlert('${a.id}')" title="Restore to Active" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border-color);background:transparent;cursor:pointer;color:#2e7d32;"><i class="fas fa-rotate-left" style="font-size:0.68rem;"></i></button>` : ''}
+                            ${canManage ? `<button onclick="safetyDeleteAlertConfirm('${a.id}')" title="Delete permanently" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border-color);background:transparent;cursor:pointer;color:#c62828;"><i class="fas fa-trash" style="font-size:0.68rem;"></i></button>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('') + `</div>`;
+    }
+
+    view.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+        <div style="display:flex;gap:8px;">
+            ${filterBtn('active', 'Active')}
+            ${filterBtn('archived', 'Archived')}
+            ${filterBtn('all', 'All')}
+        </div>
+        ${canManage ? `<button onclick="safetyOpenAlertForm()" style="background:#e65100;border:none;color:#fff;border-radius:8px;padding:9px 18px;font-size:0.8rem;font-weight:700;cursor:pointer;"><i class="fas fa-plus"></i> New Safety Alert</button>` : ''}
+    </div>
+    ${cardsHtml}`;
+}
+window.renderSafetyAlertsPage = renderSafetyAlertsPage;
+
+function safetyAwardNext() {
+    const count = (window._safetyAwards || []).slice(0, 8).length;
+    if (count === 0) return;
+    _safetyCarouselIdx = (_safetyCarouselIdx + 1) % count;
+    renderSafetyAlertAwardPanel();
+}
+window.safetyAwardNext = safetyAwardNext;
+
+function safetyAwardPrev() {
+    const count = (window._safetyAwards || []).slice(0, 8).length;
+    if (count === 0) return;
+    _safetyCarouselIdx = (_safetyCarouselIdx - 1 + count) % count;
+    renderSafetyAlertAwardPanel();
+}
+window.safetyAwardPrev = safetyAwardPrev;
+
+async function safetyArchiveAlert(id) {
+    if (!canManageSafety()) { showToast('Switch to Edit Mode to archive an alert.', 'error'); return; }
+    const alert = (window._safetyAlerts || []).find(function(a){ return a.id === id; });
+    if (!alert) return;
+    try {
+        await saveSafetyAlert(Object.assign({}, alert, { status: 'archived' }));
+    } catch(e) { showToast('Failed to archive alert: ' + e.message, 'error'); }
+}
+window.safetyArchiveAlert = safetyArchiveAlert;
+
+async function safetyRestoreAlert(id) {
+    if (!canManageSafety()) { showToast('Switch to Edit Mode to restore an alert.', 'error'); return; }
+    const alert = (window._safetyAlerts || []).find(function(a){ return a.id === id; });
+    if (!alert) return;
+    try {
+        await saveSafetyAlert(Object.assign({}, alert, { status: 'active' }));
+        showToast('Safety Alert restored to Active.', 'success');
+    } catch(e) { showToast('Failed to restore alert: ' + e.message, 'error'); }
+}
+window.safetyRestoreAlert = safetyRestoreAlert;
+
+function safetyDeleteAlertConfirm(id) {
+    if (!canManageSafety()) { showToast('Switch to Edit Mode to delete an alert.', 'error'); return; }
+    const alert = (window._safetyAlerts || []).find(function(a){ return a.id === id; });
+    if (!alert) return;
+    const modal = document.createElement('div');
+    modal.id = 'safety-delete-confirm-overlay';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = `
+    <div style="background:var(--bg-card);border-radius:12px;max-width:380px;width:100%;padding:22px;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+        <div style="font-weight:800;font-size:0.95rem;color:#c62828;"><i class="fas fa-triangle-exclamation"></i> Delete this Safety Alert?</div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;">"${(alert.title||'Untitled Alert').replace(/</g,'&lt;')}" will be permanently deleted. This cannot be undone.</div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
+            <button onclick="document.getElementById('safety-delete-confirm-overlay').remove()" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-color);background:transparent;cursor:pointer;">Cancel</button>
+            <button onclick="deleteSafetyAlert('${id}');document.getElementById('safety-delete-confirm-overlay').remove();" style="padding:7px 16px;border-radius:6px;border:none;background:#c62828;color:#fff;font-weight:700;cursor:pointer;">Delete</button>
+        </div>
+    </div>`;
+    document.body.appendChild(modal);
+}
+window.safetyDeleteAlertConfirm = safetyDeleteAlertConfirm;
+
+// ── Add/Edit Alert modal ───────────────────────────────────────────────────
+function canManageSafety() {
+    return isSafetyPublisher() && !!state.isEditing;
+}
+window.canManageSafety = canManageSafety;
+
+const SAFETY_AWARDING_BODIES = ['Internal (SCIC ESH)', 'DOLE', 'Client', 'SOPI (Safety Organization of the Philippines, Inc.)', 'Industry Organization'];
+
+// Resolves the ordered photo list for a form into final URLs — uploads any
+// new (blob) items to Cloudinary in place, keeps existing URLs as-is, and
+// preserves the front/cover ordering the user picked (index 0 = front).
+async function safetyResolvePhotos(kind, statusElId) {
+    const items = window._safetyPhotoItems[kind] || [];
+    const urls = [];
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'existing') {
+            urls.push(item.url);
+        } else {
+            const statusEl = document.getElementById(statusElId);
+            if (statusEl) statusEl.textContent = `Uploading photo ${i + 1}/${items.length}...`;
+            const url = await uploadImageToCloudinary(item.blob);
+            urls.push(url);
+        }
+    }
+    return urls;
+}
+window.safetyResolvePhotos = safetyResolvePhotos;
+
+function safetyOpenAlertForm(existing) {
+    if (!canManageSafety()) { showToast('Switch to Edit Mode to post a Safety Alert.', 'error'); return; }
+    window._safetyPhotoItems.alert = (existing && Array.isArray(existing.photos))
+        ? existing.photos.map(function(url, i){ return { id: 'existing_' + i, kind: 'existing', url: url }; })
+        : [];
+    const today = new Date().toISOString().slice(0,10);
+    const isEdit = !!existing;
+    const modal = document.createElement('div');
+    modal.id = 'safety-alert-modal-overlay';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = `
+    <div style="background:var(--bg-card);border-radius:12px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+        <div style="background:linear-gradient(135deg,#e65100,#ff9800);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-weight:800;font-size:1rem;"><i class="fas fa-triangle-exclamation"></i> ${isEdit ? 'Edit Safety Alert' : 'New Safety Alert'}</span>
+            <span onclick="document.getElementById('safety-alert-modal-overlay').remove()" style="cursor:pointer;font-size:1.2rem;">&times;</span>
+        </div>
+        <div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;">
+            <input type="hidden" id="sa-id" value="${isEdit ? existing.id : ''}">
+            <div><label style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">Title *</label>
+                <input id="sa-title" type="text" value="${isEdit ? (existing.title||'').replace(/"/g,'&quot;') : ''}" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;box-sizing:border-box;margin-top:4px;"></div>
+            <div style="display:flex;gap:10px;">
+                <div style="flex:1;"><label style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">Date Issued</label>
+                    <input id="sa-date" type="date" value="${isEdit ? (existing.dateIssued||today) : today}" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;box-sizing:border-box;margin-top:4px;"></div>
+                <div style="flex:1;"><label style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">Project</label>
+                    <select id="sa-project" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;box-sizing:border-box;margin-top:4px;">${safetyProjectOptionsHTML(isEdit ? existing.project : '')}</select></div>
+            </div>
+            <div><label style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">Description *</label>
+                <textarea id="sa-desc" rows="3" placeholder="Describe the hazard/concern" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;box-sizing:border-box;margin-top:4px;resize:vertical;">${isEdit ? (existing.description||'') : ''}</textarea></div>
+            <div><label style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">Corrective Actions</label>
+                <textarea id="sa-actions" rows="2" placeholder="Immediate action, toolbox talk reinforcement, etc." style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;box-sizing:border-box;margin-top:4px;resize:vertical;">${isEdit ? (existing.correctiveActions||'') : ''}</textarea></div>
+            <div><label style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">Photos (optional — you'll be able to crop each one)</label>
+                <input id="sa-photos" type="file" accept="image/*" multiple onchange="safetyHandlePhotoSelect(this,'alert')" style="width:100%;margin-top:4px;">
+                <div id="sa-photo-preview" style="margin-top:6px;"></div>
+                <div id="sa-upload-status" style="font-size:0.68rem;color:var(--text-secondary);margin-top:4px;"></div>
+            </div>
+        </div>
+        <div style="padding:14px 20px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;">
+            <button onclick="document.getElementById('safety-alert-modal-overlay').remove()" style="padding:8px 16px;border-radius:6px;border:1px solid var(--border-color);background:transparent;cursor:pointer;">Cancel</button>
+            <button id="sa-submit-btn" onclick="safetySubmitAlert()" style="padding:8px 20px;border-radius:6px;border:none;background:#e65100;color:#fff;font-weight:700;cursor:pointer;">${isEdit ? 'Save Changes' : 'Publish Alert'}</button>
+        </div>
+    </div>`;
+    document.body.appendChild(modal);
+    safetyRenderPhotoPreview('alert');
+}
+window.safetyOpenAlertForm = safetyOpenAlertForm;
+
+function safetyEditAlertForm(id) {
+    const existing = (window._safetyAlerts || []).find(function(a){ return a.id === id; });
+    if (existing) safetyOpenAlertForm(existing);
+}
+window.safetyEditAlertForm = safetyEditAlertForm;
+
+async function safetySubmitAlert() {
+    const title  = document.getElementById('sa-title').value.trim();
+    const desc   = document.getElementById('sa-desc').value.trim();
+    if (!title || !desc) { showToast('Title and Description are required.', 'error'); return; }
+    const btn = document.getElementById('sa-submit-btn');
+    const isEditId = document.getElementById('sa-id').value;
+    btn.disabled = true; btn.textContent = isEditId ? 'Saving...' : 'Publishing...';
+    try {
+        const photos = await safetyResolvePhotos('alert', 'sa-upload-status');
+        const existingRecord = isEditId ? (window._safetyAlerts || []).find(function(a){ return a.id === isEditId; }) : null;
+        await saveSafetyAlert({
+            id: isEditId || undefined,
+            title: title,
+            dateIssued: document.getElementById('sa-date').value,
+            project: document.getElementById('sa-project').value || null,
+            description: desc,
+            correctiveActions: document.getElementById('sa-actions').value.trim(),
+            photos: photos,
+            status: (existingRecord && existingRecord.status) || 'active',
+            issuedBy: (existingRecord && existingRecord.issuedBy) || (state.currentUserName || state.userEmail || 'ESH')
+        });
+        window._safetyPhotoItems.alert = [];
+        document.getElementById('safety-alert-modal-overlay').remove();
+        showToast(isEditId ? 'Safety Alert updated.' : 'Safety Alert published.', 'success');
+    } catch(e) {
+        showToast('Failed to save alert: ' + e.message, 'error');
+        btn.disabled = false; btn.textContent = isEditId ? 'Save Changes' : 'Publish Alert';
+    }
+}
+window.safetySubmitAlert = safetySubmitAlert;
+
+// ── Add/Edit Award modal ─────────────────────────────────────────────────────
+function safetyOpenAwardForm(existing) {
+    if (!canManageSafety()) { showToast('Switch to Edit Mode to post a Safety Award.', 'error'); return; }
+    window._safetyPhotoItems.award = (existing && Array.isArray(existing.photos))
+        ? existing.photos.map(function(url, i){ return { id: 'existing_' + i, kind: 'existing', url: url }; })
+        : [];
+    const today = new Date().toISOString().slice(0,10);
+    const isEdit = !!existing;
+    const bodyOptionsList = SAFETY_AWARDING_BODIES.map(function(b) {
+        return `<option value="${b}">`;
+    }).join('');
+    const modal = document.createElement('div');
+    modal.id = 'safety-award-modal-overlay';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = `
+    <div style="background:var(--bg-card);border-radius:12px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+        <div style="background:linear-gradient(135deg,#f57f17,#fbc02d);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-weight:800;font-size:1rem;"><i class="fas fa-trophy"></i> ${isEdit ? 'Edit Safety Award' : 'New Safety Award'}</span>
+            <span onclick="document.getElementById('safety-award-modal-overlay').remove()" style="cursor:pointer;font-size:1.2rem;">&times;</span>
+        </div>
+        <div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;">
+            <input type="hidden" id="sw-id" value="${isEdit ? existing.id : ''}">
+            <div><label style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">Awardee Name / Team *</label>
+                <input id="sw-name" type="text" value="${isEdit ? (existing.awardeeName||'').replace(/"/g,'&quot;') : ''}" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;box-sizing:border-box;margin-top:4px;"></div>
+            <div><label style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">Award Title *</label>
+                <input id="sw-title" type="text" value="${isEdit ? (existing.awardTitle||'').replace(/"/g,'&quot;') : ''}" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;box-sizing:border-box;margin-top:4px;"></div>
+            <div><label style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">Awarding Body</label>
+                <input id="sw-body" type="text" list="sw-body-datalist" placeholder="e.g. SOPI (Safety Organization of the Philippines, Inc.)" value="${isEdit ? (existing.awardingBody||'').replace(/"/g,'&quot;') : ''}" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;box-sizing:border-box;margin-top:4px;">
+                <datalist id="sw-body-datalist">${bodyOptionsList}</datalist></div>
+            <div style="display:flex;gap:10px;">
+                <div style="flex:1;"><label style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">Date</label>
+                    <input id="sw-date" type="date" value="${isEdit ? (existing.date||today) : today}" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;box-sizing:border-box;margin-top:4px;"></div>
+                <div style="flex:1;"><label style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">Project</label>
+                    <select id="sw-project" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;box-sizing:border-box;margin-top:4px;">${safetyProjectOptionsHTML(isEdit ? existing.project : '')}</select></div>
+            </div>
+            <div><label style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">Citation / Description</label>
+                <textarea id="sw-desc" rows="3" placeholder="Why this award was given" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;box-sizing:border-box;margin-top:4px;resize:vertical;">${isEdit ? (existing.description||'') : ''}</textarea></div>
+            <div><label style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">Photos (you'll be able to crop each one — first photo is the hero image)</label>
+                <input id="sw-photos" type="file" accept="image/*" multiple onchange="safetyHandlePhotoSelect(this,'award')" style="width:100%;margin-top:4px;">
+                <div id="sw-photo-preview" style="margin-top:6px;"></div>
+                <div id="sw-upload-status" style="font-size:0.68rem;color:var(--text-secondary);margin-top:4px;"></div>
+            </div>
+        </div>
+        <div style="padding:14px 20px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;">
+            <button onclick="document.getElementById('safety-award-modal-overlay').remove()" style="padding:8px 16px;border-radius:6px;border:1px solid var(--border-color);background:transparent;cursor:pointer;">Cancel</button>
+            <button id="sw-submit-btn" onclick="safetySubmitAward()" style="padding:8px 20px;border-radius:6px;border:none;background:#f57f17;color:#fff;font-weight:700;cursor:pointer;">${isEdit ? 'Save Changes' : 'Publish Award'}</button>
+        </div>
+    </div>`;
+    document.body.appendChild(modal);
+    safetyRenderPhotoPreview('award');
+}
+window.safetyOpenAwardForm = safetyOpenAwardForm;
+
+function safetyEditAwardForm(id) {
+    const existing = (window._safetyAwards || []).find(function(a){ return a.id === id; });
+    if (existing) safetyOpenAwardForm(existing);
+}
+window.safetyEditAwardForm = safetyEditAwardForm;
+
+async function safetySubmitAward() {
+    const name  = document.getElementById('sw-name').value.trim();
+    const title = document.getElementById('sw-title').value.trim();
+    if (!name || !title) { showToast('Awardee Name and Award Title are required.', 'error'); return; }
+    const btn = document.getElementById('sw-submit-btn');
+    const isEditId = document.getElementById('sw-id').value;
+    btn.disabled = true; btn.textContent = isEditId ? 'Saving...' : 'Publishing...';
+    try {
+        const photos = await safetyResolvePhotos('award', 'sw-upload-status');
+        await saveSafetyAward({
+            id: isEditId || undefined,
+            awardeeName: name,
+            awardTitle: title,
+            awardingBody: document.getElementById('sw-body').value,
+            date: document.getElementById('sw-date').value,
+            project: document.getElementById('sw-project').value || null,
+            description: document.getElementById('sw-desc').value.trim(),
+            photos: photos
+        });
+        window._safetyPhotoItems.award = [];
+        document.getElementById('safety-award-modal-overlay').remove();
+        showToast(isEditId ? 'Safety Award updated.' : 'Safety Award published.', 'success');
+    } catch(e) {
+        showToast('Failed to save award: ' + e.message, 'error');
+        btn.disabled = false; btn.textContent = isEditId ? 'Save Changes' : 'Publish Award';
+    }
+}
+window.safetySubmitAward = safetySubmitAward;
+
+// ── Archive/History viewer modal (works for both alerts and awards) ────────
+function safetyOpenArchiveModal(type) {
+    const isAlert = type === 'alert';
+    const items = isAlert ? (window._safetyAlerts || []) : (window._safetyAwards || []);
+    const headerColor = isAlert ? 'linear-gradient(135deg,#e65100,#ff9800)' : 'linear-gradient(135deg,#f57f17,#fbc02d)';
+    const title = isAlert ? 'Safety Alert Archive' : 'Safety Award History';
+    const canManage = canManageSafety();
+
+    let rows = '';
+    if (items.length === 0) {
+        rows = `<div style="padding:30px;text-align:center;color:var(--text-secondary);">No records yet.</div>`;
+    } else {
+        rows = items.map(function(it) {
+            if (isAlert) {
+                return `<div style="padding:10px 14px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                    <div style="min-width:0;">
+                        <div style="font-weight:700;font-size:0.8rem;">${(it.title||'').replace(/</g,'&lt;')} ${it.status==='archived' ? '<span style="font-size:0.6rem;color:#888;font-weight:400;">(archived)</span>' : ''}</div>
+                        <div style="font-size:0.68rem;color:var(--text-secondary);">${it.dateIssued||''} · ${it.project||'Company-wide'}</div>
+                    </div>
+                    ${canManage ? `<span style="display:flex;gap:8px;flex-shrink:0;">
+                        <button onclick="safetyEditAlertForm('${it.id}')" style="background:none;border:none;color:#1565c0;cursor:pointer;font-size:0.9rem;" title="Edit"><i class="fas fa-pen"></i></button>
+                        <button onclick="deleteSafetyAlert('${it.id}')" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:0.9rem;" title="Delete"><i class="fas fa-trash"></i></button>
+                    </span>` : ''}
+                </div>`;
+            } else {
+                return `<div style="padding:10px 14px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                    <div style="min-width:0;">
+                        <div style="font-weight:700;font-size:0.8rem;">${(it.awardeeName||'').replace(/</g,'&lt;')} — ${(it.awardTitle||'').replace(/</g,'&lt;')}</div>
+                        <div style="font-size:0.68rem;color:var(--text-secondary);">${it.date||''} · ${it.project||'Company-wide'} ${it.awardingBody ? '· ' + it.awardingBody.replace(/</g,'&lt;') : ''}</div>
+                    </div>
+                    ${canManage ? `<span style="display:flex;gap:8px;flex-shrink:0;">
+                        <button onclick="safetyEditAwardForm('${it.id}')" style="background:none;border:none;color:#1565c0;cursor:pointer;font-size:0.9rem;" title="Edit"><i class="fas fa-pen"></i></button>
+                        <button onclick="deleteSafetyAward('${it.id}')" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:0.9rem;" title="Delete"><i class="fas fa-trash"></i></button>
+                    </span>` : ''}
+                </div>`;
+            }
+        }).join('');
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'safety-archive-modal-overlay';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = `
+    <div style="background:var(--bg-card);border-radius:12px;max-width:560px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+        <div style="background:${headerColor};color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;">
+            <span style="font-weight:800;font-size:1rem;">${title}</span>
+            <span onclick="document.getElementById('safety-archive-modal-overlay').remove()" style="cursor:pointer;font-size:1.2rem;">&times;</span>
+        </div>
+        <div>${rows}</div>
+    </div>`;
+    document.body.appendChild(modal);
+}
+window.safetyOpenArchiveModal = safetyOpenArchiveModal;
 
 function buildIncidentRecommendationsHTML(tabType) {
     // ── Compute YTD incident/rate data from all active, non-Corp/Plant projects ──
@@ -37655,487 +38467,4 @@ async function exportKpmExcel() {
                 //   active/resumed → dark green header
                 const isFullStop = cm.proj.workStoppageDate && !cm.proj.workResumeDate;
                 const isFinished = !!cm.proj.dateFinished;
-                const hBg = isFullStop ? 'FCE4EC' : isFinished ? '90A4AE' : C_COL_HDR_BG;
-                const hFg = isFullStop ? '880E4F' : isFinished ? 'FFFFFF' : C_COL_HDR_FG;
-                applyHeaderStyle(hdrRow.getCell(ci), hBg, hFg);
-                // Add status badge suffix to project name in header
-                const badge = isFullStop ? ' ⏸ STOPPED' : isFinished ? ' ✓ DONE' : '';
-                if (badge) hdrRow.getCell(ci).value = (cm.proj.name || '') + badge;
-            }
-        });
-
-        // ── Data rows: one per KPM measure ─────────────────────────────────────
-        // Group rows by Work Process for merging
-        let dataRowStart = 5; // current row index in worksheet (1-based)
-        let wpGroupStart = dataRowStart;
-        let wpGroupLabel = rows[0] ? rows[0].wp : '';
-        let wpGroupCount = 0;
-
-        // Track wp / del merge ranges
-        const wpMerges  = []; // { startRow, endRow, label }
-        const delMerges = []; // { startRow, endRow, label }
-
-        rows.forEach((kpmRow, ri) => {
-            const rowArr = [
-                kpmRow.wp  || '',   // Work Process
-                kpmRow.del || '',   // Deliverables
-                kpmRow.dw  ? (Math.round(kpmRow.dw * 100) + '%') : '',  // DW
-                kpmRow.measure || kpmRow.del || ''  // Measure
-            ];
-
-            // Per project values
-            colMap.forEach(cm => {
-                if (cm.type === 'proj') {
-                    rowArr.push(getKpmVal(cm.proj, mo, kpmRow.id) || '');
-                } else if (cm.type === 'overall') {
-                    // Overall AVG across ALL projects
-                    const vals = orderedProjs.map(p => parsePct(getKpmVal(p, mo, kpmRow.id))).filter(v => v !== null);
-                    rowArr.push(vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) + '%' : '');
-                } else {
-                    // Region AVG for this measure/month
-                    const regProjs = projsByRegion[cm.region];
-                    const vals = regProjs.map(p => parsePct(getKpmVal(p, mo, kpmRow.id))).filter(v => v !== null);
-                    rowArr.push(vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) + '%' : '');
-                }
-            });
-
-            const dataRow = ws.addRow(rowArr);
-            dataRow.height = 36;
-
-            // Left 4 cols styling
-            leftCellStyle(dataRow.getCell(1), false); // wp — will be merged, content set after
-            leftCellStyle(dataRow.getCell(2), false); // del
-            // DW cell
-            const dwCell = dataRow.getCell(3);
-            dwCell.font      = { bold: true, size: 8.5, name: 'Calibri', color: { argb: 'FF1B5E20' } };
-            dwCell.alignment = { horizontal: 'center', vertical: 'middle' };
-            dwCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
-            dwCell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
-            // Measure cell
-            const mCell = dataRow.getCell(4);
-            mCell.font      = { size: 8, name: 'Calibri', italic: true };
-            mCell.alignment = { vertical: 'middle', wrapText: true };
-            mCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
-            mCell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
-
-            // Score cells
-            colMap.forEach((cm, i) => {
-                const ci = LEFT_COLS + 1 + i;
-                const cell = dataRow.getCell(ci);
-                if (cm.type === 'proj') {
-                    if (cm.proj.dateFinished) {
-                        // Grey-blue "FINISHED" cell — project is done, excluded from computation
-                        const finDate = cm.proj.dateFinished;
-                        const finMoIdx = MO_LONG.indexOf(mo); // 0-based
-                        const finD = new Date(finDate);
-                        const finAbsMo = finD.getFullYear() * 12 + finD.getMonth(); // 0-based abs month
-                        const cellAbsMo = (year * 12) + finMoIdx;
-                        // Months AFTER finish date → grey "FINISHED"
-                        // Months ON or BEFORE finish date → show actual data if any
-                        if (cellAbsMo > finAbsMo) {
-                            cell.value     = '—';
-                            cell.font      = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FFB0BEC5' } };
-                            cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEcEff1' } };
-                            cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: false };
-                            cell.border    = {
-                                top:    { style: 'thin', color: { argb: 'FFB0BEC5' } },
-                                bottom: { style: 'thin', color: { argb: 'FFB0BEC5' } },
-                                left:   { style: 'thin', color: { argb: 'FFB0BEC5' } },
-                                right:  { style: 'thin', color: { argb: 'FFB0BEC5' } }
-                            };
-                        } else {
-                            const rawVal = getKpmVal(cm.proj, mo, kpmRow.id);
-                            const status = getKpmStatus(cm.proj, mo);
-                            applyScoreCell(cell, rawVal, status);
-                        }
-                    } else if (isMonthFrozenForExcel(cm.proj, mo)) {
-                        // Pink cell with "—" — excluded from computation (header already says STOPPED)
-                        cell.value     = '—';
-                        cell.font      = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FFE57373' } };
-                        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4EC' } };
-                        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: false };
-                        cell.border    = {
-                            top:    { style: 'thin', color: { argb: 'FFF48FB1' } },
-                            bottom: { style: 'thin', color: { argb: 'FFF48FB1' } },
-                            left:   { style: 'thin', color: { argb: 'FFF48FB1' } },
-                            right:  { style: 'thin', color: { argb: 'FFF48FB1' } }
-                        };
-                    } else {
-                        const rawVal = getKpmVal(cm.proj, mo, kpmRow.id);
-                        const status = getKpmStatus(cm.proj, mo);
-                        applyScoreCell(cell, rawVal, status);
-                    }
-                } else if (cm.type === 'overall') {
-                    // Overall AVG — exclude frozen projects from computation
-                    const vals = orderedProjs
-                        .filter(p => !isMonthFrozenForExcel(p, mo))
-                        .map(p => parsePct(getKpmVal(p, mo, kpmRow.id))).filter(v => v !== null);
-                    const avg  = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
-                    applyAvgCell(cell, avg);
-                    // Extra styling to distinguish overall col
-                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
-                    cell.font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF1A237E' } };
-                } else {
-                    // Region AVG — exclude frozen projects from computation
-                    const regProjs = projsByRegion[cm.region];
-                    const vals = regProjs
-                        .filter(p => !isMonthFrozenForExcel(p, mo))
-                        .map(p => parsePct(getKpmVal(p, mo, kpmRow.id))).filter(v => v !== null);
-                    const avg  = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
-                    applyAvgCell(cell, avg);
-                }
-            });
-
-            dataRowStart++;
-        });
-
-        // ── KPI SCORE row (weighted avg per project for the month) ─────────────
-        const scoreArr = ['KPI SCORE', '', '', ''];
-        colMap.forEach(cm => {
-            if (cm.type === 'proj') {
-                if (cm.proj.dateFinished && isMonthFrozenForExcel(cm.proj, mo)) {
-                    scoreArr.push('—'); // finished project — post-completion month
-                } else if (isMonthFrozenForExcel(cm.proj, mo)) {
-                    scoreArr.push('—'); // work-stoppage frozen — excluded from KPI score
-                } else {
-                    const score = projMonthScore(cm.proj, mo);
-                    scoreArr.push(score !== null ? Math.round(score) + '%' : '—');
-                }
-            } else if (cm.type === 'overall') {
-                const scores = orderedProjs
-                    .filter(p => !isMonthFrozenForExcel(p, mo))
-                    .map(p => projMonthScore(p, mo)).filter(v => v !== null);
-                const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
-                scoreArr.push(avg !== null ? Math.round(avg) + '%' : '—');
-            } else {
-                const regProjs = projsByRegion[cm.region];
-                const scores = regProjs
-                    .filter(p => !isMonthFrozenForExcel(p, mo))
-                    .map(p => projMonthScore(p, mo)).filter(v => v !== null);
-                const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
-                scoreArr.push(avg !== null ? Math.round(avg) + '%' : '—');
-            }
-        });
-        const scoreRow = ws.addRow(scoreArr);
-        scoreRow.height = 22;
-        ws.mergeCells(scoreRow.number, 1, scoreRow.number, LEFT_COLS);
-        const scoreLbl = scoreRow.getCell(1);
-        scoreLbl.value     = 'KPI SCORE';
-        scoreLbl.font      = { bold: true, size: 10, name: 'Calibri', color: { argb: C_COL_HDR_FG } };
-        scoreLbl.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
-        scoreLbl.alignment = { horizontal: 'center', vertical: 'middle' };
-        colMap.forEach((cm, i) => {
-            const ci = LEFT_COLS + 1 + i;
-            const cell = scoreRow.getCell(ci);
-            if (cm.type === 'overall') {
-                const scores = orderedProjs
-                    .filter(p => !isMonthFrozenForExcel(p, mo))
-                    .map(p => projMonthScore(p, mo)).filter(v => v !== null);
-                const avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
-                applyAvgCell(cell, avg);
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
-                cell.font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
-            } else {
-                applyAvgCell(cell, cm.type === 'proj'
-                    ? projMonthScore(cm.proj, mo)
-                    : (function() {
-                        const rp = projsByRegion[cm.region];
-                        const sv = rp
-                            .filter(p => !isMonthFrozenForExcel(p, mo))
-                            .map(p => projMonthScore(p, mo)).filter(v => v !== null);
-                        return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
-                      })()
-                );
-            }
-        });
-
-        // ── Merge Work Process cells vertically ────────────────────────────────
-        // rows array already has wp set only on first row of group (blank after)
-        // Build merge ranges from the rows data
-        const kpmDataStartRow = 5; // row 5 is first data row
-        let wpStart = kpmDataStartRow, curWp = rows[0]?.wp || '';
-        rows.forEach((kpmRow, ri) => {
-            const isLast = ri === rows.length - 1;
-            const nextWp = !isLast ? (rows[ri+1].wp || '') : null;
-            if (nextWp !== curWp || isLast) {
-                const wpEnd = kpmDataStartRow + ri;
-                if (wpEnd > wpStart) {
-                    ws.mergeCells(wpStart, 1, wpEnd, 1);
-                }
-                ws.getCell(wpStart, 1).value     = curWp;
-                ws.getCell(wpStart, 1).font      = { bold: true, size: 8.5, name: 'Calibri' };
-                ws.getCell(wpStart, 1).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-                ws.getCell(wpStart, 1).fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
-                ws.getCell(wpStart, 1).border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'medium',color:{argb:'FF'+C_MED_GREEN}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
-                curWp  = nextWp || '';
-                wpStart = kpmDataStartRow + ri + 1;
-            }
-        });
-
-        // Merge Deliverables cells (same logic, by del field)
-        let delStart = kpmDataStartRow, curDel = rows[0]?.del || '';
-        rows.forEach((kpmRow, ri) => {
-            const isLast = ri === rows.length - 1;
-            const nextDel = !isLast ? (rows[ri+1].del || '') : null;
-            if (nextDel !== curDel || isLast) {
-                const delEnd = kpmDataStartRow + ri;
-                if (delEnd > delStart) {
-                    ws.mergeCells(delStart, 2, delEnd, 2);
-                }
-                ws.getCell(delStart, 2).value     = curDel;
-                ws.getCell(delStart, 2).font      = { size: 8.5, name: 'Calibri' };
-                ws.getCell(delStart, 2).alignment = { vertical: 'middle', wrapText: true };
-                ws.getCell(delStart, 2).fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
-                ws.getCell(delStart, 2).border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
-                curDel  = nextDel || '';
-                delStart = kpmDataStartRow + ri + 1;
-            }
-        });
-
-        // ── Column widths ───────────────────────────────────────────────────────
-        ws.getColumn(1).width = 18;  // Work Process
-        ws.getColumn(2).width = 18;  // Deliverables
-        ws.getColumn(3).width = 7;   // DW
-        ws.getColumn(4).width = 28;  // Measure
-        colMap.forEach((cm, i) => {
-            ws.getColumn(LEFT_COLS + 1 + i).width = cm.type === 'avg' ? 8 : cm.type === 'overall' ? 10 : 14;
-        });
-
-        // ── Freeze panes — freeze row 4 (header) and first 4 cols ───────────────
-        ws.views = [{ state: 'frozen', xSplit: LEFT_COLS, ySplit: 4, activeCell: 'E5' }];
-    });
-
-    // ── OVERALL SUMMARY SHEET — already created first (see top), now populating ─
-    const sumWs = wb.getWorksheet('OVERALL SUMMARY');
-    addNotesRow(sumWs, totalCols);
-    sumWs.addRow([]); sumWs.getRow(2).height = 6;
-
-    // Region header
-    const sRegHdr = sumWs.addRow(Array(totalCols).fill(''));
-    sRegHdr.height = 20;
-    let sColOff = LEFT_COLS + 1;
-    allRegionOrder.forEach(region => {
-        const pc = projsByRegion[region].length;
-        const c  = sRegHdr.getCell(sColOff);
-        c.value = region;
-        c.font  = { bold: true, color: { argb: C_COL_HDR_FG }, size: 10, name: 'Calibri' };
-        c.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
-        c.alignment = { horizontal: 'center', vertical: 'middle' };
-        if (pc > 0) sumWs.mergeCells(sRegHdr.number, sColOff, sRegHdr.number, sColOff + pc);
-        sColOff += pc + 1;
-    });
-    // Overall column label in region header row
-    const sOverallRegHdr = sRegHdr.getCell(sColOff);
-    sOverallRegHdr.value = 'OVERALL';
-    sOverallRegHdr.font  = { bold: true, color: { argb: C_COL_HDR_FG }, size: 10, name: 'Calibri' };
-    sOverallRegHdr.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
-    sOverallRegHdr.alignment = { horizontal: 'center', vertical: 'middle' };
-    for (let ci = 1; ci <= LEFT_COLS; ci++) {
-        sRegHdr.getCell(ci).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
-    }
-
-    // Column header — months as rows in summary? No — use projects as cols, months as rows
-    // Summary: rows = months, cols = projects (same pivot but transposed per month)
-    const sHdrData = ['Month', '', '', ''];
-    colMap.forEach(cm => sHdrData.push(cm.type === 'proj' ? (cm.proj.name || '') : cm.type === 'overall' ? 'OVERALL\nAVG' : 'REGION\nAVG'));
-    const sHdrRow = sumWs.addRow(sHdrData);
-    sHdrRow.height = 45;
-    sumWs.mergeCells(sHdrRow.number, 1, sHdrRow.number, LEFT_COLS);
-    for (let ci = 1; ci <= LEFT_COLS; ci++) applyHeaderStyle(sHdrRow.getCell(ci), C_COL_HDR_BG, C_COL_HDR_FG);
-    sHdrRow.getCell(1).value = 'MONTH';
-    colMap.forEach((cm, i) => {
-        const ci = LEFT_COLS + 1 + i;
-        if (cm.type === 'overall') {
-            applyHeaderStyle(sHdrRow.getCell(ci), '1A237E', 'FFFFFF');
-        } else if (cm.type === 'avg') {
-            applyHeaderStyle(sHdrRow.getCell(ci), C_MED_GREEN, C_COL_HDR_FG);
-        } else {
-            // Color-code by project status (same as monthly sheets)
-            const isFullStop = cm.proj.workStoppageDate && !cm.proj.workResumeDate;
-            const isFinished = !!cm.proj.dateFinished;
-            const hBg = isFullStop ? 'FCE4EC' : isFinished ? '90A4AE' : C_COL_HDR_BG;
-            const hFg = isFullStop ? '880E4F' : isFinished ? 'FFFFFF' : C_COL_HDR_FG;
-            applyHeaderStyle(sHdrRow.getCell(ci), hBg, hFg);
-            const badge = isFullStop ? ' ⏸ STOPPED' : isFinished ? ' ✓ DONE' : '';
-            if (badge) sHdrRow.getCell(ci).value = (cm.proj.name || '') + badge;
-        }
-    });
-
-    // One row per submitted month only
-    submittedMonths.forEach((mo) => {
-        const moIdx = MO_LONG.indexOf(mo);
-        const mRowData = [MO_SHORT[moIdx], '', '', ''];
-        colMap.forEach(cm => {
-            if (cm.type === 'proj') {
-                const s = projMonthScore(cm.proj, mo);
-                mRowData.push(s !== null ? Math.round(s) + '%' : '—');
-            } else if (cm.type === 'overall') {
-                const sv = orderedProjs
-                    .filter(p => !isMonthFrozenForExcel(p, mo))
-                    .map(p => projMonthScore(p, mo)).filter(v => v !== null);
-                const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
-                mRowData.push(avg !== null ? Math.round(avg) + '%' : '—');
-            } else {
-                const rp = projsByRegion[cm.region];
-                const sv = rp
-                    .filter(p => !isMonthFrozenForExcel(p, mo))
-                    .map(p => projMonthScore(p, mo)).filter(v => v !== null);
-                const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
-                mRowData.push(avg !== null ? Math.round(avg) + '%' : '—');
-            }
-        });
-        const mRow = sumWs.addRow(mRowData);
-        mRow.height = 18;
-        sumWs.mergeCells(mRow.number, 1, mRow.number, LEFT_COLS);
-        const mlbl = mRow.getCell(1);
-        mlbl.value     = MO_SHORT[moIdx];
-        mlbl.font      = { bold: true, size: 9, name: 'Calibri' };
-        mlbl.alignment = { horizontal: 'center', vertical: 'middle' };
-        mlbl.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_GRAY_HDR } };
-        mlbl.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+C_MED_GREEN}} };
-        colMap.forEach((cm, i) => {
-            const ci = LEFT_COLS + 1 + i;
-            const cell = mRow.getCell(ci);
-            if (cm.type === 'overall') {
-                const sv = orderedProjs.map(p => projMonthScore(p, mo)).filter(v => v !== null);
-                const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
-                applyAvgCell(cell, avg);
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
-                cell.font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF1A237E' } };
-            } else if (cm.type === 'proj') {
-                const thinBorder = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
-                // Check if finished project — post-finish months → grey
-                if (cm.proj.dateFinished) {
-                    const finD = new Date(cm.proj.dateFinished);
-                    const finAbsMo = finD.getFullYear() * 12 + finD.getMonth();
-                    const cellAbsMo = (year * 12) + moIdx;
-                    if (cellAbsMo > finAbsMo) {
-                        cell.value     = '—';
-                        cell.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FFB0BEC5' } };
-                        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECEFF1' } };
-                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                        cell.border    = thinBorder;
-                        return;
-                    }
-                }
-                // Check if month is frozen (work-stoppage)
-                if (isMonthFrozenForExcel(cm.proj, mo)) {
-                    cell.value     = '—';
-                    cell.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FFE57373' } };
-                    cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4EC' } };
-                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                    cell.border    = { top:{style:'thin',color:{argb:'FFF48FB1'}}, bottom:{style:'thin',color:{argb:'FFF48FB1'}}, left:{style:'thin',color:{argb:'FFF48FB1'}}, right:{style:'thin',color:{argb:'FFF48FB1'}} };
-                    return;
-                }
-                // Normal — apply score color
-                applyAvgCell(cell, projMonthScore(cm.proj, mo));
-            } else {
-                applyAvgCell(cell, cm.type === 'proj'
-                    ? projMonthScore(cm.proj, mo)
-                    : (function() {
-                        const rp = projsByRegion[cm.region];
-                        const sv = rp.map(p => projMonthScore(p, mo)).filter(v => v !== null);
-                        return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
-                      })()
-                );
-            }
-        });
-    });
-
-    // Overall avg row
-    const ovArr = ['OVERALL AVG', '', '', ''];
-    colMap.forEach(cm => {
-        if (cm.type === 'proj') {
-            const s = projOverallScore(cm.proj);
-            ovArr.push(s !== null ? Math.round(s) + '%' : '—');
-        } else if (cm.type === 'overall') {
-            const sv = orderedProjs.map(p => projOverallScore(p)).filter(v => v !== null);
-            const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
-            ovArr.push(avg !== null ? Math.round(avg) + '%' : '—');
-        } else {
-            const rp = projsByRegion[cm.region];
-            const sv = rp.map(p => projOverallScore(p)).filter(v => v !== null);
-            const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
-            ovArr.push(avg !== null ? Math.round(avg) + '%' : '—');
-        }
-    });
-    const ovRow = sumWs.addRow(ovArr);
-    ovRow.height = 22;
-    sumWs.mergeCells(ovRow.number, 1, ovRow.number, LEFT_COLS);
-    const ovLbl = ovRow.getCell(1);
-    ovLbl.value = 'OVERALL AVG'; ovLbl.font = { bold: true, size: 10, name: 'Calibri', color: { argb: C_COL_HDR_FG } };
-    ovLbl.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + C_DARK_GREEN } };
-    ovLbl.alignment = { horizontal: 'center', vertical: 'middle' };
-    colMap.forEach((cm, i) => {
-        const cell = ovRow.getCell(LEFT_COLS + 1 + i);
-        if (cm.type === 'overall') {
-            const sv = orderedProjs.map(p => projOverallScore(p)).filter(v => v !== null);
-            const avg = sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
-            applyAvgCell(cell, avg);
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A237E' } };
-            cell.font = { bold: true, size: 10, name: 'Calibri', color: { argb: 'FFFFFFFF' } };
-        } else if (cm.type === 'proj') {
-            const thinBorder = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
-            const isFullStop = cm.proj.workStoppageDate && !cm.proj.workResumeDate;
-            const isFinished = !!cm.proj.dateFinished;
-            if (isFinished) {
-                cell.value     = projOverallScore(cm.proj) !== null ? Math.round(projOverallScore(cm.proj)) + '%' : '—';
-                cell.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF78909C' } };
-                cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECEFF1' } };
-                cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                cell.border    = thinBorder;
-            } else if (isFullStop) {
-                cell.value     = '⏸';
-                cell.font      = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FFE57373' } };
-                cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4EC' } };
-                cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                cell.border    = { top:{style:'thin',color:{argb:'FFF48FB1'}}, bottom:{style:'thin',color:{argb:'FFF48FB1'}}, left:{style:'thin',color:{argb:'FFF48FB1'}}, right:{style:'thin',color:{argb:'FFF48FB1'}} };
-            } else {
-                applyAvgCell(cell, projOverallScore(cm.proj));
-            }
-        } else {
-            applyAvgCell(cell, cm.type === 'proj'
-                ? projOverallScore(cm.proj)
-                : (function() {
-                    const rp = projsByRegion[cm.region];
-                    const sv = rp.map(p => projOverallScore(p)).filter(v => v !== null);
-                    return sv.length ? sv.reduce((a,b)=>a+b,0)/sv.length : null;
-                  })()
-            );
-        }
-    });
-
-    // Summary col widths
-    sumWs.getColumn(1).width = 12;
-    for (let ci = 2; ci <= LEFT_COLS; ci++) sumWs.getColumn(ci).width = 5;
-    colMap.forEach((cm, i) => { sumWs.getColumn(LEFT_COLS + 1 + i).width = cm.type === 'avg' ? 8 : cm.type === 'overall' ? 10 : 14; });
-    sumWs.views = [{ state: 'frozen', xSplit: LEFT_COLS, ySplit: 4, activeCell: 'E5' }];
-
-    // Legend row — status color guide
-    const legendRow = sumWs.addRow([]);
-    legendRow.height = 16;
-    sumWs.mergeCells(legendRow.number, 1, legendRow.number, totalCols);
-    const lgCell = legendRow.getCell(1);
-    lgCell.value = '  LEGEND:  🔲 Grey column = FINISHED project   🔲 Pink column = WORK-STOPPAGE (no resume)   🟩 ≥90%   🟨 75–89%   🟥 <75%';
-    lgCell.font      = { size: 7.5, name: 'Calibri', color: { argb: 'FF5D4037' }, italic: true };
-    lgCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF9C4' } };
-    lgCell.alignment = { vertical: 'middle', wrapText: false };
-
-    // ── Download ──────────────────────────────────────────────────────────────
-    try {
-        const buf  = await wb.xlsx.writeBuffer();
-        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href     = url;
-        a.download = `SCIC_ESH_KPM_${year}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast('✅ KPM Excel exported successfully!', 'success');
-    } catch(err) {
-        console.error('KPM Excel export error:', err);
-        showToast('❌ KPM export failed. Check console for details.', 'error');
-    }
-}
+                const hBg = isFullStop ? 'FCE4EC' : isFinished ? '90A4AE' : C_COL_HD
