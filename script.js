@@ -1,3 +1,25 @@
+// ── Bar gradient helper: turns a flat hex color into a vertical gradient (light bottom → dark top). Colors themselves are untouched, only the fill style. Global scope — used by chart render code inside separate IIFEs below. ──
+function _hexToRgb(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+    return { r: parseInt(hex.substring(0, 2), 16), g: parseInt(hex.substring(2, 4), 16), b: parseInt(hex.substring(4, 6), 16) };
+}
+function _lightenColor(color, percent) {
+    if (!color || color[0] !== '#') return color;
+    const { r, g, b } = _hexToRgb(color);
+    const lr = Math.round(r + (255 - r) * percent);
+    const lg = Math.round(g + (255 - g) * percent);
+    const lb = Math.round(b + (255 - b) * percent);
+    return `rgb(${lr}, ${lg}, ${lb})`;
+}
+function _barVerticalGradient(ctx, chartArea, color) {
+    if (!chartArea) return color;
+    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+    gradient.addColorStop(0, color);                        // top = original color (solid)
+    gradient.addColorStop(0.55, color);                     // stays solid through the upper ~55% of the bar
+    gradient.addColorStop(1, _lightenColor(color, 0.45));   // only the bottom portion fades to a lighter tint
+    return gradient;
+}
 (function() {
     function getEasterDate(year) {
         var a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25);
@@ -7044,9 +7066,14 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     const _attachedChart = Chart.getChart(regionCtx);
                     if (state.charts.region && _attachedChart === state.charts.region) {
                         const _upBgColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#4EAE5E' : v >= 75 ? '#FF9123' : '#DE4531');
+                        const _upGradientFn = (context) => {
+                            const { chart, dataIndex } = context;
+                            if (!chart.chartArea) return _upBgColors[dataIndex];
+                            return _barVerticalGradient(chart.ctx, chart.chartArea, _upBgColors[dataIndex]);
+                        };
                         state.charts.region.data.datasets[0].data = regionAvgs;
-                        state.charts.region.data.datasets[0].backgroundColor = _upBgColors;
-                        state.charts.region.data.datasets[0].hoverBackgroundColor = _upBgColors;
+                        state.charts.region.data.datasets[0].backgroundColor = _upGradientFn;
+                        state.charts.region.data.datasets[0].hoverBackgroundColor = _upGradientFn;
                         state.charts.region.data.datasets[0].borderWidth = 0;
                         state.charts.region.data.datasets[0].hoverBorderWidth = 0;
                         state.charts.region.update({
@@ -7113,12 +7140,20 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                             datasets: [{
                                 label: 'Compliance %',
                                 data: regionAvgs,
-                                backgroundColor: _bgColors,
-                                hoverBackgroundColor: _bgColors,
+                                backgroundColor: (context) => {
+                                    const { chart, dataIndex } = context;
+                                    if (!chart.chartArea) return _bgColors[dataIndex];
+                                    return _barVerticalGradient(chart.ctx, chart.chartArea, _bgColors[dataIndex]);
+                                },
+                                hoverBackgroundColor: (context) => {
+                                    const { chart, dataIndex } = context;
+                                    if (!chart.chartArea) return _bgColors[dataIndex];
+                                    return _barVerticalGradient(chart.ctx, chart.chartArea, _bgColors[dataIndex]);
+                                },
                                 borderWidth: 0,
                                 hoverBorderWidth: 0,
                                 borderSkipped: false,
-                                borderRadius: 8
+                                borderRadius: 0
                             }]
                         },
                         options: {
@@ -10555,9 +10590,14 @@ function renderTabulation() {
                 const _attachedChart = Chart.getChart(regionCtx);
                 if (state.charts.region && _attachedChart === state.charts.region) {
                     const _rcUpBgColors = regionAvgs.map(v => v === null || v === undefined ? '#9e9e9e' : v >= 90 ? '#4EAE5E' : v >= 75 ? '#FF9123' : '#DE4531');
+                    const _rcUpGradientFn = (context) => {
+                        const { chart, dataIndex } = context;
+                        if (!chart.chartArea) return _rcUpBgColors[dataIndex];
+                        return _barVerticalGradient(chart.ctx, chart.chartArea, _rcUpBgColors[dataIndex]);
+                    };
                     state.charts.region.data.datasets[0].data = regionAvgs;
-                    state.charts.region.data.datasets[0].backgroundColor = _rcUpBgColors;
-                    state.charts.region.data.datasets[0].hoverBackgroundColor = _rcUpBgColors;
+                    state.charts.region.data.datasets[0].backgroundColor = _rcUpGradientFn;
+                    state.charts.region.data.datasets[0].hoverBackgroundColor = _rcUpGradientFn;
                     state.charts.region.data.datasets[0].borderWidth = 0;
                     state.charts.region.data.datasets[0].hoverBorderWidth = 0;
                     state.charts.region.update({
@@ -10625,12 +10665,20 @@ function renderTabulation() {
                         datasets: [{
                             label: 'Compliance %',
                             data: regionAvgs,
-                            backgroundColor: _rcBgColors,
-                            hoverBackgroundColor: _rcBgColors,
+                            backgroundColor: (context) => {
+                                const { chart, dataIndex } = context;
+                                if (!chart.chartArea) return _rcBgColors[dataIndex];
+                                return _barVerticalGradient(chart.ctx, chart.chartArea, _rcBgColors[dataIndex]);
+                            },
+                            hoverBackgroundColor: (context) => {
+                                const { chart, dataIndex } = context;
+                                if (!chart.chartArea) return _rcBgColors[dataIndex];
+                                return _barVerticalGradient(chart.ctx, chart.chartArea, _rcBgColors[dataIndex]);
+                            },
                             borderWidth: 0,
                             hoverBorderWidth: 0,
                             borderSkipped: false,
-                            borderRadius: 8
+                            borderRadius: 0
                         }]
                     },
                     options: {
