@@ -7368,7 +7368,16 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         function showUI() {
             const loginOverlay = document.getElementById('login-overlay');
             if (loginOverlay) loginOverlay.style.display = 'none';
-            document.getElementById('main-sidebar').classList.remove('hidden');
+            const _mainSidebar = document.getElementById('main-sidebar');
+            if (_mainSidebar) {
+                _mainSidebar.classList.remove('hidden');
+                _mainSidebar.classList.remove('sidebar-collapsed'); // always start expanded on login
+            }
+            const _hamburgerBtn = document.getElementById('hamburger-btn');
+            if (_hamburgerBtn) {
+                const _icon = _hamburgerBtn.querySelector('i');
+                if (_icon) _icon.className = 'fas fa-times'; // matches expanded state
+            }
             document.getElementById('main-content').classList.remove('hidden');
             const _fBtn = document.getElementById('floating-edit-btn');
             const _canEditRole = (state.userRole === 'pco' || state.userRole === 'envi_head'
@@ -27171,6 +27180,7 @@ document.addEventListener('DOMContentLoaded', function() {
     Object.defineProperty(window, '_envData', { get: () => envData, set: v => { envData = v; }, configurable: true });
     Object.defineProperty(window, '_wasteData', { get: () => wasteData, set: v => { wasteData = v; }, configurable: true });
     Object.defineProperty(window, '_fuelData', { get: () => fuelData, set: v => { fuelData = v; }, configurable: true });
+    Object.defineProperty(window, '_waterData', { get: () => waterData, set: v => { waterData = v; }, configurable: true });
 
 
     // ── Water overall summary ──────────────────────────────────────────────────
