@@ -5346,9 +5346,11 @@ function updateAuditData(pName, qtr, field, val) {
 
         // Computes the "Total Exposed Man-hour to date" running series for a project (months 1-12).
         // Logic: cumulative Previous-year base + running sum of monthly "Total Exposed Manhour".
-        // RESET RULE: if an LTA and/or Fatality is recorded (in the ACCIDENT/INCIDENT RECORD tab,
-        // synced to medical_LTA / medical_Fatality) for a given month, the cumulative to-date value
-        // for that month automatically resets to 0. Accumulation then resumes from 0 the following month.
+        // Per OSHS Rule 1050, "Exposure" = total employee-hours worked, used as the denominator for
+        // Frequency Rate / Severity Rate. This is a straight running total for the reporting period
+        // and does NOT reset when an LTA/Fatality occurs — LTA/Fatality occurrence and its associated
+        // Days Lost/Charged are tracked separately (see "No. of Days w/o LTA" and the Medical tab) and
+        // feed the SR numerator, not this denominator. Do not reintroduce a reset-on-LTA rule here.
         function computeExposureToDateSeries(p) {
             const key = 'exposures_Total Exposed Man-hour to date';
             const manhourKey = 'exposures_Total Exposed Manhour';
@@ -5359,12 +5361,6 @@ function updateAuditData(pName, qtr, field, val) {
             for (let i = 1; i <= 12; i++) {
                 const monthManhour = parseFloat(p.vals[manhourKey] ? (p.vals[manhourKey][i] ?? '') : '') || 0;
                 if (monthManhour > 0) cumulative += monthManhour;
-
-                const lta = parseFloat(p.vals['medical_LTA'] ? (p.vals['medical_LTA'][i] ?? '') : '') || 0;
-                const fatality = parseFloat(p.vals['medical_Fatality'] ? (p.vals['medical_Fatality'][i] ?? '') : '') || 0;
-                if (lta > 0 || fatality > 0) {
-                    cumulative = 0; // reset to-date exposure hours for this LTA/Fatality month
-                }
 
                 series[i] = cumulative;
             }
@@ -11550,7 +11546,7 @@ function renderTabulation() {
                                 ship += parseFloat(p.vals['medical_High-Potential incident']?.[i]) || 0;
                                 sdL  += parseFloat(p.vals['medical_Days Lost/Charged']?.[i])      || 0;
                             });
-                            const srec = slta + smed + sfat + ship;
+                            const srec = slta + smed + sfat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
                             let sval = '';
                             if (smh > 0) {
                                 if      (row === 'LTIR')          sval = parseFloat(((slta * _rateBase) / smh).toFixed(4)).toString();
@@ -11675,7 +11671,7 @@ function renderTabulation() {
                                     ydL  += parseFloat(p.vals['medical_Days Lost/Charged']?.[_i])      || 0;
                                 }
                             });
-                            const yrec = ylta + ymed + yfat + yhip;
+                            const yrec = ylta + ymed + yfat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
                             let yval = '';
                             if (ymh > 0) {
                                 if      (row === 'LTIR')          yval = parseFloat(((ylta * _rateBase) / ymh).toFixed(4)).toString();
@@ -13295,16 +13291,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const _toDateSeries = computeExposureToDateSeries(p);
                     for (let i = 1; i <= 12; i++) {
                         const cumulative = _toDateSeries[i];
-                        const _lta = parseFloat(p.vals['medical_LTA'] ? (p.vals['medical_LTA'][i] ?? '') : '') || 0;
-                        const _fat = parseFloat(p.vals['medical_Fatality'] ? (p.vals['medical_Fatality'][i] ?? '') : '') || 0;
-                        const _wasReset = (_lta > 0 || _fat > 0);
-                        const displayVal = cumulative > 0 ? fmtNum(cumulative) : (_wasReset ? '0' : '');
-                        const _title = _wasReset
-                            ? 'Reset to 0 — LTA/Fatality recorded this month (Accident/Incident Record)'
-                            : 'Auto-computed: Previous + sum of Total Exposed Manhour up to this month';
-                        html += `<td class="monthly-data" data-todate-proj="${p.name}" data-todate-month="${i}" style="text-align:center;background:${_wasReset ? '#ffebee' : ''};" title="${_title}">
-                            <span data-todate-proj="${p.name}" data-todate-month="${i}" style="font-size:0.7rem;color:${_wasReset ? '#c62828' : 'var(--text-primary)'};font-weight:700;">
-                                ${displayVal}${_wasReset ? ' <i class="fas fa-triangle-exclamation" style="font-size:0.55rem;"></i>' : ''}
+                        const displayVal = cumulative > 0 ? fmtNum(cumulative) : (cumulative === 0 ? '0' : '');
+                        html += `<td class="monthly-data" data-todate-proj="${p.name}" data-todate-month="${i}" style="text-align:center;" title="Auto-computed: Previous + sum of Total Exposed Manhour up to this month">
+                            <span data-todate-proj="${p.name}" data-todate-month="${i}" style="font-size:0.7rem;color:var(--text-primary);font-weight:700;">
+                                ${displayVal}
                             </span>
                         </td>`;
                     }
@@ -13318,7 +13308,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         const fat = parseFloat(p.vals['medical_Fatality']?.[i])                      || 0;
                         const hip = parseFloat(p.vals['medical_High-Potential incident']?.[i])       || 0;
                         const dL  = parseFloat(p.vals['medical_Days Lost/Charged']?.[i])           || 0;
-                        const rec = lta + med + fat + hip;
+                        const rec = lta + med + fat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
                         let val = null;
                         let color = '#1b5e20';
                         if (mh > 0) {
@@ -20960,7 +20950,7 @@ function _doUpdateTrendChart(tabType) {
                     dL  += parseFloat(p.vals['medical_Days Lost/Charged']?.[i]) || 0;
                 });
                 if (mh > 0) {
-                    const rec = lta + med + fat + hip;
+                    const rec = lta + med + fat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
                     if      (rateType === 'LTIR')          data[i-1] = parseFloat(((lta * _rateBase) / mh).toFixed(4));
                     else if (rateType === 'TRIR')          data[i-1] = parseFloat(((rec * _rateBase) / mh).toFixed(4));
                     else if (rateType === 'SEVERITY RATE') data[i-1] = parseFloat(((dL  * _rateBase) / mh).toFixed(4));
@@ -32635,7 +32625,7 @@ async function exportCurrentTabToExcel() {
         // ── Value helpers ─────────────────────────────────────────────────────
         function expGetVal(proj, measureKey, monthIdx) {
             if (measureKey === 'Total Exposed Man-hour to date') {
-                // Reset to 0 for any month with a recorded LTA/Fatality (see computeExposureToDateSeries)
+                // Straight cumulative running total per OSHS Rule 1050 exposure hours (see computeExposureToDateSeries)
                 const _series = (typeof computeExposureToDateSeries === 'function') ? computeExposureToDateSeries(proj) : null;
                 const cum = _series ? (_series[monthIdx] || 0) : 0;
                 return cum > 0 ? cum : null;
@@ -33300,7 +33290,7 @@ async function exportCurrentTabToExcel() {
             const fat = parseFloat(_v(proj, 'medical_Fatality', moNum))                 || 0;
             const hip = parseFloat(_v(proj, 'medical_High-Potential incident', moNum))  || 0;
             const dL  = parseFloat(_v(proj, 'medical_Days Lost/Charged', moNum))        || 0;
-            const rec = lta + med + fat + hip;
+            const rec = lta + med + fat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
             if (rateKey === 'LTIR')          return (lta * _rateBase) / mh;
             if (rateKey === 'TRIR')          return (rec * _rateBase) / mh;
             if (rateKey === 'SEVERITY RATE') return (dL  * _rateBase) / mh;
@@ -33317,7 +33307,7 @@ async function exportCurrentTabToExcel() {
                 totalDL  += parseFloat(_v(proj, 'medical_Days Lost/Charged', m))            || 0;
             }
             if (totalMh <= 0) return null;
-            const rec = totalLta + totalMed + totalFat + totalHip;
+            const rec = totalLta + totalMed + totalFat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
             if (rateKey === 'LTIR')          return (totalLta * _rateBase) / totalMh;
             if (rateKey === 'TRIR')          return (rec      * _rateBase) / totalMh;
             if (rateKey === 'SEVERITY RATE') return (totalDL  * _rateBase) / totalMh;
@@ -33338,7 +33328,7 @@ async function exportCurrentTabToExcel() {
                 });
             });
             if (mh <= 0) return null;
-            const rec = lta+med+fat+hip;
+            const rec = lta+med+fat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
             if (rateKey === 'LTIR')          return (lta * _rateBase) / mh;
             if (rateKey === 'TRIR')          return (rec * _rateBase) / mh;
             if (rateKey === 'SEVERITY RATE') return (dL  * _rateBase) / mh;
@@ -33358,9 +33348,9 @@ async function exportCurrentTabToExcel() {
                 });
             });
             if (mh <= 0) return null;
-            const rec = lta+med+fat+hip;
-            if (rateKey === 'LTIR')          return (lta * _rateBase) / mh;
+            const rec = lta+med+fat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
             if (rateKey === 'TRIR')          return (rec * _rateBase) / mh;
+            if (rateKey === 'LTIR')          return (lta * _rateBase) / mh;
             if (rateKey === 'SEVERITY RATE') return (dL  * _rateBase) / mh;
             return null;
         }
@@ -33583,7 +33573,7 @@ async function exportCurrentTabToExcel() {
                     const vals = schemaRows.map(function(row){
                         const key = tab+'_'+row;
                         if (row === 'Total Exposed Man-hour to date') {
-                            // Cumulative: prevBase + sum of monthly manhours, reset to 0 on LTA/Fatality months
+                            // Cumulative: prevBase + sum of monthly manhours, straight running total (no reset)
                             const cum = (typeof computeExposureToDateSeries === 'function') ? computeExposureToDateSeries(proj)[12] : 0;
                             return cum > 0 ? cum : '';
                         }
@@ -33627,8 +33617,8 @@ async function exportCurrentTabToExcel() {
                         const raw=proj.vals&&proj.vals[key];
                         moVals = MO_SHORT.map(function(_,i){ return raw&&raw[i+1]?String(raw[i+1]):''; });
                     } else if (isToDate) {
-                        // Cumulative: prevBase (index[0]) + running sum of Total Exposed Manhour,
-                        // reset to 0 for any month with a recorded LTA/Fatality
+                        // Cumulative: prevBase (index[0]) + running sum of Total Exposed Manhour.
+                        // Straight running total per OSHS Rule 1050 — does not reset on LTA/Fatality.
                         const _series = (typeof computeExposureToDateSeries === 'function') ? computeExposureToDateSeries(proj) : null;
                         moVals = MO_SHORT.map(function(_,i){
                             const cum = _series ? (_series[i+1] || 0) : 0;
