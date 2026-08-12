@@ -8024,6 +8024,51 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             }
         }
 
+        // ANSI Z16.1 / OSH severity-rate convention: actual (TTD) lost days are
+        // charged to the calendar month(s) in which the days themselves fall —
+        // NOT lumped entirely into the month the accident happened. This lets
+        // Severity Rate taper down naturally across the months a case is still
+        // "open" instead of spiking once then dropping straight to zero.
+        // Scheduled charges (fatality / permanent disability — a fixed ANSI
+        // day-charge, not an actual absence) remain lump-summed to the
+        // accident's month, since they don't represent real calendar days off.
+        function computeDaysChargedByMonth(entry, year) {
+            const monthTotals = new Array(13).fill(0); // index 1-12
+            const injuryType = entry.injuryType || 'temporary';
+            if (injuryType === 'na') return monthTotals;
+
+            const injuryTypeDef = LTA_INJURY_TYPES.find(t => t.value === injuryType);
+            const useScheduled = injuryTypeDef ? injuryTypeDef.useScheduled : false;
+
+            if (useScheduled) {
+                if (!entry.dateOfAccident) return monthTotals;
+                const accDate = new Date(entry.dateOfAccident);
+                if (accDate.getFullYear() !== year) return monthTotals;
+                const item = entry.scheduledChargeItem || '';
+                const val  = item ? (SCHEDULED_CHARGES[item] || 0) : 0;
+                monthTotals[accDate.getMonth() + 1] += val;
+                return monthTotals;
+            }
+
+            // Actual/TTD case — walk day-by-day from the day AFTER the accident
+            // through RTW, crediting each non-Sunday day to the calendar month
+            // (within the target year) it actually falls in.
+            if (!entry.dateOfAccident || !entry.dateRTW) return monthTotals;
+            const start = new Date(entry.dateOfAccident);
+            const end   = new Date(entry.dateRTW);
+            start.setDate(start.getDate() + 1); // day AFTER accident
+            if (start >= end) return monthTotals;
+
+            const cur = new Date(start);
+            while (cur < end) {
+                if (cur.getDay() !== 0 && cur.getFullYear() === year) { // exclude Sundays; only count days within target year
+                    monthTotals[cur.getMonth() + 1] += 1;
+                }
+                cur.setDate(cur.getDate() + 1);
+            }
+            return monthTotals;
+        }
+
         // Expose to global scope so functions outside showUI() (e.g. computeAggregateTabulation)
         // can compute Days Lost/Charged directly from the Incident & Accident Registry —
         // same single source of truth used for the Medical Tab auto-sync.
@@ -8031,6 +8076,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         window.LTA_INJURY_TYPES   = LTA_INJURY_TYPES;
         window.computeDaysLost    = computeDaysLost;
         window.computeDaysCharged = computeDaysCharged;
+        window.computeDaysChargedByMonth = computeDaysChargedByMonth;
 
         
         function syncDaysLostFromLtaRegistry() {
@@ -8041,15 +8087,13 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 let hasCurrentYearEntries = false;
                 entries.forEach(e => {
                     if (e.injuryType === 'na') return;       // ← skip N/A entries
-                    const dateForYear = e.dateOfAccident || e.dateReported || ''; // fallback, same pattern used elsewhere in registry (e.g. sort/list rendering)
-                    if (!dateForYear) return;
-                    const accidentYear = new Date(dateForYear).getFullYear();
-                    if (accidentYear !== selectedYear) return; // ← skip other years
-                    const { daysCharged } = computeDaysCharged(e);
-                    if (daysCharged <= 0) return;
-                    const month = new Date(dateForYear).getMonth() + 1; // 1-12
-                    monthTotals[month] += daysCharged;
-                    hasCurrentYearEntries = true;
+                    const byMonth = computeDaysChargedByMonth(e, selectedYear);
+                    for (let i = 1; i <= 12; i++) {
+                        if (byMonth[i] > 0) {
+                            monthTotals[i] += byMonth[i];
+                            hasCurrentYearEntries = true;
+                        }
+                    }
                 });
                 if (hasCurrentYearEntries) {
                     if (!p.vals['medical_Days Lost/Charged']) {
@@ -8061,6 +8105,55 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 }
             });
         }
+
+        // "No. of Days w/o LTA" — per-month count of accident-free days, auto-derived
+        // from the LTA Registry. The streak resets the day AFTER an LTA (the accident
+        // date itself is not "accident-free"), then counts uninterrupted through the
+        // rest of that month; a month with no LTA at all counts its full calendar days.
+        // Only entries classified as 'LTA' (incidentClassification) count as a reset —
+        // Medical Treatment/First Aid/etc. don't break the streak.
+        function computeDaysWithoutLtaByMonth(project, year) {
+            const result = new Array(13).fill(null); // index 1-12
+            const entries = project.vals['lta-registry_entries'] || [];
+            const monthLtaDays = {}; // month -> [day-of-month, ...] of each LTA that month
+            entries.forEach(e => {
+                if (!e.dateOfAccident) return;
+                if ((e.incidentClassification || 'LTA') !== 'LTA') return; // only LTA resets the streak
+                const d = new Date(e.dateOfAccident);
+                if (isNaN(d.getTime()) || d.getFullYear() !== year) return;
+                const m = d.getMonth() + 1;
+                if (!monthLtaDays[m]) monthLtaDays[m] = [];
+                monthLtaDays[m].push(d.getDate());
+            });
+            for (let m = 1; m <= 12; m++) {
+                const daysInMonth = new Date(year, m, 0).getDate();
+                if (monthLtaDays[m] && monthLtaDays[m].length) {
+                    const lastLtaDay = Math.max(...monthLtaDays[m]);
+                    result[m] = Math.max(0, daysInMonth - lastLtaDay); // days AFTER the last LTA that month
+                } else {
+                    result[m] = daysInMonth; // no LTA this month — full month is accident-free
+                }
+            }
+            return result;
+        }
+        window.computeDaysWithoutLtaByMonth = computeDaysWithoutLtaByMonth;
+
+        function syncDaysWithoutLtaFromRegistry() {
+            const selectedYear = (state && state.selectedYear) ? parseInt(state.selectedYear) : new Date().getFullYear();
+            state.projects.forEach(p => {
+                const entries = p.vals['lta-registry_entries'] || [];
+                const hasAnyLtaEntry = entries.some(e => (e.incidentClassification || 'LTA') === 'LTA' && e.dateOfAccident);
+                if (!hasAnyLtaEntry) return; // no LTA registry data — leave manually-encoded values untouched
+                const byMonth = computeDaysWithoutLtaByMonth(p, selectedYear);
+                if (!p.vals['exposures_No. of Days w/o LTA']) {
+                    p.vals['exposures_No. of Days w/o LTA'] = new Array(13).fill('');
+                }
+                for (let i = 1; i <= 12; i++) {
+                    p.vals['exposures_No. of Days w/o LTA'][i] = byMonth[i] != null ? byMonth[i].toString() : p.vals['exposures_No. of Days w/o LTA'][i];
+                }
+            });
+        }
+        window.syncDaysWithoutLtaFromRegistry = syncDaysWithoutLtaFromRegistry;
 
         
         function syncIncidentClassificationsFromRegistry() {
@@ -8101,6 +8194,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             });
 
             syncDaysLostFromLtaRegistry();
+            syncDaysWithoutLtaFromRegistry();
         }
 
         function _ltaAutoEditMode() {
@@ -8145,6 +8239,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             });
             syncIncidentClassificationsFromRegistry();
             syncDaysLostFromLtaRegistry();
+            syncDaysWithoutLtaFromRegistry();
             // FIX: Don't saveToFirebase() here — it triggers onSnapshot which re-renders
             // the tab from Firebase before the new entry is confirmed, making it disappear.
             // Save button will handle the Firebase write. Just mark pending + save locally.
@@ -8173,6 +8268,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 p.vals['lta-registry_entries'].splice(idx, 1);
                 syncIncidentClassificationsFromRegistry();
                 syncDaysLostFromLtaRegistry();
+                syncDaysWithoutLtaFromRegistry();
                 saveToFirebase();
                 renderLtaRegistryTab();
             });
@@ -8187,6 +8283,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 || field === 'injuryType' || field === 'scheduledChargeItem') {
                 syncIncidentClassificationsFromRegistry();
                 syncDaysLostFromLtaRegistry();
+                syncDaysWithoutLtaFromRegistry();
                 const badge = document.getElementById(`lta-dl-${pName.replace(/[^a-zA-Z0-9]/g,'_')}-${idx}`);
                 if (badge) {
                     const e = p.vals['lta-registry_entries'][idx];
@@ -8986,6 +9083,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
 
             syncIncidentClassificationsFromRegistry();
             syncDaysLostFromLtaRegistry();
+            syncDaysWithoutLtaFromRegistry();
             if (typeof saveUserData === 'function') saveUserData(state.currentUser?.email);
             // Mark dirty BEFORE saving so the onSnapshot echo is ignored while save is in flight
             if (window.RowSaveManager) window.RowSaveManager.markDirty(pName, 'lta_entries');
@@ -11413,6 +11511,7 @@ function renderTabulation() {
             if (state.currentTab === 'medical') {
                 if (typeof syncIncidentClassificationsFromRegistry === 'function') syncIncidentClassificationsFromRegistry();
                 if (typeof syncDaysLostFromLtaRegistry === 'function') syncDaysLostFromLtaRegistry();
+                if (typeof syncDaysWithoutLtaFromRegistry === 'function') syncDaysWithoutLtaFromRegistry();
                 html += buildTrendChartHTML('medical');
                 html += buildIncidentRecommendationsHTML('medical');
             }
