@@ -664,7 +664,7 @@ const RBAC_ACCOUNTS = [
     { uid: '3d8uwAYjNPSCcH9Xbu1fsCiuJK13', email: 'esh@lmp.com.ph',      role: 'manager',       displayName: 'LMP Manager',                   region: 'ALL',                 module_access: [] },
     { uid: 'ljciHhNmmGQnriHwbwgeb8Yi1V63',    email: 'esh@wda.com.ph',      role: 'admin',      displayName: 'WDA System Admin',              region: 'CORPORATE',           module_access: [] },
     { uid: 'WYcn1vEPoRTrq8rbrGBFUB9x4H03',    email: 'esh@corpdc.com.ph',   role: 'admin',          displayName: 'Corporate Document Controller', region: 'CORPORATE',      module_access: [] },
-    { uid: 'b1uiTykyjhN60Il11Inmv9e6h252', email: 'esh@cbmganda.com.ph', role: 'envi_head',     displayName: 'Environmental Head',            region: 'PLANT OPERATIONS',    module_access: ['permits','emb','env-monitoring','env-monthly-report','nov-env','esh-calendar-env'] },
+    { uid: 'b1uiTykyjhN60Il11Inmv9e6h252', email: 'esh@cbmganda.com.ph', role: 'envi_head',     displayName: 'Environmental Head (Overall)',  region: 'PLANT OPERATIONS',    module_access: ['permits','emb','env-monitoring','env-monthly-report','nov-env','esh-calendar-env'] },
     { uid: 'EW3RstAsVwNxMHHCNHdV3zWGMtt2',  email: 'esh@health.com.ph',   role: 'corp_nurse',    displayName: 'Corporate Nurse',               region: 'ALL',                 module_access: [] },
 ];
 
@@ -1786,7 +1786,7 @@ function applyNumFmtToInputs() {
                 'esh@cbmganda.com.ph': {
                     password: '*** (auth via Firebase Auth)',
                     role: 'envi_head',
-                    displayName: 'Environmental Head',
+                    displayName: 'Environmental Head (Overall)',
                     region: 'PLANT OPERATIONS',
                     color: '#00695c'
                 },
@@ -1923,17 +1923,15 @@ function applyNumFmtToInputs() {
                     return { allowed: true, reason: 'PCO: env tab + region match' };
                 }
 
-                // Environmental Head — PLANT OPERATIONS only, env tabs only
+                // Environmental Head — overall PCO head, cross-region access, env tabs only
                 if (info.role === 'envi_head') {
                     if (tab && !this.ENVI_HEAD_EDITABLE_TABS.includes(tab)) {
                         return { allowed: false, reason: `🔒 Environmental Head can only edit environmental modules. "${tab}" is read-only.` };
                     }
-                    const _enviProjReg = (projectRegion || '').trim().toUpperCase();
-                    const _enviAllowed = ['PLANT OPERATIONS', 'CORPORATE'];
-                    if (projectRegion && !_enviAllowed.includes(_enviProjReg)) {
-                        return { allowed: false, reason: `🔒 Environmental Head can only edit PLANT OPERATIONS and CORPORATE records. For ${projectRegion} corrections, coordinate with the assigned PCO.` };
-                    }
-                    return { allowed: true, reason: 'Envi Head: env tab + PLANT OPERATIONS/CORPORATE match' };
+                    // Overall Environmental Head oversees all regional PCOs — full cross-region
+                    // write access to environmental modules (each region's rows/fields remain
+                    // separate documents/keys, so this never overwrites another PCO's entries).
+                    return { allowed: true, reason: 'Envi Head: env tab, all-region access' };
                 }
 
                 return { allowed: false, reason: '403: Unauthorized Action' };
@@ -26022,7 +26020,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ─── Save a SINGLE env row to its own Firestore document (atomic, no overwrite) ─
     async function saveEnvRowToFirebase(colName, row) {
         if (!window.firebaseDb || !window.firebase || !row?.id) return;
-        // Role guard: only PCO (own region), envi_head (PLANT OPERATIONS), and admin can write env rows
+        // Role guard: only PCO (own region), envi_head (overall, all regions), and admin can write env rows
         const _envEmail = window.firebaseAuth?.currentUser?.email;
         const _envInfo  = (typeof UserAccounts !== 'undefined') ? UserAccounts.getUserInfo(_envEmail) : null;
         if (_envInfo) {
@@ -26036,11 +26034,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.warn(`🔒 saveEnvRowToFirebase: blocked — PCO region "${_envInfo.region}" ≠ row region "${row.region}"`);
                 return;
             }
-            // envi_head can write PLANT OPERATIONS and CORPORATE rows
-            if (_role === 'envi_head' && row.region && !['PLANT OPERATIONS', 'CORPORATE'].includes(row.region)) {
-                console.warn(`🔒 saveEnvRowToFirebase: blocked — envi_head can only write PLANT OPERATIONS / CORPORATE rows`);
-                return;
-            }
+            // envi_head (overall Environmental Head) may write env rows for ANY region —
+            // rows are atomic per-document, so this never touches another PCO's rows.
         }
         try {
             const ADMIN_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
@@ -26075,11 +26070,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.warn(msg);
                 throw new Error(msg);
             }
-            if (_role === 'envi_head' && row.region && !['PLANT OPERATIONS', 'CORPORATE'].includes(row.region)) {
-                const msg = `🔒 deleteEnvRowFromFirebase: blocked — envi_head region mismatch`;
-                console.warn(msg);
-                throw new Error(msg);
-            }
+            // envi_head (overall Environmental Head) may delete env rows for ANY region.
         }
         try {
             const ADMIN_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
@@ -31127,7 +31118,7 @@ const ESHDataSync = (() => {
 
         if (role === 'admin')          return rk === 'CORPORATE' && !isEnv;
         if (role === 'superintendent') return rk === userRegion  && !isEnv;
-        if (role === 'envi_head')      return (rk === 'PLANT_OPS' || rk === 'CORPORATE') && isEnv;
+        if (role === 'envi_head')      return isEnv; // overall Environmental Head — all regions
         if (role === 'pco')            return rk === userRegion  && isEnv;
 
         return false;
