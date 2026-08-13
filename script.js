@@ -1072,9 +1072,9 @@ async function revokeUserAccess(email) {
        const SCHEMA = {
     'exposures': ["Total Manpower", "Total Exposed Manhour", "Total Exposed Man-hour to date", "No. of Days w/o LTA"],
     'rates': ["LTIR","TRIR","SEVERITY RATE"],
-    'medical': ["Medical Treatment","First Aid","LTA","Fatality","High-Potential incident", "Dangerous Occurrences", "Days Lost/Charged"],
+    'medical': ["Medical Treatment","First Aid","LTA","Fatality","High-Potential incident", "Dangerous Occurrences", "No. of Identified Near-Miss", "Days Lost/Charged"],
     'nov': ["OSH Internal Issues", "OSH External Issues"],
-    'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "No. of Identified Near-Miss","Drills Conducted", "Training Conducted"],
+    'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "Drills Conducted", "Training Conducted"],
     'kpm': ["KPM&I"],
     'audit': ["Score Implementation", "Documentation and Compliance"],
     'dole': ["WAIR","RSO", "MOM", "AEDR", "AMR"],
@@ -6271,20 +6271,14 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const _KPM_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
             const _calYear   = selectedYear;
             const _calStor   = (typeof getEshStorage === 'function') ? getEshStorage() : {};
-            const _ESH_DEF_ROWS  = (typeof ESH_DEFAULT_ROWS !== 'undefined') ? ESH_DEFAULT_ROWS : {};
+            const _ESH_DEF_ROWS  = (typeof ESH_TRAININGS !== 'undefined') ? ESH_TRAININGS : {};
             const _ESH_DRILLS_LIST = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
 
-            // ── Area 1: Drills & Training (2 fields × 12 months) ──
-            let dtF = 0, dtT = 0;
-            ['activities_Drills Conducted', 'activities_Training Conducted'].forEach(key => {
-                for (let i = 1; i <= 12; i++) {
-                    if (isMonthBlacklisted(i)) continue;
-                    dtT++;
-                    const v = vals[key] && vals[key][i];
-                    if (v !== undefined && v !== null && v !== '' && v !== '0') dtF++;
-                }
-            });
-            if (dtT > 0) areaScores.push(dtF / dtT);
+            // ── Area 1: Drills & Training — REMOVED (was reading vals['activities_Drills Conducted'] /
+            // vals['activities_Training Conducted'], fields that are auto-computed for display and never
+            // actually saved into vals, so this area was always counted as ~0% regardless of real data,
+            // unfairly dragging every project's score down. Drills/training compliance is already covered
+            // accurately by "ESH Calendar" (Area 5) and "Emergency Drills" (Area 6) below.) ──
 
             // ── Area 2: KPM (monthly, region-wide check; N/A → excluded) ──
             if (!(vals['kpm_na'] === '1')) {
@@ -6338,6 +6332,8 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             }
 
             // ── Area 5: ESH Calendar — env, safety, health (3 sub-areas, equally averaged) ──
+            // Only counts topics actually PLANNED for that month (GLOBAL_PLAN flag), same as Emergency
+            // Drills below — not every topic in ESH_TRAININGS every month.
             const _ESH_CAL_TYPES = ['esh-calendar-env', 'esh-calendar-safety', 'esh-calendar-health'];
             const calSubScores = [];
             _ESH_CAL_TYPES.forEach(tt => {
@@ -6350,12 +6346,14 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         const monthIdx1 = mi + 1;
                         if (isMonthBlacklisted(monthIdx1)) continue;
                         if (naFrom >= 0 && mi >= naFrom) continue; // N/A from this month onward
+                        const planKey = `${_calYear}|${tt}|GLOBAL_PLAN|${ti}|${mi}|plan`;
+                        if (!_calStor[planKey]) continue; // not planned this month — not required
                         cT++;
                         const actualKey = `${_calYear}|${tt}|${proj.name}|${ti}|${mi}|actual`;
                         if (_calStor[actualKey] && _calStor[actualKey] !== '') cF++;
                     }
                 });
-                calSubScores.push(cT > 0 ? cF / cT : 1); // no applicable rows = fully exempt
+                calSubScores.push(cT > 0 ? cF / cT : 1); // no planned rows this year = fully exempt
             });
             if (calSubScores.length > 0) {
                 areaScores.push(calSubScores.reduce((a, b) => a + b, 0) / calSubScores.length);
@@ -6467,7 +6465,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const moName = _KPM_MONTHS[monthIdx1Based - 1];
             const _calYear = selectedYear;
             const _calStor = (typeof getEshStorage === 'function') ? getEshStorage() : {};
-            const _ESH_DEF_ROWS = (typeof ESH_DEFAULT_ROWS !== 'undefined') ? ESH_DEFAULT_ROWS : {};
+            const _ESH_DEF_ROWS = (typeof ESH_TRAININGS !== 'undefined') ? ESH_TRAININGS : {};
             const _ESH_DRILLS_LIST = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
             const mi = monthIdx1Based - 1; // 0-based
 
@@ -6477,13 +6475,9 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 const vals = proj.vals || {};
                 const areaScores = [];
 
-                // ── Area 1: Drills & Training (2 fields) ──
-                let aF = 0;
-                ['activities_Drills Conducted', 'activities_Training Conducted'].forEach(key => {
-                    const v = vals[key] && vals[key][monthIdx1Based];
-                    if (v !== undefined && v !== null && v !== '' && v !== '0') aF++;
-                });
-                areaScores.push(aF / 2);
+                // ── Area 1: Drills & Training — REMOVED (buggy: read vals['activities_Drills Conducted']
+                // / vals['activities_Training Conducted'], which are never populated. See getPerc for full
+                // explanation. Covered by "ESH Calendar" and "Emergency Drills" below instead.) ──
 
                 // ── Area 2: KPM (1 field — submitted or not) ──
                 if (!(vals && vals['kpm_na'] === '1')) {
@@ -6522,6 +6516,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 }
 
                 // ── Area 5: ESH Calendar — env, safety, health (3 sub-areas averaged equally) ──
+                // Only counts topics actually PLANNED for that month (GLOBAL_PLAN flag).
                 const _ESH_CAL_TYPES = ['esh-calendar-env', 'esh-calendar-safety', 'esh-calendar-health'];
                 const calSubScores = [];
                 _ESH_CAL_TYPES.forEach(tt => {
@@ -6531,11 +6526,13 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         const naRowKey = `${_calYear}|${tt}|${proj.name}|${ti}|na_row`;
                         const naFrom   = _calStor[naRowKey] !== undefined ? parseInt(_calStor[naRowKey]) : -1;
                         if (naFrom >= 0 && mi >= naFrom) return; // N/A
+                        const planKey = `${_calYear}|${tt}|GLOBAL_PLAN|${ti}|${mi}|plan`;
+                        if (!_calStor[planKey]) return; // not planned this month — not required
                         cT++;
                         const actualKey = `${_calYear}|${tt}|${proj.name}|${ti}|${mi}|actual`;
                         if (_calStor[actualKey] && _calStor[actualKey] !== '') cF++;
                     });
-                    calSubScores.push(cT > 0 ? cF / cT : 1); // no applicable rows = exempt
+                    calSubScores.push(cT > 0 ? cF / cT : 1); // no planned rows this month = exempt
                 });
                 if (calSubScores.length > 0) {
                     areaScores.push(calSubScores.reduce((a, b) => a + b, 0) / calSubScores.length);
@@ -6596,7 +6593,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const moName = _KPM_MONTHS[monthIdx1Based - 1];
             const _calYear = selectedYear;
             const _calStor = (typeof getEshStorage === 'function') ? getEshStorage() : {};
-            const _ESH_DEF_ROWS = (typeof ESH_DEFAULT_ROWS !== 'undefined') ? ESH_DEFAULT_ROWS : {};
+            const _ESH_DEF_ROWS = (typeof ESH_TRAININGS !== 'undefined') ? ESH_TRAININGS : {};
             const _ESH_DRILLS_LIST = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
             const mi = monthIdx1Based - 1;
 
@@ -6606,13 +6603,9 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 const vals = proj.vals || {};
                 const areaScores = [];
 
-                // ── Area 1: Drills & Training (2 fields) ──
-                let aF = 0;
-                ['activities_Drills Conducted', 'activities_Training Conducted'].forEach(key => {
-                    const v = vals[key] && vals[key][monthIdx1Based];
-                    if (v !== undefined && v !== null && v !== '' && v !== '0') aF++;
-                });
-                areaScores.push(aF / 2);
+                // ── Area 1: Drills & Training — REMOVED (buggy: read vals['activities_Drills Conducted']
+                // / vals['activities_Training Conducted'], which are never populated. See getPerc for full
+                // explanation. Covered by "ESH Calendar" and "Emergency Drills" below instead.) ──
 
                 // ── Area 2: KPM ──
                 if (!(vals && vals['kpm_na'] === '1')) {
@@ -6651,6 +6644,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 }
 
                 // ── Area 5: ESH Calendar — env, safety, health (3 sub-areas averaged equally) ──
+                // Only counts topics actually PLANNED for that month (GLOBAL_PLAN flag).
                 const _ESH_CAL_TYPES = ['esh-calendar-env', 'esh-calendar-safety', 'esh-calendar-health'];
                 const calSubScores = [];
                 _ESH_CAL_TYPES.forEach(tt => {
@@ -6660,6 +6654,8 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         const naRowKey = `${_calYear}|${tt}|${proj.name}|${ti}|na_row`;
                         const naFrom   = _calStor[naRowKey] !== undefined ? parseInt(_calStor[naRowKey]) : -1;
                         if (naFrom >= 0 && mi >= naFrom) return;
+                        const planKey = `${_calYear}|${tt}|GLOBAL_PLAN|${ti}|${mi}|plan`;
+                        if (!_calStor[planKey]) return; // not planned this month — not required
                         cT++;
                         const actualKey = `${_calYear}|${tt}|${proj.name}|${ti}|${mi}|actual`;
                         if (_calStor[actualKey] && _calStor[actualKey] !== '') cF++;
@@ -6716,7 +6712,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
             const _KPM_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
             const _calYear = selectedYear;
             const _calStor = (typeof getEshStorage === 'function') ? getEshStorage() : {};
-            const _ESH_DEF_ROWS = (typeof ESH_DEFAULT_ROWS !== 'undefined') ? ESH_DEFAULT_ROWS : {};
+            const _ESH_DEF_ROWS = (typeof ESH_TRAININGS !== 'undefined') ? ESH_TRAININGS : {};
             const _ESH_DRILLS_LIST = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
 
             function isBlk(p, mo) { return isMonthBlacklistedForProject(p, mo, selectedYear); }
@@ -6750,17 +6746,12 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     ? Array.from({length:12}, (_,i)=>i+1).filter(m => !isBlk(proj, m))
                     : [monthIdx1Based];
 
-                // Area 1: Drills & Training
-                ['activities_Drills Conducted', 'activities_Training Conducted'].forEach(key => {
-                    const fieldLabel = key.endsWith('Drills Conducted') ? 'Drills Conducted' : 'Training Conducted';
-                    moList.forEach(mo => {
-                        addRequired('Drills & Training', 1);
-                        const v = vals[key] && vals[key][mo];
-                        if (v === undefined || v === null || v === '' || v === '0') {
-                            addGap('Drills & Training', proj, `${_KPM_MONTHS[mo-1]} — ${fieldLabel} missing`);
-                        }
-                    });
-                });
+                // Area 1: Drills & Training — REMOVED. This used to check vals['activities_Drills Conducted']
+                // / vals['activities_Training Conducted'], but those fields are auto-computed display-only
+                // counts (see Activities tab render logic) and are never actually written into vals, so this
+                // area was always 100% "missing" regardless of real data. The real source of truth for
+                // drills/training is the ESH Calendar storage, which is already covered specifically below
+                // by "ESH Calendar" (Area 5, per-training-topic) and "Emergency Drills" (Area 6, per-drill).
 
                 // Area 2: KPM (region-wide submission)
                 if (!(vals['kpm_na'] === '1')) {
@@ -6801,7 +6792,10 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                     });
                 }
 
-                // Area 5: ESH Calendar (env/safety/health)
+                // Area 5: ESH Calendar (env/safety/health) — trainings come from ESH_TRAININGS (plain
+                // string topic names per calendar type). Only counts topics actually PLANNED for that
+                // month (GLOBAL_PLAN flag, same mechanism as Emergency Drills below) — not every topic
+                // in the master list every month.
                 const _ESH_CAL_TYPES = [['esh-calendar-env','Environmental'], ['esh-calendar-safety','Safety'], ['esh-calendar-health','Health']];
                 _ESH_CAL_TYPES.forEach(([tt, ttLabel]) => {
                     const rows = _ESH_DEF_ROWS[tt] || [];
@@ -6811,10 +6805,13 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                         moList.forEach(mo => {
                             const mi = mo - 1;
                             if (naFrom >= 0 && mi >= naFrom) return; // N/A — exempt
+                            const planKey = `${_calYear}|${tt}|GLOBAL_PLAN|${ti}|${mi}|plan`;
+                            if (!_calStor[planKey]) return; // not planned this month — not required
                             addRequired('ESH Calendar', 1);
                             const actualKey = `${_calYear}|${tt}|${proj.name}|${ti}|${mi}|actual`;
                             if (!_calStor[actualKey] || _calStor[actualKey] === '') {
-                                addGap('ESH Calendar', proj, `${_KPM_MONTHS[mo-1]} — ${ttLabel}: "${row.name || row.label || ('Item ' + (ti+1))}" not filled`);
+                                const _rowLabel = (typeof row === 'string') ? row : (row.name || row.label || ('Item ' + (ti+1)));
+                                addGap('ESH Calendar', proj, `${_KPM_MONTHS[mo-1]} — ${ttLabel}: "${_rowLabel}" not conducted/logged`);
                             }
                         });
                     });
@@ -7355,9 +7352,9 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         const _SCHEMA = {
             exposures:          ['Total Manpower','Total Exposed Manhour','Total Exposed Man-hour to date','No. of Days w/o LTA'],
             rates:              ['LTIR','TRIR','SEVERITY RATE'],
-            medical:            ['Medical Treatment','First Aid','LTA','Fatality','High-Potential incident','Dangerous Occurrences','Days Lost/Charged'],
+            medical:            ['Medical Treatment','First Aid','LTA','Fatality','High-Potential incident','Dangerous Occurrences','No. of Identified Near-Miss','Days Lost/Charged'],
             nov:                ['OSH Internal Issues','OSH External Issues'],
-            activities:         ['No. of ESH Committee Conducted','No. of ESH inspection','No. of Identified Near-Miss','Drills Conducted','Training Conducted'],
+            activities:         ['No. of ESH Committee Conducted','No. of ESH inspection','Drills Conducted','Training Conducted'],
             dole:               ['WAIR','RSO','MOM','AEDR','AMR'],
             emb:                ['SMR (Quarterly) - Submission Date','SMR (Quarterly) - Reference No.','CMR (Semi-Annual) - Submission Date','CMR (Semi-Annual) - Reference No.'],
             permits:            ['ECC','Company Registration System (CRS)','CNC','Certificate of Accreditation (DENR-EMB)','Certificate of Accreditation (LLDA)','LLDA Clearance','Permit to Transport (PTT)','Permit to Operate (PTO)','Discharge Permit (DP)',"Hazardous Waste Generator's ID",'Permit to Transport (Haz Waste)','Permit to Transport (Logs)','Tree Cutting Permit (STCP or S/PLTP)','Permit to Cut Coconut Tree','NWRB Water Permit'],
@@ -8164,6 +8161,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
                 'Fatality':                 'medical_Fatality',
                 'High-Potential Incident':  'medical_High-Potential incident',
                 'Dangerous Occurrence':     'medical_Dangerous Occurrences',
+                'Near Miss':                'medical_No. of Identified Near-Miss',
             };
 
             state.projects.forEach(p => {
@@ -10898,7 +10896,6 @@ function renderTabulation() {
             const _KPM_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
             const _TARGET_REGS = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
             const _AREA_LABELS = {
-                drillsTraining: 'Drills & Training',
                 kpm:            'KPM Submission',
                 dole:           'DOLE Reportorial',
                 got:            'GOT Monitoring',
@@ -10909,7 +10906,6 @@ function renderTabulation() {
             // Maps this table's short area keys to the exact area labels used inside
             // the detail modal (getComplianceGapDetails), so a row click can jump straight to it.
             const _GAP_KEY_TO_DETAIL_LABEL = {
-                drillsTraining: 'Drills & Training',
                 kpm:            'KPM Report',
                 dole:           'DOLE Reportorial',
                 got:            'GOT Monitoring',
@@ -10932,7 +10928,7 @@ function renderTabulation() {
             const selYear  = _mcSelYear;
             const mi       = selMonth - 1;
             const _calStor = (typeof getEshStorage === 'function') ? getEshStorage() : {};
-            const _ESH_DEF_ROWS   = (typeof ESH_DEFAULT_ROWS !== 'undefined') ? ESH_DEFAULT_ROWS : {};
+            const _ESH_DEF_ROWS   = (typeof ESH_TRAININGS !== 'undefined') ? ESH_TRAININGS : {};
             const _ESH_DRILLS_LIST = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
 
             const _prevOk = _cv > 1;
@@ -10964,19 +10960,15 @@ function renderTabulation() {
                 if (projects.length === 0) return null;
 
                 const acc = {
-                    drillsTraining: {f:0,t:0}, kpm:{f:0,t:0}, dole:{f:0,t:0},
+                    kpm:{f:0,t:0}, dole:{f:0,t:0},
                     got:{f:0,t:0}, eshCal:{f:0,t:0}, emDrills:{f:0,t:0}, emr:{f:0,t:0}
                 };
 
                 projects.forEach(proj => {
                     const vals = proj.vals || {};
 
-                    // Area 1 – Drills & Training
-                    ['activities_Drills Conducted','activities_Training Conducted'].forEach(key => {
-                        acc.drillsTraining.t++;
-                        const v = vals[key] && vals[key][selMonth];
-                        if (v !== undefined && v !== null && v !== '' && v !== '0') acc.drillsTraining.f++;
-                    });
+                    // Area 1 (Drills & Training) — removed, see getPerc comment for why. Now covered by
+                    // "ESH Calendar" (eshCal, per-training-topic) and "Emergency Drills" (emDrills, per-drill).
 
                     // Area 2 – KPM
                     if (!(vals && vals['kpm_na'] === '1')) {
@@ -11008,13 +11000,15 @@ function renderTabulation() {
                         if (_gotAllFilled) acc.got.f++;
                     }
 
-                    // Area 5 – ESH Calendar
+                    // Area 5 – ESH Calendar (only topics PLANNED for this month count as required)
                     ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
                         const rows = _ESH_DEF_ROWS[tt] || [];
                         rows.forEach((_, ti) => {
                             const naRowKey = `${selYear}|${tt}|${proj.name}|${ti}|na_row`;
                             const naFrom   = _calStor[naRowKey] !== undefined ? parseInt(_calStor[naRowKey]) : -1;
                             if (naFrom >= 0 && mi >= naFrom) return;
+                            const planKey = `${selYear}|${tt}|GLOBAL_PLAN|${ti}|${mi}|plan`;
+                            if (!_calStor[planKey]) return; // not planned this month — not required
                             acc.eshCal.t++;
                             const actualKey = `${selYear}|${tt}|${proj.name}|${ti}|${mi}|actual`;
                             if (_calStor[actualKey] && _calStor[actualKey] !== '') acc.eshCal.f++;
@@ -11289,7 +11283,6 @@ function renderTabulation() {
                     const _KPM_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
                     const _TARGET_REGS = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
                     const _AREA_LABELS = {
-                        drillsTraining: 'Drills & Training',
                         kpm:            'KPM Submission',
                         dole:           'DOLE Reportorial',
                         got:            'GOT Monitoring',
@@ -11298,7 +11291,6 @@ function renderTabulation() {
                         emr:            'Environmental Report (EMR)',
                     };
                     const _GAP_KEY_TO_DETAIL_LABEL = {
-                        drillsTraining: 'Drills & Training',
                         kpm:            'KPM Report',
                         dole:           'DOLE Reportorial',
                         got:            'GOT Monitoring',
@@ -11314,7 +11306,7 @@ function renderTabulation() {
                     const mi       = selMonth - 1;
                     const selYear  = state.selectedYear || new Date().getFullYear();
                     const _calStor = (typeof getEshStorage === 'function') ? getEshStorage() : {};
-                    const _ESH_DEF_ROWS   = (typeof ESH_DEFAULT_ROWS !== 'undefined') ? ESH_DEFAULT_ROWS : {};
+                    const _ESH_DEF_ROWS   = (typeof ESH_TRAININGS !== 'undefined') ? ESH_TRAININGS : {};
                     const _ESH_DRILLS_LIST = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
 
                     const regGaps = _TARGET_REGS.map(region => {
@@ -11328,7 +11320,6 @@ function renderTabulation() {
                         if (projects.length === 0) return null;
 
                         const acc = {
-                            drillsTraining: { f:0, t:0 },
                             kpm:            { f:0, t:0 },
                             dole:           { f:0, t:0 },
                             got:            { f:0, t:0 },
@@ -11340,12 +11331,8 @@ function renderTabulation() {
                         projects.forEach(proj => {
                             const vals = proj.vals || {};
 
-                            // Area 1 – Drills & Training
-                            ['activities_Drills Conducted','activities_Training Conducted'].forEach(key => {
-                                acc.drillsTraining.t++;
-                                const v = vals[key] && vals[key][selMonth];
-                                if (v !== undefined && v !== null && v !== '' && v !== '0') acc.drillsTraining.f++;
-                            });
+                            // Area 1 (Drills & Training) — removed, see getPerc comment for why. Now
+                            // covered by "eshCal" (per-training-topic) and "emDrills" (per-drill).
 
                             // Area 2 – KPM
                             if (!(vals && vals['kpm_na'] === '1')) {
@@ -11377,13 +11364,15 @@ function renderTabulation() {
                                 if (_gotAllFilled) acc.got.f++;
                             }
 
-                            // Area 5 – ESH Calendar
+                            // Area 5 – ESH Calendar (only topics PLANNED for this month count as required)
                             ['esh-calendar-env','esh-calendar-safety','esh-calendar-health'].forEach(tt => {
                                 const rows = _ESH_DEF_ROWS[tt] || [];
                                 rows.forEach((_, ti) => {
                                     const naRowKey = `${selYear}|${tt}|${proj.name}|${ti}|na_row`;
                                     const naFrom   = _calStor[naRowKey] !== undefined ? parseInt(_calStor[naRowKey]) : -1;
                                     if (naFrom >= 0 && mi >= naFrom) return;
+                                    const planKey = `${selYear}|${tt}|GLOBAL_PLAN|${ti}|${mi}|plan`;
+                                    if (!_calStor[planKey]) return; // not planned this month — not required
                                     acc.eshCal.t++;
                                     const actualKey = `${selYear}|${tt}|${proj.name}|${ti}|${mi}|actual`;
                                     if (_calStor[actualKey] && _calStor[actualKey] !== '') acc.eshCal.f++;
@@ -11561,28 +11550,7 @@ function renderTabulation() {
                     for (let i = 1; i <= 12; i++) {
                         let monthTotal = 0;
                         const mi = i - 1; // 0-based month index for ESH calendar
-                        if (state.currentTab === 'activities' && row === 'No. of Identified Near-Miss') {
-                            const _nmYear2 = state.selectedYear || new Date().getFullYear();
-                            const _nmNow2 = new Date(); const _nmCY2 = _nmNow2.getFullYear(); const _nmCM2 = _nmNow2.getMonth();
-                            displayProjects.forEach(p => {
-                                const entries = p.vals['lta-registry_entries'] || [];
-                                monthTotal += entries.filter(e => {
-                                    if (e.incidentClassification !== 'Near Miss') return false;
-                                    const d = e.dateOfAccident || e.dateReported || '';
-                                    if (!d) return (i - 1) === _nmCM2; // undated → assign to current month
-                                    return parseInt(d.substring(0,4)) === _nmYear2 && (parseInt(d.substring(5,7)) - 1) === (i - 1);
-                                }).length;
-                            });
-                            const _nmSY2 = state.selectedYear || _nmCY2;
-                            const _nmIsPast2 = _nmSY2 < _nmCY2 || (_nmSY2 === _nmCY2 && (i - 1) < _nmCM2);
-                            const _nmIsCurr2 = _nmSY2 === _nmCY2 && (i - 1) === _nmCM2;
-                            const _nmShowZero2 = (_nmIsPast2 || _nmIsCurr2) && monthTotal === 0;
-                            const _nmDisp2 = monthTotal > 0 ? fmtNum(monthTotal) : (_nmShowZero2 ? '0' : '');
-                            const _nmBg2 = monthTotal > 0 ? 'rgba(230,81,0,0.08)' : (_nmShowZero2 ? 'rgba(0,0,0,0.02)' : '');
-                            const _nmColor2 = monthTotal > 0 ? '#e65100' : (_nmShowZero2 ? '#999' : '');
-                            const _nmWeight2 = monthTotal > 0 ? '700' : (_nmShowZero2 ? '600' : '400');
-                            html += `<td class="monthly-data" style="font-weight:${_nmWeight2};color:${_nmColor2};background:${_nmBg2};text-align:center;" title="Auto-counted from Incident &amp; Accident Registry — Near Miss entries for this month">${_nmDisp2}${monthTotal>0?'<i class="fas fa-lock" style="font-size:0.5rem;margin-left:3px;opacity:0.5;vertical-align:middle;"></i>':''}</td>`;
-                        } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
+                        if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
                             const eshStor = getEshStorage();
                             const _eshYear1 = state.selectedYear || new Date().getFullYear();
                             displayProjects.forEach(p => {
@@ -11667,7 +11635,7 @@ function renderTabulation() {
                             });
                             const _osNow = new Date(); const _osCY = _osNow.getFullYear(); const _osCM = _osNow.getMonth() + 1;
                             const _osSY = state.selectedYear || _osCY;
-                            const _osMedAutoRows = ['LTA','Medical Treatment','First Aid','Fatality','High-Potential incident','Dangerous Occurrences','Days Lost/Charged'];
+                            const _osMedAutoRows = ['LTA','Medical Treatment','First Aid','Fatality','High-Potential incident','Dangerous Occurrences','No. of Identified Near-Miss','Days Lost/Charged'];
                             const _osIsMedAuto = state.currentTab === 'medical' && _osMedAutoRows.includes(row);
                             const _osIsPast = _osSY < _osCY || (_osSY === _osCY && i < _osCM);
                             const _osIsCurr = _osSY === _osCY && i === _osCM;
@@ -11745,18 +11713,6 @@ function renderTabulation() {
                                 }
                             });
                             html += `<td class="ytd-cell" style="font-weight: 800; font-size: 0.7rem;">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
-                        } else if (state.currentTab === 'activities' && row === 'No. of Identified Near-Miss') {
-                            const _nmOsYear = state.selectedYear || new Date().getFullYear();
-                            displayProjects.forEach(p => {
-                                const entries = p.vals['lta-registry_entries'] || [];
-                                ytdTotal += entries.filter(e => {
-                                    if (e.incidentClassification !== 'Near Miss') return false;
-                                    const d = e.dateOfAccident || e.dateReported || '';
-                                    if (!d) return true; // undated Near Miss — count in YTD for this year
-                                    return parseInt(d.substring(0,4)) === _nmOsYear;
-                                }).length;
-                            });
-                            html += `<td class="ytd-cell" style="font-weight:800;font-size:0.7rem;color:${ytdTotal>0?'#e65100':''};">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
                         } else if (state.currentTab === 'rates' && ['LTIR','TRIR','SEVERITY RATE'].includes(row)) {
                             const _rateBase = (state.ratesStandard === 'osha') ? 200000 : 1000000;
                             let ymh=0, ylta=0, ymed=0, yfat=0, yhip=0, ydL=0;
@@ -12990,7 +12946,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                <i class="fas fa-sync-alt"></i> Auto-sync from Incident &amp; Accident Registry ↗
                            </div>`
                         : ''}
-                    ${(state.currentTab === 'medical' && ['LTA','Medical Treatment','First Aid','Fatality','High-Potential incident','Dangerous Occurrences'].includes(row))
+                    ${(state.currentTab === 'medical' && ['LTA','Medical Treatment','First Aid','Fatality','High-Potential incident','Dangerous Occurrences','No. of Identified Near-Miss'].includes(row))
                         ? `<div style="font-size:0.58rem;font-weight:600;color:#2e7d32;margin-top:3px;line-height:1.3;cursor:pointer;" onclick="changeTab('lta-registry')">
                                <i class="fas fa-sync-alt"></i> Auto-synced from Registry ↗
                            </div>`
@@ -13354,38 +13310,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         </td>`;
                     }
                     } // end CORPORATE Training Conducted manual / auto branch
-                } else if (state.currentTab === 'activities' && row === 'No. of Identified Near-Miss') {
-                    const _nmEntries = p.vals['lta-registry_entries'] || [];
-                    const _nmYear = state.selectedYear || new Date().getFullYear();
-                    const _now2 = new Date();
-                    const _curYear2 = _now2.getFullYear();
-                    const _curMonth2 = _now2.getMonth();
-                    const _selYear2 = state.selectedYear || _curYear2;
-
-                    for (let mi = 0; mi < 12; mi++) {
-                        const count = _nmEntries.filter(e => {
-                            if (e.incidentClassification !== 'Near Miss') return false;
-                            const d = e.dateOfAccident || e.dateReported || '';
-                            if (!d) return mi === (_curMonth2); // undated → assign to current month
-                            const yr = parseInt(d.substring(0, 4));
-                            const mo = parseInt(d.substring(5, 7)) - 1;
-                            return yr === _nmYear && mo === mi;
-                        }).length;
-
-                        const isPast2 = _selYear2 < _curYear2 || (_selYear2 === _curYear2 && mi < _curMonth2);
-                        const isCurrent2 = _selYear2 === _curYear2 && mi === _curMonth2;
-                        const showZero2 = (isPast2 || isCurrent2) && count === 0;
-                        const disp2 = count > 0 ? count : (showZero2 ? '0' : '');
-                        const dispColor2 = count > 0 ? '#e65100' : (showZero2 ? '#999' : '#bbb');
-                        const dispWeight2 = count > 0 ? '700' : (showZero2 ? '600' : '400');
-                        const bgColor2 = count > 0 ? 'rgba(230,81,0,0.08)' : (showZero2 ? 'rgba(0,0,0,0.02)' : '');
-
-                        html += `<td class="monthly-data" style="text-align:center;background:${bgColor2};cursor:default;" title="Auto-counted from Incident &amp; Accident Registry — Near Miss entries for this month">
-                            <span style="font-weight:${dispWeight2};color:${dispColor2};font-size:0.8rem;">
-                                ${disp2}${count>0?'<i class="fas fa-lock" style="font-size:0.5rem;margin-left:3px;opacity:0.5;vertical-align:middle;"></i>':''}
-                            </span>
-                        </td>`;
-                    }
                 } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
                     const _toDateSeries = computeExposureToDateSeries(p);
                     for (let i = 1; i <= 12; i++) {
@@ -13429,7 +13353,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         </td>`;
                     }
                 } else {
-                    const _medAutoRows = ['LTA', 'Medical Treatment', 'First Aid', 'Fatality', 'High-Potential incident', 'Dangerous Occurrences', 'Days Lost/Charged'];
+                    const _medAutoRows = ['LTA', 'Medical Treatment', 'First Aid', 'Fatality', 'High-Potential incident', 'Dangerous Occurrences', 'No. of Identified Near-Miss', 'Days Lost/Charged'];
                     if (state.currentTab === 'medical' && _medAutoRows.includes(row)) {
                         const _medNow = new Date();
                         const _medCurYear = _medNow.getFullYear();
@@ -13580,16 +13504,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     }
                     } // end CORPORATE Training Conducted YTD branch
                     html += `<td class="ytd-cell" style="color:${ytdValue>0?'#2e7d32':''};">${ytdValue > 0 ? fmtNum(ytdValue) : ''}</td>`;
-                } else if (state.currentTab === 'activities' && row === 'No. of Identified Near-Miss') {
-                    const _nmYtdEntries = p.vals['lta-registry_entries'] || [];
-                    const _nmYtdYear = state.selectedYear || new Date().getFullYear();
-                    const _nmYtdCount = _nmYtdEntries.filter(e => {
-                        if (e.incidentClassification !== 'Near Miss') return false;
-                        const d = e.dateOfAccident || e.dateReported || '';
-                        if (!d) return true; // undated Near Miss — count in YTD for this year
-                        return parseInt(d.substring(0, 4)) === _nmYtdYear;
-                    }).length;
-                    html += `<td class="ytd-cell" style="color:${_nmYtdCount>0?'#e65100':''};font-weight:800;">${_nmYtdCount > 0 ? fmtNum(_nmYtdCount) : ''}</td>`;
                 } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
                     const _cum = computeExposureToDateSeries(p)[12];
                     html += `<td class="ytd-cell" data-todate-proj="${p.name}" data-todate-month="ytd">${_cum > 0 ? fmtNum(_cum) : ''}</td>`;
@@ -21104,8 +21018,8 @@ function _doUpdateTrendChart(tabType) {
         });
         
     } else if (tabType === 'medical') {
-        const incidentTypes = ['Medical Treatment', 'First Aid', 'LTA', 'Fatality', 'High-Potential incident', 'Dangerous Occurrences'];
-        const colors = ['#1b5e20', '#2e7d32', '#1565c0', '#b71c1c', '#e65100', '#f57c00'];
+        const incidentTypes = ['Medical Treatment', 'First Aid', 'LTA', 'Fatality', 'High-Potential incident', 'Dangerous Occurrences', 'No. of Identified Near-Miss'];
+        const colors = ['#1b5e20', '#2e7d32', '#1565c0', '#b71c1c', '#e65100', '#f57c00', '#6a1b9a'];
         
         incidentTypes.forEach((incidentType, idx) => {
             const data = new Array(12).fill(0);
@@ -32539,7 +32453,7 @@ function osOpenModal(projectName) {
     const totalManpower = (state.oshData && state.oshData[project.name] && parseInt(state.oshData[project.name].manpower)) || 0;
 
     const dangOcc  = sumYear('medical_Dangerous Occurrences');
-    const nearMiss = sumYear('activities_No. of Identified Near-Miss');
+    const nearMiss = sumYear('medical_No. of Identified Near-Miss');
 
     // Stat cards
     const stats = [
@@ -32689,9 +32603,9 @@ async function exportCurrentTabToExcel() {
     const _SCHEMA_LOCAL = {
         exposures:          ['Total Manpower','Total Exposed Manhour','Total Exposed Man-hour to date','No. of Days w/o LTA'],
         rates:              ['LTIR','TRIR','SEVERITY RATE'],
-        medical:            ['Medical Treatment','First Aid','LTA','Fatality','High-Potential incident','Dangerous Occurrences','Days Lost/Charged'],
+        medical:            ['Medical Treatment','First Aid','LTA','Fatality','High-Potential incident','Dangerous Occurrences','No. of Identified Near-Miss','Days Lost/Charged'],
         nov:                ['OSH Internal Issues','OSH External Issues'],
-        activities:         ['No. of ESH Committee Conducted','No. of ESH inspection','No. of Identified Near-Miss','Drills Conducted','Training Conducted'],
+        activities:         ['No. of ESH Committee Conducted','No. of ESH inspection','Drills Conducted','Training Conducted'],
         dole:               ['WAIR','RSO','MOM','AEDR','AMR'],
         'env-monthly-report':['Environmental Monthly Report (EMR)'],
     };
@@ -32702,9 +32616,10 @@ async function exportCurrentTabToExcel() {
         const v = arr[idx];
         return (v === null || v === undefined) ? '' : String(v);
     }
-    function _ytd(proj, key) {
+    function _ytd(proj, key, capMo) {
+        const cap = capMo || 12;
         let s = 0, any = false;
-        for (let m = 1; m <= 12; m++) { const n = parseFloat(_v(proj,key,m)); if (!isNaN(n)){s+=n;any=true;} }
+        for (let m = 1; m <= cap; m++) { const n = parseFloat(_v(proj,key,m)); if (!isNaN(n)){s+=n;any=true;} }
         return any ? s : '';
     }
 
@@ -33081,7 +32996,6 @@ async function exportCurrentTabToExcel() {
         const ACT_MEASURES = [
             { key: 'No. of ESH Committee Conducted', label: 'No. of ESH Committee Conducted', color: '1B5E20', fill: 'E8F5E9' },
             { key: 'No. of ESH inspection',           label: 'No. of ESH Inspection',           color: '0D47A1', fill: 'E3F2FD' },
-            { key: 'No. of Identified Near-Miss',     label: 'No. of Identified Near-Miss',     color: 'E65100', fill: 'FFF3E0' },
             { key: 'Drills Conducted',                label: 'Drills Conducted',                color: '6A1B9A', fill: 'F3E5F5' },
             { key: 'Training Conducted',              label: 'Training Conducted',              color: '880E4F', fill: 'FCE4EC' },
         ];
@@ -33151,16 +33065,6 @@ async function exportCurrentTabToExcel() {
                         if (eshStor[year + '|' + tt + '|' + projName + '|' + ti + '|' + mi + '|actual']) count++;
                     });
                 });
-                return count > 0 ? count : null;
-            }
-            if (measureKey === 'No. of Identified Near-Miss') {
-                const entries = (proj.vals && proj.vals['lta-registry_entries']) || [];
-                const count = entries.filter(function(e) {
-                    if (e.incidentClassification !== 'Near Miss') return false;
-                    const d = e.dateOfAccident || e.dateReported || '';
-                    if (!d) return false;
-                    return parseInt(d.substring(0,4)) === year && parseInt(d.substring(5,7)) === monthIdx;
-                }).length;
                 return count > 0 ? count : null;
             }
             const raw = _v(proj, key, monthIdx);
@@ -33353,6 +33257,8 @@ async function exportCurrentTabToExcel() {
     if (tab === 'rates') {
         const _rateBase = (state.ratesStandard === 'osha') ? 200000 : 1000000;
         const _rateStdLabel = (state.ratesStandard === 'osha') ? 'OSHA (200,000 hrs)' : 'OSHS (1,000,000 hrs)';
+        // Previous month only — current month data is still incomplete (same rule as Overall export)
+        const _ratesMaxMo = (year === new Date().getFullYear()) ? (new Date().getMonth() || 12) : 12;
 
         // ── Build region/project order (same pattern as KPM/GOT) ─────────
         const _RATE_REGION_ORDER = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
@@ -33382,6 +33288,7 @@ async function exportCurrentTabToExcel() {
         ];
 
         function getRateVal(proj, rateKey, moNum) {
+            if (moNum > _ratesMaxMo) return null; // future/ongoing month — not yet complete
             const mh  = parseFloat(_v(proj, 'exposures_Total Exposed Manhour', moNum)) || 0;
             if (mh <= 0) return null;
             const lta = parseFloat(_v(proj, 'medical_LTA', moNum))                     || 0;
@@ -33397,7 +33304,7 @@ async function exportCurrentTabToExcel() {
         }
         function getRateYtd(proj, rateKey) {
             let totalMh=0, totalLta=0, totalMed=0, totalFat=0, totalHip=0, totalDL=0;
-            for (let m = 1; m <= 12; m++) {
+            for (let m = 1; m <= _ratesMaxMo; m++) {
                 totalMh  += parseFloat(_v(proj, 'exposures_Total Exposed Manhour', m))    || 0;
                 totalLta += parseFloat(_v(proj, 'medical_LTA', m))                         || 0;
                 totalMed += parseFloat(_v(proj, 'medical_Medical Treatment', m))            || 0;
@@ -33414,8 +33321,9 @@ async function exportCurrentTabToExcel() {
         }
         function fmtRate(v) { return v === null ? '' : parseFloat(v.toFixed(4)).toString(); }
         function regionRateVal(region, rateKey, moNum) {
+            if (moNum && moNum > _ratesMaxMo) return null; // future/ongoing month — not yet complete
             let mh=0,lta=0,med=0,fat=0,hip=0,dL=0;
-            const months = moNum ? [moNum] : [1,2,3,4,5,6,7,8,9,10,11,12];
+            const months = moNum ? [moNum] : Array.from({length:_ratesMaxMo}, function(_,i){return i+1;});
             projsByRegion[region].forEach(function(p) {
                 months.forEach(function(m) {
                     mh  += parseFloat(_v(p,'exposures_Total Exposed Manhour', m)) || 0;
@@ -33434,8 +33342,9 @@ async function exportCurrentTabToExcel() {
             return null;
         }
         function overallRateVal(rateKey, moNum) {
+            if (moNum && moNum > _ratesMaxMo) return null; // future/ongoing month — not yet complete
             let mh=0,lta=0,med=0,fat=0,hip=0,dL=0;
-            const months = moNum ? [moNum] : [1,2,3,4,5,6,7,8,9,10,11,12];
+            const months = moNum ? [moNum] : Array.from({length:_ratesMaxMo}, function(_,i){return i+1;});
             orderedProjs.forEach(function(p) {
                 months.forEach(function(m) {
                     mh  += parseFloat(_v(p,'exposures_Total Exposed Manhour', m)) || 0;
@@ -33605,9 +33514,10 @@ async function exportCurrentTabToExcel() {
             }
         );
 
-        // Monthly sheets
+        // Monthly sheets — only up to previous complete month (current/ongoing & future months excluded)
         MO_LONG_R.forEach(function(moName, moIdx) {
             const moNum  = moIdx + 1;
+            if (moNum > _ratesMaxMo) return; // e.g. viewing August → skip AUG..DEC sheets
             const shName = ('RATES-' + MO_SH_R[moIdx] + '-' + year).substring(0, 31);
             const mWs    = wb.addWorksheet(shName);
             buildRatesSheet(mWs, 'STATISTICS RATE — ' + moName.toUpperCase() + ' ' + year,
@@ -33628,6 +33538,9 @@ async function exportCurrentTabToExcel() {
     if (_SCHEMA_LOCAL[tab]) {
         const schemaRows = _SCHEMA_LOCAL[tab];
         const isDate     = ['cshp','reg','doe-permit','env-monthly-report'].includes(tab);
+        // Previous month only — current/ongoing month not yet complete (mirrors Overall & Rates export rule).
+        // Applies to non-date numeric tabs reaching this generic builder: medical (ACCIDENT/INCIDENT RECORD), nov.
+        const _schemaMaxMo = (year === new Date().getFullYear()) ? (new Date().getMonth() || 12) : 12;
         const wb = new ExcelJS.Workbook(); wb.creator='ESH'; wb.created=new Date();
 
         // Sheet 1 — Summary (YTD totals per project)
@@ -33676,7 +33589,7 @@ async function exportCurrentTabToExcel() {
                             const cum = (typeof computeExposureToDateSeries === 'function') ? computeExposureToDateSeries(proj)[12] : 0;
                             return cum > 0 ? cum : '';
                         }
-                        const ytd = _ytd(proj, key);
+                        const ytd = _ytd(proj, key, isDate ? 12 : _schemaMaxMo);
                         return ytd !== '' ? ytd : '';
                     });
                     const dr = sumWs.addRow([proj.name||'', proj.region||'', ...vals]);
@@ -33724,14 +33637,14 @@ async function exportCurrentTabToExcel() {
                             return cum > 0 ? cum : '';
                         });
                     } else {
-                        moVals = MO_SHORT.map(function(_,i){ return _v(proj,key,i+1); });
+                        moVals = MO_SHORT.map(function(_,i){ return (i+1) > _schemaMaxMo ? '' : _v(proj,key,i+1); });
                     }
                     const ytdVal = isToDate
                         ? (function(){
                             const cum = (typeof computeExposureToDateSeries === 'function') ? computeExposureToDateSeries(proj)[12] : 0;
                             return cum > 0 ? cum : '';
                           })()
-                        : (function(){const y=_ytd(proj,key);return y!==''?y:'';})();
+                        : (function(){const y=_ytd(proj,key,isDate?12:_schemaMaxMo);return y!==''?y:'';})();
                     const rowData = isDate
                         ? [proj.name||'', proj.region||'', ...moVals]
                         : [proj.name||'', proj.region||'', ...moVals, ytdVal];
@@ -34678,7 +34591,7 @@ async function exportCurrentTabToExcel() {
         const _ovTotalFat = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'medical_Fatality');},0);
         const _ovTotalHI  = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'medical_High-Potential incident');},0);
         const _ovTotalDO  = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'medical_Dangerous Occurrences');},0);
-        const _ovTotalNM  = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'activities_No. of Identified Near-Miss');},0);
+        const _ovTotalNM  = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'medical_No. of Identified Near-Miss');},0);
         const _ovTotalDL  = _ovAllProjs.reduce(function(s,p){return s+_ovYtd(p,'medical_Days Lost/Charged');},0);
         const _ovFreqRate = _ovCumMH>0?((_ovTotalLTA/_ovCumMH)*1000000).toFixed(2):'—';
         const _ovSevRate  = _ovCumMH>0?((_ovTotalDL/_ovCumMH)*1000000).toFixed(2):'—';
@@ -34868,7 +34781,7 @@ async function exportCurrentTabToExcel() {
                 const rHI   = rp.reduce(function(s,p){return s+_ovYtd(p,'medical_High-Potential incident');},0);
                 const rDL   = rp.reduce(function(s,p){return s+_ovYtd(p,'medical_Days Lost/Charged');},0);
                 const rDO   = rp.reduce(function(s,p){return s+_ovYtd(p,'medical_Dangerous Occurrences');},0);
-                const rNM   = rp.reduce(function(s,p){return s+_ovYtd(p,'activities_No. of Identified Near-Miss');},0);
+                const rNM   = rp.reduce(function(s,p){return s+_ovYtd(p,'medical_No. of Identified Near-Miss');},0);
                 const rCompProjs = rp.filter(function(p){return p.status!=='work-stoppage'&&!(typeof isProjectOnStoppage==='function'&&isProjectOnStoppage(p));});
                 const rPV   = rCompProjs.map(function(p){return typeof getPerc==='function'?getPerc(p):null;}).filter(function(v){return v!==null;});
                 const rAvg  = rPV.length?Math.round(rPV.reduce(function(s,v){return s+v;},0)/rPV.length):null;
