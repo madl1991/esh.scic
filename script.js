@@ -20033,21 +20033,15 @@ function safetyCropImage(file, aspectRatio) {
 }
 window.safetyCropImage = safetyCropImage;
 
-// Base64 header banner for the ESH Alert DOCX export (SCIC mascot illustration + logo, pre-composited).
-window._ESH_ALERT_HEADER_B64 = "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";
-
-// Unified, order-preserving photo list per form. Each item:
-// { id: uniqueId, kind: 'existing'|'new', url?: string, blob?: Blob }
-// Index 0 is always the "front"/cover photo.
-// Alert photos are split into three captioned slots matching the ESH Alert template:
-// alert_reenactment, alert_photo2, alert_photo3.
-window._safetyPhotoItems = { alert_reenactment: [], alert_photo2: [], alert_photo3: [], award: [] };
+// Unified, order-preserving photo list. Only the Safety Award form uses this now —
+// Safety Alerts switched to a simple PDF/Word file attachment instead of individual photos.
+window._safetyPhotoItems = { award: [] };
 
 async function safetyHandlePhotoSelect(inputEl, kind) {
     const files = Array.from(inputEl.files || []);
     inputEl.value = ''; // allow re-selecting the same file later
-    const aspect   = kind === 'award' ? (16/9) : (3/4); // award: hero widescreen, alert slots: portrait like the template photos
-    const statusId = kind === 'award' ? 'sw-upload-status' : `sa-${kind.replace('alert_','')}-status`;
+    const aspect   = 16/9; // award hero widescreen
+    const statusId = 'sw-upload-status';
     for (let i = 0; i < files.length; i++) {
         const statusEl = document.getElementById(statusId);
         if (statusEl) statusEl.textContent = `Adjusting photo ${i + 1}/${files.length}...`;
@@ -20147,10 +20141,11 @@ function safetyViewAwardDetail(id) {
 window.safetyViewAwardDetail = safetyViewAwardDetail;
 
 // ── Backward-compatible readers: old alerts saved photos as a flat array and
-// description as a single string; new alerts use the structured template shape. ──
+// description as a single string; new alerts use a simple PDF/Word file attachment instead.
 function safetyAlertThumbUrl(a) {
-    if (Array.isArray(a.photos)) return a.photos[0] || null; // legacy shape
-    if (a.photos && typeof a.photos === 'object') {
+    if (a.thumbnailUrl) return a.thumbnailUrl; // current shape: PDF page-1 thumbnail
+    if (Array.isArray(a.photos)) return a.photos[0] || null; // legacy shape v1
+    if (a.photos && typeof a.photos === 'object') { // legacy shape v2 (4M template)
         const slot = a.photos.reenactment || a.photos.photo2 || a.photos.photo3;
         if (slot && Array.isArray(slot.urls) && slot.urls[0]) return slot.urls[0];
     }
@@ -20159,6 +20154,7 @@ function safetyAlertThumbUrl(a) {
 window.safetyAlertThumbUrl = safetyAlertThumbUrl;
 
 function safetyAlertSummaryText(a) {
+    if (a.fileName) return a.fileType === 'pdf' ? 'PDF attachment' : 'Word document attachment';
     return a.briefDescription || a.description || '';
 }
 window.safetyAlertSummaryText = safetyAlertSummaryText;
@@ -20168,75 +20164,41 @@ function safetyViewAlertDetail(id) {
     if (!a) return;
     const canManage = canManageSafety();
     const esc = function(s) { return (s || '').toString().replace(/</g, '&lt;'); };
-    const isLegacy = Array.isArray(a.photos) || typeof a.correctiveActions === 'string';
+    const isLegacyStructured = (Array.isArray(a.photos) || (a.photos && typeof a.photos === 'object')) && !a.fileUrl;
 
     let bodyHtml;
-    if (isLegacy) {
-        // Legacy record: render with the old flat structure.
-        const photos = Array.isArray(a.photos) ? a.photos : [];
+    if (isLegacyStructured) {
+        // Older record saved before the file-upload redesign — show whatever it has.
+        const photo = safetyAlertThumbUrl(a);
+        const text = safetyAlertSummaryText(a);
         bodyHtml = `
-        ${photos[0] ? `<img src="${photos[0]}" onclick="safetyOpenLightbox('${photos[0]}')" style="width:100%;max-height:320px;object-fit:cover;object-position:${a.photoPosition||'center'};display:block;cursor:zoom-in;">` : ''}
-        ${photos.length > 1 ? `<div style="display:flex;gap:6px;padding:10px 18px 0;flex-wrap:wrap;">${photos.map(function(u){return `<img src="${u}" onclick="safetyOpenLightbox('${u}')" style="width:52px;height:52px;object-fit:cover;border-radius:6px;cursor:zoom-in;">`;}).join('')}</div>` : ''}
+        ${photo ? `<img src="${photo}" onclick="safetyOpenLightbox('${photo}')" style="width:100%;max-height:280px;object-fit:cover;display:block;cursor:zoom-in;">` : ''}
         <div style="padding:16px 18px;">
             <div style="font-size:1.05rem;font-weight:800;color:#5d2c00;">${esc(a.title||'Untitled Alert')}</div>
             <div style="font-size:0.72rem;color:#8d5a2b;margin-top:2px;">${a.project ? esc(a.project) : 'Company-wide'} · ${a.dateIssued || ''}</div>
-            ${a.description ? `<div style="font-size:0.8rem;color:#5d2c00;margin-top:10px;white-space:pre-wrap;">${esc(a.description)}</div>` : ''}
-            ${a.correctiveActions ? `<div style="font-size:0.76rem;color:#6d4c00;margin-top:8px;"><b>Corrective Actions:</b> ${esc(a.correctiveActions)}</div>` : ''}
+            ${text ? `<div style="font-size:0.8rem;color:#5d2c00;margin-top:10px;white-space:pre-wrap;">${esc(text)}</div>` : ''}
         </div>`;
     } else {
-        const ph = a.photos || {};
-        const w = a.whatWentWrong || {};
-        const actions = Array.isArray(a.correctiveActions) ? a.correctiveActions : [];
-        const photoBlock = function(slot, fallbackLabel) {
-            const s = ph[slot];
-            if (!s || !Array.isArray(s.urls) || s.urls.length === 0) return '';
-            return `
-            <div style="margin-top:10px;">
-                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                    ${s.urls.map(function(u){ return `<img src="${u}" onclick="safetyOpenLightbox('${u}')" style="width:100px;height:100px;object-fit:cover;border-radius:6px;cursor:zoom-in;">`; }).join('')}
-                </div>
-                ${s.caption ? `<div style="font-size:0.68rem;color:#8d5a2b;margin-top:4px;font-style:italic;">${esc(s.caption)}</div>` : `<div style="font-size:0.68rem;color:#8d5a2b;margin-top:4px;font-style:italic;">${fallbackLabel}</div>`}
-            </div>`;
-        };
-        const sig = function(person, label) {
-            if (!person || !person.name) return '';
-            return `<div style="flex:1;text-align:center;"><div style="font-size:0.62rem;color:var(--text-secondary);">${label}</div><div style="font-weight:700;font-size:0.78rem;margin-top:14px;">${esc(person.name)}</div><div style="font-size:0.68rem;color:var(--text-secondary);">${esc(person.title)}</div></div>`;
-        };
+        const fileIcon = a.fileType === 'pdf' ? 'fa-file-pdf' : 'fa-file-word';
+        const fileColor = a.fileType === 'pdf' ? '#c62828' : '#1565c0';
         bodyHtml = `
-        ${safetyAlertThumbUrl(a) ? `<img src="${safetyAlertThumbUrl(a)}" onclick="safetyOpenLightbox('${safetyAlertThumbUrl(a)}')" style="width:100%;max-height:280px;object-fit:cover;display:block;cursor:zoom-in;">` : ''}
         <div style="padding:16px 18px;">
             <div style="font-size:0.62rem;font-weight:800;color:#e65100;">${esc(a.alertNo || '')}</div>
             <div style="font-size:1.05rem;font-weight:800;color:#5d2c00;margin-top:2px;">${esc(a.title||'Untitled Alert')}</div>
             <div style="font-size:0.72rem;color:#8d5a2b;margin-top:2px;">${a.project ? esc(a.project) : 'Company-wide'} · ${a.dateIssued || ''}</div>
 
-            ${a.briefDescription ? `
-            <div style="font-size:0.68rem;font-weight:800;color:#e65100;margin-top:14px;">BRIEF DESCRIPTION</div>
-            <div style="font-size:0.8rem;color:#5d2c00;margin-top:4px;white-space:pre-wrap;">${esc(a.briefDescription)}</div>` : ''}
-            ${photoBlock('reenactment', 'Re-enactment photo')}
-
-            ${(w.people||w.machine||w.method||w.materials) ? `
-            <div style="font-size:0.68rem;font-weight:800;color:#e65100;margin-top:14px;">WHAT WENT WRONG</div>
-            <div style="font-size:0.78rem;color:#5d2c00;margin-top:4px;line-height:1.5;">
-                ${w.people ? `<div><b>People:</b> ${esc(w.people)}</div>` : ''}
-                ${w.machine ? `<div><b>Machine:</b> ${esc(w.machine)}</div>` : ''}
-                ${w.method ? `<div><b>Method:</b> ${esc(w.method)}</div>` : ''}
-                ${w.materials ? `<div><b>Materials:</b> ${esc(w.materials)}</div>` : ''}
-            </div>` : ''}
-            ${photoBlock('photo2', 'Photo #2')}
-
-            ${actions.length ? `
-            <div style="font-size:0.68rem;font-weight:800;color:#e65100;margin-top:14px;">RECOMMENDATION / CORRECTIVE ACTIONS</div>
-            <ol style="font-size:0.78rem;color:#5d2c00;margin:4px 0 0;padding-left:18px;">
-                ${actions.map(function(x){ return `<li style="margin-bottom:2px;">${esc(x)}</li>`; }).join('')}
-            </ol>` : ''}
-            ${photoBlock('photo3', 'Photo #3')}
-
-            ${(a.preparedBy && a.preparedBy.name) || (a.reviewedBy && a.reviewedBy.name) || (a.approvedBy && a.approvedBy.name) ? `
-            <div style="display:flex;gap:8px;margin-top:18px;border-top:1px solid var(--border-color);padding-top:12px;">
-                ${sig(a.preparedBy, 'Prepared by')}
-                ${sig(a.reviewedBy, 'Reviewed by')}
-                ${sig(a.approvedBy, 'Approved by')}
-            </div>` : ''}
+            ${a.fileUrl ? `
+            <div onclick="window.open('${a.fileUrl}','_blank')" style="margin-top:14px;border:1px solid var(--border-color);border-radius:8px;overflow:hidden;cursor:pointer;">
+                ${a.thumbnailUrl
+                    ? `<img src="${a.thumbnailUrl}" style="width:100%;max-height:320px;object-fit:contain;background:#f5f5f5;display:block;">`
+                    : `<div style="padding:36px 0;background:#f5f5f5;display:flex;flex-direction:column;align-items:center;gap:8px;"><i class="fas ${fileIcon}" style="font-size:2.4rem;color:${fileColor};"></i></div>`}
+                <div style="padding:8px 12px;background:var(--bg-card);border-top:1px solid var(--border-color);font-size:0.72rem;color:var(--text-secondary);display:flex;align-items:center;gap:6px;">
+                    <i class="fas ${fileIcon}" style="color:${fileColor};"></i>
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${esc(a.fileName || 'Attachment')}</span>
+                </div>
+            </div>
+            <button onclick="window.open('${a.fileUrl}','_blank')" style="margin-top:10px;width:100%;padding:9px;border-radius:6px;border:none;background:#e65100;color:#fff;font-weight:700;cursor:pointer;"><i class="fas fa-up-right-from-square"></i> Open Full File</button>
+            ` : `<div style="margin-top:14px;font-size:0.76rem;color:var(--text-secondary);">No file attached.</div>`}
         </div>`;
     }
 
@@ -20244,14 +20206,13 @@ function safetyViewAlertDetail(id) {
     modal.id = 'safety-detail-modal-overlay';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
     modal.innerHTML = `
-    <div style="background:var(--bg-card);border-radius:12px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+    <div style="background:var(--bg-card);border-radius:12px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
         <div style="background:linear-gradient(135deg,#e65100,#ff9800);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;">
             <span style="font-weight:800;font-size:0.95rem;"><i class="fas fa-triangle-exclamation"></i> ESH Alert ${a.status === 'archived' ? '<span style="font-weight:400;font-size:0.7rem;">(archived)</span>' : ''}</span>
             <span onclick="document.getElementById('safety-detail-modal-overlay').remove()" style="cursor:pointer;font-size:1.2rem;">&times;</span>
         </div>
         ${bodyHtml}
         <div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
-            ${!isLegacy ? `<button onclick="exportSafetyAlertToDocx('${a.id}')" id="sa-export-btn-${a.id}" style="padding:7px 14px;border-radius:6px;border:1px solid #2e7d32;color:#2e7d32;background:transparent;cursor:pointer;font-weight:700;"><i class="fas fa-file-word"></i> Export DOCX</button>` : ''}
             ${canManage ? `
             <button onclick="document.getElementById('safety-detail-modal-overlay').remove();safetyEditAlertForm('${a.id}');" style="padding:7px 14px;border-radius:6px;border:1px solid #1565c0;color:#1565c0;background:transparent;cursor:pointer;font-weight:700;">Edit</button>
             ${a.status !== 'archived' ? `<button onclick="safetyArchiveAlert('${a.id}');document.getElementById('safety-detail-modal-overlay').remove();" style="padding:7px 14px;border-radius:6px;border:1px solid #e65100;color:#e65100;background:transparent;cursor:pointer;font-weight:700;">Archive</button>` : ''}
@@ -20597,54 +20558,40 @@ async function safetyResolvePhotos(kind, statusElId) {
 }
 window.safetyResolvePhotos = safetyResolvePhotos;
 
+// Holds the currently-selected file (pending upload) for the alert form.
+window._safetyAlertPendingFile = null;
+
+function safetyHandleAlertFileSelect(inputEl) {
+    const file = inputEl.files && inputEl.files[0];
+    const statusEl = document.getElementById('sa-file-status');
+    if (!file) { window._safetyAlertPendingFile = null; if (statusEl) statusEl.textContent = ''; return; }
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['pdf','doc','docx'].includes(ext)) {
+        showToast('Please choose a PDF or Word file.', 'error');
+        inputEl.value = '';
+        window._safetyAlertPendingFile = null;
+        if (statusEl) statusEl.textContent = '';
+        return;
+    }
+    window._safetyAlertPendingFile = file;
+    if (statusEl) statusEl.textContent = `Selected: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`;
+}
+window.safetyHandleAlertFileSelect = safetyHandleAlertFileSelect;
+
 function safetyOpenAlertForm(existing) {
     if (!canManageSafety()) { showToast('Switch to Edit Mode to post a Safety Alert.', 'error'); return; }
-
-    const ph = existing && existing.photos && !Array.isArray(existing.photos) ? existing.photos : {};
-    ['reenactment','photo2','photo3'].forEach(function(slot) {
-        const slotData = ph[slot];
-        window._safetyPhotoItems['alert_' + slot] = (slotData && Array.isArray(slotData.urls))
-            ? slotData.urls.map(function(url, i){ return { id: 'existing_' + slot + '_' + i, kind: 'existing', url: url }; })
-            : [];
-    });
+    window._safetyAlertPendingFile = null;
 
     const today = new Date().toISOString().slice(0,10);
     const isEdit = !!existing;
-    const wentWrong = (existing && existing.whatWentWrong) || {};
-    const actionsText = existing && Array.isArray(existing.correctiveActions)
-        ? existing.correctiveActions.join('\n')
-        : (existing && typeof existing.correctiveActions === 'string' ? existing.correctiveActions : '');
-    const prepared = (existing && existing.preparedBy) || {};
-    const reviewed = (existing && existing.reviewedBy) || {};
-    const approved = (existing && existing.approvedBy) || {};
-
     const lbl = 'font-size:0.72rem;font-weight:700;color:var(--text-secondary);';
     const inp = 'width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;box-sizing:border-box;margin-top:4px;';
-    const sectionHead = function(text) { return `<div style="font-size:0.72rem;font-weight:800;color:#e65100;letter-spacing:0.4px;margin-top:6px;border-top:1px solid var(--border-color);padding-top:12px;">${text}</div>`; };
-    const photoSlotHtml = function(slot, label, captionVal) {
-        return `
-        <div style="border:1px solid var(--border-color);border-radius:8px;padding:10px;">
-            <div style="${lbl}">${label}</div>
-            <input id="sa-${slot}-file" type="file" accept="image/*" multiple onchange="safetyHandlePhotoSelect(this,'alert_${slot}')" style="width:100%;margin-top:4px;">
-            <div id="sa-${slot}-preview" style="margin-top:6px;"></div>
-            <div id="sa-${slot}-status" style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;"></div>
-            <input id="sa-${slot}-caption" type="text" placeholder="Caption for this photo (e.g. 'Photo #1 – ...')" value="${(captionVal||'').replace(/"/g,'&quot;')}" style="${inp}">
-        </div>`;
-    };
-    const nameFieldHtml = function(prefix, label, val) {
-        return `
-        <div style="flex:1;">
-            <div style="${lbl}">${label}</div>
-            <input id="sa-${prefix}-name" type="text" placeholder="Name" value="${(val.name||'').replace(/"/g,'&quot;')}" style="${inp}">
-            <input id="sa-${prefix}-title" type="text" placeholder="Designation" value="${(val.title||'').replace(/"/g,'&quot;')}" style="${inp}">
-        </div>`;
-    };
 
     const modal = document.createElement('div');
     modal.id = 'safety-alert-modal-overlay';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
     modal.innerHTML = `
-    <div style="background:var(--bg-card);border-radius:12px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+    <div style="background:var(--bg-card);border-radius:12px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
         <div style="background:linear-gradient(135deg,#e65100,#ff9800);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;">
             <span style="font-weight:800;font-size:1rem;"><i class="fas fa-triangle-exclamation"></i> ${isEdit ? 'Edit ESH Alert' : 'New ESH Alert'}</span>
             <span onclick="document.getElementById('safety-alert-modal-overlay').remove()" style="cursor:pointer;font-size:1.2rem;">&times;</span>
@@ -20652,42 +20599,21 @@ function safetyOpenAlertForm(existing) {
         <div style="padding:18px 20px;display:flex;flex-direction:column;gap:10px;">
             <input type="hidden" id="sa-id" value="${isEdit ? existing.id : ''}">
 
+            <div><div style="${lbl}">ESH Alert No. *</div>
+                <input id="sa-alertno" type="text" placeholder="e.g. THEPP-2026-001" value="${isEdit ? (existing.alertNo||'').replace(/"/g,'&quot;') : ''}" style="${inp}"></div>
+            <div><div style="${lbl}">Title *</div>
+                <input id="sa-title" type="text" placeholder="e.g. Contusion of Thumb" value="${isEdit ? (existing.title||'').replace(/"/g,'&quot;') : ''}" style="${inp}"></div>
             <div style="display:flex;gap:10px;">
-                <div style="flex:1;"><div style="${lbl}">ESH Alert No. *</div>
-                    <input id="sa-alertno" type="text" placeholder="e.g. THEPP-2026-001" value="${isEdit ? (existing.alertNo||'').replace(/"/g,'&quot;') : ''}" style="${inp}"></div>
                 <div style="flex:1;"><div style="${lbl}">Release Date</div>
                     <input id="sa-date" type="date" value="${isEdit ? (existing.dateIssued||today) : today}" style="${inp}"></div>
-            </div>
-            <div style="display:flex;gap:10px;">
-                <div style="flex:1;"><div style="${lbl}">Title (short headline) *</div>
-                    <input id="sa-title" type="text" placeholder="e.g. Contusion of Thumb" value="${isEdit ? (existing.title||'').replace(/"/g,'&quot;') : ''}" style="${inp}"></div>
                 <div style="flex:1;"><div style="${lbl}">Project</div>
                     <select id="sa-project" style="${inp}">${safetyProjectOptionsHTML(isEdit ? existing.project : '')}</select></div>
             </div>
 
-            ${sectionHead('BRIEF DESCRIPTION')}
-            <textarea id="sa-briefdesc" rows="4" placeholder="Narrate what happened — time, location, sequence of events" style="${inp} resize:vertical;">${isEdit ? (existing.briefDescription || existing.description || '') : ''}</textarea>
-
-            ${sectionHead('WHAT WENT WRONG (4M)')}
-            <div><div style="${lbl}">People</div><textarea id="sa-4m-people" rows="2" style="${inp} resize:vertical;">${(wentWrong.people||'')}</textarea></div>
-            <div><div style="${lbl}">Machine</div><textarea id="sa-4m-machine" rows="2" style="${inp} resize:vertical;">${(wentWrong.machine||'')}</textarea></div>
-            <div><div style="${lbl}">Method</div><textarea id="sa-4m-method" rows="2" style="${inp} resize:vertical;">${(wentWrong.method||'')}</textarea></div>
-            <div><div style="${lbl}">Materials</div><textarea id="sa-4m-materials" rows="2" style="${inp} resize:vertical;">${(wentWrong.materials||'')}</textarea></div>
-
-            ${sectionHead('RECOMMENDATION / CORRECTIVE ACTIONS')}
-            <div style="${lbl}">One action per line — will be numbered automatically</div>
-            <textarea id="sa-actions" rows="3" placeholder="Inspect equipment prior to operation&#10;Install machine guarding&#10;Deploy a Safety Officer to enforce safe workmanship" style="${inp} resize:vertical;">${actionsText}</textarea>
-
-            ${sectionHead('PHOTOS')}
-            ${photoSlotHtml('reenactment', 'Re-enactment photo', ph.reenactment && ph.reenactment.caption)}
-            ${photoSlotHtml('photo2', 'Photo #2 (how it happened)', ph.photo2 && ph.photo2.caption)}
-            ${photoSlotHtml('photo3', 'Photo #3 (result/injury)', ph.photo3 && ph.photo3.caption)}
-
-            ${sectionHead('SIGNATORIES')}
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                ${nameFieldHtml('prepared', 'Prepared by', prepared)}
-                ${nameFieldHtml('reviewed', 'Reviewed by', reviewed)}
-                ${nameFieldHtml('approved', 'Approved by', approved)}
+            <div style="margin-top:6px;border-top:1px solid var(--border-color);padding-top:12px;">
+                <div style="${lbl}">Upload PDF or Word file *</div>
+                <input id="sa-file-input" type="file" accept=".pdf,.doc,.docx" onchange="safetyHandleAlertFileSelect(this)" style="width:100%;margin-top:4px;">
+                <div id="sa-file-status" style="font-size:0.68rem;color:var(--text-secondary);margin-top:4px;">${isEdit && existing.fileName ? `Current file: ${existing.fileName.replace(/</g,'&lt;')} (choose a new file to replace it)` : ''}</div>
             </div>
         </div>
         <div style="padding:14px 20px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:var(--bg-card);">
@@ -20696,9 +20622,6 @@ function safetyOpenAlertForm(existing) {
         </div>
     </div>`;
     document.body.appendChild(modal);
-    safetyRenderPhotoPreview('alert_reenactment');
-    safetyRenderPhotoPreview('alert_photo2');
-    safetyRenderPhotoPreview('alert_photo3');
 }
 window.safetyOpenAlertForm = safetyOpenAlertForm;
 
@@ -20708,51 +20631,89 @@ function safetyEditAlertForm(id) {
 }
 window.safetyEditAlertForm = safetyEditAlertForm;
 
+// Uploads a non-image file (PDF/Word) to Cloudinary. PDFs go up as resource_type 'image' so
+// Cloudinary can rasterize a page-1 thumbnail for us; Word docs go up as 'raw' (no thumbnail
+// possible — Cloudinary can't render Office formats).
+function uploadDocumentToCloudinary(file, resourceType, onProgress) {
+    const url = `https://api.cloudinary.com/v1_1/${SAFETY_CLOUDINARY_CLOUD}/${resourceType}/upload`;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', SAFETY_CLOUDINARY_PRESET);
+    formData.append('folder', 'safety-dashboard/alerts');
+    return new Promise(function(resolve, reject) {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url, true);
+        xhr.upload.onprogress = function(e) {
+            if (onProgress && e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+        };
+        xhr.onload = function() {
+            try {
+                const data = JSON.parse(xhr.responseText);
+                if (xhr.status >= 200 && xhr.status < 300 && data.secure_url) resolve(data.secure_url);
+                else reject(new Error(data.error?.message || 'Upload failed'));
+            } catch(e) { reject(e); }
+        };
+        xhr.onerror = function() { reject(new Error('Network error during upload')); };
+        xhr.send(formData);
+    });
+}
+window.uploadDocumentToCloudinary = uploadDocumentToCloudinary;
+
+// For a Cloudinary-hosted PDF (uploaded as resource_type=image), builds a page-1 JPG thumbnail URL.
+function safetyCloudinaryPdfThumb(secureUrl) {
+    if (!secureUrl) return null;
+    // .../image/upload/v123/folder/name.pdf  ->  .../image/upload/pg_1,w_500/v123/folder/name.jpg
+    const marker = '/image/upload/';
+    const idx = secureUrl.indexOf(marker);
+    if (idx === -1) return null;
+    const withTransform = secureUrl.slice(0, idx + marker.length) + 'pg_1,w_500/' + secureUrl.slice(idx + marker.length);
+    return withTransform.replace(/\.pdf($|\?)/i, '.jpg$1');
+}
+window.safetyCloudinaryPdfThumb = safetyCloudinaryPdfThumb;
+
 async function safetySubmitAlert() {
-    const alertNo    = document.getElementById('sa-alertno').value.trim();
-    const title      = document.getElementById('sa-title').value.trim();
-    const briefDesc  = document.getElementById('sa-briefdesc').value.trim();
-    if (!alertNo || !title || !briefDesc) { showToast('ESH Alert No., Title, and Brief Description are required.', 'error'); return; }
+    const alertNo = document.getElementById('sa-alertno').value.trim();
+    const title   = document.getElementById('sa-title').value.trim();
+    if (!alertNo || !title) { showToast('ESH Alert No. and Title are required.', 'error'); return; }
     const btn = document.getElementById('sa-submit-btn');
     const isEditId = document.getElementById('sa-id').value;
+    const existingRecord = isEditId ? (window._safetyAlerts || []).find(function(a){ return a.id === isEditId; }) : null;
+
+    if (!isEditId && !window._safetyAlertPendingFile) { showToast('Please upload a PDF or Word file.', 'error'); return; }
+
     btn.disabled = true; btn.textContent = isEditId ? 'Saving...' : 'Publishing...';
     try {
-        const reenactmentUrls = await safetyResolvePhotos('alert_reenactment', 'sa-reenactment-status');
-        const photo2Urls      = await safetyResolvePhotos('alert_photo2', 'sa-photo2-status');
-        const photo3Urls      = await safetyResolvePhotos('alert_photo3', 'sa-photo3-status');
+        let fileUrl = existingRecord ? existingRecord.fileUrl : null;
+        let fileType = existingRecord ? existingRecord.fileType : null;
+        let fileName = existingRecord ? existingRecord.fileName : null;
+        let thumbnailUrl = existingRecord ? existingRecord.thumbnailUrl : null;
 
-        const correctiveActions = document.getElementById('sa-actions').value
-            .split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+        if (window._safetyAlertPendingFile) {
+            const file = window._safetyAlertPendingFile;
+            const ext = file.name.split('.').pop().toLowerCase();
+            fileType = ext === 'pdf' ? 'pdf' : 'docx';
+            fileName = file.name;
+            const statusEl = document.getElementById('sa-file-status');
+            fileUrl = await uploadDocumentToCloudinary(file, fileType === 'pdf' ? 'image' : 'raw', function(pct) {
+                if (statusEl) statusEl.textContent = `Uploading... ${pct}%`;
+            });
+            thumbnailUrl = fileType === 'pdf' ? safetyCloudinaryPdfThumb(fileUrl) : null;
+        }
 
-        const existingRecord = isEditId ? (window._safetyAlerts || []).find(function(a){ return a.id === isEditId; }) : null;
         await saveSafetyAlert({
             id: isEditId || undefined,
             alertNo: alertNo,
             title: title,
             dateIssued: document.getElementById('sa-date').value,
             project: document.getElementById('sa-project').value || null,
-            briefDescription: briefDesc,
-            whatWentWrong: {
-                people: document.getElementById('sa-4m-people').value.trim(),
-                machine: document.getElementById('sa-4m-machine').value.trim(),
-                method: document.getElementById('sa-4m-method').value.trim(),
-                materials: document.getElementById('sa-4m-materials').value.trim()
-            },
-            correctiveActions: correctiveActions,
-            photos: {
-                reenactment: { urls: reenactmentUrls, caption: document.getElementById('sa-reenactment-caption').value.trim() },
-                photo2:      { urls: photo2Urls,      caption: document.getElementById('sa-photo2-caption').value.trim() },
-                photo3:      { urls: photo3Urls,      caption: document.getElementById('sa-photo3-caption').value.trim() }
-            },
-            preparedBy: { name: document.getElementById('sa-prepared-name').value.trim(), title: document.getElementById('sa-prepared-title').value.trim() },
-            reviewedBy: { name: document.getElementById('sa-reviewed-name').value.trim(), title: document.getElementById('sa-reviewed-title').value.trim() },
-            approvedBy: { name: document.getElementById('sa-approved-name').value.trim(), title: document.getElementById('sa-approved-title').value.trim() },
+            fileUrl: fileUrl,
+            fileType: fileType,
+            fileName: fileName,
+            thumbnailUrl: thumbnailUrl,
             status: (existingRecord && existingRecord.status) || 'active',
             issuedBy: (existingRecord && existingRecord.issuedBy) || (state.currentUserName || state.userEmail || 'ESH')
         });
-        window._safetyPhotoItems.alert_reenactment = [];
-        window._safetyPhotoItems.alert_photo2 = [];
-        window._safetyPhotoItems.alert_photo3 = [];
+        window._safetyAlertPendingFile = null;
         document.getElementById('safety-alert-modal-overlay').remove();
         showToast(isEditId ? 'Safety Alert updated.' : 'Safety Alert published.', 'success');
     } catch(e) {
@@ -20849,262 +20810,6 @@ async function safetySubmitAward() {
     }
 }
 window.safetySubmitAward = safetySubmitAward;
-
-// ════════════════════════════════════════════════════════════════════════
-// ESH Alert → DOCX export, matching SCIC's official "FM-ESH-01-60" template
-// ════════════════════════════════════════════════════════════════════════
-
-// Load the docx-js browser bundle on demand (same lazy-load pattern as Cropper.js).
-let _docxLibLoadPromise = null;
-function loadDocxLib() {
-    if (window.docx) return Promise.resolve();
-    if (_docxLibLoadPromise) return _docxLibLoadPromise;
-    _docxLibLoadPromise = new Promise(function(resolve, reject) {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/docx@9.6.1/build/index.js';
-        script.onload = function(){ resolve(); };
-        script.onerror = function(){ reject(new Error('Could not load the document export library.')); };
-        document.head.appendChild(script);
-    });
-    return _docxLibLoadPromise;
-}
-
-function _eshB64ToUint8Array(b64) {
-    const binary = atob(b64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes;
-}
-
-// Fetches a photo URL and returns docx-ready image data plus a display size
-// (fixed target width, height scaled to preserve the photo's own aspect ratio).
-function _eshLoadPhotoForDocx(url, targetWidthPx) {
-    return fetch(url).then(function(res) { return res.blob(); }).then(function(blob) {
-        return new Promise(function(resolve, reject) {
-            const objectUrl = URL.createObjectURL(blob);
-            const imgEl = new Image();
-            imgEl.onload = function() {
-                const h = Math.round(imgEl.naturalHeight * (targetWidthPx / imgEl.naturalWidth));
-                blob.arrayBuffer().then(function(buf) {
-                    URL.revokeObjectURL(objectUrl);
-                    const type = blob.type.indexOf('png') !== -1 ? 'png' : 'jpg';
-                    resolve({ data: new Uint8Array(buf), width: targetWidthPx, height: h, type: type });
-                }).catch(reject);
-            };
-            imgEl.onerror = function() { URL.revokeObjectURL(objectUrl); reject(new Error('Could not load photo for export.')); };
-            imgEl.src = objectUrl;
-        });
-    });
-}
-
-async function exportSafetyAlertToDocx(alertId) {
-    const a = (window._safetyAlerts || []).find(function(x){ return x.id === alertId; });
-    if (!a) return;
-    const btn = document.getElementById('sa-export-btn-' + alertId);
-    const originalLabel = btn ? btn.innerHTML : '';
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing...'; }
-
-    try {
-        await loadDocxLib();
-        const d = window.docx;
-
-        const PAGE_WIDTH_DXA = 12240; // US Letter, portrait
-        const PAGE_HEIGHT_DXA = 15840;
-        const MARGIN = 720; // 0.5in
-        const CONTENT_WIDTH = PAGE_WIDTH_DXA - MARGIN * 2;
-        const leftW = Math.round(CONTENT_WIDTH * 0.6);
-        const rightW = CONTENT_WIDTH - leftW;
-        const noBorder = { style: d.BorderStyle.NONE, size: 0, color: 'FFFFFF' };
-        const cellNoBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
-
-        function blackBar(text) {
-            return new d.Table({
-                width: { size: CONTENT_WIDTH, type: d.WidthType.DXA },
-                columnWidths: [CONTENT_WIDTH],
-                rows: [new d.TableRow({ children: [ new d.TableCell({
-                    width: { size: CONTENT_WIDTH, type: d.WidthType.DXA },
-                    shading: { type: d.ShadingType.CLEAR, fill: '000000' },
-                    verticalAlign: d.VerticalAlign.CENTER,
-                    margins: { top: 80, bottom: 80, left: 100, right: 100 },
-                    borders: cellNoBorders,
-                    children: [ new d.Paragraph({ alignment: d.AlignmentType.CENTER, children: [ new d.TextRun({ text: text, bold: true, color: 'FFFFFF', size: 20 }) ] }) ]
-                }) ] })]
-            });
-        }
-
-        function labelValueBar(pairs) {
-            const colW = Math.floor(CONTENT_WIDTH / (pairs.length * 2));
-            const cells = [];
-            pairs.forEach(function(p) {
-                cells.push(new d.TableCell({
-                    width: { size: colW, type: d.WidthType.DXA },
-                    shading: { type: d.ShadingType.CLEAR, fill: '000000' },
-                    verticalAlign: d.VerticalAlign.CENTER,
-                    margins: { top: 60, bottom: 60, left: 100, right: 60 },
-                    borders: cellNoBorders,
-                    children: [ new d.Paragraph({ children: [ new d.TextRun({ text: p.label, bold: true, color: 'FFFFFF', size: 18 }) ] }) ]
-                }));
-                cells.push(new d.TableCell({
-                    width: { size: colW, type: d.WidthType.DXA },
-                    verticalAlign: d.VerticalAlign.CENTER,
-                    margins: { top: 60, bottom: 60, left: 100, right: 60 },
-                    borders: cellNoBorders,
-                    children: [ new d.Paragraph({ children: [ new d.TextRun({ text: p.value, size: 18 }) ] }) ]
-                }));
-            });
-            return new d.Table({ width: { size: CONTENT_WIDTH, type: d.WidthType.DXA }, columnWidths: cells.map(function(){ return colW; }), rows: [new d.TableRow({ children: cells })] });
-        }
-
-        function textOnlyRow(paragraphs) {
-            return new d.Table({
-                width: { size: CONTENT_WIDTH, type: d.WidthType.DXA },
-                columnWidths: [CONTENT_WIDTH],
-                rows: [new d.TableRow({ children: [ new d.TableCell({
-                    width: { size: CONTENT_WIDTH, type: d.WidthType.DXA },
-                    borders: cellNoBorders,
-                    margins: { top: 80, bottom: 80, left: 100, right: 100 },
-                    children: paragraphs
-                }) ] })]
-            });
-        }
-
-        function twoColRow(textParagraphs, photoInfo, caption) {
-            const photoChildren = photoInfo ? [
-                new d.Paragraph({ alignment: d.AlignmentType.CENTER, children: [ new d.ImageRun({ data: photoInfo.data, transformation: { width: photoInfo.width, height: photoInfo.height }, type: photoInfo.type }) ] }),
-                new d.Paragraph({
-                    alignment: d.AlignmentType.CENTER,
-                    border: { top: { style: d.BorderStyle.SINGLE, size: 4, color: 'C62828' }, bottom: { style: d.BorderStyle.SINGLE, size: 4, color: 'C62828' }, left: { style: d.BorderStyle.SINGLE, size: 4, color: 'C62828' }, right: { style: d.BorderStyle.SINGLE, size: 4, color: 'C62828' } },
-                    children: [ new d.TextRun({ text: caption || '', size: 15, italics: true }) ]
-                })
-            ] : [ new d.Paragraph({ text: '' }) ];
-            return new d.Table({
-                width: { size: CONTENT_WIDTH, type: d.WidthType.DXA },
-                columnWidths: [leftW, rightW],
-                rows: [new d.TableRow({ children: [
-                    new d.TableCell({ width: { size: leftW, type: d.WidthType.DXA }, borders: cellNoBorders, margins: { top: 80, bottom: 80, left: 100, right: 100 }, children: textParagraphs }),
-                    new d.TableCell({ width: { size: rightW, type: d.WidthType.DXA }, borders: cellNoBorders, margins: { top: 60, bottom: 60, left: 80, right: 80 }, children: photoChildren })
-                ] })]
-            });
-        }
-
-        // ── Resolve photos (fetch + measure) for whichever slots have images ──
-        const ph = a.photos || {};
-        const photoInfos = {};
-        for (const slot of ['reenactment', 'photo2', 'photo3']) {
-            const s = ph[slot];
-            if (s && Array.isArray(s.urls) && s.urls[0]) {
-                if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fetching photos...';
-                photoInfos[slot] = await _eshLoadPhotoForDocx(s.urls[0], 200);
-            }
-        }
-
-        if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Building document...';
-
-        const headerImgData = _eshB64ToUint8Array(window._ESH_ALERT_HEADER_B64);
-        const headerTable = new d.Table({
-            width: { size: CONTENT_WIDTH, type: d.WidthType.DXA },
-            columnWidths: [Math.round(CONTENT_WIDTH * 0.68), CONTENT_WIDTH - Math.round(CONTENT_WIDTH * 0.68)],
-            rows: [new d.TableRow({ children: [
-                new d.TableCell({
-                    width: { size: Math.round(CONTENT_WIDTH * 0.68), type: d.WidthType.DXA },
-                    borders: cellNoBorders, verticalAlign: d.VerticalAlign.CENTER,
-                    children: [ new d.Paragraph({ children: [ new d.ImageRun({ data: headerImgData, transformation: { width: 430, height: 100 }, type: 'jpg' }) ] }) ]
-                }),
-                new d.TableCell({
-                    width: { size: CONTENT_WIDTH - Math.round(CONTENT_WIDTH * 0.68), type: d.WidthType.DXA },
-                    shading: { type: d.ShadingType.CLEAR, fill: '1a1a1a' }, verticalAlign: d.VerticalAlign.CENTER, borders: cellNoBorders,
-                    children: [ new d.Paragraph({ alignment: d.AlignmentType.CENTER, children: [ new d.TextRun({ text: 'ESH ALERT', bold: true, color: 'FFFFFF', size: 34 }) ] }) ]
-                })
-            ] })]
-        });
-
-        const alertNoBar = labelValueBar([
-            { label: 'ESH ALERT NO.:', value: a.alertNo || '' },
-            { label: 'RELEASE DATE:', value: a.dateIssued || '' }
-        ]);
-
-        const w = a.whatWentWrong || {};
-        const wentWrongParas = [];
-        if (w.people)    wentWrongParas.push(new d.Paragraph({ children: [ new d.TextRun({ text: 'People: ', bold: true, size: 19 }), new d.TextRun({ text: w.people, size: 19 }) ] }));
-        if (w.machine)   wentWrongParas.push(new d.Paragraph({ children: [ new d.TextRun({ text: 'Machine: ', bold: true, size: 19 }), new d.TextRun({ text: w.machine, size: 19 }) ] }));
-        if (w.method)    wentWrongParas.push(new d.Paragraph({ children: [ new d.TextRun({ text: 'Method: ', bold: true, size: 19 }), new d.TextRun({ text: w.method, size: 19 }) ] }));
-        if (w.materials) wentWrongParas.push(new d.Paragraph({ children: [ new d.TextRun({ text: 'Materials: ', bold: true, size: 19 }), new d.TextRun({ text: w.materials, size: 19 }) ] }));
-        if (wentWrongParas.length === 0) wentWrongParas.push(new d.Paragraph({ text: '' }));
-
-        const actions = Array.isArray(a.correctiveActions) ? a.correctiveActions : [];
-        const actionParas = actions.length
-            ? actions.map(function(x, i) { return new d.Paragraph({ children: [ new d.TextRun({ text: (i + 1) + '. ' + x, size: 19 }) ] }); })
-            : [ new d.Paragraph({ text: '' }) ];
-
-        const briefDescParas = [ new d.Paragraph({ children: [ new d.TextRun({ text: a.briefDescription || '', size: 19 }) ] }) ];
-
-        const sigColW = Math.round(CONTENT_WIDTH / 3);
-        const sigLabels = [
-            { label: 'Prepared by:', person: a.preparedBy },
-            { label: 'Reviewed by:', person: a.reviewedBy },
-            { label: 'Approved by:', person: a.approvedBy }
-        ];
-        const sigTable = new d.Table({
-            width: { size: CONTENT_WIDTH, type: d.WidthType.DXA },
-            columnWidths: [sigColW, sigColW, CONTENT_WIDTH - sigColW * 2],
-            rows: [new d.TableRow({ children: sigLabels.map(function(s, i) {
-                const p = s.person || {};
-                return new d.TableCell({
-                    width: { size: i === 2 ? CONTENT_WIDTH - sigColW * 2 : sigColW, type: d.WidthType.DXA },
-                    borders: { top: { style: d.BorderStyle.SINGLE, size: 4, color: '000000' }, bottom: noBorder, left: noBorder, right: noBorder },
-                    margins: { top: 100, bottom: 100, left: 100, right: 100 },
-                    children: [
-                        new d.Paragraph({ children: [ new d.TextRun({ text: s.label, size: 17 }) ] }),
-                        new d.Paragraph({ text: '' }),
-                        new d.Paragraph({ alignment: d.AlignmentType.CENTER, children: [ new d.TextRun({ text: p.name || '', bold: true, size: 18 }) ] }),
-                        new d.Paragraph({ alignment: d.AlignmentType.CENTER, children: [ new d.TextRun({ text: p.title || '', size: 16 }) ] })
-                    ]
-                });
-            }) })]
-        });
-
-        const footerParas = [
-            new d.Paragraph({ spacing: { before: 200 }, children: [ new d.TextRun({ text: 'Doc. Code: FM-ESH-01-60  |  Rev. No.: 00  |  Eff. Date: 30 January 2024', size: 14, color: '666666' }) ] }),
-            new d.Paragraph({ children: [ new d.TextRun({ text: 'Unauthorized reproduction of this document is prohibited and considered uncontrolled copy or invalid unless otherwise stated.', size: 13, color: '888888' }) ] })
-        ];
-
-        const doc = new d.Document({
-            sections: [{
-                properties: { page: { size: { width: PAGE_WIDTH_DXA, height: PAGE_HEIGHT_DXA }, margin: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN } } },
-                children: [
-                    headerTable,
-                    new d.Paragraph({ text: '', spacing: { after: 40 } }),
-                    alertNoBar,
-                    new d.Paragraph({ text: '', spacing: { after: 40 } }),
-                    blackBar('BRIEF DESCRIPTION'),
-                    photoInfos.reenactment ? twoColRow(briefDescParas, photoInfos.reenactment, ph.reenactment.caption) : textOnlyRow(briefDescParas),
-                    blackBar('WHAT WENT WRONG'),
-                    photoInfos.photo2 ? twoColRow(wentWrongParas, photoInfos.photo2, ph.photo2.caption) : textOnlyRow(wentWrongParas),
-                    blackBar('RECOMMENDATION / CORRECTIVE ACTIONS'),
-                    photoInfos.photo3 ? twoColRow(actionParas, photoInfos.photo3, ph.photo3.caption) : textOnlyRow(actionParas),
-                    new d.Paragraph({ text: '', spacing: { after: 100 } }),
-                    sigTable
-                ].concat(footerParas)
-            }]
-        });
-
-        const blob = await d.Packer.toBlob(doc);
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'ESH_Alert_' + (a.alertNo || a.title || 'export').replace(/[^a-z0-9]+/gi, '_') + '.docx';
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
-        showToast('Document exported.', 'success');
-    } catch (e) {
-        showToast('Export failed: ' + e.message, 'error');
-    } finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = originalLabel; }
-    }
-}
-window.exportSafetyAlertToDocx = exportSafetyAlertToDocx;
 
 // ── Archive/History viewer modal (works for both alerts and awards) ────────
 function safetyOpenArchiveModal(type) {
