@@ -11205,6 +11205,7 @@ function renderTabulation() {
                     </div>
                 </div>
                 <div id="safety-alert-award-panel"></div>
+                <div style="height:1px;background:var(--border-color);margin:22px 20px 26px;"></div>
                 `;
                 
                 // ── Build monthly compliance card ────────────────────────────────
@@ -20344,9 +20345,16 @@ function renderSafetyAlertAwardPanel() {
     const alertsListHtml = top5.length === 0
         ? `<div style="padding:16px 14px;font-size:0.72rem;color:var(--text-secondary);">No active safety alerts.</div>`
         : top5.map(function(a, i) {
+            const thumb = safetyAlertThumbUrl(a);
+            const fileIcon = a.fileType === 'pdf' ? 'fa-file-pdf' : 'fa-file-word';
+            const fileColor = a.fileType === 'pdf' ? '#c62828' : '#1565c0';
+            const thumbHtml = thumb
+                ? `<img src="${thumb}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0;">`
+                : `<div style="width:40px;height:40px;border-radius:6px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas ${fileIcon}" style="color:${fileColor};font-size:1rem;"></i></div>`;
             return `
             <div class="saw-alert-item" onclick="safetyViewAlertDetail('${a.id}')">
                 <span class="saw-alert-num">${i + 1}</span>
+                ${thumbHtml}
                 <div style="min-width:0;">
                     <div class="saw-alert-title">${(a.title || 'Untitled Alert').replace(/</g, '&lt;')}</div>
                     <div class="saw-alert-meta">${a.project ? a.project.replace(/</g, '&lt;') : 'Company-wide'} · ${a.dateIssued || ''}</div>
@@ -39209,20 +39217,4 @@ async function exportKpmExcel() {
     lgCell.alignment = { vertical: 'middle', wrapText: false };
 
     // ── Download ──────────────────────────────────────────────────────────────
-    try {
-        const buf  = await wb.xlsx.writeBuffer();
-        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href     = url;
-        a.download = `SCIC_ESH_KPM_${year}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast('✅ KPM Excel exported successfully!', 'success');
-    } catch(err) {
-        console.error('KPM Excel export error:', err);
-        showToast('❌ KPM export failed. Check console for details.', 'error');
-    }
-}
+    try
