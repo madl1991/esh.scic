@@ -39217,4 +39217,20 @@ async function exportKpmExcel() {
     lgCell.alignment = { vertical: 'middle', wrapText: false };
 
     // ── Download ──────────────────────────────────────────────────────────────
-    try
+    try {
+        const buf  = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `SCIC_ESH_KPM_${year}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('✅ KPM Excel exported successfully!', 'success');
+    } catch(err) {
+        console.error('KPM Excel export error:', err);
+        showToast('❌ KPM export failed. Check console for details.', 'error');
+    }
+}
