@@ -21850,6 +21850,128 @@ function saveToFirebaseDebounced() {
 }
 window.saveToFirebaseDebounced = saveToFirebaseDebounced;
 
+// ══════════════════════════════════════════════════════════════════════
+// EXECUTIVE SUMMARY LIVE SYNC
+// Writes a light, aggregated, non-sensitive-free-of-raw-tables snapshot per
+// region to exec_summary/{regionSlug} so the standalone executive-summary.html
+// page (CEO passcode-gated view) can render a live company-wide summary
+// without ever needing access to the main dashboard or raw project data.
+// This is additive-only and non-blocking — failures here never affect the
+// main saveToFirebase() flow.
+// ══════════════════════════════════════════════════════════════════════
+function _execRegionSlug(region) {
+    return String(region || 'unknown').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '');
+}
+
+async function syncExecutiveSummary() {
+    try {
+        if (!window.firebaseDb || !window.firebase) return;
+        const year = state.selectedYear || new Date().getFullYear();
+        const curMonth = (new Date().getFullYear() === year) ? new Date().getMonth() + 1 : 12;
+        const rateBase  = (state.ratesStandard === 'osha') ? 200000 : 1000000;
+        const rateLabel = (state.ratesStandard === 'osha') ? 'OSHA (200K hrs)' : 'OSHS (1M hrs)';
+
+        // Group this session's projects by field region (skip Corporate / Plant Ops —
+        // those aren't field regions and shouldn't appear in the exec regional table).
+        const byRegion = {};
+        (state.projects || []).forEach(p => {
+            if (!p || !p.region) return;
+            if (p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') return;
+            if ((typeof isProjectOnStoppage === 'function' && isProjectOnStoppage(p)) || p.dateFinished) return;
+            (byRegion[p.region] = byRegion[p.region] || []).push(p);
+        });
+
+        const writes = [];
+        Object.keys(byRegion).forEach(region => {
+            const projs = byRegion[region];
+            let lta = 0, med = 0, fa = 0, fat = 0, hip = 0, dl = 0, mh = 0, nearMiss = 0;
+            const recentIncidents = [];
+            // Monthly breakdown (index 0 = Jan ... 11 = Dec) so the Executive
+            // Summary page can render real bar/line charts instead of just totals.
+            const monthly = {
+                lta: Array(12).fill(0), med: Array(12).fill(0), fa: Array(12).fill(0),
+                fat: Array(12).fill(0), hip: Array(12).fill(0), manhours: Array(12).fill(0),
+                nearMiss: Array(12).fill(0)
+            };
+
+            projs.forEach(p => {
+                for (let i = 1; i <= curMonth; i++) {
+                    const vLta = parseFloat(p.vals['medical_LTA']?.[i]) || 0;
+                    const vMed = parseFloat(p.vals['medical_Medical Treatment']?.[i]) || 0;
+                    const vFa  = parseFloat(p.vals['medical_First Aid']?.[i]) || 0;
+                    const vFat = parseFloat(p.vals['medical_Fatality']?.[i]) || 0;
+                    const vHip = parseFloat(p.vals['medical_High-Potential incident']?.[i]) || 0;
+                    const vDl  = parseFloat(p.vals['medical_Days Lost/Charged']?.[i]) || 0;
+                    const vMh  = parseFloat(p.vals['exposures_Total Exposed Manhour']?.[i]) || 0;
+                    lta += vLta; med += vMed; fa += vFa; fat += vFat; hip += vHip; dl += vDl; mh += vMh;
+                    monthly.lta[i-1] += vLta; monthly.med[i-1] += vMed; monthly.fa[i-1] += vFa;
+                    monthly.fat[i-1] += vFat; monthly.hip[i-1] += vHip; monthly.manhours[i-1] += vMh;
+                }
+                const nmRow = p.vals['medical_Near Miss'] || p.vals['activities_Near Miss'];
+                if (nmRow) {
+                    for (let i = 1; i <= curMonth; i++) {
+                        const vNm = parseFloat(nmRow[i]) || 0;
+                        nearMiss += vNm;
+                        monthly.nearMiss[i-1] += vNm;
+                    }
+                }
+
+                const entries = p.vals['lta-registry_entries'] || [];
+                entries.forEach(e => {
+                    if (!e) return;
+                    const d = e.dateOfAccident || e.dateReported || '';
+                    if (!d) return;
+                    recentIncidents.push({
+                        project: p.name,
+                        date: d,
+                        classification: e.incidentClassification || '',
+                        injuredPersonName: e.injuredPersonName || '',
+                        natureOfInjury: e.natureOfInjury || '',
+                        natureOfIncident: e.natureOfIncident || '',
+                        location: e.locationOfIncident || '',
+                        detailsFacts: e.detailsFacts || '',
+                        status: e.status || '',
+                        aiirNo: e.aiirNo || ''
+                    });
+                });
+            });
+
+            recentIncidents.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+            const topIncidents = recentIncidents.slice(0, 10);
+
+            const ltir = mh > 0 ? +((lta * rateBase) / mh).toFixed(4) : 0;
+            const trir = mh > 0 ? +(((lta + med + fat) * rateBase) / mh).toFixed(4) : 0;
+            const sevR = mh > 0 ? +((dl * rateBase) / mh).toFixed(4) : 0;
+
+            const docData = {
+                region: region,
+                year: year,
+                updatedAt: new Date().toISOString(),
+                updatedBy: state.currentUser?.email || '',
+                rates: { ltir: ltir, trir: trir, severityRate: sevR, base: rateBase, standard: rateLabel },
+                totals: {
+                    lta: lta, medicalTreatment: med, firstAid: fa, fatality: fat,
+                    hip: hip, daysLost: dl, manhours: mh, nearMiss: nearMiss
+                },
+                monthly: monthly,
+                projectCount: projs.length,
+                recentIncidents: topIncidents
+            };
+
+            const ref = window.firebase.doc(window.firebaseDb, 'exec_summary', _execRegionSlug(region));
+            writes.push(
+                window.firebase.setDoc(ref, docData, { merge: false })
+                    .catch(e => console.warn('⚠️ execSummary sync failed for', region, e.message))
+            );
+        });
+
+        await Promise.all(writes);
+    } catch (e) {
+        console.warn('⚠️ syncExecutiveSummary failed (non-critical):', e.message);
+    }
+}
+window.syncExecutiveSummary = syncExecutiveSummary;
+
 async function saveToFirebase() {
     if (!firebaseReady || !window.firebaseDb) {
         console.log('⏳ Firebase not ready');
@@ -21992,6 +22114,10 @@ async function saveToFirebase() {
 
         state.lastSyncTimestamp = Date.now();
         console.log(`✅ Current year (${currentYear}) saved to Firebase (isolated — other years untouched):`, new Date().toLocaleTimeString());
+
+        // Live-sync aggregated KPIs to the Executive Summary page (fire-and-forget,
+        // never blocks or fails the main save).
+        syncExecutiveSummary();
 
         return true;
         
