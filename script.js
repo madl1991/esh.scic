@@ -20121,13 +20121,13 @@ function safetyViewAwardDetail(id) {
     modal.innerHTML = `
     <div style="background:var(--bg-card);border-radius:12px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
         <div style="background:linear-gradient(135deg,#f57f17,#fbc02d);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;">
-            <span style="font-weight:800;font-size:0.95rem;"><i class="fas fa-trophy"></i> Safety Award</span>
+            <span style="font-weight:800;font-size:0.95rem;"><i class="fas fa-trophy"></i> ESH Award and Recognition</span>
             <span onclick="document.getElementById('safety-detail-modal-overlay').remove()" style="cursor:pointer;font-size:1.2rem;">&times;</span>
         </div>
         ${photos[0] ? `<img src="${photos[0]}" onclick="safetyOpenLightbox('${photos[0]}')" style="width:100%;max-height:320px;object-fit:cover;object-position:${aw.photoPosition||'center'};display:block;cursor:zoom-in;">` : ''}
         ${photos.length > 1 ? `<div style="display:flex;gap:6px;padding:10px 18px 0;flex-wrap:wrap;">${photos.map(function(u){return `<img src="${u}" onclick="safetyOpenLightbox('${u}')" style="width:52px;height:52px;object-fit:cover;border-radius:6px;cursor:zoom-in;">`;}).join('')}</div>` : ''}
         <div style="padding:16px 18px;">
-            <div style="font-size:0.65rem;font-weight:800;color:#f57f17;letter-spacing:0.4px;">${(aw.awardTitle||'SAFETY AWARD').toUpperCase()}</div>
+            <div style="font-size:0.65rem;font-weight:800;color:#f57f17;letter-spacing:0.4px;">${(aw.awardTitle||'ESH AWARD AND RECOGNITION').toUpperCase()}</div>
             <div style="font-size:1.15rem;font-weight:800;color:#5d4200;margin:2px 0;">${(aw.awardeeName||'').replace(/</g,'&lt;')}</div>
             <div style="font-size:0.72rem;color:#8d6a00;">${aw.project ? aw.project.replace(/</g,'&lt;') : 'Company-wide'} · ${aw.date || ''}${aw.awardingBody ? ' · Awarded by ' + aw.awardingBody.replace(/</g,'&lt;') : ''}</div>
             ${aw.description ? `<div style="font-size:0.8rem;color:#3d2600;margin-top:10px;white-space:pre-wrap;">${aw.description.replace(/</g,'&lt;')}</div>` : ''}
@@ -20279,7 +20279,7 @@ function buildSafetyAwardInnerHtml() {
                     ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;object-position:${aw.photoPosition||'center'};">`
                     : `<div style="width:100%;height:100%;background:#c8e6c9;display:flex;align-items:center;justify-content:center;"><i class="fas fa-trophy" style="font-size:2.2rem;color:#66bb6a;"></i></div>`}
                 <div style="position:absolute;left:0;right:0;bottom:0;padding:20px 22px;background:linear-gradient(to top,rgba(27,94,32,0.85),rgba(27,94,32,0.15) 80%,transparent);">
-                    <div style="font-size:0.72rem;font-weight:700;color:#c8e6c9;letter-spacing:0.5px;">${(aw.awardTitle||'SAFETY AWARD').toUpperCase()}</div>
+                    <div style="font-size:0.72rem;font-weight:700;color:#c8e6c9;letter-spacing:0.5px;">${(aw.awardTitle||'ESH AWARD AND RECOGNITION').toUpperCase()}</div>
                     <div style="font-size:1.5rem;font-weight:800;color:#fff;margin-top:4px;">${(aw.awardeeName||'').replace(/</g,'&lt;')}</div>
                     <div style="font-size:0.78rem;color:#e8f5e9;margin-top:4px;">${aw.project ? aw.project.replace(/</g,'&lt;') : 'Company-wide'} · ${aw.date || ''}${aw.awardingBody ? ' · ' + aw.awardingBody.replace(/</g,'&lt;') : ''}</div>
                 </div>
@@ -20379,7 +20379,7 @@ function renderSafetyAlertAwardPanel() {
     <div class="saw-panel">
         <div class="saw-panel-head" style="background:#e8f5e9;border-bottom:1px solid #c8e6c9;">
             <i class="fas fa-trophy" style="color:#2e7d32;"></i>
-            <span style="font-weight:800;font-size:0.8rem;letter-spacing:0.4px;color:#1b5e20;">SAFETY AWARD</span>
+            <span style="font-weight:800;font-size:0.8rem;letter-spacing:0.4px;color:#1b5e20;">ESH AWARD AND RECOGNITION</span>
             <span style="margin-left:auto;display:flex;gap:6px;">
                 ${canPublish ? `<button onclick="safetyOpenAwardForm()" style="background:#2e7d32;border:none;color:#fff;border-radius:6px;padding:3px 8px;font-size:0.62rem;cursor:pointer;font-weight:700;">+ Award</button>` : ''}
                 <button onclick="safetyOpenArchiveModal('award')" style="background:transparent;border:1px solid #2e7d32;color:#2e7d32;border-radius:6px;padding:3px 8px;font-size:0.62rem;cursor:pointer;font-weight:700;">View All</button>
