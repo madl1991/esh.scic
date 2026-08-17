@@ -17672,6 +17672,17 @@ document.addEventListener('click', closeAllStatusDropdowns);
                     loadLogbookFromFirebase();
                 }
             }
+
+            // ── EXECUTIVE DASHBOARD RESYNC — restricted to these two accounts only.
+            // Card itself lives in the settings-accordion markup (index.html) right
+            // alongside Display Name / Account Info / Change Password / Backup &
+            // Recovery — we just toggle its visibility here based on email.
+            const EXEC_RESYNC_ALLOWED_EMAILS = ['esh@scic.com.ph', 'esh@wda.com.ph'];
+            const userEmailLower = (user.email || '').toLowerCase();
+            const resyncCard = document.getElementById('exec-resync-card');
+            if (resyncCard) {
+                resyncCard.style.display = EXEC_RESYNC_ALLOWED_EMAILS.includes(userEmailLower) ? '' : 'none';
+            }
         }
 
         setInterval(() => {
@@ -21864,8 +21875,13 @@ function _execRegionSlug(region) {
 }
 
 async function syncExecutiveSummary() {
+    const result = { ok: true, regionsSynced: 0, regionsFailed: [], reason: '' };
     try {
-        if (!window.firebaseDb || !window.firebase) return;
+        if (!window.firebaseDb || !window.firebase) {
+            result.ok = false;
+            result.reason = 'Firebase not initialized';
+            return result;
+        }
         const year = state.selectedYear || new Date().getFullYear();
         const curMonth = (new Date().getFullYear() === year) ? new Date().getMonth() + 1 : 12;
         const rateBase  = (state.ratesStandard === 'osha') ? 200000 : 1000000;
@@ -21961,16 +21977,55 @@ async function syncExecutiveSummary() {
             const ref = window.firebase.doc(window.firebaseDb, 'exec_summary', _execRegionSlug(region));
             writes.push(
                 window.firebase.setDoc(ref, docData, { merge: false })
-                    .catch(e => console.warn('⚠️ execSummary sync failed for', region, e.message))
+                    .then(() => { result.regionsSynced++; })
+                    .catch(e => {
+                        console.warn('⚠️ execSummary sync failed for', region, e.message);
+                        result.ok = false;
+                        result.regionsFailed.push(region);
+                    })
             );
         });
+
+        if (writes.length === 0) {
+            result.ok = false;
+            result.reason = 'No eligible regions found (check region/stoppage/dateFinished filters)';
+        }
 
         await Promise.all(writes);
     } catch (e) {
         console.warn('⚠️ syncExecutiveSummary failed (non-critical):', e.message);
+        result.ok = false;
+        result.reason = e.message;
     }
+    return result;
 }
 window.syncExecutiveSummary = syncExecutiveSummary;
+
+// Manual "Force Resync" — lets an ESH user push the latest data to the
+// Executive Dashboard on demand instead of waiting on/hoping the last
+// auto-save's fire-and-forget sync actually went through.
+async function forceResyncExecutiveSummary(btnEl) {
+    if (btnEl) { btnEl.disabled = true; btnEl.style.opacity = '0.6'; }
+    if (typeof showToast === 'function') showToast('Syncing latest data to Executive Dashboard…', 'info', 2000);
+    try {
+        const result = await syncExecutiveSummary();
+        if (typeof showToast === 'function') {
+            if (result.ok && result.regionsSynced > 0) {
+                showToast(`✅ Executive Dashboard synced — ${result.regionsSynced} region(s) updated.`, 'success');
+            } else if (result.ok && result.regionsSynced === 0) {
+                showToast('⚠️ Nothing to sync — no active regions found.', 'warning');
+            } else {
+                showToast(`❌ Resync failed${result.regionsFailed?.length ? ' for: ' + result.regionsFailed.join(', ') : ''}. ${result.reason || ''}`, 'error', 5000);
+            }
+        }
+    } catch (e) {
+        console.error('forceResyncExecutiveSummary error:', e);
+        if (typeof showToast === 'function') showToast('❌ Resync failed: ' + e.message, 'error', 5000);
+    } finally {
+        if (btnEl) { btnEl.disabled = false; btnEl.style.opacity = '1'; }
+    }
+}
+window.forceResyncExecutiveSummary = forceResyncExecutiveSummary;
 
 async function saveToFirebase() {
     if (!firebaseReady || !window.firebaseDb) {
@@ -22342,6 +22397,14 @@ async function loadFromFirebase() {
         
         render();
         renderPTable();
+
+        // Self-healing background resync: the Executive Dashboard only gets
+        // fresh data via the fire-and-forget sync inside saveToFirebase(),
+        // so if a prior save's sync silently failed, this catches it up
+        // automatically whenever the dashboard is loaded — no user action needed.
+        if (typeof syncExecutiveSummary === 'function') {
+            syncExecutiveSummary().catch(e => console.warn('⚠️ Background execSummary resync failed:', e.message));
+        }
         
     } catch (error) {
         console.error('❌ Error loading from Firebase:', error);
