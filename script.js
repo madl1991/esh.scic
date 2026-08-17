@@ -21907,7 +21907,7 @@ async function syncExecutiveSummary() {
                     monthly.lta[i-1] += vLta; monthly.med[i-1] += vMed; monthly.fa[i-1] += vFa;
                     monthly.fat[i-1] += vFat; monthly.hip[i-1] += vHip; monthly.manhours[i-1] += vMh;
                 }
-                const nmRow = p.vals['medical_Near Miss'] || p.vals['activities_Near Miss'];
+                const nmRow = p.vals['medical_No. of Identified Near-Miss'];
                 if (nmRow) {
                     for (let i = 1; i <= curMonth; i++) {
                         const vNm = parseFloat(nmRow[i]) || 0;
