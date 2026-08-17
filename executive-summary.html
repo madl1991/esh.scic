@@ -11,37 +11,47 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
   :root{
-    --bg-deep:   #090c14;
-    --bg-panel:  #121729;
-    --bg-panel2: #171d33;
-    --line:      #232a44;
-    --line-soft: #1a2038;
-    --ink:       #eef1f8;
-    --ink-dim:   #8792ac;
-    --ink-faint: #5c6684;
-    --cyan:      #2dd4ee;
-    --cyan-dim:  rgba(45,212,238,0.14);
+    --bg-deep:   #0e2023;
+    --bg-panel:  #16292c;
+    --line:      #2c4548;
+    --line-soft: #203537;
+    --ink:       #f0f7f5;
+    --ink-dim:   #93b0ac;
+    --ink-faint: #5f7c79;
+    --cyan:      #12dab0;
+    --cyan-dim:  rgba(18,218,176,0.14);
     --amber:     #f5a623;
     --amber-dim: rgba(245,166,35,0.14);
     --coral:     #f2545b;
     --coral-dim: rgba(242,84,91,0.14);
-    --mint:      #35d0a0;
-    --mint-dim:  rgba(53,208,160,0.14);
-    --violet:    #8b8ffb;
+    --mint:      #3ee6c4;
+    --mint-dim:  rgba(62,230,196,0.14);
   }
   *{box-sizing:border-box;}
-  body{
-    margin:0; font-family:'Inter',system-ui,sans-serif;
+  html, body{
+    margin:0; height:100%; overflow:hidden;
+    font-family:'Inter',system-ui,sans-serif;
     background:var(--bg-deep); color:var(--ink);
-    min-height:100vh;
   }
   .num{font-family:'Space Grotesk',sans-serif;}
 
   /* ── PASSCODE GATE ────────────────────────────────────────── */
   #gate{
-    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-    background:radial-gradient(circle at 30% 20%, #0f1830 0%, #06070d 70%); z-index:999; padding:20px;
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 30% 20%, #133a38 0%, #060f10 70%); z-index:999; padding:20px;
   }
+  html[data-boot="gate"] #gate{display:flex;}
+
+  #boot-loader{
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background:var(--bg-deep); z-index:1000;
+  }
+  html[data-boot="pending"] #boot-loader{display:flex;}
+  #boot-loader .spinner{
+    width:32px; height:32px; border-radius:50%; border:3px solid var(--line);
+    border-top-color:var(--cyan); animation:boot-spin 0.8s linear infinite;
+  }
+  @keyframes boot-spin{to{transform:rotate(360deg);}}
   .gate-card{
     background:var(--bg-panel); border:1px solid var(--line); border-radius:18px; padding:40px 34px;
     width:100%; max-width:380px; box-shadow:0 30px 80px rgba(0,0,0,0.55); text-align:center;
@@ -66,112 +76,128 @@
   #gate-error{color:var(--coral); font-size:0.78rem; margin-top:12px; min-height:16px; font-weight:600;}
   .gate-footer{margin-top:20px; font-size:0.66rem; color:var(--ink-faint);}
 
-  /* ── MAIN PAGE ────────────────────────────────────────────── */
-  #app{display:none; max-width:1280px; margin:0 auto; padding:0 0 60px;}
+  /* ── MAIN PAGE (fixed, no page scroll) ───────────────────────── */
+  #app{display:none; height:100%; flex-direction:column;}
   header.top{
-    padding:26px 28px 20px; display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:14px;
-    border-bottom:1px solid var(--line-soft);
+    flex:0 0 auto; padding:12px 22px; display:flex; align-items:center; justify-content:space-between;
+    gap:12px; border-bottom:1px solid var(--line-soft);
   }
-  header.top .brand{display:flex; align-items:center; gap:14px;}
+  header.top .brand{display:flex; align-items:center; gap:11px;}
   header.top .icon-badge{
-    width:44px; height:44px; border-radius:12px; background:var(--cyan-dim); border:1px solid rgba(45,212,238,0.3);
+    width:34px; height:34px; border-radius:10px; background:var(--cyan-dim); border:1px solid rgba(45,212,238,0.3);
     display:flex; align-items:center; justify-content:center; flex-shrink:0;
   }
-  header.top .icon-badge i{color:var(--cyan); font-size:1.2rem;}
-  header.top h1{font-family:'Space Grotesk',sans-serif; font-size:1.3rem; margin:0; font-weight:700; letter-spacing:0.2px;}
-  header.top .sub{font-size:0.76rem; color:var(--ink-dim); margin-top:3px;}
+  header.top .icon-badge i{color:var(--cyan); font-size:0.95rem;}
+  header.top h1{font-family:'Space Grotesk',sans-serif; font-size:1.02rem; margin:0; font-weight:700; letter-spacing:0.2px;}
+  header.top .sub{font-size:0.66rem; color:var(--ink-dim); margin-top:1px;}
   .live-pill{
-    display:flex; align-items:center; gap:8px; background:var(--bg-panel); border:1px solid var(--line);
-    border-radius:20px; padding:7px 14px; font-size:0.72rem; font-weight:600; color:var(--ink-dim);
+    display:flex; align-items:center; gap:7px; background:var(--bg-panel); border:1px solid var(--line);
+    border-radius:20px; padding:5px 12px; font-size:0.66rem; font-weight:600; color:var(--ink-dim); white-space:nowrap;
   }
-  .live-dot{width:7px; height:7px; border-radius:50%; background:var(--mint); box-shadow:0 0 8px var(--mint); animation:pulse 1.8s infinite;}
+  .live-dot{width:6px; height:6px; border-radius:50%; background:var(--mint); box-shadow:0 0 8px var(--mint); animation:pulse 1.8s infinite;}
   @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:0.25;}}
 
-  section{padding:20px 28px;}
-  .section-title{
-    font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px;
-    color:var(--ink-faint); margin:0 0 12px; display:flex; align-items:center; gap:8px;
+  #logout-btn{
+    display:flex; align-items:center; gap:7px; background:var(--bg-panel); border:1px solid var(--line);
+    border-radius:20px; padding:5px 12px; font-size:0.66rem; font-weight:600; color:var(--ink-dim);
+    white-space:nowrap; cursor:pointer; font-family:'Inter',sans-serif; transition:border-color .15s, color .15s;
   }
-  .section-title i{font-size:0.68rem;}
+  #logout-btn:hover{border-color:var(--coral); color:var(--coral);}
+  #logout-btn i{font-size:0.68rem;}
 
-  /* Bento grid */
-  .bento-row{display:grid; gap:14px;}
-  .row-hero{grid-template-columns:1.1fr 1fr 1fr 1fr;}
+  /* Board = everything below header, fills remaining viewport, never scrolls itself */
+  .board{
+    flex:1 1 auto; min-height:0; display:grid;
+    grid-template-rows: auto minmax(0,1.15fr) auto minmax(0,1.35fr);
+    gap:9px; padding:10px 16px 12px;
+  }
+  .bento-row{display:grid; gap:9px; min-height:0;}
+  .row-hero{grid-template-columns:1.05fr 1fr 1fr 1fr;}
   .row-charts{grid-template-columns:1.5fr 1fr;}
   .row-stats{grid-template-columns:repeat(3,1fr);}
-  .row-split{grid-template-columns:1.15fr 0.85fr;}
-  @media(max-width:960px){
-    .row-hero{grid-template-columns:1fr 1fr;}
-    .row-charts, .row-split{grid-template-columns:1fr;}
-    .row-stats{grid-template-columns:1fr 1fr;}
-  }
-  @media(max-width:560px){ .row-hero, .row-stats{grid-template-columns:1fr;} }
+  .row-bottom{grid-template-columns:0.95fr 1.15fr 0.95fr;}
 
   .panel{
-    background:var(--bg-panel); border:1px solid var(--line); border-radius:16px; padding:20px;
-    position:relative; overflow:hidden;
+    background:var(--bg-panel); border:1px solid var(--line); border-radius:13px; padding:12px 14px;
+    position:relative; overflow:hidden; min-height:0; display:flex; flex-direction:column;
   }
   .panel.glow-mint::before{
-    content:''; position:absolute; top:-40%; right:-30%; width:160px; height:160px; border-radius:50%;
-    filter:blur(50px); opacity:0.5; pointer-events:none; background:var(--mint);
+    content:''; position:absolute; top:-50%; right:-30%; width:130px; height:130px; border-radius:50%;
+    filter:blur(46px); opacity:0.5; pointer-events:none; background:var(--mint);
   }
 
-  /* Hero counter */
-  .hero-counter{display:flex; flex-direction:column; justify-content:center; min-height:150px;}
-  .hero-counter .n{font-family:'Space Grotesk',sans-serif; font-size:3.6rem; font-weight:700; line-height:0.95;}
-  .hero-counter .lbl{font-size:0.78rem; color:var(--ink-dim); margin-top:8px; font-weight:600; line-height:1.4;}
+  .section-title{
+    font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.6px;
+    color:var(--ink-faint); margin:0 0 6px; display:flex; align-items:center; gap:6px; flex:0 0 auto;
+  }
+
+  /* Hero + KPI row */
+  .hero-counter{justify-content:center;}
+  .hero-counter .n{font-family:'Space Grotesk',sans-serif; font-size:2.5rem; font-weight:700; line-height:0.95;}
+  .hero-counter .lbl{font-size:0.66rem; color:var(--ink-dim); margin-top:5px; font-weight:600; line-height:1.3;}
   .hero-counter .badge{
-    display:inline-block; margin-top:12px; font-size:0.66rem; font-weight:700; padding:4px 10px; border-radius:20px;
-    width:fit-content;
+    display:inline-block; margin-top:8px; font-size:0.6rem; font-weight:700; padding:3px 9px; border-radius:20px; width:fit-content;
   }
-
-  .kpi-tile{display:flex; flex-direction:column; justify-content:center; min-height:150px;}
-  .kpi-tile .n{font-family:'Space Grotesk',sans-serif; font-size:2.4rem; font-weight:700; line-height:1;}
-  .kpi-tile .lbl{font-size:0.72rem; color:var(--ink-dim); font-weight:700; margin-top:8px; text-transform:uppercase; letter-spacing:0.4px;}
-  .kpi-tile .sub{font-size:0.68rem; color:var(--ink-faint); margin-top:4px;}
+  .kpi-tile{justify-content:center;}
+  .kpi-tile .n{font-family:'Space Grotesk',sans-serif; font-size:1.85rem; font-weight:700; line-height:1;}
+  .kpi-tile .lbl{font-size:0.62rem; color:var(--ink-dim); font-weight:700; margin-top:5px; text-transform:uppercase; letter-spacing:0.3px;}
+  .kpi-tile .sub{font-size:0.58rem; color:var(--ink-faint); margin-top:2px;}
   .c-mint{color:var(--mint);} .c-amber{color:var(--amber);} .c-coral{color:var(--coral);} .c-cyan{color:var(--cyan);}
 
-  .stat-row-tile{display:flex; align-items:center; gap:14px;}
-  .stat-row-tile .ring-wrap{position:relative; width:56px; height:56px; flex-shrink:0;}
+  /* Chart panels */
+  .chart-wrap{flex:1; min-height:0; position:relative;}
+  .chart-wrap canvas{max-width:100%; max-height:100%;}
+
+  /* Stat mini row */
+  .stat-row-tile{flex-direction:row; align-items:center; gap:10px; padding:9px 12px;}
+  .stat-row-tile .ring-wrap{position:relative; width:38px; height:38px; flex-shrink:0;}
   .stat-row-tile .ring-wrap svg{transform:rotate(-90deg);}
-  .stat-row-tile .ring-wrap .center{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.62rem; font-weight:700;}
-  .stat-row-tile .n{font-family:'Space Grotesk',sans-serif; font-size:1.6rem; font-weight:700;}
-  .stat-row-tile .lbl{font-size:0.7rem; color:var(--ink-dim); font-weight:600;}
-  .stat-row-tile .sub{font-size:0.64rem; color:var(--ink-faint); margin-top:2px;}
+  .stat-row-tile .ring-wrap .center{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.6rem;}
+  .stat-row-tile .n{font-family:'Space Grotesk',sans-serif; font-size:1.15rem; font-weight:700; line-height:1;}
+  .stat-row-tile .lbl{font-size:0.6rem; color:var(--ink-dim); font-weight:600;}
+  .stat-row-tile .sub{font-size:0.56rem; color:var(--ink-faint); margin-top:1px;}
 
-  canvas{max-width:100%;}
+  /* Scrollable inner content for bottom row panels */
+  .scroll-inner{flex:1; min-height:0; overflow-y:auto;}
+  .scroll-inner::-webkit-scrollbar{width:5px;}
+  .scroll-inner::-webkit-scrollbar-thumb{background:var(--line); border-radius:3px;}
 
-  table.region-tbl{width:100%; border-collapse:collapse; font-size:0.78rem;}
+  table.region-tbl{width:100%; border-collapse:collapse; font-size:0.66rem;}
   table.region-tbl th{
-    text-align:left; padding:10px 12px; font-size:0.64rem; text-transform:uppercase;
-    color:var(--ink-faint); font-weight:700; letter-spacing:0.4px; border-bottom:1px solid var(--line);
+    text-align:left; padding:5px 7px; font-size:0.56rem; text-transform:uppercase; position:sticky; top:0; background:var(--bg-panel);
+    color:var(--ink-faint); font-weight:700; letter-spacing:0.3px; border-bottom:1px solid var(--line);
   }
-  table.region-tbl td{padding:11px 12px; border-bottom:1px solid var(--line-soft); color:var(--ink);}
+  table.region-tbl td{padding:6px 7px; border-bottom:1px solid var(--line-soft); color:var(--ink);}
   table.region-tbl tr:last-child td{border-bottom:none;}
-  .rate-chip{padding:3px 9px; border-radius:8px; font-weight:700; font-size:0.74rem; font-family:'Space Grotesk',sans-serif;}
+  .rate-chip{padding:2px 7px; border-radius:7px; font-weight:700; font-size:0.64rem; font-family:'Space Grotesk',sans-serif;}
 
-  .incident-item, .alert-item{padding:14px 18px; border-bottom:1px solid var(--line-soft);}
+  .incident-item, .alert-item{padding:8px 4px; border-bottom:1px solid var(--line-soft);}
   .incident-item:last-child, .alert-item:last-child{border-bottom:none;}
-  .incident-item .top-row{display:flex; justify-content:space-between; gap:10px; align-items:baseline; flex-wrap:wrap;}
-  .incident-item .cls{font-weight:700; font-size:0.68rem; padding:3px 10px; border-radius:8px; letter-spacing:0.2px;}
+  .incident-item .top-row{display:flex; justify-content:space-between; gap:8px; align-items:baseline; flex-wrap:wrap;}
+  .incident-item .cls{font-weight:700; font-size:0.58rem; padding:2px 8px; border-radius:7px; letter-spacing:0.2px;}
   .cls-LTA{background:var(--coral-dim); color:#ff8b90;}
   .cls-Fatality{background:var(--coral); color:#fff;}
   .cls-default{background:var(--cyan-dim); color:var(--cyan);}
-  .incident-item .meta{font-size:0.68rem; color:var(--ink-faint); margin-top:4px;}
-  .incident-item .desc{font-size:0.76rem; margin-top:7px; line-height:1.55; color:#c3c9dc;}
+  .incident-item .meta{font-size:0.58rem; color:var(--ink-faint); margin-top:2px;}
+  .incident-item .desc{font-size:0.64rem; margin-top:4px; line-height:1.4; color:#c3c9dc;}
   .incident-item .person{font-weight:700; color:var(--ink);}
 
-  .alert-item img{width:100%; border-radius:10px; margin-top:9px; max-height:160px; object-fit:cover;}
-  .alert-item .title{font-weight:700; font-size:0.84rem; font-family:'Space Grotesk',sans-serif;}
-  .alert-item .date{font-size:0.66rem; color:var(--ink-faint); margin-top:3px;}
-  .alert-item .desc{font-size:0.76rem; margin-top:7px; line-height:1.55; color:#c3c9dc;}
+  .alert-item .title{font-weight:700; font-size:0.7rem; font-family:'Space Grotesk',sans-serif;}
+  .alert-item .date{font-size:0.56rem; color:var(--ink-faint); margin-top:1px;}
+  .alert-item .desc{font-size:0.64rem; margin-top:4px; line-height:1.4; color:#c3c9dc; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
 
-  .empty{padding:30px; text-align:center; color:var(--ink-faint); font-size:0.8rem;}
-  footer{text-align:center; padding:26px; font-size:0.68rem; color:var(--ink-faint); border-top:1px solid var(--line-soft); margin-top:10px;}
-  footer strong{color:var(--ink-dim);}
+  .empty{padding:16px; text-align:center; color:var(--ink-faint); font-size:0.68rem;}
 </style>
 </head>
 <body>
+<script>
+(function(){
+  var unlocked = sessionStorage.getItem('exec_unlocked') === '1';
+  document.documentElement.setAttribute('data-boot', unlocked ? 'pending' : 'gate');
+})();
+</script>
+
+<div id="boot-loader"><div class="spinner"></div></div>
 
 <div id="gate">
   <div class="gate-card">
@@ -194,10 +220,13 @@
         <div class="sub">Sta. Clara International Corporation · Company-wide ESH Performance</div>
       </div>
     </div>
-    <div class="live-pill"><span class="live-dot"></span><span id="last-updated-txt">Live · syncing…</span></div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div class="live-pill"><span class="live-dot"></span><span id="last-updated-txt">Live · syncing…</span></div>
+      <button id="logout-btn" onclick="doLogout()" title="Log out"><i class="fa-solid fa-arrow-right-from-bracket"></i>Log out</button>
+    </div>
   </header>
 
-  <section>
+  <div class="board">
     <div class="bento-row row-hero">
       <div class="panel glow-mint hero-counter" id="hero-days-tile">
         <div class="n num c-mint" id="hero-days-val">—</div>
@@ -208,74 +237,62 @@
       <div class="panel kpi-tile" id="kpi-trir"></div>
       <div class="panel kpi-tile" id="kpi-sevr"></div>
     </div>
-  </section>
 
-  <section style="padding-top:0;">
     <div class="bento-row row-charts">
       <div class="panel">
         <div class="section-title"><i class="fa-solid fa-chart-column"></i>Incidents by Month — Company-wide</div>
-        <canvas id="chart-monthly" height="200"></canvas>
+        <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
       </div>
       <div class="panel">
         <div class="section-title"><i class="fa-solid fa-chart-simple"></i>LTIR by Region</div>
-        <canvas id="chart-region" height="200"></canvas>
+        <div class="chart-wrap"><canvas id="chart-region"></canvas></div>
       </div>
     </div>
-  </section>
 
-  <section style="padding-top:0;">
     <div class="bento-row row-stats">
       <div class="panel stat-row-tile">
-        <div class="ring-wrap"><svg viewBox="0 0 56 56" width="56" height="56">
-          <circle cx="28" cy="28" r="24" fill="none" stroke="#232a44" stroke-width="6"/>
-          <circle id="ring-mh" cx="28" cy="28" r="24" fill="none" stroke="var(--cyan)" stroke-width="6" stroke-dasharray="150.8" stroke-dashoffset="0" stroke-linecap="round"/>
+        <div class="ring-wrap"><svg viewBox="0 0 38 38" width="38" height="38">
+          <circle cx="19" cy="19" r="15" fill="none" stroke="#2c4548" stroke-width="4"/>
+          <circle id="ring-mh" cx="19" cy="19" r="15" fill="none" stroke="var(--cyan)" stroke-width="4" stroke-linecap="round"/>
         </svg><div class="center"><i class="fa-solid fa-business-time" style="color:var(--cyan);"></i></div></div>
         <div><div class="n" id="stat-manhours">0</div><div class="lbl">Total Manhours (YTD)</div><div class="sub" id="stat-projects">0 active projects</div></div>
       </div>
       <div class="panel stat-row-tile">
-        <div class="ring-wrap"><svg viewBox="0 0 56 56" width="56" height="56">
-          <circle cx="28" cy="28" r="24" fill="none" stroke="#232a44" stroke-width="6"/>
-          <circle id="ring-inc" cx="28" cy="28" r="24" fill="none" stroke="var(--amber)" stroke-width="6" stroke-dasharray="150.8" stroke-dashoffset="0" stroke-linecap="round"/>
+        <div class="ring-wrap"><svg viewBox="0 0 38 38" width="38" height="38">
+          <circle cx="19" cy="19" r="15" fill="none" stroke="#2c4548" stroke-width="4"/>
+          <circle id="ring-inc" cx="19" cy="19" r="15" fill="none" stroke="var(--amber)" stroke-width="4" stroke-linecap="round"/>
         </svg><div class="center"><i class="fa-solid fa-triangle-exclamation" style="color:var(--amber);"></i></div></div>
         <div><div class="n" id="stat-incidents">0</div><div class="lbl">Total Incidents (YTD)</div><div class="sub" id="stat-incidents-break">—</div></div>
       </div>
       <div class="panel stat-row-tile">
-        <div class="ring-wrap"><svg viewBox="0 0 56 56" width="56" height="56">
-          <circle cx="28" cy="28" r="24" fill="none" stroke="#232a44" stroke-width="6"/>
-          <circle id="ring-nm" cx="28" cy="28" r="24" fill="none" stroke="var(--mint)" stroke-width="6" stroke-dasharray="150.8" stroke-dashoffset="0" stroke-linecap="round"/>
+        <div class="ring-wrap"><svg viewBox="0 0 38 38" width="38" height="38">
+          <circle cx="19" cy="19" r="15" fill="none" stroke="#2c4548" stroke-width="4"/>
+          <circle id="ring-nm" cx="19" cy="19" r="15" fill="none" stroke="var(--mint)" stroke-width="4" stroke-linecap="round"/>
         </svg><div class="center"><i class="fa-solid fa-eye" style="color:var(--mint);"></i></div></div>
-        <div><div class="n" id="stat-nearmiss">0</div><div class="lbl">Near-Miss Reports (YTD)</div><div class="sub">Company-wide, all regions</div></div>
+        <div><div class="n" id="stat-nearmiss">0</div><div class="lbl">Near-Miss Reports (YTD)</div><div class="sub">Company-wide</div></div>
       </div>
     </div>
-  </section>
 
-  <section style="padding-top:0;">
-    <div class="section-title"><i class="fa-solid fa-map-location-dot"></i>Regional Breakdown</div>
-    <div class="panel" style="padding:0;">
-      <table class="region-tbl" id="region-table">
-        <thead><tr><th>Region</th><th>LTIR</th><th>TRIR</th><th>Sev. Rate</th><th>Manhours</th><th>LTA / Med / FA / Fat / HIP</th><th>Near-Miss</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
-
-  <section style="padding-top:0;">
-    <div class="bento-row row-split">
-      <div>
+    <div class="bento-row row-bottom">
+      <div class="panel">
+        <div class="section-title"><i class="fa-solid fa-map-location-dot"></i>Regional Breakdown</div>
+        <div class="scroll-inner">
+          <table class="region-tbl" id="region-table">
+            <thead><tr><th>Region</th><th>LTIR</th><th>TRIR</th><th>Sev.</th><th>MH</th><th>Inc.</th><th>NM</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
         <div class="section-title"><i class="fa-solid fa-notes-medical"></i>Recent Incidents / Accidents</div>
-        <div class="panel" style="padding:0;" id="incidents-list"><div class="empty">Loading…</div></div>
+        <div class="scroll-inner" id="incidents-list"><div class="empty">Loading…</div></div>
       </div>
-      <div>
-        <div class="section-title"><i class="fa-solid fa-bullhorn"></i>Safety Alerts &amp; Awards Feed</div>
-        <div class="panel" style="padding:0;" id="alerts-list"><div class="empty">Loading…</div></div>
+      <div class="panel">
+        <div class="section-title"><i class="fa-solid fa-bullhorn"></i>Safety Alerts &amp; Awards</div>
+        <div class="scroll-inner" id="alerts-list"><div class="empty">Loading…</div></div>
       </div>
     </div>
-  </section>
-
-  <footer>
-    Auto-generated live from <strong>ESH Compliance Dashboard</strong> · Sta. Clara International Corporation<br>
-    Read-only executive view. For full case details, coordinate with the ESH Department.
-  </footer>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -306,9 +323,43 @@ const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct
 let regionsData = {};
 let alertsData  = [];
 let listenersStarted = false;
+let unsubFns = [];
+let lastUpdatedInterval = null;
 let monthlyChart = null, regionChart = null;
 
 try { await setPersistence(auth, browserSessionPersistence); } catch(e) { console.warn(e); }
+
+// If we were waiting on auth confirmation (data-boot="pending") but nothing resolves
+// within a few seconds (e.g. offline / slow network), fall back to the passcode gate
+// instead of leaving the boot loader spinning forever.
+let bootResolved = false;
+setTimeout(() => {
+  if (!bootResolved) showGate();
+}, 6000);
+
+function showGate() {
+  bootResolved = true;
+  sessionStorage.removeItem('exec_unlocked');
+  document.documentElement.setAttribute('data-boot', 'gate');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('gate').style.display = 'flex';
+}
+
+function showApp() {
+  bootResolved = true;
+  document.documentElement.removeAttribute('data-boot');
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+}
+
+window.doLogout = async function() {
+  try { await signOut(auth); } catch(e) { console.warn(e); }
+  stopListeners();
+  sessionStorage.removeItem('exec_unlocked');
+  document.getElementById('passcode-input').value = '';
+  document.getElementById('gate-error').textContent = '';
+  showGate();
+};
 
 window.attemptUnlock = async function() {
   const input = document.getElementById('passcode-input');
@@ -333,8 +384,7 @@ window.attemptUnlock = async function() {
       await signOut(auth);
     } else {
       sessionStorage.setItem('exec_unlocked', '1');
-      document.getElementById('gate').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
+      showApp();
       startListeners();
     }
   } catch (e) {
@@ -353,34 +403,42 @@ function startListeners() {
   if (listenersStarted) return;
   listenersStarted = true;
 
-  onSnapshot(collection(db, 'exec_summary'), snap => {
+  unsubFns.push(onSnapshot(collection(db, 'exec_summary'), snap => {
     regionsData = {};
     snap.forEach(d => { regionsData[d.id] = d.data(); });
     render();
-  }, e => console.warn('exec_summary listener error:', e.message));
+  }, e => console.warn('exec_summary listener error:', e.message)));
 
-  onSnapshot(collection(db, 'users', SAFETY_ADMIN_UID, 'safety_alerts'), snap => {
+  unsubFns.push(onSnapshot(collection(db, 'users', SAFETY_ADMIN_UID, 'safety_alerts'), snap => {
     const arr = [];
     snap.forEach(d => arr.push(Object.assign({ id: d.id }, d.data())));
     arr.sort((a,b) => String(b.dateIssued||'').localeCompare(String(a.dateIssued||'')));
     alertsData = arr;
     renderAlerts();
-  }, e => console.warn('safety_alerts listener error:', e.message));
+  }, e => console.warn('safety_alerts listener error:', e.message)));
 
-  setInterval(updateLastUpdatedTxt, 30000);
+  lastUpdatedInterval = setInterval(updateLastUpdatedTxt, 30000);
+}
+
+function stopListeners() {
+  unsubFns.forEach(fn => { try { fn(); } catch(e) {} });
+  unsubFns = [];
+  if (lastUpdatedInterval) { clearInterval(lastUpdatedInterval); lastUpdatedInterval = null; }
+  listenersStarted = false;
 }
 
 function fmt(n, d=3) { return (isFinite(n) ? n : 0).toFixed(d); }
 function setRing(el, pct) {
-  const c = 2 * Math.PI * 24;
+  const r = 15;
+  const c = 2 * Math.PI * r;
   el.setAttribute('stroke-dasharray', c.toFixed(1));
   el.setAttribute('stroke-dashoffset', (c * (1 - Math.min(1, Math.max(0, pct)))).toFixed(1));
 }
 
 function rateThreshold(val, kind) {
   if (val === 0) return { cls: 'c-mint', hex: '#35d0a0' };
-  if (kind === 'ltir') return val <= 1.0 ? { cls: 'c-cyan', hex: '#2dd4ee' } : { cls: 'c-coral', hex: '#f2545b' };
-  if (kind === 'trir') return val <= 2.0 ? { cls: 'c-cyan', hex: '#2dd4ee' } : { cls: 'c-coral', hex: '#f2545b' };
+  if (kind === 'ltir') return val <= 1.0 ? { cls: 'c-cyan', hex: '#12dab0' } : { cls: 'c-coral', hex: '#f2545b' };
+  if (kind === 'trir') return val <= 2.0 ? { cls: 'c-cyan', hex: '#12dab0' } : { cls: 'c-coral', hex: '#f2545b' };
   return val > 0 ? { cls: 'c-amber', hex: '#f5a623' } : { cls: 'c-mint', hex: '#35d0a0' };
 }
 
@@ -423,7 +481,6 @@ function render() {
   const trir = mh > 0 ? ((lta+med+fat) * rateBase / mh) : 0;
   const sevR = mh > 0 ? (dl * rateBase / mh) : 0;
 
-  // Hero: days since last recordable incident
   const heroVal = document.getElementById('hero-days-val');
   const heroBadge = document.getElementById('hero-days-badge');
   if (mostRecentDate) {
@@ -457,7 +514,6 @@ function render() {
   setRing(document.getElementById('ring-inc'), Math.min(1, (lta+med+fa+fat+hip) / 20));
   setRing(document.getElementById('ring-nm'), Math.min(1, nearMiss / 20));
 
-  // Regional table
   const tbody = document.querySelector('#region-table tbody');
   if (!regions.length) {
     tbody.innerHTML = `<tr><td colspan="7" class="empty">No regional data synced yet.</td></tr>`;
@@ -467,23 +523,23 @@ function render() {
       .map(r => {
         const rt = r.rates || {}; const t = r.totals || {};
         const th = rateThreshold(rt.ltir||0, 'ltir');
+        const incTotal = (t.lta||0)+(t.medicalTreatment||0)+(t.firstAid||0)+(t.fatality||0)+(t.hip||0);
         return `<tr>
           <td><strong>${r.region||'—'}</strong></td>
           <td><span class="rate-chip" style="color:${th.hex};background:${th.hex}22;">${fmt(rt.ltir||0)}</span></td>
           <td>${fmt(rt.trir||0)}</td>
           <td>${fmt(rt.severityRate||0)}</td>
           <td>${(t.manhours||0).toLocaleString()}</td>
-          <td>${t.lta||0} / ${t.medicalTreatment||0} / ${t.firstAid||0} / ${t.fatality||0} / ${t.hip||0}</td>
+          <td>${incTotal}</td>
           <td>${t.nearMiss||0}</td>
         </tr>`;
       }).join('');
   }
 
-  // Recent incidents feed
   let allIncidents = [];
   regions.forEach(r => (r.recentIncidents||[]).forEach(inc => allIncidents.push(Object.assign({ region: r.region }, inc))));
   allIncidents.sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
-  allIncidents = allIncidents.slice(0, 15);
+  allIncidents = allIncidents.slice(0, 20);
 
   const incWrap = document.getElementById('incidents-list');
   if (!allIncidents.length) {
@@ -496,10 +552,9 @@ function render() {
           <span class="cls ${clsKey==='LTA'?'cls-LTA':clsKey.toLowerCase().includes('fatal')?'cls-Fatality':'cls-default'}">${inc.classification||'Incident'}</span>
           <span class="meta">${inc.date||''} · ${inc.region||''}</span>
         </div>
-        <div class="meta" style="margin-top:6px;">${inc.project||''}${inc.location?(' · '+inc.location):''}${inc.status?(' · Status: '+inc.status):''}</div>
+        <div class="meta" style="margin-top:3px;">${inc.project||''}${inc.location?(' · '+inc.location):''}${inc.status?(' · '+inc.status):''}</div>
         ${inc.injuredPersonName ? `<div class="desc"><span class="person">${inc.injuredPersonName}</span>${inc.natureOfInjury?(' — '+inc.natureOfInjury):''}</div>` : ''}
         ${inc.natureOfIncident ? `<div class="desc">${inc.natureOfIncident}</div>` : ''}
-        ${inc.detailsFacts ? `<div class="desc" style="color:var(--ink-faint);">${inc.detailsFacts}</div>` : ''}
       </div>`;
     }).join('');
   }
@@ -519,16 +574,16 @@ function renderMonthlyChart(m) {
     data: {
       labels: MONTH_LABELS,
       datasets: [
-        { label: 'Minor (FA/MedTx)', data: minor, backgroundColor: '#2dd4ee', borderRadius: 4, maxBarThickness: 22 },
-        { label: 'Serious (LTA/Fatal/HIP)', data: serious, backgroundColor: '#f2545b', borderRadius: 4, maxBarThickness: 22 }
+        { label: 'Minor (FA/MedTx)', data: minor, backgroundColor: '#12dab0', borderRadius: 3, maxBarThickness: 16 },
+        { label: 'Serious (LTA/Fatal/HIP)', data: serious, backgroundColor: '#f2545b', borderRadius: 3, maxBarThickness: 16 }
       ]
     },
     options: {
-      responsive: true,
-      plugins: { legend: { position: 'top', labels: { color: '#8792ac', boxWidth: 10, font: { size: 11 } } } },
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { color: '#93b0ac', boxWidth: 8, font: { size: 9 }, padding: 6 } } },
       scales: {
-        x: { stacked: true, grid: { display: false }, ticks: { color: '#8792ac', font: { size: 11 } } },
-        y: { stacked: true, beginAtZero: true, grid: { color: '#1a2038' }, ticks: { color: '#8792ac', font: { size: 11 }, precision: 0 } }
+        x: { stacked: true, grid: { display: false }, ticks: { color: '#93b0ac', font: { size: 9 } } },
+        y: { stacked: true, beginAtZero: true, grid: { color: '#203537' }, ticks: { color: '#93b0ac', font: { size: 9 }, precision: 0 } }
       }
     }
   });
@@ -543,14 +598,13 @@ function renderRegionChart(regions) {
   if (regionChart) regionChart.destroy();
   regionChart = new Chart(ctx, {
     type: 'bar',
-    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderRadius: 4, maxBarThickness: 20 }] },
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderRadius: 3, maxBarThickness: 14 }] },
     options: {
-      indexAxis: 'y',
-      responsive: true,
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { beginAtZero: true, grid: { color: '#1a2038' }, ticks: { color: '#8792ac', font: { size: 11 } } },
-        y: { grid: { display: false }, ticks: { color: '#8792ac', font: { size: 11 } } }
+        x: { beginAtZero: true, grid: { color: '#203537' }, ticks: { color: '#93b0ac', font: { size: 9 } } },
+        y: { grid: { display: false }, ticks: { color: '#93b0ac', font: { size: 9 } } }
       }
     }
   });
@@ -558,7 +612,7 @@ function renderRegionChart(regions) {
 
 function renderAlerts() {
   const wrap = document.getElementById('alerts-list');
-  const top = alertsData.slice(0, 8);
+  const top = alertsData.slice(0, 12);
   if (!top.length) {
     wrap.innerHTML = `<div class="empty">No safety alerts posted yet.</div>`;
     return;
@@ -568,7 +622,6 @@ function renderAlerts() {
       <div class="title">${a.title || 'Safety Alert'}</div>
       <div class="date">${a.dateIssued || ''}${a.region ? (' · '+a.region) : ''}</div>
       ${a.description ? `<div class="desc">${a.description}</div>` : ''}
-      ${a.imageUrl ? `<img src="${a.imageUrl}" alt="">` : ''}
     </div>
   `).join('');
 }
@@ -587,10 +640,16 @@ function updateLastUpdatedTxt() {
 }
 
 onAuthStateChanged(auth, user => {
-  if (user && sessionStorage.getItem('exec_unlocked') === '1' && document.getElementById('app').style.display !== 'block') {
-    document.getElementById('gate').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    startListeners();
+  const wasPending = document.documentElement.getAttribute('data-boot') === 'pending';
+  if (user && sessionStorage.getItem('exec_unlocked') === '1') {
+    if (document.getElementById('app').style.display !== 'flex') {
+      showApp();
+      startListeners();
+    }
+  } else if (wasPending) {
+    // Session flag said we were logged in, but Firebase disagrees (expired/cleared) —
+    // reveal the passcode gate instead of leaving the boot loader up.
+    showGate();
   }
 });
 </script>
