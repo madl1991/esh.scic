@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Executive Safety Summary — SCIC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root{
+    --bg-deep:   #090c14;
+    --bg-panel:  #121729;
+    --bg-panel2: #171d33;
+    --line:      #232a44;
+    --line-soft: #1a2038;
+    --ink:       #eef1f8;
+    --ink-dim:   #8792ac;
+    --ink-faint: #5c6684;
+    --cyan:      #2dd4ee;
+    --cyan-dim:  rgba(45,212,238,0.14);
+    --amber:     #f5a623;
+    --amber-dim: rgba(245,166,35,0.14);
+    --coral:     #f2545b;
+    --coral-dim: rgba(242,84,91,0.14);
+    --mint:      #35d0a0;
+    --mint-dim:  rgba(53,208,160,0.14);
+    --violet:    #8b8ffb;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Inter',system-ui,sans-serif;
+    background:var(--bg-deep); color:var(--ink);
+    min-height:100vh;
+  }
+  .num{font-family:'Space Grotesk',sans-serif;}
+
+  /* ── PASSCODE GATE ────────────────────────────────────────── */
+  #gate{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 30% 20%, #0f1830 0%, #06070d 70%); z-index:999; padding:20px;
+  }
+  .gate-card{
+    background:var(--bg-panel); border:1px solid var(--line); border-radius:18px; padding:40px 34px;
+    width:100%; max-width:380px; box-shadow:0 30px 80px rgba(0,0,0,0.55); text-align:center;
+  }
+  .gate-card .icon-ring{
+    width:56px; height:56px; margin:0 auto 16px; border-radius:50%; background:var(--cyan-dim);
+    display:flex; align-items:center; justify-content:center; border:1px solid rgba(45,212,238,0.35);
+  }
+  .gate-card .icon-ring i{color:var(--cyan); font-size:1.4rem;}
+  .gate-card h1{font-family:'Space Grotesk',sans-serif; font-size:1.2rem; margin:6px 0 4px; letter-spacing:0.2px;}
+  .gate-card p{font-size:0.82rem; color:var(--ink-dim); margin:0 0 22px; line-height:1.5;}
+  .gate-card input{
+    width:100%; padding:14px; font-size:1.15rem; letter-spacing:4px; text-align:center; font-family:'Space Grotesk',sans-serif;
+    background:var(--bg-deep); color:var(--ink); border:1.5px solid var(--line); border-radius:10px; margin-bottom:14px; outline:none;
+  }
+  .gate-card input:focus{border-color:var(--cyan);}
+  .gate-card button{
+    width:100%; padding:13px; font-size:0.92rem; font-weight:700; color:#06131a;
+    background:var(--cyan); border:none; border-radius:10px; cursor:pointer; letter-spacing:0.2px;
+  }
+  .gate-card button:disabled{opacity:0.55; cursor:default;}
+  #gate-error{color:var(--coral); font-size:0.78rem; margin-top:12px; min-height:16px; font-weight:600;}
+  .gate-footer{margin-top:20px; font-size:0.66rem; color:var(--ink-faint);}
+
+  /* ── MAIN PAGE ────────────────────────────────────────────── */
+  #app{display:none; max-width:1280px; margin:0 auto; padding:0 0 60px;}
+  header.top{
+    padding:26px 28px 20px; display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:14px;
+    border-bottom:1px solid var(--line-soft);
+  }
+  header.top .brand{display:flex; align-items:center; gap:14px;}
+  header.top .icon-badge{
+    width:44px; height:44px; border-radius:12px; background:var(--cyan-dim); border:1px solid rgba(45,212,238,0.3);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  header.top .icon-badge i{color:var(--cyan); font-size:1.2rem;}
+  header.top h1{font-family:'Space Grotesk',sans-serif; font-size:1.3rem; margin:0; font-weight:700; letter-spacing:0.2px;}
+  header.top .sub{font-size:0.76rem; color:var(--ink-dim); margin-top:3px;}
+  .live-pill{
+    display:flex; align-items:center; gap:8px; background:var(--bg-panel); border:1px solid var(--line);
+    border-radius:20px; padding:7px 14px; font-size:0.72rem; font-weight:600; color:var(--ink-dim);
+  }
+  .live-dot{width:7px; height:7px; border-radius:50%; background:var(--mint); box-shadow:0 0 8px var(--mint); animation:pulse 1.8s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:0.25;}}
+
+  section{padding:20px 28px;}
+  .section-title{
+    font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px;
+    color:var(--ink-faint); margin:0 0 12px; display:flex; align-items:center; gap:8px;
+  }
+  .section-title i{font-size:0.68rem;}
+
+  /* Bento grid */
+  .bento-row{display:grid; gap:14px;}
+  .row-hero{grid-template-columns:1.1fr 1fr 1fr 1fr;}
+  .row-charts{grid-template-columns:1.5fr 1fr;}
+  .row-stats{grid-template-columns:repeat(3,1fr);}
+  .row-split{grid-template-columns:1.15fr 0.85fr;}
+  @media(max-width:960px){
+    .row-hero{grid-template-columns:1fr 1fr;}
+    .row-charts, .row-split{grid-template-columns:1fr;}
+    .row-stats{grid-template-columns:1fr 1fr;}
+  }
+  @media(max-width:560px){ .row-hero, .row-stats{grid-template-columns:1fr;} }
+
+  .panel{
+    background:var(--bg-panel); border:1px solid var(--line); border-radius:16px; padding:20px;
+    position:relative; overflow:hidden;
+  }
+  .panel.glow-mint::before{
+    content:''; position:absolute; top:-40%; right:-30%; width:160px; height:160px; border-radius:50%;
+    filter:blur(50px); opacity:0.5; pointer-events:none; background:var(--mint);
+  }
+
+  /* Hero counter */
+  .hero-counter{display:flex; flex-direction:column; justify-content:center; min-height:150px;}
+  .hero-counter .n{font-family:'Space Grotesk',sans-serif; font-size:3.6rem; font-weight:700; line-height:0.95;}
+  .hero-counter .lbl{font-size:0.78rem; color:var(--ink-dim); margin-top:8px; font-weight:600; line-height:1.4;}
+  .hero-counter .badge{
+    display:inline-block; margin-top:12px; font-size:0.66rem; font-weight:700; padding:4px 10px; border-radius:20px;
+    width:fit-content;
+  }
+
+  .kpi-tile{display:flex; flex-direction:column; justify-content:center; min-height:150px;}
+  .kpi-tile .n{font-family:'Space Grotesk',sans-serif; font-size:2.4rem; font-weight:700; line-height:1;}
+  .kpi-tile .lbl{font-size:0.72rem; color:var(--ink-dim); font-weight:700; margin-top:8px; text-transform:uppercase; letter-spacing:0.4px;}
+  .kpi-tile .sub{font-size:0.68rem; color:var(--ink-faint); margin-top:4px;}
+  .c-mint{color:var(--mint);} .c-amber{color:var(--amber);} .c-coral{color:var(--coral);} .c-cyan{color:var(--cyan);}
+
+  .stat-row-tile{display:flex; align-items:center; gap:14px;}
+  .stat-row-tile .ring-wrap{position:relative; width:56px; height:56px; flex-shrink:0;}
+  .stat-row-tile .ring-wrap svg{transform:rotate(-90deg);}
+  .stat-row-tile .ring-wrap .center{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.62rem; font-weight:700;}
+  .stat-row-tile .n{font-family:'Space Grotesk',sans-serif; font-size:1.6rem; font-weight:700;}
+  .stat-row-tile .lbl{font-size:0.7rem; color:var(--ink-dim); font-weight:600;}
+  .stat-row-tile .sub{font-size:0.64rem; color:var(--ink-faint); margin-top:2px;}
+
+  canvas{max-width:100%;}
+
+  table.region-tbl{width:100%; border-collapse:collapse; font-size:0.78rem;}
+  table.region-tbl th{
+    text-align:left; padding:10px 12px; font-size:0.64rem; text-transform:uppercase;
+    color:var(--ink-faint); font-weight:700; letter-spacing:0.4px; border-bottom:1px solid var(--line);
+  }
+  table.region-tbl td{padding:11px 12px; border-bottom:1px solid var(--line-soft); color:var(--ink);}
+  table.region-tbl tr:last-child td{border-bottom:none;}
+  .rate-chip{padding:3px 9px; border-radius:8px; font-weight:700; font-size:0.74rem; font-family:'Space Grotesk',sans-serif;}
+
+  .incident-item, .alert-item{padding:14px 18px; border-bottom:1px solid var(--line-soft);}
+  .incident-item:last-child, .alert-item:last-child{border-bottom:none;}
+  .incident-item .top-row{display:flex; justify-content:space-between; gap:10px; align-items:baseline; flex-wrap:wrap;}
+  .incident-item .cls{font-weight:700; font-size:0.68rem; padding:3px 10px; border-radius:8px; letter-spacing:0.2px;}
+  .cls-LTA{background:var(--coral-dim); color:#ff8b90;}
+  .cls-Fatality{background:var(--coral); color:#fff;}
+  .cls-default{background:var(--cyan-dim); color:var(--cyan);}
+  .incident-item .meta{font-size:0.68rem; color:var(--ink-faint); margin-top:4px;}
+  .incident-item .desc{font-size:0.76rem; margin-top:7px; line-height:1.55; color:#c3c9dc;}
+  .incident-item .person{font-weight:700; color:var(--ink);}
+
+  .alert-item img{width:100%; border-radius:10px; margin-top:9px; max-height:160px; object-fit:cover;}
+  .alert-item .title{font-weight:700; font-size:0.84rem; font-family:'Space Grotesk',sans-serif;}
+  .alert-item .date{font-size:0.66rem; color:var(--ink-faint); margin-top:3px;}
+  .alert-item .desc{font-size:0.76rem; margin-top:7px; line-height:1.55; color:#c3c9dc;}
+
+  .empty{padding:30px; text-align:center; color:var(--ink-faint); font-size:0.8rem;}
+  footer{text-align:center; padding:26px; font-size:0.68rem; color:var(--ink-faint); border-top:1px solid var(--line-soft); margin-top:10px;}
+  footer strong{color:var(--ink-dim);}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate-card">
+    <div class="icon-ring"><i class="fa-solid fa-shield-halved"></i></div>
+    <h1>Executive Safety Summary</h1>
+    <p>Sta. Clara International Corporation<br>Enter access code to continue</p>
+    <input id="passcode-input" type="password" inputmode="numeric" maxlength="12" placeholder="••••" autocomplete="off">
+    <button id="gate-btn" onclick="attemptUnlock()">View Summary</button>
+    <div id="gate-error"></div>
+    <div class="gate-footer">Read-only live view · Powered by ESH Compliance Dashboard</div>
+  </div>
+</div>
+
+<div id="app">
+  <header class="top">
+    <div class="brand">
+      <div class="icon-badge"><i class="fa-solid fa-shield-halved"></i></div>
+      <div>
+        <h1>Executive Safety Summary</h1>
+        <div class="sub">Sta. Clara International Corporation · Company-wide ESH Performance</div>
+      </div>
+    </div>
+    <div class="live-pill"><span class="live-dot"></span><span id="last-updated-txt">Live · syncing…</span></div>
+  </header>
+
+  <section>
+    <div class="bento-row row-hero">
+      <div class="panel glow-mint hero-counter" id="hero-days-tile">
+        <div class="n num c-mint" id="hero-days-val">—</div>
+        <div class="lbl">Days Since Last Recordable Incident</div>
+        <div class="badge" id="hero-days-badge"></div>
+      </div>
+      <div class="panel kpi-tile" id="kpi-ltir"></div>
+      <div class="panel kpi-tile" id="kpi-trir"></div>
+      <div class="panel kpi-tile" id="kpi-sevr"></div>
+    </div>
+  </section>
+
+  <section style="padding-top:0;">
+    <div class="bento-row row-charts">
+      <div class="panel">
+        <div class="section-title"><i class="fa-solid fa-chart-column"></i>Incidents by Month — Company-wide</div>
+        <canvas id="chart-monthly" height="200"></canvas>
+      </div>
+      <div class="panel">
+        <div class="section-title"><i class="fa-solid fa-chart-simple"></i>LTIR by Region</div>
+        <canvas id="chart-region" height="200"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0;">
+    <div class="bento-row row-stats">
+      <div class="panel stat-row-tile">
+        <div class="ring-wrap"><svg viewBox="0 0 56 56" width="56" height="56">
+          <circle cx="28" cy="28" r="24" fill="none" stroke="#232a44" stroke-width="6"/>
+          <circle id="ring-mh" cx="28" cy="28" r="24" fill="none" stroke="var(--cyan)" stroke-width="6" stroke-dasharray="150.8" stroke-dashoffset="0" stroke-linecap="round"/>
+        </svg><div class="center"><i class="fa-solid fa-business-time" style="color:var(--cyan);"></i></div></div>
+        <div><div class="n" id="stat-manhours">0</div><div class="lbl">Total Manhours (YTD)</div><div class="sub" id="stat-projects">0 active projects</div></div>
+      </div>
+      <div class="panel stat-row-tile">
+        <div class="ring-wrap"><svg viewBox="0 0 56 56" width="56" height="56">
+          <circle cx="28" cy="28" r="24" fill="none" stroke="#232a44" stroke-width="6"/>
+          <circle id="ring-inc" cx="28" cy="28" r="24" fill="none" stroke="var(--amber)" stroke-width="6" stroke-dasharray="150.8" stroke-dashoffset="0" stroke-linecap="round"/>
+        </svg><div class="center"><i class="fa-solid fa-triangle-exclamation" style="color:var(--amber);"></i></div></div>
+        <div><div class="n" id="stat-incidents">0</div><div class="lbl">Total Incidents (YTD)</div><div class="sub" id="stat-incidents-break">—</div></div>
+      </div>
+      <div class="panel stat-row-tile">
+        <div class="ring-wrap"><svg viewBox="0 0 56 56" width="56" height="56">
+          <circle cx="28" cy="28" r="24" fill="none" stroke="#232a44" stroke-width="6"/>
+          <circle id="ring-nm" cx="28" cy="28" r="24" fill="none" stroke="var(--mint)" stroke-width="6" stroke-dasharray="150.8" stroke-dashoffset="0" stroke-linecap="round"/>
+        </svg><div class="center"><i class="fa-solid fa-eye" style="color:var(--mint);"></i></div></div>
+        <div><div class="n" id="stat-nearmiss">0</div><div class="lbl">Near-Miss Reports (YTD)</div><div class="sub">Company-wide, all regions</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0;">
+    <div class="section-title"><i class="fa-solid fa-map-location-dot"></i>Regional Breakdown</div>
+    <div class="panel" style="padding:0;">
+      <table class="region-tbl" id="region-table">
+        <thead><tr><th>Region</th><th>LTIR</th><th>TRIR</th><th>Sev. Rate</th><th>Manhours</th><th>LTA / Med / FA / Fat / HIP</th><th>Near-Miss</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section style="padding-top:0;">
+    <div class="bento-row row-split">
+      <div>
+        <div class="section-title"><i class="fa-solid fa-notes-medical"></i>Recent Incidents / Accidents</div>
+        <div class="panel" style="padding:0;" id="incidents-list"><div class="empty">Loading…</div></div>
+      </div>
+      <div>
+        <div class="section-title"><i class="fa-solid fa-bullhorn"></i>Safety Alerts &amp; Awards Feed</div>
+        <div class="panel" style="padding:0;" id="alerts-list"><div class="empty">Loading…</div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Auto-generated live from <strong>ESH Compliance Dashboard</strong> · Sta. Clara International Corporation<br>
+    Read-only executive view. For full case details, coordinate with the ESH Department.
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInAnonymously, signOut, onAuthStateChanged, setPersistence, browserSessionPersistence }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBdqVEm3PWPuFTVbrxaP4JAZNXl2bmNUg4",
+  authDomain: "esh-dashboard.firebaseapp.com",
+  databaseURL: "https://esh-dashboard-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "esh-dashboard",
+  storageBucket: "esh-dashboard.firebasestorage.app",
+  messagingSenderId: "121684914529",
+  appId: "1:121684914529:web:d5292a3c30f1bba2959520",
+  measurementId: "G-TXYB9T0T3W"
+};
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+const SAFETY_ADMIN_UID = 'fUnXsvKnRYMpuySRbeVYJk7TO452';
+const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+let regionsData = {};
+let alertsData  = [];
+let listenersStarted = false;
+let monthlyChart = null, regionChart = null;
+
+try { await setPersistence(auth, browserSessionPersistence); } catch(e) { console.warn(e); }
+
+window.attemptUnlock = async function() {
+  const input = document.getElementById('passcode-input');
+  const btn   = document.getElementById('gate-btn');
+  const err   = document.getElementById('gate-error');
+  const code  = (input.value || '').trim();
+  err.textContent = '';
+  if (!code) { err.textContent = 'Please enter the access code.'; return; }
+
+  btn.disabled = true; btn.textContent = 'Checking…';
+  try {
+    await signInAnonymously(auth);
+    const cfgSnap = await getDoc(doc(db, 'app_config', 'exec_access'));
+    const validCode = cfgSnap.exists() ? String(cfgSnap.data().passcode || '') : null;
+
+    if (!validCode) {
+      err.textContent = 'Access is not configured yet. Contact ESH Department.';
+      await signOut(auth);
+    } else if (code !== validCode) {
+      err.textContent = 'Incorrect access code.';
+      input.value = '';
+      await signOut(auth);
+    } else {
+      sessionStorage.setItem('exec_unlocked', '1');
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      startListeners();
+    }
+  } catch (e) {
+    console.error(e);
+    err.textContent = 'Connection error. Please try again.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'View Summary';
+  }
+};
+
+document.getElementById('passcode-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') window.attemptUnlock();
+});
+
+function startListeners() {
+  if (listenersStarted) return;
+  listenersStarted = true;
+
+  onSnapshot(collection(db, 'exec_summary'), snap => {
+    regionsData = {};
+    snap.forEach(d => { regionsData[d.id] = d.data(); });
+    render();
+  }, e => console.warn('exec_summary listener error:', e.message));
+
+  onSnapshot(collection(db, 'users', SAFETY_ADMIN_UID, 'safety_alerts'), snap => {
+    const arr = [];
+    snap.forEach(d => arr.push(Object.assign({ id: d.id }, d.data())));
+    arr.sort((a,b) => String(b.dateIssued||'').localeCompare(String(a.dateIssued||'')));
+    alertsData = arr;
+    renderAlerts();
+  }, e => console.warn('safety_alerts listener error:', e.message));
+
+  setInterval(updateLastUpdatedTxt, 30000);
+}
+
+function fmt(n, d=3) { return (isFinite(n) ? n : 0).toFixed(d); }
+function setRing(el, pct) {
+  const c = 2 * Math.PI * 24;
+  el.setAttribute('stroke-dasharray', c.toFixed(1));
+  el.setAttribute('stroke-dashoffset', (c * (1 - Math.min(1, Math.max(0, pct)))).toFixed(1));
+}
+
+function rateThreshold(val, kind) {
+  if (val === 0) return { cls: 'c-mint', hex: '#35d0a0' };
+  if (kind === 'ltir') return val <= 1.0 ? { cls: 'c-cyan', hex: '#2dd4ee' } : { cls: 'c-coral', hex: '#f2545b' };
+  if (kind === 'trir') return val <= 2.0 ? { cls: 'c-cyan', hex: '#2dd4ee' } : { cls: 'c-coral', hex: '#f2545b' };
+  return val > 0 ? { cls: 'c-amber', hex: '#f5a623' } : { cls: 'c-mint', hex: '#35d0a0' };
+}
+
+function kpiTileHTML(val, label, sub, kind) {
+  const t = rateThreshold(val, kind);
+  return `<div class="n num ${t.cls}">${fmt(val)}</div><div class="lbl">${label}</div><div class="sub">${sub}</div>`;
+}
+
+function render() {
+  const regions = Object.values(regionsData);
+  let lta=0, med=0, fa=0, fat=0, hip=0, dl=0, mh=0, nearMiss=0, projectCount=0;
+  const monthlyAgg = { lta:Array(12).fill(0), med:Array(12).fill(0), fa:Array(12).fill(0), fat:Array(12).fill(0), hip:Array(12).fill(0), nearMiss:Array(12).fill(0) };
+  let mostRecentDate = null;
+
+  regions.forEach(r => {
+    const t = r.totals || {};
+    lta += t.lta||0; med += t.medicalTreatment||0; fa += t.firstAid||0; fat += t.fatality||0;
+    hip += t.hip||0; dl += t.daysLost||0; mh += t.manhours||0; nearMiss += t.nearMiss||0;
+    projectCount += r.projectCount||0;
+
+    const m = r.monthly || {};
+    for (let i = 0; i < 12; i++) {
+      monthlyAgg.lta[i] += (m.lta||[])[i] || 0;
+      monthlyAgg.med[i] += (m.med||[])[i] || 0;
+      monthlyAgg.fa[i]  += (m.fa||[])[i]  || 0;
+      monthlyAgg.fat[i] += (m.fat||[])[i] || 0;
+      monthlyAgg.hip[i] += (m.hip||[])[i] || 0;
+      monthlyAgg.nearMiss[i] += (m.nearMiss||[])[i] || 0;
+    }
+
+    (r.recentIncidents||[]).forEach(inc => {
+      const d = inc.date ? new Date(inc.date) : null;
+      if (d && !isNaN(d) && (!mostRecentDate || d > mostRecentDate)) mostRecentDate = d;
+    });
+  });
+
+  const rateBase  = regions[0]?.rates?.base || 1000000;
+  const rateLabel = regions[0]?.rates?.standard || 'OSHS (1M hrs)';
+  const ltir = mh > 0 ? (lta * rateBase / mh) : 0;
+  const trir = mh > 0 ? ((lta+med+fat) * rateBase / mh) : 0;
+  const sevR = mh > 0 ? (dl * rateBase / mh) : 0;
+
+  // Hero: days since last recordable incident
+  const heroVal = document.getElementById('hero-days-val');
+  const heroBadge = document.getElementById('hero-days-badge');
+  if (mostRecentDate) {
+    const days = Math.max(0, Math.round((Date.now() - mostRecentDate.getTime()) / 86400000));
+    heroVal.textContent = days;
+    let badgeColor, badgeText, valColor;
+    if (days >= 30) { badgeColor = 'var(--mint-dim)'; valColor = 'var(--mint)'; badgeText = '● On track'; }
+    else if (days >= 7) { badgeColor = 'var(--amber-dim)'; valColor = 'var(--amber)'; badgeText = '● Monitor'; }
+    else { badgeColor = 'var(--coral-dim)'; valColor = 'var(--coral)'; badgeText = '● Recent activity'; }
+    heroVal.style.color = valColor;
+    heroBadge.style.background = badgeColor;
+    heroBadge.style.color = valColor;
+    heroBadge.textContent = badgeText;
+  } else {
+    heroVal.textContent = '—';
+    heroVal.style.color = 'var(--mint)';
+    heroBadge.style.background = 'var(--mint-dim)'; heroBadge.style.color = 'var(--mint)';
+    heroBadge.textContent = '● No incidents on record';
+  }
+
+  document.getElementById('kpi-ltir').innerHTML = kpiTileHTML(ltir, 'LTIR', `Lost Time Incident Rate · ${rateLabel}`, 'ltir');
+  document.getElementById('kpi-trir').innerHTML = kpiTileHTML(trir, 'TRIR', 'Total Recordable Incident Rate', 'trir');
+  document.getElementById('kpi-sevr').innerHTML = kpiTileHTML(sevR, 'Severity Rate', `Days lost per ${rateBase.toLocaleString()} hrs`, 'sev');
+
+  document.getElementById('stat-manhours').textContent = mh.toLocaleString();
+  document.getElementById('stat-projects').textContent = `${projectCount} active projects`;
+  document.getElementById('stat-incidents').textContent = (lta+med+fa+fat+hip);
+  document.getElementById('stat-incidents-break').textContent = `LTA ${lta} · MedTx ${med} · FA ${fa} · Fatal ${fat} · HIP ${hip}`;
+  document.getElementById('stat-nearmiss').textContent = nearMiss;
+  setRing(document.getElementById('ring-mh'), mh > 0 ? 1 : 0);
+  setRing(document.getElementById('ring-inc'), Math.min(1, (lta+med+fa+fat+hip) / 20));
+  setRing(document.getElementById('ring-nm'), Math.min(1, nearMiss / 20));
+
+  // Regional table
+  const tbody = document.querySelector('#region-table tbody');
+  if (!regions.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">No regional data synced yet.</td></tr>`;
+  } else {
+    tbody.innerHTML = regions
+      .sort((a,b) => String(a.region||'').localeCompare(String(b.region||'')))
+      .map(r => {
+        const rt = r.rates || {}; const t = r.totals || {};
+        const th = rateThreshold(rt.ltir||0, 'ltir');
+        return `<tr>
+          <td><strong>${r.region||'—'}</strong></td>
+          <td><span class="rate-chip" style="color:${th.hex};background:${th.hex}22;">${fmt(rt.ltir||0)}</span></td>
+          <td>${fmt(rt.trir||0)}</td>
+          <td>${fmt(rt.severityRate||0)}</td>
+          <td>${(t.manhours||0).toLocaleString()}</td>
+          <td>${t.lta||0} / ${t.medicalTreatment||0} / ${t.firstAid||0} / ${t.fatality||0} / ${t.hip||0}</td>
+          <td>${t.nearMiss||0}</td>
+        </tr>`;
+      }).join('');
+  }
+
+  // Recent incidents feed
+  let allIncidents = [];
+  regions.forEach(r => (r.recentIncidents||[]).forEach(inc => allIncidents.push(Object.assign({ region: r.region }, inc))));
+  allIncidents.sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
+  allIncidents = allIncidents.slice(0, 15);
+
+  const incWrap = document.getElementById('incidents-list');
+  if (!allIncidents.length) {
+    incWrap.innerHTML = `<div class="empty">No incidents recorded YTD. 🎉</div>`;
+  } else {
+    incWrap.innerHTML = allIncidents.map(inc => {
+      const clsKey = (inc.classification||'').replace(/[^A-Za-z]/g,'') || 'default';
+      return `<div class="incident-item">
+        <div class="top-row">
+          <span class="cls ${clsKey==='LTA'?'cls-LTA':clsKey.toLowerCase().includes('fatal')?'cls-Fatality':'cls-default'}">${inc.classification||'Incident'}</span>
+          <span class="meta">${inc.date||''} · ${inc.region||''}</span>
+        </div>
+        <div class="meta" style="margin-top:6px;">${inc.project||''}${inc.location?(' · '+inc.location):''}${inc.status?(' · Status: '+inc.status):''}</div>
+        ${inc.injuredPersonName ? `<div class="desc"><span class="person">${inc.injuredPersonName}</span>${inc.natureOfInjury?(' — '+inc.natureOfInjury):''}</div>` : ''}
+        ${inc.natureOfIncident ? `<div class="desc">${inc.natureOfIncident}</div>` : ''}
+        ${inc.detailsFacts ? `<div class="desc" style="color:var(--ink-faint);">${inc.detailsFacts}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  renderMonthlyChart(monthlyAgg);
+  renderRegionChart(regions);
+  updateLastUpdatedTxt();
+}
+
+function renderMonthlyChart(m) {
+  const ctx = document.getElementById('chart-monthly');
+  const minor = MONTH_LABELS.map((_,i) => m.fa[i] + m.med[i]);
+  const serious = MONTH_LABELS.map((_,i) => m.lta[i] + m.fat[i] + m.hip[i]);
+  if (monthlyChart) monthlyChart.destroy();
+  monthlyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: MONTH_LABELS,
+      datasets: [
+        { label: 'Minor (FA/MedTx)', data: minor, backgroundColor: '#2dd4ee', borderRadius: 4, maxBarThickness: 22 },
+        { label: 'Serious (LTA/Fatal/HIP)', data: serious, backgroundColor: '#f2545b', borderRadius: 4, maxBarThickness: 22 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'top', labels: { color: '#8792ac', boxWidth: 10, font: { size: 11 } } } },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { color: '#8792ac', font: { size: 11 } } },
+        y: { stacked: true, beginAtZero: true, grid: { color: '#1a2038' }, ticks: { color: '#8792ac', font: { size: 11 }, precision: 0 } }
+      }
+    }
+  });
+}
+
+function renderRegionChart(regions) {
+  const ctx = document.getElementById('chart-region');
+  const sorted = [...regions].sort((a,b) => (b.rates?.ltir||0) - (a.rates?.ltir||0));
+  const labels = sorted.map(r => r.region);
+  const vals = sorted.map(r => r.rates?.ltir || 0);
+  const colors = vals.map(v => rateThreshold(v, 'ltir').hex);
+  if (regionChart) regionChart.destroy();
+  regionChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderRadius: 4, maxBarThickness: 20 }] },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: '#1a2038' }, ticks: { color: '#8792ac', font: { size: 11 } } },
+        y: { grid: { display: false }, ticks: { color: '#8792ac', font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function renderAlerts() {
+  const wrap = document.getElementById('alerts-list');
+  const top = alertsData.slice(0, 8);
+  if (!top.length) {
+    wrap.innerHTML = `<div class="empty">No safety alerts posted yet.</div>`;
+    return;
+  }
+  wrap.innerHTML = top.map(a => `
+    <div class="alert-item">
+      <div class="title">${a.title || 'Safety Alert'}</div>
+      <div class="date">${a.dateIssued || ''}${a.region ? (' · '+a.region) : ''}</div>
+      ${a.description ? `<div class="desc">${a.description}</div>` : ''}
+      ${a.imageUrl ? `<img src="${a.imageUrl}" alt="">` : ''}
+    </div>
+  `).join('');
+}
+
+function updateLastUpdatedTxt() {
+  const regions = Object.values(regionsData);
+  if (!regions.length) {
+    document.getElementById('last-updated-txt').textContent = 'Live · waiting for data';
+    return;
+  }
+  let latest = 0;
+  regions.forEach(r => { const t = new Date(r.updatedAt||0).getTime(); if (t > latest) latest = t; });
+  const mins = Math.max(0, Math.round((Date.now() - latest) / 60000));
+  const txt = mins < 1 ? 'Live · updated just now' : mins === 1 ? 'Live · updated 1 min ago' : `Live · updated ${mins} min ago`;
+  document.getElementById('last-updated-txt').textContent = txt;
+}
+
+onAuthStateChanged(auth, user => {
+  if (user && sessionStorage.getItem('exec_unlocked') === '1' && document.getElementById('app').style.display !== 'block') {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    startListeners();
+  }
+});
+</script>
+</body>
+</html>
