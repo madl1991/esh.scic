@@ -1704,6 +1704,28 @@
           </div>
         </div>
 
+        <!-- EXECUTIVE DASHBOARD SYNC (esh@scic.com.ph / esh@wda.com.ph only) -->
+        <div class="settings-card" id="exec-resync-card" style="display:none;">
+          <div class="settings-card-header" onclick="settingsToggle(this)">
+            <div class="settings-card-header-icon"><i class="fas fa-rotate"></i></div>
+            <div class="settings-card-header-text">
+              <span class="settings-card-title">Executive Dashboard Sync</span>
+              <span class="settings-card-subtitle">Push latest ESH numbers to the Executive Dashboard</span>
+            </div>
+            <i class="fas fa-chevron-right settings-card-chevron"></i>
+          </div>
+          <div class="settings-card-body">
+            <div class="settings-card-body-inner">
+              <div style="background:#e8f5e9;border-left:3px solid #2e7d32;padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:0.75rem;color:#1b5e20;line-height:1.6;">
+                Pushes the latest ESH numbers to the Executive Dashboard (executive-summary.html) right away, instead of waiting for the next auto-save.
+              </div>
+              <button class="settings-btn settings-btn-primary" id="exec-resync-btn" onclick="forceResyncExecutiveSummary(document.getElementById('exec-resync-btn'))">
+                <i class="fas fa-rotate"></i> RESYNC NOW
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div><!-- /.settings-accordion -->
 
       <div style="text-align:center;padding:28px 20px 10px;">
