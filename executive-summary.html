@@ -288,6 +288,100 @@
   .nov-tiles .nt-lbl{font-size:0.62rem; font-weight:700; letter-spacing:0.3px; text-transform:uppercase; color:var(--ink-dim);}
   .nov-tiles .nt-val{font-family:'Space Grotesk',sans-serif; font-size:clamp(1.15rem,2.6vh,1.6rem); font-weight:800; line-height:1; color:var(--navy);}
   .nov-tiles .nt-sub{font-size:0.56rem; color:var(--ink-faint); margin-top:2px;}
+
+  /* ══════════════════════════════════════════════════════════════
+     RESPONSIVE: TABLET — keep the full no-scroll layout, just
+     tighten horizontal spacing/type so nothing wraps and grows tall.
+     ══════════════════════════════════════════════════════════════ */
+  @media (max-width:1024px){
+    header.top{padding:clamp(6px,1.2vh,12px) 14px;}
+    header.top .sub{display:none;}
+    .live-pill span:not(.live-dot){display:none;}
+    .live-pill{padding:6px 9px;}
+    #logout-btn span{display:none;}
+    .board{padding:clamp(5px,0.9vh,8px) 10px clamp(5px,0.9vh,10px);}
+    .tab-metrics-row .tm-sub{display:none;}
+    .tab-metrics-row .tm-tile{padding:clamp(4px,0.9vh,8px) 6px;}
+    table.tab-table td.row-label .rl-sub{display:none;}
+    table.tab-table .th-sub{display:none;}
+    .esh-chip{display:none;}
+    .nov-hd .nov-sub{display:none;}
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     RESPONSIVE: PHONE — swap the detailed board for a compact,
+     key-numbers-only summary so everything still fits one screen
+     with no scrolling.
+     ══════════════════════════════════════════════════════════════ */
+  .mobile-board{display:none;}
+
+  @media (max-width:640px){
+    header.top .sub{display:none;}
+    header.top h1{font-size:clamp(0.82rem,3.6vw,0.98rem);}
+    header.top{padding:clamp(6px,1.4vh,10px) 12px; gap:8px;}
+    .live-pill span:not(.live-dot){display:none;}
+    .live-pill{padding:6px 8px;}
+    #logout-btn span{display:none;}
+    #logout-btn{padding:6px 9px;}
+
+    .board-esh{display:none !important;}
+    .mobile-board{
+      display:flex; flex-direction:column; gap:clamp(7px,1.6vh,12px);
+      flex:1 1 auto; min-height:0; padding:clamp(8px,1.8vh,14px) 14px;
+      overflow:hidden;
+    }
+
+    .mb-fatality{
+      flex:0 0 auto; display:flex; align-items:center; gap:10px;
+      background:var(--bg-panel); border:1px solid var(--line); border-radius:16px;
+      padding:clamp(9px,2vh,14px) 14px; box-shadow:var(--shadow);
+    }
+    .mb-fatality i{
+      font-size:1.05rem; color:var(--coral); width:clamp(32px,7vh,42px); height:clamp(32px,7vh,42px);
+      border-radius:50%; background:var(--coral-dim); display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    }
+    .mb-fatality-text{flex:1; min-width:0;}
+    .mb-fatality-lbl{font-size:0.62rem; font-weight:700; letter-spacing:0.3px; text-transform:uppercase; color:var(--ink-dim);}
+    .mb-fatality-val{font-family:'Space Grotesk',sans-serif; font-size:clamp(1.3rem,5.5vh,1.8rem); font-weight:800; color:var(--mint); line-height:1.05;}
+
+    .mb-badge{
+      display:inline-flex; align-items:center; gap:3px; padding:4px 10px; border-radius:20px;
+      font-size:0.6rem; font-weight:800; white-space:nowrap; flex-shrink:0;
+    }
+    .mb-badge.ok{background:var(--mint-dim); color:var(--mint);}
+    .mb-badge.bad{background:var(--coral-dim); color:var(--coral);}
+    .mb-badge.none{background:var(--line-soft); color:var(--ink-faint);}
+
+    .mb-kpi-row{flex:0 0 auto; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+    .mb-kpi{
+      background:var(--bg-panel); border:1px solid var(--line); border-radius:16px;
+      padding:clamp(8px,1.8vh,14px) 8px; text-align:center; box-shadow:var(--shadow);
+      display:flex; flex-direction:column; align-items:center; gap:5px;
+    }
+    .mb-kpi-lbl{font-size:0.62rem; font-weight:800; letter-spacing:0.4px; color:var(--ink-dim);}
+    .mb-kpi-val{font-family:'Space Grotesk',sans-serif; font-size:clamp(1.05rem,4.2vh,1.45rem); font-weight:800; color:var(--navy); line-height:1;}
+    .mb-kpi-note{flex:0 0 auto; text-align:center; font-size:0.58rem; color:var(--ink-faint); margin-top:-4px;}
+
+    .mb-nov-hd{
+      flex:0 0 auto; font-family:'Lora',Georgia,serif; font-weight:600; font-size:0.76rem;
+      color:var(--navy); display:flex; align-items:center; gap:7px; margin-top:2px;
+    }
+    .mb-nov-hd i{color:var(--mint);}
+    .mb-nov-row{flex:0 0 auto; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+    .mb-nov-tile{
+      background:var(--bg-panel); border:1px solid var(--line); border-radius:16px;
+      padding:clamp(8px,1.8vh,14px) 8px; text-align:center; box-shadow:var(--shadow);
+    }
+    .mb-nov-lbl{font-size:0.6rem; font-weight:800; letter-spacing:0.3px; text-transform:uppercase; margin-bottom:3px;}
+    .mb-nov-val{font-family:'Space Grotesk',sans-serif; font-size:clamp(1.05rem,4.2vh,1.4rem); font-weight:800; color:var(--navy); line-height:1;}
+
+    .mb-footer{
+      flex:1 1 auto; min-height:0; display:flex; flex-direction:column; justify-content:flex-end;
+      align-items:center; gap:2px; text-align:center;
+    }
+    .mb-footer span{font-size:0.58rem; color:var(--ink-faint);}
+    .mb-footer .mb-hint{font-size:0.54rem;}
+  }
 </style>
 </head>
 <body>
@@ -323,7 +417,7 @@
     </div>
     <div style="display:flex; align-items:center; gap:10px;">
       <div class="live-pill"><span class="live-dot"></span><span id="last-updated-txt">Live · syncing…</span></div>
-      <button id="logout-btn" onclick="doLogout()" title="Log out"><i class="fa-solid fa-arrow-right-from-bracket"></i>Log out</button>
+      <button id="logout-btn" onclick="doLogout()" title="Log out"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Log out</span></button>
     </div>
   </header>
 
@@ -376,6 +470,60 @@
       </div>
       <div class="panel nov-panel" id="nov-osh-panel"></div>
       <div class="panel nov-panel" id="nov-envi-panel"></div>
+    </div>
+
+  </div>
+
+  <!-- ── PHONE-ONLY COMPACT SUMMARY (key numbers, no scroll) ── -->
+  <div class="mobile-board" id="mobile-board">
+
+    <div class="mb-fatality" id="mb-fatality">
+      <i class="fa-solid fa-skull-crossbones"></i>
+      <div class="mb-fatality-text">
+        <div class="mb-fatality-lbl">Fatality — Zero Target</div>
+        <div class="mb-fatality-val" id="mb-fatality-val">0</div>
+      </div>
+      <span class="mb-badge ok" id="mb-fatality-badge">✅ ON TARGET</span>
+    </div>
+
+    <div class="mb-kpi-row">
+      <div class="mb-kpi">
+        <div class="mb-kpi-lbl">LTIR</div>
+        <div class="mb-kpi-val" id="mb-ltir-val">–</div>
+        <span class="mb-badge" id="mb-ltir-badge"></span>
+      </div>
+      <div class="mb-kpi">
+        <div class="mb-kpi-lbl">TRIR</div>
+        <div class="mb-kpi-val" id="mb-trir-val">–</div>
+        <span class="mb-badge" id="mb-trir-badge"></span>
+      </div>
+      <div class="mb-kpi">
+        <div class="mb-kpi-lbl">SR</div>
+        <div class="mb-kpi-val" id="mb-sr-val">–</div>
+        <span class="mb-badge none">No target</span>
+      </div>
+    </div>
+    <div class="mb-kpi-note">OSHA basis (200,000 hrs) · company-wide YTD</div>
+
+    <div class="mb-nov-hd"><i class="fa-solid fa-clipboard-list"></i> Regulatory NOV — OSH + ENVI</div>
+    <div class="mb-nov-row">
+      <div class="mb-nov-tile">
+        <div class="mb-nov-lbl" style="color:var(--amber);">Total NOV</div>
+        <div class="mb-nov-val" id="mb-nov-total">–</div>
+      </div>
+      <div class="mb-nov-tile">
+        <div class="mb-nov-lbl" style="color:var(--coral);">Open</div>
+        <div class="mb-nov-val" id="mb-nov-open">–</div>
+      </div>
+      <div class="mb-nov-tile">
+        <div class="mb-nov-lbl" style="color:var(--mint);">Closed</div>
+        <div class="mb-nov-val" id="mb-nov-closed">–</div>
+      </div>
+    </div>
+
+    <div class="mb-footer">
+      <span id="mb-last-updated">Live · syncing…</span>
+      <span class="mb-hint">Rotate or open on tablet/desktop for full details</span>
     </div>
 
   </div>
@@ -691,18 +839,68 @@ function render() {
     });
   }
 
+  // ── PHONE SUMMARY: Fatality / LTIR / TRIR / SR + combined NOV ───
+  const mbFatVal = document.getElementById('mb-fatality-val');
+  if (mbFatVal) {
+    if (!t) {
+      mbFatVal.textContent = '–';
+    } else {
+      const fatOk = (t.fatalCases || 0) === 0;
+      mbFatVal.textContent = '0';
+      mbFatVal.style.color = fatOk ? 'var(--mint)' : 'var(--coral)';
+      const badge = document.getElementById('mb-fatality-badge');
+      badge.className = 'mb-badge ' + (fatOk ? 'ok' : 'bad');
+      badge.textContent = fatOk ? '✅ ON TARGET' : `⚠ ACTUAL: ${t.fatalCases}`;
+    }
+  }
+  function fillMbKpi(valId, badgeId, val, kind) {
+    const valEl = document.getElementById(valId);
+    const badgeEl = document.getElementById(badgeId);
+    if (!valEl) return;
+    if (!t) { valEl.textContent = '–'; return; }
+    valEl.textContent = fmt(val);
+    if (badgeEl && kind) {
+      const state = tabRateColor(val, kind);
+      valEl.style.color = state === 'ok' ? 'var(--mint)' : 'var(--coral)';
+      badgeEl.className = 'mb-badge ' + state;
+      badgeEl.textContent = state === 'ok' ? '✅ Target' : '⚠ Exceeded';
+    } else {
+      valEl.style.color = 'var(--coral)';
+    }
+  }
+  if (t) {
+    fillMbKpi('mb-ltir-val', 'mb-ltir-badge', t.ltirOsha, 'ltir');
+    fillMbKpi('mb-trir-val', 'mb-trir-badge', t.trirOsha, 'trir');
+    fillMbKpi('mb-sr-val', null, t.srOsha, null);
+  }
+
+  const mbNovTotal = document.getElementById('mb-nov-total');
+  if (mbNovTotal) {
+    const osh = companyData?.oshNov || {};
+    const envi = companyData?.enviNov || {};
+    const total = (osh.total || 0) + (envi.total || 0);
+    const open = (osh.open || 0) + (envi.open || 0);
+    const closed = (osh.closed || 0) + (envi.closed || 0);
+    document.getElementById('mb-nov-total').textContent = companyData ? total : '–';
+    document.getElementById('mb-nov-open').textContent = companyData ? open : '–';
+    document.getElementById('mb-nov-closed').textContent = companyData ? closed : '–';
+  }
+
   updateLastUpdatedTxt();
 }
 
 function updateLastUpdatedTxt() {
+  let txt;
   if (!companyData || !companyData.updatedAt) {
-    document.getElementById('last-updated-txt').textContent = 'Live · waiting for data';
-    return;
+    txt = 'Live · waiting for data';
+  } else {
+    const t = new Date(companyData.updatedAt).getTime();
+    const mins = Math.max(0, Math.round((Date.now() - t) / 60000));
+    txt = mins < 1 ? 'Live · updated just now' : mins === 1 ? 'Live · updated 1 min ago' : `Live · updated ${mins} min ago`;
   }
-  const t = new Date(companyData.updatedAt).getTime();
-  const mins = Math.max(0, Math.round((Date.now() - t) / 60000));
-  const txt = mins < 1 ? 'Live · updated just now' : mins === 1 ? 'Live · updated 1 min ago' : `Live · updated ${mins} min ago`;
   document.getElementById('last-updated-txt').textContent = txt;
+  const mbEl = document.getElementById('mb-last-updated');
+  if (mbEl) mbEl.textContent = txt;
 }
 
 onAuthStateChanged(auth, user => {
