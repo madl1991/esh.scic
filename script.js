@@ -22397,14 +22397,6 @@ async function loadFromFirebase() {
         
         render();
         renderPTable();
-
-        // Self-healing background resync: the Executive Dashboard only gets
-        // fresh data via the fire-and-forget sync inside saveToFirebase(),
-        // so if a prior save's sync silently failed, this catches it up
-        // automatically whenever the dashboard is loaded — no user action needed.
-        if (typeof syncExecutiveSummary === 'function') {
-            syncExecutiveSummary().catch(e => console.warn('⚠️ Background execSummary resync failed:', e.message));
-        }
         
     } catch (error) {
         console.error('❌ Error loading from Firebase:', error);
