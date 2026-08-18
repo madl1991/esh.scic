@@ -21874,6 +21874,41 @@ function _execRegionSlug(region) {
     return String(region || 'unknown').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '');
 }
 
+// Aggregates Fatality / LTA / First Aid / Medical Treatment / High-Potential /
+// Dangerous Occurrences into Previous, Total (YTD), and Accumulated (Previous+Total)
+// for the Executive Summary "Incident / Accident Summary" panel. Mirrors the same
+// source fields as the main dashboard's Incident/Accident Tabulation (FM-ESH-01-42),
+// but intentionally omits the OSH/ENVI Regulatory Issued NOV rows and the monthly
+// breakdown, since NOV is already shown in its own panel on that page.
+function computeIncidentSummaryAggregate(projects) {
+    const cats = [
+        { field: 'medical_Fatality',                label: 'Fatality' },
+        { field: 'medical_LTA',                     label: 'LTA' },
+        { field: 'medical_First Aid',                label: 'First Aid' },
+        { field: 'medical_Medical Treatment',        label: 'Medical Treatment' },
+        { field: 'medical_High-Potential incident',  label: 'High-Potential Incident' },
+        { field: 'medical_Dangerous Occurrences',    label: 'Dangerous Occurrences' },
+    ];
+    const rows = cats.map(c => {
+        let prev = 0, total = 0;
+        (projects || []).forEach(p => {
+            if (!p.vals) return;
+            prev += parseFloat(p.vals[c.field]?.[0]) || 0;
+            for (let i = 1; i <= 12; i++) {
+                total += parseFloat(p.vals[c.field]?.[i]) || 0;
+            }
+        });
+        prev = Math.round(prev);
+        total = Math.round(total);
+        return { label: c.label, previous: prev, total: total, accumulated: prev + total };
+    });
+    const totals = rows.reduce((acc, r) => {
+        acc.previous += r.previous; acc.total += r.total; acc.accumulated += r.accumulated;
+        return acc;
+    }, { label: 'Total', previous: 0, total: 0, accumulated: 0 });
+    return { rows, totals };
+}
+
 async function syncExecutiveSummary() {
     const result = { ok: true, regionsSynced: 0, regionsFailed: [], reason: '' };
     try {
@@ -21989,6 +22024,65 @@ async function syncExecutiveSummary() {
         if (writes.length === 0) {
             result.ok = false;
             result.reason = 'No eligible regions found (check region/stoppage/dateFinished filters)';
+        }
+
+        // ── COMPANY-WIDE doc for the Executive ESH Summary page ────────────
+        // Mirrors exactly what the main dashboard's "Statistics Rate" (Incident
+        // Tabulation Rate) and "OSH/ENVI Regulatory Issued NOV" pages show —
+        // same source functions/keys, same project scope (all projects except
+        // PLANT OPERATIONS) — so the numbers always match 1:1.
+        try {
+            const tab = (typeof computeAggregateTabulation === 'function') ? computeAggregateTabulation() : null;
+
+            const novScopedProjects = (state.projects || []).filter(p => p && p.region !== 'PLANT OPERATIONS');
+
+            function _sumNov(prefix) {
+                let total = 0, intC = 0, extC = 0, open = 0, closed = 0, viol = 0, violOpen = 0, violClosed = 0;
+                novScopedProjects.forEach(p => {
+                    const intNovs = p.vals?.[prefix + '_internal_novs'] || [];
+                    const extNovs = p.vals?.[prefix + '_external_novs'] || [];
+                    intC += intNovs.length; extC += extNovs.length;
+                    [...intNovs, ...extNovs].forEach(n => {
+                        const vs = n.violations || [];
+                        viol += vs.length;
+                        if (vs.length === 0) {
+                            open++;
+                        } else {
+                            vs.forEach(v => {
+                                if ((v.status || 'Open') === 'Closed') { closed++; violClosed++; }
+                                else { open++; violOpen++; }
+                            });
+                        }
+                    });
+                });
+                total = intC + extC;
+                return { total, int: intC, ext: extC, open, closed, totalViolations: viol, violOpen, violClosed };
+            }
+
+            const companyDocData = {
+                updatedAt: new Date().toISOString(),
+                updatedBy: state.currentUser?.email || '',
+                projectCount: novScopedProjects.length,
+                tabulation: tab ? {
+                    ltaCases: tab.ltaCases, recordableCases: tab.recordableCases, lostDays: tab.lostDays,
+                    fatalCases: tab.fatalCases,
+                    totalManHours: tab.totalHours, totalManHoursToDate: tab.totalHoursToDate,
+                    ltirOsha: tab.ltirOsha, ltirOshs: tab.ltirOshs,
+                    trirOsha: tab.trirOsha, trirOshs: tab.trirOshs,
+                    srOsha: tab.srOsha, srOshs: tab.srOshs
+                } : null,
+                oshNov: _sumNov('osh-nov'),
+                enviNov: _sumNov('nov-env'),
+                incidentSummary: computeIncidentSummaryAggregate(novScopedProjects)
+            };
+
+            const companyRef = window.firebase.doc(window.firebaseDb, 'exec_summary', '_company_wide');
+            await window.firebase.setDoc(companyRef, companyDocData, { merge: false });
+            result.regionsSynced++; // count the company-wide write too so the toast reflects it
+        } catch (e) {
+            console.warn('⚠️ execSummary company-wide sync failed:', e.message);
+            result.ok = false;
+            result.regionsFailed.push('_company_wide');
         }
 
         await Promise.all(writes);
