@@ -6239,6 +6239,40 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
     return true; // still stopped — all months from stoppage onward are blacklisted
 }
 
+// Quarter-level equivalent of isMonthBlacklistedForProject, used by DOE Reportorial
+// (Renewable Energy) since it's tracked quarterly, not monthly. Same design as the
+// month version: the entire quarter is the unit of exclusion — even a stoppage/resume
+// that only touches part of a quarter blacklists that whole quarter.
+// - Quarters before the project's dateStarted are never required (handled by
+//   getDoeStartQuarterForYear at the call site, but double-checked here too).
+// - The quarter containing workStoppageDate is blacklisted.
+// - If resumed, the quarter containing workResumeDate is ALSO blacklisted (inclusive —
+//   mirrors "resume month itself still frozen"), and quarters after that are normal.
+// - If not yet resumed, every quarter from the stoppage quarter onward is blacklisted.
+function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
+    const selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
+    const doeStartQ = getDoeStartQuarterForYear(p, selY);
+    if (quarterNum < doeStartQ) return true; // before project existed
+
+    if (!p.workStoppageDate) return false;
+    const stopD = new Date(p.workStoppageDate);
+    if (isNaN(stopD)) return false;
+    const stopY = stopD.getFullYear();
+    const stopQAbs = stopY * 4 + Math.ceil((stopD.getMonth() + 1) / 3); // absolute quarter index
+    const curQAbs  = selY * 4 + quarterNum;
+
+    if (curQAbs < stopQAbs) return false; // before stoppage — normal
+
+    if (p.workResumeDate) {
+        const resD = new Date(p.workResumeDate);
+        if (isNaN(resD)) return true;
+        const resQAbs = resD.getFullYear() * 4 + Math.ceil((resD.getMonth() + 1) / 3);
+        // Inclusive: the resume quarter itself is still blacklisted (mirrors month logic)
+        return curQAbs <= resQAbs;
+    }
+    return true; // still stopped — all quarters from stoppage onward are blacklisted
+}
+
         function getPerc(proj) {
             // ── OVERALL COMPLIANCE (equal-weight per area, full year) ──────────────
             // 10 areas, each area = 1/N of the final score (N = applicable areas).
@@ -14803,7 +14837,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     var doeTot=0, doeFill=0;
                     doeActProjs.forEach(function(p){
                         var _doeSQ = getDoeStartQuarterForYear(p, doeSelYear);
-                        for(var q=1;q<=doeDueQ;q++){ if(q<_doeSQ) continue; doeTot++; if(p.vals[DOE_KEY]&&p.vals[DOE_KEY][q]) doeFill++; }
+                        for(var q=1;q<=doeDueQ;q++){
+                            if(q<_doeSQ) continue;
+                            if(isQuarterBlacklistedForProject(p, q, doeSelYear)) continue; // work-stoppage quarter — excluded from compliance
+                            doeTot++; if(p.vals[DOE_KEY]&&p.vals[DOE_KEY][q]) doeFill++;
+                        }
                     });
                     var doePct = doeTot>0?Math.round(doeFill/doeTot*100):0;
                     var doePctC = doePct>=90?'#2e7d32':doePct>=75?'#e65100':'#c62828';
@@ -14826,7 +14864,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var regKey = reg.replace(/[^a-zA-Z0-9]/g,'_');
 
                         var doeComplete = 0;
-                        for(var q=1;q<=doeCurQ;q++){ var qOk=regProjs.every(function(p){ var _sq=getDoeStartQuarterForYear(p, doeSelYear); return q<_sq || (p.vals[DOE_KEY]&&p.vals[DOE_KEY][q]); }); if(qOk) doeComplete++; }
+                        for(var q=1;q<=doeCurQ;q++){ var qOk=regProjs.every(function(p){ var _sq=getDoeStartQuarterForYear(p, doeSelYear); return q<_sq || isQuarterBlacklistedForProject(p, q, doeSelYear) || (p.vals[DOE_KEY]&&p.vals[DOE_KEY][q]); }); if(qOk) doeComplete++; }
 
                         html += '<div id="region-banner-'+reg+'" class="region-banner region-'+reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')+' '+(isCollapsed?'collapsed':'')+' '+(canEditReg?'rb-editable':'')+'" onclick="toggleRegion(\''+reg.replace(/'/g,"\\'")+'\',event)">'
                             +'<div class="region-banner-inner"><div class="region-banner-left">'
@@ -14904,6 +14942,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                                 } else if (_doeFutQ) {
                                     html += '<td style="background:#f5f5f5;text-align:center;opacity:0.55;font-size:0.68rem;color:#bbb;padding:5px;">—</td>';
+
+                                } else if (isQuarterBlacklistedForProject(p, q, doeSelYear)) {
+                                    html += '<td style="background:#fce4ec;text-align:center;padding:5px;" title="Work Stoppage period — this quarter is excluded from compliance computation.">'
+                                        + '<span style="color:#880e4f;font-size:0.65rem;font-weight:700;"><i class="fas fa-pause-circle" style="margin-right:3px;"></i>Work Stoppage</span>'
+                                        + '</td>';
 
                                 } else {
                                     var _bg  = _val ? '#e8f5e9' : (_isPastDue ? '#ffebee' : '#fff8e1');
@@ -16587,7 +16630,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             if (_doeNowM2 > 9  || (_doeNowM2 === 9  && _doeNowD2 > 20)) _doeDueQ2 = 3;
                         }
                         var _doeActProjs2 = renewableProjects.filter(function(p) {
-                            return !isProjectOnStoppage(p) && !(p.vals && (p.vals['doe_client_provided'] === '1' || p.vals['doe-permit_client_provided'] === '1'));
+                            return !(p.vals && (p.vals['doe_client_provided'] === '1' || p.vals['doe-permit_client_provided'] === '1'));
                         });
                         var _doeClientProjs2 = renewableProjects.filter(function(p) {
                             return p.vals && (p.vals['doe_client_provided'] === '1' || p.vals['doe-permit_client_provided'] === '1');
@@ -16595,6 +16638,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var _doeTot2 = 0, _doeFill2 = 0;
                         _doeActProjs2.forEach(function(p) {
                             for (var q = 1; q <= _doeDueQ2; q++) {
+                                if (isQuarterBlacklistedForProject(p, q, _doeSelY2)) continue; // work-stoppage quarter — excluded from compliance
                                 _doeTot2++;
                                 if (p.vals[key] && p.vals[key][q]) _doeFill2++;
                             }
@@ -16650,12 +16694,14 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         regProjects.forEach(p => {
                             const _doeClient = !!(p.vals && (p.vals['doe_client_provided'] === '1' || p.vals['doe-permit_client_provided'] === '1'));
                             const _doePnSafe = p.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                            const _doeStopped = isProjectOnStoppage(p);
 
                             html += `<tr style="${_doeClient ? 'background:#e3f2fd;' : ''}">
                                 <td style="text-align: left; font-weight: 700; background: ${_doeClient ? '#bbdefb' : '#e8f5e9'}; color: ${_doeClient ? '#1565c0' : '#1b5e20'}; position: sticky; left: 0; z-index: 5;">
                                     <i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;"></i>
                                     ${p.name}
                                     ${_doeClient ? '<span style="font-size:0.6rem;font-weight:800;background:#1565c0;color:white;border-radius:8px;padding:1px 7px;margin-left:6px;">CLIENT</span>' : ''}
+                                    ${_doeStopped ? '<span style="background:#e53935;color:white;border-radius:8px;padding:0 6px;font-size:0.58rem;font-weight:700;margin-left:6px;">WORK STOPPAGE</span>' : ''}
                                 </td>`;
 
                             if (_doeClient) {
@@ -16681,9 +16727,16 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             const _doeSelYr = state.selectedYear || new Date().getFullYear();
                             const _doeThisYear = _doeSelYr === new Date().getFullYear();
                             for (let q = 1; q <= 4; q++) {
+                                const _doeFutureQ = _doeThisYear && q > _doeNowQ;
+                                const _doeQBlacklisted = !_doeFutureQ && isQuarterBlacklistedForProject(p, q, _doeSelYr);
+                                if (_doeQBlacklisted) {
+                                    html += `<td style="background:#ffcdd2;text-align:center;padding:5px;border:1px solid #ef9a9a;" title="Work Stoppage period — this quarter is excluded from compliance computation.">
+                                        <span style="color:#b71c1c;font-size:0.68rem;font-weight:700;"><i class="fas fa-pause-circle" style="margin-right:3px;"></i>Work Stoppage</span>
+                                    </td>`;
+                                    continue;
+                                }
                                 const val = p.vals[key] ? (p.vals[key][q] ?? '') : '';
                                 const hasPdf = p.doePdfFiles && p.doePdfFiles[`Q${q}`];
-                                const _doeFutureQ = _doeThisYear && q > _doeNowQ;
                                 const _doeDueDates = { 1: [3,20], 2: [6,20], 3: [9,20], 4: [0,20] }; // [month0based, day]
                                 const _doeNow2 = new Date();
                                 const _doeDueArr = _doeDueDates[q];
