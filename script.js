@@ -6358,9 +6358,10 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     const _moIdx1 = idx + 1;
                     if (isMonthBlacklisted(_moIdx1)) return;
                     kT++;
-                    // Peers for this specific month: exclude blacklisted projects for that month
+                    // Peers for this specific month: region-wide submission is stored on a single
+                    // project, so we must NOT filter peers by their own blacklist status here — a
+                    // project being individually frozen doesn't mean the region didn't submit.
                     const _kpmRegionPeers = (state.projects || []).filter(p =>
-                        !isMonthBlacklistedForProject(p, _moIdx1, selectedYear) &&
                         !(p.vals && p.vals['kpm_na'] === '1') &&
                         (p.region || '').toUpperCase() === _kpmProjRegion
                     );
@@ -6555,8 +6556,10 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 // ── Area 2: KPM (1 field — submitted or not) ──
                 if (!(vals && vals['kpm_na'] === '1')) {
                     const _kpmProjRegion = (proj.region || '').toUpperCase();
+                    // Region-wide submission is stored on a single project — don't filter peers
+                    // by their own blacklist status, or a frozen holder-project hides the date
+                    // from the whole region.
                     const _kpmRegionPeers = (state.projects || []).filter(p =>
-                        !isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) &&
                         !(p.vals && p.vals['kpm_na'] === '1') &&
                         (p.region || '').toUpperCase() === _kpmProjRegion
                     );
@@ -6683,8 +6686,10 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 // ── Area 2: KPM ──
                 if (!(vals && vals['kpm_na'] === '1')) {
                     const _kpmProjRegion = (proj.region || '').toUpperCase();
+                    // Region-wide submission is stored on a single project — don't filter peers
+                    // by their own blacklist status, or a frozen holder-project hides the date
+                    // from the whole region.
                     const _kpmRegionPeers = (state.projects || []).filter(p =>
-                        !isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) &&
                         !(p.vals && p.vals['kpm_na'] === '1') &&
                         (p.region || '').toUpperCase() === _kpmProjRegion
                     );
@@ -6830,8 +6835,11 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 if (!(vals['kpm_na'] === '1')) {
                     moList.forEach(mo => {
                         addRequired('KPM Report', 1);
+                        // Region-wide submission is stored on a single project — don't filter peers
+                        // by their own blacklist status (isBlk), or a frozen holder-project hides the
+                        // date from the whole region even though it really was submitted.
                         const _kpmRegionPeers = (state.projects || []).filter(p =>
-                            !isBlk(p, mo) && !(p.vals && p.vals['kpm_na'] === '1') &&
+                            !(p.vals && p.vals['kpm_na'] === '1') &&
                             (p.region || '').toUpperCase() === (proj.region || '').toUpperCase()
                         );
                         const _dateKey = 'kpm_v3_' + _KPM_MONTHS[mo-1] + '_dateSubmitted';
@@ -11001,8 +11009,10 @@ function renderTabulation() {
                     if (!(vals && vals['kpm_na'] === '1')) {
                         acc.kpm.t++;
                         const _dateKey = 'kpm_v3_' + moName + '_dateSubmitted';
+                        // Region-wide submission is stored on a single project — don't filter peers
+                        // by their own blacklist status, or a frozen holder-project hides the date
+                        // from the whole region.
                         const _peers = (state.projects || []).filter(p =>
-                            !isMonthBlacklistedForProject(p, selMonth, selYear) &&
                             !(p.vals && p.vals['kpm_na'] === '1') &&
                             (p.region || '').toUpperCase() === region
                         );
@@ -11365,8 +11375,10 @@ function renderTabulation() {
                             if (!(vals && vals['kpm_na'] === '1')) {
                                 acc.kpm.t++;
                                 const _dateKey = 'kpm_v3_' + moName + '_dateSubmitted';
+                                // Region-wide submission is stored on a single project — don't filter
+                                // peers by their own blacklist status, or a frozen holder-project hides
+                                // the date from the whole region.
                                 const _peers = (state.projects || []).filter(p =>
-                                    !isMonthBlacklistedForProject(p, selMonth, selYear) &&
                                     !(p.vals && p.vals['kpm_na'] === '1') &&
                                     (p.region || '').toUpperCase() === region
                                 );
