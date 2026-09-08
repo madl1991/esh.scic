@@ -6223,6 +6223,10 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
     // Months before the project's dateStarted are never required — the project
     // didn't exist yet, so this always takes priority over the stoppage checks below.
     if (isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear)) return true;
+    // Months after the project's dateFinished are never required either — but the
+    // finish month itself, and everything before it, still is (handled by
+    // isProjectFinishedForMonth's inclusive convention).
+    if (isProjectFinishedForMonth(p, monthIdx1Based, selectedYear)) return true;
     if (!p.workStoppageDate) return false;
     const selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
     const stopD  = new Date(p.workStoppageDate);
@@ -6249,10 +6253,38 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
 // - If resumed, the quarter containing workResumeDate is ALSO blacklisted (inclusive —
 //   mirrors "resume month itself still frozen"), and quarters after that are normal.
 // - If not yet resumed, every quarter from the stoppage quarter onward is blacklisted.
+// Returns true if the given quarter falls AFTER the quarter containing the project's
+// dateFinished — i.e. the project was already finished, so no report is required that
+// quarter. The finish quarter itself is still required (inclusive), same convention as
+// isProjectFinishedForMonth.
+function isQuarterAfterProjectFinish(p, quarterNum, selectedYear) {
+    if (!p.dateFinished) return false;
+    const selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
+    const finD = new Date(p.dateFinished);
+    if (isNaN(finD)) return false;
+    const finQAbs = finD.getFullYear() * 4 + Math.ceil((finD.getMonth() + 1) / 3);
+    const curQAbs = selY * 4 + quarterNum;
+    return curQAbs > finQAbs;
+}
+
+// Semi-annual equivalent of isQuarterAfterProjectFinish, used by CMR (Semi-Annual)
+// periods 1 (H1: Jan-Jun) and 2 (H2: Jul-Dec). Same inclusive convention: the period
+// containing dateFinished is still required.
+function isPeriodAfterProjectFinish(p, periodNum, selectedYear) {
+    if (!p.dateFinished) return false;
+    const selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
+    const finD = new Date(p.dateFinished);
+    if (isNaN(finD)) return false;
+    const finPAbs = finD.getFullYear() * 2 + Math.ceil((finD.getMonth() + 1) / 6);
+    const curPAbs = selY * 2 + periodNum;
+    return curPAbs > finPAbs;
+}
+
 function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
     const selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
     const doeStartQ = getDoeStartQuarterForYear(p, selY);
     if (quarterNum < doeStartQ) return true; // before project existed
+    if (isQuarterAfterProjectFinish(p, quarterNum, selY)) return true; // after project finished
 
     if (!p.workStoppageDate) return false;
     const stopD = new Date(p.workStoppageDate);
@@ -6273,7 +6305,13 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
     return true; // still stopped — all quarters from stoppage onward are blacklisted
 }
 
-        function getPerc(proj) {
+        function getPerc(proj, includeFinished) {
+            window.getPerc = getPerc; // expose globally so Executive Summary sync (syncExecutiveSummary) can use it
+            // includeFinished (default false): region/company-wide averages call getPerc(p) as
+            // before and still get null for finished projects, so they stay excluded from those
+            // pools exactly like today. Pass includeFinished=true only where a SPECIFIC project's
+            // own historical score should be shown (its card, its detail modal, its export row) —
+            // there it should reflect how well it complied while it was active, not a blank dash.
             // ── OVERALL COMPLIANCE (equal-weight per area, full year) ──────────────
             // 10 areas, each area = 1/N of the final score (N = applicable areas).
             // Areas that do not apply to a project are excluded from the average.
@@ -6291,7 +6329,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             // Area 10 — DOE Reportorial            (4 quarters; renewable only; client-provided → exempt)
 
             if (proj.workStoppageDate && !proj.workResumeDate) return null;
-            if (proj.dateFinished) return null;
+            if (proj.dateFinished && !includeFinished) return null;
 
             const selectedYear = (state && state.selectedYear) || new Date().getFullYear();
             function isMonthBlacklisted(monthIdx1Based) {
@@ -6432,6 +6470,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             const _smrCocKey = 'emb_SMR (Quarterly) - Care of Client';
             let smrF = 0, smrT = 0;
             for (let q = 1; q <= 4; q++) {
+                if (isQuarterAfterProjectFinish(proj, q, selectedYear)) continue; // after project finished
                 const _coc  = vals[_smrCocKey] && vals[_smrCocKey][q];
                 const _isCoC = _coc === true || _coc === 'true' || _coc === '1' || _coc === 1;
                 if (_isCoC) continue; // exempt quarter
@@ -6447,6 +6486,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             const _cmrCocKey = 'emb_CMR (Semi-Annual) - Care of Client';
             let cmrF = 0, cmrT = 0;
             for (let p2 = 1; p2 <= 2; p2++) {
+                if (isPeriodAfterProjectFinish(proj, p2, selectedYear)) continue; // after project finished
                 const _coc  = vals[_cmrCocKey] && vals[_cmrCocKey][p2];
                 const _isCoC = _coc === true || _coc === 'true' || _coc === '1' || _coc === 1;
                 if (_isCoC) continue;
@@ -6465,6 +6505,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     let doeF = 0, doeT = 0;
                     for (let q = 1; q <= 4; q++) {
                         if (q < _doeStartQ) continue; // quarter before project existed — not required
+                        if (isQuarterAfterProjectFinish(proj, q, selectedYear)) continue; // after project finished
                         doeT++;
                         const v = vals[_doeKey] && vals[_doeKey][q];
                         if (v && v.toString().trim() !== '') doeF++;
@@ -9694,20 +9735,6 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
 
 const TABULATION_DATA = {}; // kept as empty object for any legacy references
 
-const MULTI_YEAR_DATA = {
-    headers: ['Incident / Accident', '2026'],
-    rows: [
-        ['Fatality',                        0],
-        ['LTA',                             1],
-        ['First Aid',                       4],
-        ['Medical Treatment',               3],
-        ['Near Miss',                       1],
-        ['External Environmental Incident', 0],
-        ['Internal Environmental Incident', 0],
-    ],
-    total: [9]
-};
-
 function computeMechanismFromLta(projects) {
     const MECHANISMS = [
         'Struck-By','Struck Against','Caught-In','Caught-On','Electric Shock',
@@ -9995,37 +10022,6 @@ function renderTabulation() {
             <td style="padding:6px 8px;border:1px solid #c8e6c9;background:${C.header};color:white;font-weight:700;font-size:0.72rem;position:sticky;left:90px;z-index:2;"></td>
             ${data.total.map(v => `<td ${cellStyle(C.header, true, true, 'white')}>${v}</td>`).join('')}
             <td ${cellStyle(C.headerDark, true, true, C.accent)}>${data.total.reduce((a,b)=>a+(b||0),0)}</td>
-        </tr></tbody></table>`;
-        return html;
-    }
-
-    function renderMultiYearTable() {
-        const multiYears = (typeof availableYears !== 'undefined' ? availableYears : [2026]).filter(y => y >= 2026);
-        const greenShades = ['#1b5e20','#2e7d32','#388e3c','#43a047','#66bb6a','#81c784','#a5d6a7'];
-        const colors = {};
-        multiYears.forEach((y, i) => { colors[y] = greenShades[i] || '#1b5e20'; });
-        let html = `<table style="width:100%;border-collapse:collapse;">
-            <thead><tr>
-                ${headerCell('Incident / Accident', '', '', C.tblHdrDark, '#1b5e20')}
-                ${multiYears.map(y => headerCell(y, '', '', colors[y], 'white')).join('')}
-                ${headerCell('Grand Total', '', '', C.tblHdrDark, '#1b5e20')}
-            </tr></thead><tbody>`;
-        MULTI_YEAR_DATA.rows.forEach((row, i) => {
-            const name = row[0];
-            const vals = row.slice(1);
-            const total = vals.reduce((a,b) => a+(b||0), 0);
-            const rowColor = incidentRowColor(name);
-            const bg = i % 2 === 0 ? C.rowAlt : C.rowWhite;
-            html += `<tr>
-                <td ${cellStyle(bg, false, false, rowColor || '#1b5e20')}>${name}</td>
-                ${vals.map(v => `<td ${cellStyle(bg, false, true, '#2e7d32')}>${v ?? 0}</td>`).join('')}
-                <td ${cellStyle(C.tblHdrDark, true, true, '#1b5e20')}>${total}</td>
-            </tr>`;
-        });
-        html += `<tr style="background:${C.header};">
-            <td ${cellStyle(C.header, true, false, 'white')}>TOTAL</td>
-            ${MULTI_YEAR_DATA.total.map(v => `<td ${cellStyle(C.header, true, true, 'white')}>${v}</td>`).join('')}
-            <td ${cellStyle(C.headerDark, true, true, C.accent)}>${MULTI_YEAR_DATA.total.reduce((a,b)=>a+b,0)}</td>
         </tr></tbody></table>`;
         return html;
     }
@@ -10985,7 +10981,6 @@ function renderTabulation() {
                 const projects = (state.projects || []).filter(p =>
                     p.region === region &&
                     !isProjectOnStoppage(p) &&
-                    !p.dateFinished &&
                     !isProjectFinishedForMonth(p, selMonth, selYear) &&
                     !isMonthBlacklistedForProject(p, selMonth, selYear)
                 );
@@ -11346,7 +11341,6 @@ function renderTabulation() {
                         const projects = (state.projects || []).filter(p =>
                             p.region === region &&
                             !isProjectOnStoppage(p) &&
-                            !p.dateFinished &&
                             !isProjectFinishedForMonth(p, selMonth, selYear) &&
                             !isMonthBlacklistedForProject(p, selMonth, selYear)
                         );
@@ -12016,7 +12010,7 @@ function renderTabulation() {
 
                 _navProjs.forEach(p => {
                     syncProjectStatus(p); // auto-correct status from dates
-                    const perc = getPerc(p);
+                    const perc = getPerc(p, true); // include finished projects' historical score, not a dash
                     const isWorkStopped = isProjectOnStoppage(p);
                     const percDisplay = perc !== null ? perc : '—';
                     const percDeg = perc !== null ? perc * 3.6 : 0;
@@ -12070,7 +12064,7 @@ function renderTabulation() {
 
 
 if (state.currentTab === 'dole' && projs.length > 1) {
-    const _dolePerc = getPerc(p);
+    const _dolePerc = getPerc(p, true); // include finished projects' historical score, not a dash
     const _dolePercDisplay = _dolePerc !== null ? _dolePerc + '%' : '—';
     const _dolePercColor = _dolePerc !== null ? (_dolePerc >= 90 ? '#2e7d32' : _dolePerc >= 75 ? '#e65100' : '#c62828') : '#888';
     const _dolePercBg = _dolePerc !== null ? (_dolePerc >= 90 ? '#e8f5e9' : _dolePerc >= 75 ? '#fff3e0' : '#ffebee') : '#f5f5f5';
@@ -22087,6 +22081,19 @@ async function syncExecutiveSummary() {
         try {
             const tab = (typeof computeAggregateTabulation === 'function') ? computeAggregateTabulation() : null;
 
+            // ── OVERALL COMPLIANCE (company-wide, same pool/formula as the main
+            // dashboard's "OVERALL COMPLIANCE" stat-card — see renderComplianceCardOnly) ──
+            const _ecCompPool = (state.projects || []).filter(p =>
+                p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS' &&
+                !(typeof isProjectOnStoppage === 'function' && isProjectOnStoppage(p)) && !p.dateFinished
+            );
+            let _ecTotal = 0, _ecCount = 0;
+            _ecCompPool.forEach(p => {
+                const v = (typeof getPerc === 'function') ? getPerc(p) : null;
+                if (v !== null) { _ecTotal += v; _ecCount++; }
+            });
+            const _ecOverallAvg = _ecCount > 0 ? Math.round(_ecTotal / _ecCount) : 0;
+
             const novScopedProjects = (state.projects || []).filter(p => p && p.region !== 'PLANT OPERATIONS');
 
             function _sumNov(prefix) {
@@ -22126,7 +22133,12 @@ async function syncExecutiveSummary() {
                 } : null,
                 oshNov: _sumNov('osh-nov'),
                 enviNov: _sumNov('nov-env'),
-                incidentSummary: computeIncidentSummaryAggregate(novScopedProjects)
+                incidentSummary: computeIncidentSummaryAggregate(novScopedProjects),
+                overallCompliance: {
+                    pct: _ecOverallAvg,
+                    projectsScored: _ecCount,
+                    projectsTotal: _ecCompPool.length
+                }
             };
 
             const companyRef = window.firebase.doc(window.firebaseDb, 'exec_summary', '_company_wide');
@@ -32949,7 +32961,7 @@ function osOpenModal(projectName) {
 
     // Compliance %
     const complianceBadge = document.getElementById('os-modal-compliance');
-    const perc = typeof getPerc === 'function' ? getPerc(project) : null;
+    const perc = typeof getPerc === 'function' ? getPerc(project, true) : null; // include finished projects' historical score, not a dash
     if (perc !== null) {
         const percColor = perc >= 90 ? 'rgba(255,255,255,0.25)' : perc >= 75 ? 'rgba(255,193,7,0.35)' : 'rgba(244,67,54,0.35)';
         complianceBadge.textContent = `✔ ${perc}% Compliant`;
@@ -35581,7 +35593,7 @@ async function exportCurrentTabToExcel() {
                     const rowBg     = isWS?(isAlt?'FFE5E5':'FFF5F5'):isFin?(isAlt?'EEEEEE':'F5F5F5'):(isAlt?'F1F8E9':'FFFFFF');
                     projRowIdx++;
 
-                    const perc = (!isWS&&typeof getPerc==='function')?getPerc(proj):null;
+                    const perc = (!isWS&&typeof getPerc==='function')?getPerc(proj, true):null; // include finished projects' historical score, not a dash
                     const mh   = _ovYtd(proj,'exposures_Total Exposed Manhour');
                     const mp   = parseFloat(_v(proj,'exposures_Total Manpower',curMonthOv))||0;
                     const lta  = _ovYtd(proj,'medical_LTA');
