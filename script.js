@@ -8216,8 +8216,39 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         }
         window.computeDaysWithoutLtaByMonth = computeDaysWithoutLtaByMonth;
 
+        // "No. of Days w/o LTA" must NEVER carry a value in a month that hasn't arrived yet.
+        // Future-month cells are locked in the UI, so any value there is stale/auto-filled data
+        // (e.g. an old sync that wrote full calendar days). Blank them out (in memory) and flag the
+        // cells dirty so the next Save also removes them from Firebase. Also keeps Running YTD honest.
+        function clearFutureDaysWithoutLta() {
+            const DAYS_KEY = 'exposures_No. of Days w/o LTA';
+            const selYear = (state && state.selectedYear) ? parseInt(state.selectedYear) : new Date().getFullYear();
+            const now = new Date();
+            const realYear = now.getFullYear();
+            const realMonth = now.getMonth() + 1; // 1-12
+            const isFutureMo = m => selYear > realYear || (selYear === realYear && m > realMonth);
+            let cleared = 0;
+            (state.projects || []).forEach(p => {
+                const arr = p.vals && p.vals[DAYS_KEY];
+                if (!arr) return;
+                for (let i = 1; i <= 12; i++) {
+                    if (!isFutureMo(i)) continue;
+                    if (arr[i] !== '' && arr[i] !== null && arr[i] !== undefined) {
+                        arr[i] = '';
+                        cleared++;
+                        if (window.RowSaveManager) window.RowSaveManager.markDirty(p.name, `${DAYS_KEY}_${i}`);
+                    }
+                }
+            });
+            return cleared;
+        }
+        window.clearFutureDaysWithoutLta = clearFutureDaysWithoutLta;
+
         function syncDaysWithoutLtaFromRegistry() {
             const selectedYear = (state && state.selectedYear) ? parseInt(state.selectedYear) : new Date().getFullYear();
+            clearFutureDaysWithoutLta();
+            const _nowD = new Date();
+            const _isFutureMo = m => selectedYear > _nowD.getFullYear() || (selectedYear === _nowD.getFullYear() && m > _nowD.getMonth() + 1);
             state.projects.forEach(p => {
                 const entries = p.vals['lta-registry_entries'] || [];
                 const hasAnyLtaEntry = entries.some(e => (e.incidentClassification || 'LTA') === 'LTA' && e.dateOfAccident);
@@ -8227,6 +8258,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     p.vals['exposures_No. of Days w/o LTA'] = new Array(13).fill('');
                 }
                 for (let i = 1; i <= 12; i++) {
+                    if (_isFutureMo(i)) { p.vals['exposures_No. of Days w/o LTA'][i] = ''; continue; } // never pre-fill future months
                     p.vals['exposures_No. of Days w/o LTA'][i] = byMonth[i] != null ? byMonth[i].toString() : p.vals['exposures_No. of Days w/o LTA'][i];
                 }
             });
@@ -12894,6 +12926,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
     const isDateType = ['kpm','dole','permits','emb','cshp','reg','env-monthly-report'].includes(state.currentTab);
     const isCshp = state.currentTab === 'cshp' || state.currentTab === 'reg';
     const _curMonth = new Date().getMonth() + 1; // 1=Jan … 12=Dec — future months are locked
+    if (state.currentTab === 'exposures' && typeof clearFutureDaysWithoutLta === 'function') clearFutureDaysWithoutLta(); // wipe stale future-month "Days w/o LTA" before rendering/YTD
     const hasYTD = ['exposures', 'rates', 'medical', 'nov', 'activities'].includes(state.currentTab);
     const isNov = state.currentTab === 'nov';
 
