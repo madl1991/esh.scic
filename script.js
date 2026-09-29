@@ -26429,7 +26429,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 (function() {
     const GHG_FACTOR = 0.000694;   // tCO2 per kWh
-    const TREE_FACTOR = 0.02177;   // tCO2 absorbed per tree per year
 
     const ENV_REGIONS = ['CORPORATE', 'PLANT OPERATIONS', 'NCR', 'SOUTH LUZON', 'NORTH LUZON', 'VISAYAS & MINDANAO'];
     const ENV_MONTHS  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -26501,7 +26500,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             row.kwh    = parseFloat(row.kwh)    || 0;
                             row.amount = parseFloat(row.amount) || 0;
                             row.ghg    = parseFloat(row.ghg)    || 0;
-                            row.trees  = parseFloat(row.trees)  || 0;
                             newEnvData.push(row);
                         } else if (module === 'env_waste') {
                             row.bioGen    = parseFloat(row.bioGen)    || 0;
@@ -26588,7 +26586,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     kwh:    parseFloat(row.kwh)    || 0,
                     amount: parseFloat(row.amount) || 0,
                     ghg:    parseFloat(row.ghg)    || 0,
-                    trees:  parseFloat(row.trees)  || 0,
                 }));
                 wasteData = rawWaste.map(row => ({
                     ...row,
@@ -27482,8 +27479,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function calc(kwh) {
         const ghg   = kwh * GHG_FACTOR;
-        const trees = ghg / TREE_FACTOR;
-        return { ghg, trees };
+        return { ghg };
     }
     function regionKey(r) { return r.replace(/[^a-z0-9]/gi,'_'); }
 
@@ -27492,11 +27488,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const rk     = regionKey(regionRaw);
         const suffix = pi !== undefined ? `${rk}-${pi}` : rk;
         const kwh    = parseFloat(document.getElementById('env-kwh-'+suffix)?.value) || 0;
-        const { ghg, trees } = calc(kwh);
+        const { ghg } = calc(kwh);
         const gEl = document.getElementById('env-ghg-'+suffix);
-        const tEl = document.getElementById('env-trees-'+suffix);
         if (gEl) gEl.value = ghg.toFixed(4);
-        if (tEl) tEl.value = trees.toFixed(4);
     };
 
     
@@ -27512,9 +27506,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const loc    = (document.getElementById('env-loc-'+suffix)?.value || '').trim() || '—';
         const kwh    = parseFloat(document.getElementById('env-kwh-'+suffix)?.value) || 0;
         const amount = parseFloat(document.getElementById('env-amt-'+suffix)?.value) || 0;
-        const { ghg, trees } = calc(kwh);
+        const { ghg } = calc(kwh);
 
-        envData.push({ id: Date.now() + Math.random(), region: regionRaw, project: projName || '', month, location: loc, kwh, amount, ghg, trees });
+        envData.push({ id: Date.now() + Math.random(), region: regionRaw, project: projName || '', month, location: loc, kwh, amount, ghg });
 
         const _newRow = envData[envData.length - 1];
         if (window.ESHDataSync) {
@@ -27523,7 +27517,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // ─── Persist single row to Firestore sub-collection (atomic, no overwrite) ──
         if (typeof saveEnvRowToFirebase === 'function') saveEnvRowToFirebase('env_monitoring_rows', _newRow);
 
-        ['env-loc-','env-kwh-','env-amt-','env-ghg-','env-trees-'].forEach(p => {
+        ['env-loc-','env-kwh-','env-amt-','env-ghg-'].forEach(p => {
             const el = document.getElementById(p+suffix);
             if (el) el.value = '';
         });
@@ -27593,7 +27587,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const userEmail   = (typeof state !== 'undefined') ? state.currentUser?.email : null;
         const canEditEnv  = UserAccounts.canEditTab(userEmail, 'env-monitoring');
 
-        const overallSummary = []; // { region, kwh, amount, ghg, trees, projCount }
+        const overallSummary = []; // { region, kwh, amount, ghg, projCount }
 
         let html = '';
 
@@ -27608,9 +27602,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const rKwh   = regionRows.reduce((s,r)=>s+r.kwh,0);
             const rAmt   = regionRows.reduce((s,r)=>s+r.amount,0);
             const rGhg   = regionRows.reduce((s,r)=>s+r.ghg,0);
-            const rTrees = regionRows.reduce((s,r)=>s+r.trees,0);
 
-            overallSummary.push({ region, kwh: rKwh, amount: rAmt, ghg: rGhg, trees: rTrees, projCount: projs.length, color: rc.bg });
+            overallSummary.push({ region, kwh: rKwh, amount: rAmt, ghg: rGhg, projCount: projs.length, color: rc.bg });
 
             let projTablesHtml = '';
             if (projs.length === 0) {
@@ -27634,8 +27627,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const pKwh   = projRows.reduce((s,r)=>s+r.kwh,0);
                     const pAmt   = projRows.reduce((s,r)=>s+r.amount,0);
                     const pGhg   = projRows.reduce((s,r)=>s+r.ghg,0);
-                    const pTrees = projRows.reduce((s,r)=>s+r.trees,0);
-                    const cols   = canEditRegionEnv ? 7 : 6;
+                    const cols   = canEditRegionEnv ? 6 : 5;
 
                     projTablesHtml += `
                     
@@ -27675,10 +27667,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <label style="font-size:0.63rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:2px;">GHG (tCO2)</label>
                                     <input type="number" id="env-ghg-${rk}-${pi}" readonly style="width:100%;box-sizing:border-box;padding:5px 7px;border-radius:5px;border:1px solid #c8e6c9;background:#e8f5e9;color:#2e7d32;font-size:0.7rem;font-weight:700;">
                                 </div>
-                                <div style="min-width:75px;">
-                                    <label style="font-size:0.63rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:2px;">Trees Offset</label>
-                                    <input type="number" id="env-trees-${rk}-${pi}" readonly style="width:100%;box-sizing:border-box;padding:5px 7px;border-radius:5px;border:1px solid #c8e6c9;background:#e8f5e9;color:#2e7d32;font-size:0.7rem;font-weight:700;">
-                                </div>
                                 <button onclick="envAddRow('${region}',${pi},'${proj.name.replace(/'/g,"\\'")}')" style="padding:5px 12px;background:linear-gradient(135deg,${rc.bg},${rc.bg}cc);color:white;border:none;border-radius:5px;font-size:0.7rem;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px;">
                                     <i class="fas fa-plus"></i> Add
                                 </button>
@@ -27692,14 +27680,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <tr>
                                         <th rowspan="2" style="padding:7px 11px;text-align:center;background:#b7ddb5;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;vertical-align:middle;white-space:nowrap;font-size:0.65rem;">Month</th>
                                         <th rowspan="2" style="padding:7px 11px;text-align:center;background:#b7ddb5;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;vertical-align:middle;font-size:0.65rem;">Office/Building<br>Floor Area</th>
-                                        <th colspan="4" style="padding:6px 11px;text-align:center;background:#9ecf9b;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">Electricity Consumption</th>
+                                        <th colspan="3" style="padding:6px 11px;text-align:center;background:#9ecf9b;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">Electricity Consumption</th>
                                         ${canEditRegionEnv ? `<th rowspan="2" style="padding:7px 7px;text-align:center;background:#b7ddb5;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;"></th>` : ''}
                                     </tr>
                                     <tr>
                                         <th style="padding:6px 11px;text-align:center;background:#c5e8c3;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">kWh</th>
                                         <th style="padding:6px 11px;text-align:center;background:#c5e8c3;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">Amount, Php</th>
                                         <th style="padding:6px 11px;text-align:center;background:#c5e8c3;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">Eq. GHG Emission<br>(tCO2)</th>
-                                        <th style="padding:6px 11px;text-align:center;background:#c5e8c3;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">Offset Emission<br>(No. of Trees)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -27714,7 +27701,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pKwh.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
                                         <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pAmt.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
                                         <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pGhg.toFixed(4)}</td>
-                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pTrees.toFixed(4)}</td>
                                         ${canEditRegionEnv ? `<td style="border:1px solid #c8e6c9;"></td>` : ''}
                                     </tr>
                                 </tfoot>` : ''}
@@ -27735,7 +27721,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <td style="padding:9px 14px;text-align:right;font-weight:800;color:${rc.bg};border:1px solid ${rc.bg}33;">${rKwh.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
                                 <td style="padding:9px 14px;text-align:right;font-weight:800;color:${rc.bg};border:1px solid ${rc.bg}33;">${rAmt.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
                                 <td style="padding:9px 14px;text-align:right;font-weight:800;color:${rc.bg};border:1px solid ${rc.bg}33;">${rGhg.toFixed(4)}</td>
-                                <td style="padding:9px 14px;text-align:right;font-weight:800;color:${rc.bg};border:1px solid ${rc.bg}33;">${rTrees.toFixed(4)}</td>
                                 ${canEditRegionEnv ? `<td style="border:1px solid ${rc.bg}33;width:40px;"></td>` : ''}
                             </tr>
                         </table>
@@ -27774,7 +27759,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const grandKwh     = overallSummary.reduce((s,r)=>s+r.kwh,0);
         const grandAmt     = overallSummary.reduce((s,r)=>s+r.amount,0);
         const grandGhg     = overallSummary.reduce((s,r)=>s+r.ghg,0);
-        const grandTrees   = overallSummary.reduce((s,r)=>s+r.trees,0);
         const grandDomM3   = overallSummary.reduce((s,r)=>s+(r.domM3||0),0);
         const grandDomAmt  = overallSummary.reduce((s,r)=>s+(r.domAmt||0),0);
         const grandPotLit  = overallSummary.reduce((s,r)=>s+(r.potLit||0),0);
@@ -27801,7 +27785,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 { label:'Total Consumption', value: _fmt(grandKwh)+' kWh',           icon:'fa-bolt',       color:'#1b5e20', bg:'#e8f5e9' },
                 { label:'Total Amount',       value: '\u20b1'+_fmt(grandAmt),         icon:'fa-coins',      color:'#2e7d32', bg:'#f1f8e9' },
                 { label:'GHG Emissions',      value: grandGhg.toFixed(4)+' tCO2',    icon:'fa-cloud',      color:'#37474f', bg:'#eceff1' },
-                { label:'Trees Needed',       value: Math.ceil(grandTrees).toLocaleString(), icon:'fa-tree',color:'#388e3c', bg:'#f9fbe7' },
             ];
             const cardsHtml = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">'
                 + kpiCards.map(c => `<div style="background:${c.bg};border:1px solid ${c.color}33;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;min-width:150px;flex:1;"><i class="fas ${c.icon}" style="color:${c.color};font-size:1.1rem;"></i><div><div style="font-size:0.6rem;font-weight:700;color:${c.color};text-transform:uppercase;letter-spacing:0.4px;">${c.label}</div><div style="font-size:0.88rem;font-weight:800;color:${c.color};">${c.value}</div></div></div>`).join('')
@@ -27812,10 +27795,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 return `<tr style="background:${rc.light};">
                     <td style="padding:7px 12px;border:1px solid ${rc.bg}33;font-weight:800;font-size:0.68rem;white-space:nowrap;color:${rc.bg};"><span style="width:9px;height:9px;border-radius:2px;background:${rc.bg};display:inline-block;margin-right:6px;vertical-align:middle;"></span>${s.region}</td>
                     <td style="padding:7px 10px;text-align:center;border:1px solid ${rc.bg}33;color:${rc.bg};font-size:0.68rem;font-weight:700;">${s.projCount}</td>
-                    ${_td(s.kwh)} ${_td(s.amount)} ${_tdF(s.ghg)} ${_tdF(s.trees)}
+                    ${_td(s.kwh)} ${_td(s.amount)} ${_tdF(s.ghg)}
                 </tr>`;
             }).join('');
-            const footHtml = `<tr style="background:linear-gradient(90deg,#e8f5e9,#f1f8e9);"><td style="padding:9px 12px;font-weight:800;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.7rem;" colspan="2"><i class="fas fa-globe" style="margin-right:5px;"></i>GRAND TOTAL</td>${_td(grandKwh,true)} ${_td(grandAmt,true)} ${_tdF(grandGhg)} ${_tdF(grandTrees)}</tr>`;
+            const footHtml = `<tr style="background:linear-gradient(90deg,#e8f5e9,#f1f8e9);"><td style="padding:9px 12px;font-weight:800;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.7rem;" colspan="2"><i class="fas fa-globe" style="margin-right:5px;"></i>GRAND TOTAL</td>${_td(grandKwh,true)} ${_td(grandAmt,true)} ${_tdF(grandGhg)}</tr>`;
 
             elecSumContainer.innerHTML =
                 '<div style="background:var(--bg-card);border-radius:12px;overflow:hidden;border:2px solid #1b5e20;box-shadow:0 4px 16px rgba(27,94,32,0.12);">'
@@ -27827,8 +27810,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 + '<div style="padding:14px 18px 0;">' + cardsHtml + '</div>'
                 + '<div style="padding:0 18px 16px;overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.68rem;"><thead><tr>'
                 + _thL('Region','#388e3c') + _thL('Projects','#388e3c')
-                + `<th colspan="4" style="padding:7px 10px;text-align:center;background:#1b5e20;color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">\u26a1 ELECTRICITY CONSUMPTION</th>`
-                + `</tr><tr>${_thL('','#b7ddb5')}${_thL('','#b7ddb5')}${_th('kWh','#1b5e20')}${_th('Amount (\u20b1)','#1b5e20')}${_th('GHG (tCO2)','#1b5e20')}${_th('Trees Needed','#1b5e20')}</tr></thead>`
+                + `<th colspan="3" style="padding:7px 10px;text-align:center;background:#1b5e20;color:#fff;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">\u26a1 ELECTRICITY CONSUMPTION</th>`
+                + `</tr><tr>${_thL('','#b7ddb5')}${_thL('','#b7ddb5')}${_th('kWh','#1b5e20')}${_th('Amount (\u20b1)','#1b5e20')}${_th('GHG (tCO2)','#1b5e20')}</tr></thead>`
                 + `<tbody>${rowsHtml}</tbody><tfoot>${footHtml}</tfoot></table></div>`
                 + (!hasElecData ? '<div style="padding:24px;text-align:center;color:var(--text-secondary);font-size:0.78rem;font-style:italic;"><i class="fas fa-bolt" style="opacity:0.2;font-size:1.8rem;display:block;margin-bottom:8px;"></i>No electricity data entered yet.</div>' : '')
                 + '</div>';
@@ -28044,7 +28027,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function envBuildRows(rows, canEdit) {
         if (!rows.length) {
-            return `<tr><td colspan="${canEdit ? 7 : 6}" style="padding:18px;text-align:center;color:var(--text-secondary);font-size:0.72rem;font-style:italic;">
+            return `<tr><td colspan="${canEdit ? 6 : 5}" style="padding:18px;text-align:center;color:var(--text-secondary);font-size:0.72rem;font-style:italic;">
                 <i class="fas fa-seedling" style="opacity:0.2;margin-right:5px;"></i>No entries yet${canEdit ? ' — use the form above' : ''}.
             </td></tr>`;
         }
@@ -28063,7 +28046,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td style="padding:6px 11px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);">${r.kwh.toLocaleString()}</td>
                     <td style="padding:6px 11px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);">${r.amount.toLocaleString()}</td>
                     <td style="padding:6px 11px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);">${r.ghg.toFixed(4)}</td>
-                    <td style="padding:6px 11px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);">${r.trees.toFixed(4)}</td>
                     ${canEdit ? `<td style="padding:5px 7px;text-align:center;border:1px solid #e8f5e9;">
                         <button onclick="envDeleteRow(${r.id})" style="padding:2px 7px;background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;font-size:0.6rem;cursor:pointer;"><i class="fas fa-times"></i></button>
                     </td>` : ''}
@@ -37786,7 +37768,6 @@ async function exportEnvMonitoringExcel() {
             { key: 'kwh',    label: 'kWh Consumption',  unit: 'kWh',    dec: 2 },
             { key: 'amount', label: 'Amount',            unit: 'Php',    dec: 2 },
             { key: 'ghg',    label: 'GHG Emissions',     unit: 'tCO₂e', dec: 4 },
-            { key: 'trees',  label: 'Tree Equivalent',   unit: 'trees',  dec: 4 },
         ],
         makeMultiGetVal(elecRows)
     );
