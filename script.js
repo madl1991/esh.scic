@@ -18447,7 +18447,7 @@ const _EDIT_CORP_POS = [
     'QESH Group Manager','QESH Deputy Manager',
     'ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation',
     'Environmental and Sustainability Head','Corporate Physician','Corporate Nurse',
-    'Corporate Dentist','QESH Corp. DC'
+    'Corporate Dentist','QESH Corp. DC','Corporate Safety Officer'
 ];
 
 window._editCertFile = null;
@@ -19232,7 +19232,7 @@ function renderPTable() {
         }
     }
 
-    const CORP_POS_ORDER = ['QESH Group Manager','QESH Deputy Manager','ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation','Environmental and Sustainability Head','Corporate Physician','Corporate Nurse','Corporate Dentist','QESH Corp. DC','Others'];
+    const CORP_POS_ORDER = ['QESH Group Manager','QESH Deputy Manager','ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation','Environmental and Sustainability Head','Corporate Physician','Corporate Nurse','Corporate Dentist','QESH Corp. DC','Corporate Safety Officer','Others'];
     const PROJECT_POS_ORDER = ['ESH Superintendent','ESH Head','Safety Officer IV','Safety Officer III','Safety Officer II','Safety Officer I','PCO','Project Physician','Project Nurse','First Aider','Others'];
     const REGION_ORDER = ['CORPORATE','NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
 
@@ -19441,7 +19441,7 @@ function updatePersonnelSummary() {
         'QESH Group Manager','QESH Deputy Manager',
         'ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation',
         'Environmental and Sustainability Head',
-        'Corporate Physician','Corporate Nurse','Corporate Dentist','QESH Corp. DC',
+        'Corporate Physician','Corporate Nurse','Corporate Dentist','QESH Corp. DC','Corporate Safety Officer',
         'ESH Superintendent','ESH Head',
         'Safety Officer III','Safety Officer II','Safety Officer I',
         'PCO','Project Physician','Project Nurse','First Aider',
@@ -19453,7 +19453,7 @@ function updatePersonnelSummary() {
         'ESH Manager for Project Implementation':'fa-briefcase',
         'Environmental and Sustainability Head':'fa-leaf',
         'Corporate Physician':'fa-user-doctor','Corporate Nurse':'fa-user-nurse','Corporate Dentist':'fa-tooth',
-        'QESH Corp. DC':'fa-file-shield',
+        'QESH Corp. DC':'fa-file-shield','Corporate Safety Officer':'fa-helmet-safety',
         'ESH Superintendent':'fa-shield-halved','ESH Head':'fa-shield-halved',
         'Safety Officer III':'fa-helmet-safety','Safety Officer II':'fa-helmet-safety',
         'Safety Officer I':'fa-helmet-safety',
@@ -19467,7 +19467,7 @@ function updatePersonnelSummary() {
         'ESH Manager for Project Implementation':'#1976d2',
         'Environmental and Sustainability Head':'#388e3c',
         'Corporate Physician':'#0277bd','Corporate Nurse':'#c2185b','Corporate Dentist':'#00838f',
-        'QESH Corp. DC':'#455a64',
+        'QESH Corp. DC':'#455a64','Corporate Safety Officer':'#ef6c00',
         'ESH Superintendent':'#1b5e20','ESH Head':'#2e7d32',
         'Safety Officer III':'#f57c00','Safety Officer II':'#fb8c00',
         'Safety Officer I':'#ffa726',
@@ -19481,7 +19481,7 @@ function updatePersonnelSummary() {
         'ESH Manager for Project Implementation':'ESH Mgr (Impl)',
         'Environmental and Sustainability Head':'Env. Head',
         'Corporate Physician':'Corp. Physician','Corporate Nurse':'Corp. Nurse','Corporate Dentist':'Corp. Dentist',
-        'QESH Corp. DC':'QESH Corp DC',
+        'QESH Corp. DC':'QESH Corp DC','Corporate Safety Officer':'Corp. Safety Officer',
         'ESH Superintendent':'ESH Supt.','ESH Head':'ESH Head',
         'Safety Officer III':'SO III','Safety Officer II':'SO II',
         'Safety Officer I':'SO I',
@@ -31187,7 +31187,7 @@ window.pcViewPersonnel = function(idx) {
         'QESH Group Manager','QESH Deputy Manager',
         'ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation',
         'Environmental and Sustainability Head','Corporate Physician','Corporate Nurse',
-        'Corporate Dentist','QESH Corp. DC'
+        'Corporate Dentist','QESH Corp. DC','Corporate Safety Officer'
     ];
 
     const pos        = p.pos || '';
@@ -32427,7 +32427,7 @@ window.toggleSidebar = function() {
     'QESH Group Manager','QESH Deputy Manager',
     'ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation',
     'Environmental and Sustainability Head','Corporate Physician','Corporate Nurse',
-    'Corporate Dentist','QESH Corp. DC'
+    'Corporate Dentist','QESH Corp. DC','Corporate Safety Officer'
   ];
 
   // State
@@ -36238,7 +36238,7 @@ async function exportPersonnelExcel() {
     }
 
     // ── Ordering ──────────────────────────────────────────────────────────────
-    const CORP_POS_ORDER = ['QESH Group Manager','QESH Deputy Manager','ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation','Environmental and Sustainability Head','Corporate Physician','Corporate Nurse','Corporate Dentist','QESH Corp. DC','Others'];
+    const CORP_POS_ORDER = ['QESH Group Manager','QESH Deputy Manager','ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation','Environmental and Sustainability Head','Corporate Physician','Corporate Nurse','Corporate Dentist','QESH Corp. DC','Corporate Safety Officer','Others'];
     const PROJ_POS_ORDER = ['ESH Superintendent','ESH Head','Safety Officer IV','Safety Officer III','Safety Officer II','Safety Officer I','PCO','Project Physician','Project Nurse','First Aider','Others'];
     const REGION_ORDER   = ['CORPORATE','NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
     const corpRank = pos => { const i = CORP_POS_ORDER.indexOf(pos); return i >= 0 ? i : CORP_POS_ORDER.length; };
