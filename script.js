@@ -15177,44 +15177,56 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     window.KPM_ESH_ROWS = [
                         { id:'e1',  kpm:'1', wp:'ESH Program Implementation ', del:'ESH Meetings',
                           dw:0.10, measure:'Conduct of ESH Meetings (ESH and ESH Committee)',
-                          kpi:['75%',null,'85%','90%',null] },
+                          kpi:['75%',null,'85%','90%',null],
+                          ind:["No ESH Meetings conducted", "", "1 ESH Meetings conducted within the month", "1 < ESH Meetings conducted within the month", ""] },
                         { id:'e2',  kpm:'',  wp:'', del:'Zero LTA',
                           dw:0.10, measure:'Safe man-hours',
-                          kpi:['75%','80%','85%','90%','95%'] },
+                          kpi:['75%','80%','85%','90%','95%'],
+                          ind:["accident resulting to Lost Time", "6-10 medical treatments", "1-5 medical treatment", "no medical treatment for the month", "Million Safe man-hours milestone achievement"] },
                         { id:'e3',  kpm:'',  wp:'', del:'Incident/Accident Investigation',
                           dw:0.08, measure:'Incident/Accident Investigation conducted on time',
-                          kpi:['75%',null,'85%',null,'95%'] },
+                          kpi:['75%',null,'85%',null,'95%'],
+                          ind:["Incident/accident investigtion conducted after 24 hours", "", "Incident/accident investigtion conducted within 24 hours", "", "Incident/accident investigtion conducted within 4 hours"] },
                         { id:'e4',  kpm:'',  wp:'', del:'Emergency Preparedness & Response',
                           dw:0.08, measure:'Conduct of Emergency Drills',
-                          kpi:['75%',null,'85%','90%',null] },
+                          kpi:['75%',null,'85%','90%',null],
+                          ind:["Emergency Drills not conducted in a month based on schedule", "", "ESH Drills conducted in a month based on schedule", "ESH Drills conducted ahead of  schedule", ""] },
                         { id:'e5',  kpm:'',  wp:'', del:'ESH Orientations & Trainings',
                           dw:0.08, measure:'Conduct ESH Orientations & Trainings',
-                          kpi:['75%',null,'85%','90%',null] },
+                          kpi:['75%',null,'85%','90%',null],
+                          ind:["No ESH orientation conducted of SCIC personnel, subcontractors, visitors and other stakeholders", "", "ESH orientation conducted of SCIC personnel, subcontractors, visitors and other stakeholders", "100% ESH orientations of SCIC personnel, subcontractors, visitors and other stakeholders", ""] },
                         { id:'e6',  kpm:'',  wp:'', del:'Permit to Work System',
                           dw:0.08, measure:'Full implementation of Permit to Work system',
-                          kpi:['75%',null,'85%','90%','95%'] },
+                          kpi:['75%',null,'85%','90%','95%'],
+                          ind:["No issuance of NOV due to working without permit.", "", "Issuance of NOV due to working without permit", "greater than 50 % issued NOV due to working without permit are closed.", "100 % issued NOV due to working without permit are closed."] },
                         { id:'e7',  kpm:'',  wp:'', del:'ESH Inspections',
                           dw:0.08, measure:'Conduct of ESH Inspections',
-                          kpi:['75%',null,'85%','90%',null] },
+                          kpi:['75%',null,'85%','90%',null],
+                          ind:["No updated monitoring of Status of ESH Inspection Findings", "", "Updated monitoring of Status of ESH Inspection Findings", "100%o  ESH  inspections findings closed within the month.", ""] },
                         { id:'e8',  kpm:'2', wp:'Compliance to ESH Laws and Regulations',
                           del:'Submission of ESH Compliance Reports to Regulatory Agencies',
                           dw:0.09, measure:'Timeliness of the Submission of ESH Compliance Reports to Regulatory Agencies',
-                          kpi:['75%',null,'85%','90%',null] },
+                          kpi:['75%',null,'85%','90%',null],
+                          ind:["ESH Reports Submitted to Regulatory Agencies after the due date.", "", "ESH Reports Submitted to Regulatory Agenciess On-Time", "ESH Reports Submitted to Regulatory Agencies ahead before the schedule", ""] },
                         { id:'e9',  kpm:'3', wp:'Compliance to HIRAC AIIAC ',
                           del:'Monitoring and control of Identified new Hazards/Aspects and Risks/Impacts in the workplace',
                           dw:0.08, measure:'Review and update of HIRAC and AIIAC',
-                          kpi:['75%',null,null,'90%',null] },
+                          kpi:['75%',null,null,'90%',null],
+                          ind:["HIRAC/AIIAC are not reviewed and updated", "", "", "HIRAC/AIIAC are  reviewed and updated", ""] },
                         { id:'e10', kpm:'',  wp:'', del:'',
                           dw:0.08, measure:'Monitoring of Implementation of ROTPs',
-                          kpi:['75%',null,'85%','90%',null] },
+                          kpi:['75%',null,'85%','90%',null],
+                          ind:["ROTP's are not reviwed and updated", "", "ROTP's are  reviewed and updated", "100% ROTPs are implemented", ""] },
                         { id:'e11', kpm:'4', wp:'Compliance ',
                           del:'Environmental Programs',
                           dw:0.07, measure:'Zero environmental complaints, violations or environmental findings',
-                          kpi:['75%',null,null,null,'95%'] },
+                          kpi:['75%',null,null,null,'95%'],
+                          ind:["with environmental violations,  ESH committee findings or environmental complaints from other stakeholders", "", "", "", "ZERO environmental violation report,  ESH committee findings or environmental complaints from other stakeholders"] },
                         { id:'e12', kpm:'',  wp:'',
                           del:'Occupational Safety and Health Programs',
                           dw:0.08, measure:'Zero OS&H accidents/incidents, violations, complaints and findings',
-                          kpi:['75%',null,null,null,'95%'] },
+                          kpi:['75%',null,null,null,'95%'],
+                          ind:["incurred accidents,OSH violations and complaints or with ESH Committee findings", "", "", "", "ZERO accident, OSH violation, complaints or ESH Committee findings"] },
                     ];
 
                     const KPM_GRADE_SCALE = [1, 2, 3, 4, 5];
@@ -15513,8 +15525,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var epColor = avgEp !== '' ? (avgEp >= 0.90 ? '#2e7d32' : avgEp >= 0.85 ? '#e65100' : '#c62828') : '#aaa';
 
                             var kpiCells = [0,1,2,3,4].map(function(i) {
-                                var v = row.kpi ? row.kpi[i] : null;
-                                return '<td class="kpm-cc-' + regKey + '" style="text-align:center;padding:3px 4px;border:1px solid #c8e6c9;font-size:0.68rem;font-weight:600;background:#f0faf0;color:#1b5e20;white-space:nowrap;">' + (v||'') + '</td>';
+                                var v = row.ind ? row.ind[i] : (row.kpi ? row.kpi[i] : null);
+                                return '<td class="kpm-cc-' + regKey + '" style="text-align:center;padding:3px 4px;border:1px solid #c8e6c9;font-size:0.64rem;font-weight:600;line-height:1.25;background:#f0faf0;color:#1b5e20;white-space:normal;word-wrap:break-word;vertical-align:middle;">' + (v||'') + '</td>';
                             }).join('');
 
                             var projCells = projs.map(function(p, pi) {
@@ -15686,11 +15698,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<th rowspan="2" class="kpm-cc-' + regKey + '" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:130px;white-space:normal;">Deliverables</th>'
                             + '<th rowspan="2" class="kpm-cc-' + regKey + '" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:46px;white-space:normal;">DW</th>'
                             + '<th rowspan="2" class="kpm-cc-' + regKey + '" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:150px;white-space:normal;">Measure</th>'
-                            + '<th class="kpm-cc-' + regKey + '" style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">75%</th>'
-                            + '<th class="kpm-cc-' + regKey + '" style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">80%</th>'
-                            + '<th class="kpm-cc-' + regKey + '" style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">85%</th>'
-                            + '<th class="kpm-cc-' + regKey + '" style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">90%</th>'
-                            + '<th class="kpm-cc-' + regKey + '" style="padding:5px 2px;border:1px solid #c8e6c9;min-width:40px;">95%</th>'
+                            + '<th class="kpm-cc-' + regKey + '" style="padding:5px 2px;border:1px solid #c8e6c9;width:120px;min-width:120px;max-width:120px;">75%</th>'
+                            + '<th class="kpm-cc-' + regKey + '" style="padding:5px 2px;border:1px solid #c8e6c9;width:120px;min-width:120px;max-width:120px;">80%</th>'
+                            + '<th class="kpm-cc-' + regKey + '" style="padding:5px 2px;border:1px solid #c8e6c9;width:120px;min-width:120px;max-width:120px;">85%</th>'
+                            + '<th class="kpm-cc-' + regKey + '" style="padding:5px 2px;border:1px solid #c8e6c9;width:120px;min-width:120px;max-width:120px;">90%</th>'
+                            + '<th class="kpm-cc-' + regKey + '" style="padding:5px 2px;border:1px solid #c8e6c9;width:120px;min-width:120px;max-width:120px;">95%</th>'
                             + projHeaderCols
                             + '<th colspan="5" style="padding:5px 4px;border:1px solid #c8e6c9;font-size:0.58rem;font-weight:400;font-style:italic;background:#9ecf9b;color:#1b5e20;">IMPROVEMENT PLAN</th>'
                             + '</tr>'
@@ -16045,8 +16057,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var epColor = avgEp !== '' ? (avgEp>=0.90?'#2e7d32':avgEp>=0.85?'#e65100':'#c62828') : '#aaa';
 
                             var kpiCells = [0,1,2,3,4].map(function(i){
-                                var v = row.kpi?row.kpi[i]:null;
-                                return '<td style="text-align:center;padding:3px 4px;border:1px solid #c8e6c9;font-size:0.68rem;font-weight:600;background:#f0faf0;color:#1b5e20;white-space:nowrap;">'+(v||'')+'</td>';
+                                var v = row.ind ? row.ind[i] : (row.kpi ? row.kpi[i] : null);
+                                return '<td style="text-align:center;padding:3px 4px;border:1px solid #c8e6c9;font-size:0.64rem;font-weight:600;line-height:1.25;background:#f0faf0;color:#1b5e20;white-space:normal;word-wrap:break-word;vertical-align:middle;">'+(v||'')+'</td>';
                             }).join('');
 
                             var projCells = regProjs.map(function(pp, pi) {
@@ -16235,11 +16247,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<th rowspan="2" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:120px;white-space:normal;">Deliverables</th>'
                             + '<th rowspan="2" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:40px;">DW</th>'
                             + '<th rowspan="2" style="padding:5px 4px;border:1px solid #c8e6c9;vertical-align:middle;min-width:140px;white-space:normal;">Measure</th>'
-                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;min-width:36px;">75%</th>'
-                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;min-width:36px;">80%</th>'
-                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;min-width:36px;">85%</th>'
-                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;min-width:36px;">90%</th>'
-                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;min-width:36px;">95%</th>'
+                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;width:120px;min-width:120px;max-width:120px;">75%</th>'
+                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;width:120px;min-width:120px;max-width:120px;">80%</th>'
+                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;width:120px;min-width:120px;max-width:120px;">85%</th>'
+                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;width:120px;min-width:120px;max-width:120px;">90%</th>'
+                            + '<th style="padding:5px 2px;border:1px solid #c8e6c9;width:120px;min-width:120px;max-width:120px;">95%</th>'
                             + projHeaderCols
                             + '<th colspan="5" style="padding:5px 4px;border:1px solid #c8e6c9;font-size:0.56rem;font-weight:400;font-style:italic;background:#9ecf9b;color:#1b5e20;">IMPROVEMENT PLAN</th>'
                             + '</tr>'
