@@ -37939,6 +37939,272 @@ window.CORP_KPM_ROWS = [
       epOpts:['75%','95%'] },
 ];
 
+// ── Corporate KPM row templates. CORP_KPM_ROWS = Corporate Manager; the others are below. Personnel are registered in the dashboard, not hardcoded. ──
+window.CORP_KPM_ROWS_CSO = [
+    { id:"s1", kpm:"1", wp:"Implementation of Safety Programs", del:"Safety Inspection",
+      dw:0.15, measure:"No. of Identified Safety Issues/ Violation(Jobsites, Temfacil and Barracks)",
+      kpi:["No identified Safety Issues/Violation", "", "Identified Safety Issues/ Violation reported within the day", "of 100 % Identified Safety Issues/ Violation are closed within the month", ""],
+      epOpts:["75%", "85%", "90%"] },
+    { id:"s2", kpm:"", wp:"", del:"",
+      dw:0.15, measure:"Full implementation of Permit to Work system",
+      kpi:["No issuance of NOV due to working without permit.", "", "Issuance of NOV due to working without permit", "greater than 50 % issued NOV due to working without permit are closed.", "100 % issued NOV due to working without permit are closed."],
+      epOpts:["75%", "85%", "90%", "95%"] },
+    { id:"s3", kpm:"", wp:"", del:"",
+      dw:0.15, measure:"Mandatory Safety Inspection( Lifting Accessories,Power Tools, Heavy Equipment and etc.)",
+      kpi:["50% of Mandatory safety inspection conducted as per schedule", "", "85% of Mandatory Safety Inspection conducted as per schedule", "100 % of Mandatory Safety Inspection conducted as per schedule", ""],
+      epOpts:["75%", "85%", "90%"] },
+    { id:"s4", kpm:"", wp:"", del:"",
+      dw:0.1, measure:"Timeliness in the submission of Safety Inspection Reports",
+      kpi:["submission of reports after 24 hours.", "", "Submission of Reports within 24 hours", "Ahead submission of reports before the 12 hours", ""],
+      epOpts:["75%", "85%", "90%"] },
+    { id:"s5", kpm:"", wp:"", del:"Zero LTA",
+      dw:0.1, measure:"Safe-Man hours",
+      kpi:["With Lost Time Accident", "", "", "", "Without Lost Time Accident"],
+      epOpts:["75%", "95%"] },
+    { id:"s6", kpm:"", wp:"", del:"",
+      dw:0.1, measure:"Monitoring of Medical Treatment due to work related Injuries",
+      kpi:[">5 Medical Treatment due to work related Injuries", "", "<5 Medical Treatment due to work related Injuries", "Zero Medical treatment due to work related Injuries", ""],
+      epOpts:["75%", "85%", "90%"] },
+    { id:"s7", kpm:"", wp:"", del:"",
+      dw:0.1, measure:"Incident/Accident Reporting",
+      kpi:["Incident/Accident Reported after 24 hours", "", "Incident/Accident Reported within 24 hours", "No incident/Accident within the month", ""],
+      epOpts:["75%", "85%", "90%"] },
+    { id:"s8", kpm:"3", wp:"Compliance", del:"Environmental Programs",
+      dw:0.07, measure:"Zero environmental complaints, violations or environmental findings",
+      kpi:["with environmental violations, ESH committee findings or environmental complaints from other stakeholders", "", "", "", "ZERO environmental violation report, ESH committee findings or environmental complaints from other stakeholders"],
+      epOpts:["75%", "95%"] },
+    { id:"s9", kpm:"", wp:"", del:"Occupational Safety and Health Programs",
+      dw:0.08, measure:"Zero OS&H accidents/incidents, violations, complaints and findings",
+      kpi:["incurred accidents,OSH violations and complaints or with ESH Committee findings", "", "", "", "ZERO accident, OSH violation, complaints or ESH Committee findings"],
+      epOpts:["75%", "95%"] },
+];
+
+window.CORP_KPM_ROWS_ESHHEAD = [
+    { id:"e1", kpm:"1", wp:"Consolidation of Environmental Requirements", del:"SMR/CMR/ENVIRONMENTAL PROGRAMS",
+      dw:0.15, measure:"Timeliness of submission of Environmental reports",
+      kpi:["≤75%", "≥80%", "≥85%", "≥90%", "≥95%"],
+      epOpts:["75%", "80%", "85%", "90%", "95%"] },
+    { id:"e2", kpm:"2", wp:"Average KPI for Project PCO", del:"Submission of PCO on environmental compliance reports",
+      dw:0.15, measure:"Average % Compliance for KPM Project PCO",
+      kpi:["≤75%", "≥80%", "≥85%", "≥90%", "≥95%"],
+      epOpts:["75%", "80%", "85%", "90%", "95%"] },
+    { id:"e3", kpm:"3", wp:"Consolidation of KPI", del:"Consolidated Monthly KPI of PCO",
+      dw:0.15, measure:"Timeliness of submission of PCO KPI",
+      kpi:["≤75%", "≥80%", "≥85%", "≥90%", "≥95%"],
+      epOpts:["75%", "80%", "85%", "90%", "95%"] },
+    { id:"e4", kpm:"4", wp:"Environmental Aspects/Impacts", del:"AIIAC/ROTP",
+      dw:0.15, measure:"Timeliness of submission of AIIAC & ROTP",
+      kpi:["≤75%", "≥80%", "≥85%", "≥90%", "≥95%"],
+      epOpts:["75%", "80%", "85%", "90%", "95%"] },
+    { id:"e5", kpm:"5", wp:"Project ALOR", del:"Environmental ALOR",
+      dw:0.25, measure:"Timeliness of compliance to Report Submission",
+      kpi:["≥ 75% of requirements met on time", "≥ 80% of requirements met on time", "≥ 85% of requirements met on time", "≥ 90% of requirements met on time", "≥ 95% of requirements met on time"],
+      epOpts:["75%", "80%", "85%", "90%", "95%"] },
+    { id:"e6", kpm:"6", wp:"ESH Compliance", del:"Environmental Programs",
+      dw:0.07, measure:"Zero environmental complaints, violations or environmental findings",
+      kpi:["with environmental violations, ESH committee findings or environmental complaints from other stakeholders", "", "", "", "ZERO environmental violation report, ESH committee findings or environmental complaints from other stakeholders"],
+      epOpts:["75%", "95%"] },
+    { id:"e7", kpm:"", wp:"", del:"Occupational Safety and Health Programs",
+      dw:0.08, measure:"Zero OS&H accidents/incidents, violations, complaints and findings",
+      kpi:["incurred accidents,OSH violations and complaints or with ESH Committee findings", "", "", "", "ZERO accident, OSH violation, complaints or ESH Committee findings"],
+      epOpts:["75%", "95%"] },
+];
+
+window.CORP_KPM_TEMPLATES = {
+    manager: { label:'Corporate Manager',                     role:'Corporate Manager',                     badge:'MGR', rowsKey:'CORP_KPM_ROWS',         wpLabel:'Work Process', lastCol:'Status',  metaLabel:'Manager',   titleSuffix:'CORPORATE',                             docCode:'Doc Code: FM-RNI-04-03 l Rev. No.: 4 l Eff. Date: 06 Aug 2018' },
+    cso:     { label:'Corporate Safety Officer',              role:'Corporate Safety Officer',              badge:'CSO', rowsKey:'CORP_KPM_ROWS_CSO',     wpLabel:'Work Process', lastCol:'Remarks', metaLabel:'Personnel', titleSuffix:'CORPORATE SAFETY OFFICER',              docCode:'Doc Code: FM-RNI-04-04 l Rev. No.: 4 l Eff. Date: 06 Aug 2018' },
+    envi:    { label:'Environmental and Sustainability Head', role:'Environmental and Sustainability Head', badge:'ENV', rowsKey:'CORP_KPM_ROWS_ESHHEAD', wpLabel:'KPI',          lastCol:'Status',  metaLabel:'Personnel', titleSuffix:'ENVIRONMENTAL AND SUSTAINABILITY HEAD', docCode:'Doc Code: FM-RNI-04-03 l Rev. No.: 4 l Eff. Date: 06 Aug 2018' }
+};
+
+// ── Roster: personnel are registered in the dashboard (stored in Firestore with the rest of Corporate KPM) ──
+// Each entry: { id, name, tpl, start:'YYYY-MM', end:'' | 'YYYY-MM' }. id is a permanent integer string used in the data keys.
+window.CORP_KPM_ROSTER_KEY  = 'corp_kpm_roster';
+window.CORP_KPM_MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+window.corpKpmGetRoster = function() {
+    var raw = ((typeof state !== 'undefined' && state && state.companyData) || {})[window.CORP_KPM_ROSTER_KEY];
+    var arr = [];
+    try { arr = (typeof raw === 'string') ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []); } catch (e) { arr = []; }
+    if (!Array.isArray(arr)) arr = [];
+    return arr.filter(function(p) {
+        return p && p.id !== undefined && p.id !== null && p.name && window.CORP_KPM_TEMPLATES[p.tpl] && /^\d{4}-\d{2}$/.test(p.start || '');
+    }).map(function(p) {
+        return { id: String(p.id), name: String(p.name), tpl: p.tpl, start: p.start, end: (/^\d{4}-\d{2}$/.test(p.end || '') ? p.end : '') };
+    });
+};
+window.corpKpmSaveRoster = function(arr) {
+    if (!state.companyData) state.companyData = {};
+    var json = JSON.stringify(arr);
+    state.companyData[window.CORP_KPM_ROSTER_KEY] = json;
+    window.corpKpmSaveToFirestore(window.CORP_KPM_ROSTER_KEY, json);
+};
+window.corpKpmTag = function(name) {
+    var t = String(name || '').replace(/[^A-Za-z ]/g, ' ').split(/\s+/).filter(Boolean).map(function(w) { return w.charAt(0); }).join('').toUpperCase();
+    return (t || 'KPM').substring(0, 6);
+};
+window.corpKpmYmIndex = function(ym) { var a = String(ym).split('-'); return parseInt(a[0], 10) * 12 + (parseInt(a[1], 10) - 1); };
+window.corpKpmFmtYm   = function(ym) { var a = String(ym).split('-'); return window.CORP_KPM_MONTH_NAMES[parseInt(a[1], 10) - 1].substring(0, 3) + ' ' + a[0]; };
+window.corpKpmActiveInMonth = function(p, year, moIdx) {
+    var v = year * 12 + moIdx;
+    if (v < window.corpKpmYmIndex(p.start)) return false;
+    if (p.end && v > window.corpKpmYmIndex(p.end)) return false;
+    return true;
+};
+window.corpKpmActiveInYear = function(p, year) {
+    for (var m = 0; m < 12; m++) { if (window.corpKpmActiveInMonth(p, year, m)) return true; }
+    return false;
+};
+// Scan saved Corporate KPM data and report which person ids have data (and for which months)
+window.corpKpmDataSlots = function() {
+    var cd = ((typeof state !== 'undefined' && state && state.companyData) || {});
+    var slots = {};
+    Object.keys(cd).forEach(function(k) {
+        var m = /^corp_kpm_(?:na_)?(\d{4})_(\d+)_([A-Za-z]+)(?:_.*)?$/.exec(k);
+        if (!m) return;
+        var val = cd[k];
+        if (val === '' || val === null || val === undefined) return;
+        var mi = window.CORP_KPM_MONTH_NAMES.indexOf(m[3]);
+        if (mi < 0) return;
+        if (!slots[m[2]]) slots[m[2]] = { id: m[2], months: {} };
+        slots[m[2]].months[m[1] + '-' + (mi < 9 ? '0' : '') + (mi + 1)] = true;
+    });
+    return slots;
+};
+window.corpKpmFreeId = function() {
+    var max = -1;
+    window.corpKpmGetRoster().forEach(function(p) { var n = parseInt(p.id, 10); if (n > max) max = n; });
+    var slots = window.corpKpmDataSlots();
+    Object.keys(slots).forEach(function(id) { var n = parseInt(id, 10); if (n > max) max = n; });
+    return String(max + 1);
+};
+
+// ── Register / Edit personnel modal (WDA admin only) ──
+window.corpKpmOpenPersonModal = function(pid) {
+    if (!state.currentUser || state.currentUser.email !== 'esh@wda.com.ph') {
+        if (typeof showToast === 'function') showToast('🔒 Only the WDA System Admin can register or edit personnel.', 'warning');
+        return;
+    }
+    var T = window.CORP_KPM_TEMPLATES;
+    var roster = window.corpKpmGetRoster();
+    var isEdit = (pid !== undefined && pid !== null && pid !== '');
+    var p = isEdit ? roster.filter(function(x) { return x.id === String(pid); })[0] : null;
+    if (isEdit && !p) return;
+    var slots = window.corpKpmDataSlots();
+    var used = {}; roster.forEach(function(x) { used[x.id] = true; });
+    var orphans = Object.keys(slots).filter(function(id) { return !used[id]; })
+                        .sort(function(a, b) { return parseInt(a, 10) - parseInt(b, 10); });
+    var hasData = isEdit && !!slots[p.id];
+    var esc = function(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+    var rangeOf = function(slot) { var k = Object.keys(slot.months).sort(); return window.corpKpmFmtYm(k[0]) + (k.length > 1 ? ' – ' + window.corpKpmFmtYm(k[k.length - 1]) : ''); };
+
+    var old = document.getElementById('corp-kpm-person-modal'); if (old) old.remove();
+
+    var tplOpts = Object.keys(T).map(function(k) {
+        return '<option value="' + k + '"' + ((p ? p.tpl : 'manager') === k ? ' selected' : '') + '>' + esc(T[k].label) + '</option>';
+    }).join('');
+
+    var linkHtml = '';
+    if (!isEdit && orphans.length) {
+        var linkOpts = '<option value="">— None (start a new, empty KPM) —</option>' + orphans.map(function(id) {
+            var firstYm = Object.keys(slots[id].months).sort()[0];
+            return '<option value="' + id + '" data-start="' + firstYm + '">Previous data found: ' + rangeOf(slots[id]) + ' (slot ' + id + ')</option>';
+        }).join('');
+        linkHtml = `<div style="margin-top:12px;">
+            <label style="font-size:0.7rem;font-weight:700;color:#444;">Link previous KPM data <span style="font-weight:400;color:#888;">(only if this is the same person)</span></label>
+            <select id="ckpm-p-link" onchange="(function(s){var o=s.options[s.selectedIndex];var st=document.getElementById('ckpm-p-start');if(o&&o.getAttribute('data-start')&&st&&!st.value)st.value=o.getAttribute('data-start');})(this)" style="width:100%;margin-top:4px;padding:7px 9px;border:1.5px solid #a5d6a7;border-radius:6px;font-size:0.8rem;">${linkOpts}</select>
+        </div>`;
+    }
+    var endHtml = isEdit ? `<div style="margin-top:12px;">
+            <label style="font-size:0.7rem;font-weight:700;color:#444;">End month <span style="font-weight:400;color:#888;">(last month of KPM — leave blank if still active)</span></label>
+            <input type="month" id="ckpm-p-end" value="${esc(p.end)}" style="width:100%;margin-top:4px;padding:7px 9px;border:1.5px solid #a5d6a7;border-radius:6px;font-size:0.8rem;box-sizing:border-box;">
+        </div>` : '';
+    var arg = isEdit ? ("'" + p.id + "'") : 'null';
+    var delBtn = isEdit ? '<button onclick="window._ckpmPersonDelete(' + arg + ')" style="margin-right:auto;background:#fff;color:#c62828;border:1.5px solid #ef9a9a;border-radius:7px;padding:8px 16px;font-size:0.78rem;font-weight:700;cursor:pointer;"><i class="fas fa-trash" style="margin-right:6px;"></i>Delete</button>' : '';
+
+    var overlay = document.createElement('div');
+    overlay.id = 'corp-kpm-person-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `<div style="background:#fff;border-radius:14px;box-shadow:0 24px 80px rgba(0,0,0,0.4);width:min(460px,94vw);overflow:hidden;font-family:Calibri,Arial,sans-serif;">
+        <div style="background:#1B5E20;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
+            <div><div style="color:#fff;font-weight:700;font-size:1rem;">${isEdit ? '✏️ Edit Personnel' : '➕ Register Personnel'}</div>
+            <div style="color:#A5D6A7;font-size:0.72rem;margin-top:2px;">${isEdit ? 'Correct the details or set an end month' : 'The KPM starts on the start month you choose'}</div></div>
+            <button onclick="document.getElementById('corp-kpm-person-modal').remove()" style="background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:1.1rem;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:18px 22px 6px;">
+            <label style="font-size:0.7rem;font-weight:700;color:#444;">Full name</label>
+            <input type="text" id="ckpm-p-name" value="${esc(p ? p.name : '')}" placeholder="e.g. JUAN D. DELA CRUZ" style="width:100%;margin-top:4px;padding:7px 9px;border:1.5px solid #a5d6a7;border-radius:6px;font-size:0.8rem;text-transform:uppercase;box-sizing:border-box;">
+            <div style="margin-top:12px;">
+                <label style="font-size:0.7rem;font-weight:700;color:#444;">Position (KPM template)</label>
+                <select id="ckpm-p-tpl" ${hasData ? 'disabled' : ''} style="width:100%;margin-top:4px;padding:7px 9px;border:1.5px solid #a5d6a7;border-radius:6px;font-size:0.8rem;">${tplOpts}</select>
+                ${hasData ? '<div style="font-size:0.62rem;color:#888;margin-top:3px;">Locked — this person already has KPM data.</div>' : ''}
+            </div>
+            <div style="margin-top:12px;">
+                <label style="font-size:0.7rem;font-weight:700;color:#444;">Start month</label>
+                <input type="month" id="ckpm-p-start" value="${esc(p ? p.start : '')}" style="width:100%;margin-top:4px;padding:7px 9px;border:1.5px solid #a5d6a7;border-radius:6px;font-size:0.8rem;box-sizing:border-box;">
+            </div>
+            ${endHtml}
+            ${linkHtml}
+        </div>
+        <div style="padding:14px 22px 18px;display:flex;justify-content:flex-end;gap:10px;">
+            ${delBtn}
+            <button onclick="document.getElementById('corp-kpm-person-modal').remove()" style="background:#f5f5f5;color:#555;border:1px solid #ddd;border-radius:7px;padding:8px 18px;font-size:0.78rem;font-weight:700;cursor:pointer;">Cancel</button>
+            <button onclick="window._ckpmPersonSave(${arg})" style="background:#2e7d32;color:#fff;border:none;border-radius:7px;padding:8px 22px;font-size:0.78rem;font-weight:700;cursor:pointer;"><i class="fas fa-save" style="margin-right:6px;"></i>${isEdit ? 'Save Changes' : 'Register'}</button>
+        </div>
+    </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+};
+
+window._ckpmPersonDelete = function(pid) {
+    if (!state.currentUser || state.currentUser.email !== 'esh@wda.com.ph') return;
+    var id = String(pid);
+    var roster = window.corpKpmGetRoster();
+    var p = roster.filter(function(x) { return x.id === id; })[0];
+    if (!p) return;
+    var slot = window.corpKpmDataSlots()[id];
+    var msg = 'Delete "' + p.name + '" from the Corporate KPM list?'
+        + (slot ? '\n\nHis/her saved KPM data (' + Object.keys(slot.months).length + ' month(s)) will NOT be erased, but will no longer be shown. It can be re-linked when registering again.' : '');
+    if (!window.confirm(msg)) return;
+    window.corpKpmSaveRoster(roster.filter(function(x) { return x.id !== id; }));
+    var m = document.getElementById('corp-kpm-person-modal'); if (m) m.remove();
+    if (typeof window.renderCorporateKpm === 'function') window.renderCorporateKpm();
+    if (typeof showToast === 'function') showToast('🗑️ Personnel deleted.', 'success');
+};
+
+window._ckpmPersonSave = function(pid) {
+    if (!state.currentUser || state.currentUser.email !== 'esh@wda.com.ph') return;
+    var toast = function(m, t) { if (typeof showToast === 'function') showToast(m, t || 'warning'); };
+    var val = function(id) { var el = document.getElementById(id); return el ? String(el.value || '') : ''; };
+    var name  = val('ckpm-p-name').replace(/\s+/g, ' ').trim().toUpperCase();
+    var tpl   = val('ckpm-p-tpl');
+    var start = val('ckpm-p-start');
+    var end   = val('ckpm-p-end');
+    var link  = val('ckpm-p-link');
+    if (!name) { toast('⚠️ Please enter the full name.'); return; }
+    if (!window.CORP_KPM_TEMPLATES[tpl]) { toast('⚠️ Please choose a position.'); return; }
+    if (!/^\d{4}-\d{2}$/.test(start)) { toast('⚠️ Please choose the start month.'); return; }
+    if (end && !/^\d{4}-\d{2}$/.test(end)) end = '';
+    if (end && end < start) { toast('⚠️ The end month cannot be earlier than the start month.'); return; }
+    var roster = window.corpKpmGetRoster();
+    var isEdit = (pid !== undefined && pid !== null && pid !== '');
+    var id = isEdit ? String(pid) : (link !== '' ? String(link) : window.corpKpmFreeId());
+    if (isEdit && !roster.some(function(p) { return p.id === id; })) return;
+    var slot = window.corpKpmDataSlots()[id];
+    if (slot) {
+        var outside = Object.keys(slot.months).filter(function(ym) { return ym < start || (end && ym > end); });
+        if (outside.length && !window.confirm('This person has saved KPM data for ' + outside.length + ' month(s) outside the new period. The data will not be deleted but will no longer be shown. Continue?')) return;
+    }
+    if (isEdit) {
+        roster = roster.map(function(p) { return p.id === id ? { id: id, name: name, tpl: tpl, start: start, end: end } : p; });
+    } else {
+        roster.push({ id: id, name: name, tpl: tpl, start: start, end: '' });
+    }
+    window.corpKpmSaveRoster(roster);
+    var m = document.getElementById('corp-kpm-person-modal'); if (m) m.remove();
+    if (typeof window.renderCorporateKpm === 'function') window.renderCorporateKpm();
+    toast(isEdit ? '✅ Personnel updated.' : '✅ Personnel registered.', 'success');
+};
+
 // ── Corporate KPM Firestore persistence ──────────────────────────────────────
 // Shared doc lives under the master admin UID's sharedData subcollection, which
 // firestore.rules already allows: read for any SCIC user, write for
@@ -37973,7 +38239,7 @@ window.corpKpmAttachSync = function() {
             var data = snap.data();
             if (!state.companyData) state.companyData = {};
             Object.keys(data).forEach(function(k) { if (k !== '_updatedAt') state.companyData[k] = data[k]; });
-            if (document.getElementById('ckpm-mgr-banner-0') || document.getElementById('ckpm-mgr-banner-1')) {
+            if (document.getElementById('ckpm-root')) {
                 if (typeof window.renderCorporateKpm === 'function') window.renderCorporateKpm();
             }
         }, function(err) { console.warn('⚠️ Corporate KPM sync error:', err.message); });
@@ -37995,14 +38261,22 @@ window.renderCorporateKpm = function() {
         return;
     }
 
-    const CORP_KPM_ROWS = window.CORP_KPM_ROWS || [];
+    const TEMPLATES  = window.CORP_KPM_TEMPLATES;
     const year = state.selectedYear || new Date().getFullYear();
     const KPM_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const MO_SHORT   = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-    const MANAGERS   = ['WILLIAM D. ABELA', 'LARRY M. PAYBA'];
     const curMoIdx   = new Date().getMonth();
 
-    // ── Data helpers — per-manager keys ──
+    // ── Roster: only personnel whose KPM period overlaps the selected year ──
+    const ROSTER = window.corpKpmGetRoster().filter(function(p) { return window.corpKpmActiveInYear(p, year); });
+    const getP    = function(id) { return window.corpKpmGetRoster().filter(function(p) { return p.id === String(id); })[0]; };
+    const tplOf   = function(id) { var p = getP(id); return (p && TEMPLATES[p.tpl]) || TEMPLATES.manager; };
+    const rowsFor = function(id) { return window[tplOf(id).rowsKey] || []; };
+    const isActiveMo     = function(id, moIdx) { var p = getP(id); return !!p && window.corpKpmActiveInMonth(p, year, moIdx); };
+    const activeMonthsOf = function(id) { return KPM_MONTHS.filter(function(mo, i) { return isActiveMo(id, i); }); };
+    function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    // ── Data helpers — keys use the permanent person id ──
     function ckGet(mgrIdx, mo, key) {
         return ((state.companyData || {})['corp_kpm_' + year + '_' + mgrIdx + '_' + mo + '_' + key]) || '';
     }
@@ -38016,8 +38290,9 @@ window.renderCorporateKpm = function() {
         return !!((state.companyData || {})['corp_kpm_na_' + year + '_' + mgrIdx + '_' + mo]);
     }
     function mgrMonthScore(mgrIdx, mo) {
+        if (!isActiveMo(mgrIdx, KPM_MONTHS.indexOf(mo))) return null;
         var grand = 0, hasAny = false;
-        CORP_KPM_ROWS.forEach(function(row) {
+        rowsFor(mgrIdx).forEach(function(row) {
             var raw = String(ckGet(mgrIdx, mo, row.id + '_ep') || '').replace('%','').trim();
             var n = parseFloat(raw);
             if (!isNaN(n)) { hasAny = true; grand += (n / 100) * row.dw; }
@@ -38026,27 +38301,29 @@ window.renderCorporateKpm = function() {
     }
 
     // ── Summary scorecard ──
-    var moScores = MANAGERS.map(function(mgr, mi) {
-        return KPM_MONTHS.map(function(mo) { return mgrMonthScore(mi, mo); });
+    var moScores = ROSTER.map(function(p) {
+        return KPM_MONTHS.map(function(mo) { return mgrMonthScore(p.id, mo); });
     });
     function cellBg(v){ return v>=0.90?'#e8f5e9':v>=0.85?'#fff8e1':'#ffebee'; }
     function cellFg(v){ return v>=0.90?'#1b5e20':v>=0.85?'#7a5c00':'#c62828'; }
 
-    var thCells = '<th style="min-width:160px;text-align:left;background:#1b5e20;color:#fff;font-size:0.62rem;padding:7px 10px;border:1px solid #388e3c;position:sticky;left:0;z-index:3;">MANAGER</th>';
+    var thCells = '<th style="min-width:160px;text-align:left;background:#1b5e20;color:#fff;font-size:0.62rem;padding:7px 10px;border:1px solid #388e3c;position:sticky;left:0;z-index:3;">PERSONNEL</th>';
     MO_SHORT.forEach(function(m, mi) {
         var isLive = mi <= curMoIdx;
         thCells += '<th style="min-width:46px;text-align:center;background:' + (isLive?'#1b5e20':'#388e3c') + ';color:#fff;font-size:0.6rem;padding:6px 4px;border:1px solid #388e3c;opacity:' + (isLive?'1':'0.65') + ';">' + m + '</th>';
     });
     thCells += '<th style="min-width:60px;text-align:center;background:#0d3311;color:#ffd54f;font-size:0.62rem;padding:7px 6px;border:1px solid #0d3311;">AVG</th>';
 
-    var bodyRows = MANAGERS.map(function(mgr, mi) {
-        var scores = moScores[mi];
+    var bodyRows = ROSTER.length ? ROSTER.map(function(p, pi) {
+        var scores = moScores[pi];
         var validScores = scores.filter(function(v){return v!==null;});
         var avg = validScores.length ? validScores.reduce(function(s,v){return s+v;},0)/validScores.length : null;
-        var cells = '<td style="text-align:left;font-weight:700;font-size:0.62rem;color:#1b5e20;background:#f1f8e9;padding:6px 10px;border:1px solid #c8e6c9;white-space:nowrap;position:sticky;left:0;z-index:2;box-shadow:2px 0 4px rgba(0,0,0,0.06);">' + mgr + '</td>';
+        var cells = '<td style="text-align:left;font-weight:700;font-size:0.62rem;color:#1b5e20;background:#f1f8e9;padding:6px 10px;border:1px solid #c8e6c9;white-space:nowrap;position:sticky;left:0;z-index:2;box-shadow:2px 0 4px rgba(0,0,0,0.06);">' + esc(p.name) + '<div style="font-weight:500;font-size:0.55rem;color:#558b2f;margin-top:1px;">' + esc(TEMPLATES[p.tpl].role) + '</div></td>';
         scores.forEach(function(v, idx) {
             var isFut = idx > curMoIdx;
-            if (v === null) {
+            if (!isActiveMo(p.id, idx)) {
+                cells += '<td title="Outside KPM period" style="background:#eceff1;padding:5px 3px;border:1px solid #c8e6c9;"></td>';
+            } else if (v === null) {
                 cells += '<td style="text-align:center;font-size:0.6rem;color:#bdbdbd;background:' + (isFut?'#f9f9f9':'#fff8f8') + ';padding:5px 3px;border:1px solid #c8e6c9;opacity:' + (isFut?'0.5':'1') + ';">—</td>';
             } else {
                 cells += '<td style="text-align:center;font-size:0.63rem;font-weight:700;color:' + cellFg(v) + ';background:' + cellBg(v) + ';padding:5px 3px;border:1px solid #c8e6c9;">' + (v*100).toFixed(1) + '%</td>';
@@ -38054,16 +38331,16 @@ window.renderCorporateKpm = function() {
         });
         cells += '<td style="text-align:center;font-weight:900;font-size:0.66rem;color:' + (avg!==null?cellFg(avg):'#bdbdbd') + ';background:' + (avg!==null?cellBg(avg):'#f5f5f5') + ';padding:6px 5px;border:2px solid #a5d6a7;">' + (avg!==null?(avg*100).toFixed(1)+'%':'—') + '</td>';
         return '<tr>' + cells + '</tr>';
-    }).join('');
+    }).join('') : '<tr><td colspan="14" style="padding:18px;text-align:center;color:#888;font-size:0.74rem;font-style:italic;">No personnel registered for ' + year + ' yet.' + (isWdaAdmin ? ' Click "Register Personnel" to add one.' : '') + '</td></tr>';
 
     var summaryHtml = '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">'
         + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
         +   '<div>'
         +     '<div style="font-family:Poppins,sans-serif;font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">🏢 CORPORATE KPM MONTHLY REPORT</div>'
-        +     '<div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Corporate ESH KPM — CO-KPM-WDA-ESH | Weighted % per manager per month · Year: ' + year + '</div>'
+        +     '<div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Weighted % per personnel per month · Year: ' + year + '</div>'
         +   '</div>'
         +   (isWdaAdmin
-              ? '<span style="margin-left:auto;background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;border-radius:4px;padding:2px 9px;font-size:0.62rem;font-weight:700;">WDA ADMIN</span>'
+              ? '<span style="margin-left:auto;display:flex;align-items:center;gap:8px;"><button onclick="window.corpKpmOpenPersonModal()" style="background:#2e7d32;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:0.68rem;font-weight:700;cursor:pointer;"><i class="fas fa-user-plus" style="margin-right:5px;"></i>Register Personnel</button><span style="background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;border-radius:4px;padding:2px 9px;font-size:0.62rem;font-weight:700;">WDA ADMIN</span></span>'
               : '<span style="margin-left:auto;background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:4px;padding:2px 9px;font-size:0.62rem;font-weight:700;"><i class="fas fa-eye" style="margin-right:3px;"></i>VIEW ONLY</span>')
         + '</div>'
         + '<div style="overflow-x:auto;padding:14px 16px 10px;">'
@@ -38076,44 +38353,46 @@ window.renderCorporateKpm = function() {
         +   '<span style="font-size:0.59rem;color:#888;margin-left:auto;">— = no data entered</span>'
         + '</div></div>';
 
-    // ── Build per-manager region sections ──
+    // ── Build per-personnel sections (one per registered person active in the selected year) ──
     var managersHtml = '';
-    MANAGERS.forEach(function(mgr, mi) {
+    ROSTER.forEach(function(p, pi) {
+        var mi = p.id;                       // permanent person id — DOM ids, collapse state and data keys
+        var tpl = TEMPLATES[p.tpl];
         var lsKey = 'corpKpmCollapsed_' + mi;
         var isCollapsed = (function(){ try { return localStorage.getItem(lsKey) === '1'; } catch(e){ return false; } })();
 
+        var periodMonths = KPM_MONTHS.filter(function(mo, idx) { return idx <= curMoIdx && isActiveMo(mi, idx); });
         var submittedCount = 0;
-        KPM_MONTHS.forEach(function(mo, idx) {
-            if (idx > curMoIdx) return;
-            if (ckGet(mi, mo, 'dateSubmitted')) submittedCount++;
-        });
+        periodMonths.forEach(function(mo) { if (ckGet(mi, mo, 'dateSubmitted')) submittedCount++; });
+        var periodLabel = window.corpKpmFmtYm(p.start) + ' – ' + (p.end ? window.corpKpmFmtYm(p.end) : 'Present');
 
-        // Region banner for this manager
+        // Banner for this person
         managersHtml += '<div id="ckpm-mgr-banner-' + mi + '" class="region-banner' + (isCollapsed?' collapsed':'') + ' rb-editable"'
             + ' onclick="window.corpKpmToggleMgr(' + mi + ',event)">'
             + '<div class="region-banner-inner">'
             +   '<div class="region-banner-left">'
-            +     '<span style="background:rgba(255,255,255,0.22);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;margin-right:4px;">' + (mi+1) + '</span>'
-            +     '<span style="background:rgba(255,255,255,0.15);color:#fff;border-radius:5px;padding:2px 7px;font-size:0.63rem;font-weight:800;margin-right:6px;">MGR</span>'
-            +     '<span class="region-name">' + mgr + '</span>'
+            +     '<span style="background:rgba(255,255,255,0.22);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;margin-right:4px;">' + (pi+1) + '</span>'
+            +     '<span style="background:rgba(255,255,255,0.15);color:#fff;border-radius:5px;padding:2px 7px;font-size:0.63rem;font-weight:800;margin-right:6px;">' + tpl.badge + '</span>'
+            +     '<span class="region-name">' + esc(p.name) + '</span>'
             +   '</div>'
             +   '<div class="region-banner-right">'
-            +     '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">Corporate Manager</span>'
-            +     '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">' + submittedCount + '/' + (curMoIdx+1) + ' submitted</span>'
+            +     '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">' + esc(tpl.role) + '</span>'
+            +     '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">' + periodLabel + '</span>'
+            +     '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">' + submittedCount + '/' + periodMonths.length + ' submitted</span>'
             +     (isWdaAdmin ? '<button class="lta-add-btn" onclick="event.stopPropagation();window.openCorpKpmModal(' + mi + ',null,true)" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-plus"></i> Add Entry</button>' : '')
+            +     (isWdaAdmin ? '<button class="lta-add-btn" onclick="event.stopPropagation();window.corpKpmOpenPersonModal(' + mi + ')" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-pen"></i> Edit</button>' : '')
             +     '<i class="fas fa-chevron-down region-toggle-icon"></i>'
             +   '</div>'
             + '</div></div>'
             + '<div id="ckpm-content-' + mi + '" class="region-content' + (isCollapsed?' collapsed':'') + '">';
 
-        // Month rows inside this manager section
+        // Month rows — only months inside this person's KPM period
         var hasAnyRow = false;
         KPM_MONTHS.forEach(function(mo, moIdx) {
-            if (moIdx > curMoIdx) return;
+            if (moIdx > curMoIdx || !isActiveMo(mi, moIdx)) return;
             var score = mgrMonthScore(mi, mo);
             var dateSubm = ckGet(mi, mo, 'dateSubmitted');
             var isNA = ckIsNA(mi, mo);
-            // Show row if has any data, or is NA, or just show all past months always
             hasAnyRow = true;
 
             var scoreBg = score===null ? '#f5f5f5' : cellBg(score);
@@ -38124,7 +38403,7 @@ window.renderCorporateKpm = function() {
 
             managersHtml += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
                 + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
-                + ' onclick="window.openCorpKpmModal(' + mi + ',\'' + mo.replace(/'/g,"\\'") + '\',false)">'
+                + ' onclick="window.openCorpKpmModal(' + mi + ',\'' + mo + '\',false)">'
                 + '<span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">' + (moIdx+1) + '</span>'
                 + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:36px;text-align:center;">' + mo.substring(0,3).toUpperCase() + '</span>'
                 + '<div style="flex:1;min-width:0;">'
@@ -38133,15 +38412,15 @@ window.renderCorporateKpm = function() {
                 + '</div>'
                 + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
                 + '<span style="background:' + scoreBg + ';color:' + scoreFg + ';border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">' + scoreLabel + '</span>'
-                + (isWdaAdmin ? '<button onclick="event.stopPropagation();window.openCorpKpmModal(' + mi + ',\'' + mo.replace(/'/g,"\\'") + '\',true)" title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen"></i></button>' : '')
+                + (isWdaAdmin ? '<button onclick="event.stopPropagation();window.openCorpKpmModal(' + mi + ',\'' + mo + '\',true)" title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen"></i></button>' : '')
                 + '</div>'
                 + '</div>';
         });
 
         if (!hasAnyRow) {
             managersHtml += '<div style="padding:18px;text-align:center;color:#aaa;font-size:0.76rem;font-style:italic;">'
-                + '<i class="fas fa-inbox" style="margin-right:6px;"></i>No KPM entries yet.'
-                + (isWdaAdmin ? ' Click "+ Add Entry" to begin.' : '') + '</div>';
+                + '<i class="fas fa-inbox" style="margin-right:6px;"></i>No KPM months yet — KPM starts ' + window.corpKpmFmtYm(p.start) + '.'
+                + (isWdaAdmin ? ' You can still click "+ Add Entry".' : '') + '</div>';
         }
 
         managersHtml += '</div>'; // close ckpm-content
@@ -38167,7 +38446,7 @@ window.renderCorporateKpm = function() {
 
     // ── Modal: open KPM table for a specific manager + month ──
     window.openCorpKpmModal = function(mgrIdx, month, editMode) {
-        var mgrName  = MANAGERS[mgrIdx];
+        var mgrName  = (getP(mgrIdx) || {}).name || '';
         var isNA     = month ? ckIsNA(mgrIdx, month) : false;
         var dis      = (!isWdaAdmin || !editMode || isNA) ? 'disabled' : '';
         var canEdit  = isWdaAdmin && editMode;
@@ -38187,14 +38466,14 @@ window.renderCorporateKpm = function() {
         // Determine active month
         var filledMonths = {};
         KPM_MONTHS.forEach(function(mo) {
-            var hasData = CORP_KPM_ROWS.some(function(row){ return ckGet(mgrIdx, mo, row.id+'_ep'); });
+            var hasData = rowsFor(mgrIdx).some(function(row){ return ckGet(mgrIdx, mo, row.id+'_ep'); });
             var hasDate = !!ckGet(mgrIdx, mo, 'dateSubmitted');
             filledMonths[mo] = hasData || hasDate;
         });
         var activeMo = month;
         if (!activeMo) {
-            var avail = KPM_MONTHS.filter(function(mo){ return !filledMonths[mo]; });
-            activeMo = avail.length ? avail[0] : KPM_MONTHS[curMoIdx];
+            var avail = activeMonthsOf(mgrIdx).filter(function(mo){ return !filledMonths[mo]; });
+            activeMo = avail.length ? avail[0] : (activeMonthsOf(mgrIdx).slice(-1)[0] || KPM_MONTHS[curMoIdx]);
         }
 
         var moSafe = activeMo.replace(/'/g,"\\'");
@@ -38208,7 +38487,7 @@ window.renderCorporateKpm = function() {
         // Month dropdown (Add Entry only)
         var monthDropHtml = '';
         if (isNewEntry) {
-            var moOpts = KPM_MONTHS.map(function(mo) {
+            var moOpts = activeMonthsOf(mgrIdx).map(function(mo) {
                 var isFilled = filledMonths[mo];
                 var isSel = mo === activeMo;
                 return '<option value="' + mo + '"' + (isSel?' selected':'') + (isFilled?' disabled style="color:#bbb;"':'') + '>'
@@ -38227,7 +38506,7 @@ window.renderCorporateKpm = function() {
         var GRADE_PERC_MODAL  = [0.75, 0.80, 0.85, 0.90, 0.95];
         var GRADE_SCALE_MODAL = [1, 2, 3, 4, 5];
         var tableRows = '';
-        CORP_KPM_ROWS.forEach(function(row) {
+        rowsFor(mgrIdx).forEach(function(row) {
             var rawVal = ckGet(mgrIdx, activeMo, row.id + '_ep');
             var n = parseFloat(String(rawVal||'').replace('%',''));
             var ep = isNaN(n) ? null : n/100;
@@ -38284,13 +38563,13 @@ window.renderCorporateKpm = function() {
 
 
         var grand = 0, hasAny = false;
-        CORP_KPM_ROWS.forEach(function(row) {
+        rowsFor(mgrIdx).forEach(function(row) {
             var raw = String(ckGet(mgrIdx, activeMo, row.id + '_ep') || '').replace('%','').trim();
             var n = parseFloat(raw);
             if (!isNaN(n)) { hasAny = true; grand += (n/100) * row.dw; }
         });
         var grandColor = grand>=0.90?'#2e7d32':grand>=0.85?'#e65100':hasAny?'#c62828':'#aaa';
-        var totalDW = CORP_KPM_ROWS.reduce(function(s,r){return s+r.dw;},0);
+        var totalDW = rowsFor(mgrIdx).reduce(function(s,r){return s+r.dw;},0);
 
         var modal = document.createElement('div');
         modal.id = 'corp-kpm-modal';
@@ -38305,7 +38584,7 @@ window.renderCorporateKpm = function() {
             +       ' — <span style="color:#fbc02d;">' + activeMo + ' ' + year + '</span>'
             +     '</div>'
             +     '<div style="color:#a5d6a7;font-size:0.67rem;margin-top:3px;">'
-            +       '<i class="fas fa-user-tie" style="margin-right:4px;"></i>' + mgrName
+            +       '<i class="fas fa-user-tie" style="margin-right:4px;"></i>' + esc(mgrName) + ' — ' + tplOf(mgrIdx).role
             +     '</div>'
             +   '</div>'
             +   '<button onclick="document.getElementById(\'corp-kpm-modal\').remove()" style="background:rgba(255,255,255,0.15);color:white;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background=\'rgba(255,255,255,0.3)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'"><i class="fas fa-times"></i></button>'
@@ -38339,7 +38618,7 @@ window.renderCorporateKpm = function() {
             +   '</tr>'
             +   '<tr style="background:#2e7d32;color:#fff;font-size:0.62rem;font-weight:700;text-align:center;">'
             +     '<th style="padding:5px 4px;border:1px solid #388e3c;width:28px;min-width:28px;max-width:28px;">#</th>'
-            +     '<th style="padding:5px 4px;border:1px solid #388e3c;min-width:130px;white-space:normal;">Work Process</th>'
+            +     '<th style="padding:5px 4px;border:1px solid #388e3c;min-width:130px;white-space:normal;">' + tplOf(mgrIdx).wpLabel + '</th>'
             +     '<th style="padding:5px 4px;border:1px solid #388e3c;min-width:130px;white-space:normal;">Deliverables</th>'
             +     '<th style="padding:5px 4px;border:1px solid #388e3c;min-width:46px;">DW</th>'
             +     '<th style="padding:5px 4px;border:1px solid #388e3c;min-width:150px;white-space:normal;">Measure</th>'
@@ -38370,7 +38649,7 @@ window.renderCorporateKpm = function() {
             +   '<span style="font-size:0.59rem;color:#1b5e20;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#c8e6c9;display:inline-block;"></span>≥90% Excellent</span>'
             +   '<span style="font-size:0.59rem;color:#7a5c00;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#fff9c4;display:inline-block;"></span>85–89% Satisfactory</span>'
             +   '<span style="font-size:0.59rem;color:#c62828;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#ffcdd2;display:inline-block;"></span>&lt;85% Needs Improvement</span>'
-            +   '<span style="font-size:0.59rem;color:#888;margin-left:auto;">FM-CO-KPM-WDA-ESH | Eff. Date: 06 Aug 2018</span>'
+            +   '<span style="font-size:0.59rem;color:#888;margin-left:auto;">' + tplOf(mgrIdx).docCode + '</span>'
             + '</div>'
             // Footer
             + '<div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;background:var(--bg-card);">'
@@ -38392,7 +38671,7 @@ window.renderCorporateKpm = function() {
         var _GS = [1, 2, 3, 4, 5];
         // Recompute grand total and refresh Statistics + EG cells in modal
         var grand = 0, hasAny = false;
-        CORP_KPM_ROWS.forEach(function(row) {
+        rowsFor(mgrIdx).forEach(function(row) {
             var raw = String(ckGet(mgrIdx, mo, row.id + '_ep') || '').replace('%','').trim();
             var n = parseFloat(raw);
             var epFrac = isNaN(n) ? null : n/100;
@@ -38442,7 +38721,7 @@ window.renderCorporateKpm = function() {
     };
 
     // ── Assemble ──
-    container.innerHTML = '<div style="padding:14px 10px;">'
+    container.innerHTML = '<div id="ckpm-root" style="padding:14px 10px;">'
         + summaryHtml
         + (!isWdaAdmin ? '<div style="background:#e3f2fd;border:1.5px solid #90caf9;border-radius:6px;padding:7px 14px;font-size:0.72rem;color:#1565c0;font-weight:600;margin:0 16px 12px;"><i class="fas fa-info-circle" style="margin-right:5px;"></i>You have view-only access. Only the WDA System Admin can make changes.</div>' : '')
         + managersHtml
@@ -38468,21 +38747,31 @@ function exportCorporateKpmExcel() {
     overlay.innerHTML = '<div style="background:#fff;border-radius:14px;box-shadow:0 24px 80px rgba(0,0,0,0.4);width:min(420px,92vw);overflow:hidden;font-family:Calibri,Arial,sans-serif;">'
         + '<div style="background:#1B5E20;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">'
         +   '<div><div style="color:#fff;font-weight:700;font-size:1rem;">📥 Export Corporate KPM</div>'
-        +   '<div style="color:#A5D6A7;font-size:0.72rem;margin-top:2px;">Select which manager(s) to export</div></div>'
+        +   '<div style="color:#A5D6A7;font-size:0.72rem;margin-top:2px;">Select which personnel to export</div></div>'
         +   '<button onclick="document.getElementById(\'corp-kpm-export-modal\').remove()" style="background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:1.1rem;line-height:1;">&times;</button>'
         + '</div>'
         + '<div style="padding:22px 24px 10px;">'
         +   '<div style="font-size:0.78rem;color:#555;margin-bottom:14px;font-weight:600;">Choose export option:</div>'
         +   '<div style="display:flex;flex-direction:column;gap:10px;">'
-        +     '<button onclick="window._corpKpmDoExport([0])" style="background:#E8F5E9;border:2px solid #2E7D32;color:#1B5E20;border-radius:9px;padding:13px 18px;font-size:0.88rem;font-weight:700;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">'
-        +       '<span style="font-size:1.2rem;">📄</span>'
-        +       '<span><span style="font-size:0.95rem;">WDA</span><br><span style="font-weight:400;font-size:0.72rem;color:#388E3C;">William D. Abela — 1 file</span></span></button>'
-        +     '<button onclick="window._corpKpmDoExport([1])" style="background:#E3F2FD;border:2px solid #1565C0;color:#0D47A1;border-radius:9px;padding:13px 18px;font-size:0.88rem;font-weight:700;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">'
-        +       '<span style="font-size:1.2rem;">📄</span>'
-        +       '<span><span style="font-size:0.95rem;">LMP</span><br><span style="font-weight:400;font-size:0.72rem;color:#1976D2;">Larry M. Payba — 1 file</span></span></button>'
-        +     '<button onclick="window._corpKpmDoExport([0,1])" style="background:#F3E5F5;border:2px solid #6A1B9A;color:#4A148C;border-radius:9px;padding:13px 18px;font-size:0.88rem;font-weight:700;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">'
-        +       '<span style="font-size:1.2rem;">📦</span>'
-        +       '<span><span style="font-size:0.95rem;">Both</span><br><span style="font-weight:400;font-size:0.72rem;color:#7B1FA2;">WDA + LMP — 2 separate files</span></span></button>'
+        +     (function() {
+              var yr = state.selectedYear || new Date().getFullYear();
+              var list = window.corpKpmGetRoster().filter(function(p) { return window.corpKpmActiveInYear(p, yr); });
+              var esc = function(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+              if (!list.length) return '<div style="font-size:0.78rem;color:#c62828;font-weight:600;">No personnel registered for ' + yr + '.</div>';
+              var pal = [['#E8F5E9','#2E7D32','#1B5E20','#388E3C'],['#E3F2FD','#1565C0','#0D47A1','#1976D2'],['#FFF3E0','#E65100','#BF360C','#F57C00'],['#E0F2F1','#00796B','#004D40','#00897B']];
+              var btns = list.map(function(p, i) {
+                  var c = pal[i % pal.length];
+                  return '<button onclick="window._corpKpmDoExport([' + p.id + '])" style="background:' + c[0] + ';border:2px solid ' + c[1] + ';color:' + c[2] + ';border-radius:9px;padding:13px 18px;font-size:0.88rem;font-weight:700;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">'
+                      + '<span style="font-size:1.2rem;">📄</span>'
+                      + '<span><span style="font-size:0.95rem;">' + window.corpKpmTag(p.name) + '</span><br><span style="font-weight:400;font-size:0.72rem;color:' + c[3] + ';">' + esc(p.name) + ' — ' + esc(window.CORP_KPM_TEMPLATES[p.tpl].role) + ' — 1 file</span></span></button>';
+              }).join('');
+              if (list.length > 1) {
+                  btns += '<button onclick="window._corpKpmDoExport([' + list.map(function(p) { return p.id; }).join(',') + '])" style="background:#F3E5F5;border:2px solid #6A1B9A;color:#4A148C;border-radius:9px;padding:13px 18px;font-size:0.88rem;font-weight:700;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;">'
+                      + '<span style="font-size:1.2rem;">📦</span>'
+                      + '<span><span style="font-size:0.95rem;">All</span><br><span style="font-weight:400;font-size:0.72rem;color:#7B1FA2;">All ' + list.length + ' personnel — ' + list.length + ' separate files</span></span></button>';
+              }
+              return btns;
+          })()
         +   '</div>'
         + '</div>'
         + '<div style="padding:12px 24px 18px;text-align:right;">'
@@ -38495,11 +38784,10 @@ function exportCorporateKpmExcel() {
 window._corpKpmDoExport = async function(mgrIndices) {
     const overlay = document.getElementById('corp-kpm-export-modal');
     if (overlay) overlay.remove();
-    const CORP_KPM_ROWS = window.CORP_KPM_ROWS || [];
     const year     = state.selectedYear || new Date().getFullYear();
     const MO_LONG  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const MO_SHORT = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-    const MANAGERS = ['WILLIAM D. ABELA', 'LARRY M. PAYBA'];
+    const ROSTER_ALL = window.corpKpmGetRoster();
     const GRADE_PERC  = [0.75, 0.80, 0.85, 0.90, 0.95];
     const GRADE_SCALE = [1, 2, 3, 4, 5];
 
@@ -38552,18 +38840,24 @@ window._corpKpmDoExport = async function(mgrIndices) {
         const _nowYear  = new Date().getFullYear();
         const _curMoIdx = new Date().getMonth();
         const _dateTag  = new Date().toISOString().slice(0, 10);
+        const _skipped  = [];
 
         // ── One sheet per manager per month ───────────────────────────────────
         for (let _mi = 0; _mi < mgrIndices.length; _mi++) {
             const mgrIdx  = mgrIndices[_mi];
-            const mgrName = MANAGERS[mgrIdx];
+            const PERSON  = ROSTER_ALL.filter(function(x) { return x.id === String(mgrIdx); })[0];
+            if (!PERSON) { _skipped.push('#' + mgrIdx); continue; }
+            const mgrName = PERSON.name;
+            const PERS    = Object.assign({ tag: window.corpKpmTag(PERSON.name) }, window.CORP_KPM_TEMPLATES[PERSON.tpl]);
+            const CORP_KPM_ROWS = window[PERS.rowsKey] || [];
             const wb = new ExcelJS.Workbook();
             wb.creator = 'SCIC ESH Dashboard';
             wb.created = new Date();
             MO_LONG.forEach(function(mo, moIdx) {
                 if (year >= _nowYear && moIdx >= _curMoIdx) return;
+                if (!window.corpKpmActiveInMonth(PERSON, year, moIdx)) return;
                 const isNA      = ckIsNA(mgrIdx, mo);
-                const mgrTag    = mgrIdx === 0 ? 'WDA' : 'LMP';
+                const mgrTag    = PERS.tag;
                 const moShort   = MO_SHORT[moIdx];
                 const sheetName = (moShort + '-' + mgrTag).substring(0, 31);
                 const ws        = wb.addWorksheet(sheetName);
@@ -38578,7 +38872,7 @@ window._corpKpmDoExport = async function(mgrIndices) {
                 // ── ROW 1: Notes ───────────────────────────────────────────────
                 ws.mergeCells(1, 1, 1, TOTAL_COLS);
                 const notesCell = ws.getCell('A1');
-                notesCell.value = 'NOTES: 1) If the KPM or KPI is not applicable, do not delete the cell/row, put "N/A" instead.  2) Attach corresponding evidences and/or records.  |  FM-CO-KPM-WDA-ESH | Eff. Date: 06 Aug 2018';
+                notesCell.value = 'NOTES: 1) If the KPM or KPI is not applicable, do not delete the cell/row, put "N/A" instead.  2) Attach corresponding evidences and/or records.  |  ' + PERS.docCode;
                 notesCell.font      = { size: 8, name: 'Calibri', color: { argb: 'FF5D4037' }, italic: true };
                 notesCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF9C4' } };
                 notesCell.alignment = { vertical: 'middle', wrapText: false };
@@ -38591,7 +38885,7 @@ window._corpKpmDoExport = async function(mgrIndices) {
                 // ── ROW 3: Title ───────────────────────────────────────────────
                 ws.mergeCells(3, 1, 3, TOTAL_COLS);
                 const titleCell = ws.getCell('A3');
-                titleCell.value     = 'KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT — CORPORATE';
+                titleCell.value     = 'KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT — ' + PERS.titleSuffix;
                 titleCell.font      = { bold: true, size: 12, name: 'Calibri', color: { argb: C_WHITE } };
                 titleCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: C_MED_GREEN } };
                 titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -38604,7 +38898,7 @@ window._corpKpmDoExport = async function(mgrIndices) {
                 const metaFont = { size: 8.5, name: 'Calibri' };
                 const metaBold = { bold: true, size: 8.5, name: 'Calibri', color: { argb: C_MED_GREEN } };
                 [
-                    [4, 1,  'Manager: ' + mgrName],
+                    [4, 1,  PERS.metaLabel + ': ' + mgrName],
                     [4, 5,  'Period Covered: ' + mo + ' 1–' + lastDay + ', ' + year],
                     [4, 11, 'Date Submitted: ' + (dateSubm || '—')],
                     [4, 15, 'Status: ' + (isNA ? 'N/A — EXEMPT' : 'ACTIVE')]
@@ -38642,7 +38936,7 @@ window._corpKpmDoExport = async function(mgrIndices) {
                 // ── ROW 6: Column headers ──────────────────────────────────────
                 const hdrDefs = [
                     { v: '#',                          bg: C_GREEN_HDR, fg: C_WHITE      },
-                    { v: 'Work Process',               bg: C_GREEN_HDR, fg: C_WHITE      },
+                    { v: PERS.wpLabel,                bg: C_GREEN_HDR, fg: C_WHITE      },
                     { v: 'Deliverables',               bg: C_GREEN_HDR, fg: C_WHITE      },
                     { v: 'DW',                         bg: C_GREEN_HDR, fg: C_WHITE      },
                     { v: 'Measure',                    bg: C_GREEN_HDR, fg: C_WHITE      },
@@ -38659,7 +38953,7 @@ window._corpKpmDoExport = async function(mgrIndices) {
                     { v: 'Root\nCause',                bg: 'FF1A3A1A',  fg: 'FFA5D6A7'   },
                     { v: 'Corrective\nAction',         bg: 'FF1A3A1A',  fg: 'FFA5D6A7'   },
                     { v: 'Date of\nImpl.',             bg: 'FF1A3A1A',  fg: 'FFA5D6A7'   },
-                    { v: 'Status',                     bg: 'FF1A3A1A',  fg: 'FFA5D6A7'   }
+                    { v: PERS.lastCol,                  bg: 'FF1A3A1A',  fg: 'FFA5D6A7'   }
                 ];
                 hdrDefs.forEach(function(h, i) {
                     const c = ws.getCell(6, i + 1);
@@ -38778,7 +39072,7 @@ window._corpKpmDoExport = async function(mgrIndices) {
                 const legRowNum = totRowNum + 1;
                 ws.mergeCells(legRowNum, 1, legRowNum, TOTAL_COLS);
                 const legCell = ws.getCell(legRowNum, 1);
-                legCell.value     = '  LEGEND:  🟩 ≥90% Excellent   🟨 85–89% Satisfactory   🟥 <85% Needs Improvement   |   FM-CO-KPM-WDA-ESH | Eff. Date: 06 Aug 2018';
+                legCell.value     = '  LEGEND:  🟩 ≥90% Excellent   🟨 85–89% Satisfactory   🟥 <85% Needs Improvement   |   ' + PERS.docCode;
                 legCell.font      = { size: 7.5, name: 'Calibri', color: { argb: 'FF5D4037' }, italic: true };
                 legCell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF9C4' } };
                 legCell.alignment = { vertical: 'middle', wrapText: false };
@@ -38799,8 +39093,9 @@ window._corpKpmDoExport = async function(mgrIndices) {
                 // ── Freeze panes at row 7 col 2 ───────────────────────────────
                 ws.views = [{ state: 'frozen', xSplit: 1, ySplit: 6, activeCell: 'B7' }];
             });
+            if (!wb.worksheets.length) { _skipped.push(mgrName); continue; }
             // ── Download this manager's workbook
-            const mgrFileTag = mgrIdx === 0 ? 'WDA' : 'LMP';
+            const mgrFileTag = PERS.tag;
             const buf  = await wb.xlsx.writeBuffer();
             const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             const url  = URL.createObjectURL(blob);
@@ -38812,8 +39107,9 @@ window._corpKpmDoExport = async function(mgrIndices) {
             document.body.removeChild(a);
             setTimeout(function() { URL.revokeObjectURL(url); }, 1500);
         }
-        const fileWord = mgrIndices.length > 1 ? '2 files' : '1 file';
-        showToast('✅ Corporate KPM exported — ' + fileWord + ' generated!', 'success');
+        const _made = mgrIndices.length - _skipped.length;
+        if (_made > 0) showToast('✅ Corporate KPM exported — ' + _made + (_made > 1 ? ' files' : ' file') + ' generated!' + (_skipped.length ? ' (No completed months yet for: ' + _skipped.join(', ') + ')' : ''), 'success');
+        else showToast('ℹ️ No completed months to export yet.', 'info');
     } catch(err) {
         console.error('Corporate KPM Excel export error:', err);
         showToast('❌ Corporate KPM export failed. Check console for details.', 'error');
