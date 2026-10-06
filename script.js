@@ -38030,6 +38030,14 @@ window.corpKpmGetRoster = function() {
         return p && p.id !== undefined && p.id !== null && p.name && window.CORP_KPM_TEMPLATES[p.tpl] && /^\d{4}-\d{2}$/.test(p.start || '');
     }).map(function(p) {
         return { id: String(p.id), name: String(p.name), tpl: p.tpl, start: p.start, end: (/^\d{4}-\d{2}$/.test(p.end || '') ? p.end : '') };
+    }).sort(function(a, b) {
+        // Order by position (Corporate Manager → Environmental Head → Corporate Safety Officer),
+        // then by KPM start month, then by id — never by registration order
+        var ORDER = { manager: 0, envi: 1, cso: 2 };
+        var oa = (ORDER[a.tpl] !== undefined ? ORDER[a.tpl] : 99), ob = (ORDER[b.tpl] !== undefined ? ORDER[b.tpl] : 99);
+        if (oa !== ob) return oa - ob;
+        if (a.start !== b.start) return a.start < b.start ? -1 : 1;
+        return (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0);
     });
 };
 window.corpKpmSaveRoster = function(arr) {
