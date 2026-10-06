@@ -38256,6 +38256,8 @@ window.renderCorporateKpm = function() {
 
     const CORP_KPM_ALLOWED = ['esh@wda.com.ph','esh@tgm.com.ph','esh@mab.com.ph','esh@lmp.com.ph','esh@corpdc.com.ph','esh@cbmganda.com.ph','esh@scic.com.ph'];
     const isWdaAdmin = (state.currentUser?.email === 'esh@wda.com.ph');
+    // Edit controls (Register Personnel / + Add Entry / Edit) only appear once the global Edit button is clicked
+    const canEditNow = isWdaAdmin && !!state.isEditing;
     if (!CORP_KPM_ALLOWED.includes(state.currentUser?.email)) {
         container.innerHTML = '<div style="padding:40px;text-align:center;color:#c62828;font-weight:700;">🔒 Access Restricted — Corporate KPM is not accessible for your account.</div>';
         return;
@@ -38331,7 +38333,7 @@ window.renderCorporateKpm = function() {
         });
         cells += '<td style="text-align:center;font-weight:900;font-size:0.66rem;color:' + (avg!==null?cellFg(avg):'#bdbdbd') + ';background:' + (avg!==null?cellBg(avg):'#f5f5f5') + ';padding:6px 5px;border:2px solid #a5d6a7;">' + (avg!==null?(avg*100).toFixed(1)+'%':'—') + '</td>';
         return '<tr>' + cells + '</tr>';
-    }).join('') : '<tr><td colspan="14" style="padding:18px;text-align:center;color:#888;font-size:0.74rem;font-style:italic;">No personnel registered for ' + year + ' yet.' + (isWdaAdmin ? ' Click "Register Personnel" to add one.' : '') + '</td></tr>';
+    }).join('') : '<tr><td colspan="14" style="padding:18px;text-align:center;color:#888;font-size:0.74rem;font-style:italic;">No personnel registered for ' + year + ' yet.' + (canEditNow ? ' Click "Register Personnel" to add one.' : (isWdaAdmin ? ' Click the Edit button to register personnel.' : '')) + '</td></tr>';
 
     var summaryHtml = '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">'
         + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
@@ -38340,7 +38342,7 @@ window.renderCorporateKpm = function() {
         +     '<div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Weighted % per personnel per month · Year: ' + year + '</div>'
         +   '</div>'
         +   (isWdaAdmin
-              ? '<span style="margin-left:auto;display:flex;align-items:center;gap:8px;"><button onclick="window.corpKpmOpenPersonModal()" style="background:#2e7d32;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:0.68rem;font-weight:700;cursor:pointer;"><i class="fas fa-user-plus" style="margin-right:5px;"></i>Register Personnel</button><span style="background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;border-radius:4px;padding:2px 9px;font-size:0.62rem;font-weight:700;">WDA ADMIN</span></span>'
+              ? (canEditNow ? '<span style="margin-left:auto;display:flex;align-items:center;gap:8px;"><button onclick="window.corpKpmOpenPersonModal()" style="background:#2e7d32;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:0.68rem;font-weight:700;cursor:pointer;"><i class="fas fa-user-plus" style="margin-right:5px;"></i>Register Personnel</button></span>' : '')
               : '<span style="margin-left:auto;background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:4px;padding:2px 9px;font-size:0.62rem;font-weight:700;"><i class="fas fa-eye" style="margin-right:3px;"></i>VIEW ONLY</span>')
         + '</div>'
         + '<div style="overflow-x:auto;padding:14px 16px 10px;">'
@@ -38379,8 +38381,8 @@ window.renderCorporateKpm = function() {
             +     '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">' + esc(tpl.role) + '</span>'
             +     '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">' + periodLabel + '</span>'
             +     '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">' + submittedCount + '/' + periodMonths.length + ' submitted</span>'
-            +     (isWdaAdmin ? '<button class="lta-add-btn" onclick="event.stopPropagation();window.openCorpKpmModal(' + mi + ',null,true)" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-plus"></i> Add Entry</button>' : '')
-            +     (isWdaAdmin ? '<button class="lta-add-btn" onclick="event.stopPropagation();window.corpKpmOpenPersonModal(' + mi + ')" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-pen"></i> Edit</button>' : '')
+            +     (canEditNow ? '<button class="lta-add-btn" onclick="event.stopPropagation();window.openCorpKpmModal(' + mi + ',null,true)" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-plus"></i> Add Entry</button>' : '')
+            +     (canEditNow ? '<button class="lta-add-btn" onclick="event.stopPropagation();window.corpKpmOpenPersonModal(' + mi + ')" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-pen"></i> Edit</button>' : '')
             +     '<i class="fas fa-chevron-down region-toggle-icon"></i>'
             +   '</div>'
             + '</div></div>'
@@ -38412,7 +38414,7 @@ window.renderCorporateKpm = function() {
                 + '</div>'
                 + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
                 + '<span style="background:' + scoreBg + ';color:' + scoreFg + ';border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">' + scoreLabel + '</span>'
-                + (isWdaAdmin ? '<button onclick="event.stopPropagation();window.openCorpKpmModal(' + mi + ',\'' + mo + '\',true)" title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen"></i></button>' : '')
+                + (canEditNow ? '<button onclick="event.stopPropagation();window.openCorpKpmModal(' + mi + ',\'' + mo + '\',true)" title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen"></i></button>' : '')
                 + '</div>'
                 + '</div>';
         });
@@ -38420,7 +38422,7 @@ window.renderCorporateKpm = function() {
         if (!hasAnyRow) {
             managersHtml += '<div style="padding:18px;text-align:center;color:#aaa;font-size:0.76rem;font-style:italic;">'
                 + '<i class="fas fa-inbox" style="margin-right:6px;"></i>No KPM months yet — KPM starts ' + window.corpKpmFmtYm(p.start) + '.'
-                + (isWdaAdmin ? ' You can still click "+ Add Entry".' : '') + '</div>';
+                + (canEditNow ? ' You can still click "+ Add Entry".' : '') + '</div>';
         }
 
         managersHtml += '</div>'; // close ckpm-content
