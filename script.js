@@ -6165,15 +6165,16 @@ function isProjectOnStoppage(p) {
     return !!(p.workStoppageDate && !p.workResumeDate);
 }
 
-// Returns true if the project is finished AND the given month is AFTER its dateFinished.
-// The month the project finished is still counted (inclusive).
+// Returns true if the project is finished AND the given month is the month it was declared
+// finished or any later month. Months BEFORE the finish month stay active (still editable and
+// still counted in compliance). e.g. finished 1 Mar 2026 → Jan & Feb active; Mar onwards excluded.
 function isProjectFinishedForMonth(p, monthIdx1Based, selectedYear) {
     if (!p.dateFinished) return false;
     const selY   = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
     const finD   = new Date(p.dateFinished);
     const finAbs = finD.getFullYear() * 12 + (finD.getMonth() + 1);
     const moAbs  = selY * 12 + monthIdx1Based;
-    return moAbs > finAbs; // exclude only months AFTER the finish month
+    return moAbs >= finAbs; // lock/exclude from the finish month onwards; earlier months stay active
 }
 
 // Auto-sync p.status from dates so stale Firestore data is always corrected at render time
@@ -6191,10 +6192,10 @@ function getReportProjects() {
     return (state.filteredProjects || state.projects || []).filter(p => !isProjectOnStoppage(p));
 }
 
-// Returns true if the given month falls before the project's dateStarted —
-// i.e. the project didn't exist yet, so no monthly report data should be required.
-// Example: project started March 3 → January and February are not required (this
-// returns true for them); March onward returns false (required as normal).
+// Returns true if the given month is the month the project started or any month before it —
+// the project is only counted starting the FOLLOWING month.
+// Example: project started September 3 → September and earlier are not required (this
+// returns true for them); October onward returns false (required as normal).
 function isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear) {
     if (!p.dateStarted) return false;
     const selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
@@ -6202,7 +6203,7 @@ function isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear) {
     if (isNaN(startD)) return false;
     const absStart = startD.getFullYear() * 12 + (startD.getMonth() + 1);
     const absMo    = selY * 12 + monthIdx1Based;
-    return absMo < absStart; // months before the start month are not required (start month itself IS required)
+    return absMo <= absStart; // the start month itself and earlier months are not required; counting begins the following month
 }
 
 // Returns the 1-based quarter (1-4) in which the project's dateStarted falls, for the
@@ -6223,9 +6224,8 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
     // Months before the project's dateStarted are never required — the project
     // didn't exist yet, so this always takes priority over the stoppage checks below.
     if (isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear)) return true;
-    // Months after the project's dateFinished are never required either — but the
-    // finish month itself, and everything before it, still is (handled by
-    // isProjectFinishedForMonth's inclusive convention).
+    // The month the project was declared finished, and every month after it, is never required
+    // (months before the finish month stay required — see isProjectFinishedForMonth).
     if (isProjectFinishedForMonth(p, monthIdx1Based, selectedYear)) return true;
     if (!p.workStoppageDate) return false;
     const selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
@@ -6370,7 +6370,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                         const v = p.vals && p.vals[_dateKey];
                         return v && v.toString().trim() !== '';
                     });
-                    if (_submitted) kF++;
+                    if (_submitted) { const _kst = window.kpmProjectFillStatus(proj, mo); kF += _kst.filled / _kst.total; }
                 });
                 if (kT > 0) areaScores.push(kF / kT);
             }
@@ -6568,7 +6568,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                         const v = p.vals && p.vals[_dateKey];
                         return v && v.toString().trim() !== '';
                     });
-                    areaScores.push(_kpmSubmitted ? 1 : 0);
+                    { const _kst = window.kpmProjectFillStatus(proj, moName); areaScores.push(_kpmSubmitted ? (_kst.filled / _kst.total) : 0); }
                 } else {
                     areaScores.push(1); // marked N/A — exempt, count as full
                 }
@@ -6698,7 +6698,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                         const v = p.vals && p.vals[_dateKey];
                         return v && v.toString().trim() !== '';
                     });
-                    areaScores.push(_kpmSubmitted ? 1 : 0);
+                    { const _kst = window.kpmProjectFillStatus(proj, moName); areaScores.push(_kpmSubmitted ? (_kst.filled / _kst.total) : 0); }
                 } else {
                     areaScores.push(1);
                 }
@@ -6781,6 +6781,23 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         }
         window.getMonthlyComplianceByRegion = getMonthlyComplianceByRegion;
 
+        // ── KPM per-project fill status ─────────────────────────────────────────
+        // The region's "Date Submitted" is saved on only ONE project, so it only proves the
+        // REGION submitted. Each project must still have its own KPM entries filled for the month.
+        // A project counts as submitted only if ALL KPM rows (e1..e12) have a value.
+        window.kpmProjectFillStatus = function(proj, moName) {
+            const ids = (Array.isArray(window.KPM_ESH_ROWS) && window.KPM_ESH_ROWS.length)
+                ? window.KPM_ESH_ROWS.map(r => r.id)
+                : ['e1','e2','e3','e4','e5','e6','e7','e8','e9','e10','e11','e12'];
+            const v = (proj && proj.vals) || {};
+            let filled = 0;
+            ids.forEach(id => {
+                const x = v['kpm_v3_' + moName + '_' + id];
+                if (x !== undefined && x !== null && x.toString().trim() !== '') filled++;
+            });
+            return { filled, total: ids.length, complete: filled === ids.length, none: filled === 0 };
+        };
+
         // ── COMPLIANCE GAP BREAKDOWN ────────────────────────────────────────────
         // Explains exactly WHY a region isn't at 100%, by listing every missing
         // field/entry per project per area. monthIdx1Based = 0 → OVERALL (full-year,
@@ -6844,7 +6861,15 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                         );
                         const _dateKey = 'kpm_v3_' + _KPM_MONTHS[mo-1] + '_dateSubmitted';
                         const _submitted = _kpmRegionPeers.some(p => { const v = p.vals && p.vals[_dateKey]; return v && v.toString().trim() !== ''; });
-                        if (!_submitted) addGap('KPM Report', proj, `${_KPM_MONTHS[mo-1]} — no KPM submission date from region`);
+                        const _kst = window.kpmProjectFillStatus(proj, _KPM_MONTHS[mo-1]);
+                        if (!_kst.complete || !_submitted) {
+                            let _kd;
+                            if (_kst.none) _kd = `${_KPM_MONTHS[mo-1]} — no KPM entry for this project`;
+                            else if (!_kst.complete) _kd = `${_KPM_MONTHS[mo-1]} — KPM partial (${_kst.filled}/${_kst.total} rows filled)`;
+                            else _kd = `${_KPM_MONTHS[mo-1]} — no KPM submission date from region`;
+                            if (!_submitted && !_kst.complete) _kd += ' · region submission date also missing';
+                            addGap('KPM Report', proj, _kd);
+                        }
                     });
                 }
 
@@ -11048,7 +11073,7 @@ function renderTabulation() {
                             !(p.vals && p.vals['kpm_na'] === '1') &&
                             (p.region || '').toUpperCase() === region
                         );
-                        if (_peers.some(p => { const v = p.vals && p.vals[_dateKey]; return v && v.toString().trim() !== ''; })) acc.kpm.f++;
+                        if (_peers.some(p => { const v = p.vals && p.vals[_dateKey]; return v && v.toString().trim() !== ''; }) && window.kpmProjectFillStatus(proj, moName).complete) acc.kpm.f++;
                     }
 
                     // Area 3 – DOLE
@@ -11414,7 +11439,7 @@ function renderTabulation() {
                                     !(p.vals && p.vals['kpm_na'] === '1') &&
                                     (p.region || '').toUpperCase() === region
                                 );
-                                if (_peers.some(p => { const v = p.vals && p.vals[_dateKey]; return v && v.toString().trim() !== ''; })) acc.kpm.f++;
+                                if (_peers.some(p => { const v = p.vals && p.vals[_dateKey]; return v && v.toString().trim() !== ''; }) && window.kpmProjectFillStatus(proj, moName).complete) acc.kpm.f++;
                             }
 
                             // Area 3 – DOLE
@@ -15742,7 +15767,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var projs = state.projects.filter(function(p) {
                             if (p.region !== reg) return false;
                             if (kpmIsNA(p)) return false;
-                            if (p.dateFinished) return false;
                             // Exclude full work-stoppage (no resume) AND month-blacklisted (resumed but still in frozen window)
                             if (isMonthBlacklistedForProject(p, _moIdx1, _selYear)) return false;
                             return true;
@@ -15828,18 +15852,45 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var score = kpmRegionMonthScore(reg, mo);
                             var anySubm = activeProjs.some(function(p){ return p.vals['kpm_v3_' + mo + '_dateSubmitted']; });
                             var anyData = activeProjs.some(function(p){ return KPM_ESH_ROWS.some(function(r){ return p.vals['kpm_v3_' + mo + '_' + r.id]; }); });
-                            if (!anySubm && !anyData) return; // skip months with zero data
+                            // Per-project fill status for this month (only projects required that month)
+                            var _kElig = projs.filter(function(p){ return !isMonthBlacklistedForProject(p, mi + 1, selYear); });
+                            if (!_kElig.length) return;
+                            if (!anySubm && !anyData && mi >= curMoIdx) return; // current month: show only once data exists
+                            var _kDone = 0, _kPart = 0, _kNone = 0, _kPartNames = [], _kNoneNames = [];
+                            _kElig.forEach(function(p){
+                                var f = KPM_ESH_ROWS.filter(function(r){
+                                    var v = p.vals && p.vals['kpm_v3_' + mo + '_' + r.id];
+                                    return v !== undefined && v !== null && v.toString().trim() !== '';
+                                }).length;
+                                if (f === 0) { _kNone++; _kNoneNames.push(p.name); }
+                                else if (f === KPM_ESH_ROWS.length) _kDone++;
+                                else { _kPart++; _kPartNames.push(p.name); }
+                            });
+                            var _kChip = function(txt, bg, fg, title) {
+                                return '<span' + (title ? ' title="' + String(title).replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '"' : '')
+                                     + ' style="background:' + bg + ';color:' + fg + ';border-radius:9px;padding:1px 8px;font-size:0.6rem;font-weight:700;white-space:nowrap;">' + txt + '</span>';
+                            };
+                            var _kAllDone = _kDone === _kElig.length;
+                            var _kChips = '';
+                            if (_kAllDone) _kChips += _kChip('✔ All ' + _kElig.length + ' project' + (_kElig.length !== 1 ? 's' : '') + ' complete', '#e8f5e9', '#2e7d32');
+                            else {
+                                if (_kDone) _kChips += _kChip('✔ ' + _kDone + ' complete', '#e8f5e9', '#2e7d32');
+                                if (_kPart) _kChips += _kChip('◐ ' + _kPart + ' partial', '#fff3e0', '#e65100', _kPartNames.join(', '));
+                                if (_kNone) _kChips += _kChip('✖ ' + _kNone + ' not filled', '#ffebee', '#c62828', _kNoneNames.join(', '));
+                            }
+                            var _kAccent = _kAllDone ? '#43a047' : ((_kDone + _kPart === 0) ? '#c62828' : '#ef6c00');
                             hasAnyRow = true;
 
                             var scoreBg = score === null ? '#f5f5f5' : score >= 0.90 ? '#e8f5e9' : score >= 0.85 ? '#fff8e1' : '#ffebee';
                             var scoreFg = score === null ? '#aaa'    : score >= 0.90 ? '#2e7d32' : score >= 0.85 ? '#e65100' : '#c62828';
                             var scoreLabel = score === null ? '—' : (score*100).toFixed(1) + '%';
+                            if (score === null && !anySubm && !anyData) { scoreBg = '#ffebee'; scoreFg = '#c62828'; scoreLabel = 'MISSED'; }
                             var submFg = anySubm ? '#2e7d32' : '#c62828';
                             // Collect unique submitted dates from active projects
                             var submDates = activeProjs.map(function(p){ return p.vals['kpm_v3_' + mo + '_dateSubmitted'] || ''; }).filter(Boolean);
                             var submLabel = submDates.length ? submDates[0] : 'Not submitted';
 
-                            html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
+                            html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);border-left:4px solid ' + _kAccent + ';background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
                                 + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
                                 + ' onclick="window.openKpmDialog(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + mo + '\',false)">'
                                 // Number badge
@@ -15848,7 +15899,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:36px;text-align:center;">' + mo.substring(0,3).toUpperCase() + '</span>'
                                 // Info
                                 + '<div style="flex:1;min-width:0;">'
-                                + '<div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);">' + mo + ' ' + selYear + '</div>'
+                                + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+                                + '<span style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;">' + mo + ' ' + selYear + '</span>' + _kChips + '</div>'
                                 + '<div style="font-size:0.62rem;color:#888;margin-top:1px;">Submitted: <span style="color:' + submFg + ';font-weight:600;">' + submLabel + '</span></div>'
                                 + '</div>'
                                 // Score + edit btn
@@ -15987,9 +16039,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '</div>'
                             + '<div style="color:#a5d6a7;font-size:0.67rem;margin-top:3px;">'
                             + '<i class="fas fa-location-dot" style="margin-right:4px;"></i>' + reg
-                            + ' · <span style="color:#c8e6c9;">' + regProjs.filter(function(p){return !isProjectOnStoppage(p) && !p.dateFinished;}).length + ' active project' + (regProjs.filter(function(p){return !isProjectOnStoppage(p) && !p.dateFinished;}).length!==1?'s':'') + '</span>'
+                            + ' · <span style="color:#c8e6c9;">' + regProjs.filter(function(p){return !isProjectOnStoppage(p) && !isMonthBlacklistedForProject(p, KPM_MONTHS.indexOf(activeMo) + 1, selYear);}).length + ' active project' + (regProjs.filter(function(p){return !isProjectOnStoppage(p) && !isMonthBlacklistedForProject(p, KPM_MONTHS.indexOf(activeMo) + 1, selYear);}).length!==1?'s':'') + '</span>'
                             + (regProjs.filter(function(p){return isProjectOnStoppage(p);}).length ? ' · <span style="color:#f48fb1;font-size:0.63rem;"><i class="fas fa-pause-circle" style="margin-right:3px;"></i>' + regProjs.filter(function(p){return isProjectOnStoppage(p);}).length + ' on work stop (excluded)</span>' : '')
-                            + (regProjs.filter(function(p){return !!p.dateFinished;}).length ? ' · <span style="color:#bdbdbd;font-size:0.63rem;"><i class="fas fa-lock" style="margin-right:3px;"></i>' + regProjs.filter(function(p){return !!p.dateFinished;}).length + ' finished (read only)</span>' : '')
+                            + (regProjs.filter(function(p){return isProjectFinishedForMonth(p, KPM_MONTHS.indexOf(activeMo) + 1, selYear);}).length ? ' · <span style="color:#bdbdbd;font-size:0.63rem;"><i class="fas fa-eye-slash" style="margin-right:3px;"></i>' + regProjs.filter(function(p){return isProjectFinishedForMonth(p, KPM_MONTHS.indexOf(activeMo) + 1, selYear);}).length + ' finished (hidden)</span>' : '')
                             + '</div>'
                             + '</div>'
                             + '<button onclick="document.getElementById(\'kpm-month-modal\').remove()" title="Close" style="background:rgba(255,255,255,0.15);color:white;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.3)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'"><i class="fas fa-times"></i></button>'
@@ -16028,6 +16080,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var tableRows = '';
                         var selYear = state.selectedYear || new Date().getFullYear();
                         var moIdx1Based = KPM_MONTHS.indexOf(activeMo) + 1; // 1-based month index
+                        var _anchorProj = regProjs[0]; // improvement plan stays stored on the region's first project
+                        // Projects declared finished in/before this month are hidden (not part of this month's compliance)
+                        regProjs = regProjs.filter(function(pp) { return !isProjectFinishedForMonth(pp, moIdx1Based, selYear); });
 
                         // Pre-compute which projects are frozen for this specific month
                         // A project column is frozen (blank, "—") if: (a) it is on work-stoppage (entire column frozen), or
@@ -16037,7 +16092,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         });
                         // Finished projects: read-only (cannot input new data, excluded from compliance),
                         // but any real historical value already saved for this month must still be shown — not blanked out.
-                        var _projFinished = regProjs.map(function(pp) { return !!pp.dateFinished; });
+                        var _projFinished = regProjs.map(function(pp) { return isProjectFinishedForMonth(pp, moIdx1Based, selYear); });
 
                         rows.forEach(function(row) {
                             var projEPs = regProjs.map(function(pp, pi) {
@@ -16096,7 +16151,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             }).join('');
 
                             var impKey = 'kpm_v3_imp_' + activeMo + '_' + row.id;
-                            var impProj = regProjs[0];
+                            var impProj = _anchorProj;
                             var immAct = impProj.vals[impKey+'_ia']||'';
                             var rootC  = impProj.vals[impKey+'_rc']||'';
                             var corrAc = impProj.vals[impKey+'_ca']||'';
@@ -25997,11 +26052,21 @@ document.addEventListener('DOMContentLoaded', function() {
         presentRegions.forEach(function(reg) {
             // Exclude work-stoppage projects from GOT (unless resumed)
             var projs = allProjects.filter(function(p){ return p.region === reg && !isProjectOnStoppage(p) && !p.dateFinished; });
-            if (!projs.length) return;
+            var regProjsAll = allProjects.filter(function(p){ return p.region === reg; });
+            if (!regProjsAll.length) return;
+            var _selYr = state.selectedYear || new Date().getFullYear();
+            var _cy = new Date().getFullYear(), _curMo = new Date().getMonth() + 1;
+            var monthInfos = [];
+            for (var _m = 1; _m <= _gotMaxMonth(_selYr); _m++) {
+                var _inf = _gotMonthInfo(regProjsAll, _m, _selYr);
+                if (_inf.eligible.length) monthInfos.push(_inf);
+            }
+            var _doneMonths = monthInfos.filter(function(i){ return i.complete === i.eligible.length; }).length;
+            var _badMonths  = monthInfos.length - _doneMonths;
 
             var isCollapsed = !!_gotCollapsed[reg];
             var canEditReg  = state.isEditing && UserAccounts.canEdit(userEmail, reg) && UserAccounts.canEditTab(userEmail, 'got-monitoring');
-            var regAll      = gotOverallAvg(projs);
+            var regAll      = gotOverallAvg(regProjsAll);
             var safeReg     = reg.replace(/[^a-zA-Z0-9]/g, '_');
             var chevronId   = 'got-chevron-' + safeReg;
 
@@ -26026,6 +26091,8 @@ document.addEventListener('DOMContentLoaded', function() {
             h += '</div>';
             h += '<div style="display:flex;gap:8px;align-items:center;">';
             h += '<span style="background:rgba(255,255,255,0.18);color:white;border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">' + projs.length + ' PROJECT' + (projs.length !== 1 ? 'S' : '') + '</span>';
+            if (monthInfos.length) h += '<span style="background:rgba(255,255,255,0.18);color:#c8e6c9;border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">' + _doneMonths + '/' + monthInfos.length + ' months complete</span>';
+            if (_badMonths > 0) h += '<span style="background:#ffebee;color:#c62828;border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:800;">⚠ ' + _badMonths + ' incomplete</span>';
             if (regAll !== null) h += '<span style="background:rgba(255,255,255,0.22);color:white;border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">AVG ' + fmtAvg(regAll) + '</span>';
             h += '</div>';
             h += '</div>'; // end banner
@@ -26033,36 +26100,48 @@ document.addEventListener('DOMContentLoaded', function() {
             // Region content — compact project list
             h += '<div id="got-rcontent-' + reg + '" style="' + (isCollapsed ? 'display:none;' : '') + '">';
 
-            projs.forEach(function(proj, idx) {
-                var projAvg = gotGoalProjectAvg2(proj);
-                var pSafeQ  = escQ(proj.name);
-                var pSafeAttr = proj.name.replace(/"/g, '&quot;');
-                var scoreBg = projAvg === null ? '#f5f5f5' : projAvg >= 0.90 ? '#e8f5e9' : projAvg >= 0.75 ? '#fff8e1' : '#ffebee';
-                var scoreFg = projAvg === null ? '#aaa'    : projAvg >= 0.90 ? '#2e7d32' : projAvg >= 0.75 ? '#e65100' : '#c62828';
-                var scoreLabel = projAvg !== null ? fmtAvg(projAvg) : '—';
+            if (!monthInfos.length) {
+                h += '<div style="padding:18px;text-align:center;color:#aaa;font-size:0.76rem;font-style:italic;"><i class="fas fa-inbox" style="margin-right:6px;"></i>No months to report yet for this region.</div>';
+            }
 
-                h += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
+            monthInfos.forEach(function(inf) {
+                var m       = inf.month;
+                var n       = inf.eligible.length;
+                var allDone = inf.complete === n;
+                var isPast  = (_selYr < _cy) || (_selYr === _cy && m < _curMo);
+                var accent  = allDone ? '#43a047' : ((inf.complete + inf.partial === 0) ? (isPast ? '#c62828' : '#bdbdbd') : '#ef6c00');
+                var sc      = inf.score;
+                var scBg    = sc === null ? (isPast ? '#ffebee' : '#f5f5f5') : sc >= 0.90 ? '#e8f5e9' : sc >= 0.75 ? '#fff8e1' : '#ffebee';
+                var scFg    = sc === null ? (isPast ? '#c62828' : '#888')    : sc >= 0.90 ? '#2e7d32' : sc >= 0.75 ? '#e65100' : '#c62828';
+                var scLabel = sc !== null ? fmtAvg(sc) : (isPast ? 'MISSED' : 'NO DATA');
+
+                var chips = '';
+                if (allDone) chips += _gotChip('✔ All ' + n + ' project' + (n !== 1 ? 's' : '') + ' complete', '#e8f5e9', '#2e7d32');
+                else {
+                    if (inf.complete) chips += _gotChip('✔ ' + inf.complete + ' complete', '#e8f5e9', '#2e7d32');
+                    if (inf.partial)  chips += _gotChip('◐ ' + inf.partial + ' partial', '#fff3e0', '#e65100', inf.partialNames.join(', '));
+                    if (inf.missing)  chips += _gotChip('✖ ' + inf.missing + ' not filled', '#ffebee', '#c62828', inf.missingNames.join(', '));
+                }
+
+                h += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);border-left:4px solid ' + accent + ';background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
                    + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
-                   + ' onclick="window.openGotComplianceDialog(\'' + pSafeQ + '\',false)">';
-                // Number
-                h += '<span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">' + (idx+1) + '</span>';
-                // Project name + region badge
+                   + ' onclick="window.openGotMonthDialog(\'' + escQ(reg) + '\',' + m + ',false)">';
+                h += '<span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">' + m + '</span>';
+                h += '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:36px;text-align:center;">' + GOT_M[m - 1] + '</span>';
                 h += '<div style="flex:1;min-width:0;">';
-                h += '<div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">';
-                if (proj.isRenewable) h += '🌿 ';
-                h += proj.name + '</div>';
-                h += '<div style="font-size:0.62rem;color:#888;margin-top:1px;">' + reg + '</div>';
+                h += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+                   + '<span style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;">' + GOT_M_FULL[m - 1] + ' ' + _selYr + '</span>'
+                   + chips + '</div>';
                 h += '</div>';
-                // Score + actions
                 h += '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">';
-                h += '<span style="background:' + scoreBg + ';color:' + scoreFg + ';border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">' + scoreLabel + '</span>';
+                h += '<span style="background:' + scBg + ';color:' + scFg + ';border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">' + scLabel + '</span>';
                 if (canEditReg) {
-                    h += '<button onclick="event.stopPropagation();window.openGotComplianceDialog(\'' + pSafeQ + '\',true)"'
+                    h += '<button onclick="event.stopPropagation();window.openGotMonthDialog(\'' + escQ(reg) + '\',' + m + ',true)"'
                        + ' title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;">'
                        + '<i class="fas fa-pen"></i></button>';
                 }
                 h += '</div>';
-                h += '</div>'; // end row
+                h += '</div>'; // end month row
             });
 
             h += '</div>'; // end region content
@@ -26073,6 +26152,330 @@ document.addEventListener('DOMContentLoaded', function() {
             h += '<div style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="fas fa-database" style="font-size:2rem;margin-bottom:10px;display:block;opacity:0.3;"></i>No projects loaded yet.</div>';
         }
         return h;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // GOT — PER-MONTH VIEW  (Region → Months → Projects inside), same idea
+    // as the KPM report. Every month from JAN up to the current month is
+    // listed, so a month that was never filled out is flagged right away.
+    // ═══════════════════════════════════════════════════════════════════════
+    var GOT_M_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var _gotMonthCtx = null; // { reg, month, names[], canEdit } for the open month dialog
+
+    function _gotEsc(s) {
+        return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Last month (1-based) that should be listed for the selected year
+    // The current month (and any later month) is not open for GOT yet — it opens once it is over.
+    // lag 1 → in October, January–September are listed; October opens on 1 November.
+    var GOT_OPEN_LAG_MONTHS = 1;
+    function _gotMaxMonth(selYr) {
+        var now = new Date(), cy = now.getFullYear();
+        if (selYr < cy) return 12;
+        if (selYr > cy) return 0;
+        return Math.max(0, now.getMonth() + 1 - GOT_OPEN_LAG_MONTHS);
+    }
+
+    // Flat list of every rating slot (goal x measure)
+    function _gotSlots() {
+        var s = [];
+        COMPLIANCE_GOALS.forEach(function(g) {
+            (GOAL_MEASURES[g.id] || ['']).forEach(function(_, mi) { s.push({ g: g, mi: mi }); });
+        });
+        return s;
+    }
+
+    function _gotFindProj(name) {
+        return (state.projects || []).find(function(p) { return p.name === name; });
+    }
+
+    // How many slots a project filled for one month, and the sum of its ratings
+    function _gotProjMonth(proj, m) {
+        var slots = _gotSlots(), filled = 0, sum = 0;
+        slots.forEach(function(s) {
+            var raw = gotGetCell(proj, s.g.id, s.mi, m).r;
+            var v = parseFloat(raw);
+            if (raw !== '' && raw !== null && raw !== undefined && !isNaN(v)) { filled++; sum += v; }
+        });
+        return { filled: filled, total: slots.length, sum: sum };
+    }
+
+    // Region-level summary for one month (only projects that are required that month)
+    function _gotMonthInfo(projs, m, selYr) {
+        var eligible = projs.filter(function(p) { return !isMonthBlacklistedForProject(p, m, selYr); });
+        var complete = 0, partial = 0, missing = 0, sum = 0, total = 0, any = false;
+        var missingNames = [], partialNames = [];
+        eligible.forEach(function(p) {
+            var pm = _gotProjMonth(p, m);
+            total += pm.total; sum += pm.sum;
+            if (pm.filled === 0) { missing++; missingNames.push(p.name); }
+            else {
+                any = true;
+                if (pm.filled === pm.total) complete++;
+                else { partial++; partialNames.push(p.name); }
+            }
+        });
+        return {
+            month: m, eligible: eligible, complete: complete, partial: partial, missing: missing,
+            missingNames: missingNames, partialNames: partialNames,
+            score: (any && total > 0) ? sum / total : null, anyData: any
+        };
+    }
+
+    function _gotChip(txt, bg, fg, title) {
+        return '<span' + (title ? ' title="' + _gotEsc(title) + '"' : '')
+             + ' style="background:' + bg + ';color:' + fg + ';border-radius:9px;padding:1px 8px;font-size:0.6rem;font-weight:700;white-space:nowrap;">' + txt + '</span>';
+    }
+
+    function _gotStatusHtml(pm) {
+        if (pm.filled === 0)              return _gotChip('✖ Not filled', '#ffebee', '#c62828');
+        if (pm.filled === pm.total)       return '';
+        return _gotChip('◐ ' + pm.filled + '/' + pm.total, '#fff3e0', '#e65100');
+    }
+
+    window.gotCloseMonthDialog = function() {
+        var m = document.getElementById('got-compliance-modal');
+        if (m) m.remove();
+        _gotMonthCtx = null;
+        if (state.currentTab === 'got-monitoring' && typeof window.renderGotMonitoring === 'function') window.renderGotMonitoring();
+    };
+
+    // ── GOT Month Dialog: all projects of a region for ONE month ────────────
+    window.openGotMonthDialog = function(reg, month, editMode) {
+        var allProjects = (typeof getReportProjects === 'function') ? getReportProjects() : (state.projects || []);
+        var regProjs = allProjects.filter(function(p) { return p.region === reg; });
+        if (!regProjs.length) return;
+
+        var selYr     = state.selectedYear || new Date().getFullYear();
+        var maxMo     = Math.max(_gotMaxMonth(selYr), 1);
+        month = Math.min(Math.max(parseInt(month, 10) || 1, 1), 12);
+        var userEmail = state.currentUser ? state.currentUser.email : '';
+        var hasPerm   = UserAccounts.canEdit(userEmail, reg) && UserAccounts.canEditTab(userEmail, 'got-monitoring');
+        var canEdit   = !!editMode && hasPerm;
+
+        // Auto-enable edit mode (same behaviour as the other dialogs)
+        if (canEdit && !state.isEditing) {
+            state.isEditing = true;
+            document.body.classList.add('is-editing');
+            var _fb = document.getElementById('floating-edit-btn');
+            var _fi = document.getElementById('floating-edit-icon');
+            var _ft = document.getElementById('floating-edit-tooltip');
+            if (_fb) { _fb.classList.add('save-mode'); _fb.setAttribute('onclick', 'saveData()'); }
+            if (_fi) _fi.className = 'fas fa-save';
+            if (_ft) _ft.textContent = 'Click to Save';
+        }
+
+        // Projects declared finished in/before this month are hidden from the columns
+        var colProjs = regProjs.filter(function(p) { return !isProjectFinishedForMonth(p, month, selYr); });
+        _gotMonthCtx = { reg: reg, month: month, names: colProjs.map(function(p) { return p.name; }), canEdit: canEdit };
+
+        var existing = document.getElementById('got-compliance-modal');
+        if (existing) existing.remove();
+
+        var info     = _gotMonthInfo(colProjs, month, selYr);
+        var regQ     = escQ(reg);
+        var editFlag = canEdit ? 'true' : 'false';
+
+        // Month picker — each month is marked ✔ (all complete) or ✖ (something missing)
+        var moOpts = '';
+        for (var mo = 1; mo <= maxMo; mo++) {
+            var mi2 = _gotMonthInfo(regProjs, mo, selYr);
+            var ok  = mi2.eligible.length && mi2.complete === mi2.eligible.length;
+            moOpts += '<option value="' + mo + '"' + (mo === month ? ' selected' : '') + '>'
+                    + (mi2.eligible.length ? (ok ? '✔ ' : '✖ ') : '') + GOT_M_FULL[mo - 1] + '</option>';
+        }
+        if (month > maxMo) moOpts += '<option value="' + month + '" selected>' + GOT_M_FULL[month - 1] + '</option>';
+
+        var navBtn = function(label, target, disabled) {
+            return '<button ' + (disabled ? 'disabled ' : '')
+                 + 'onclick="window.openGotMonthDialog(\'' + regQ + '\',' + target + ',' + editFlag + ')"'
+                 + ' style="background:' + (disabled ? '#eee' : '#e8f5e9') + ';color:' + (disabled ? '#bbb' : '#1b5e20') + ';border:1px solid ' + (disabled ? '#ddd' : '#a5d6a7')
+                 + ';border-radius:5px;padding:3px 10px;font-size:0.64rem;font-weight:700;cursor:' + (disabled ? 'not-allowed' : 'pointer') + ';">' + label + '</button>';
+        };
+
+        var modal = document.createElement('div');
+        modal.id = 'got-compliance-modal';
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.58);z-index:99999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0;';
+
+        modal.innerHTML = '<div style="border-radius:12px;width:min(1600px,98vw);min-width:min(1000px,98vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
+            // Header
+            + '<div style="background:linear-gradient(90deg,#0d3311,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
+            + '<div>'
+            + '<div style="color:white;font-weight:800;font-size:0.95rem;font-family:Poppins,sans-serif;">'
+            + (canEdit ? '✏️ Edit Compliance' : '🔍 View Compliance') + ' — <span id="gotm-title-month" style="color:#fbc02d;">' + GOT_M_FULL[month - 1] + ' ' + selYr + '</span>'
+            + '</div>'
+            + '<div style="color:#a5d6a7;font-size:0.67rem;margin-top:3px;">'
+            + '<i class="fas fa-location-dot" style="margin-right:4px;"></i>' + _gotEsc(reg)
+            + ' · <span style="color:#c8e6c9;">' + info.eligible.length + ' active project' + (info.eligible.length !== 1 ? 's' : '') + '</span>'
+            + ' · <span id="gotm-title-score" style="color:#ffd54f;font-weight:700;">' + (info.score !== null ? fmtAvg(info.score) + ' region score' : 'no data yet') + '</span>'
+            + '</div></div>'
+            + '<button onclick="window.gotCloseMonthDialog()" title="Close" style="background:rgba(255,255,255,0.15);color:white;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;">&times;</button>'
+            + '</div>'
+            // Info bar: month picker + prev/next
+            + '<div style="background:#f1f8e9;border-bottom:1px solid #c8e6c9;padding:6px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+            + '<span style="font-size:0.64rem;color:#2e7d32;font-weight:600;white-space:nowrap;"><i class="fas fa-bullseye" style="margin-right:5px;"></i>Goals, Objectives &amp; Targets — all projects in region</span>'
+            + '<label style="display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:0.67rem;color:#555;margin-left:4px;">'
+            + '<i class="fas fa-calendar-alt" style="color:#1b5e20;font-size:0.7rem;"></i><span style="font-weight:700;font-size:0.64rem;color:#444;">Month:</span>'
+            + '<select onchange="window.openGotMonthDialog(\'' + regQ + '\',this.value,' + editFlag + ')" style="border:1px solid #a5d6a7;border-radius:4px;padding:3px 7px;font-size:0.67rem;font-weight:700;background:#e8f5e9;color:#1b5e20;cursor:pointer;min-width:120px;">' + moOpts + '</select>'
+            + '</label>'
+            + navBtn('◀ Prev', month - 1, month <= 1) + navBtn('Next ▶', month + 1, month >= maxMo)
+            + '<span style="font-size:0.6rem;color:#888;margin-left:auto;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll table horizontally</span>'
+            + '</div>'
+            // Table
+            + '<div style="overflow-x:auto;max-height:75vh;overflow-y:auto;background:var(--bg-card);">'
+            + _gotBuildMonthTable(colProjs, month, selYr, canEdit)
+            + '</div>'
+            // Legend
+            + '<div style="padding:6px 16px;background:#f9fdf9;border-top:1px solid #c8e6c9;display:flex;gap:14px;flex-wrap:wrap;align-items:center;">'
+            + '<span style="font-size:0.59rem;color:#2e7d32;font-weight:600;">25% = Started</span>'
+            + '<span style="font-size:0.59rem;color:#e65100;font-weight:600;">50% = Partial</span>'
+            + '<span style="font-size:0.59rem;color:#1565c0;font-weight:600;">75% = Mostly Done</span>'
+            + '<span style="font-size:0.59rem;color:#1b5e20;font-weight:600;">100% = Fully Implemented</span>'
+            + '<span style="font-size:0.59rem;color:#c62828;font-weight:600;margin-left:auto;">Pink cell = not yet filled</span>'
+            + '</div>'
+            + '</div>';
+
+        document.body.appendChild(modal);
+    };
+
+    function _gotBuildMonthTable(regProjs, month, selYr, canEdit) {
+        var slots = _gotSlots();
+        var nP    = regProjs.length;
+
+        // Which projects are required this month (and why not, if they aren't)
+        var elig = regProjs.map(function(p) { return !isMonthBlacklistedForProject(p, month, selYr); });
+        var why  = regProjs.map(function(p, pi) {
+            if (elig[pi]) return '';
+            if (isMonthBeforeProjectStart(p, month, selYr)) return 'Project not yet started — starts ' + formatDateDMY(p.dateStarted) + '. Not required.';
+            if (isProjectFinishedForMonth(p, month, selYr)) return 'Project finished' + (p.dateFinished ? ' (' + formatDateDMY(p.dateFinished) + ')' : '') + '. Not required.';
+            return 'Work Stoppage — month frozen';
+        });
+
+        var h = '<table class="got-tbl" style="width:auto;border-collapse:collapse;min-width:100%;">';
+        h += '<thead style="position:sticky;top:0;z-index:4;"><tr>';
+        h += '<th class="got-th-dark got-th-left" style="position:sticky;left:0;z-index:5;min-width:155px;max-width:155px;white-space:normal;box-shadow:2px 0 4px rgba(0,0,0,0.08);">GOALS</th>';
+        h += '<th class="got-th-dark got-th-left" style="position:sticky;left:155px;z-index:5;min-width:130px;max-width:130px;white-space:normal;">TARGETS</th>';
+        h += '<th class="got-th-dark got-th-left" style="position:sticky;left:285px;z-index:5;min-width:125px;white-space:normal;">RESPONSIBLE</th>';
+        h += '<th class="got-th-dark got-th-left" style="position:sticky;left:410px;z-index:5;min-width:130px;max-width:130px;white-space:normal;box-shadow:3px 0 6px rgba(0,0,0,0.12);">EVIDENCE OF IMPLEMENTATION</th>';
+        regProjs.forEach(function(p, pi) {
+            h += '<th class="got-th-dark" title="' + _gotEsc(elig[pi] ? p.name : p.name + ' — ' + why[pi]) + '"'
+               + ' style="min-width:118px;max-width:140px;white-space:normal;vertical-align:bottom;' + (elig[pi] ? '' : 'background:#e0e0e0;color:#888;') + '">'
+               + (p.isRenewable ? '🌿 ' : '') + _gotEsc(p.name)
+               + '</th>';
+        });
+        h += '<th class="got-th-dark" style="white-space:nowrap;font-size:0.59rem;">AVG</th>';
+        h += '</tr></thead><tbody>';
+
+        var si = 0, prevCat = '';
+        COMPLIANCE_GOALS.forEach(function(g) {
+            var gCat   = g.id.charAt(0) === 'E' ? 'ENVIRONMENTAL' : 'OCCUPATIONAL HEALTH & SAFETY';
+            var cColor = gCat === 'ENVIRONMENTAL' ? '#2e7d32' : '#e65100';
+            var cBg    = gCat === 'ENVIRONMENTAL' ? '#e8f5e9' : '#fff3e0';
+            var rowBg  = gCat === 'ENVIRONMENTAL' ? '#f1f8e9' : '#fff8f0';
+            if (gCat !== prevCat) {
+                prevCat = gCat;
+                h += '<tr style="background:' + cBg + ';"><td colspan="' + (nP + 5) + '" style="position:sticky;left:0;z-index:1;text-align:left;font-weight:800;font-size:0.67rem;color:' + cColor + ';padding:4px 10px;background:' + cBg + ';">'
+                   + '<i class="fas ' + (gCat === 'ENVIRONMENTAL' ? 'fa-leaf' : 'fa-hard-hat') + '" style="margin-right:5px;"></i>' + gCat + '</td></tr>';
+            }
+            var measures = GOAL_MEASURES[g.id] || [''];
+            measures.forEach(function(measure, mi) {
+                h += '<tr>';
+                if (mi === 0) {
+                    var rs = ' rowspan="' + measures.length + '"';
+                    h += '<td' + rs + ' style="position:sticky;left:0;z-index:2;text-align:left;font-weight:700;color:' + cColor + ';vertical-align:top;white-space:normal;min-width:155px;max-width:155px;background:' + rowBg + ';box-shadow:2px 0 4px rgba(0,0,0,0.06);">' + _gotEsc(g.goal || g.id) + '</td>';
+                    h += '<td' + rs + ' style="position:sticky;left:155px;z-index:2;text-align:left;vertical-align:top;white-space:normal;min-width:130px;max-width:130px;background:' + rowBg + ';">' + _gotEsc(g.target || '') + '</td>';
+                    h += '<td' + rs + ' style="position:sticky;left:285px;z-index:2;vertical-align:top;white-space:normal;min-width:125px;background:' + rowBg + ';">' + _gotEsc(g.responsible || '') + '</td>';
+                }
+                h += '<td style="position:sticky;left:410px;z-index:2;text-align:left;vertical-align:top;white-space:normal;min-width:130px;max-width:130px;background:' + rowBg + ';box-shadow:3px 0 6px rgba(0,0,0,0.08);">' + _gotEsc(measure) + '</td>';
+
+                var mySi = si++;
+                regProjs.forEach(function(p, pi) {
+                    if (!elig[pi]) {
+                        h += '<td class="got-td-month" style="background:#eeeeee;cursor:not-allowed;" title="' + _gotEsc(why[pi]) + '">'
+                           + '<select class="got-sel" disabled style="background:#e0e0e0;color:#bbb;border-color:#ddd;cursor:not-allowed;"><option>—</option></select></td>';
+                        return;
+                    }
+                    var cell = gotGetCell(p, g.id, mi, month);
+                    var cls  = 'got-td-month' + (cell.r ? ' ' + ratingCls(cell.r) : '');
+                    h += '<td id="gotm-c-' + pi + '-' + mySi + '" class="' + cls + '"' + (cell.r ? '' : ' style="background:rgba(239,83,80,0.14);"') + '>';
+                    h += '<select class="got-sel"' + (canEdit ? '' : ' disabled') + ' onchange="window._gotMonthSet(' + pi + ',' + mySi + ',this.value)">';
+                    h += '<option value="">—</option>';
+                    [['0.25','25%'],['0.50','50%'],['0.75','75%'],['1.00','100%']].forEach(function(rv) {
+                        h += '<option value="' + rv[0] + '"' + (cell.r === rv[0] ? ' selected' : '') + '>' + rv[1] + '</option>';
+                    });
+                    h += '</select></td>';
+                });
+                h += '<td id="gotm-ga-' + mySi + '" class="got-td-avg" style="white-space:nowrap;">—</td>';
+                h += '</tr>';
+            });
+        });
+
+        // Overall row: one average per project + region average
+        h += '<tr class="got-tr-overall"><td colspan="4" style="position:sticky;left:0;z-index:2;text-align:right;padding:5px 10px;background:#e8f5e9;box-shadow:3px 0 6px rgba(0,0,0,0.08);">OVERALL AVERAGE</td>';
+        regProjs.forEach(function(p, pi) { h += '<td id="gotm-po-' + pi + '" style="font-weight:700;white-space:nowrap;">—</td>'; });
+        h += '<td id="gotm-f-all" style="font-weight:800;white-space:nowrap;">—</td></tr>';
+        h += '</tbody></table>';
+
+        setTimeout(_gotMonthRefresh, 0); // fill averages once the table is in the DOM
+        return h;
+    }
+
+    // One dropdown changed in the month dialog
+    window._gotMonthSet = function(pi, si, val) {
+        var ctx = _gotMonthCtx;
+        if (!ctx || !ctx.canEdit) return;
+        var s = _gotSlots()[si];
+        if (!s) return;
+        window.gotSaveCell(ctx.names[pi], s.g.id, s.mi, ctx.month, 'r', val);
+        var td = document.getElementById('gotm-c-' + pi + '-' + si);
+        if (td) {
+            td.className = 'got-td-month' + (val ? ' ' + ratingCls(val) : '');
+            td.style.background = val ? '' : 'rgba(239,83,80,0.14)';
+        }
+        _gotMonthRefresh();
+    };
+
+    // Recompute AVG column, per-project overall, region average, status chips, header score.
+    // Blank counts as 0 (same method as the month list), so a missing entry lowers the score.
+    function _gotMonthRefresh() {
+        var ctx = _gotMonthCtx;
+        if (!ctx) return;
+        var selYr = state.selectedYear || new Date().getFullYear();
+        var slots = _gotSlots();
+        var projs = ctx.names.map(_gotFindProj);
+        var elig  = projs.map(function(p) { return !!p && !isMonthBlacklistedForProject(p, ctx.month, selYr); });
+        var nElig = elig.filter(Boolean).length;
+        var allSum = 0, allAny = false;
+
+        projs.forEach(function(p, pi) {
+            if (!elig[pi]) return;
+            var pm = _gotProjMonth(p, ctx.month);
+            var sc = pm.filled ? pm.sum / pm.total : null;
+            allSum += pm.sum; if (pm.filled) allAny = true;
+            var po = document.getElementById('gotm-po-' + pi);
+            if (po) { po.textContent = fmtAvg(sc); po.style.color = avgClr(sc); }
+            var st = document.getElementById('gotm-st-' + pi);
+            if (st) st.innerHTML = _gotStatusHtml(pm);
+        });
+
+        slots.forEach(function(s, si) {
+            var sum = 0, any = false;
+            projs.forEach(function(p, pi) {
+                if (!elig[pi]) return;
+                var raw = gotGetCell(p, s.g.id, s.mi, ctx.month).r, v = parseFloat(raw);
+                if (raw !== '' && raw !== null && raw !== undefined && !isNaN(v)) { sum += v; any = true; }
+            });
+            var avg = (any && nElig) ? sum / nElig : null;
+            var el = document.getElementById('gotm-ga-' + si);
+            if (el) { el.textContent = fmtAvg(avg); el.style.color = avgClr(avg); }
+        });
+
+        var tot = (allAny && nElig) ? allSum / (nElig * slots.length) : null;
+        var fa = document.getElementById('gotm-f-all');
+        if (fa) { fa.textContent = fmtAvg(tot); fa.style.color = avgClr(tot); }
+        var ts = document.getElementById('gotm-title-score');
+        if (ts) ts.textContent = tot !== null ? fmtAvg(tot) + ' region score' : 'no data yet';
     }
 
     // ── GOT Compliance Dialog ───────────────────────────────────────────────
@@ -26296,7 +26699,8 @@ document.addEventListener('DOMContentLoaded', function() {
             var curMoIdx   = new Date().getMonth(); // 0-based
 
             function getRegMonthScore(reg, moIdx) {
-                var projs = allProjects.filter(function(p){ return p.region === reg && !isProjectOnStoppage(p) && !p.dateFinished; });
+                var _gsYr = state.selectedYear || new Date().getFullYear();
+                var projs = allProjects.filter(function(p){ return p.region === reg && !isProjectOnStoppage(p) && !isProjectFinishedForMonth(p, moIdx + 1, _gsYr); });
                 if (!projs.length) return null;
                 var month = moIdx + 1; // 1-based
 
@@ -29709,7 +30113,7 @@ function renderEshCalendar(tabType) {
         .esh-sum-tbl .bar-fill { background: #c62828; border-radius: 4px; height: 6px; }
         .esh-sum-tbl .td-tag {
             display: inline-flex; align-items: center; gap: 4px;
-            background: #fff3f3; border: 1px solid #ef9a9a;
+            background: rgba(239,83,80,0.14); border: 1px solid #ef9a9a;
             border-radius: 12px; padding: 2px 8px;
             color: #c62828; font-size: 0.62rem; font-weight: 600; white-space: nowrap;
         }
