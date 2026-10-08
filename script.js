@@ -9603,7 +9603,17 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             }); // end REGIONS_LTA.forEach
 
             html += `</div>`; // end lta-view
+            // ── Preserve per-project collapsed cards across re-render ──
+            const _ltaCollapsedIds = [];
+            container.querySelectorAll('[id^="lta-proj-"][id$="-content"].collapsed').forEach(function(el) { _ltaCollapsedIds.push(el.id); });
             container.innerHTML = html;
+            _ltaCollapsedIds.forEach(function(id) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.classList.add('collapsed');
+                const ic = document.getElementById(id.replace(/-content$/, '-icon'));
+                if (ic) ic.style.transform = 'rotate(-90deg)';
+            });
             if (_savedScroll > 0) {
                 requestAnimationFrame(() => { _mc.scrollTop = _savedScroll; });
             }
@@ -24973,10 +24983,23 @@ function renderOsh2() {
         </div>`;
     });
 
+    // ── Preserve opened regions across re-render (Edit/Save rebuilds this view) ──
+    const _osh2Open = [];
+    container.querySelectorAll('[id^="osh2-region-"]').forEach(function(el) {
+        if (el.style.display !== 'none') _osh2Open.push(el.id);
+    });
     container.innerHTML = html || `<div style="padding:50px;text-align:center;color:var(--text-secondary);background:var(--bg-card);border-radius:10px;border:1px solid var(--border-color);">
         <i class="fas fa-hard-hat" style="font-size:2.5rem;opacity:0.25;margin-bottom:12px;"></i>
         <div style="font-weight:600;">No projects match the current filter.</div>
     </div>`;
+    _osh2Open.forEach(function(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.display = '';
+        const hdr = el.previousElementSibling;
+        const chev = hdr && hdr.querySelector('.fa-chevron-down,.fa-chevron-right');
+        if (chev) { chev.classList.add('fa-chevron-down'); chev.classList.remove('fa-chevron-right'); }
+    });
     applyNumFmtToInputs();
 
     const tot = totalCompliant + totalDeficient;
@@ -25614,7 +25637,23 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>`;
         }
 
+        // ── Preserve opened/closed report sections across re-render ──
+        const _hrSecState = {};
+        container.querySelectorAll('[id^="hr-sec-"]').forEach(function(el) {
+            if (!/-chev$/.test(el.id)) _hrSecState[el.id] = el.style.display;
+        });
         container.innerHTML = html;
+        Object.keys(_hrSecState).forEach(function(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.style.display = _hrSecState[id];
+            const ch = document.getElementById(id + '-chev');
+            if (ch) {
+                const open = _hrSecState[id] !== 'none';
+                ch.classList.toggle('fa-chevron-up', open);
+                ch.classList.toggle('fa-chevron-down', !open);
+            }
+        });
         renderHealthReportSummaryBadges();
     };
 
@@ -30412,7 +30451,32 @@ function renderEshCalendar(tabType) {
     });
 
     html += `</div>`;
+    // ── Preserve open/closed UI state across re-render (global Edit/Save triggers a rebuild) ──
+    const _eshOpenRegions = [];
+    const _eshOpenSumRgns = [];
+    container.querySelectorAll('.esh-region-content').forEach(function(el) {
+        if (el.id && el.style.display !== 'none') _eshOpenRegions.push(el.id);
+    });
+    container.querySelectorAll('.esh-sum-tbl-wrap.open').forEach(function(el) {
+        if (el.id) _eshOpenSumRgns.push(el.id);
+    });
     container.innerHTML = html;
+    // ── Restore previously opened regions / summary accordions ──
+    _eshOpenRegions.forEach(function(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.display = '';
+        const icon = document.getElementById(id.replace(/-content$/, '-icon'));
+        if (icon) icon.style.transform = 'rotate(0deg)';
+        const banner = el.previousElementSibling;
+        if (banner) banner.style.borderRadius = '8px 8px 0 0';
+    });
+    _eshOpenSumRgns.forEach(function(id) {
+        const b = document.getElementById(id);
+        const h = document.getElementById(id.replace(/-body$/, '-hdr'));
+        if (b) b.classList.add('open');
+        if (h) h.classList.add('open');
+    });
     setTimeout(applyRegionBannerColors, 0);
 
     regionOrder.forEach(region => {
