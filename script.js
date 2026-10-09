@@ -7967,6 +7967,12 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             'Near Miss':                'An unplanned event that did not result in injury or damage but could have, under slightly different circumstances.'
         };
 
+        const LTA_FOLLOWUP_RESULTS = [
+            'Effective Corrective Action / For Close-out',
+            'For Continuous Monitoring',
+            'Ineffective (For CAR Issuance)'
+        ];
+
         const LTA_FACTOR_CATEGORIES = {
             'PEOPLE': [
                 'Lack of Awareness or Training',
@@ -8017,11 +8023,17 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             'Bee Sting / Insect Bite', 'Bone Fracture',
             'Burn', 'Contusion / Bruise',
             'Cut / Lacerated Wound',
+            'Corrosion',
             'Crush Injury',
             'Difficulty of Breathing',
+            'Dislocation',
             'Embedded Foreign Object (Eye)',
+            'Foreign Body Entering Through Natural Opening (Eyes/Ears/Respiratory Tract/GIT/GUT)',
             'Eye Injury / Strain',
             'Head Injury / Head Trauma',
+            'Injury of Blood Vessel/s',
+            'Injury of Muscles and Tendons',
+            'Injury of Nerve/s',
             'Minor Abrasion',
             'Muscle Spasm / Strain',
             'Nail Puncture / Punctured Wound',
@@ -8029,7 +8041,9 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             'Partial Avulsion',
             'Snake Bite',
             'Sprain',
+            'Superficial Injury',
             'Swelling / Hematoma',
+            'Toxic Effect of Substances (Non-Medicinal)',
             'N/A',
             'Others'
         ];
@@ -8040,7 +8054,8 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             'Ear/s', 'Nose', 'Chin', 'Glabella',
             'Neck', 'Shoulder (Left)', 'Shoulder (Right)',
             'Chest / Thoracic Cage', 'Back (Upper)', 'Back (Lower/Lumbar)',
-            'Abdomen', 'Hip / Pelvis',
+            'Trunk', 'Abdomen', 'Spine', 'Hip / Pelvis',
+            'Thigh (Left)', 'Thigh (Right)',
             'Arm (Left)', 'Arm (Right)',
             'Elbow (Left)', 'Elbow (Right)',
             'Forearm (Left)', 'Forearm (Right)',
@@ -8057,9 +8072,36 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             'Ankle (Left)', 'Ankle (Right)',
             'Foot (Left)', 'Foot (Right)',
             'Toe/s (Left)', 'Toe/s (Right)',
+            'Whole Body',
             'Multiple Body Parts',
             'N/A',
             'Others'
+        ];
+
+        const LTA_CAUSE_OF_INJURY = [
+            'Falls of Persons',
+            'Struck by Falling Objects',
+            'Stepping On / Striking Against / Struck by Objects (Excluding Falling Objects)',
+            'Caught By or In Between Objects',
+            'Over-exertion or Strenuous Movements',
+            'Exposure to or Contact with Extreme Temperatures',
+            'Exposure to or Contact with Electric Current',
+            'Exposure to or Contact with Harmful Substances',
+            'Exposure to Radiation',
+            'Others (Please Specify)'
+        ];
+
+        const LTA_AGENT_OF_INJURY = [
+            'Building / Structures',
+            'Prime Movers',
+            'Distribution Systems',
+            'Hand Tools',
+            'Machines / Equipment',
+            'Conveying / Transport / Packaging Equipment or Vehicles',
+            'Materials / Object',
+            'Chemical Substances',
+            'Humans / Animals / Plants',
+            'Others (Please Specify)'
         ];
 
         const SCHEDULED_CHARGES = {
@@ -8404,13 +8446,13 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 factor_ORGANIZATIONAL: [],
                 factorCategory: '', factorSubItem: '',
                 detailsFacts: '', injuredPersonName: '', natureOfInjury: '',
-                bodyPartsAffected: '', occupation: '', rootCause: '',
+                bodyPartsAffected: '', causeOfInjury: [], agentOfInjury: [], occupation: '', rootCause: '',
                 correctiveActions: [], correctiveAction: '', responsible: '', timeline: '',
                 followUp1: '', followUp2: '', followUp3: '',
                 dateOfAccident: '', dateRTW: '',
                 injuryType: 'temporary',        // 'temporary'|'permanent'|'amputation'|'vision'|'hearing'|'fatality'|'confinement'
                 scheduledChargeItem: '',        // key from SCHEDULED_CHARGES
-                dateClosed: '', cparNo: '', status: 'Open', remarks: ''
+                dateClosed: '', status: 'Open', remarks: ''
             });
             syncIncidentClassificationsFromRegistry();
             syncDaysLostFromLtaRegistry();
@@ -8495,6 +8537,391 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             if (icon) icon.style.transform = isCollapsed ? '' : 'rotate(-90deg)';
         }
 
+        // ════════════════════════════════════════════════════════════════
+        // AIIR IMPORT — read an Accident/Incident Investigation Report
+        // (FM-ESH-13-01 .docx / .pdf) and pre-fill a new LTA registry entry
+        // ════════════════════════════════════════════════════════════════
+        function _aiirParseDate(str) {
+            if (!str) return '';
+            const MON = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+            const pad = n => String(n).padStart(2, '0');
+            let m = str.match(/(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})/);
+            if (m) return `${m[3]}-${pad(+m[1])}-${pad(+m[2])}`;
+            m = str.match(/([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})/);
+            if (m && MON[m[1].slice(0,3).toLowerCase()]) return `${m[3]}-${pad(MON[m[1].slice(0,3).toLowerCase()])}-${pad(+m[2])}`;
+            m = str.match(/(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3,9})\.?,?\s+(\d{4})/);
+            if (m && MON[m[2].slice(0,3).toLowerCase()]) return `${m[3]}-${pad(MON[m[2].slice(0,3).toLowerCase()])}-${pad(+m[1])}`;
+            return '';
+        }
+
+        function _aiirGrab(T, startRe, endRes) {
+            const m = startRe.exec(T);
+            if (!m) return '';
+            const from = m.index + m[0].length;
+            const rest = T.slice(from);
+            let cut = rest.length;
+            endRes.forEach(re => { const x = re.exec(rest); if (x && x.index < cut) cut = x.index; });
+            return rest.slice(0, cut).replace(/^[\s:.\-–]+/, '').replace(/\s+/g, ' ').trim();
+        }
+
+        function _aiirPick(list, text, rules) {
+            const out = [];
+            rules.forEach(([re, val]) => { if (re.test(text) && list.includes(val) && !out.includes(val)) out.push(val); });
+            return out;
+        }
+
+
+        // Negation-aware pick: ignores matches preceded by "no / not / without / none"
+        function _aiirPickNeg(list, text, rules) {
+            const out = [];
+            rules.forEach(([re, val]) => {
+                if (!list.includes(val) || out.includes(val)) return;
+                const g = new RegExp(re.source, 'ig');
+                let m;
+                while ((m = g.exec(text))) {
+                    const pre = text.slice(Math.max(0, m.index - 18), m.index);
+                    if (!/\b(no|not|without|none|nil)\W*$/i.test(pre)) { out.push(val); break; }
+                }
+            });
+            return out;
+        }
+
+        // Scheduled Charge Item (Table 6) — only exact matches; never guesses
+        function _aiirScheduledItem(txt, cls) {
+            const has = k => typeof SCHEDULED_CHARGES !== 'undefined' && SCHEDULED_CHARGES[k] !== undefined;
+            if (cls === 'Fatality') return { item: 'Fatality' };
+            if (/loss of (sight|vision)|blind|lost (his|her) (eye|sight)/i.test(txt))
+                return { type: 'vision', item: /both eyes|two eyes/i.test(txt) ? 'Both Eyes (Loss of Sight)' : 'One Eye (Loss of Sight)' };
+            if (/complete hearing loss|loss of hearing|\bdeaf/i.test(txt))
+                return { type: 'hearing', item: /both ears/i.test(txt) ? 'Both Ears (Complete Hearing Loss)' : 'One Ear (Complete Hearing Loss)' };
+            if (/unrepaired hernia/i.test(txt)) return { item: 'Unrepaired Hernia' };
+            if (!/amputat|severed/i.test(txt)) return {};
+
+            const lvl = (w, toe) => /distal|tip of/i.test(w) ? 'Distal Phalange'
+                : /middle phalan/i.test(w) ? 'Middle Phalange'
+                : /proximal/i.test(w) ? 'Proximal Phalange'
+                : (toe ? (/metatars/i.test(w) ? 'Metatarsal' : '') : (/metacarp/i.test(w) ? 'Metacarpal' : ''));
+            let m;
+            if ((m = txt.match(/\b(great|big)\s+toe\b|hallux/i))) {
+                const l = lvl(txt.slice(m.index, m.index + 140), true);
+                const k = l ? `Great Toe — ${l}` : '';
+                return has(k) ? { item: k } : { note: 'Great Toe amputation — walang nabasang level (distal/proximal/metatarsal). Pumili ng Scheduled Charge Item manually.' };
+            }
+            if ((m = txt.match(/\btoes?\b/i))) {
+                const l = lvl(txt.slice(m.index, m.index + 140), true);
+                const k = l ? `Other Toe — ${l}` : '';
+                return has(k) ? { item: k } : { note: 'Toe amputation — walang nabasang level. Pumili ng Scheduled Charge Item manually.' };
+            }
+            if ((m = txt.match(/\b(index|middle|ring|little|pinky)\s+finger\b|\bthumb\b/i))) {
+                const w = m[1] ? ({ pinky: 'Little' }[m[1].toLowerCase()] || (m[1][0].toUpperCase() + m[1].slice(1).toLowerCase())) + ' Finger' : 'Thumb';
+                const l = lvl(txt.slice(m.index, m.index + 140), false);
+                const k = l ? `${w} — ${l}` : '';
+                return has(k) ? { item: k } : { note: `${w} amputation — walang nabasang level (distal/middle/proximal/metacarpal). Pumili ng Scheduled Charge Item manually.` };
+            }
+            if (/\bfoot\b[^.]{0,40}\bankle|at (the )?ankle/i.test(txt)) return { item: 'Foot at Ankle' };
+            if (/above[\s\-]+(the\s+)?elbow/i.test(txt)) return { item: 'Arm — Above Elbow (incl. joint)' };
+            if (/below[\s\-]+(the\s+)?elbow|forearm/i.test(txt)) return { item: 'Arm — Above Ankle / Below Elbow' };
+            if (/above[\s\-]+(the\s+)?knee/i.test(txt)) return { item: 'Leg — Above Knee' };
+            if (/below[\s\-]+(the\s+)?knee/i.test(txt)) return { item: 'Leg — Above Ankle / Below Knee' };
+            if (/\bhand\b[^.]{0,60}wrist|wrist[\s\-]level|at the wrist|amputation of (the )?(left |right )?hand/i.test(txt))
+                return { item: 'Arm — Above Ankle / Below Elbow',
+                         note: 'Hand/wrist amputation — walang exact "Hand at Wrist" sa table, kaya "Arm — Above Ankle / Below Elbow" (pinakamalapit) ang napili. I-verify.' };
+            return { note: 'Amputation — hindi matukoy ang Scheduled Charge Item. Pumili manually.' };
+        }
+
+        function parseAiirDocument(html, plainText) {
+            let T, caRows = [], fuCols = [{}, {}, {}], fuMeta = { reason: '', car: '' };
+            if (html) {
+                const doc = new DOMParser().parseFromString(
+                    html.replace(/<\/(td|th|p|li|tr|h\d)>/gi, '$&\n').replace(/<br\s*\/?>/gi, '\n'), 'text/html');
+                T = (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
+                // Corrective action table
+                const d2 = new DOMParser().parseFromString(html, 'text/html');
+                d2.querySelectorAll('table').forEach(tb => {
+                    const rows = Array.from(tb.querySelectorAll('tr'));
+                    if (!rows.length) return;
+                    const head = (rows[0].textContent || '').toUpperCase();
+                    if (head.includes('1ST') && head.includes('2ND') && head.includes('3RD') && head.includes('FOLLOW')) {
+                        // Monitoring & Follow-up table — copy only what is actually filled in the AIIR
+                        const blank = v => /^[\s_\-–.:]*$/.test(v || '');
+                        const txt = td => (td ? (td.textContent || '').replace(/\s+/g, ' ').trim() : '');
+                        rows.slice(1).forEach(tr => {
+                            const c = Array.from(tr.children).map(txt);
+                            const label = c[0] || '';
+                            if (/reason for ineffectiveness/i.test(label)) {
+                                const reason = label.replace(/reason for ineffectiveness( during verification)?/i, '').replace(/[_\s:]+$/g, '').trim();
+                                if (reason && !blank(reason)) fuMeta.reason = reason;
+                                const carIdx = c.findIndex(x => /CAR\s*No/i.test(x));
+                                const carVal = carIdx >= 0 ? (c[carIdx].replace(/.*CAR\s*No\.?\s*:?\s*/i, '') || c[carIdx + 1] || '') : '';
+                                if (carVal && !blank(carVal)) fuMeta.car = carVal;
+                                return;
+                            }
+                            let key = '', resVal = '';
+                            if (/date of follow-?up/i.test(label)) key = 'date';
+                            else if (/follow-?up by/i.test(label)) key = 'by';
+                            else if (/report close-?out date/i.test(label)) key = 'closeout';
+                            else if (/ineffective/i.test(label)) { key = 'result'; resVal = LTA_FOLLOWUP_RESULTS[2]; }
+                            else if (/continuous monitoring/i.test(label)) { key = 'result'; resVal = LTA_FOLLOWUP_RESULTS[1]; }
+                            else if (/effective corrective action|for close-?out/i.test(label)) { key = 'result'; resVal = LTA_FOLLOWUP_RESULTS[0]; }
+                            if (!key) return;
+                            for (let k = 0; k < 3; k++) {
+                                const v = c[k + 1];
+                                if (v === undefined || blank(v)) continue;
+                                if (key === 'result') { if (!fuCols[k].result) fuCols[k].result = resVal; }
+                                else if (key === 'by') fuCols[k].by = v;
+                                else { const d = _aiirParseDate(v); if (d) fuCols[k][key] = d; }
+                            }
+                        });
+                    } else if (head.includes('CORRECTIVE ACTION') && head.includes('RESPONSIBLE') && head.includes('TIMELINE')) {
+                        rows.slice(1).forEach(tr => {
+                            const c = Array.from(tr.children).map(td => (td.textContent || '').replace(/\s+/g, ' ').trim());
+                            if (c.length >= 3 && c[0] && !/approved by/i.test(c[0])) caRows.push({ action: c[0], responsible: c[1], timeline: c[2] });
+                        });
+                    }
+                });
+            } else {
+                T = (plainText || '').replace(/\s+/g, ' ').trim();
+            }
+
+            const r = {};
+            const found = [];
+            const set = (k, v) => { if (v !== '' && v != null && !(Array.isArray(v) && !v.length)) { r[k] = v; found.push(k); } };
+
+            const aiir = T.match(/\bAIIR[\s\-–]*(?:[A-Z]{2,}[\s\-–]*)*\d{4}[\s\-–]*\d+\b/i);
+            if (aiir) set('aiirNo', aiir[0].replace(/\s*[\-–]\s*/g, '-').replace(/\s+/g, '').toUpperCase());
+
+            set('dateReported', _aiirParseDate(_aiirGrab(T, /Reported Date\s*:/i, [/Acc\w*\s*\/?\s*Inc\w*\s*Report/i, /Name of Project/i])));
+            const dtAcc = _aiirGrab(T, /Date and Time when the Accident\s*\/?\s*Incident happened\s*:/i, [/Equipment\s*\/\s*Machinery/i, /Exact Location/i]);
+            set('dateOfAccident', _aiirParseDate(dtAcc));
+
+            const name = _aiirGrab(T, /Employee'?s?’?s? Name\s*:/i, [/Employee No/i, /Age\s*:/i]);
+            const age = (_aiirGrab(T, /\bAge\s*:/i, [/Sex/i, /Civil/i]).match(/\d{1,3}/) || [''])[0];
+            if (name) set('injuredPersonName', age ? `${name}, ${age}` : name);
+            set('occupation', _aiirGrab(T, /Position\s*\/\s*Function\s*:/i, [/Month\/?s? with the Company/i, /Date of Employee/i]));
+            set('locationOfIncident', _aiirGrab(T, /Exact Location of the Accident\s*\/?\s*Incident\s*:/i, [/Witnesses or Others/i]));
+
+            const equip = _aiirGrab(T, /Equipment\s*\/\s*Machinery\s*\/\s*Tools\s+Involved[^:]*:/i, [/Exact Location/i]);
+            const detailsRaw = _aiirGrab(T, /Detailed Description of Accident\s*\/?\s*Incident\s*\([^)]*\)\s*:?/i, [/Related Facts/i]);
+            set('detailsFacts', detailsRaw);
+            set('rootCause', _aiirGrab(T, /FINAL ROOT CAUSE/i, [/Does this incident/i]));
+            const natInj = _aiirGrab(T, /Nature of Injury or Illness\s*:/i, [/Medical Findings/i]);
+            const findings = _aiirGrab(T, /Medical Findings[^:]*:/i, [/Attended by/i, /Treatment Given/i]);
+
+            // Classification checkboxes
+            const clsSec = _aiirGrab(T, /ESH ACCIDENT\s*\/\s*INCIDENT CLASSIFICATIONS?/i, [/ENVIRONMENTAL ACCIDENT/i, /Note\s*:/i]);
+            const checked = [];
+            const MAP = [[/Fatality/i,'Fatality'],[/Lost Time/i,'LTA'],[/Medical Treatment/i,'Medical Treatment'],
+                         [/Dangerous Occurrence/i,'Dangerous Occurrence'],[/First Aid/i,'First Aid'],[/Near[\s\-]*Miss/i,'Near Miss']];
+            const cre = /\(\s*([✓✔☑xX])\s*\)\s*([A-Za-z][A-Za-z\s\-]*?)(?=\s*\(|$)/g;
+            let cm;
+            while ((cm = cre.exec(clsSec))) MAP.forEach(([re, v]) => { if (re.test(cm[2]) && !checked.includes(v)) checked.push(v); });
+            const PRI = ['Fatality','LTA','Medical Treatment','Dangerous Occurrence','First Aid','Near Miss'];
+            const cls = PRI.find(p => checked.includes(p));
+            if (cls) set('incidentClassification', cls);
+
+            // Keyword-matched dropdown values (best guess — user reviews)
+            const injText = `${natInj} ${findings}`;
+            const allText = `${detailsRaw} ${injText} ${equip}`;
+
+            set('natureOfInjury', _aiirPick(LTA_NATURE_OF_INJURY, injText, [
+                [/amputat/i,'Amputation'],[/fractur|broken bone/i,'Bone Fracture'],[/avulsion/i,'Avulsion'],
+                [/crush/i,'Crush Injury'],[/lacerat|\bcut\b/i,'Cut / Lacerated Wound'],[/puncture/i,'Nail Puncture / Punctured Wound'],
+                [/\bburn/i,'Burn'],[/contusion|bruis/i,'Contusion / Bruise'],[/abrasion/i,'Abrasion'],
+                [/dislocat/i,'Dislocation'],[/sprain/i,'Sprain'],[/strain|spasm/i,'Muscle Spasm / Strain'],
+                [/swelling|hematoma/i,'Swelling / Hematoma'],[/open wound/i,'Open Wound'],[/head (injury|trauma)/i,'Head Injury / Head Trauma'],
+                [/eye injur/i,'Eye Injury / Strain'],[/snake/i,'Snake Bite'],[/insect|bee sting/i,'Bee Sting / Insect Bite']]));
+
+            const bp = [];
+            const addBp = v => { if (LTA_BODY_PARTS.includes(v) && !bp.includes(v)) bp.push(v); };
+            const sided = [['hand','Hand'],['wrist','Wrist'],['forearm','Forearm'],['elbow','Elbow'],['arm','Arm'],['shoulder','Shoulder'],
+                           ['thumb','Thumb'],['finger','Finger/s'],['leg','Leg'],['knee','Knee'],['ankle','Ankle'],['foot','Foot'],['toe','Toe/s'],['thigh','Thigh']];
+            sided.forEach(([w, label]) => {
+                const re = new RegExp(`\\b(left|right)[\\s\\-]+(?:\\w+\\s+)?${w}s?\\b|\\b${w}s?\\s*\\(?(left|right)\\)?`, 'ig');
+                let m;
+                while ((m = re.exec(injText))) addBp(`${label} (${((m[1] || m[2]).toLowerCase() === 'left') ? 'Left' : 'Right'})`);
+            });
+            [[/\bhead\b/i,'Head'],[/\bface\b/i,'Face'],[/\bneck\b/i,'Neck'],[/\bchest\b/i,'Chest / Thoracic Cage'],
+             [/lower back|lumbar/i,'Back (Lower/Lumbar)'],[/upper back/i,'Back (Upper)'],[/abdomen/i,'Abdomen'],[/\bspine\b/i,'Spine'],
+             [/pelvis|\bhip\b/i,'Hip / Pelvis']].forEach(([re, v]) => { if (re.test(injText)) addBp(v); });
+            set('bodyPartsAffected', bp);
+
+            const cause = _aiirPick(LTA_CAUSE_OF_INJURY, allText, [
+                [/falling object|struck by falling|fell on/i,'Struck by Falling Objects'],
+                [/\bfell\b|\bfall\b|slip|\btrip/i,'Falls of Persons'],
+                [/caught|entangl|pinch|rotating|moving part|crush|between/i,'Caught By or In Between Objects'],
+                [/struck|\bhit\b|striking|stepp?ed on/i,'Stepping On / Striking Against / Struck by Objects (Excluding Falling Objects)'],
+                [/overexert|lifting|manual handling|strenuous/i,'Over-exertion or Strenuous Movements'],
+                [/\bburn|hot surface|extreme temperature|heat stress/i,'Exposure to or Contact with Extreme Temperatures'],
+                [/electric(?!ian)|electrocut|arc flash/i,'Exposure to or Contact with Electric Current'],
+                [/chemical|toxic|fume|inhal/i,'Exposure to or Contact with Harmful Substances'],
+                [/radiation/i,'Exposure to Radiation']]);
+            set('causeOfInjury', cause.slice(0, 1));
+
+            const agentSrc = `${equip} ${detailsRaw}`;
+            const agent = _aiirPick(LTA_AGENT_OF_INJURY, agentSrc, [
+                [/hand tool|hammer|wrench|screwdriver|pliers|chisel|hand saw/i,'Hand Tools'],
+                [/chemical|acid|solvent|fuel|paint/i,'Chemical Substances'],
+                [/truck|forklift|trailer|vehicle|motorcycle|\bvan\b|\bbus\b|\bcar\b|pickup/i,'Conveying / Transport / Packaging Equipment or Vehicles'],
+                [/machine|equipment|bulldozer|excavator|crane|grader|roller|loader|generator|compressor|\bfan\b|grinder|\bsaw\b|drill|welding/i,'Machines / Equipment'],
+                [/scaffold|building|structure|floor|wall|roof|ladder|stair/i,'Building / Structures']]);
+            set('agentOfInjury', agent.slice(0, 1));
+
+
+            // Contributing Factors — from the 4M+E root-cause analysis cells
+            const rcStart = T.search(/Manpower\s*:/i);
+            if (rcStart >= 0) {
+                const R = T.slice(rcStart);
+                const mp = _aiirGrab(R, /Manpower\s*:/i, [/Machine\s*:/i, /Materials?\s*:/i]);
+                const mc = _aiirGrab(R, /Machine\s*:/i, [/Materials?\s*:/i, /Method\s*:/i]);
+                const mt = _aiirGrab(R, /Materials?\s*:/i, [/Method\s*:/i, /Environment\s*:/i]);
+                const me = _aiirGrab(R, /Method\s*:/i, [/Environment\s*:/i, /FINAL ROOT CAUSE/i]);
+                const en = _aiirGrab(R, /Environment\s*:/i, [/FINAL ROOT CAUSE/i, /Does this incident/i]);
+                const F = LTA_FACTOR_CATEGORIES;
+                set('factor_PEOPLE', _aiirPickNeg(F.PEOPLE, mp, [
+                    [/not aware|unaware|lack of (awareness|training|knowledge)|not (properly )?trained|untrained|no (proper )?training|inadequate training/, 'Lack of Awareness or Training'],
+                    [/fatigue|tired|stress|overwork/, 'Fatigue and Stress'],
+                    [/negligen|complacen|careless/, 'Negligence or Complacency'],
+                    [/ignor(ed|ing)|did not follow|not follow(ed|ing)|failed to follow|failure to follow|violat|bypass|disregard/, 'Ignoring Safety Procedures'],
+                    [/distract/, 'Distractions'],
+                    [/miscommunicat|poor communication|communication (gap|breakdown|failure)|not communicated/, 'Poor Communication'],
+                    [/improper(ly)? (use|used|handl)|misuse|direct (hand )?contact|wrong (method|tool)|incorrect (use|method)/, 'Improper Use of Equipment'],
+                    [/risk[\s\-]?tak|unsafe act|short[\s\-]?cut/, 'Risk-Taking Behavior']]));
+                set('factor_EQUIPMENT', _aiirPickNeg(F.EQUIPMENT, mc, [
+                    [/faulty|defect|malfunction|unprotected|inadequate guard|insufficient (to prevent|guard)|missing guard|guard[^.]{0,40}(gap|missing|inadequate|insufficient)|worn|broken/, 'Faulty Equipment'],
+                    [/improper(ly)? (use|used) of tools?|wrong tool|misuse of tools?/, 'Improper Use of Tools'],
+                    [/lack of maintenance|poor maintenance|not (properly )?maintained|overdue (pms|maintenance)/, 'Lack of Maintenance'],
+                    [/failure to use ppe|without ppe|not wearing ppe|did not wear/, 'Failure to Use PPE'],
+                    [/uncalibrated|outdated|not calibrated|expired calibration/, 'Uncalibrated/Outdated Equipment']]));
+                set('factor_MATERIALS', _aiirPickNeg(F.MATERIALS, mt, [
+                    [/flammable|toxic/, 'Flammable or Toxic Substances'],[/storage|stored/, 'Improper Storage'],
+                    [/defective material|substandard/, 'Defective Materials'],[/spill|leak/, 'Spills and Leaks']]));
+                set('factor_ENVIRONMENT', _aiirPickNeg(F.ENVIRONMENT, en, [
+                    [/housekeeping|untidy|cluttered/, 'Poor Housekeeping'],[/hazardous substance/, 'Hazardous Substances'],
+                    [/weather|\brain|\bwet\b|slippery|typhoon|strong wind/, 'Weather Conditions'],[/ventilation/, 'Inadequate Ventilation'],
+                    [/poor lighting|inadequate lighting|insufficient light|too dark/, 'Inadequate Lighting'],[/noise/, 'Excessive Noise'],
+                    [/vibration/, 'Excessive Vibration'],[/congested|cramped|limited space|narrow|crowded/, 'Congested Work Areas']]));
+                set('factor_ORGANIZATIONAL', _aiirPickNeg(F.ORGANIZATIONAL, me, [
+                    [/hirac|risk assessment|\bjha\b|hazard (identification|assessment)|did not adequately control|not adequately (identified|controlled|assessed)|inadequate (identification|control|risk)/, 'Inadequate Risk Assessments'],
+                    [/lack of safety training|no safety training|inadequate (safety )?training/, 'Lack of Safety Training'],
+                    [/poor supervision|inadequate supervision|no supervision|unsupervised|not supervised/, 'Poor Supervision'],
+                    [/deadline|pressure|rush(ed|ing)/, 'Pressure to Meet Deadlines'],
+                    [/lack of proper ppe|inadequate ppe/, 'Lack of Proper PPE'],
+                    [/failure to maintain|equipment (was )?not maintained/, 'Failure to Maintain Equipment']]));
+            }
+
+            const NI = [
+                [/electric(?!ian)|electrocut/i,'Electric Shock'],[/arc flash/i,'Arc Flashes'],
+                [/from height|fell from|fall from/i,'Fall to Below'],[/slip|\btrip|\bfell\b|\bfall\b/i,'Fall to Surface'],
+                [/struck by|hit by|falling object/i,'Struck-By'],[/struck against|hit against|bump/i,'Struck Against'],
+                [/caught (in|between)|entangl|pinch/i,'Caught in Between'],[/caught by/i,'Caught By'],[/caught on/i,'Caught-On'],
+                [/chemical burn/i,'Chemical Burns'],[/\bburn/i,'Burns'],[/manual handling|lifting/i,'Manual Handling'],[/overexert/i,'Overexertion'],
+                [/vehicular|collision|vehicle accident/i,'Vehicular Accident'],[/explosion|\bfire\b/i,'Fire and Explosions'],
+                [/rotating|moving part|contact with|contacted/i,'Contact With']];
+            set('natureOfIncident', (_aiirPick(LTA_NATURE_OF_INCIDENT, `${detailsRaw} ${injText}`, NI)[0]) || '');
+
+            if (cls === 'Fatality') set('injuryType', 'fatality');
+            else if (/amputat/i.test(injText)) set('injuryType', 'amputation');
+            const notes = [];
+            const sch = _aiirScheduledItem(`${injText} ${detailsRaw}`, cls);
+            if (sch.type) set('injuryType', sch.type);
+            if (sch.item) set('scheduledChargeItem', sch.item);
+            if (sch.note) notes.push(sch.note);
+
+            const FUK = { result: 'Result', date: 'Date', by: 'By', closeout: 'Closeout' };
+            fuCols.forEach((o, i) => Object.keys(o).forEach(k => set('followUp' + (i + 1) + FUK[k], o[k])));
+            if (fuMeta.reason || fuMeta.car) {
+                let fi = fuCols.findIndex(o => o.result === LTA_FOLLOWUP_RESULTS[2]);
+                if (fi < 0) fi = 2;
+                set('followUp' + (fi + 1) + 'Reason', fuMeta.reason);
+                set('followUp' + (fi + 1) + 'CarNo', fuMeta.car);
+            }
+            if (caRows.length) {
+                r.correctiveActions = caRows;
+                r.correctiveAction = caRows.map(x => x.action).join('\n');
+                r.responsible = caRows.map(x => x.responsible).filter(Boolean).join(', ');
+                r.timeline = caRows.map(x => x.timeline).filter(Boolean).join(', ');
+                found.push('correctiveActions');
+            }
+            return { data: r, found, notes };
+        }
+
+        function _aiirLoadMammoth() {
+            return new Promise((resolve, reject) => {
+                if (window.mammoth) return resolve();
+                const urls = [
+                    'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js',
+                    'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js'
+                ];
+                let i = 0;
+                const next = () => {
+                    if (i >= urls.length) return reject(new Error('Hindi ma-load ang DOCX reader (check internet).'));
+                    const sc = document.createElement('script');
+                    sc.src = urls[i++];
+                    sc.onload = () => resolve();
+                    sc.onerror = next;
+                    document.head.appendChild(sc);
+                };
+                next();
+            });
+        }
+
+        const _aiirNorm = v => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+        window._importAiirViaFile = function(pName) {
+            const p = state.projects.find(x => x.name === pName);
+            if (!p) return;
+            const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p.region, 'medical');
+            if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
+            const inp = document.createElement('input');
+            inp.type = 'file';
+            inp.accept = '.docx,.pdf';
+            inp.onchange = async () => {
+                const f = inp.files && inp.files[0];
+                if (!f) return;
+                try {
+                    showToast('📄 Binabasa ang AIIR...', 'info', 2000);
+                    let res;
+                    if (/\.docx$/i.test(f.name)) {
+                        await _aiirLoadMammoth();
+                        const out = await window.mammoth.convertToHtml({ arrayBuffer: await f.arrayBuffer() });
+                        res = parseAiirDocument(out.value);
+                    } else if (/\.pdf$/i.test(f.name)) {
+                        const txt = await extractTextFromPdf(f);
+                        if (!txt) throw new Error('Hindi mabasa ang PDF (scanned/image lang?). Gamitin ang .docx.');
+                        res = parseAiirDocument(null, txt);
+                    } else {
+                        throw new Error('.docx o .pdf lang ang supported.');
+                    }
+                    if (!res.data.aiirNo && !res.data.dateOfAccident) {
+                        throw new Error('Walang nabasang AIIR No. o Date of Accident. Tama ba ang template (FM-ESH-13-01)?');
+                    }
+                    // Duplicate check across all projects — do not add if AIIR No. already exists
+                    if (res.data.aiirNo) {
+                        const key = _aiirNorm(res.data.aiirNo);
+                        for (const proj of state.projects) {
+                            const list = (proj.vals && proj.vals['lta-registry_entries']) || [];
+                            const di = list.findIndex(x => x && _aiirNorm(x.aiirNo) === key);
+                            if (di >= 0) {
+                                showToast(`⚠️ ${res.data.aiirNo} ay existing na sa ${proj.name} — hindi dinagdag.`, 'error', 5000);
+                                if (proj.name === pName) openLtaModal(pName, di, false);
+                                return;
+                            }
+                        }
+                    }
+                    _ltaAutoEditMode();
+                    window._ltaPrefill = res.data;
+                    openLtaModal(pName, -1, true);
+                    showToast(`✅ ${res.found.length} fields na-fill mula sa AIIR. I-review bago i-save (lalo na ang dropdowns).`, 'success', 6000);
+                    if (res.notes && res.notes.length) setTimeout(() => showToast('⚠️ ' + res.notes.join(' '), 'error', 9000), 600);
+                } catch (err) {
+                    console.error('AIIR import failed:', err);
+                    window._ltaPrefill = null;
+                    showToast('❌ ' + err.message, 'error', 6000);
+                }
+            };
+            inp.click();
+        };
+
         // ══════════════════════════════════════════════════════════════════
         // LTA ENTRY MODAL SYSTEM
         // openLtaModal(pName, idx, editMode) — opens dialog for view/edit/add
@@ -8511,12 +8938,13 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 incidentClassification:'LTA', incidentMechanism:'',
                 factor_PEOPLE:[], factor_EQUIPMENT:[], factor_MATERIALS:[],
                 factor_ENVIRONMENT:[], factor_ORGANIZATIONAL:[],
-                detailsFacts:'', injuredPersonName:'', natureOfInjury:'', bodyPartsAffected:'',
+                detailsFacts:'', injuredPersonName:'', natureOfInjury:'', bodyPartsAffected:'', causeOfInjury:[], agentOfInjury:[],
                 occupation:'', rootCause:'', correctiveActions:[], correctiveAction:'', responsible:'', timeline:'',
                 followUp1:'', followUp2:'', followUp3:'',
                 dateOfAccident:'', dateRTW:'', injuryType:'temporary', scheduledChargeItem:'',
-                dateClosed:'', cparNo:'', status:'Open', remarks:''
+                dateClosed:'', status:'Open', remarks:''
             } : JSON.parse(JSON.stringify(entries[idx]));
+            if (isNew && window._ltaPrefill) { Object.assign(e, window._ltaPrefill); window._ltaPrefill = null; }
 
             const canEdit = editMode || isNew;
             const dis = canEdit ? '' : 'disabled';
@@ -8626,7 +9054,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     display:flex;align-items:center;justify-content:space-between;">
                     <div>
                         <div style="color:white;font-weight:800;font-size:0.9rem;font-family:Poppins,sans-serif;">
-                            ${isNew ? '➕ New LTA Entry' : (canEdit ? '✏️ Edit Entry #' + entryNum : '🔍 View Entry #' + entryNum)}
+                            ${isNew ? '➕ New Incident / Accident Entry' : (canEdit ? '✏️ Edit Entry #' + entryNum : '🔍 View Entry #' + entryNum)}
                         </div>
                         <div style="color:#c8e6c9;font-size:0.68rem;margin-top:2px;">${pName}</div>
                     </div>
@@ -8669,29 +9097,18 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                             <div style="position:relative;">
                                 <select name="ltamod-incidentClassification" ${dis}
                                     style="width:100%;"
+                                    title="${(e.incidentClassification && typeof LTA_INCIDENT_CLASSIFICATION_DESC !== 'undefined' ? (LTA_INCIDENT_CLASSIFICATION_DESC[e.incidentClassification]||'') : '').replace(/"/g,'&quot;')}"
                                     onchange="(function(sel){
                                         const desc = (typeof LTA_INCIDENT_CLASSIFICATION_DESC !== 'undefined') ? LTA_INCIDENT_CLASSIFICATION_DESC[sel.value] : null;
-                                        const box = sel.parentElement.querySelector('.ic-desc-box');
-                                        if(box){ if(desc){ box.textContent=desc; box.style.display='block'; } else { box.style.display='none'; } }
-                                    })(this)"
-                                    onmouseover="(function(sel){
-                                        const desc = (typeof LTA_INCIDENT_CLASSIFICATION_DESC !== 'undefined') ? LTA_INCIDENT_CLASSIFICATION_DESC[sel.value] : null;
-                                        const box = sel.parentElement.querySelector('.ic-desc-box');
-                                        if(box && desc){ box.textContent=desc; box.style.display='block'; }
+                                        sel.title = desc || '';
                                     })(this)">
                                     <option value="">— Select —</option>
                                     ${typeof LTA_INCIDENT_CLASSIFICATION !== 'undefined' ? LTA_INCIDENT_CLASSIFICATION.map(o => {
-                                        const desc = (typeof LTA_INCIDENT_CLASSIFICATION_DESC !== 'undefined') ? LTA_INCIDENT_CLASSIFICATION_DESC[o] || '' : '';
+                                        const desc = (typeof LTA_INCIDENT_CLASSIFICATION_DESC !== 'undefined') ? (LTA_INCIDENT_CLASSIFICATION_DESC[o] || '').replace(/"/g,'&quot;') : '';
                                         const selArr = Array.isArray(e.incidentClassification) ? e.incidentClassification : (e.incidentClassification ? [e.incidentClassification] : []);
                                         return `<option value="${o}" title="${desc}" ${selArr.includes(o)?'selected':''}>${o}</option>`;
                                     }).join('') : ''}
                                 </select>
-                                <div class="ic-desc-box" style="display:${e.incidentClassification && (typeof LTA_INCIDENT_CLASSIFICATION_DESC !== 'undefined') && LTA_INCIDENT_CLASSIFICATION_DESC[e.incidentClassification] ? 'block':'none'};
-                                    margin-top:5px; padding:7px 10px; background:#e8f5e9; border-left:3px solid #2e7d32;
-                                    border-radius:0 5px 5px 0; font-size:0.68rem; color:#2e7d32; line-height:1.5;
-                                    animation: fadeInDown 0.2s ease;">
-                                    ${e.incidentClassification && (typeof LTA_INCIDENT_CLASSIFICATION_DESC !== 'undefined') ? (LTA_INCIDENT_CLASSIFICATION_DESC[e.incidentClassification]||'') : ''}
-                                </div>
                             </div>
                         </div>
                         <div class="lta-field lta-field-full">
@@ -8704,7 +9121,21 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                         </div>
                         ${factorsHtml}
 
-                        <div class="lta-section-label" style="grid-column:1/-1;"><i class="fas fa-user-injured" style="margin-right:5px;"></i>Injured Person</div>
+                        <div class="lta-section-label" style="grid-column:1/-1;display:flex;align-items:center;justify-content:flex-start;gap:10px;">
+                            <span><i class="fas fa-user-injured" style="margin-right:5px;"></i>Injured Person</span>
+                            ${canEdit ? `<button type="button"
+                                id="ltamod-naBtn-${pId}"
+                                onclick="window._ltaModalToggleNA('${pId}')"
+                                title="Walang injured person — i-disable ang buong section"
+                                style="flex-shrink:0;padding:2px 10px;border-radius:6px;
+                                    border:1.5px solid ${e.injuredPersonName==='N/A'?'#2e7d32':'#bbb'};
+                                    background:${e.injuredPersonName==='N/A'?'#e8f5e9':'#f9f9f9'};
+                                    color:${e.injuredPersonName==='N/A'?'#2e7d32':'#888'};
+                                    font-size:0.65rem;font-weight:700;cursor:pointer;white-space:nowrap;"
+                                data-isna="${e.injuredPersonName==='N/A'?'1':'0'}">
+                                ${e.injuredPersonName==='N/A'?'✓ N/A':'N/A'}
+                            </button>` : (e.injuredPersonName==='N/A' ? '<span style="font-size:0.65rem;font-weight:700;color:#2e7d32;">N/A — Not Applicable</span>' : '')}
+                        </div>
 
                         <div class="lta-field">
                             <label>Injured Person Name / Age</label>
@@ -8713,17 +9144,6 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                                     value="${e.injuredPersonName==='N/A'?'':(e.injuredPersonName||'')}"
                                     ${dis} ${e.injuredPersonName==='N/A'?'placeholder="N/A — Not Applicable"':'placeholder="e.g. Juan dela Cruz, 35"'}
                                     style="${e.injuredPersonName==='N/A'?'background:#f5f5f5;color:#999;font-style:italic;':''}">
-                                ${canEdit ? `<button type="button"
-                                    id="ltamod-naBtn-${pId}"
-                                    onclick="window._ltaModalToggleNA('${pId}')"
-                                    style="flex-shrink:0;padding:5px 10px;border-radius:6px;
-                                        border:1.5px solid ${e.injuredPersonName==='N/A'?'#2e7d32':'#bbb'};
-                                        background:${e.injuredPersonName==='N/A'?'#e8f5e9':'#f9f9f9'};
-                                        color:${e.injuredPersonName==='N/A'?'#2e7d32':'#888'};
-                                        font-size:0.65rem;font-weight:700;cursor:pointer;white-space:nowrap;"
-                                    data-isna="${e.injuredPersonName==='N/A'?'1':'0'}">
-                                    ${e.injuredPersonName==='N/A'?'✓ N/A':'N/A'}
-                                </button>` : ''}
                             </div>
                         </div>
                         <div class="lta-field">
@@ -8782,6 +9202,68 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                                                     data-dd="ltamod-bp-dd-${pId}"
                                                     data-preview="ltamod-bp-preview-${pId}"
                                                     onchange="window._ltaUpdateCbPreview('ltamod-bp-dd-${pId}','ltamod-bp-preview-${pId}')">
+                                                <span>${o}</span>
+                                            </label>`).join('')}
+                                        </div>
+                                    </div>
+                                </div>`;
+                            })()}
+                        </div>
+                        <div class="lta-field">
+                            <label>Cause of Injury</label>
+                            ${(()=>{
+                                const selArr = Array.isArray(e.causeOfInjury) ? e.causeOfInjury
+                                    : (e.causeOfInjury ? e.causeOfInjury.split(',').map(v=>v.trim()).filter(Boolean) : []);
+                                if (!canEdit) {
+                                    return selArr.length
+                                        ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 0;">${selArr.map(s=>`<span style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:10px;padding:2px 8px;font-size:0.68rem;font-weight:600;">${s}</span>`).join('')}</div>`
+                                        : `<span style="color:#bbb;font-size:0.72rem;font-style:italic;">—</span>`;
+                                }
+                                return `<div class="lta-cb-dropdown" id="ltamod-ci-dd-${pId}">
+                                    <button type="button" class="lta-cb-trigger" onclick="window._ltaToggleCbDd('ltamod-ci-dd-${pId}',event)">
+                                        <span class="lta-cb-preview" id="ltamod-ci-preview-${pId}">${selArr.length ? selArr.join(', ') : '— Select —'}</span>
+                                        <i class="fas fa-chevron-down" style="font-size:0.6rem;flex-shrink:0;"></i>
+                                    </button>
+                                    <div class="lta-cb-panel" id="ltamod-ci-panel-${pId}" style="display:none;">
+                                        <div class="lta-cb-search-wrap"><input type="text" class="lta-cb-search" placeholder="Search cause..." oninput="window._ltaFilterCb(this,'ltamod-ci-panel-${pId}')"></div>
+                                        <div class="lta-cb-list">
+                                        ${(typeof LTA_CAUSE_OF_INJURY !== 'undefined' ? LTA_CAUSE_OF_INJURY : []).map(o=>`
+                                            <label class="lta-cb-item">
+                                                <input type="checkbox" value="${o}" ${selArr.includes(o)?'checked':''}
+                                                    data-dd="ltamod-ci-dd-${pId}"
+                                                    data-preview="ltamod-ci-preview-${pId}"
+                                                    onchange="window._ltaUpdateCbPreview('ltamod-ci-dd-${pId}','ltamod-ci-preview-${pId}')">
+                                                <span>${o}</span>
+                                            </label>`).join('')}
+                                        </div>
+                                    </div>
+                                </div>`;
+                            })()}
+                        </div>
+                        <div class="lta-field">
+                            <label>Agent of Injury</label>
+                            ${(()=>{
+                                const selArr = Array.isArray(e.agentOfInjury) ? e.agentOfInjury
+                                    : (e.agentOfInjury ? e.agentOfInjury.split(',').map(v=>v.trim()).filter(Boolean) : []);
+                                if (!canEdit) {
+                                    return selArr.length
+                                        ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 0;">${selArr.map(s=>`<span style="background:#f3e5f5;color:#6a1b9a;border:1px solid #ce93d8;border-radius:10px;padding:2px 8px;font-size:0.68rem;font-weight:600;">${s}</span>`).join('')}</div>`
+                                        : `<span style="color:#bbb;font-size:0.72rem;font-style:italic;">—</span>`;
+                                }
+                                return `<div class="lta-cb-dropdown" id="ltamod-ag-dd-${pId}">
+                                    <button type="button" class="lta-cb-trigger" onclick="window._ltaToggleCbDd('ltamod-ag-dd-${pId}',event)">
+                                        <span class="lta-cb-preview" id="ltamod-ag-preview-${pId}">${selArr.length ? selArr.join(', ') : '— Select —'}</span>
+                                        <i class="fas fa-chevron-down" style="font-size:0.6rem;flex-shrink:0;"></i>
+                                    </button>
+                                    <div class="lta-cb-panel" id="ltamod-ag-panel-${pId}" style="display:none;">
+                                        <div class="lta-cb-search-wrap"><input type="text" class="lta-cb-search" placeholder="Search agent..." oninput="window._ltaFilterCb(this,'ltamod-ag-panel-${pId}')"></div>
+                                        <div class="lta-cb-list">
+                                        ${(typeof LTA_AGENT_OF_INJURY !== 'undefined' ? LTA_AGENT_OF_INJURY : []).map(o=>`
+                                            <label class="lta-cb-item">
+                                                <input type="checkbox" value="${o}" ${selArr.includes(o)?'checked':''}
+                                                    data-dd="ltamod-ag-dd-${pId}"
+                                                    data-preview="ltamod-ag-preview-${pId}"
+                                                    onchange="window._ltaUpdateCbPreview('ltamod-ag-dd-${pId}','ltamod-ag-preview-${pId}')">
                                                 <span>${o}</span>
                                             </label>`).join('')}
                                         </div>
@@ -8865,18 +9347,43 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
 
                         <div class="lta-section-label" style="grid-column:1/-1;"><i class="fas fa-list-check" style="margin-right:5px;"></i>Monitoring & Follow-up Results</div>
 
-                        <div class="lta-field">
-                            <label>1st Follow-up</label>
-                            <textarea name="ltamod-followUp1" ${dis} style="min-height:44px;">${e.followUp1||''}</textarea>
-                        </div>
-                        <div class="lta-field">
-                            <label>2nd Follow-up</label>
-                            <textarea name="ltamod-followUp2" ${dis} style="min-height:44px;">${e.followUp2||''}</textarea>
-                        </div>
-                        <div class="lta-field">
-                            <label>3rd Follow-up</label>
-                            <textarea name="ltamod-followUp3" ${dis} style="min-height:44px;">${e.followUp3||''}</textarea>
-                        </div>
+                        ${(() => {
+                            const RES = (typeof LTA_FOLLOWUP_RESULTS !== 'undefined') ? LTA_FOLLOWUP_RESULTS : [];
+                            const ORD = { 1: '1st', 2: '2nd', 3: '3rd' };
+                            const esc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+                            const sub = 'font-size:0.62rem;color:#666;font-weight:600;margin:6px 0 2px;display:block;';
+                            return [1, 2, 3].map(n => {
+                                const k = 'followUp' + n;
+                                const res = e[k + 'Result'] || '';
+                                const legacy = String(e[k] || '').trim();
+                                return `<div class="lta-field">
+                                    <label>${ORD[n]} Follow-up</label>
+                                    <select name="ltamod-${k}Result" ${dis}
+                                        onchange="(function(s){var p=s.closest('.lta-field');
+                                            p.querySelector('.fu-co').style.display = s.value==='${RES[0]}' ? 'block' : 'none';
+                                            p.querySelector('.fu-in').style.display = s.value==='${RES[2]}' ? 'block' : 'none';})(this)">
+                                        <option value="">— Select Result —</option>
+                                        ${RES.map(o => `<option value="${esc(o)}" ${res === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+                                    </select>
+                                    <span style="${sub}">Date of Follow-up</span>
+                                    <input type="date" name="ltamod-${k}Date" value="${esc(e[k + 'Date'])}" ${dis}>
+                                    <span style="${sub}">Follow-up By (PM / DM / ESH Officer)</span>
+                                    <input type="text" name="ltamod-${k}By" value="${esc(e[k + 'By'])}" ${dis}>
+                                    <div class="fu-co" style="display:${res === RES[0] ? 'block' : 'none'};">
+                                        <span style="${sub}">Report Close-out Date</span>
+                                        <input type="date" name="ltamod-${k}Closeout" value="${esc(e[k + 'Closeout'])}" ${dis}>
+                                    </div>
+                                    <div class="fu-in" style="display:${res === RES[2] ? 'block' : 'none'};">
+                                        <span style="${sub}">Reason for Ineffectiveness</span>
+                                        <input type="text" name="ltamod-${k}Reason" value="${esc(e[k + 'Reason'])}" ${dis}>
+                                        <span style="${sub}">CAR No.</span>
+                                        <input type="text" name="ltamod-${k}CarNo" value="${esc(e[k + 'CarNo'])}" ${dis}>
+                                    </div>
+                                    ${legacy ? `<span style="${sub}">Notes (previous free-text entry)</span>
+                                    <textarea name="ltamod-${k}" ${dis} rows="3" style="min-height:60px;resize:vertical;">${esc(legacy)}</textarea>` : ''}
+                                </div>`;
+                            }).join('');
+                        })()}
 
                         <div class="lta-section-label" style="grid-column:1/-1;">
                             <i class="fas fa-calendar-xmark" style="margin-right:5px;"></i>Days Lost / Charged Computation
@@ -8894,10 +9401,6 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                         <div class="lta-field">
                             <label>Date Closed</label>
                             <input type="date" name="ltamod-dateClosed" value="${e.dateClosed||''}" ${dis}>
-                        </div>
-                        <div class="lta-field">
-                            <label>CPAR No.</label>
-                            <input type="text" name="ltamod-cparNo" value="${e.cparNo||''}" ${dis} placeholder="CPAR Reference No.">
                         </div>
                         <div class="lta-field">
                             <label>Status</label>
@@ -8932,6 +9435,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
 
             // backdrop click disabled — use × button to close
             document.body.appendChild(modal);
+            if (canEdit && e.injuredPersonName === 'N/A') window._ltaApplyNAState(pId, true, false);
         };
 
         window._ltaBuildDLHtml = function(e, dis, scOpts) {
@@ -9020,22 +9524,50 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             }
         };
 
-        window._ltaModalToggleNA = function(pId) {
+        // Apply / remove "Not Applicable" state for the whole Injured Person section
+        window._ltaApplyNAState = function(pId, on, clear) {
+            if (clear === undefined) clear = true;
             const inp = document.getElementById('ltamod-injperson-' + pId);
             const btn = document.getElementById('ltamod-naBtn-' + pId);
-            if (!inp || !btn) return;
-            const isNA = btn.dataset.isna === '1';
-            if (isNA) {
-                inp.value = ''; inp.disabled = false; inp.placeholder = 'e.g. Juan dela Cruz, 35';
-                inp.style.background = ''; inp.style.color = ''; inp.style.fontStyle = '';
-                btn.dataset.isna = '0'; btn.textContent = 'N/A';
-                btn.style.borderColor = '#bbb'; btn.style.background = '#f9f9f9'; btn.style.color = '#888';
-            } else {
-                inp.value = ''; inp.disabled = true; inp.placeholder = 'N/A — Not Applicable';
-                inp.style.background = '#f5f5f5'; inp.style.color = '#999'; inp.style.fontStyle = 'italic';
-                btn.dataset.isna = '1'; btn.textContent = '✓ N/A';
-                btn.style.borderColor = '#2e7d32'; btn.style.background = '#e8f5e9'; btn.style.color = '#2e7d32';
+            const modal = document.getElementById('lta-entry-modal');
+            if (!inp || !btn || !modal) return;
+            const grey = on ? '#f5f5f5' : '';
+            inp.disabled = on;
+            if (on && clear) inp.value = '';
+            inp.placeholder = on ? 'N/A — Not Applicable' : 'e.g. Juan dela Cruz, 35';
+            inp.style.background = grey; inp.style.color = on ? '#999' : ''; inp.style.fontStyle = on ? 'italic' : '';
+            const occ = modal.querySelector('[name="ltamod-occupation"]');
+            if (occ) {
+                occ.disabled = on;
+                if (on && clear) occ.value = '';
+                occ.placeholder = on ? 'N/A — Not Applicable' : 'e.g. Mason/Carpenter';
+                occ.style.background = grey; occ.style.color = on ? '#999' : ''; occ.style.fontStyle = on ? 'italic' : '';
             }
+            ['ni', 'bp', 'ci', 'ag'].forEach(k => {
+                const dd = document.getElementById(`ltamod-${k}-dd-${pId}`);
+                if (!dd) return;
+                if (on && clear) dd.querySelectorAll('input[type=checkbox]').forEach(c => { c.checked = false; });
+                const trig = dd.querySelector('.lta-cb-trigger');
+                const pan = dd.querySelector('.lta-cb-panel');
+                const prv = dd.querySelector('.lta-cb-preview');
+                if (trig) { trig.disabled = on; trig.style.background = grey; trig.style.opacity = on ? '0.6' : ''; trig.style.cursor = on ? 'not-allowed' : ''; }
+                if (pan && on) pan.style.display = 'none';
+                if (prv) {
+                    const vals = Array.from(dd.querySelectorAll('input[type=checkbox]:checked')).map(c => c.value);
+                    prv.textContent = on ? 'N/A' : (vals.length ? vals.join(', ') : '— Select —');
+                }
+            });
+            btn.dataset.isna = on ? '1' : '0';
+            btn.textContent = on ? '✓ N/A' : 'N/A';
+            btn.style.borderColor = on ? '#2e7d32' : '#bbb';
+            btn.style.background = on ? '#e8f5e9' : '#f9f9f9';
+            btn.style.color = on ? '#2e7d32' : '#888';
+        };
+
+        window._ltaModalToggleNA = function(pId) {
+            const btn = document.getElementById('ltamod-naBtn-' + pId);
+            if (!btn) return;
+            window._ltaApplyNAState(pId, btn.dataset.isna !== '1', true);
         };
 
         // ── Corrective Action table row helpers ────────────────────────────────
@@ -9208,12 +9740,21 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 'occupation',
                 'rootCause',
                 'followUp1','followUp2','followUp3',
+                'followUp1Result','followUp1Date','followUp1By','followUp1Closeout','followUp1Reason','followUp1CarNo',
+                'followUp2Result','followUp2Date','followUp2By','followUp2Closeout','followUp2Reason','followUp2CarNo',
+                'followUp3Result','followUp3Date','followUp3By','followUp3Closeout','followUp3Reason','followUp3CarNo',
                 'dateOfAccident','dateRTW','scheduledChargeItem',
-                'dateClosed','cparNo','status','remarks'
+                'dateClosed','status','remarks'
             ];
             fields.forEach(f => {
                 const el = modal.querySelector(`[name="ltamod-${f}"]`);
                 if (el) entry[f] = el.value;
+            });
+            // Clear conditional follow-up fields that no longer apply to the chosen Result
+            [1, 2, 3].forEach(n => {
+                const r = entry['followUp' + n + 'Result'] || '';
+                if (r !== LTA_FOLLOWUP_RESULTS[0]) entry['followUp' + n + 'Closeout'] = '';
+                if (r !== LTA_FOLLOWUP_RESULTS[2]) { entry['followUp' + n + 'Reason'] = ''; entry['followUp' + n + 'CarNo'] = ''; }
             });
 
             // Read checkbox dropdown values for nature of injury & body parts
@@ -9224,6 +9765,14 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             const bpDd = document.getElementById('ltamod-bp-dd-' + pId);
             if (bpDd) {
                 entry.bodyPartsAffected = Array.from(bpDd.querySelectorAll('input[type=checkbox]:checked')).map(c => c.value);
+            }
+            const ciDd = document.getElementById('ltamod-ci-dd-' + pId);
+            if (ciDd) {
+                entry.causeOfInjury = Array.from(ciDd.querySelectorAll('input[type=checkbox]:checked')).map(c => c.value);
+            }
+            const agDd = document.getElementById('ltamod-ag-dd-' + pId);
+            if (agDd) {
+                entry.agentOfInjury = Array.from(agDd.querySelectorAll('input[type=checkbox]:checked')).map(c => c.value);
             }
 
             // Read factor checkbox dropdowns (PEOPLE, EQUIPMENT, MATERIALS, ENVIRONMENT, ORGANIZATIONAL)
@@ -9250,7 +9799,15 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 entry.responsible      = caRows.map(r=>r.responsible).filter(Boolean).join(', ');
                 entry.timeline         = caRows.map(r=>r.timeline).filter(Boolean).join(', ');
             }
-            if (injpersonIsNA) entry.injuredPersonName = 'N/A';
+            if (injpersonIsNA) {
+                // No injured person → whole section is Not Applicable
+                entry.injuredPersonName = 'N/A';
+                entry.natureOfInjury = ['N/A'];
+                entry.bodyPartsAffected = ['N/A'];
+                entry.causeOfInjury = [];
+                entry.agentOfInjury = [];
+                entry.occupation = '';
+            }
 
             // Injury type from radio
             const injRadio = modal.querySelector('[name="ltamod-injuryType"]:checked');
@@ -9504,7 +10061,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
 
                             </div>
                             <div style="display:flex;align-items:center;gap:8px;">
-                                ${(state.isEditing && canEdit) ? `<button class="lta-add-btn" onclick="event.stopPropagation();window._addLtaEntryViaModal('${pnSafe}')"><i class="fas fa-plus"></i> Add Entry</button>` : ''}
+                                ${(state.isEditing && canEdit) ? `<button class="lta-add-btn" onclick="event.stopPropagation();window._importAiirViaFile('${pnSafe}')" title="Import from AIIR (.docx / .pdf)"><i class="fas fa-file-import"></i> Import AIIR</button><button class="lta-add-btn" onclick="event.stopPropagation();window._addLtaEntryViaModal('${pnSafe}')"><i class="fas fa-plus"></i> Add Entry</button>` : ''}
                                 <span style="background:rgba(198,40,40,0.8);color:white;border-radius:10px;padding:2px 8px;font-size:0.62rem;font-weight:700;">${entries.length} entries</span>
                                 <span style="background:rgba(255,160,0,0.8);color:white;border-radius:10px;padding:2px 8px;font-size:0.62rem;font-weight:700;">${totalDL} days charged</span>
                                 <i id="lta-proj-${pId}-icon" class="fas fa-chevron-down" style="color:rgba(255,255,255,0.7);font-size:0.8rem;transition:transform 0.3s;"></i>
@@ -34962,9 +35519,9 @@ async function exportCurrentTabToExcel() {
             if (!rp.length) return;
             const sheetName=region.replace(/[*?:/\\[\]]/g,'').substring(0,31);
             const ws=wb.addWorksheet(sheetName);
-            const cols=10;
+            const cols=12;
             _xTitle(ws,region+' — INCIDENT REGISTRY — '+year,cols);
-            const hdr=ws.addRow(['#','PROJECT','AIIR NO.','DATE OF ACCIDENT','CLASSIFICATION','INJURED PERSON','NATURE OF INJURY','BODY PARTS AFFECTED','DAYS LOST','ROOT CAUSE']);
+            const hdr=ws.addRow(['#','PROJECT','AIIR NO.','DATE OF ACCIDENT','CLASSIFICATION','INJURED PERSON','NATURE OF INJURY','BODY PARTS AFFECTED','CAUSE OF INJURY','AGENT OF INJURY','DAYS LOST','ROOT CAUSE']);
             hdr.height=22; hdr.eachCell(_xHdr);
             let ri=3,rowNum=1;
             rp.forEach(function(proj){
@@ -34972,12 +35529,14 @@ async function exportCurrentTabToExcel() {
                 entries.forEach(function(e,pIdx){
                     const nat=Array.isArray(e.natureOfInjury)?e.natureOfInjury.join(', '):(e.natureOfInjury||'');
                     const bpa=Array.isArray(e.bodyPartsAffected)?e.bodyPartsAffected.join(', '):(e.bodyPartsAffected||'');
+                    const cai=Array.isArray(e.causeOfInjury)?e.causeOfInjury.join(', '):(e.causeOfInjury||'');
+                    const agi=Array.isArray(e.agentOfInjury)?e.agentOfInjury.join(', '):(e.agentOfInjury||'');
                     const cl=e.incidentClassification||'';
-                    const dr=ws.addRow([rowNum++,proj.name||'',e.aiirNo||'',e.dateOfAccident||'',cl,e.injuredPersonName||'',nat,bpa,getDl(e),(e.rootCause||'').substring(0,200)]);
+                    const dr=ws.addRow([rowNum++,proj.name||'',e.aiirNo||'',e.dateOfAccident||'',cl,e.injuredPersonName||'',nat,bpa,cai,agi,getDl(e),(e.rootCause||'').substring(0,200)]);
                     dr.height=16;
                     dr.getCell(1).font={size:9,name:'Calibri'}; dr.getCell(1).alignment={vertical:'middle',horizontal:'center'};
                     dr.getCell(2).font={bold:true,size:9,name:'Calibri'}; dr.getCell(2).alignment={vertical:'middle'};
-                    for (let ci=3;ci<=10;ci++){_xData(dr.getCell(ci),ci<=3||ci===9?'center':'left');}
+                    for (let ci=3;ci<=12;ci++){_xData(dr.getCell(ci),ci<=3||ci===11?'center':'left');}
                     const clCell=dr.getCell(5);
                     if (cl==='LTA'){clCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFCDD2'}};clCell.font={bold:true,size:9,name:'Calibri',color:{argb:'FFB71C1C'}};}
                     else if (cl==='Fatality'){clCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFB71C1C'}};clCell.font={bold:true,size:9,name:'Calibri',color:{argb:'FFFFFFFF'}};}
@@ -34987,7 +35546,7 @@ async function exportCurrentTabToExcel() {
             });
             ws.getColumn(1).width=5; ws.getColumn(2).width=30; ws.getColumn(3).width=16;
             ws.getColumn(4).width=14; ws.getColumn(5).width=20; ws.getColumn(6).width=22;
-            ws.getColumn(7).width=22; ws.getColumn(8).width=22; ws.getColumn(9).width=10; ws.getColumn(10).width=36;
+            ws.getColumn(7).width=22; ws.getColumn(8).width=22; ws.getColumn(9).width=26; ws.getColumn(10).width=26; ws.getColumn(11).width=10; ws.getColumn(12).width=36;
             ws.views=[{state:'frozen',ySplit:2,activeCell:'A3'}];
         });
         await _xSave(wb,'lta-registry'); return;
