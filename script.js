@@ -4596,6 +4596,7 @@ debugCommands.help() - Show this help
             const project = state.projects.find(p => p.name === editingProjectOriginalName);
             if (project) {
                 const oldName = editingProjectOriginalName;
+                const oldRegion = project.region; // captured before it is overwritten below
                 const nameChanged = newName !== oldName;
 
                 project.name = newName;
@@ -4675,13 +4676,18 @@ debugCommands.help() - Show this help
                 // Firestore (write new doc + delete old doc) + ESH Calendar RTDB (re-key entries)
                 const _year = state.selectedYear || new Date().getFullYear();
                 if (nameChanged && window.ProjectsDB) {
-                    window.ProjectsDB.renameProject(_year, oldName, project)
+                    window.ProjectsDB.renameProject(_year, oldName, project, oldRegion)
                         .then(s => s ? markSyncComplete() : markSyncFailed())
                         .catch(() => markSyncFailed());
                 } else {
                     saveToFirebaseWithRetry()
                         .then(s => s ? markSyncComplete() : markSyncFailed())
                         .catch(() => markSyncFailed());
+                    // Region changed but name did not: Yjs docs are per region, so copy the rows to the new region
+                    if (oldRegion !== newRegion && window.ESHDataSync && typeof window.ESHDataSync.renameProjectRows === 'function') {
+                        window.ESHDataSync.renameProjectRows(oldName, newName, oldRegion, newRegion)
+                            .catch(e => console.warn('Region change: Yjs row copy failed:', e && e.message));
+                    }
                 }
 
                 showToast(`Project updated${isRenewable ? ' (Renewable Energy)' : ''}`, 'success');
@@ -6281,6 +6287,47 @@ function getDoeStartQuarterForYear(p, year) {
     return Math.ceil((d.getMonth() + 1) / 3);
 }
 
+// ── Tooltip reason helpers ───────────────────────────────────────────────────
+// ONE source of truth for WHY a month/quarter is greyed out, so every tab shows the
+// correct tooltip. Priority matches isMonthBlacklistedForProject:
+//   not yet started  >  finished (finish month onwards)  >  work stoppage
+function getMonthExemptReason(p, monthIdx1Based, selectedYear) {
+    if (!p) return '';
+    if (isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear)) return 'not-started';
+    if (isProjectFinishedForMonth(p, monthIdx1Based, selectedYear)) return 'finished';
+    if (isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear)) return 'stoppage';
+    return '';
+}
+function getMonthExemptTip(p, monthIdx1Based, selectedYear) {
+    var MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var moName = MO[monthIdx1Based - 1] || 'This month';
+    var reason = getMonthExemptReason(p, monthIdx1Based, selectedYear);
+    if (reason === 'not-started') {
+        return 'Project not yet started — starts ' + formatDateDMY(p.dateStarted) + '. ' + moName + ' is not required.';
+    }
+    if (reason === 'finished') {
+        return 'Project finished (' + formatDateDMY(p.dateFinished) + '). ' + moName + ' and later months are not required.';
+    }
+    var since = p.workStoppageDate ? ' (since ' + formatDateDMY(p.workStoppageDate) + ')' : '';
+    if (p.workResumeDate) {
+        return 'Work Stoppage period' + since + ' — resumed ' + formatDateDMY(p.workResumeDate) + '. ' + moName + ' is excluded from compliance counting.';
+    }
+    return 'Work Stoppage period' + since + ' — Set a Resume Date in Project Settings to unlock ' + moName + ' for input.';
+}
+// Quarter version (DOE Reportorial). Same priority as isQuarterBlacklistedForProject.
+function getQuarterExemptReason(p, quarterNum, selectedYear) {
+    var selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
+    if (quarterNum < getDoeStartQuarterForYear(p, selY)) return 'not-started';
+    if (isQuarterAfterProjectFinish(p, quarterNum, selY)) return 'finished';
+    return 'stoppage';
+}
+function getQuarterExemptTip(p, quarterNum, selectedYear) {
+    var reason = getQuarterExemptReason(p, quarterNum, selectedYear);
+    if (reason === 'not-started') return 'Project not yet started (starts ' + formatDateDMY(p.dateStarted) + '). Q' + quarterNum + ' is not required.';
+    if (reason === 'finished') return 'Project finished (' + formatDateDMY(p.dateFinished) + '). Q' + quarterNum + ' is after the finish quarter — not required.';
+    return 'Work Stoppage period — Q' + quarterNum + ' is excluded from compliance computation.';
+}
+
 function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
     // Months before the project's dateStarted are never required — the project
     // didn't exist yet, so this always takes priority over the stoppage checks below.
@@ -6302,6 +6349,22 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
         return absMo <= absRes;
     }
     return true; // still stopped — all months from stoppage onward are blacklisted
+}
+
+// Total Exposures + ESH Activities and Programs lock rule. Same as isMonthBlacklistedForProject EXCEPT the resume month:
+// the project works again from the resume date (e.g. resumed 22 Jul → Jul 22 onwards is real
+// exposure data), so the resume month is OPEN for input here. Reportorial tabs (KPM, GOT, DOLE,
+// EMR, ESH Calendar, etc.) keep using isMonthBlacklistedForProject, where the resume month stays
+// frozen and the following month is the first required one.
+function isMonthLockedForExposure(p, monthIdx1Based, selectedYear) {
+    if (!isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear)) return false;
+    if (!p.workStoppageDate || !p.workResumeDate || p.dateFinished) return true;
+    if (isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear)) return true;
+    const selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
+    const resD = new Date(p.workResumeDate);
+    if (isNaN(resD)) return true;
+    const absRes = resD.getFullYear() * 12 + (resD.getMonth() + 1);
+    return (selY * 12 + monthIdx1Based) !== absRes; // only the resume month is unlocked
 }
 
 // Quarter-level equivalent of isMonthBlacklistedForProject, used by DOE Reportorial
@@ -8187,8 +8250,52 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         }
 
         
+        // ── Classification → Days Lost rule ─────────────────────────────────
+        // First Aid, Medical Treatment, High-Potential, Dangerous Occurrence and
+        // Near Miss have no lost days  -> always N/A.
+        // Fatality                     -> fixed 6,000 days (Table 6).
+        // RWC                          -> no actual days; scheduled charge only
+        //                                 (permanent injury), otherwise N/A.
+        // LTA / blank / unknown        -> free choice (old behavior).
+        const LTA_NO_DL_CLASS_RE = /first\s*aid|medical\s*treatment|high[\s-]*potential|dangerous\s*occ|near[\s-]*miss/i;
+        function ltaClassKind(cls) {
+            const list = (Array.isArray(cls) ? cls : [cls]).map(v => String(v == null ? '' : v).trim()).filter(Boolean);
+            if (!list.length) return 'lta';
+            const kinds = list.map(v => /fatal/i.test(v) ? 'fatality'
+                : (/^lta$|lost\s*time/i.test(v) ? 'lta'
+                : (/restricted|rwc/i.test(v) ? 'rwc'
+                : (LTA_NO_DL_CLASS_RE.test(v) ? 'none' : 'lta'))));
+            for (const k of ['fatality', 'lta', 'rwc']) if (kinds.includes(k)) return k;
+            return 'none';
+        }
+        function ltaClassDlRule(cls) {
+            const kind = ltaClassKind(cls);
+            const label = (Array.isArray(cls) ? cls.join(', ') : String(cls || '')).trim();
+            if (kind === 'none')     return { lock: 'na',       reason: label + ' has no lost days, so Days Lost is set to Not applicable.' };
+            if (kind === 'fatality') return { lock: 'fatality', reason: 'Fatality is charged the fixed 6,000 days (Table 6).' };
+            if (kind === 'rwc')      return { lock: 'rwc',      reason: 'RWC has no lost days, so Actual days is off. Use Scheduled charge only for a permanent injury. Otherwise keep Not applicable.' };
+            return { lock: '', reason: '' };
+        }
+        // The injury type that is really used for computation (also fixes old saved entries).
+        function ltaEffectiveInjuryType(entry) {
+            const t = entry.injuryType || 'temporary';
+            const k = ltaClassKind(entry.incidentClassification);
+            if (k === 'none') return 'na';
+            if (k === 'fatality') return 'fatality';
+            if (k === 'rwc') return (t === 'temporary' || t === 'confinement' || t === 'fatality') ? 'na' : t;
+            return t;
+        }
+        function ltaEffectiveScheduledItem(entry) {
+            if (ltaClassKind(entry.incidentClassification) === 'fatality') return 'Fatality';
+            return entry.scheduledChargeItem || '';
+        }
+        window.ltaClassKind = ltaClassKind;
+        window.ltaClassDlRule = ltaClassDlRule;
+        window.ltaEffectiveInjuryType = ltaEffectiveInjuryType;
+        window.ltaEffectiveScheduledItem = ltaEffectiveScheduledItem;
+
         function computeDaysCharged(entry) {
-            const injuryType = entry.injuryType || 'temporary';
+            const injuryType = ltaEffectiveInjuryType(entry);
 
             // N/A — explicitly excluded from all days-lost computation
             if (injuryType === 'na') {
@@ -8199,7 +8306,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             const useScheduled = injuryTypeDef ? injuryTypeDef.useScheduled : false;
 
             if (useScheduled) {
-                const item = entry.scheduledChargeItem || '';
+                const item = ltaEffectiveScheduledItem(entry);
                 const val  = item ? (SCHEDULED_CHARGES[item] || 0) : 0;
                 return { daysCharged: val, method: 'scheduled', scheduledItem: item };
             } else {
@@ -8218,7 +8325,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         // accident's month, since they don't represent real calendar days off.
         function computeDaysChargedByMonth(entry, year) {
             const monthTotals = new Array(13).fill(0); // index 1-12
-            const injuryType = entry.injuryType || 'temporary';
+            const injuryType = ltaEffectiveInjuryType(entry);
             if (injuryType === 'na') return monthTotals;
 
             const injuryTypeDef = LTA_INJURY_TYPES.find(t => t.value === injuryType);
@@ -8228,7 +8335,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 if (!entry.dateOfAccident) return monthTotals;
                 const accDate = new Date(entry.dateOfAccident);
                 if (accDate.getFullYear() !== year) return monthTotals;
-                const item = entry.scheduledChargeItem || '';
+                const item = ltaEffectiveScheduledItem(entry);
                 const val  = item ? (SCHEDULED_CHARGES[item] || 0) : 0;
                 monthTotals[accDate.getMonth() + 1] += val;
                 return monthTotals;
@@ -8260,6 +8367,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         window.LTA_INJURY_TYPES   = LTA_INJURY_TYPES;
         window.computeDaysLost    = computeDaysLost;
         window.computeDaysCharged = computeDaysCharged;
+        window.ltaEffectiveInjuryType = ltaEffectiveInjuryType;
         window.computeDaysChargedByMonth = computeDaysChargedByMonth;
 
         
@@ -8270,7 +8378,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 const monthTotals = new Array(14).fill(0);
                 let hasCurrentYearEntries = false;
                 entries.forEach(e => {
-                    if (e.injuryType === 'na') return;       // ← skip N/A entries
+                    if (ltaEffectiveInjuryType(e) === 'na') return;       // ← skip N/A entries (also First Aid, Medical Treatment, etc.)
                     const byMonth = computeDaysChargedByMonth(e, selectedYear);
                     for (let i = 1; i <= 12; i++) {
                         if (byMonth[i] > 0) {
@@ -8579,8 +8687,9 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 const g = new RegExp(re.source, 'ig');
                 let m;
                 while ((m = g.exec(text))) {
-                    const pre = text.slice(Math.max(0, m.index - 18), m.index);
-                    if (!/\b(no|not|without|none|nil)\W*$/i.test(pre)) { out.push(val); break; }
+                    // skip a hit when a negation (no / not / without / none / nil) sits earlier in the same sentence
+                    const pre = text.slice(Math.max(0, m.index - 40), m.index);
+                    if (!/\b(no|not|without|none|nil)\b[^.;]*$/i.test(pre)) { out.push(val); break; }
                 }
             });
             return out;
@@ -8674,7 +8783,9 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                         });
                     } else if (head.includes('CORRECTIVE ACTION') && head.includes('RESPONSIBLE') && head.includes('TIMELINE')) {
                         rows.slice(1).forEach(tr => {
-                            const c = Array.from(tr.children).map(td => (td.textContent || '').replace(/\s+/g, ' ').trim());
+                            // join the paragraphs inside a cell with a space so words do not stick together
+                            const cellTxt = td => { const t = d2.createElement('div'); t.innerHTML = td.innerHTML.replace(/<\/p>|<br\s*\/?>/gi, ' '); return (t.textContent || '').replace(/\s+/g, ' ').trim(); };
+                            const c = Array.from(tr.children).map(cellTxt);
                             if (c.length >= 3 && c[0] && !/approved by/i.test(c[0])) caRows.push({ action: c[0], responsible: c[1], timeline: c[2] });
                         });
                     }
@@ -8812,12 +8923,12 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             const NI = [
                 [/electric(?!ian)|electrocut/i,'Electric Shock'],[/arc flash/i,'Arc Flashes'],
                 [/from height|fell from|fall from/i,'Fall to Below'],[/slip|\btrip|\bfell\b|\bfall\b/i,'Fall to Surface'],
-                [/struck by|hit by|falling object/i,'Struck-By'],[/struck against|hit against|bump/i,'Struck Against'],
+                [/struck by|hit by|falling object|\bstruck\s+(?!against)(?:the|a|an|his|her|him|them|\w+'s)\b/i,'Struck-By'],[/struck against|hit against|bump/i,'Struck Against'],
                 [/caught (in|between)|entangl|pinch/i,'Caught in Between'],[/caught by/i,'Caught By'],[/caught on/i,'Caught-On'],
-                [/chemical burn/i,'Chemical Burns'],[/\bburn/i,'Burns'],[/manual handling|lifting/i,'Manual Handling'],[/overexert/i,'Overexertion'],
+                [/chemical burn/i,'Chemical Burns'],[/\bburn/i,'Burns'],[/manual handling|manually (lift|carr|handl)|lifting (a |the )?(heavy|load)/i,'Manual Handling'],[/overexert/i,'Overexertion'],
                 [/vehicular|collision|vehicle accident/i,'Vehicular Accident'],[/explosion|\bfire\b/i,'Fire and Explosions'],
                 [/rotating|moving part|contact with|contacted/i,'Contact With']];
-            set('natureOfIncident', (_aiirPick(LTA_NATURE_OF_INCIDENT, `${detailsRaw} ${injText}`, NI)[0]) || '');
+            set('natureOfIncident', (_aiirPick(LTA_NATURE_OF_INCIDENT, detailsRaw, NI)[0]) || '');
 
             if (cls === 'Fatality') set('injuryType', 'fatality');
             else if (/amputat/i.test(injText)) set('injuryType', 'amputation');
@@ -8867,6 +8978,332 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
 
         const _aiirNorm = v => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
+        // ════════════════════════════════════════════════════════════════
+        // AIIR AI EXTRACTION (Claude via Firebase Cloud Function proxy)
+        // Falls back to the regex parser (parseAiirDocument) if the AI is unreachable.
+        // Set once in index.html:  window.AIIR_AI_ENDPOINT = 'https://<region>-<project>.cloudfunctions.net/aiirExtract';
+        // ════════════════════════════════════════════════════════════════
+        function _aiirHtmlToText(html) {
+            const d = new DOMParser().parseFromString(html, 'text/html');
+            const out = [];
+            d.body.querySelectorAll('table').forEach(tb => {
+                const lines = Array.from(tb.querySelectorAll('tr')).map(tr =>
+                    Array.from(tr.children).map(td => (td.textContent || '').replace(/\s+/g, ' ').trim()).join(' | '));
+                tb.replaceWith(d.createTextNode('\n' + lines.join('\n') + '\n'));
+            });
+            return (d.body.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+        }
+
+        // Reads the text of a legacy Word .doc (Word 97-2003 binary) fully in the browser.
+        // Nothing is uploaded or saved — the file is only read. Cells -> " | ", rows -> new line.
+        function _aiirDocBinaryRaw(buf) {
+            const dv = new DataView(buf);
+            if (dv.getUint32(0, true) !== 0xE011CFD0 || dv.getUint32(4, true) !== 0xE11AB1A1) throw new Error('Hindi valid na Word .doc ang file.');
+            const ssz = 1 << dv.getUint16(0x1E, true), mssz = 1 << dv.getUint16(0x20, true), cutoff = dv.getUint32(0x38, true);
+            const u8 = new Uint8Array(buf);
+            const sectOff = s => (s + 1) * ssz;
+            const join = parts => { const out = new Uint8Array(parts.reduce((a, x) => a + x.length, 0)); let p = 0; parts.forEach(x => { out.set(x, p); p += x.length; }); return out; };
+            const chain = (src, start, tbl, off, sz) => { const parts = []; let s = start, n = 0; while (s >= 0 && s < tbl.length && n++ < 1000000) { parts.push(src.subarray(off(s), off(s) + sz)); s = tbl[s]; } return parts; };
+            const toInts = bytes => { const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.length), a = []; for (let i = 0; i + 4 <= bytes.length; i += 4) a.push(v.getInt32(i, true)); return a; };
+            // sector allocation table (FAT)
+            const difat = [];
+            for (let i = 0; i < 109; i++) { const v = dv.getInt32(0x4C + i * 4, true); if (v >= 0) difat.push(v); }
+            let ds = dv.getInt32(0x44, true), nd = dv.getUint32(0x48, true);
+            while (nd-- > 0 && ds >= 0) {
+                const o = sectOff(ds);
+                for (let i = 0; i < ssz / 4 - 1; i++) { const v = dv.getInt32(o + i * 4, true); if (v >= 0) difat.push(v); }
+                ds = dv.getInt32(o + ssz - 4, true);
+            }
+            const fat = [];
+            difat.forEach(s => toInts(u8.subarray(sectOff(s), sectOff(s) + ssz)).forEach(v => fat.push(v)));
+            // directory
+            const dir = join(chain(u8, dv.getInt32(0x30, true), fat, sectOff, ssz));
+            const dd = new DataView(dir.buffer, dir.byteOffset, dir.length), ents = [];
+            for (let o = 0; o + 128 <= dir.length; o += 128) {
+                const nl = dd.getUint16(o + 64, true); if (!nl) continue;
+                let name = ''; for (let i = 0; i < nl / 2 - 1; i++) name += String.fromCharCode(dd.getUint16(o + i * 2, true));
+                ents.push({ name, type: dir[o + 66], start: dd.getInt32(o + 116, true), size: dd.getUint32(o + 120, true) });
+            }
+            let mini = null, miniFat = null;
+            const root = ents.find(e => e.type === 5);
+            const readStream = e => {
+                if (e.size >= cutoff) return join(chain(u8, e.start, fat, sectOff, ssz)).subarray(0, e.size);
+                if (!mini) {
+                    mini = join(chain(u8, root.start, fat, sectOff, ssz));
+                    miniFat = toInts(join(chain(u8, dv.getInt32(0x3C, true), fat, sectOff, ssz)));
+                }
+                return join(chain(mini, e.start, miniFat, s => s * mssz, mssz)).subarray(0, e.size);
+            };
+            // Word file information block + piece table
+            const wdEnt = ents.find(e => e.name === 'WordDocument');
+            if (!wdEnt) throw new Error('Walang Word content sa .doc file.');
+            const W = readStream(wdEnt), wv = new DataView(W.buffer, W.byteOffset, W.length);
+            if (wv.getUint16(0, true) !== 0xA5EC) throw new Error('Napakaluma ng .doc (Word 6/95). Buksan sa Word → Save As → .docx, tapos i-import ulit.');
+            const flags = wv.getUint16(0x0A, true);
+            if (flags & 0x0100) throw new Error('May password ang Word file. Tanggalin muna ang password.');
+            const tEnt = ents.find(e => e.name === ((flags & 0x0200) ? '1Table' : '0Table'));
+            if (!tEnt) throw new Error('Sira ang .doc file (walang table stream).');
+            const T = readStream(tEnt), tv = new DataView(T.buffer, T.byteOffset, T.length);
+            const ccpText = wv.getInt32(0x4C, true);
+            const fcClx = wv.getUint32(0x1A2, true), lcbClx = wv.getUint32(0x1A6, true);
+            let p = fcClx, plc = -1, plcLen = 0;
+            while (p < fcClx + lcbClx) {
+                if (T[p] === 1) p += 3 + tv.getUint16(p + 1, true);
+                else if (T[p] === 2) { plcLen = tv.getUint32(p + 1, true); plc = p + 5; break; }
+                else break;
+            }
+            if (plc < 0) throw new Error('Hindi mabasa ang text ng .doc file.');
+            const n = ((plcLen - 4) / 12) | 0, w1252 = new TextDecoder('windows-1252'), u16 = new TextDecoder('utf-16le');
+            let text = '';
+            for (let i = 0; i < n; i++) {
+                const cpS = tv.getInt32(plc + i * 4, true), cpE = tv.getInt32(plc + (i + 1) * 4, true);
+                if (cpS >= ccpText) break;
+                const len = Math.min(cpE, ccpText) - cpS;
+                const fc = tv.getUint32(plc + (n + 1) * 4 + i * 8 + 2, true);
+                if (fc & 0x40000000) { const o = (fc & 0x3FFFFFFF) >> 1; text += w1252.decode(W.subarray(o, o + len)); }
+                else text += u16.decode(W.subarray(fc, fc + len * 2));
+            }
+            // keep paragraph marks (\r) and table marks (\x07) so tables can be read as rows
+            return text
+                .replace(/\x13[^\x14\x15]*\x14/g, '').replace(/[\x13\x15]/g, '')   // field codes
+                .replace(/[\x0B\x0C]/g, '\r').replace(/[\x00-\x06\x08\x0E-\x1F]/g, '');
+        }
+        function _aiirDocTextFromRaw(raw) {
+            return raw
+                .replace(/\x07\x07/g, '\n').replace(/\x07/g, ' | ')                 // table row / cell ends
+                .replace(/\r/g, '\n')
+                .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+        }
+        function _aiirDocBinaryToText(buf) { return _aiirDocTextFromRaw(_aiirDocBinaryRaw(buf)); }
+        // Reads the Corrective Action / Responsible / Timeline table of a .doc exactly as written in the AIIR.
+        // In the raw text a cell ends with \x07 and a row ends with one more \x07, so empty cells are not mistaken for row ends.
+        function _aiirDocCorrectiveActions(raw) {
+            const tk = raw.split('\x07');
+            const clean = t => (t || '').replace(/\r/g, ' ').replace(/\s+/g, ' ').trim();
+            let j = -1;
+            for (let i = 1; i < tk.length - 1; i++) {
+                if (/^\s*responsible/i.test(tk[i]) && /timeline/i.test(tk[i + 1]) && /action/i.test(tk[i - 1])) { j = i; break; }
+            }
+            if (j < 0) return [];
+            let sIdx = j - 1; while (sIdx > 0 && tk[sIdx - 1] !== '') sIdx--;
+            let e = j + 1; while (e < tk.length && tk[e] !== '') e++;
+            const N = e - sIdx, aOff = (j - 1) - sIdx, rOff = j - sIdx, tOff = j + 1 - sIdx;
+            const rows = [];
+            for (let pos = e + 1; pos + N < tk.length; pos += N + 1) {
+                if (tk[pos + N] !== '') break;                       // different table shape → the table ended
+                const c = tk.slice(pos, pos + N).map(clean);
+                if (/approved by/i.test(c[aOff])) break;
+                if (c[aOff]) rows.push({ action: c[aOff], responsible: c[rOff], timeline: c[tOff] });
+            }
+            return rows;
+        }
+
+        function _aiirOptions() {
+            return {
+                natureOfIncident: LTA_NATURE_OF_INCIDENT, classification: LTA_INCIDENT_CLASSIFICATION,
+                natureOfInjury: LTA_NATURE_OF_INJURY, bodyParts: LTA_BODY_PARTS,
+                causeOfInjury: LTA_CAUSE_OF_INJURY, agentOfInjury: LTA_AGENT_OF_INJURY,
+                followUpResults: LTA_FOLLOWUP_RESULTS, factors: LTA_FACTOR_CATEGORIES
+            };
+        }
+
+        async function _aiirCallAI(payload) {
+            const url = window.AIIR_AI_ENDPOINT;
+            if (!url) throw new Error('AIIR_AI_ENDPOINT not configured');
+            const user = window.firebaseAuth && window.firebaseAuth.currentUser;
+            if (!user) throw new Error('Not signed in');
+            const token = await user.getIdToken();
+            const r = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ ...payload, options: _aiirOptions() })
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok || !j.result) throw new Error(j.error || ('AI HTTP ' + r.status));
+            return j.result;
+        }
+
+        // Convert the AI JSON into the same shape parseAiirDocument() returns ({data, found, notes}).
+        // Every dropdown value is re-validated against the real lists — anything not in a list is dropped.
+        function _aiirMapAIResult(a) {
+            const r = {}, found = [], notes = [];
+            const set = (k, v) => { if (v !== '' && v != null && !(Array.isArray(v) && !v.length)) { r[k] = v; found.push(k); } };
+            const str = v => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : '');
+            const date = v => (/^\d{4}-\d{2}-\d{2}$/.test(v || '') ? v : '');
+            const one = (list, v) => (list.includes(v) ? v : '');
+            const many = (list, arr) => (Array.isArray(arr) ? arr.filter((x, i) => list.includes(x) && arr.indexOf(x) === i) : []);
+
+            set('aiirNo', str(a.aiirNo));
+            set('dateReported', date(a.dateReported));
+            set('dateOfAccident', date(a.dateOfAccident));
+            set('locationOfIncident', str(a.locationOfIncident));
+            set('natureOfIncident', one(LTA_NATURE_OF_INCIDENT, a.natureOfIncident));
+            const cls = one(LTA_INCIDENT_CLASSIFICATION, a.incidentClassification);
+            set('incidentClassification', cls);
+            set('detailsFacts', (a.detailsFacts || '').trim());
+            set('rootCause', (a.rootCause || '').trim());
+
+            if (a.hasInjury) {
+                set('injuredPersonName', str(a.injuredPersonName));
+                set('occupation', str(a.occupation));
+                set('natureOfInjury', many(LTA_NATURE_OF_INJURY, a.natureOfInjury));
+                set('bodyPartsAffected', many(LTA_BODY_PARTS, a.bodyPartsAffected));
+                const c = one(LTA_CAUSE_OF_INJURY, a.causeOfInjury); if (c) set('causeOfInjury', [c]);
+                const g = one(LTA_AGENT_OF_INJURY, a.agentOfInjury); if (g) set('agentOfInjury', [g]);
+                // Scheduled-charge logic stays deterministic (exact table matches only)
+                const inj = `${a.injurySummary || ''} ${a.detailsFacts || ''}`;
+                if (cls === 'Fatality') set('injuryType', 'fatality');
+                else if (/amputat/i.test(inj)) set('injuryType', 'amputation');
+                const sch = _aiirScheduledItem(inj, cls);
+                if (sch.type) set('injuryType', sch.type);
+                if (sch.item) set('scheduledChargeItem', sch.item);
+                if (sch.note) notes.push(sch.note);
+            }
+
+            ['PEOPLE', 'EQUIPMENT', 'MATERIALS', 'ENVIRONMENT', 'ORGANIZATIONAL'].forEach(k =>
+                set('factor_' + k, many(LTA_FACTOR_CATEGORIES[k], a['factor_' + k])));
+
+            const rows = (Array.isArray(a.correctiveActions) ? a.correctiveActions : [])
+                .map(x => ({ action: str(x.action), responsible: str(x.responsible), timeline: str(x.timeline) })).filter(x => x.action);
+            if (rows.length) {
+                r.correctiveActions = rows;
+                r.correctiveAction = rows.map(x => x.action).join('\n');
+                r.responsible = [...new Set(rows.map(x => x.responsible).filter(Boolean))].join(', ');
+                r.timeline = [...new Set(rows.map(x => x.timeline).filter(Boolean))].join(', ');
+                found.push('correctiveActions');
+            }
+
+            const FUK = { result: 'Result', date: 'Date', by: 'By', closeout: 'Closeout' };
+            (Array.isArray(a.followUps) ? a.followUps : []).forEach(f => {
+                const n = f.n; if (![1, 2, 3].includes(n)) return;
+                set(`followUp${n}Result`, one(LTA_FOLLOWUP_RESULTS, f.result));
+                set(`followUp${n}Date`, date(f.date));
+                set(`followUp${n}By`, str(f.by));
+                set(`followUp${n}Closeout`, date(f.closeout));
+            });
+            if (a.followUpReason || a.carNo) {
+                let fi = [1, 2, 3].find(n => r[`followUp${n}Result`] === LTA_FOLLOWUP_RESULTS[2]) || 3;
+                set(`followUp${fi}Reason`, str(a.followUpReason));
+                set(`followUp${fi}CarNo`, str(a.carNo));
+            }
+            (a.uncertain || []).forEach(u => u && u.field && notes.push(`${u.field}: ${u.reason}`));
+            return { data: r, found, notes, ai: true };
+        }
+
+        // Contributing Factors must come only from Section I (Root-Cause Analysis: Manpower / Machine / Materials / Method / Environment).
+        // Whatever the AI guessed for these five dropdowns is replaced with what Section I actually says; if Section I says nothing, they stay N/A.
+        function _aiirUseSectionIFactors(res, regexRes) {
+            const keys = ['PEOPLE', 'EQUIPMENT', 'MATERIALS', 'ENVIRONMENT', 'ORGANIZATIONAL'].map(k => 'factor_' + k);
+            keys.forEach(k => { delete res.data[k]; });
+            res.found = (res.found || []).filter(k => !keys.includes(k));
+            let n = 0;
+            keys.forEach(k => {
+                const v = regexRes && regexRes.data && regexRes.data[k];
+                if (Array.isArray(v) && v.length) { res.data[k] = v; res.found.push(k); n++; }
+            });
+            if (!n) res.notes = [...(res.notes || []), 'Walang nabasang Contributing Factors sa Section I (Root-Cause Analysis). Iniwang N/A.'];
+            return res;
+        }
+
+        // Nature of Incident must come only from "Detailed Description of Accident / Incident (Identify and State the Immediate Cause ...)".
+        function _aiirDescriptionText(text) {
+            const m = /Detailed Description of Accident\s*\/?\s*Incident\s*\([^)]*\)\s*:?/i.exec(text || '');
+            if (!m) return '';
+            const rest = text.slice(m.index + m[0].length);
+            const e = /Related Facts/i.exec(rest);
+            return (e ? rest.slice(0, e.index) : rest).replace(/^[\s:|.\-–]+/, '').trim();
+        }
+        // The AI is asked again with the Detailed Description text alone, so it cannot use any other part of the AIIR.
+        // If that fails or gives nothing valid, the keyword rule on the same description is used; if still nothing, it stays blank.
+        async function _aiirNatureFromDescription(res, text, regexRes) {
+            res.data = res.data || {}; res.found = (res.found || []).filter(k => k !== 'natureOfIncident'); res.notes = res.notes || [];
+            delete res.data.natureOfIncident;
+            const desc = _aiirDescriptionText(text);
+            let val = '';
+            if (desc.length >= 30) {
+                try {
+                    const a = await _aiirCallAI({ text: desc });
+                    if (a && LTA_NATURE_OF_INCIDENT.includes(a.natureOfIncident)) val = a.natureOfIncident;
+                } catch (err) { console.warn('AIIR nature-of-incident AI call failed, using keyword rule:', err); }
+            }
+            if (!val && regexRes && regexRes.data && regexRes.data.natureOfIncident) val = regexRes.data.natureOfIncident;
+            if (val) { res.data.natureOfIncident = val; res.found.push('natureOfIncident'); }
+            else res.notes.push('Hindi matukoy ang Nature of Incident mula sa Detailed Description. Pumili nang manual.');
+            return res;
+        }
+
+        // Only injury cases have an Injured Person. For any other classification (High-Potential Incident, Dangerous Occurrence,
+        // Near Miss) the AIIR may still list names of people who were merely involved — they are not injured, so the whole
+        // Injured Person section is set to N/A. If the classification could not be read, nothing is changed.
+        const LTA_INJURY_CLASSES = ['LTA', 'Restricted Work Case (RWC)', 'Medical Treatment', 'First Aid', 'Fatality'];
+        function _aiirApplyInjuredPersonRule(res) {
+            const cls = res && res.data && res.data.incidentClassification;
+            if (!cls || LTA_INJURY_CLASSES.includes(cls)) return res;
+            const keys = ['injuredPersonName', 'occupation', 'natureOfInjury', 'bodyPartsAffected', 'causeOfInjury', 'agentOfInjury', 'injuryType', 'scheduledChargeItem'];
+            keys.forEach(k => { delete res.data[k]; });
+            res.found = (res.found || []).filter(k => !keys.includes(k));
+            res.data.injuredPersonName = 'N/A';
+            res.found.push('injuredPersonName');
+            return res;
+        }
+
+        // Corrective Actions are copied exactly as written in the AIIR's Corrective Action / Responsible / Timeline table.
+        // The AI's own wording is used only if that table could not be read.
+        function _aiirUseTableCorrectiveActions(res, regexRes) {
+            res.data = res.data || {}; res.found = res.found || []; res.notes = res.notes || [];
+            const rows = regexRes && regexRes.data && regexRes.data.correctiveActions;
+            const uniq = a => [...new Set(a.filter(Boolean))].join(', ');
+            if (Array.isArray(rows) && rows.length) {
+                res.data.correctiveActions = rows;
+                res.data.correctiveAction = rows.map(x => x.action).join('\n');
+                res.data.responsible = uniq(rows.map(x => x.responsible));
+                res.data.timeline = uniq(rows.map(x => x.timeline));
+                if (!res.found.includes('correctiveActions')) res.found.push('correctiveActions');
+            } else if (!(res.data.correctiveActions && res.data.correctiveActions.length)) {
+                res.notes.push('Walang nabasang Corrective Action sa AIIR. Ilagay nang manual.');
+            }
+            return res;
+        }
+
+        async function _aiirReadFile(f) {
+            // Microsoft Word files only (any version). Type is checked by file content, not just the name.
+            if (!/\.(docx|docm|dotx|dotm|doc|dot)$/i.test(f.name)) throw new Error('Microsoft Word file lang ang tinatanggap (.doc, .docx, .docm, .dotx, .dotm).');
+            const buf = await f.arrayBuffer();
+            const b = new Uint8Array(buf, 0, Math.min(8, buf.byteLength));
+            const isZip = b[0] === 0x50 && b[1] === 0x4B;                                        // Word 2007+ (.docx/.docm/.dotx/.dotm)
+            const isOle = b[0] === 0xD0 && b[1] === 0xCF && b[2] === 0x11 && b[3] === 0xE0;      // Word 97-2003 (.doc/.dot)
+            let text = '', regexRes = null;
+            if (isZip) {
+                await _aiirLoadMammoth();
+                let out;
+                try { out = await window.mammoth.convertToHtml({ arrayBuffer: buf }); }
+                catch (e) { throw new Error('Hindi mabasa ang file. Hindi ito valid na Microsoft Word document.'); }
+                text = _aiirHtmlToText(out.value);
+                regexRes = parseAiirDocument(out.value);
+            } else if (isOle) {
+                const raw = _aiirDocBinaryRaw(buf);
+                text = _aiirDocTextFromRaw(raw);
+                regexRes = parseAiirDocument(null, text);
+                const caRows = _aiirDocCorrectiveActions(raw);
+                if (caRows.length) {
+                    regexRes.data.correctiveActions = caRows;
+                    regexRes.found = (regexRes.found || []).filter(k => k !== 'correctiveActions').concat('correctiveActions');
+                }
+            } else {
+                throw new Error('Hindi ito valid na Microsoft Word document.');
+            }
+            let res;
+            try {
+                res = _aiirUseSectionIFactors(_aiirMapAIResult(await _aiirCallAI({ text })), regexRes);
+                res = await _aiirNatureFromDescription(res, text, regexRes);
+            } catch (err) {
+                console.warn('AIIR AI extraction failed, using regex fallback:', err);
+                regexRes.notes = ['AI reader hindi available — regex parser ang ginamit (mas mababa ang accuracy). Suriing mabuti ang lahat ng fields.', ...(regexRes.notes || [])];
+                res = regexRes;
+            }
+            return _aiirApplyInjuredPersonRule(_aiirUseTableCorrectiveActions(res, regexRes));
+        }
+
         window._importAiirViaFile = function(pName) {
             const p = state.projects.find(x => x.name === pName);
             if (!p) return;
@@ -8874,24 +9311,13 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
             const inp = document.createElement('input');
             inp.type = 'file';
-            inp.accept = '.docx,.pdf';
+            inp.accept = '.doc,.docx,.docm,.dot,.dotx,.dotm,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
             inp.onchange = async () => {
                 const f = inp.files && inp.files[0];
                 if (!f) return;
                 try {
-                    showToast('📄 Binabasa ang AIIR...', 'info', 2000);
-                    let res;
-                    if (/\.docx$/i.test(f.name)) {
-                        await _aiirLoadMammoth();
-                        const out = await window.mammoth.convertToHtml({ arrayBuffer: await f.arrayBuffer() });
-                        res = parseAiirDocument(out.value);
-                    } else if (/\.pdf$/i.test(f.name)) {
-                        const txt = await extractTextFromPdf(f);
-                        if (!txt) throw new Error('Hindi mabasa ang PDF (scanned/image lang?). Gamitin ang .docx.');
-                        res = parseAiirDocument(null, txt);
-                    } else {
-                        throw new Error('.docx o .pdf lang ang supported.');
-                    }
+                    showToast('🤖 Binabasa ng AI ang AIIR...', 'info', 4000);
+                    const res = await _aiirReadFile(f);
                     if (!res.data.aiirNo && !res.data.dateOfAccident) {
                         throw new Error('Walang nabasang AIIR No. o Date of Accident. Tama ba ang template (FM-ESH-13-01)?');
                     }
@@ -8911,7 +9337,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     _ltaAutoEditMode();
                     window._ltaPrefill = res.data;
                     openLtaModal(pName, -1, true);
-                    showToast(`✅ ${res.found.length} fields na-fill mula sa AIIR. I-review bago i-save (lalo na ang dropdowns).`, 'success', 6000);
+                    showToast(`✅ ${res.found.length} fields na-fill ${res.ai ? '(AI)' : '(regex)'} mula sa AIIR. I-review bago i-save (lalo na ang dropdowns).`, 'success', 6000);
                     if (res.notes && res.notes.length) setTimeout(() => showToast('⚠️ ' + res.notes.join(' '), 'error', 9000), 600);
                 } catch (err) {
                     console.error('AIIR import failed:', err);
@@ -8957,21 +9383,6 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 const selArr = Array.isArray(val) ? val : (val ? val.split(',').map(v=>v.trim()).filter(Boolean) : []);
                 return arr.map(o => `<option value="${o}" ${selArr.includes(o)?'selected':''}>${o}</option>`).join('');
             };
-
-            // Build injury type radios
-            const injuryRadios = (typeof LTA_INJURY_TYPES !== 'undefined' ? LTA_INJURY_TYPES : []).map(t => {
-                const isSel = (e.injuryType || 'temporary') === t.value;
-                return `<label style="display:flex;align-items:flex-start;gap:7px;padding:7px 10px;border-radius:6px;
-                    cursor:${dis?'default':'pointer'};border:1.5px solid ${isSel?(t.useScheduled?'#c62828':'#2e7d32'):'var(--border-color)'};
-                    background:${isSel?(t.useScheduled?'#fff0f0':'#f1f8f1'):'var(--input-bg)'};transition:all 0.15s;">
-                    <input type="radio" name="ltamod-injuryType" value="${t.value}" ${isSel?'checked':''} ${dis}
-                        style="margin-top:2px;accent-color:${t.useScheduled?'#c62828':'#2e7d32'};"
-                        onchange="window._ltaModalUpdateInjuryType(this.value,'${pnSafe}',${idx})">
-                    <div>
-                        <div style="font-size:0.72rem;font-weight:700;">${t.useScheduled?'📋 ':'🩹 '}${t.label}</div>
-                        <div style="font-size:0.6rem;color:var(--text-secondary);">${t.note}</div>
-                    </div></label>`;
-            }).join('');
 
             // Build factor checkbox dropdowns (multi-select)
             const factorCats = ['PEOPLE','EQUIPMENT','MATERIALS','ENVIRONMENT','ORGANIZATIONAL'];
@@ -9101,7 +9512,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                                     onchange="(function(sel){
                                         const desc = (typeof LTA_INCIDENT_CLASSIFICATION_DESC !== 'undefined') ? LTA_INCIDENT_CLASSIFICATION_DESC[sel.value] : null;
                                         sel.title = desc || '';
-                                    })(this)">
+                                    })(this); if (window._ltaDLRefresh) window._ltaDLRefresh();">
                                     <option value="">— Select —</option>
                                     ${typeof LTA_INCIDENT_CLASSIFICATION !== 'undefined' ? LTA_INCIDENT_CLASSIFICATION.map(o => {
                                         const desc = (typeof LTA_INCIDENT_CLASSIFICATION_DESC !== 'undefined') ? (LTA_INCIDENT_CLASSIFICATION_DESC[o] || '').replace(/"/g,'&quot;') : '';
@@ -9388,13 +9799,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                         <div class="lta-section-label" style="grid-column:1/-1;">
                             <i class="fas fa-calendar-xmark" style="margin-right:5px;"></i>Days Lost / Charged Computation
                         </div>
-                        <div class="lta-field lta-field-full">
-                            <label>⚕ Injury / Case Type <span style="color:#e65100;font-weight:800;">*</span></label>
-                            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:4px;">
-                                ${injuryRadios}
-                            </div>
-                        </div>
-                        <div id="ltamod-dl-computed" style="display:contents;">${dlSectionHtml}</div>
+                        <div class="lta-field-full" style="grid-column:1/-1;">${dlSectionHtml}</div>
 
                         <div class="lta-section-label" style="grid-column:1/-1;"><i class="fas fa-circle-check" style="margin-right:5px;"></i>Closure</div>
 
@@ -9436,93 +9841,203 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             // backdrop click disabled — use × button to close
             document.body.appendChild(modal);
             if (canEdit && e.injuredPersonName === 'N/A') window._ltaApplyNAState(pId, true, false);
+            if (window._ltaDLRefresh) window._ltaDLRefresh();
+        };
+
+        // ── Days Lost / Charged card (one shared builder) ───────────────────
+        // Three modes: Actual days / Scheduled charge / Not applicable.
+        // Radios named "ltamod-injuryType" stay in the DOM so the save code is unchanged.
+        window._ltaEnsureDLStyles = function() {
+            if (document.getElementById('ltadl-styles')) return;
+            const st = document.createElement('style');
+            st.id = 'ltadl-styles';
+            st.textContent = `
+.ltadl{display:flex;flex-direction:column;gap:10px;}
+.ltadl-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+.ltadl-mode{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 11px;border-radius:6px;border:1.5px solid var(--border-color);background:var(--input-bg);color:var(--text-primary);font:inherit;text-align:left;cursor:pointer;transition:border-color .15s,background .15s;}
+.ltadl-mode .t{font-size:.76rem;font-weight:700;}
+.ltadl-mode .n{font-size:.62rem;color:var(--text-secondary);}
+.ltadl-mode[aria-pressed="true"]{border-color:#2e7d32;background:#f1f8f1;}
+.ltadl-mode[data-mode="scheduled"][aria-pressed="true"]{border-color:#c62828;background:#fff0f0;}
+.ltadl-mode[data-mode="na"][aria-pressed="true"]{border-color:#9e9e9e;background:#f5f5f5;}
+.ltadl-mode:disabled{cursor:not-allowed;opacity:.5;}
+.ltadl-mode[aria-pressed="true"]:disabled{opacity:1;}
+.ltadl-mode:focus-visible,.ltadl-pill input:focus-visible+span{outline:2px solid #1565c0;outline-offset:2px;}
+.ltadl-note{display:none;font-size:.68rem;line-height:1.4;padding:6px 10px;border-radius:5px;background:#fff8e1;border:1px solid #ffe082;color:#6d4c00;}
+.ltadl:not([data-lock=""]) .ltadl-note{display:block;}
+.ltadl-types{display:none;flex-wrap:wrap;gap:6px;}
+.ltadl[data-mode="actual"] .ltadl-types-actual,.ltadl[data-mode="scheduled"] .ltadl-types-scheduled{display:flex;}
+.ltadl-pill{position:relative;display:inline-flex;cursor:pointer;}
+.ltadl-pill input{position:absolute;opacity:0;width:1px;height:1px;}
+.ltadl-pill span{padding:5px 11px;border-radius:999px;border:1.5px solid var(--border-color);background:var(--input-bg);font-size:.7rem;font-weight:600;color:var(--text-primary);}
+.ltadl-pill input:checked+span{border-color:#2e7d32;background:#e8f5e9;color:#1b5e20;}
+.ltadl[data-mode="scheduled"] .ltadl-pill input:checked+span{border-color:#c62828;background:#ffebee;color:#b71c1c;}
+.ltadl-pill input:disabled+span{opacity:.5;cursor:not-allowed;}
+.ltadl-pill input:disabled:checked+span{opacity:1;}
+.ltadl-fields{display:none;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;}
+.ltadl[data-mode="actual"] .ltadl-fields,.ltadl[data-mode="scheduled"] .ltadl-fields{display:grid;}
+.ltadl-rtw{display:none;}
+.ltadl[data-mode="actual"] .ltadl-rtw{display:flex;}
+.ltadl-sc{display:none;grid-column:1/-1;}
+.ltadl[data-mode="scheduled"] .ltadl-sc{display:flex;}
+.ltadl-result{display:flex;align-items:baseline;gap:8px;padding:9px 12px;border-radius:6px;border:1px solid #ffe082;background:#fff8e1;}
+.ltadl-num{font-size:1.25rem;font-weight:800;line-height:1;color:#2e7d32;}
+.ltadl-num.has{color:#c62828;}
+.ltadl-lbl{font-size:.74rem;font-weight:600;color:var(--text-primary);}
+.ltadl-sub{margin-left:auto;font-size:.6rem;color:var(--text-secondary);text-align:right;}
+.ltadl[data-mode="scheduled"] .ltadl-result{background:#fff0f0;border-color:#ef9a9a;}
+.ltadl[data-mode="na"] .ltadl-result{background:#f5f5f5;border-color:#ccc;}
+.ltadl[data-mode="na"] .ltadl-num{color:#9e9e9e;}
+@media (max-width:560px){.ltadl-modes{grid-template-columns:1fr;}}
+body.dark-mode .ltadl-mode[aria-pressed="true"]{background:#1a2e1a;}
+body.dark-mode .ltadl-mode[data-mode="scheduled"][aria-pressed="true"]{background:#3a1a1a;}
+body.dark-mode .ltadl-mode[data-mode="na"][aria-pressed="true"]{background:#2a2a2a;}
+body.dark-mode .ltadl-note,body.dark-mode .ltadl-result{background:#2a2000;border-color:#b8860b;color:#ffe082;}
+body.dark-mode .ltadl-note{color:#ffe082;}
+body.dark-mode .ltadl[data-mode="scheduled"] .ltadl-result{background:#3a1a1a;border-color:#8e2a2a;}
+body.dark-mode .ltadl[data-mode="na"] .ltadl-result{background:#2a2a2a;border-color:#555;}
+body.dark-mode .ltadl-pill input:checked+span{background:#1a2e1a;color:#a5d6a7;}
+body.dark-mode .ltadl[data-mode="scheduled"] .ltadl-pill input:checked+span{background:#3a1a1a;color:#ef9a9a;}
+`;
+            document.head.appendChild(st);
         };
 
         window._ltaBuildDLHtml = function(e, dis, scOpts) {
-            const injType = e.injuryType || 'temporary';
-            const injTypeDef = typeof LTA_INJURY_TYPES !== 'undefined' ? LTA_INJURY_TYPES.find(t=>t.value===injType) : null;
-            const useSC = injTypeDef ? injTypeDef.useScheduled : false;
-            if (injType === 'na') {
-                return `<div class="lta-computed-dl" style="background:#f5f5f5;border-color:#ccc;grid-column:1/-1;">
-                    <i class="fas fa-ban" style="color:#9e9e9e;font-size:1rem;"></i>
-                    <div><div style="font-size:0.62rem;color:#888;font-weight:600;">DAYS LOST — NOT APPLICABLE</div>
-                    <div style="font-size:0.85rem;font-weight:800;color:#9e9e9e;">0 days — excluded</div></div></div>`;
-            }
-            if (useSC) {
-                const sc = e.scheduledChargeItem && typeof SCHEDULED_CHARGES !== 'undefined' ? (SCHEDULED_CHARGES[e.scheduledChargeItem]||0) : 0;
-                const _scOpts = scOpts || (typeof SCHEDULED_CHARGES_GROUPS !== 'undefined' ? SCHEDULED_CHARGES_GROUPS.map(g =>
-                    `<optgroup label="${g.group}">${g.items.map(item =>
-                        `<option value="${item}" ${e.scheduledChargeItem===item?'selected':''}>${item} — ${SCHEDULED_CHARGES[item].toLocaleString()} days</option>`
-                    ).join('')}</optgroup>`).join('') : '');
-                return `<div class="lta-field lta-field-full" style="grid-column:1/-1;">
-                    <label>📋 Scheduled Charge Item</label>
-                    <select name="ltamod-scheduledChargeItem" ${dis}>
-                        <option value="">— Select injury/condition —</option>${_scOpts}
-                    </select></div>
-                    <div class="lta-computed-dl" style="background:#fff0f0;border-color:#ef9a9a;grid-column:1/-1;">
-                    <i class="fas fa-table" style="color:#c62828;font-size:1rem;"></i>
-                    <div><div style="font-size:0.62rem;color:#c62828;font-weight:600;">SCHEDULED CHARGE (ANSI Z16.1)</div>
-                    <div style="font-size:0.85rem;font-weight:800;color:#c62828;">${sc.toLocaleString()} days charged</div></div></div>`;
-            }
-            const dl = typeof computeDaysCharged === 'function' ? computeDaysCharged(e).daysCharged : 0;
-            return `<div class="lta-field"><label>Date of Accident</label>
-                <input type="date" name="ltamod-dateOfAccident" value="${e.dateOfAccident||''}" ${dis}
-                    onchange="window._ltaModalRecomputeDL()"></div>
-                <div class="lta-field"><label>Date Return to Work (RTW)</label>
-                <input type="date" name="ltamod-dateRTW" value="${e.dateRTW||''}" ${dis}
-                    onchange="window._ltaModalRecomputeDL()"></div>
-                <div class="lta-computed-dl" style="grid-column:1/-1;" id="ltamod-dl-result">
-                <i class="fas fa-calculator" style="color:#e65100;font-size:1rem;"></i>
-                <div><div style="font-size:0.62rem;color:#e65100;font-weight:600;">COMPUTED DAYS LOST</div>
-                <div style="font-size:0.85rem;font-weight:800;color:${dl>0?'#c62828':'#2e7d32'};">${dl} day${dl!==1?'s':''} lost</div>
-                <div style="font-size:0.58rem;color:#888;">${dl>0?'Synced to Medical Tab → Days Lost/Charged':'Fill in both dates to compute'}</div>
-                </div></div>`;
+            window._ltaEnsureDLStyles();
+            const esc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+            const types = (typeof LTA_INJURY_TYPES !== 'undefined') ? LTA_INJURY_TYPES : [];
+            const userType = e.injuryType || 'temporary';
+            const defOf = v => types.find(t => t.value === v);
+            const lastActual = (defOf(userType) && !defOf(userType).useScheduled && userType !== 'na') ? userType : 'temporary';
+            const lastSched  = (defOf(userType) && defOf(userType).useScheduled) ? userType : 'permanent';
+            const pill = t => `<label class="ltadl-pill"><input type="radio" name="ltamod-injuryType" value="${t.value}" ${t.value === userType ? 'checked' : ''} ${dis} onchange="window._ltaDLSetType(this.value)"><span>${esc(t.label)}</span></label>`;
+            const modeBtn = (m, t, n) => `<button type="button" class="ltadl-mode" data-mode="${m}" aria-pressed="false" ${dis} onclick="window._ltaDLSetMode('${m}')"><span class="t">${t}</span><span class="n">${n}</span></button>`;
+            return `<div class="ltadl" id="ltamod-dl-card" data-mode="actual" data-lock="" data-canedit="${dis ? '0' : '1'}"
+                    data-user-type="${esc(userType)}" data-last-actual="${esc(lastActual)}" data-last-sched="${esc(lastSched)}" data-user-sc="${esc(e.scheduledChargeItem)}">
+                <div class="ltadl-modes" role="group" aria-label="Days lost method">
+                    ${modeBtn('actual', 'Actual days', 'Date of accident to RTW')}
+                    ${modeBtn('scheduled', 'Scheduled charge', 'Fixed days, Table 6')}
+                    ${modeBtn('na', 'Not applicable', 'Not counted')}
+                </div>
+                <div class="ltadl-note" role="note"></div>
+                <div class="ltadl-types ltadl-types-actual">${types.filter(t => t.value !== 'na' && !t.useScheduled).map(pill).join('')}</div>
+                <div class="ltadl-types ltadl-types-scheduled">${types.filter(t => t.value !== 'na' && t.useScheduled).map(pill).join('')}</div>
+                <input type="radio" name="ltamod-injuryType" value="na" ${userType === 'na' ? 'checked' : ''} ${dis} style="display:none;" tabindex="-1" aria-hidden="true">
+                <div class="ltadl-fields">
+                    <div class="lta-field ltadl-doa"><label>Date of accident</label>
+                        <input type="date" name="ltamod-dateOfAccident" value="${esc(e.dateOfAccident)}" ${dis} oninput="window._ltaDLRefresh()" onchange="window._ltaDLRefresh()"></div>
+                    <div class="lta-field ltadl-rtw"><label>Date return to work (RTW)</label>
+                        <input type="date" name="ltamod-dateRTW" value="${esc(e.dateRTW)}" ${dis} oninput="window._ltaDLRefresh()" onchange="window._ltaDLRefresh()"></div>
+                    <div class="lta-field ltadl-sc"><label>Scheduled charge item</label>
+                        <select name="ltamod-scheduledChargeItem" ${dis} onchange="window._ltaDLSetSc(this.value)">
+                            <option value="">— Select injury/condition —</option>${scOpts || ''}
+                        </select></div>
+                </div>
+                <div class="ltadl-result" id="ltamod-dl-result" aria-live="polite">
+                    <span class="ltadl-num">0</span><span class="ltadl-lbl"></span><span class="ltadl-sub"></span>
+                </div>
+            </div>`;
         };
 
-        window._ltaModalRecomputeDL = function() {
-            const modal = document.getElementById('lta-entry-modal');
-            if (!modal) return;
-            const doa = modal.querySelector('[name="ltamod-dateOfAccident"]')?.value || '';
-            const rtw = modal.querySelector('[name="ltamod-dateRTW"]')?.value || '';
-            const result = document.getElementById('ltamod-dl-result');
-            if (!result) return;
-            const tmpE = { dateOfAccident: doa, dateRTW: rtw, injuryType: 'temporary' };
-            const dl = typeof computeDaysCharged === 'function' ? computeDaysCharged(tmpE).daysCharged : 0;
-            result.querySelector('div > div:nth-child(2)').textContent = dl + ' day' + (dl!==1?'s':'') + ' lost';
-            result.querySelector('div > div:nth-child(2)').style.color = dl > 0 ? '#c62828' : '#2e7d32';
-        };
+        window._ltaDLRefresh = function() {
+            const card = document.getElementById('ltamod-dl-card');
+            if (!card) return;
+            const scope = document.getElementById('lta-entry-modal') || document;
+            const clsEl = scope.querySelector('[name="ltamod-incidentClassification"]');
+            const cls = clsEl ? clsEl.value : '';
+            const canEdit = card.dataset.canedit === '1';
+            const types = (typeof LTA_INJURY_TYPES !== 'undefined') ? LTA_INJURY_TYPES : [];
+            const rule = window.ltaClassDlRule(cls);
+            const lock = rule.lock;
+            const userType = card.dataset.userType || 'temporary';
+            const eff = window.ltaEffectiveInjuryType({ incidentClassification: cls, injuryType: userType });
+            const effDef = types.find(t => t.value === eff);
+            const mode = eff === 'na' ? 'na' : (effDef && effDef.useScheduled ? 'scheduled' : 'actual');
 
-        window._ltaModalUpdateInjuryType = function(newType, pName, idx) {
-            const modal = document.getElementById('lta-entry-modal');
-            if (!modal) return;
+            card.dataset.mode = mode;
+            card.dataset.lock = lock;
+            const note = card.querySelector('.ltadl-note');
+            if (note) note.textContent = rule.reason;
 
-            // ── Update label visual styles for all radio options ──────────────
-            const injuryTypeDefs = typeof LTA_INJURY_TYPES !== 'undefined' ? LTA_INJURY_TYPES : [];
-            modal.querySelectorAll('[name="ltamod-injuryType"]').forEach(radio => {
-                const lbl = radio.closest('label');
-                if (!lbl) return;
-                const isSel = radio.value === newType;
-                const def = injuryTypeDefs.find(t => t.value === radio.value);
-                const useScheduled = def ? def.useScheduled : false;
-                lbl.style.border = isSel
-                    ? `1.5px solid ${useScheduled ? '#c62828' : '#2e7d32'}`
-                    : '1.5px solid var(--border-color)';
-                lbl.style.background = isSel
-                    ? (useScheduled ? '#fff0f0' : '#f1f8f1')
-                    : 'var(--input-bg)';
+            card.querySelectorAll('input[name="ltamod-injuryType"]').forEach(r => {
+                r.checked = (r.value === eff);
+                if (r.value === 'na') return;
+                const d = types.find(t => t.value === r.value);
+                let off = !canEdit || lock === 'na' || lock === 'fatality';
+                if (lock === 'rwc' && ((d && !d.useScheduled) || r.value === 'fatality')) off = true;
+                r.disabled = off;
             });
-            // ─────────────────────────────────────────────────────────────────
+            card.querySelectorAll('.ltadl-mode').forEach(b => {
+                const m = b.dataset.mode;
+                b.setAttribute('aria-pressed', m === mode ? 'true' : 'false');
+                b.disabled = !canEdit || lock === 'na' || lock === 'fatality' || (lock === 'rwc' && m === 'actual');
+            });
 
-            const doa = modal.querySelector('[name="ltamod-dateOfAccident"]')?.value || '';
-            const rtw = modal.querySelector('[name="ltamod-dateRTW"]')?.value || '';
-            const sc  = modal.querySelector('[name="ltamod-scheduledChargeItem"]')?.value || '';
-            const tmpE = { injuryType: newType, dateOfAccident: doa, dateRTW: rtw, scheduledChargeItem: sc };
-            const dlContainer = document.getElementById('ltamod-dl-computed');
-            if (dlContainer) {
-                const canEdit = !modal.querySelector('[name="ltamod-aiirNo"]')?.disabled;
-                dlContainer.innerHTML = window._ltaBuildDLHtml(tmpE, canEdit ? '' : 'disabled', '');
+            const sc = card.querySelector('[name="ltamod-scheduledChargeItem"]');
+            if (sc) {
+                if (lock === 'fatality') {
+                    if (card.dataset.forced !== '1') { card.dataset.userSc = sc.value; card.dataset.forced = '1'; }
+                    sc.value = 'Fatality';
+                    sc.disabled = true;
+                } else {
+                    if (card.dataset.forced === '1') { sc.value = card.dataset.userSc || ''; card.dataset.forced = ''; }
+                    sc.disabled = !canEdit;
+                }
+            }
+
+            const doa = (card.querySelector('[name="ltamod-dateOfAccident"]') || {}).value || '';
+            const rtw = (card.querySelector('[name="ltamod-dateRTW"]') || {}).value || '';
+            const item = sc ? sc.value : '';
+            const r = (typeof window.computeDaysCharged === 'function')
+                ? window.computeDaysCharged({ incidentClassification: cls, injuryType: userType, dateOfAccident: doa, dateRTW: rtw, scheduledChargeItem: item })
+                : { daysCharged: 0 };
+            const n = r.daysCharged || 0;
+            const num = card.querySelector('.ltadl-num'), lbl = card.querySelector('.ltadl-lbl'), sub = card.querySelector('.ltadl-sub');
+            if (!num || !lbl || !sub) return;
+            num.classList.toggle('has', mode !== 'na' && n > 0);
+            if (mode === 'na') {
+                num.textContent = '0'; lbl.textContent = 'days, not counted';
+                sub.textContent = 'Not added to Medical tab: Days Lost/Charged';
+            } else if (mode === 'scheduled') {
+                num.textContent = n.toLocaleString(); lbl.textContent = 'days charged';
+                sub.textContent = !item ? 'Pick the scheduled item' : (!doa ? 'Add the date of accident so it counts in the right month' : 'ANSI Z16.1, Table 6');
+            } else {
+                num.textContent = n.toLocaleString(); lbl.textContent = n === 1 ? 'day lost' : 'days lost';
+                sub.textContent = (doa && rtw) ? 'Excludes Sundays. Counts from the day after the accident' : 'Fill in both dates to compute';
             }
         };
+
+        window._ltaDLSetMode = function(mode) {
+            const card = document.getElementById('ltamod-dl-card');
+            if (!card) return;
+            card.dataset.userType = mode === 'na' ? 'na'
+                : (mode === 'scheduled' ? (card.dataset.lastSched || 'permanent') : (card.dataset.lastActual || 'temporary'));
+            window._ltaDLRefresh();
+        };
+
+        window._ltaDLSetType = function(value) {
+            const card = document.getElementById('ltamod-dl-card');
+            if (!card) return;
+            card.dataset.userType = value;
+            const types = (typeof LTA_INJURY_TYPES !== 'undefined') ? LTA_INJURY_TYPES : [];
+            const d = types.find(t => t.value === value);
+            if (d && value !== 'na') {
+                if (d.useScheduled) card.dataset.lastSched = value; else card.dataset.lastActual = value;
+            }
+            const sc = card.querySelector('[name="ltamod-scheduledChargeItem"]');
+            if (value === 'fatality' && sc && !sc.value) { sc.value = 'Fatality'; card.dataset.userSc = 'Fatality'; }
+            window._ltaDLRefresh();
+        };
+
+        window._ltaDLSetSc = function(value) {
+            const card = document.getElementById('ltamod-dl-card');
+            if (card) card.dataset.userSc = value;
+            window._ltaDLRefresh();
+        };
+
+        // Old entry points kept so nothing else breaks
+        window._ltaModalRecomputeDL = function() { window._ltaDLRefresh(); };
+        window._ltaModalUpdateInjuryType = function(newType) { window._ltaDLSetType(newType); };
 
         // Apply / remove "Not Applicable" state for the whole Injured Person section
         window._ltaApplyNAState = function(pId, on, clear) {
@@ -9812,6 +10327,9 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             // Injury type from radio
             const injRadio = modal.querySelector('[name="ltamod-injuryType"]:checked');
             if (injRadio) entry.injuryType = injRadio.value;
+            // Enforce classification rule (First Aid / Medical Treatment / Near Miss etc. = N/A, Fatality = 6,000 days)
+            entry.injuryType = ltaEffectiveInjuryType(entry);
+            if (ltaClassKind(entry.incidentClassification) === 'fatality') entry.scheduledChargeItem = 'Fatality';
 
             syncIncidentClassificationsFromRegistry();
             syncDaysLostFromLtaRegistry();
@@ -10061,7 +10579,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
 
                             </div>
                             <div style="display:flex;align-items:center;gap:8px;">
-                                ${(state.isEditing && canEdit) ? `<button class="lta-add-btn" onclick="event.stopPropagation();window._importAiirViaFile('${pnSafe}')" title="Import from AIIR (.docx / .pdf)"><i class="fas fa-file-import"></i> Import AIIR</button><button class="lta-add-btn" onclick="event.stopPropagation();window._addLtaEntryViaModal('${pnSafe}')"><i class="fas fa-plus"></i> Add Entry</button>` : ''}
+                                ${(state.isEditing && canEdit) ? `<button class="lta-add-btn" onclick="event.stopPropagation();window._importAiirViaFile('${pnSafe}')" title="Import from AIIR (Microsoft Word)"><i class="fas fa-file-import"></i> Import AIIR</button><button class="lta-add-btn" onclick="event.stopPropagation();window._addLtaEntryViaModal('${pnSafe}')"><i class="fas fa-plus"></i> Add Entry</button>` : ''}
                                 <span style="background:rgba(198,40,40,0.8);color:white;border-radius:10px;padding:2px 8px;font-size:0.62rem;font-weight:700;">${entries.length} entries</span>
                                 <span style="background:rgba(255,160,0,0.8);color:white;border-radius:10px;padding:2px 8px;font-size:0.62rem;font-weight:700;">${totalDL} days charged</span>
                                 <i id="lta-proj-${pId}-icon" class="fas fa-chevron-down" style="color:rgba(255,255,255,0.7);font-size:0.8rem;transition:transform 0.3s;"></i>
@@ -12254,7 +12772,7 @@ function renderTabulation() {
                                         const _ny1 = (state&&state.selectedYear)||2026; const naCellKey1 = `${_ny1}|esh-calendar-drills|${p.name}|${_dsi1}|${mi}|na`;
                                         if (eshStor[naCellKey1]) return; // skip N/A cells
                                         const ak = `${_eshYear1}|esh-calendar-drills|${p.name}|${_dsi1}|${mi}|actual`;
-                                        if (eshStor[ak]) monthTotal++;
+                                        if (eshStor[ak] && eshStor[`${_eshYear1}|esh-calendar-drills|GLOBAL_PLAN|${_dsi1}|${mi}|plan`]) monthTotal++;
                                     });
                                     // ── CORPORATE Drills: also count corp-drills actuals for CORPORATE project ──
                                     if (p.region === 'CORPORATE') {
@@ -12262,11 +12780,11 @@ function renderTabulation() {
                                         const _corpCustom1 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
                                         _corpBase1.forEach((_cd1, _cdi1) => {
                                             const _cak1 = `${_eshYear1}|esh-calendar-corp-drills|${p.name}|${_cdi1}|${mi}|actual`;
-                                            if (eshStor[_cak1]) monthTotal++;
+                                            if (eshStor[_cak1] && eshStor[`${_eshYear1}|esh-calendar-corp-drills|GLOBAL_PLAN|${_cdi1}|${mi}|plan`]) monthTotal++;
                                         });
                                         _corpCustom1.forEach((_ccr1, _cci1) => {
                                             const _cak1c = `${_eshYear1}|esh-calendar-corp-drills|${p.name}|${1000 + _cci1}|${mi}|actual`;
-                                            if (eshStor[_cak1c]) monthTotal++;
+                                            if (eshStor[_cak1c] && eshStor[`${_eshYear1}|esh-calendar-corp-drills|GLOBAL_PLAN|${1000 + _cci1}|${mi}|plan`]) monthTotal++;
                                         });
                                     }
                                 } else {
@@ -12285,7 +12803,7 @@ function renderTabulation() {
                                                     if (_naF1 >= 0 && mi >= _naF1) return;
                                                 }
                                                 const ak = `${_eshYear1}|${tt}|${p.name}|${ti}|${mi}|actual`;
-                                                if (eshStor[ak]) monthTotal++;
+                                                if (eshStor[ak] && eshStor[`${_eshYear1}|${tt}|GLOBAL_PLAN|${ti}|${mi}|plan`]) monthTotal++;
                                             });
                                         });
                                     }
@@ -12367,7 +12885,7 @@ function renderTabulation() {
                                             const _ny2 = (state&&state.selectedYear)||2026; const naCellKey2 = `${_ny2}|esh-calendar-drills|${p.name}|${_dsi2}|${mi}|na`;
                                             if (eshStor[naCellKey2]) return; // skip N/A cells
                                             const ak = `${_eshYear2}|esh-calendar-drills|${p.name}|${_dsi2}|${mi}|actual`;
-                                            if (eshStor[ak]) ytdTotal++;
+                                            if (eshStor[ak] && eshStor[`${_eshYear2}|esh-calendar-drills|GLOBAL_PLAN|${_dsi2}|${mi}|plan`]) ytdTotal++;
                                         });
                                         // ── CORPORATE Drills: also count corp-drills actuals for CORPORATE project ──
                                         if (p.region === 'CORPORATE') {
@@ -12375,11 +12893,11 @@ function renderTabulation() {
                                             const _corpCustom2 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
                                             _corpBase2.forEach((_cd2, _cdi2) => {
                                                 const _cak2 = `${_eshYear2}|esh-calendar-corp-drills|${p.name}|${_cdi2}|${mi}|actual`;
-                                                if (eshStor[_cak2]) ytdTotal++;
+                                                if (eshStor[_cak2] && eshStor[`${_eshYear2}|esh-calendar-corp-drills|GLOBAL_PLAN|${_cdi2}|${mi}|plan`]) ytdTotal++;
                                             });
                                             _corpCustom2.forEach((_ccr2, _cci2) => {
                                                 const _cak2c = `${_eshYear2}|esh-calendar-corp-drills|${p.name}|${1000 + _cci2}|${mi}|actual`;
-                                                if (eshStor[_cak2c]) ytdTotal++;
+                                                if (eshStor[_cak2c] && eshStor[`${_eshYear2}|esh-calendar-corp-drills|GLOBAL_PLAN|${1000 + _cci2}|${mi}|plan`]) ytdTotal++;
                                             });
                                         }
                                     } else {
@@ -12399,7 +12917,7 @@ function renderTabulation() {
                                                         if (_naF2 >= 0 && mi >= _naF2) return;
                                                     }
                                                     const ak = `${_eshYear2}|${tt}|${p.name}|${ti}|${mi}|actual`;
-                                                    if (eshStor[ak]) ytdTotal++;
+                                                    if (eshStor[ak] && eshStor[`${_eshYear2}|${tt}|GLOBAL_PLAN|${ti}|${mi}|plan`]) ytdTotal++;
                                                 });
                                             });
                                         }
@@ -12642,8 +13160,8 @@ function renderTabulation() {
                         <div class="region-banner-right">
                             ${(!isCorporateReg || isCorporateDataTab) ? (isCorporateReg ? `<span class="rbadge rbadge-count">${projs.length} OFFICE</span>` : isPlantReg ? `<span class="rbadge rbadge-count">${projs.length} PLANT${projs.length!==1?'S':''}</span>` : `<span class="rbadge rbadge-count">${projs.length} PROJECT${projs.length!==1?'S':''}</span>`) : ''}
                             ${(!isCorporateReg || isCorporateDataTab) && !isPlantReg && projs.length > 0 ? `<span class="rbadge rbadge-avg">AVG ${regionAvg}%</span>` : ''}
-                            ${(!isCorporateReg || isCorporateDataTab) && !isPlantReg && state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary" style="font-size:0.68rem;padding:3px 10px;line-height:1.4;">+ ADD</button>` : ''}
-                            ${(!isCorporateReg || isCorporateDataTab) && !isPlantReg && state.isEditing && !canEditRegion ? `<button disabled style="opacity:0.45;cursor:not-allowed;background:#888;font-size:0.68rem;padding:3px 10px;line-height:1.4;" class="btn btn-primary">LOCKED</button>` : ''}
+                            ${state.currentTab === 'overall' && (!isCorporateReg || isCorporateDataTab) && !isPlantReg && state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary" title="Add new project to ${reg}" aria-label="Add new project to ${reg}" style="font-size:0.68rem;padding:3px 10px;line-height:1.4;">+ ADD</button>` : ''}
+                            ${state.currentTab === 'overall' && (!isCorporateReg || isCorporateDataTab) && !isPlantReg && state.isEditing && !canEditRegion ? `<button disabled style="opacity:0.45;cursor:not-allowed;background:#888;font-size:0.68rem;padding:3px 10px;line-height:1.4;" class="btn btn-primary">LOCKED</button>` : ''}
                             ${!isCorporateReg && !isPlantReg && state.currentTab === 'overall' && projs.length > 0 ? `<select class="sort-select" onclick="event.stopPropagation()" onchange="sortProjects(this.value)" style="font-size:0.68rem;padding:2px 7px;">
                                 <option value="name" ${state.currentSort === 'name' ? 'selected' : ''}>Sort: Name</option>
                                 <option value="dateStarted" ${state.currentSort === 'dateStarted' ? 'selected' : ''}>Sort: Date Started</option>
@@ -12658,7 +13176,7 @@ function renderTabulation() {
 
                 {
 
-                if (projs.length === 0 && state.isEditing) {
+                if (projs.length === 0 && state.isEditing && state.currentTab === 'overall') {
                     html += `<div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 0.85rem; font-style: italic;">
                         <i class="fas fa-folder-open" style="font-size: 2rem; opacity: 0.3; margin-bottom: 10px; display: block;"></i>
                         ${isCorporateDataTab ? 'No CORPORATE entry yet. Click "+ ADD" above to add CORPORATE data.' : 'No projects in this region yet. Click "+ ADD PROJECT" to get started.'}
@@ -12720,7 +13238,7 @@ function renderTabulation() {
                             ${p.workResumeDate ? `<div style="color:#2e7d32;font-size:0.7rem;"><span class="date-label" style="color:#2e7d32;">Resume:</span> ${formatDateDMY(p.workResumeDate)}</div>` : ''}
                         </div>`}
                         ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<span class="status-badge ${statusClass}" onclick="event.stopPropagation(); ${isLocked ? 'showLockedMessage()' : `changeProjectStatus('${p.name}', event)`}">${statusLabel}</span>`}
-                        ${state.isEditing ? `
+                        ${(state.isEditing && state.currentTab === 'overall') ? `
                             <button ${isLocked ? 'disabled' : ''} onclick="event.stopPropagation(); ${isLocked ? 'showLockedMessage()' : `openEditProjectModal('${p.name.replace(/'/g, "\\'")}', '${p.region}')`}" style="background:none;border:none;cursor:pointer;color:#555;font-size:1rem;padding:4px 6px;margin-right:2px;opacity:${isLocked ? '0.5' : '1'};" title="${isLocked ? 'View Only - Contact admin to edit' : 'Edit Project Details'}">
                                 <i class="fas fa-pen"></i>
                             </button>
@@ -13958,7 +14476,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 const _ny3 = (state&&state.selectedYear)||2026; const naCellKey3 = `${_ny3}|esh-calendar-drills|${projName}|${_dsi3}|${mi}|na`;
                                 if (eshStor[naCellKey3]) return; // skip N/A cells
                                 const ak = `${_eshYear3}|esh-calendar-drills|${projName}|${_dsi3}|${mi}|actual`;
-                                if (eshStor[ak]) count++;
+                                if (eshStor[ak] && eshStor[`${_eshYear3}|esh-calendar-drills|GLOBAL_PLAN|${_dsi3}|${mi}|plan`]) count++;
                             });
                             // ── CORPORATE Drills: also count corp-drills actuals for CORPORATE project ──
                             if (p.region === 'CORPORATE') {
@@ -13966,11 +14484,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 const _corpCustom3 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
                                 _corpBase3.forEach((_cd3, _cdi3) => {
                                     const _cak3 = `${_eshYear3}|esh-calendar-corp-drills|${projName}|${_cdi3}|${mi}|actual`;
-                                    if (eshStor[_cak3]) count++;
+                                    if (eshStor[_cak3] && eshStor[`${_eshYear3}|esh-calendar-corp-drills|GLOBAL_PLAN|${_cdi3}|${mi}|plan`]) count++;
                                 });
                                 _corpCustom3.forEach((_ccr3, _cci3) => {
                                     const _cak3c = `${_eshYear3}|esh-calendar-corp-drills|${projName}|${1000 + _cci3}|${mi}|actual`;
-                                    if (eshStor[_cak3c]) count++;
+                                    if (eshStor[_cak3c] && eshStor[`${_eshYear3}|esh-calendar-corp-drills|GLOBAL_PLAN|${1000 + _cci3}|${mi}|plan`]) count++;
                                 });
                             }
                         } else {
@@ -13984,7 +14502,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         if (_naF3 >= 0 && mi >= _naF3) return;
                                     }
                                     const ak = `${_eshYear3}|${tt}|${projName}|${ti}|${mi}|actual`;
-                                    if (eshStor[ak]) count++;
+                                    if (eshStor[ak] && eshStor[`${_eshYear3}|${tt}|GLOBAL_PLAN|${ti}|${mi}|plan`]) count++;
                                 });
                             });
                         }
@@ -14071,7 +14589,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         }
                     } else {
                     function _isMoBlacklisted(monthIdx1Based) {
-                        return isMonthBlacklistedForProject(p, monthIdx1Based, state.selectedYear || new Date().getFullYear());
+                        const _blkYr = state.selectedYear || new Date().getFullYear();
+                        // Total Exposures + ESH Activities and Programs: resume month is open for input
+                        // (see isMonthLockedForExposure). e.g. resumed 15 Sep → Sep is enabled.
+                        return (state.currentTab === 'exposures' || state.currentTab === 'activities')
+                            ? isMonthLockedForExposure(p, monthIdx1Based, _blkYr)
+                            : isMonthBlacklistedForProject(p, monthIdx1Based, _blkYr);
                     }
                     for (let i = 1; i <= 12; i++) {
                         const v = p.vals[key] ? (p.vals[key][i] ?? "") : "";
@@ -14083,11 +14606,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         if (_wsBlocked) {
                             const _moName = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i-1];
                             const _notYetStarted = isMonthBeforeProjectStart(p, i, state.selectedYear || new Date().getFullYear());
-                            const _wsTip = _notYetStarted
-                                ? `Project not yet started — starts ${formatDateDMY(p.dateStarted)}. ${_moName} is not required.`
-                                : (p.workResumeDate
-                                    ? `Work Stoppage period — ${_moName} is excluded from compliance counting.`
-                                    : `Work Stoppage period — Set a Resume Date in Project Settings to unlock ${_moName} for input.`);
+                            const _wsTip = getMonthExemptTip(p, i, state.selectedYear || new Date().getFullYear()).replace(/"/g, '&quot;');
                             html += `<td class="${isNov ? 'nov-narrow-td' : (isDole ? 'dole-narrow-td' : 'monthly-data')}" style="background:#f0f0f0;cursor:not-allowed;" title="${_wsTip}"><input type="${isDateType ? 'date' : 'text'}" value="${vFmt}" disabled style="width:100%;background:#e8e8e8;color:#aaa;border:1px solid #ddd;border-radius:4px;padding:2px 3px;font-size:0.72rem;cursor:not-allowed;"></td>`;
                             continue;
                         }
@@ -14167,7 +14686,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 const _dsi4 = getDrillStorageIdx(drill, di);
                                 const _ny4 = (state&&state.selectedYear)||2026; const naCellKey4 = `${_ny4}|esh-calendar-drills|${p.name}|${_dsi4}|${mi}|na`;
                                 if (eshStor[naCellKey4]) return; // skip N/A cells
-                                if (eshStor[`${_eshYear4}|esh-calendar-drills|${p.name}|${_dsi4}|${mi}|actual`]) ytdValue++;
+                                if (eshStor[`${_eshYear4}|esh-calendar-drills|${p.name}|${_dsi4}|${mi}|actual`] && eshStor[`${_eshYear4}|esh-calendar-drills|GLOBAL_PLAN|${_dsi4}|${mi}|plan`]) ytdValue++;
                             });
                             // ── CORPORATE Drills: also count corp-drills actuals for CORPORATE project ──
                             if (p.region === 'CORPORATE') {
@@ -14175,11 +14694,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 const _corpCustom4 = (typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : [];
                                 _corpBase4.forEach((_cd4, _cdi4) => {
                                     const _cak4 = `${_eshYear4}|esh-calendar-corp-drills|${p.name}|${_cdi4}|${mi}|actual`;
-                                    if (eshStor[_cak4]) ytdValue++;
+                                    if (eshStor[_cak4] && eshStor[`${_eshYear4}|esh-calendar-corp-drills|GLOBAL_PLAN|${_cdi4}|${mi}|plan`]) ytdValue++;
                                 });
                                 _corpCustom4.forEach((_ccr4, _cci4) => {
                                     const _cak4c = `${_eshYear4}|esh-calendar-corp-drills|${p.name}|${1000 + _cci4}|${mi}|actual`;
-                                    if (eshStor[_cak4c]) ytdValue++;
+                                    if (eshStor[_cak4c] && eshStor[`${_eshYear4}|esh-calendar-corp-drills|GLOBAL_PLAN|${1000 + _cci4}|${mi}|plan`]) ytdValue++;
                                 });
                             }
                         } else {
@@ -14192,7 +14711,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         const _naF4 = eshStor[_naK4] !== undefined ? parseInt(eshStor[_naK4]) : -1;
                                         if (_naF4 >= 0 && mi >= _naF4) return;
                                     }
-                                    if (eshStor[`${_eshYear4}|${tt}|${p.name}|${ti}|${mi}|actual`]) ytdValue++;
+                                    if (eshStor[`${_eshYear4}|${tt}|${p.name}|${ti}|${mi}|actual`] && eshStor[`${_eshYear4}|${tt}|GLOBAL_PLAN|${ti}|${mi}|plan`]) ytdValue++;
                                 });
                             });
                         }
@@ -14902,7 +15421,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 var _mtNotStarted = !!c.notStarted;
                                 var _mtFinished = !!c.finished && !_mtNotStarted;
                                 var _mtLabel = _mtNotStarted ? 'Not Yet Started' : _mtFinished ? 'Finished Project' : 'Work Stoppage — Exempt';
-                                var _mtTitle = _mtNotStarted ? ' title="Project has not started this month yet — not required."' : (_mtFinished ? ' title="Project finished — this month and later months are not required."' : '');
+                                var _mtTitle = _mtNotStarted ? ' title="Project has not started this month yet — not required."' : (_mtFinished ? ' title="Project finished — this month and later months are not required."' : ' title="Work Stoppage period — this month is excluded from compliance."');
                                 return '<td style="padding:6px 8px;border:1px solid #e0e0e0;min-width:160px;background:#f5f5f5;opacity:0.7;"' + _mtTitle + '>'
                                     + '<div style="display:flex;align-items:center;justify-content:center;gap:5px;color:#9e9e9e;font-size:0.67rem;font-style:italic;padding:4px 0;">'
                                     + '<i class="fas ' + (_mtNotStarted?'fa-hourglass-start':(_mtFinished?'fa-flag-checkered':'fa-ban')) + '" style="font-size:0.65rem;"></i> ' + _mtLabel
@@ -15388,7 +15907,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         // Build the table — header row (project names) + one combined row (all entries per project)
                         var projNameHtml = regProjs.map(function(p){
-                            var _stopped = isProjectOnStoppage(p);
+                            var _stopped = isProjectOnStoppage(p) && !p.dateFinished;
                             var _stopBadge = _stopped
                                 ? ' <span title="Work Stoppage — entries still editable" style="background:#fff8e1;color:#f57f17;border:1px solid #ffe082;border-radius:3px;padding:1px 5px;font-size:0.55rem;cursor:help;white-space:nowrap;"><i class=\'fas fa-pause-circle\'></i> On Stoppage</span>'
                                 : '';
@@ -15607,8 +16126,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     html += '<td style="background:#f5f5f5;text-align:center;opacity:0.55;font-size:0.68rem;color:#bbb;padding:5px;">—</td>';
 
                                 } else if (isQuarterBlacklistedForProject(p, q, doeSelYear)) {
-                                    html += '<td style="background:#fce4ec;text-align:center;padding:5px;" title="Work Stoppage period — this quarter is excluded from compliance computation.">'
-                                        + '<span style="color:#880e4f;font-size:0.65rem;font-weight:700;"><i class="fas fa-pause-circle" style="margin-right:3px;"></i>Work Stoppage</span>'
+                                    var _dqR = getQuarterExemptReason(p, q, doeSelYear);
+                                    html += '<td style="background:#fce4ec;text-align:center;padding:5px;" title="' + getQuarterExemptTip(p, q, doeSelYear).replace(/"/g, '&quot;') + '">'
+                                        + '<span style="color:#880e4f;font-size:0.65rem;font-weight:700;"><i class="fas ' + (_dqR === 'finished' ? 'fa-flag-checkered' : _dqR === 'not-started' ? 'fa-hourglass-start' : 'fa-pause-circle') + '" style="margin-right:3px;"></i>' + (_dqR === 'finished' ? 'Finished' : _dqR === 'not-started' ? 'Not Started' : 'Work Stoppage') + '</span>'
                                         + '</td>';
 
                                 } else {
@@ -15768,7 +16288,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         var rowDefs = [
                             { label: 'EMR Date', desc: 'Environmental Monthly Report submission date — '+mLabel,
-                              cells: regProjs.map(function(p){ var notStarted=isMonthBeforeProjectStart(p,mIdx,selYear); var stopped=isProjectOnStoppage(p)||isMonthBlacklistedForProject(p,mIdx,selYear); var isFinished=!!p.dateFinished; return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_KEY,idx:mIdx,val:p.vals[EMR_KEY]?p.vals[EMR_KEY][mIdx]||'':'',dis:(stopped||isFinished||(!canEdit&&!state.isEditing))?'disabled':((!canEdit&&state.isEditing)?'disabled':dis),inputType:'date',stopped:stopped,notStarted:notStarted}; }) }
+                              cells: regProjs.map(function(p){ var notStarted=isMonthBeforeProjectStart(p,mIdx,selYear); var stopped=isProjectOnStoppage(p)||isMonthBlacklistedForProject(p,mIdx,selYear); var isFinished=!!p.dateFinished; return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_KEY,idx:mIdx,val:p.vals[EMR_KEY]?p.vals[EMR_KEY][mIdx]||'':'',dis:(stopped||isFinished||(!canEdit&&!state.isEditing))?'disabled':((!canEdit&&state.isEditing)?'disabled':dis),inputType:'date',stopped:stopped,notStarted:notStarted,finished:isProjectFinishedForMonth(p,mIdx,selYear)}; }) }
                         ];
 
                         var tableHtml = _modalTable(rowDefs, null, regProjs.map(function(p){ return p.name + (isProjectOnStoppage(p) ? ' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;"><i class=\'fas fa-pause-circle\'></i></span>' : '') + (p.dateFinished ? ' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;"><i class=\'fas fa-lock\'></i> Finished</span>' : ''); }));
@@ -16241,7 +16761,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var hBg = isFrozen ? '#e0e0e0' : (isNA ? '#f5f5f5' : '#b7ddb5');
                             var hColor = isFrozen ? '#aaa' : (isNA ? '#bdbdbd' : '#1b5e20');
                             var frozenBadge = '';
-                            var statusNote = isFrozen ? (isMonthBeforeProjectStart(p, moIdx1Based, selYear) ? ' [NOT YET STARTED — project starts ' + formatDateDMY(p.dateStarted) + ']' : isProjectOnStoppage(p) ? ' [WORK STOPPAGE — excluded from computation]' : ' [MONTH EXCLUDED — work stoppage period]') : '';
+                            var _k1Rsn = isFrozen ? getMonthExemptReason(p, moIdx1Based, selYear) : '';
+                            var statusNote = isFrozen ? (_k1Rsn === 'not-started' ? ' [NOT YET STARTED — project starts ' + formatDateDMY(p.dateStarted) + ']' : _k1Rsn === 'finished' ? ' [FINISHED: ' + formatDateDMY(p.dateFinished) + ' — this month is not required]' : isProjectOnStoppage(p) ? ' [WORK STOPPAGE — excluded from computation]' : ' [MONTH EXCLUDED — work stoppage period]') : '';
                             var tooltipAttr = 'title="' + (p.name + statusNote).replace(/"/g,'&quot;') + '"';
                             return '<th ' + tooltipAttr + ' style="padding:5px 4px;border:1px solid #c8e6c9;color:' + hColor + ';font-size:0.62rem;font-weight:700;text-align:center;min-width:72px;white-space:normal;word-break:break-word;background:' + hBg + ';">'
                                 + (isNA && !isFrozen
@@ -16721,7 +17242,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 if (_projWsFrozen[pi]) {
                                     // Work-stoppage / month-blacklisted — genuinely no data for this month
                                     var _pcNotYetStarted = isMonthBeforeProjectStart(pp, moIdx1Based, selYear);
-                                    var _pcTip = _pcNotYetStarted ? ('Project not yet started — starts ' + formatDateDMY(pp.dateStarted) + '. Not required.') : 'Work Stoppage — excluded from compliance';
+                                    var _pcRsn = getMonthExemptReason(pp, moIdx1Based, selYear);
+                                    var _pcTip = _pcNotYetStarted ? ('Project not yet started — starts ' + formatDateDMY(pp.dateStarted) + '. Not required.') : (_pcRsn === 'finished' ? ('Project finished (' + formatDateDMY(pp.dateFinished) + '). Not required.') : 'Work Stoppage — excluded from compliance');
                                     return '<td style="text-align:center;padding:2px 6px;border:1px solid #c8e6c9;width:68px;min-width:68px;max-width:68px;background:#fce4ec;">'
                                         + '<input type="text" value="—" disabled title="' + _pcTip + '"'
                                         + ' style="width:52px;text-align:center;border:1px solid #f48fb1;border-radius:3px;padding:3px 2px;font-size:0.72rem;font-weight:700;color:#880e4f;background:#f8bbd0;cursor:not-allowed;">'
@@ -16856,8 +17378,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var hBg    = isFrozen ? '#fce4ec' : '#b7ddb5';
                             var hColor = isFrozen ? '#c62828' : '#1b5e20';
                             // Tooltip: always show full project name + status if not normal
-                            var statusNote = isFinished
-                                ? ' [FINISHED: ' + pp.dateFinished + ']'
+                            var statusNote = (isFinished && isProjectFinishedForMonth(pp, moIdx1Based, selYear) && !isMonthBeforeProjectStart(pp, moIdx1Based, selYear))
+                                ? ' [FINISHED: ' + formatDateDMY(pp.dateFinished) + ' — this month is not required]'
+                                : (isFinished && !isFrozen)
+                                ? ' [FINISHED: ' + formatDateDMY(pp.dateFinished) + ' — this month was still active]'
                                 : isMonthBeforeProjectStart(pp, moIdx1Based, selYear)
                                     ? ' [NOT YET STARTED — project starts ' + formatDateDMY(pp.dateStarted) + ']'
                                     : isFullStop
@@ -16874,8 +17398,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var isFrozen = _projWsFrozen[pi];
                             var isFullStop = isProjectOnStoppage(pp);
                             var isFinished = !!pp.dateFinished;
-                            var statusNote = isFinished
-                                ? ' [FINISHED: ' + pp.dateFinished + ']'
+                            var statusNote = (isFinished && isProjectFinishedForMonth(pp, moIdx1Based, selYear) && !isMonthBeforeProjectStart(pp, moIdx1Based, selYear))
+                                ? ' [FINISHED: ' + formatDateDMY(pp.dateFinished) + ' — this month is not required]'
+                                : (isFinished && !isFrozen)
+                                ? ' [FINISHED: ' + formatDateDMY(pp.dateFinished) + ' — this month was still active]'
                                 : isMonthBeforeProjectStart(pp, moIdx1Based, selYear)
                                     ? ' [NOT YET STARTED — project starts ' + formatDateDMY(pp.dateStarted) + ']'
                                     : isFullStop
@@ -17092,8 +17618,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             <div class="region-banner-right">
                                 <span class="rbadge rbadge-count">${projs.length} PROJ</span>
                                 <span class="rbadge rbadge-avg">AVG ${regAvg}%</span>
-                                ${state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary" style="font-size:0.68rem;padding:3px 10px;line-height:1.4;">+ ADD</button>` : ''}
-                                ${state.isEditing && !canEditRegion ? `<button disabled style="opacity:0.45;cursor:not-allowed;background:#888;font-size:0.68rem;padding:3px 10px;line-height:1.4;" class="btn btn-primary">LOCKED</button>` : ''}
+                                ${state.currentTab === 'overall' && state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary" style="font-size:0.68rem;padding:3px 10px;line-height:1.4;">+ ADD</button>` : ''}
+                                ${state.currentTab === 'overall' && state.isEditing && !canEditRegion ? `<button disabled style="opacity:0.45;cursor:not-allowed;background:#888;font-size:0.68rem;padding:3px 10px;line-height:1.4;" class="btn btn-primary">LOCKED</button>` : ''}
                                 <i class="fas fa-chevron-down region-toggle-icon"></i>
                             </div>
                         </div>
@@ -17437,8 +17963,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 const _doeFutureQ = _doeThisYear && q > _doeNowQ;
                                 const _doeQBlacklisted = !_doeFutureQ && isQuarterBlacklistedForProject(p, q, _doeSelYr);
                                 if (_doeQBlacklisted) {
-                                    html += `<td style="background:#ffcdd2;text-align:center;padding:5px;border:1px solid #ef9a9a;" title="Work Stoppage period — this quarter is excluded from compliance computation.">
-                                        <span style="color:#b71c1c;font-size:0.68rem;font-weight:700;"><i class="fas fa-pause-circle" style="margin-right:3px;"></i>Work Stoppage</span>
+                                    const _dqR2 = getQuarterExemptReason(p, q, _doeSelYr);
+                                    html += `<td style="background:#ffcdd2;text-align:center;padding:5px;border:1px solid #ef9a9a;" title="${getQuarterExemptTip(p, q, _doeSelYr).replace(/"/g, '&quot;')}">
+                                        <span style="color:#b71c1c;font-size:0.68rem;font-weight:700;"><i class="fas ${_dqR2 === 'finished' ? 'fa-flag-checkered' : _dqR2 === 'not-started' ? 'fa-hourglass-start' : 'fa-pause-circle'}" style="margin-right:3px;"></i>${_dqR2 === 'finished' ? 'Finished' : _dqR2 === 'not-started' ? 'Not Started' : 'Work Stoppage'}</span>
                                     </td>`;
                                     continue;
                                 }
@@ -22507,7 +23034,7 @@ const ProjectsDB = {
     //   2. ESH Calendar RTDB: re-key all entries from oldName → newName
     //   3. In-memory caches: yearProjectCache, masterProjects
     // This is the ONLY correct way to rename — never just save newName and hope oldName disappears.
-    async renameProject(year, oldName, updatedProject) {
+    async renameProject(year, oldName, updatedProject, oldRegion) {
         if (!window.firebaseDb || !window.firebase) return false;
         const oldId = this.getProjectId(oldName);
         const newId = this.getProjectId(updatedProject.name);
@@ -22527,7 +23054,16 @@ const ProjectsDB = {
             }
 
             // Re-key ESH Calendar RTDB entries: oldName → newName
-            await _eshRtdbRenameProject(oldName, updatedProject.name);
+            await _eshRtdbRenameProject(oldName, updatedProject.name, year);
+
+            // Copy Yjs rows (KPM, DOLE, audit, etc.) from old project name to new one
+            try {
+                if (window.ESHDataSync && typeof window.ESHDataSync.renameProjectRows === 'function') {
+                    await window.ESHDataSync.renameProjectRows(oldName, updatedProject.name, oldRegion || updatedProject.region, updatedProject.region);
+                }
+            } catch (e) {
+                console.warn('ProjectsDB.renameProject: Yjs row copy failed:', e.message);
+            }
 
             return true;
         } catch(e) {
@@ -26330,7 +26866,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     var _gotWsBlocked = isMonthBlacklistedForProject(proj, m, _gotSelYear);
                     if (_gotWsBlocked) {
                         var _gotNotYetStarted = isMonthBeforeProjectStart(proj, m, _gotSelYear);
-                        var _gotTip = _gotNotYetStarted ? ('Project not yet started — starts ' + formatDateDMY(proj.dateStarted) + '. Not required.') : 'Work Stoppage — month frozen';
+                        var _gotTip = getMonthExemptTip(proj, m, _gotSelYear).replace(/"/g, '&quot;');
                         h += '<td class="got-td-month" style="background:#eeeeee;cursor:not-allowed;" title="' + _gotTip + '">'
                            + '<select class="got-sel" disabled style="background:#e0e0e0;color:#bbb;border-color:#ddd;cursor:not-allowed;"><option>—</option></select></td>';
                         continue;
@@ -26975,7 +27511,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (elig[pi]) return '';
             if (isMonthBeforeProjectStart(p, month, selYr)) return 'Project not yet started — starts ' + formatDateDMY(p.dateStarted) + '. Not required.';
             if (isProjectFinishedForMonth(p, month, selYr)) return 'Project finished' + (p.dateFinished ? ' (' + formatDateDMY(p.dateFinished) + ')' : '') + '. Not required.';
-            return 'Work Stoppage — month frozen';
+            return getMonthExemptTip(p, month, selYr);
         });
 
         var h = '<table class="got-tbl" style="width:auto;border-collapse:collapse;min-width:100%;">';
@@ -27222,7 +27758,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     var _gotModalWsBlocked = isMonthBlacklistedForProject(proj, m, state.selectedYear || new Date().getFullYear());
                     if (_gotModalWsBlocked) {
                         var _gotModalNotYetStarted = isMonthBeforeProjectStart(proj, m, state.selectedYear || new Date().getFullYear());
-                        var _gotModalTip = _gotModalNotYetStarted ? ('Project not yet started — starts ' + formatDateDMY(proj.dateStarted) + '. Not required.') : 'Work Stoppage — month frozen';
+                        var _gotModalTip = getMonthExemptTip(proj, m, state.selectedYear || new Date().getFullYear()).replace(/"/g, '&quot;');
                         h += '<td class="got-td-month" style="background:#eeeeee;cursor:not-allowed;" title="' + _gotModalTip + '">'
                            + '<select class="got-sel" disabled style="background:#e0e0e0;color:#bbb;border-color:#ddd;cursor:not-allowed;"><option>—</option></select></td>';
                         continue;
@@ -29964,40 +30500,88 @@ function _eshRtdbWrite(key, value) {
 
 // ── _eshRtdbRenameProject: re-key ALL ESH Calendar RTDB entries for a renamed project ─
 // Writes newName keys and removes oldName keys atomically via RTDB multi-path update.
-async function _eshRtdbRenameProject(oldName, newName) {
+async function _eshRtdbRenameProject(oldName, newName, year) {
     if (!oldName || !newName || oldName === newName) return;
-    const cache = window._eshMemCache || {};
+    const dbOk = window.firebaseRealtimeDb && window.firebase && window.firebase.dbRef && window.firebase.update;
+    const rootRef = dbOk ? window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data') : null;
+
+    // Build source map: read RTDB directly (all years/tabs), fall back to in-memory cache.
+    let source = null;
+    if (rootRef && window.firebase.get) {
+        try {
+            const snap = await window.firebase.get(rootRef);
+            const raw = snap.val() || {};
+            source = {};
+            Object.keys(raw).forEach(function(k) {
+                const v = raw[k];
+                if (v === null || v === undefined || v === false) return;
+                source[_eshFirebasePathToKey(k)] = v;
+            });
+        } catch(e) { console.warn('_eshRtdbRenameProject: RTDB read failed, using cache:', e.message); }
+    }
+    if (!source) source = Object.assign({}, window._eshMemCache || {});
+
     const updates = {};
     let count = 0;
-    Object.entries(cache).forEach(function(kv) {
-        const key = kv[0];
-        const val = kv[1];
+    if (!window._eshMemCache) window._eshMemCache = {};
+    Object.keys(source).forEach(function(key) {
+        const val = source[key];
         const parts = key.split('|');
-        if (parts.length === 5 && parts[1] === oldName) {
-            const newKey = parts[0] + '|' + newName + '|' + parts[2] + '|' + parts[3] + '|' + parts[4];
+        // Actual/na keys:  year|tab|project|idx|month|field  (6 parts)
+        // Row N/A keys:    year|tab|project|idx|na_row       (5 parts)
+        // GLOBAL_PLAN keys have 'GLOBAL_PLAN' in parts[2], so they are never matched.
+        if ((parts.length === 6 || (parts.length === 5 && parts[4] === 'na_row')) && parts[2] === oldName && (!year || parts[0] === String(year))) {
+            const np = parts.slice();
+            np[2] = newName;
+            const newKey = np.join('|');
             updates[_eshKeyToFirebasePath(newKey)] = val;
             updates[_eshKeyToFirebasePath(key)] = null; // delete old key
-            // Update in-memory cache
             window._eshMemCache[newKey] = val;
             delete window._eshMemCache[key];
             count++;
         }
     });
-    if (count === 0) {
-        console.log('_eshRtdbRenameProject: no ESH Calendar keys found for "' + oldName + '"');
-        return;
-    }
-    // Persist updated cache to localStorage
-    try { localStorage.setItem('esh_calendar_data', JSON.stringify(window._eshMemCache)); } catch(e) {}
-    // Apply atomic multi-path update to RTDB
-    if (window.firebaseRealtimeDb && window.firebase && window.firebase.dbRef && window.firebase.update) {
-        try {
-            const rootRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-calendar/data');
-            await window.firebase.update(rootRef, updates);
-            console.log('_eshRtdbRenameProject: renamed ' + count + ' ESH Calendar keys: "' + oldName + '" -> "' + newName + '"');
-        } catch(e) {
-            console.warn('_eshRtdbRenameProject: RTDB update failed:', e.message);
+    if (count > 0) {
+        try { localStorage.setItem('esh_calendar_data', JSON.stringify(window._eshMemCache)); } catch(e) {}
+        if (dbOk) {
+            try {
+                await window.firebase.update(rootRef, updates);
+                console.log('_eshRtdbRenameProject: renamed ' + count + ' ESH Calendar keys: "' + oldName + '" -> "' + newName + '"');
+            } catch(e) {
+                console.warn('_eshRtdbRenameProject: RTDB update failed:', e.message);
+            }
         }
+    } else {
+        console.log('_eshRtdbRenameProject: no ESH Calendar keys found for "' + oldName + '"');
+    }
+
+    // Custom rows (esh-custom-rows-v2/<tab>_<project>) are also keyed by project name — move them too.
+    const _tabs = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills'];
+    for (const tab of _tabs) {
+        try {
+            const oldLocal = _eshCustomRowsKey(tab, oldName);
+            const localRows = localStorage.getItem(oldLocal);
+            if (localRows) {
+                localStorage.setItem(_eshCustomRowsKey(tab, newName), localRows);
+                localStorage.removeItem(oldLocal);
+            }
+            if (dbOk && window.firebase.get) {
+                const oldPath = _eshFirebaseCustomRowsPath(tab, oldName);
+                const newPath = _eshFirebaseCustomRowsPath(tab, newName);
+                if (oldPath === newPath) continue;
+                const oldRef = window.firebase.dbRef(window.firebaseRealtimeDb, oldPath);
+                const snap = await window.firebase.get(oldRef);
+                const rows = snap.val();
+                if (rows) {
+                    const crRef = window.firebase.dbRef(window.firebaseRealtimeDb, 'esh-custom-rows-v2');
+                    const u = {};
+                    u[newPath.replace('esh-custom-rows-v2/', '')] = rows;
+                    u[oldPath.replace('esh-custom-rows-v2/', '')] = null;
+                    await window.firebase.update(crRef, u);
+                    console.log('_eshRtdbRenameProject: moved custom rows for ' + tab);
+                }
+            }
+        } catch(e) { console.warn('_eshRtdbRenameProject: custom rows move failed (' + tab + '):', e.message); }
     }
 }
 window._eshRtdbRenameProject = _eshRtdbRenameProject;
@@ -30098,8 +30682,11 @@ function _eshRtdbSelfHealCleanup() {
         const allDels = snap.val() || {};
         const delCount = Object.keys(allDels).length;
         if (delCount > 0) {
-            // Replace entire deletions path with null to wipe all records
-            window.firebase.set(delRef, null)
+            // Null each child key. A set() on the whole 'deletions' node is denied by the RTDB rules
+            // (only the $key children have a .write rule), so use update() with per-child nulls.
+            const _delUpdates = {};
+            Object.keys(allDels).forEach(function(dk) { _delUpdates[dk] = null; });
+            window.firebase.update(delRef, _delUpdates)
                 .then(function() { console.log('🧹 ESH RTDB: wiped ' + delCount + ' stale deletion records'); })
                 .catch(function(e) { console.warn('🧹 ESH RTDB cleanup deletions error:', e.message); });
         } else {
@@ -30434,6 +31021,60 @@ function getMinDateForMonth(monthIdx) {
     const selYear = (state && state.selectedYear) || 2026;
     const mm = String(monthIdx + 1).padStart(2, '0');
     return selYear + '-' + mm + '-01';
+}
+
+// Confirm before SCHEDULING or UNSCHEDULING a plan cell (dashboard-themed dialog).
+// The plan is global (shared by all projects/regions) and every planned month counts as a
+// required item in the compliance rating, so one accidental click changes every region's rating.
+// Returns a Promise<boolean>.
+async function _eshConfirmPlanChange(tabType, ti, mi, nowPlanned) {
+    const year = (state && state.selectedYear) || 2026;
+    const monthName = (typeof ESH_MONTHS !== 'undefined' && ESH_MONTHS[mi]) ? ESH_MONTHS[mi] : ('Month ' + (mi + 1));
+    const esc = function(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+    // Best-effort item name (training/drill) for the message
+    let itemName = '';
+    try {
+        if (tabType === 'esh-calendar-drills' && typeof ESH_DRILLS !== 'undefined') {
+            const d = ESH_DRILLS.find(function(dr, i) { return getDrillStorageIdx(dr, i) === ti; });
+            if (d) itemName = d.name || '';
+        } else if (typeof ESH_TRAININGS !== 'undefined' && ESH_TRAININGS[tabType] && ESH_TRAININGS[tabType][ti]) {
+            itemName = ESH_TRAININGS[tabType][ti];
+        }
+    } catch(e) {}
+    const label = (itemName ? '<strong>' + esc(itemName) + '</strong><br>' : '') + esc(monthName) + ' ' + year;
+    let title, msg, confirmText;
+    if (nowPlanned) {
+        title = 'Set plan?';
+        confirmText = 'Schedule';
+        msg = label + '<br><br>' +
+              'This plan is shared by <strong>all projects and regions</strong>.<br>' +
+              'It will count as a required item in the compliance rating of every region.';
+    } else {
+        title = 'Remove plan?';
+        confirmText = 'Remove';
+        const prefix = year + '|' + tabType + '|';
+        const suffix = '|' + ti + '|' + mi + '|actual';
+        const stor = getEshStorage();
+        let n = 0;
+        Object.keys(stor).forEach(function(k) {
+            if (k.startsWith(prefix) && k.endsWith(suffix) && k.indexOf('|GLOBAL_PLAN|') === -1 && stor[k] && stor[k] !== '__DELETED__') n++;
+        });
+        msg = label + '<br><br>' +
+              'This plan is shared by <strong>all projects and regions</strong>.<br>' +
+              'It will no longer count in the compliance rating of any region.<br><br>' +
+              (n > 0 ? n + ' actual date(s) already entered will be hidden (not deleted). They come back if you schedule this month again.'
+                     : 'No actual dates are entered for this month yet.');
+    }
+    window._eshConfirmDialogOpen = true; // pause the realtime re-render while the dialog is open
+    let ok = false;
+    try {
+        if (typeof showModernDialog === 'function') {
+            ok = await showModernDialog(title, msg, !nowPlanned, confirmText, 'Cancel');
+        } else {
+            ok = confirm(title + '\n\n' + msg.replace(/<br>/g, '\n').replace(/<[^>]+>/g, ''));
+        }
+    } finally { window._eshConfirmDialogOpen = false; }
+    return ok;
 }
 
 function eshCanEdit(tabType, projectRegion) {
@@ -31090,11 +31731,7 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                     && isMonthBlacklistedForProject(proj, mi + 1, _eshSelYr);
                 if (_wsBlocked) {
                     const _notYetStarted = (typeof isMonthBeforeProjectStart === 'function') && isMonthBeforeProjectStart(proj, mi + 1, _eshSelYr);
-                    const _wsTip = _notYetStarted
-                        ? `Project not yet started — starts ${formatDateDMY(proj.dateStarted)}. Not required.`
-                        : (proj.workResumeDate
-                            ? 'Work Stoppage period — this month is excluded.'
-                            : 'Work Stoppage — set a Resume Date in Project Settings to unlock.');
+                    const _wsTip = getMonthExemptTip(proj, mi + 1, _eshSelYr).replace(/"/g, '&quot;');
                     html += `<td class="esh-td-plan esh-plan-locked" style="background:#e0e0e0 !important;cursor:not-allowed;" title="${_wsTip}"></td>`;
                     html += `<td class="esh-td-actual" style="background:#e0e0e0 !important;cursor:not-allowed;" title="${_wsTip}"></td>`;
                     return;
@@ -31293,11 +31930,7 @@ function buildDrillsSingleTable(projects, storage, col) {
                     && isMonthBlacklistedForProject(proj, mi + 1, _eshDrillSelYr);
                 if (_drillWsBlocked) {
                     const _drillNotYetStarted = (typeof isMonthBeforeProjectStart === 'function') && isMonthBeforeProjectStart(proj, mi + 1, _eshDrillSelYr);
-                    const _drillWsTip = _drillNotYetStarted
-                        ? `Project not yet started — starts ${formatDateDMY(proj.dateStarted)}. Not required.`
-                        : (proj.workResumeDate
-                            ? 'Work Stoppage period — this month is excluded.'
-                            : 'Work Stoppage — set a Resume Date in Project Settings to unlock.');
+                    const _drillWsTip = getMonthExemptTip(proj, mi + 1, _eshDrillSelYr).replace(/"/g, '&quot;');
                     html += `<td class="esh-td-plan esh-plan-locked" style="background:#e0e0e0 !important;cursor:not-allowed;" title="${_drillWsTip}"></td>`;
                     html += `<td class="esh-td-actual" style="background:#e0e0e0 !important;cursor:not-allowed;" title="${_drillWsTip}"></td>`;
                     html += `<td style="background:#e0e0e0 !important;cursor:not-allowed;text-align:center;border:1.5px solid #bbb;min-width:34px;padding:2px;" title="${_drillWsTip}"><span style="font-size:0.6rem;font-weight:700;color:#bbb;">—</span></td>`;
@@ -31542,7 +32175,7 @@ window.eshToggleDrillNA = function(e, tabType, projName, ti, mi) {
     }
 };
 
-window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
+window.eshSetPlan = async function(tabType, projName, ti, mi, _unused, tdEl) {
     if (!(state && state.isEditing)) {
         showToast('✏️ Press the Edit button first to make changes.', 'info', 3000);
         return;
@@ -31565,6 +32198,7 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
     const _s = getEshStorage();
     const wasPlanned = !!_s[key] && _s[key] !== '__DELETED__';
     const nowPlanned = !wasPlanned;
+    if (!(await _eshConfirmPlanChange(tabType, ti, mi, nowPlanned))) return;
 
     const _drillColors = { 'Quarterly': '#43a047', 'Twice a year': '#fdd835', 'Once a year': '#42a5f5' };
     const planBg = tabType === 'esh-calendar-drills'
@@ -31590,13 +32224,15 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
             if (tabType !== 'esh-calendar-drills' && !actualSib.querySelector('input[type="date"]')) {
                 const canEdit = eshCanEdit(tabType, proj?.region);
                 const inp = document.createElement('input');
-                inp.type = 'date'; inp.value = '';
+                inp.type = 'date'; inp.value = (_s[actualKey] && _s[actualKey] !== '__DELETED__') ? _s[actualKey] : '';
+                if (inp.value) { actualSib.classList.add('esh-done'); inp.style.color = '#fff'; inp.style.fontWeight = '700'; }
                 if (!canEdit) { inp.disabled = true; inp.title = '🔒 Read-only for your role/region'; }
                 inp.onchange = function() { window.eshSetActual(tabType, projName, ti, mi, this.value, this.closest('td')); };
                 actualSib.appendChild(inp);
             } else if (tabType === 'esh-calendar-drills') {
                 const inp = actualSib.querySelector('input[type="date"]');
                 if (inp && eshCanEdit(tabType, proj?.region)) { inp.disabled = false; inp.title = ''; inp.style.opacity = ''; actualSib.classList.remove('esh-not-planned'); }
+                if (inp && _s[actualKey] && _s[actualKey] !== '__DELETED__') { inp.value = _s[actualKey]; actualSib.classList.add('esh-done'); inp.style.color = '#fff'; inp.style.fontWeight = '700'; }
             }
         } else {
             if (tabType !== 'esh-calendar-drills') {
@@ -31614,7 +32250,7 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
     });
 
     // ── Update localStorage optimistically ────────────────────────────────────
-    if (nowPlanned) { _s[key] = true; } else { delete _s[key]; delete _s[actualKey]; }
+    if (nowPlanned) { _s[key] = true; } else { delete _s[key]; }
     _eshSaveLocal(key, nowPlanned ? true : null);
 
     // ── Write directly to Firebase RTDB (KPM-style) ───────────────────────────
@@ -31622,11 +32258,6 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
         .then(function() {
             console.log('✅ ESH plan saved:', key, '=', nowPlanned ? true : null);
             showToast(nowPlanned ? '✅ Month scheduled.' : '🗑️ Schedule removed.', 'success', 1500);
-            if (!nowPlanned) {
-                // Also delete actual key
-                _eshRtdbWrite(actualKey, null).catch(function() {});
-                _eshSaveLocal(actualKey, null);
-            }
         })
         .catch(function(e) {
             const errMsg = (e && (e.message || e.code || String(e))) || '';
@@ -31645,7 +32276,7 @@ window.eshSetPlan = function(tabType, projName, ti, mi, _unused, tdEl) {
         });
 };
 
-window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drillColor) {
+window.eshCorpSetPlan = async function(tabType, projName, ti, mi, _unused, tdEl, drillColor) {
     if (!(state && state.isEditing)) {
         showToast('✏️ Press the Edit button first to make changes.', 'info', 3000);
         return;
@@ -31666,6 +32297,7 @@ window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drill
     const _s            = getEshStorage();
     const wasPlanned    = !!_s[key];
     const nowPlanned    = !wasPlanned;
+    if (!(await _eshConfirmPlanChange(tabType, ti, mi, nowPlanned))) return;
     const cellColor     = drillColor || (tdEl && tdEl.dataset.drillcolor) || '#43a047';
     const planTitle     = nowPlanned ? 'Click to unschedule' : 'Click to schedule';
 
@@ -31678,7 +32310,10 @@ window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drill
         if (actualSib && actualSib.classList.contains('esh-td-actual')) {
             const inp = actualSib.querySelector('input[type="date"]');
             if (inp) {
-                if (nowPlanned) { inp.disabled = false; inp.title = ''; inp.style.opacity = ''; actualSib.classList.remove('esh-not-planned'); }
+                if (nowPlanned) {
+                    inp.disabled = false; inp.title = ''; inp.style.opacity = ''; actualSib.classList.remove('esh-not-planned');
+                    if (_s[actualKey] && _s[actualKey] !== '__DELETED__') { inp.value = _s[actualKey]; actualSib.classList.add('esh-done'); inp.style.color = '#fff'; inp.style.fontWeight = '700'; }
+                }
                 else { inp.value = ''; inp.disabled = true; actualSib.classList.remove('esh-done','esh-overdue'); actualSib.classList.add('esh-not-planned'); }
             }
         }
@@ -31691,7 +32326,7 @@ window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drill
     });
 
     // ── Update localStorage optimistically ────────────────────────────────────
-    if (nowPlanned) { _s[key] = true; } else { delete _s[key]; delete _s[actualKey]; }
+    if (nowPlanned) { _s[key] = true; } else { delete _s[key]; }
     _eshSaveLocal(key, nowPlanned ? true : null);
 
     // ── Write directly to Firebase RTDB ──────────────────────────────────────
@@ -31699,10 +32334,6 @@ window.eshCorpSetPlan = function(tabType, projName, ti, mi, _unused, tdEl, drill
         .then(function() {
             console.log('✅ ESH corp plan saved:', key, '=', nowPlanned);
             showToast(nowPlanned ? '✅ Month scheduled.' : '🗑️ Schedule removed.', 'success', 1500);
-            if (!nowPlanned) {
-                _eshRtdbWrite(actualKey, null).catch(function() {});
-                _eshSaveLocal(actualKey, null);
-            }
         })
         .catch(function(e) {
             const errMsg = (e && (e.message || e.code || String(e))) || '';
@@ -33079,7 +33710,64 @@ const ESHDataSync = (() => {
         console.log('   TAB_TO_MODULE includes all ESH Calendar variants (FIXED)');
     }
 
+    // Copy a project's rows (KPM, DOLE, audit, etc.) from its old name to its new name.
+    // Row id in ESH_YJS is derived from the project name, so a rename would otherwise
+    // leave all saved data under the old row id (hidden, and the new name starts blank).
+    // COPY only: old rows are kept (safe if another year still uses the old name).
+    // Existing non-empty values under the new name are NOT overwritten.
+    async function renameProjectRows(oldName, newName, oldRegion, newRegion) {
+        const res = { moved: 0, modules: [] };
+        if (!oldName || !newName) return res;
+        const oldRowId = toRowId(oldName), newRowId = toRowId(newName);
+        const oldRk = regionKey(oldRegion), newRk = regionKey(newRegion || oldRegion);
+        if (oldRowId === newRowId && oldRk === newRk) return res;
+        // If the Yjs library failed to load (CDN blocked), stop now. Otherwise every module waits 2s.
+        let _yw = 0;
+        while (typeof Y === 'undefined' && _yw < 2000) { await new Promise(r => setTimeout(r, 50)); _yw += 50; }
+        if (typeof Y === 'undefined') {
+            console.warn('ESHDataSync.renameProjectRows: Yjs not loaded — rows were NOT copied. Reload with working internet and run eshRecoverRenamedProject().');
+            res.failed = true;
+            return res;
+        }
+        const modules = Array.from(new Set(Object.values(TAB_TO_MODULE).filter(Boolean)));
+        for (const module of modules) {
+            try {
+                const src = await _getOrCreateYDoc(oldRegion, module);
+                if (!src) continue;
+                const oldMap = src.ytable.get(oldRowId);
+                if (!oldMap || !(oldMap instanceof Y.Map)) continue;
+                const dst = (newRk === oldRk) ? src : await _getOrCreateYDoc(newRegion || oldRegion, module);
+                if (!dst) continue;
+                const fields = {};
+                oldMap.forEach((v, k) => { if (k !== '__meta') fields[k] = v; });
+                dst.ydoc.transact(() => {
+                    let newMap = dst.ytable.get(newRowId);
+                    if (!newMap || !(newMap instanceof Y.Map)) {
+                        newMap = new Y.Map();
+                        dst.ytable.set(newRowId, newMap);
+                    }
+                    Object.entries(fields).forEach(([k, v]) => {
+                        const cur = newMap.get(k);
+                        if (cur === undefined || cur === null || cur === '') newMap.set(k, v);
+                    });
+                    newMap.set('__meta', JSON.stringify({
+                        by: window.firebaseAuth?.currentUser?.uid || 'unknown',
+                        at: Date.now(),
+                        renamedFrom: oldName
+                    }));
+                });
+                res.moved++;
+                res.modules.push(module);
+            } catch (e) {
+                console.warn('ESHDataSync.renameProjectRows failed for module ' + module + ':', e.message);
+            }
+        }
+        console.log('✅ ESHDataSync.renameProjectRows: "' + oldName + '" -> "' + newName + '" copied in ' + res.moved + ' module(s)', res.modules);
+        return res;
+    }
+
     return {
+        renameProjectRows,
         init,
         onTabChange,
         queueFieldSave,
@@ -33097,6 +33785,24 @@ const ESHDataSync = (() => {
 })(); // IIFE — self-contained, no global pollution except window.ESHDataSync
 
 window.ESHDataSync = ESHDataSync;
+
+// Recovery for projects that were renamed BEFORE the rename fix.
+// Run in the browser console (Superintendent of that region, or admin, logged in):
+//   eshRecoverRenamedProject('OLD PROJECT NAME', 'NEW PROJECT NAME', 'NCR', 2026)   // year optional; omit = all years
+// Copies ESH_YJS rows and re-keys ESH Calendar RTDB entries from the old name to the new name.
+window.eshRecoverRenamedProject = async function(oldName, newName, region, year) {
+    // Allowed: the Superintendent of that region (they are the ones who rename projects), or admin.
+    const _email = state && state.currentUser ? state.currentUser.email : null;
+    const _info = (_email && typeof UserAccounts !== 'undefined') ? UserAccounts.getUserInfo(_email) : null;
+    const _okSupt = !!(_info && _info.role === 'superintendent' && (_info.region || '').toUpperCase() === (region || '').toUpperCase());
+    if (!(state && state.isAdmin) && !_okSupt) { console.error('Only the Superintendent of ' + region + ' (or admin) can run this.'); return; }
+    if (!oldName || !newName || !region) { console.error('Usage: eshRecoverRenamedProject(oldName, newName, region)'); return; }
+    const y = await window.ESHDataSync.renameProjectRows(oldName, newName, region, region);
+    await window._eshRtdbRenameProject(oldName, newName, year);
+    try { render(); } catch(e) {}
+    console.log('Recovery done. Yjs modules copied:', y.moved, y.modules);
+    if (typeof showToast === 'function') showToast('Recovery done: ' + y.moved + ' module(s) copied. Refresh the page to verify.', 'success', 6000);
+};
 
 // ─── applyRegionBannerColors ──────────────────────────────────────────────────
 // Applies per-region gradient colors to all .region-banner elements in the DOM.
@@ -33352,8 +34058,10 @@ window.RowSaveManager = (function() {
                     if (typeof state !== 'undefined' && state.projects) {
                         const idx = state.projects.findIndex(p => p.name === incoming.name);
                         if (idx >= 0) {
-                            // Prefer remote data but keep local fields that remote doesn't have
-                            state.projects[idx] = { ...state.projects[idx], ...incoming };
+                            // Prefer remote data but keep local fields that remote doesn't have.
+                            // Merge IN PLACE (same object) — replacing the object left state.filteredProjects
+                            // pointing at the old copy, so new LTA entries did not show until a page refresh.
+                            Object.assign(state.projects[idx], incoming);
                         } else {
                             state.projects.push(incoming);
                         }
