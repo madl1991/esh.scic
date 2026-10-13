@@ -5815,13 +5815,6 @@ function updateAuditData(pName, qtr, field, val) {
                 return;
             }
 
-            const maxSize = 500 * 1024;
-            if (file.size > maxSize) {
-                _pdfSetStatus('⚠️ File must be under 500KB. Upload the stamped 1-page file only.', 'error');
-                setTimeout(() => _pdfSetStatus('', 'clear'), 5000);
-                return;
-            }
-
             if (isReplacement) {
                 const confirmed = await showModernDialog(
                     'Replace PDF',
@@ -5839,7 +5832,7 @@ function updateAuditData(pName, qtr, field, val) {
 
                 // Note: old file (if replacing) is left in Cloudinary storage — unsigned
                 // uploads can't be deleted from the browser for security reasons. Harmless
-                // since files are capped at 500KB and the free tier gives 25GB.
+                // since the free tier gives 25GB.
 
                 const timestamp = Date.now();
                 const folder = 'compliance-pdfs/' + projectName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + pdfKey.replace(/[^a-zA-Z0-9]/g,'_') + '_' + timestamp;
@@ -5956,7 +5949,7 @@ function updateAuditData(pName, qtr, field, val) {
             try {
                 // Note: the file itself stays in Cloudinary storage — unsigned uploads can't
                 // be deleted from the browser for security reasons. Harmless since files are
-                // capped at 500KB and the free tier gives 25GB.
+                // the free tier gives 25GB.
                 project.vals[pdfKey][1] = null;
 
                 _pdfSetStatus('Deleting PDF for <strong>' + projectName + '</strong>…', 'saving');
@@ -17670,7 +17663,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                                 <i class="fas fa-upload"></i> Upload
                                             </button>
                                             <div style="font-size:10px;color:#e65100;margin-top:3px;font-style:italic;">
-                                                📄 Stamped file page only<br>(1 page, max 500KB)
+                                                📄 Stamped file page only<br>(1 page)
                                             </div>
                                         </div>`;
                                 } else {
@@ -18019,7 +18012,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                                         <i class="fas fa-upload"></i> Upload
                                                     </button>
                                                     <div style="font-size:10px;color:#e65100;margin-top:3px;font-style:italic;">
-                                                        📄 Stamped file page only<br>(1 page, max 500KB)
+                                                        📄 Stamped file page only<br>(1 page)
                                                     </div>
                                                 </div>
                                             `}
@@ -18194,7 +18187,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                                 <i class="fas fa-upload"></i> Upload
                                             </button>
                                             <div style="font-size:10px;color:#e65100;margin-top:3px;font-style:italic;">
-                                                📄 Stamped file page only<br>(1 page, max 500KB)
+                                                📄 Stamped file page only<br>(1 page)
                                             </div>
                                         </div>
                                     `;
@@ -19712,10 +19705,6 @@ window.onEditCertFileChosen = function(input) {
     if (!file) return;
     if (file.type !== 'application/pdf') {
         errEl.textContent = '❌ PDF files only.'; errEl.style.display = 'block';
-        input.value = ''; return;
-    }
-    if (file.size > 500 * 1024) {
-        errEl.textContent = `⚠️ Max 500KB. Your file: ${(file.size/1024).toFixed(0)}KB`; errEl.style.display = 'block';
         input.value = ''; return;
     }
     window._editCertFile = file;
@@ -25352,11 +25341,6 @@ async function uploadDoePdf(projectName, quarter) {
             return;
         }
         
-        if (file.size > 500 * 1024) {
-            showToast('⚠️ File size must be less than 500KB. Please upload the STAMPED FILE PAGE only (1 page), hindi ang buong file.', 'warning');
-            return;
-        }
-        
         try {
             showToast(`📤 Uploading PDF for Q${quarter}...`, 'info');
             
@@ -25441,7 +25425,7 @@ async function deleteDoePdf(projectName, quarter) {
         // reasons (real deletion needs your Cloudinary API secret, which should never sit in
         // client-side code). We remove the reference here so it disappears from the dashboard;
         // the actual file just stays in your Cloudinary storage (harmless — files are capped
-        // at 500KB and the free tier gives you 25GB).
+        // the free tier gives you 25GB).
         delete project.doePdfFiles[`Q${quarter}`];
         
         await saveToFirebase();
@@ -25548,11 +25532,6 @@ async function uploadDoePermitPdf(projectName) {
             return;
         }
         
-        if (file.size > 500 * 1024) {
-            showToast('⚠️ File size must be less than 500KB.', 'warning');
-            return;
-        }
-        
         try {
             showToast('📄 Reading PDF...', 'info', 2500);
 
@@ -25655,7 +25634,7 @@ async function deleteDoePermitPdf(projectName) {
         
         // Note: unsigned Cloudinary uploads can't be deleted from the browser for security
         // reasons — we just clear the reference here. The old file stays harmlessly in
-        // Cloudinary storage (files are capped at 500KB, free tier gives 25GB).
+        // Cloudinary storage (free tier gives 25GB).
         delete project.vals[key][3];
         delete project.vals[key].pdfFileName;
         delete project.vals[key].cloudinaryId;
@@ -34172,7 +34151,6 @@ window.toggleSidebar = function() {
 //  PERSONNEL CERTIFICATE SYSTEM
 //  - Certs stored in Firestore: personnel_certificates/{_pid}
 //  - PDF in Firebase Storage:   personnel_certificates/{_pid}/{certKey}_{ts}.pdf
-//  - Size limit: 500KB (same as CSHP)
 //  - Position → Required cert mapping:
 //    Safety Officer I-IV  → COSH
 //    PCO                  → PCO Accreditation
@@ -34183,7 +34161,6 @@ window.toggleSidebar = function() {
 // ══════════════════════════════════════════════════════════════════════
 (function() {
 
-  const MAX_BYTES = 500 * 1024; // 500KB — same as CSHP
 
   // Position → cert config
   const CERT_MAP = {
@@ -34362,12 +34339,6 @@ window.toggleSidebar = function() {
     errEl.style.display = 'none';
     if (file.type !== 'application/pdf') {
       errEl.textContent = '❌ PDF files only.';
-      errEl.style.display = 'block';
-      input.value = '';
-      return;
-    }
-    if (file.size > MAX_BYTES) {
-      errEl.textContent = `⚠️ File must be under 500KB. Your file: ${(file.size/1024).toFixed(0)}KB`;
       errEl.style.display = 'block';
       input.value = '';
       return;
