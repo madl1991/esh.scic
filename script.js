@@ -8244,13 +8244,15 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
 
         
         // ── Classification → Days Lost rule ─────────────────────────────────
-        // First Aid, Medical Treatment, High-Potential, Dangerous Occurrence and
-        // Near Miss have no lost days  -> always N/A.
+        // High-Potential, Dangerous Occurrence and Near Miss have no lost days
+        //                              -> always N/A.
         // Fatality                     -> fixed 6,000 days (Table 6).
         // RWC                          -> no actual days; scheduled charge only
         //                                 (permanent injury), otherwise N/A.
-        // LTA / blank / unknown        -> free choice (old behavior).
-        const LTA_NO_DL_CLASS_RE = /first\s*aid|medical\s*treatment|high[\s-]*potential|dangerous\s*occ|near[\s-]*miss/i;
+        // LTA / Medical Treatment / First Aid / blank / unknown
+        //                              -> free choice (user picks Actual days,
+        //                                 Scheduled charge or Not applicable).
+        const LTA_NO_DL_CLASS_RE = /high[\s-]*potential|dangerous\s*occ|near[\s-]*miss/i;
         function ltaClassKind(cls) {
             const list = (Array.isArray(cls) ? cls : [cls]).map(v => String(v == null ? '' : v).trim()).filter(Boolean);
             if (!list.length) return 'lta';
@@ -8261,12 +8263,21 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             for (const k of ['fatality', 'lta', 'rwc']) if (kinds.includes(k)) return k;
             return 'none';
         }
+        // LTA, Medical Treatment and First Aid always use Actual days or Scheduled charge.
+        // Not applicable is NOT allowed for them.
+        const LTA_NO_NA_CLASS_RE = /^lta$|lost\s*time|medical\s*treatment|first\s*aid/i;
+        function ltaClassNoNa(cls) {
+            if (ltaClassKind(cls) !== 'lta') return false;
+            const list = (Array.isArray(cls) ? cls : [cls]).map(v => String(v == null ? '' : v).trim()).filter(Boolean);
+            return list.some(v => LTA_NO_NA_CLASS_RE.test(v));
+        }
         function ltaClassDlRule(cls) {
             const kind = ltaClassKind(cls);
             const label = (Array.isArray(cls) ? cls.join(', ') : String(cls || '')).trim();
             if (kind === 'none')     return { lock: 'na',       reason: label + ' has no lost days, so Days Lost is set to Not applicable.' };
             if (kind === 'fatality') return { lock: 'fatality', reason: 'Fatality is charged the fixed 6,000 days (Table 6).' };
             if (kind === 'rwc')      return { lock: 'rwc',      reason: 'RWC has no lost days, so Actual days is off. Use Scheduled charge only for a permanent injury. Otherwise keep Not applicable.' };
+            if (ltaClassNoNa(cls))   return { lock: 'nona',     reason: label + ' cannot be Not applicable. Use Actual days or Scheduled charge.' };
             return { lock: '', reason: '' };
         }
         // The injury type that is really used for computation (also fixes old saved entries).
@@ -8276,6 +8287,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             if (k === 'none') return 'na';
             if (k === 'fatality') return 'fatality';
             if (k === 'rwc') return (t === 'temporary' || t === 'confinement' || t === 'fatality') ? 'na' : t;
+            if (t === 'na' && ltaClassNoNa(entry.incidentClassification)) return 'temporary'; // LTA / Medical Treatment / First Aid: no N/A
             return t;
         }
         function ltaEffectiveScheduledItem(entry) {
@@ -8284,6 +8296,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         }
         window.ltaClassKind = ltaClassKind;
         window.ltaClassDlRule = ltaClassDlRule;
+        window.ltaClassNoNa = ltaClassNoNa;
         window.ltaEffectiveInjuryType = ltaEffectiveInjuryType;
         window.ltaEffectiveScheduledItem = ltaEffectiveScheduledItem;
 
@@ -9963,7 +9976,7 @@ body.dark-mode .ltadl[data-mode="scheduled"] .ltadl-pill input:checked+span{back
             card.querySelectorAll('.ltadl-mode').forEach(b => {
                 const m = b.dataset.mode;
                 b.setAttribute('aria-pressed', m === mode ? 'true' : 'false');
-                b.disabled = !canEdit || lock === 'na' || lock === 'fatality' || (lock === 'rwc' && m === 'actual');
+                b.disabled = !canEdit || lock === 'na' || lock === 'fatality' || (lock === 'rwc' && m === 'actual') || (lock === 'nona' && m === 'na');
             });
 
             const sc = card.querySelector('[name="ltamod-scheduledChargeItem"]');
@@ -10003,6 +10016,7 @@ body.dark-mode .ltadl[data-mode="scheduled"] .ltadl-pill input:checked+span{back
         window._ltaDLSetMode = function(mode) {
             const card = document.getElementById('ltamod-dl-card');
             if (!card) return;
+            if (mode === 'na' && card.dataset.lock === 'nona') return; // LTA / Medical Treatment / First Aid: N/A not allowed
             card.dataset.userType = mode === 'na' ? 'na'
                 : (mode === 'scheduled' ? (card.dataset.lastSched || 'permanent') : (card.dataset.lastActual || 'temporary'));
             window._ltaDLRefresh();
@@ -10320,7 +10334,7 @@ body.dark-mode .ltadl[data-mode="scheduled"] .ltadl-pill input:checked+span{back
             // Injury type from radio
             const injRadio = modal.querySelector('[name="ltamod-injuryType"]:checked');
             if (injRadio) entry.injuryType = injRadio.value;
-            // Enforce classification rule (First Aid / Medical Treatment / Near Miss etc. = N/A, Fatality = 6,000 days)
+            // Enforce classification rule (High-Potential / Dangerous Occurrence / Near Miss = N/A, Fatality = 6,000 days). LTA / Medical Treatment / First Aid = user's choice
             entry.injuryType = ltaEffectiveInjuryType(entry);
             if (ltaClassKind(entry.incidentClassification) === 'fatality') entry.scheduledChargeItem = 'Fatality';
 
