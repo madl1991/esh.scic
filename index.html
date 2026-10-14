@@ -394,36 +394,37 @@
 
     
     <div id="addPersonnelModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <div class="modal-icon">
-                <i class="fas fa-user-plus"></i>
-            </div>
-            <div class="modal-header">
-                <span>Add New Personnel</span>
+        <div class="modal-content pm-compact">
+            <div class="pm-head">
+                <div class="modal-icon"><i class="fas fa-user-plus"></i></div>
+                <div class="pm-titles">
+                    <div class="modal-header"><span>Add New Personnel</span></div>
+                    <div class="modal-subtitle">Add a new ESH team member to the registry</div>
+                </div>
                 <button class="modal-close" onclick="closeAddPersonnelModal()">&times;</button>
             </div>
-            <div class="modal-subtitle">Add a new ESH team member to the registry</div>
-            <div style="background:#fff3e0;border:1px solid #ffb74d;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:0.72rem;color:#e65100;display:flex;align-items:center;gap:8px;">
+            <div class="pm-note">
                 <i class="fas fa-info-circle"></i>
                 <span>Check <strong>"To Update"</strong> on required fields if info is not yet available. Rows with pending updates will be highlighted in red.</span>
             </div>
-            <div class="form-group">
+            <div class="pm-grid">
+<div class="form-group c4">
                 <label>Last Name *</label>
                 <input type="text" id="personnelLastNameInput" placeholder="Enter last name" required style="text-transform: uppercase;">
             </div>
-            <div class="form-group">
+<div class="form-group c3">
                 <label>First Name *</label>
                 <input type="text" id="personnelFirstNameInput" placeholder="Enter first name" required style="text-transform: uppercase;">
             </div>
-            <div class="form-group">
+<div class="form-group c3">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Middle Name</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_middleName" onchange="toggleToUpdateField('personnelMiddleNameInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="text" id="personnelMiddleNameInput" placeholder="Enter middle name" style="text-transform: uppercase;">
             </div>
-            <div class="form-group">
-                <label>Name Extension (if applicable)</label>
+<div class="form-group c2">
+                <label>Name Extension</label>
                 <select id="personnelNameExtInput">
                     <option value="">None</option>
                     <option value="JR.">Jr.</option>
@@ -434,7 +435,7 @@
                     <option value="V">V</option>
                 </select>
             </div>
-            <div class="form-group">
+<div class="form-group c4">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Position *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_position" onchange="toggleToUpdateField('personnelPositionInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
@@ -472,42 +473,42 @@
                     </optgroup>
                 </select>
             </div>
-            <div class="form-group">
+<div class="form-group c4">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">ID Number *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_id" onchange="toggleToUpdateField('personnelIdInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="text" id="personnelIdInput" placeholder="Enter ID number" required>
             </div>
-            <div class="form-group">
+<div class="form-group c4">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Date Hired *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_hired" onchange="toggleToUpdateField('personnelHiredInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="date" id="personnelHiredInput" required>
             </div>
-            <div class="form-group">
+<div class="form-group c6">
                 <label>Project *</label>
                 <select id="personnelAssignmentInput" required>
                     <option value="">Select Project</option>
                     <option value="Corporate Office">Corporate Office</option>
                 </select>
             </div>
-            <div class="form-group">
+<div class="form-group c6">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Area of Assignment</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_area" onchange="toggleToUpdateField('personnelAreaInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="text" id="personnelAreaInput" autocomplete="off" placeholder="e.g. Laydown Area, Substation Yard" style="text-transform: uppercase;">
             </div>
-            <div class="form-group">
+<div class="form-group c2">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Age *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_age" onchange="toggleToUpdateField('personnelAgeInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="number" id="personnelAgeInput" placeholder="Enter age" min="18" max="100" required>
             </div>
-            <div class="form-group">
+<div class="form-group c2">
                 <label>Gender *</label>
                 <select id="personnelGenderInput" required>
                     <option value="">Select Gender</option>
@@ -515,26 +516,27 @@
                     <option value="Female">Female</option>
                 </select>
             </div>
-            <div class="form-group">
+<div class="form-group c5">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Email</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_email" onchange="toggleToUpdateField('personnelEmailInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="email" id="personnelEmailInput" placeholder="email@example.com">
             </div>
-            <div class="form-group">
+<div class="form-group c3">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Contact Number</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_contact" onchange="toggleToUpdateField('personnelContactInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="tel" id="personnelContactInput" placeholder="09XX XXX XXXX" oninput="this.value=fmtPhone(this.value)" maxlength="13">
             </div>
-            <div class="form-group">
+<div class="form-group c12">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Home Address</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_address" onchange="toggleToUpdateField('personnelAddressInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <textarea id="personnelAddressInput" placeholder="Enter home address" oninput="this.value=titleCase(this.value)"></textarea>
+            </div>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" onclick="closeAddPersonnelModal()">Cancel</button>
@@ -546,37 +548,38 @@
 
     
     <div id="editPersonnelModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <div class="modal-icon">
-                <i class="fas fa-user-edit"></i>
-            </div>
-            <div class="modal-header">
-                <span>Edit Personnel</span>
+        <div class="modal-content pm-compact">
+            <div class="pm-head">
+                <div class="modal-icon"><i class="fas fa-user-edit"></i></div>
+                <div class="pm-titles">
+                    <div class="modal-header"><span>Edit Personnel</span></div>
+                    <div class="modal-subtitle">Update personnel information</div>
+                </div>
                 <button class="modal-close" onclick="closeEditPersonnelModal()">&times;</button>
             </div>
-            <div class="modal-subtitle">Update personnel information</div>
-            <div style="background:#fff3e0;border:1px solid #ffb74d;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:0.72rem;color:#e65100;display:flex;align-items:center;gap:8px;">
+            <div class="pm-note">
                 <i class="fas fa-info-circle"></i>
                 <span>Check <strong>"To Update"</strong> on fields not yet available. Red-highlighted rows indicate pending updates.</span>
             </div>
             <input type="hidden" id="editPersonnelIndex">
-            <div class="form-group">
+            <div class="pm-grid">
+<div class="form-group c4">
                 <label>Last Name *</label>
                 <input type="text" id="editPersonnelLastNameInput" placeholder="Enter last name" required style="text-transform: uppercase;">
             </div>
-            <div class="form-group">
+<div class="form-group c3">
                 <label>First Name *</label>
                 <input type="text" id="editPersonnelFirstNameInput" placeholder="Enter first name" required style="text-transform: uppercase;">
             </div>
-            <div class="form-group">
+<div class="form-group c3">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Middle Name</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_middleName" onchange="toggleToUpdateField('editPersonnelMiddleNameInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="text" id="editPersonnelMiddleNameInput" placeholder="Enter middle name" style="text-transform: uppercase;">
             </div>
-            <div class="form-group">
-                <label>Name Extension (if applicable)</label>
+<div class="form-group c2">
+                <label>Name Extension</label>
                 <select id="editPersonnelNameExtInput">
                     <option value="">None</option>
                     <option value="JR.">Jr.</option>
@@ -587,7 +590,7 @@
                     <option value="V">V</option>
                 </select>
             </div>
-            <div class="form-group">
+<div class="form-group c4">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Position *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_position" onchange="toggleToUpdateField('editPersonnelPositionInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
@@ -629,51 +632,48 @@
                     </optgroup>
                 </select>
             </div>
-            <div class="form-group">
+<div class="form-group c4">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">ID Number *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_id" onchange="toggleToUpdateField('editPersonnelIdInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="text" id="editPersonnelIdInput" placeholder="Enter ID number" required>
             </div>
-            <div class="form-group">
+<div class="form-group c4">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Date Hired *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_hired" onchange="toggleToUpdateField('editPersonnelHiredInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="date" id="editPersonnelHiredInput" required>
             </div>
-            <div class="form-group">
+<div class="form-group c4">
                 <label>Project *</label>
                 <select id="editPersonnelAssignmentInput" required>
                     <option value="">Select Project</option>
                     <option value="Corporate Office">Corporate Office</option>
                 </select>
             </div>
-            <div class="form-group">
+<div class="form-group c4">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Area of Assignment</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_area" onchange="toggleToUpdateField('editPersonnelAreaInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="text" id="editPersonnelAreaInput" placeholder="e.g. Laydown Area, Substation Yard" style="text-transform: uppercase;">
             </div>
-            <div class="form-group" style="background:#fff8e1; border:1.5px solid #ffe082; border-radius:8px; padding:10px 14px;">
-                <label style="display:flex; align-items:center; gap:10px; cursor:pointer; margin:0;">
-                    <input type="checkbox" id="editPersonnelOicInput" style="width:16px; height:16px; accent-color:#f57f17; cursor:pointer; flex-shrink:0;">
-                    <div>
-                        <div style="font-weight:700; color:#e65100; font-size:0.82rem;">Officer In-Charge (OIC)</div>
-                        <div style="font-size:0.68rem; color:#888; margin-top:2px;">Check if this personnel is the acting head of the project. OIC takes priority over position rank.</div>
-                    </div>
+<div class="form-group pm-oic c4">
+                <label title="Check if this personnel is the acting head of the project. OIC takes priority over position rank.">
+                    <input type="checkbox" id="editPersonnelOicInput">
+                    <span>Officer In-Charge (OIC)</span>
                 </label>
             </div>
-            <div class="form-group">
+<div class="form-group c2">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Age *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_age" onchange="toggleToUpdateField('editPersonnelAgeInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="number" id="editPersonnelAgeInput" placeholder="Enter age" min="18" max="100" required>
             </div>
-            <div class="form-group">
+<div class="form-group c2">
                 <label>Gender *</label>
                 <select id="editPersonnelGenderInput" required>
                     <option value="">Select Gender</option>
@@ -681,28 +681,28 @@
                     <option value="Female">Female</option>
                 </select>
             </div>
-            <div class="form-group">
+<div class="form-group c5">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Email</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_email" onchange="toggleToUpdateField('editPersonnelEmailInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="email" id="editPersonnelEmailInput" placeholder="email@example.com">
             </div>
-            <div class="form-group">
+<div class="form-group c3">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Contact Number</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_contact" onchange="toggleToUpdateField('editPersonnelContactInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="tel" id="editPersonnelContactInput" placeholder="09XX XXX XXXX" oninput="this.value=fmtPhone(this.value)" maxlength="13">
             </div>
-            <div class="form-group">
+<div class="form-group c12">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                     <label style="margin:0;">Home Address</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_address" onchange="toggleToUpdateField('editPersonnelAddressInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <textarea id="editPersonnelAddressInput" placeholder="Enter home address" oninput="this.value=titleCase(this.value)"></textarea>
             </div>
-
+            </div>
             <!-- ── CREDENTIALS SECTION ── -->
             <div id="editPersonnelCertSection" style="display:none;margin-top:4px;margin-bottom:4px;">
                 <div style="border-top:1px solid #e8f5e9;padding-top:14px;margin-bottom:10px;">
