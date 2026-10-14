@@ -19269,7 +19269,7 @@ function toggleToUpdateField(fieldId, checked) {
 
 function openAddPersonnelModal() {
     if (state.userRole === 'manager' || state.userRole === 'doc_controller') { showToast('👁️ Manager accounts are view-only.', 'warning'); return; }
-    const tuMap = {tu_middleName:'personnelMiddleNameInput',tu_position:'personnelPositionInput',tu_id:'personnelIdInput',tu_hired:'personnelHiredInput',tu_age:'personnelAgeInput',tu_email:'personnelEmailInput',tu_contact:'personnelContactInput',tu_address:'personnelAddressInput'};
+    const tuMap = {tu_middleName:'personnelMiddleNameInput',tu_position:'personnelPositionInput',tu_id:'personnelIdInput',tu_hired:'personnelHiredInput',tu_age:'personnelAgeInput',tu_email:'personnelEmailInput',tu_contact:'personnelContactInput',tu_address:'personnelAddressInput',tu_area:'personnelAreaInput'};
     Object.entries(tuMap).forEach(([cbId, fieldId]) => {
         const cb = document.getElementById(cbId);
         if (cb) { cb.checked = false; toggleToUpdateField(fieldId, false); }
@@ -19304,6 +19304,7 @@ function openAddPersonnelModal() {
     document.getElementById('personnelIdInput').value = '';
     document.getElementById('personnelHiredInput').value = '';
     document.getElementById('personnelAssignmentInput').value = '';
+    document.getElementById('personnelAreaInput').value = '';
     document.getElementById('personnelAgeInput').value = '';
     document.getElementById('personnelGenderInput').value = '';
     document.getElementById('personnelEmailInput').value = '';
@@ -19753,7 +19754,6 @@ window._saveEditCert = async function(personIdx) {
     }
 
     const db      = window.firebaseDb;
-    const storage = window.firebaseStorage;
     if (!db) return;
 
     const { doc, setDoc, getDoc, updateDoc } = window.firebase;
@@ -20269,7 +20269,6 @@ function P_CORP_TABLE_THEAD() {
 
 function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isCorporateCard) {
     const safeKey = projName.replace(/[^a-zA-Z0-9]/g, '_');
-    const isCollapsed = _pCollapsedProjects.has(projName);
     const count = personnel.length;
     const headerBg = 'background:linear-gradient(90deg,#1b5e20 0%,#2e7d32 60%,#388e3c 100%);border-left:3px solid #fbc02d;';
     const iconEl = isCorporateCard ? 'fa-building-columns' : 'fa-solar-panel';
@@ -20309,7 +20308,7 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
             return `<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div style="font-size:0.68rem;font-weight:700;color:${_col};">${_exp}</div><div style="font-size:0.56rem;font-weight:800;color:${_col};background:${_bg};padding:1px 5px;border-radius:8px;display:inline-block;margin-top:1px;">${_lbl}</div></td>`;
         })();
         rows += `
-        <tr id="p-row-${origIdx}" style="${rowBg}${hasToUpdate ? 'outline:1.5px solid #ef9a9a;' : ''}">
+        <tr id="p-row-${origIdx}" style="${rowBg}">
             <td style="text-align:left;position:sticky;left:0;z-index:5;${stickyBg}padding:5px 10px 5px 12px;white-space:nowrap;">
                 <span class="p-row-num">${di}</span>
                 <span class="p-view-text" onclick="pcViewPersonnel(${origIdx})" style="display:inline-block;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;cursor:pointer;text-decoration:none;${hasToUpdate?'color:#c62828;font-weight:800;':'color:#1b5e20;font-weight:700;'}">${(p.name||'').toUpperCase()}</span>
@@ -20324,15 +20323,14 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
 
     return `
     <div class="p-project-card" style="margin-bottom:2px;">
-        <div class="p-proj-toggle" data-proj-key="${safeKey}" style="${headerBg}cursor:pointer;user-select:none;">
+        <div class="p-proj-header" data-proj-key="${safeKey}" style="${headerBg}">
             <div style="display:flex;align-items:center;gap:8px;padding:7px 16px 7px 18px;color:white;font-weight:700;font-size:0.71rem;letter-spacing:0.4px;">
                 <i class="fas ${iconEl}" style="font-size:0.65rem;opacity:0.85;color:#fbc02d;"></i>
                 <span style="flex:1;">${projName}</span>
                 <span style="background:${badgeBg};color:#fbc02d;padding:2px 9px;border-radius:10px;font-size:0.6rem;font-weight:800;border:1px solid rgba(251,192,45,0.4);">${count}</span>
-                <i id="p-proj-chev-${safeKey}" class="fas fa-chevron-down" style="font-size:0.6rem;opacity:0.8;transition:transform 0.2s;transform:${isCollapsed?'rotate(-90deg)':'rotate(0deg)'}"></i>
             </div>
         </div>
-        <div id="p-proj-body-${safeKey}" style="overflow-x:auto;display:${isCollapsed?'none':''};">
+        <div id="p-proj-body-${safeKey}" style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;font-size:0.72rem;table-layout:fixed;">
                 <thead>${P_TABLE_THEAD()}</thead>
                 <tbody>${rows}</tbody>
@@ -20361,6 +20359,15 @@ function personnelEditBtn(origIdx, personRegion) {
     </span>`;
 }
 
+// Project order: strictly A-Z by name. Never depends on personnel data or list order.
+const _pProjCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+function _pSortProjectNames(projMap) {
+    return Object.keys(projMap).sort((a, b) => _pProjCollator.compare(String(a).trim(), String(b).trim()));
+}
+// Remember the open project by NAME (not position) so it stays put when the list changes
+window._pSelProj = window._pSelProj || {};
+window._pSortProjectNames = _pSortProjectNames;
+
 function _pNavProject(region, delta) {
     const key = 'personnel|' + region;
     const projectRegionMap = window._pRegionMap || {};
@@ -20368,13 +20375,16 @@ function _pNavProject(region, delta) {
     const projSet = {};
     rawData.forEach(p => {
         const r = (projectRegionMap[p.current] || '').toUpperCase();
-        if (r === region && p.current !== 'Corporate Office') projSet[p.current] = true;
+        if (r === region && p.current !== 'Corporate Office') (projSet[p.current] = projSet[p.current] || []).push(p);
     });
-    const projectNames = Object.keys(projSet).sort();
+    const projectNames = _pSortProjectNames(projSet);
     if (!projectNames.length) return;
     let cur = _tabRegionProjectIdx[key] || 0;
+    const _selName = window._pSelProj[key];
+    if (_selName && projectNames.indexOf(_selName) >= 0) cur = projectNames.indexOf(_selName);
     cur = Math.max(0, Math.min(projectNames.length - 1, cur + delta));
     _tabRegionProjectIdx[key] = cur;
+    window._pSelProj[key] = projectNames[cur];
     renderPTable();
 }
 window._pNavProject = _pNavProject;
@@ -20500,7 +20510,7 @@ function renderPTable() {
             const _rowBg = _hasToUpdate ? 'background:#ffebee;' : (di%2===0?'background:#ffffff;':'background:#f4f6f8;');
             const _stickyBg = _hasToUpdate ? 'background:#ffebee;' : (di%2===1?'background:#f4f6f8;':'background:#ffffff;');
             _corpRows += `
-            <tr id="p-row-${origIdx}" style="${_rowBg}${_hasToUpdate ? 'outline:1.5px solid #ef9a9a;' : ''}">
+            <tr id="p-row-${origIdx}" style="${_rowBg}">
                 <td style="text-align:left;position:sticky;left:0;z-index:5;${_stickyBg}padding:5px 10px 5px 12px;white-space:nowrap;">
                     <span class="p-row-num">${di}</span>
                     <span class="p-view-text" onclick="pcViewPersonnel(${origIdx})" style="display:inline-block;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;cursor:pointer;text-decoration:none;${_hasToUpdate?'color:#c62828;font-weight:800;':'color:#1b5e20;font-weight:700;'}">${(p.name||'').toUpperCase()}</span>
@@ -20547,13 +20557,15 @@ function renderPTable() {
         const regionCount = Object.values(projMap).reduce((acc,arr) => acc+arr.length, 0);
         const grpSafe = region.replace(/[^a-zA-Z0-9]/g,'_');
 
-        const supEntry = projectPersonnel.find(p => p._region === region && p.pos === 'ESH Superintendent');
-        const supProj  = supEntry ? supEntry.current : null;
-        const projectNames = Object.keys(projMap).sort((a,b) => a===supProj?-1:b===supProj?1:a.localeCompare(b));
+        // Strictly A-Z by project name
+        const projectNames = _pSortProjectNames(projMap);
 
         const _pNavKey = 'personnel|' + region;
         let _pNavIdx = Math.min(_tabRegionProjectIdx[_pNavKey] || 0, projectNames.length - 1);
+        const _pSelName = window._pSelProj[_pNavKey];
+        if (_pSelName && projectNames.indexOf(_pSelName) >= 0) _pNavIdx = projectNames.indexOf(_pSelName);
         _tabRegionProjectIdx[_pNavKey] = _pNavIdx;
+        window._pSelProj[_pNavKey] = projectNames[_pNavIdx];
         const _showNavBar = projectNames.length > 1;
         const _visibleProjName = projectNames[_pNavIdx];
         const _navBarHtml = _showNavBar ? `
@@ -20679,7 +20691,7 @@ function updatePersonnelSummary() {
         'ESH Manager for Project Implementation':'ESH Mgr (Impl)',
         'Environmental and Sustainability Head':'Env. Head',
         'Corporate Physician':'Corp. Physician','Corporate Nurse':'Corp. Nurse','Corporate Dentist':'Corp. Dentist',
-        'QESH Corp. DC':'QESH Corp DC','Corporate Safety Officer':'Corp. Safety Officer',
+        'QESH Corp. DC':'QESH Corp DC','Corporate Safety Officer':'Corp. SO',
         'ESH Superintendent':'ESH Supt.','ESH Head':'ESH Head',
         'Safety Officer III':'SO III','Safety Officer II':'SO II',
         'Safety Officer I':'SO I',
@@ -22806,6 +22818,7 @@ const PersonnelDB = {
             id:       person.id       || '',
             hired:    person.hired    || '',
             current:  person.current  || '',
+            area:     person.area     || '',
             age:      person.age      || '',
             gen:      person.gen      || '',
             mail:     person.mail     || '',
@@ -34164,7 +34177,7 @@ window.toggleSidebar = function() {
 // ══════════════════════════════════════════════════════════════════════
 //  PERSONNEL CERTIFICATE SYSTEM
 //  - Certs stored in Firestore: personnel_certificates/{_pid}
-//  - PDF in Firebase Storage:   personnel_certificates/{_pid}/{certKey}_{ts}.pdf
+//  - PDF in Cloudinary:         personnel_certificates/{_pid} (raw upload, URL saved in Firestore)
 //  - Position → Required cert mapping:
 //    Safety Officer I-IV  → COSH
 //    PCO                  → PCO Accreditation
@@ -34507,7 +34520,9 @@ Do not include any other text, explanation, or markdown. JSON only.`
       // Nobody — not even admin — can overwrite an existing pdfUrl.
       // Only the expiry date can be updated on existing records.
       const entry = { expiry, updatedAt: new Date().toISOString() };
-      if (existingCert && existingCert.pdfUrl) {
+      // Old Firebase Storage links are dead (free usage expired) — allow replacing them with the Cloudinary upload
+      const _oldIsFirebaseUrl = !!(existingCert && existingCert.pdfUrl && /firebasestorage\.googleapis\.com|firebasestorage\.app/i.test(existingCert.pdfUrl));
+      if (existingCert && existingCert.pdfUrl && !(_oldIsFirebaseUrl && pdfUrl)) {
         // PDF already on file — preserve it unconditionally, ignore any new upload
         entry.pdfUrl    = existingCert.pdfUrl;
         entry.fileName  = existingCert.fileName;
@@ -37999,6 +38014,60 @@ async function exportPersonnelExcel() {
         return String(len).trim();
     }
 
+    // ── Load fresh cert data (same source as the dashboard) ──────────────────
+    try {
+        if (window.firebaseDb && window.firebase && window.firebase.getDocs && window.firebase.collection) {
+            const _snap = await window.firebase.getDocs(window.firebase.collection(window.firebaseDb, 'personnel_certificates'));
+            const _fresh = {};
+            _snap.forEach(d => { _fresh[d.id] = d.data(); });
+            window._pcCertData = _fresh;
+        }
+    } catch (e) { console.warn('Export: fresh cert read failed, using cached data:', e.message); }
+
+    // Same ID the dashboard uses to look up certs (PersonnelDB.getPersonId), with fallbacks
+    function _certLookup(p, certKey) {
+        const all = window._pcCertData || {};
+        const ids = [];
+        if (typeof PersonnelDB !== 'undefined') { try { ids.push(PersonnelDB.getPersonId(p)); } catch(e) {} }
+        if (p._pid) ids.push(p._pid);
+        if (p.id && String(p.id).trim()) {
+            ids.push('emp_' + String(p.id).trim().replace(/[^a-zA-Z0-9_-]/g, '_'));
+            ids.push(String(p.id).trim());
+        }
+        for (const id of ids) {
+            const d = (all[id] || {})[certKey];
+            if (d) return d;
+        }
+        return null;
+    }
+    function _certInfo(p) {
+        const certKey = CERT_KEYS_MAP[p.pos] || null;
+        if (!certKey) return { label: '—', expiry: '—', status: '—' };
+        const label = CERT_LABELS_MAP[certKey] || certKey;
+        const cd = _certLookup(p, certKey);
+        if (!cd) return { label, expiry: 'Not uploaded', status: 'NO CERT' };
+        if (p.certToFollow === certKey) return { label, expiry: '—', status: 'TO FOLLOW' };
+        if (!cd.expiry) return { label, expiry: cd.pdfUrl ? 'No expiry set' : 'Not uploaded', status: cd.pdfUrl ? 'NO EXPIRY SET' : 'NO CERT' };
+        return { label, expiry: _fmtDate(cd.expiry), status: _certStatus(cd.expiry) };
+    }
+    function _buildRow(region, projName, p, mi) {
+        const ci = _certInfo(p);
+        return [
+            region, projName, p.area || '—', mi + 1,
+            (p.name || '').toUpperCase(),
+            (p.pos || '—') + (p.oic ? ' (OIC)' : ''),
+            p.id || '—',
+            p.gen || p.gender || '—',
+            p.age || '—',
+            p.mail || p.email || '—',
+            p.num ? (typeof fmtPhone === 'function' ? fmtPhone(String(p.num)) : String(p.num)) : '—',
+            p.addr ? (typeof titleCase === 'function' ? titleCase(String(p.addr)) : String(p.addr)) : '—',
+            p.hired ? _fmtDate(p.hired) : '—',
+            _fmtLen(p.hired ? calculateYearsOfService(p.hired) : p.len),
+            ci.label, ci.expiry, ci.status
+        ];
+    }
+
     // ── Ordering ──────────────────────────────────────────────────────────────
     const CORP_POS_ORDER = ['QESH Group Manager','QESH Deputy Manager','ESH Manager for Regulation & Compliance','ESH Manager for Project Implementation','Environmental and Sustainability Head','Corporate Physician','Corporate Nurse','Corporate Dentist','QESH Corp. DC','Corporate Safety Officer','Others'];
     const PROJ_POS_ORDER = ['ESH Superintendent','ESH Head','Safety Officer IV','Safety Officer III','Safety Officer II','Safety Officer I','PCO','Project Physician','Project Nurse','First Aider','Others'];
@@ -38037,9 +38106,9 @@ async function exportPersonnelExcel() {
     const COLOR_WHITE      = 'FFFFFFFF';
     const COLOR_TOTAL_BG   = 'E8F5E9'; // light green — TOTAL row in summary
 
-    const COL_HEADERS = ['REGION','PROJECT','AREA OF ASSIGNMENT','#','Full Name','Position','EMP ID','Gender','Age','Date Hired','Length of Service','Certification','Cert Expiry','Status'];
+    const COL_HEADERS = ['REGION','PROJECT','AREA OF ASSIGNMENT','#','Full Name','Position','EMP ID','Gender','Age','Email Address','Contact No.','Home Address','Date Hired','Length of Service','Certification','Cert Expiry','Status'];
     // Reference column widths (exact match to reference file)
-    const COL_WIDTHS  = [18, 35, 25, 5, 30, 25, 12, 10, 8, 15, 18, 15, 15, 12];
+    const COL_WIDTHS  = [18, 35, 25, 5, 30, 25, 12, 10, 8, 30, 16, 40, 15, 18, 15, 15, 16];
 
     // ── Shared style builders ─────────────────────────────────────────────────
     function applyHeaderStyle(cell) {
@@ -38135,38 +38204,13 @@ async function exportPersonnelExcel() {
         const allDataRows = [];
 
         // Sort project names
-        let projNames = Object.keys(projMap).sort((a,b) => a.localeCompare(b));
-        if (!isCorp) {
-            const supProj = (() => {
-                for (const [pname, arr] of Object.entries(projMap)) {
-                    if (arr.find(p => p.pos === 'ESH Superintendent')) return pname;
-                }
-                return null;
-            })();
-            if (supProj) projNames = [supProj, ...projNames.filter(n => n !== supProj)];
-        }
+        let projNames = _pSortProjectNames(projMap);
 
         // Pre-collect all data for auto-fit
         projNames.forEach(projName => {
             const members = projMap[projName] || [];
             members.forEach((p, mi) => {
-                const pid      = p.id || p.empId || '';
-                const certKey  = CERT_KEYS_MAP[p.pos] || null;
-                const certData = certKey && window._pcCertData && pid ? (window._pcCertData[pid]||{})[certKey] : null;
-                const certLabel = certKey ? (CERT_LABELS_MAP[certKey] || certKey) : '—';
-                const expiryStr = certData && certData.expiry ? _fmtDate(certData.expiry) : certData && certData.pdfUrl ? 'No expiry set' : (certKey ? 'Not uploaded' : '—');
-                const status   = certKey ? _certStatus(certData && certData.expiry) : '—';
-                allDataRows.push([
-                    region, projName, p.area || '—', mi + 1,
-                    (p.name || '').toUpperCase(),
-                    p.pos || '—',
-                    p.id || '—',
-                    p.gen || p.gender || '—',
-                    p.age || '—',
-                    p.hired ? _fmtDate(p.hired) : '—',
-                    _fmtLen(p.hired ? calculateYearsOfService(p.hired) : p.len),
-                    certLabel, expiryStr, status
-                ]);
+                allDataRows.push(_buildRow(region, projName, p, mi));
             });
         });
 
@@ -38183,39 +38227,29 @@ async function exportPersonnelExcel() {
             const members = projMap[projName] || [];
             if (!members.length) return;
 
-            // Project banner row — merged across all 14 columns
-            const bannerRow = ws.addRow([`📌 ${projName}`, '', '', '', '', '', '', '', '', '', '', '', '', '']);
+            // Project banner row — merged across all 17 columns
+            const bannerRow = ws.addRow([`📌 ${projName}`, ...Array(16).fill('')]);
             bannerRow.height = 18;
-            ws.mergeCells(bannerRow.number, 1, bannerRow.number, 14);
+            ws.mergeCells(bannerRow.number, 1, bannerRow.number, 17);
             applyBannerStyle(bannerRow.getCell(1));
 
             // Personnel data rows
             members.forEach((p, mi) => {
-                const pid      = p.id || p.empId || '';
-                const certKey  = CERT_KEYS_MAP[p.pos] || null;
-                const certData = certKey && window._pcCertData && pid ? (window._pcCertData[pid]||{})[certKey] : null;
-                const certLabel = certKey ? (CERT_LABELS_MAP[certKey] || certKey) : '—';
-                const expiryStr = certData && certData.expiry ? _fmtDate(certData.expiry) : certData && certData.pdfUrl ? 'No expiry set' : (certKey ? 'Not uploaded' : '—');
-                const status   = certKey ? _certStatus(certData && certData.expiry) : '—';
-
-                const dataRow = ws.addRow([
-                    region, projName, p.area || '—', mi + 1,
-                    (p.name || '').toUpperCase(),
-                    p.pos || '—',
-                    p.id || '—',
-                    p.gen || p.gender || '—',
-                    p.age || '—',
-                    p.hired ? _fmtDate(p.hired) : '—',
-                    _fmtLen(p.hired ? calculateYearsOfService(p.hired) : p.len),
-                    certLabel, expiryStr, status
-                ]);
+                const dataRow = ws.addRow(_buildRow(region, projName, p, mi));
                 dataRow.height = 16;
                 dataRow.eachCell((cell, colNumber) => applyDataStyle(cell, colNumber));
+                if (p.oic) {
+                    dataRow.getCell(6).value = { richText: [
+                        { text: (p.pos || '—') + ' ', font: { size: 11, name: 'Calibri' } },
+                        { text: 'OIC', font: { bold: true, size: 11, name: 'Calibri', color: { argb: 'FFE65100' } } }
+                    ]};
+                    dataRow.getCell(6).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3E0' } };
+                }
             });
 
             // ── Spacer row after each project (except last) ───────────────────
             if (projIdx < projNames.length - 1) {
-                const spacer = ws.addRow(['', '', '', '', '', '', '', '', '', '', '', '', '', '']);
+                const spacer = ws.addRow(Array(17).fill(''));
                 spacer.height = 8;
             }
         });
