@@ -5166,7 +5166,8 @@ debugCommands.help() - Show this help
                 'esh-calendar-drills': `${state.selectedYear} ESH CALENDAR — EMERGENCY DRILLS`,
                 'esh-calendar-corp-drills': `${state.selectedYear} ESH CALENDAR — CORPORATE DRILLS`,
                 'got-monitoring': 'GOALS, OBJECTIVES & TARGETS (GOT) MONITORING',
-                'safety-alerts': 'SAFETY ALERTS'
+                'safety-alerts': 'SAFETY ALERTS',
+                'headlines': 'HOME'
             };
             document.querySelector('.header-title').innerText = titles[t] || t.toUpperCase();
             document.getElementById('settings-view').classList.toggle('hidden', t !== 'settings');
@@ -5180,7 +5181,8 @@ debugCommands.help() - Show this help
             document.getElementById('lta-registry-view').classList.toggle('hidden', t !== 'lta-registry');
             document.getElementById('tabulation-view').classList.toggle('hidden', t !== 'tabulation');
             document.getElementById('safety-alerts-view').classList.toggle('hidden', t !== 'safety-alerts');
-            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel' || t === 'osh-requirement' || t === 'env-monitoring' || t === 'health-report' || t === 'got-monitoring' || t === 'nov-env' || t === 'nov' || t === 'lta-registry' || t === 'tabulation' || t === 'safety-alerts');
+            document.getElementById('headlines-view').classList.toggle('hidden', t !== 'headlines');
+            document.getElementById('dashboard-content').classList.toggle('hidden', t === 'settings' || t === 'personnel' || t === 'osh-requirement' || t === 'env-monitoring' || t === 'health-report' || t === 'got-monitoring' || t === 'nov-env' || t === 'nov' || t === 'lta-registry' || t === 'tabulation' || t === 'safety-alerts' || t === 'headlines');
             
             const pcRates = document.getElementById('trend-chart-persistent-rates');
             const pcMedical = document.getElementById('trend-chart-persistent-medical');
@@ -5248,9 +5250,11 @@ debugCommands.help() - Show this help
             if (t === 'nov') { setTimeout(renderOshNovTab, 100); }
             if (t === 'tabulation') { setTimeout(renderTabulation, 100); }
             if (t === 'lta-registry') { setTimeout(renderLtaRegistryTab, 100); }
-            if (t === 'overall') {
+            if (t === 'headlines') {
                 if (typeof initSafetyAlertAwardListeners === 'function') initSafetyAlertAwardListeners();
                 setTimeout(function(){ if (typeof renderSafetyAlertAwardPanel === 'function') renderSafetyAlertAwardPanel(); }, 150);
+            } else if (typeof stopSafetyAwardCarousel === 'function') {
+                stopSafetyAwardCarousel();
             }
             if (t === 'safety-alerts') {
                 if (typeof initSafetyAlertAwardListeners === 'function') initSafetyAlertAwardListeners();
@@ -6422,6 +6426,19 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
     return true; // still stopped — all quarters from stoppage onward are blacklisted
 }
 
+        // ── OVERALL CUTOFF: Overall compliance counts only months that are already due.
+        // Current year → up to the previous month (same rule the region chart uses, _rcMaxMonth).
+        // Other years → 12. Quarterly (SMR, DOE) and semi-annual (CMR) items count only when
+        // their last month (3*q or 6*p) is within the cutoff.
+        function getComplianceCutoffMonth(selectedYear) {
+            const _now = new Date();
+            const _cur = _now.getFullYear();
+            const _sel = selectedYear || (state && state.selectedYear) || _cur;
+            if (_sel !== _cur) return 12;
+            return _now.getMonth() > 0 ? _now.getMonth() : 12;
+        }
+        window.getComplianceCutoffMonth = getComplianceCutoffMonth;
+
         function getPerc(proj, includeFinished) {
             window.getPerc = getPerc; // expose globally so Executive Summary sync (syncExecutiveSummary) can use it
             // includeFinished (default false): region/company-wide averages call getPerc(p) as
@@ -6449,6 +6466,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             if (proj.dateFinished && !includeFinished) return null;
 
             const selectedYear = (state && state.selectedYear) || new Date().getFullYear();
+            const _cutM = getComplianceCutoffMonth(selectedYear); // only months already due
             function isMonthBlacklisted(monthIdx1Based) {
                 return isMonthBlacklistedForProject(proj, monthIdx1Based, selectedYear);
             }
@@ -6473,7 +6491,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 let kF = 0, kT = 0;
                 _KPM_MONTHS.forEach((mo, idx) => {
                     const _moIdx1 = idx + 1;
-                    if (isMonthBlacklisted(_moIdx1)) return;
+                    if (_moIdx1 > _cutM || isMonthBlacklisted(_moIdx1)) return;
                     kT++;
                     // Peers for this specific month: region-wide submission is stored on a single
                     // project, so we must NOT filter peers by their own blacklist status here — a
@@ -6496,7 +6514,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             // ── Area 3: DOLE — WAIR, RSO, MOM (3 fields × 12 months) ──
             let dF = 0, dT = 0;
             ['dole_WAIR', 'dole_RSO', 'dole_MOM'].forEach(key => {
-                for (let i = 1; i <= 12; i++) {
+                for (let i = 1; i <= _cutM; i++) {
                     if (isMonthBlacklisted(i)) continue;
                     dT++;
                     const v = vals[key] && vals[key][i];
@@ -6509,7 +6527,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             if (typeof window.gotGetCell === 'function') {
                 let gF = 0, gT = 0;
                 ['E1','E2','E3','S1','S2','S3'].forEach(goalId => {
-                    for (let i = 1; i <= 12; i++) {
+                    for (let i = 1; i <= _cutM; i++) {
                         if (isMonthBlacklisted(i)) continue;
                         gT++;
                         const _gotVal = window.gotGetCell(proj, goalId, 0, i).r;
@@ -6530,7 +6548,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 rows.forEach((_, ti) => {
                     const naRowKey = `${_calYear}|${tt}|${proj.name}|${ti}|na_row`;
                     const naFrom   = _calStor[naRowKey] !== undefined ? parseInt(_calStor[naRowKey]) : -1;
-                    for (let mi = 0; mi < 12; mi++) {
+                    for (let mi = 0; mi < _cutM; mi++) {
                         const monthIdx1 = mi + 1;
                         if (isMonthBlacklisted(monthIdx1)) continue;
                         if (naFrom >= 0 && mi >= naFrom) continue; // N/A from this month onward
@@ -6553,7 +6571,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 const _drillSi = (typeof getDrillStorageIdx === 'function')
                     ? getDrillStorageIdx(drill, di)
                     : (drill.id !== undefined ? drill.id : di);
-                for (let mi = 0; mi < 12; mi++) {
+                for (let mi = 0; mi < _cutM; mi++) {
                     const monthIdx1 = mi + 1;
                     if (isMonthBlacklisted(monthIdx1)) continue;
                     const planKey = `${_calYear}|esh-calendar-drills|GLOBAL_PLAN|${_drillSi}|${mi}|plan`;
@@ -6571,7 +6589,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             // ── Area 7: Envi Reportorial — EMR (monthly) ──
             const _emrKey   = 'env-monthly-report_Environmental Monthly Report (EMR)';
             let emrF = 0, emrT = 0;
-            for (let i = 1; i <= 12; i++) {
+            for (let i = 1; i <= _cutM; i++) {
                 if (isMonthBlacklisted(i)) continue;
                 emrT++;
                 const v = vals[_emrKey] && vals[_emrKey][i];
@@ -6584,6 +6602,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             const _smrCocKey = 'emb_SMR (Quarterly) - Care of Client';
             let smrF = 0, smrT = 0;
             for (let q = 1; q <= 4; q++) {
+                if (q * 3 > _cutM) continue; // quarter not due yet
                 if (isQuarterAfterProjectFinish(proj, q, selectedYear)) continue; // after project finished
                 const _coc  = vals[_smrCocKey] && vals[_smrCocKey][q];
                 const _isCoC = _coc === true || _coc === 'true' || _coc === '1' || _coc === 1;
@@ -6600,6 +6619,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             const _cmrCocKey = 'emb_CMR (Semi-Annual) - Care of Client';
             let cmrF = 0, cmrT = 0;
             for (let p2 = 1; p2 <= 2; p2++) {
+                if (p2 * 6 > _cutM) continue; // period not due yet
                 if (isPeriodAfterProjectFinish(proj, p2, selectedYear)) continue; // after project finished
                 const _coc  = vals[_cmrCocKey] && vals[_cmrCocKey][p2];
                 const _isCoC = _coc === true || _coc === 'true' || _coc === '1' || _coc === 1;
@@ -6619,7 +6639,8 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     let doeF = 0, doeT = 0;
                     for (let q = 1; q <= 4; q++) {
                         if (q < _doeStartQ) continue; // quarter before project existed — not required
-                        if (isQuarterAfterProjectFinish(proj, q, selectedYear)) continue; // after project finished
+                        if (q * 3 > _cutM) continue; // quarter not due yet
+                if (isQuarterAfterProjectFinish(proj, q, selectedYear)) continue; // after project finished
                         doeT++;
                         const v = vals[_doeKey] && vals[_doeKey][q];
                         if (v && v.toString().trim() !== '') doeF++;
@@ -6880,6 +6901,41 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         }
         window.getMonthlyComplianceByRegion = getMonthlyComplianceByRegion;
 
+        // ── OVERALL = MONTHLY-BASED: sum of the monthly compliance (Jan → cutoff month) ÷ 12.
+        // Same numbers the monthly chart shows. Months not yet due count as 0 in the sum, so the
+        // divisor stays 12. A month where the region had no applicable project (not started yet,
+        // finished, frozen) is left out of both the sum and the divisor.
+        // Region % is an average of that month's projects, so number of projects per region does not inflate it.
+        function getRegionOverallCompliance(region) {
+            const selY = (state && state.selectedYear) || new Date().getFullYear();
+            const cut = getComplianceCutoffMonth(selY);
+            let sum = 0, skipped = 0;
+            for (let m = 1; m <= cut; m++) {
+                const has = (state.projects || []).some(p =>
+                    p.region === region && !isProjectOnStoppage(p) &&
+                    !isProjectFinishedForMonth(p, m, selY) && !isMonthBlacklistedForProject(p, m, selY));
+                if (!has) { skipped++; continue; }
+                sum += getMonthlyComplianceByRegion(m, region);
+            }
+            const div = 12 - skipped;
+            return div > 0 ? Math.round(sum / div) : 0;
+        }
+        window.getRegionOverallCompliance = getRegionOverallCompliance;
+
+        function getCompanyOverallCompliance() {
+            const selY = (state && state.selectedYear) || new Date().getFullYear();
+            const cut = getComplianceCutoffMonth(selY);
+            let sum = 0, skipped = 0;
+            for (let m = 1; m <= cut; m++) {
+                const v = getMonthlyCompliance(m);
+                if (v === null || v === undefined) { skipped++; continue; }
+                sum += v;
+            }
+            const div = 12 - skipped;
+            return div > 0 ? Math.round(sum / div) : 0;
+        }
+        window.getCompanyOverallCompliance = getCompanyOverallCompliance;
+
         // ── KPM per-project fill status ─────────────────────────────────────────
         // The region's "Date Submitted" is saved on only ONE project, so it only proves the
         // REGION submitted. Each project must still have its own KPM entries filled for the month.
@@ -6903,6 +6959,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         function getComplianceGapDetails(region, monthIdx1Based) {
             const selectedYear = (state && state.selectedYear) || new Date().getFullYear();
             const isOverall = !monthIdx1Based;
+            const _cutM = getComplianceCutoffMonth(selectedYear); // Overall = only months already due
             const _KPM_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
             const _calYear = selectedYear;
             const _calStor = (typeof getEshStorage === 'function') ? getEshStorage() : {};
@@ -6937,7 +6994,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             projects.forEach(proj => {
                 const vals = proj.vals || {};
                 const moList = isOverall
-                    ? Array.from({length:12}, (_,i)=>i+1).filter(m => !isBlk(proj, m))
+                    ? Array.from({length:12}, (_,i)=>i+1).filter(m => m <= _cutM && !isBlk(proj, m))
                     : [monthIdx1Based];
 
                 // Area 1: Drills & Training — REMOVED. This used to check vals['activities_Drills Conducted']
@@ -7055,6 +7112,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     const _smrKey = 'emb_SMR (Quarterly) - Submission Date';
                     const _smrCocKey = 'emb_SMR (Quarterly) - Care of Client';
                     for (let q = 1; q <= 4; q++) {
+                        if (q * 3 > _cutM) continue; // quarter not due yet
                         const _coc = vals[_smrCocKey] && vals[_smrCocKey][q];
                         if (_coc === true || _coc === 'true' || _coc === '1' || _coc === 1) continue;
                         addRequired('EMB Reportorial (SMR)', 1);
@@ -7065,6 +7123,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     const _cmrKey = 'emb_CMR (Semi-Annual) - Submission Date';
                     const _cmrCocKey = 'emb_CMR (Semi-Annual) - Care of Client';
                     for (let p2 = 1; p2 <= 2; p2++) {
+                        if (p2 * 6 > _cutM) continue; // period not due yet
                         const _coc = vals[_cmrCocKey] && vals[_cmrCocKey][p2];
                         if (_coc === true || _coc === 'true' || _coc === '1' || _coc === 1) continue;
                         addRequired('EMB Reportorial (CMR)', 1);
@@ -7078,6 +7137,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                             const _doeKey = 'doe_DOE Quarterly Report Submission Date';
                             const _doeStartQ = (typeof getDoeStartQuarterForYear === 'function') ? getDoeStartQuarterForYear(proj, selectedYear) : 1;
                             for (let q = 1; q <= 4; q++) {
+                        if (q * 3 > _cutM) continue; // quarter not due yet
                                 if (q < _doeStartQ) continue;
                                 addRequired('DOE Reportorial (Renewable)', 1);
                                 const v = vals[_doeKey] && vals[_doeKey][q];
@@ -7094,11 +7154,18 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
 
         function showComplianceGapModal(region, monthIdx1Based, focusAreaLabel) {
             const data = getComplianceGapDetails(region, monthIdx1Based);
-            const monthLabel = monthIdx1Based ? ['January','February','March','April','May','June','July','August','September','October','November','December'][monthIdx1Based-1] : 'Overall (Full Year)';
+            const monthLabel = monthIdx1Based ? ['January','February','March','April','May','June','July','August','September','October','November','December'][monthIdx1Based-1] : ('Overall (January–' + ['January','February','March','April','May','June','July','August','September','October','November','December'][window.getComplianceCutoffMonth() - 1] + ')');
             const areaKeys = Object.keys(data.areaGaps);
             const totalRequired = areaKeys.reduce((s,k)=>s+data.areaGaps[k].required,0);
             const totalMissing  = areaKeys.reduce((s,k)=>s+data.areaGaps[k].missing,0);
-            const scorePct = totalRequired > 0 ? Math.round(((totalRequired-totalMissing)/totalRequired)*100) : 100;
+            // Headline score = same number the region bar shows (average of project scores),
+            // not the item-count ratio, so the modal and the bar always match.
+            let scorePct;
+            if (monthIdx1Based) {
+                scorePct = getMonthlyComplianceByRegion(monthIdx1Based, region);
+            } else {
+                scorePct = getRegionOverallCompliance(region);
+            }
 
             let bodyHtml = '';
             if (data.projectCount === 0) {
@@ -7153,7 +7220,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                         <div style="padding:18px 22px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#1b5e20,#2e7d32);border-radius:12px 12px 0 0;">
                             <div>
                                 <div style="color:white;font-weight:800;font-size:1rem;">Why isn't ${region} at 100%?</div>
-                                <div style="color:#c8e6c9;font-size:0.78rem;margin-top:2px;">${monthLabel} · Current score: ${scorePct}% (${totalRequired-totalMissing}/${totalRequired} required items complete)</div>
+                                <div style="color:#c8e6c9;font-size:0.78rem;margin-top:2px;">${monthLabel} · Current score: ${scorePct}% · ${totalRequired-totalMissing} of ${totalRequired} required items complete</div>
                             </div>
                             <button onclick="document.getElementById('complianceGapModalOverlay').remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:1rem;">×</button>
                         </div>
@@ -7215,16 +7282,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             let regionAvgs;
             if (_rcv === 0) {
                 // Overall: same as before
-                const regionData = {};
-                chartRegions.forEach(r => regionData[r] = [0, 0]);
-                chartProjects.forEach(p => {
-                    if (!regionData[p.region]) return;
-                    const perc = getPerc(p);
-                    if (perc === null) return;
-                    regionData[p.region][0] += perc;
-                    regionData[p.region][1] += 1;
-                });
-                regionAvgs = chartRegions.map(r => regionData[r][1] > 0 ? Math.round(regionData[r][0] / regionData[r][1]) : 0);
+                regionAvgs = chartRegions.map(r => getRegionOverallCompliance(r)); // monthly-based Overall
             } else {
                 // Monthly: use per-region monthly compliance
                 regionAvgs = chartRegions.map(r => getMonthlyComplianceByRegion(_rcv, r));
@@ -7367,7 +7425,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                                 if (!elements || !elements.length) return;
                                 const idx = elements[0].index;
                                 const clickedRegion = chartRegions[idx];
-                                showComplianceGapModal(clickedRegion, _rcv || 0);
+                                showComplianceGapModal(clickedRegion, state.complianceView || 0); // read live view at click time — chart is reused on month change, so a captured _rcv goes stale
                             },
                             onHover: (evt, elements) => {
                                 evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
@@ -7711,7 +7769,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             const _validTabs = ['overall','rates','exposures','medical','nov','nov-env','nov-monitoring',
                 'activities','corporate-kpm','kpm','dole','emb','doe','doe-permit','env-monthly-report',
                 'permits','env-monitoring','cshp','reg','audit','personnel','osh-requirement','nov-env',
-                'health-report','got-monitoring','lta-registry','tabulation','safety-alerts',
+                'health-report','got-monitoring','lta-registry','tabulation','safety-alerts','headlines',
                 'esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
             const _storedTab = localStorage.getItem('esh_last_tab') || 'overall';
             let lastTab = _validTabs.includes(_storedTab) ? _storedTab : 'overall';
@@ -11864,16 +11922,7 @@ function renderTabulation() {
 
             let regionAvgs;
             if (_rcv === 0) {
-                const regionData = {};
-                chartRegions.forEach(r => regionData[r] = [0, 0]);
-                chartProjects.forEach(p => {
-                    if (!regionData[p.region]) return;
-                    const perc = getPerc(p);
-                    if (perc === null) return;
-                    regionData[p.region][0] += perc;
-                    regionData[p.region][1] += 1;
-                });
-                regionAvgs = chartRegions.map(r => regionData[r][1] > 0 ? Math.round(regionData[r][0] / regionData[r][1]) : 0);
+                regionAvgs = chartRegions.map(r => getRegionOverallCompliance(r)); // monthly-based Overall
             } else {
                 regionAvgs = chartRegions.map(r => getMonthlyComplianceByRegion(_rcv, r));
             }
@@ -12014,7 +12063,7 @@ function renderTabulation() {
                             if (!elements || !elements.length) return;
                             const idx = elements[0].index;
                             const clickedRegion = chartRegions[idx];
-                            showComplianceGapModal(clickedRegion, _rcv || 0);
+                            showComplianceGapModal(clickedRegion, state.complianceView || 0); // read live view at click time — chart is reused on month change, so a captured _rcv goes stale
                         },
                         onHover: (evt, elements) => {
                             evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
@@ -12053,7 +12102,7 @@ function renderTabulation() {
             );
             let _gTotal = 0, _gCount = 0;
             _cpProjects.forEach(p => { const v = getPerc(p); if (v !== null) { _gTotal += v; _gCount++; } });
-            const _overallAvg = _gCount > 0 ? Math.round(_gTotal / _gCount) : 0;
+            const _overallAvg = getCompanyOverallCompliance();
 
             let _mcLabel, _mcValue;
             if (_mcCv === 0) {
@@ -12083,7 +12132,7 @@ function renderTabulation() {
                         _mcDots += '<span title="' + _tip + '" onclick="state.complianceView=' + _di + ';renderComplianceCardOnly();" style="' +
                             'display:inline-block;width:' + (_active?'10':'7') + 'px;height:' + (_active?'10':'7') + 'px;' +
                             'border-radius:50%;background:' + (_active?'#fbc02d':'#ccc') + ';' +
-                            'cursor:pointer;margin:0 2px;vertical-align:middle;' +
+                            'cursor:pointer;margin:0 1px;flex-shrink:0;vertical-align:middle;' +
                             'transition:all 0.15s;border:' + (_active?'1.5px solid #e5a800':'1px solid #bbb') + ';' +
                         '"></span>';
                     }
@@ -12099,7 +12148,7 @@ function renderTabulation() {
                     const _navRow = _compCard.querySelector('div[style*="display:flex"]') || _compCard.lastElementChild;
                     if (_navRow) {
                         _navRow.innerHTML = _mcPrevBtn +
-                            '<div style="display:inline-flex;flex-wrap:wrap;justify-content:center;gap:2px;max-width:130px;">' + _mcDots + '</div>' +
+                            '<div style="display:inline-flex;flex-wrap:nowrap;justify-content:center;align-items:center;gap:2px;">' + _mcDots + '</div>' +
                             _mcNextBtn;
                     }
                 }
@@ -12363,6 +12412,13 @@ function renderTabulation() {
                 return;
             }
 
+            // Headlines has its own dedicated container — render it directly and return
+            if (state.currentTab === 'headlines') {
+                if (typeof initSafetyAlertAwardListeners === 'function') initSafetyAlertAwardListeners();
+                if (typeof renderSafetyAlertAwardPanel === 'function') renderSafetyAlertAwardPanel();
+                return;
+            }
+
             // Safety Alerts has its own dedicated container — render it directly and return
             if (state.currentTab === 'safety-alerts') {
                 if (typeof initSafetyAlertAwardListeners === 'function') initSafetyAlertAwardListeners();
@@ -12411,7 +12467,7 @@ function renderTabulation() {
                 const perc = getPerc(p);
                 if (perc !== null) { grandTotal += perc; grandCount++; }
             });
-            const overallAvg = grandCount > 0 ? Math.round(grandTotal / grandCount) : 0;
+            const overallAvg = getCompanyOverallCompliance();
 
             if (state.currentTab === 'overall') {
                 html += `
@@ -12427,8 +12483,6 @@ function renderTabulation() {
                         </div>
                     </div>
                 </div>
-                <div id="safety-alert-award-panel"></div>
-                <div style="height:1px;background:var(--border-color);margin:22px 20px 26px;"></div>
                 `;
                 
                 // ── Build monthly compliance card ────────────────────────────────
@@ -12457,7 +12511,7 @@ function renderTabulation() {
                     _mcDots += '<span title="' + _tip + '" onclick="state.complianceView=' + _di + ';renderComplianceCardOnly();" style="' +
                         'display:inline-block;width:' + (_active?'10':'7') + 'px;height:' + (_active?'10':'7') + 'px;' +
                         'border-radius:50%;background:' + (_active?'#fbc02d':'#ccc') + ';' +
-                        'cursor:pointer;margin:0 2px;vertical-align:middle;' +
+                        'cursor:pointer;margin:0 1px;flex-shrink:0;vertical-align:middle;' +
                         'transition:all 0.15s;border:' + (_active?'1.5px solid #e5a800':'1px solid #bbb') + ';' +
                     '"></span>';
                 }
@@ -12481,7 +12535,7 @@ function renderTabulation() {
                         <div class="stat-value">${_mcValue}</div>
                         <div style="display:flex;align-items:center;justify-content:center;margin-top:6px;gap:0;">
                             ${_mcPrevBtn}
-                            <div style="display:inline-flex;flex-wrap:wrap;justify-content:center;gap:2px;max-width:130px;">${_mcDots}</div>
+                            <div style="display:inline-flex;flex-wrap:nowrap;justify-content:center;align-items:center;gap:2px;">${_mcDots}</div>
                             ${_mcNextBtn}
                         </div>
                     </div>
@@ -13145,7 +13199,7 @@ function renderTabulation() {
                 const regComplianceProjs = projs.filter(p => !isProjectOnStoppage(p));
                 const regPercValues = regComplianceProjs.map(p => getPerc(p)).filter(v => v !== null);
                 const regSum = regPercValues.reduce((sum, v) => sum + v, 0);
-                const regionAvg = regPercValues.length > 0 ? Math.round(regSum / regPercValues.length) : 0;
+                const regionAvg = (reg === 'CORPORATE' || reg === 'PLANT OPERATIONS') ? (regPercValues.length > 0 ? Math.round(regSum / regPercValues.length) : 0) : getRegionOverallCompliance(reg);
 
                 const canEditRegion = UserAccounts.canEdit(state.currentUser?.email, reg) && UserAccounts.canEditTab(state.currentUser?.email, state.currentTab);
                 const isCollapsed = isRegionCollapsed(reg);
@@ -13226,9 +13280,9 @@ function renderTabulation() {
                     const isDeleteLocked = !canDelete;
 
                     html += `<div class="project-row ${isLocked ? 'project-locked' : ''}" data-pname="${(p.name||'').replace(/"/g,'&quot;')}" data-region="${(p.region||'').replace(/"/g,'&quot;')}" data-status="${_derivedStatus}" style="${isWorkStopped ? 'opacity:0.7;' : ''}${state.currentTab === 'overall' ? 'cursor:pointer;' : ''}" ${state.currentTab === 'overall' ? `onclick="osOpenModal('${p.name.replace(/'/g, "\\'")}')"`  : ''}>\n                        
-                        <div class="circular-progress" style="--percentage: ${percDeg}deg;${isWorkStopped ? 'opacity:0.45;' : ''}">
+                        ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="circular-progress" style="--percentage: ${percDeg}deg;${isWorkStopped ? 'opacity:0.45;' : ''}">
                             <div class="circular-progress-inner" style="${isWorkStopped ? 'font-size:0.62rem;color:#bf360c;' : ''}">${percDisplay}${percDisplay !== '—' ? '%' : ''}</div>
-                        </div>
+                        </div>`}
                         <div class="project-info">
                             <div class="project-name" ${isWorkStopped ? 'style="color:#c62828;"' : ''}>
                                 ${p.name}
@@ -17607,7 +17661,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     const regPercVals2 = projs.map(p => getPerc(p)).filter(v => v !== null);
                     const regSum  = regPercVals2.reduce((sum, v) => sum + v, 0);
-                    const regAvg  = regPercVals2.length > 0 ? Math.round(regSum / regPercVals2.length) : 0;
+                    const regAvg  = getRegionOverallCompliance(reg);
                     const canEditRegion = UserAccounts.canEdit(state.currentUser?.email, reg) && UserAccounts.canEditTab(state.currentUser?.email, state.currentTab);
                     const isCollapsed = isRegionCollapsed(reg);
 
@@ -18583,10 +18637,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
             container.innerHTML = html;
         setTimeout(applyRegionBannerColors, 0);
-            if (state.currentTab === 'overall') {
-                if (typeof initSafetyAlertAwardListeners === 'function') initSafetyAlertAwardListeners();
-                if (typeof renderSafetyAlertAwardPanel === 'function') renderSafetyAlertAwardPanel();
-            }
 
             
             applyNumFmtToInputs();
@@ -21547,10 +21597,11 @@ function ensureSafetyAwardGridStyles() {
     const style = document.createElement('style');
     style.id = 'saw-grid-styles';
     style.textContent = `
-        .saw-grid { display:grid; grid-template-columns:240px minmax(0,1fr) 300px; gap:16px; align-items:start; margin:0 20px 14px; }
-        .saw-panel { background:var(--bg-card); border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.08); border:1px solid var(--border-color); overflow:hidden; }
+        .saw-grid { display:grid; grid-template-columns:240px minmax(0,1fr) 300px; gap:16px; align-items:stretch; margin:0 20px 14px; }
+        .saw-panel { display:flex; flex-direction:column; background:var(--bg-card); border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.08); border:1px solid var(--border-color); overflow:hidden; }
         .saw-panel-head { padding:10px 14px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border-color); }
-        .saw-alert-item { display:flex; align-items:flex-start; gap:10px; padding:9px 12px; cursor:pointer; border-bottom:1px solid var(--border-color); }
+        .saw-alert-list { flex:1; display:flex; flex-direction:column; }
+        .saw-alert-item { flex:1; display:flex; align-items:center; gap:10px; padding:9px 12px; cursor:pointer; border-bottom:1px solid var(--border-color); }
         .saw-alert-item:last-child { border-bottom:none; }
         .saw-alert-item:hover { background:rgba(230,81,0,0.06); }
         .saw-alert-num { flex-shrink:0; width:18px; height:18px; border-radius:4px; background:#fff3e0; color:#e65100; font-size:0.68rem; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:1px; }
@@ -21560,7 +21611,7 @@ function ensureSafetyAwardGridStyles() {
         .saw-mini-card { cursor:pointer; }
         .saw-mini-img { width:100%; aspect-ratio:4/3; border-radius:6px; background-size:cover; background-position:center; background-color:#c8e6c9; display:flex; align-items:center; justify-content:center; }
         .saw-mini-title { font-size:0.68rem; font-weight:700; color:var(--text-primary); margin-top:5px; line-height:1.25; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-        .saw-weather-frame { width:100%; aspect-ratio:1/1; border:none; display:block; }
+        .saw-weather-frame { flex:1; width:100%; min-height:320px; border:none; display:block; }
         .saw-weather-foot { padding:8px 12px; font-size:0.6rem; color:var(--text-secondary); display:flex; justify-content:space-between; align-items:center; }
         @media (max-width: 1050px) {
             .saw-grid { grid-template-columns: 1fr; }
@@ -21643,6 +21694,8 @@ window.updateSafetyAwardHeroInPlace = updateSafetyAwardHeroInPlace;
 function renderSafetyAlertAwardPanel() {
     const container = document.getElementById('safety-alert-award-panel');
     if (!container) return;
+    // Only render while the Headlines tab is open, so the Windy iframe does not load in the background
+    if (state.currentTab !== 'headlines') return;
     ensureSafetyAwardGridStyles();
 
     if (_safetyCarouselTimer) { clearInterval(_safetyCarouselTimer); _safetyCarouselTimer = null; }
@@ -21680,7 +21733,7 @@ function renderSafetyAlertAwardPanel() {
             <i class="fas fa-triangle-exclamation" style="color:#e65100;"></i>
             <span style="font-weight:800;font-size:0.78rem;letter-spacing:0.4px;color:#e65100;">SAFETY ALERT</span>
         </div>
-        <div>${alertsListHtml}</div>
+        <div class="saw-alert-list">${alertsListHtml}</div>
         ${activeAlerts.length > 0 ? `
         <div onclick="changeTab('safety-alerts')" style="cursor:pointer;text-align:center;padding:9px;font-size:0.68rem;font-weight:700;color:#e65100;border-top:1px solid var(--border-color);">
             See more alerts <i class="fas fa-chevron-right" style="font-size:0.58rem;"></i>
@@ -21725,6 +21778,13 @@ function renderSafetyAlertAwardPanel() {
     }
 }
 window.renderSafetyAlertAwardPanel = renderSafetyAlertAwardPanel;
+
+function stopSafetyAwardCarousel() {
+    if (_safetyCarouselTimer) { clearInterval(_safetyCarouselTimer); _safetyCarouselTimer = null; }
+    const c = document.getElementById('safety-alert-award-panel');
+    if (c) c.innerHTML = ''; // unload the Windy iframe when leaving the tab
+}
+window.stopSafetyAwardCarousel = stopSafetyAwardCarousel;
 
 function safetyAwardGoTo(idx) { _safetyCarouselIdx = idx; updateSafetyAwardHeroInPlace(); }
 window.safetyAwardGoTo = safetyAwardGoTo;
@@ -22372,6 +22432,11 @@ function buildTrendChartHTML(tabType) {
     const icon = tabType === 'rates' ? 'fa-chart-line' : 'fa-chart-area';
     const persistentId = `trend-chart-persistent-${tabType}`;
 
+    const _miniCard = (key, label) => `<div style="border:1px solid var(--border-color);border-radius:12px;padding:12px 14px;background:var(--bg-card);">
+        <div style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">${label}</div>
+        <div id="rateMiniVal_${key}" style="font-size:1.6rem;font-weight:800;line-height:1.2;margin:2px 0;color:var(--text-primary);">–</div>
+        <div id="rateMiniSub_${key}" style="font-size:0.72rem;font-weight:700;min-height:20px;color:var(--text-secondary);"></div>
+        <div style="position:relative;height:140px;margin-top:6px;"><canvas id="trendChart_rates_${key}"></canvas></div></div>`;
     const persistentEl = document.getElementById(persistentId);
     if (persistentEl && !persistentEl.dataset.initialized) {
         persistentEl.dataset.initialized = 'true';
@@ -22402,7 +22467,9 @@ function buildTrendChartHTML(tabType) {
           </div>
         </div>
         <div style="padding: 14px 16px;">
-          <canvas id="trendChart_${tabType}" style="max-height: 400px;width:100%;"></canvas>
+          ${tabType === 'rates'
+            ? '<div class="rate-mini-grid">' + _miniCard('ltir','LTIR · target 0.50') + _miniCard('trir','TRIR · target 1.25') + _miniCard('sev','SEVERITY RATE · no target') + '</div>'
+            : '<canvas id="trendChart_' + tabType + '" style="max-height: 400px;width:100%;"></canvas>'}
         </div>
       </div>`;
     }
@@ -22411,6 +22478,66 @@ function buildTrendChartHTML(tabType) {
     document.getElementById('trend-chart-persistent-medical').style.display = tabType === 'medical' ? 'block' : 'none';
 
     return `<div id="trend-chart-anchor-${tabType}" style="display:none;"></div>`;
+}
+
+// STATISTICS RATE TRENDS: one small chart per rate (own scale + target)
+function _renderRatesMini(datasets) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dark = !!(state && state.darkMode);
+    const gridC = dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+    const tickC = dark ? '#9aa8a0' : '#5d6b63';
+    const defs = [
+        { key: 'ltir', ds: 0, color: '#1b5e20', target: 0.50 },
+        { key: 'trir', ds: 1, color: '#1565c0', target: 1.25 },
+        { key: 'sev',  ds: 2, color: '#b71c1c', target: null }
+    ];
+    const fmt = v => (v === null || v === undefined) ? '–' : Number(v).toLocaleString(undefined, v >= 100 ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    defs.forEach(d => {
+        const data = datasets[d.ds].data;
+        let last = -1, peak = -1;
+        data.forEach((v, i) => { if (v !== null) { last = i; if (peak < 0 || v > data[peak]) peak = i; } });
+
+        const valEl = document.getElementById('rateMiniVal_' + d.key);
+        const subEl = document.getElementById('rateMiniSub_' + d.key);
+        if (valEl) valEl.textContent = last < 0 ? '–' : fmt(data[last]);
+        if (subEl) {
+            if (last < 0) subEl.textContent = 'No data';
+            else if (d.target === null) subEl.textContent = 'Peak: ' + fmt(data[peak]) + ' in ' + months[peak] + ' · latest: ' + months[last];
+            else {
+                const ok = data[last] <= d.target;
+                subEl.innerHTML = '<span style="display:inline-block;padding:2px 9px;border-radius:999px;background:' + (ok ? '#dcf5d0' : '#fde0e0') + ';color:' + (ok ? '#14532d' : '#8c1414') + ';">' + (ok ? 'Within target' : 'Over target') + '</span> <span style="font-weight:600;">as of ' + months[last] + '</span>';
+            }
+        }
+
+        const tgtData = d.target === null ? null : new Array(12).fill(d.target);
+        const inst = trendChartInstances['rates_' + d.key];
+        if (inst) {
+            inst.data.datasets[0].data = data;
+            if (tgtData) inst.data.datasets[1].data = tgtData;
+            inst.options.scales.y.grid.color = gridC;
+            inst.options.scales.y.ticks.color = tickC;
+            inst.options.scales.x.ticks.color = tickC;
+            inst.update();
+            return;
+        }
+        const cv = document.getElementById('trendChart_rates_' + d.key);
+        if (!cv) return;
+        const ds = [{ label: d.key === 'sev' ? 'Severity rate' : d.key.toUpperCase(), data: data, borderColor: d.color, backgroundColor: d.color + '22', fill: true, borderWidth: 2.5, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: d.color, spanGaps: false }];
+        if (tgtData) ds.push({ label: 'Target (' + d.target.toFixed(2) + ')', data: tgtData, borderColor: '#9aa8a0', borderDash: [5, 5], borderWidth: 1.5, pointRadius: 0, fill: false });
+        trendChartInstances['rates_' + d.key] = new Chart(cv.getContext('2d'), {
+            type: 'line',
+            data: { labels: months, datasets: ds },
+            options: {
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.85)', padding: 10, cornerRadius: 8 } },
+                scales: {
+                    x: { grid: { display: false }, border: { display: false }, ticks: { color: tickC, maxTicksLimit: 6, font: { size: 10 } } },
+                    y: { beginAtZero: true, suggestedMax: d.target === null ? undefined : d.target * 1.2, border: { display: false }, grid: { color: gridC }, ticks: { color: tickC, maxTicksLimit: 4, font: { size: 10 } } }
+                }
+            }
+        });
+    });
 }
 
 function populateProjectFilter(tabType) {
@@ -22458,7 +22585,7 @@ function _doUpdateTrendChart(tabType) {
     const regionFilter = document.getElementById(`trendRegionFilter_${tabType}`)?.value || 'all';
     const projectFilter = document.getElementById(`trendProjectFilter_${tabType}`)?.value || 'all';
     const chartId = `trendChart_${tabType}`;
-    const canvas = document.getElementById(chartId);
+    const canvas = document.getElementById(chartId) || (tabType === 'rates' ? document.getElementById('trendChart_rates_ltir') : null);
     
     if (!canvas) return;
     
@@ -22560,6 +22687,9 @@ function _doUpdateTrendChart(tabType) {
             tension: 0
         });
         
+        _renderRatesMini(datasets);
+        return;
+
     } else if (tabType === 'medical') {
         const incidentTypes = ['Medical Treatment', 'First Aid', 'LTA', 'Fatality', 'High-Potential incident', 'Dangerous Occurrences', 'No. of Identified Near-Miss'];
         const colors = ['#1b5e20', '#2e7d32', '#1565c0', '#b71c1c', '#e65100', '#f57c00', '#6a1b9a'];
@@ -23357,7 +23487,7 @@ async function syncExecutiveSummary() {
                 const v = (typeof getPerc === 'function') ? getPerc(p) : null;
                 if (v !== null) { _ecTotal += v; _ecCount++; }
             });
-            const _ecOverallAvg = _ecCount > 0 ? Math.round(_ecTotal / _ecCount) : 0;
+            const _ecOverallAvg = getCompanyOverallCompliance();
 
             const novScopedProjects = (state.projects || []).filter(p => p && p.region !== 'PLANT OPERATIONS');
 
