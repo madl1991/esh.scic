@@ -917,6 +917,7 @@
                     <i class="fas fa-chevron-down chevron"></i>
                 </div>
                 <div class="nav-group-items collapsed">
+                    <div class="nav-item" data-tab="headlines" onclick="changeTab('headlines')"><i class="fas fa-house"></i> Home</div>
                     <div class="nav-item active" data-tab="overall" onclick="changeTab('overall')"><i class="fas fa-gauge-high"></i> Overall Dashboard</div>
                     <div class="nav-item" data-tab="rates" onclick="changeTab('rates')"><i class="fas fa-chart-line"></i> Statistics Rate</div>
                 </div>
@@ -1335,6 +1336,10 @@
 </div>
 
 <div id="safety-alerts-view" class="hidden" style="padding:20px;">
+</div>
+
+<div id="headlines-view" class="hidden" style="padding:20px 0 0;">
+    <div id="safety-alert-award-panel"></div>
 </div>
 
 <div id="tabulation-view" class="hidden" style="padding:20px;">
