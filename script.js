@@ -6466,7 +6466,9 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             if (proj.dateFinished && !includeFinished) return null;
 
             const selectedYear = (state && state.selectedYear) || new Date().getFullYear();
-            const _cutM = getComplianceCutoffMonth(selectedYear); // only months already due
+            // Per-project score uses the FULL year (Jan–Dec): months not yet due count as not submitted,
+            // so 100% is reached only when every report for the year is in.
+            const _cutM = 12;
             function isMonthBlacklisted(monthIdx1Based) {
                 return isMonthBlacklistedForProject(proj, monthIdx1Based, selectedYear);
             }
