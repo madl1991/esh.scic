@@ -6245,3 +6245,8 @@ body.dark-mode [style*="var(--safety-yellow)"][style*="color: #1b5e20"] {color:#
 /* Statistics Rate Trends: 3 small charts */
 .rate-mini-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 @media (max-width:760px){.rate-mini-grid{grid-template-columns:1fr}}
+
+/* Accident/Incident Trends: totals + split charts */
+.inc-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.inc-split{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+@media (max-width:760px){.inc-split{grid-template-columns:1fr}}
