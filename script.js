@@ -33,9 +33,9 @@ function _barVerticalGradient(ctx, chartArea, color) {
         var fixed=[
             {m:1, d:1,  icon:'🎉',badge:"New Year's Day",   msg:"Happy New Year! Wishing you a great year ahead."},
             {m:2, d:14, icon:'💝',badge:"Valentine's Day",  msg:"Happy Valentine's Day! Spread kindness today."},
-            {m:4, d:9,  icon:'🦅',badge:"Araw ng Kagitingan",msg:"Araw ng Kagitingan — salute to Filipino heroes."},
+            {m:4, d:9,  icon:'🦅',badge:"Day of Valor",msg:"Day of Valor — salute to Filipino heroes."},
             {m:5, d:1,  icon:'👷',badge:"Labor Day",        msg:"Happy Labor Day! Your hard work matters."},
-            {m:6, d:12, icon:'🇵🇭',badge:"Independence Day", msg:"Happy Independence Day! Mabuhay ang Pilipinas!"},
+            {m:6, d:12, icon:'🇵🇭',badge:"Independence Day", msg:"Happy Independence Day! Long live the Philippines!"},
             {m:8, d:21, icon:'🦸',badge:"Ninoy Aquino Day", msg:"Remembering Ninoy Aquino's courage and sacrifice."},
             {m:8, d:26, icon:'🏆',badge:"National Heroes Day",msg:"Happy National Heroes Day! Honor our brave heroes."},
             {m:11,d:1,  icon:'🕯',badge:"All Saints Day",   msg:"All Saints Day — a time to honor and remember."},
@@ -46,7 +46,7 @@ function _barVerticalGradient(ctx, chartArea, color) {
             {m:12,d:31, icon:'🎆',badge:"New Year's Eve",   msg:"Happy New Year's Eve! See you on the other side."},
         ];
         for(var i=0;i<fixed.length;i++){if(fixed[i].m===m&&fixed[i].d===d)return fixed[i];}
-        if(m===8)return{icon:'📚',badge:'Buwan ng Wika',msg:"Buwan ng Wika — celebrate the Filipino language!"};
+        if(m===8)return{icon:'📚',badge:'National Language Month',msg:"National Language Month — celebrate the Filipino language!"};
         var easter=getEasterDate(y),et=easter.getTime(),DAY=86400000;
         var palmSunday=new Date(et-7*DAY),maundyThursday=new Date(et-3*DAY),goodFriday=new Date(et-2*DAY),blackSaturday=new Date(et-1*DAY);
         function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
@@ -2898,7 +2898,7 @@ debugCommands.help() - Show this help
                                 <div style="font-size:0.78rem; line-height:1.5; color:var(--text-primary);">
                                     <strong>${isFuture ? 'Future Year' : 'Year ' + toYear}</strong> — 
                                     ${isFuture
-                                        ? 'Walang data pa dito. Lahat ng tabs ay magiging <strong>blank</strong>.'
+                                        ? 'No data yet. All tabs will be <strong>blank</strong>.'
                                         : 'Previous data found. Existing inputs for this year will be loaded.'}
                                 </div>
                             </div>
@@ -6241,13 +6241,16 @@ function getReportProjects() {
 // the project is only counted starting the FOLLOWING month.
 // Example: project started September 3 → September and earlier are not required (this
 // returns true for them); October onward returns false (required as normal).
-function isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear) {
+function isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear, openStartMonth) {
     if (!p.dateStarted) return false;
     const selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
     const startD = new Date(p.dateStarted);
     if (isNaN(startD)) return false;
     const absStart = startD.getFullYear() * 12 + (startD.getMonth() + 1);
     const absMo    = selY * 12 + monthIdx1Based;
+    // openStartMonth = true (Total Exposures + ESH Activities and Programs only): the start month is open for input,
+    // because real exposure/activity happens from the start date. Only months BEFORE the start month are locked.
+    if (openStartMonth) return absMo < absStart;
     return absMo <= absStart; // the start month itself and earlier months are not required; counting begins the following month
 }
 
@@ -6325,10 +6328,10 @@ function getQuarterExemptTip(p, quarterNum, selectedYear) {
     return 'Work Stoppage period — Q' + quarterNum + ' is excluded from compliance computation.';
 }
 
-function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
+function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear, openStartMonth) {
     // Months before the project's dateStarted are never required — the project
     // didn't exist yet, so this always takes priority over the stoppage checks below.
-    if (isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear)) return true;
+    if (isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear, openStartMonth)) return true;
     // The month the project was declared finished, and every month after it, is never required
     // (months before the finish month stay required — see isProjectFinishedForMonth).
     if (isProjectFinishedForMonth(p, monthIdx1Based, selectedYear)) return true;
@@ -6354,9 +6357,10 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear) {
 // EMR, ESH Calendar, etc.) keep using isMonthBlacklistedForProject, where the resume month stays
 // frozen and the following month is the first required one.
 function isMonthLockedForExposure(p, monthIdx1Based, selectedYear) {
-    if (!isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear)) return false;
+    // The start month is open for input here (e.g. started 19 Sep → Sep is enabled).
+    if (!isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear, true)) return false;
     if (!p.workStoppageDate || !p.workResumeDate || p.dateFinished) return true;
-    if (isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear)) return true;
+    if (isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear, true)) return true;
     const selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
     const resD = new Date(p.workResumeDate);
     if (isNaN(resD)) return true;
@@ -8780,18 +8784,18 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             if ((m = txt.match(/\b(great|big)\s+toe\b|hallux/i))) {
                 const l = lvl(txt.slice(m.index, m.index + 140), true);
                 const k = l ? `Great Toe — ${l}` : '';
-                return has(k) ? { item: k } : { note: 'Great Toe amputation — walang nabasang level (distal/proximal/metatarsal). Pumili ng Scheduled Charge Item manually.' };
+                return has(k) ? { item: k } : { note: 'Great Toe amputation — no level found (distal/proximal/metatarsal). Select the Scheduled Charge Item manually.' };
             }
             if ((m = txt.match(/\btoes?\b/i))) {
                 const l = lvl(txt.slice(m.index, m.index + 140), true);
                 const k = l ? `Other Toe — ${l}` : '';
-                return has(k) ? { item: k } : { note: 'Toe amputation — walang nabasang level. Pumili ng Scheduled Charge Item manually.' };
+                return has(k) ? { item: k } : { note: 'Toe amputation — no level found. Select the Scheduled Charge Item manually.' };
             }
             if ((m = txt.match(/\b(index|middle|ring|little|pinky)\s+finger\b|\bthumb\b/i))) {
                 const w = m[1] ? ({ pinky: 'Little' }[m[1].toLowerCase()] || (m[1][0].toUpperCase() + m[1].slice(1).toLowerCase())) + ' Finger' : 'Thumb';
                 const l = lvl(txt.slice(m.index, m.index + 140), false);
                 const k = l ? `${w} — ${l}` : '';
-                return has(k) ? { item: k } : { note: `${w} amputation — walang nabasang level (distal/middle/proximal/metacarpal). Pumili ng Scheduled Charge Item manually.` };
+                return has(k) ? { item: k } : { note: `${w} amputation — no level found (distal/middle/proximal/metacarpal). Select the Scheduled Charge Item manually.` };
             }
             if (/\bfoot\b[^.]{0,40}\bankle|at (the )?ankle/i.test(txt)) return { item: 'Foot at Ankle' };
             if (/above[\s\-]+(the\s+)?elbow/i.test(txt)) return { item: 'Arm — Above Elbow (incl. joint)' };
@@ -8800,8 +8804,8 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             if (/below[\s\-]+(the\s+)?knee/i.test(txt)) return { item: 'Leg — Above Ankle / Below Knee' };
             if (/\bhand\b[^.]{0,60}wrist|wrist[\s\-]level|at the wrist|amputation of (the )?(left |right )?hand/i.test(txt))
                 return { item: 'Arm — Above Ankle / Below Elbow',
-                         note: 'Hand/wrist amputation — walang exact "Hand at Wrist" sa table, kaya "Arm — Above Ankle / Below Elbow" (pinakamalapit) ang napili. I-verify.' };
-            return { note: 'Amputation — hindi matukoy ang Scheduled Charge Item. Pumili manually.' };
+                         note: 'Hand/wrist amputation — there is no exact "Hand at Wrist" item in the table, so "Arm — Above Ankle / Below Elbow" (closest match) was selected. Please verify.' };
+            return { note: 'Amputation — the Scheduled Charge Item could not be determined. Select it manually.' };
         }
 
         function parseAiirDocument(html, plainText) {
@@ -9031,7 +9035,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 ];
                 let i = 0;
                 const next = () => {
-                    if (i >= urls.length) return reject(new Error('Hindi ma-load ang DOCX reader (check internet).'));
+                    if (i >= urls.length) return reject(new Error('Could not load the DOCX reader (check internet).'));
                     const sc = document.createElement('script');
                     sc.src = urls[i++];
                     sc.onload = () => resolve();
@@ -9064,7 +9068,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         // Nothing is uploaded or saved — the file is only read. Cells -> " | ", rows -> new line.
         function _aiirDocBinaryRaw(buf) {
             const dv = new DataView(buf);
-            if (dv.getUint32(0, true) !== 0xE011CFD0 || dv.getUint32(4, true) !== 0xE11AB1A1) throw new Error('Hindi valid na Word .doc ang file.');
+            if (dv.getUint32(0, true) !== 0xE011CFD0 || dv.getUint32(4, true) !== 0xE11AB1A1) throw new Error('The file is not a valid Word .doc.');
             const ssz = 1 << dv.getUint16(0x1E, true), mssz = 1 << dv.getUint16(0x20, true), cutoff = dv.getUint32(0x38, true);
             const u8 = new Uint8Array(buf);
             const sectOff = s => (s + 1) * ssz;
@@ -9102,13 +9106,13 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             };
             // Word file information block + piece table
             const wdEnt = ents.find(e => e.name === 'WordDocument');
-            if (!wdEnt) throw new Error('Walang Word content sa .doc file.');
+            if (!wdEnt) throw new Error('No Word content found in the .doc file.');
             const W = readStream(wdEnt), wv = new DataView(W.buffer, W.byteOffset, W.length);
-            if (wv.getUint16(0, true) !== 0xA5EC) throw new Error('Napakaluma ng .doc (Word 6/95). Buksan sa Word → Save As → .docx, tapos i-import ulit.');
+            if (wv.getUint16(0, true) !== 0xA5EC) throw new Error('The .doc file is too old (Word 6/95). Open it in Word → Save As → .docx, then import it again.');
             const flags = wv.getUint16(0x0A, true);
-            if (flags & 0x0100) throw new Error('May password ang Word file. Tanggalin muna ang password.');
+            if (flags & 0x0100) throw new Error('The Word file has a password. Remove the password first.');
             const tEnt = ents.find(e => e.name === ((flags & 0x0200) ? '1Table' : '0Table'));
-            if (!tEnt) throw new Error('Sira ang .doc file (walang table stream).');
+            if (!tEnt) throw new Error('The .doc file is damaged (no table stream).');
             const T = readStream(tEnt), tv = new DataView(T.buffer, T.byteOffset, T.length);
             const ccpText = wv.getInt32(0x4C, true);
             const fcClx = wv.getUint32(0x1A2, true), lcbClx = wv.getUint32(0x1A6, true);
@@ -9118,7 +9122,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 else if (T[p] === 2) { plcLen = tv.getUint32(p + 1, true); plc = p + 5; break; }
                 else break;
             }
-            if (plc < 0) throw new Error('Hindi mabasa ang text ng .doc file.');
+            if (plc < 0) throw new Error('Could not read the text of the .doc file.');
             const n = ((plcLen - 4) / 12) | 0, w1252 = new TextDecoder('windows-1252'), u16 = new TextDecoder('utf-16le');
             let text = '';
             for (let i = 0; i < n; i++) {
@@ -9267,7 +9271,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 const v = regexRes && regexRes.data && regexRes.data[k];
                 if (Array.isArray(v) && v.length) { res.data[k] = v; res.found.push(k); n++; }
             });
-            if (!n) res.notes = [...(res.notes || []), 'Walang nabasang Contributing Factors sa Section I (Root-Cause Analysis). Iniwang N/A.'];
+            if (!n) res.notes = [...(res.notes || []), 'No Contributing Factors found in Section I (Root-Cause Analysis). Left as N/A.'];
             return res;
         }
 
@@ -9294,7 +9298,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             }
             if (!val && regexRes && regexRes.data && regexRes.data.natureOfIncident) val = regexRes.data.natureOfIncident;
             if (val) { res.data.natureOfIncident = val; res.found.push('natureOfIncident'); }
-            else res.notes.push('Hindi matukoy ang Nature of Incident mula sa Detailed Description. Pumili nang manual.');
+            else res.notes.push('Nature of Incident could not be determined from the Detailed Description. Select it manually.');
             return res;
         }
 
@@ -9326,14 +9330,14 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 res.data.timeline = uniq(rows.map(x => x.timeline));
                 if (!res.found.includes('correctiveActions')) res.found.push('correctiveActions');
             } else if (!(res.data.correctiveActions && res.data.correctiveActions.length)) {
-                res.notes.push('Walang nabasang Corrective Action sa AIIR. Ilagay nang manual.');
+                res.notes.push('No Corrective Action found in the AIIR. Enter it manually.');
             }
             return res;
         }
 
         async function _aiirReadFile(f) {
             // Microsoft Word files only (any version). Type is checked by file content, not just the name.
-            if (!/\.(docx|docm|dotx|dotm|doc|dot)$/i.test(f.name)) throw new Error('Microsoft Word file lang ang tinatanggap (.doc, .docx, .docm, .dotx, .dotm).');
+            if (!/\.(docx|docm|dotx|dotm|doc|dot)$/i.test(f.name)) throw new Error('Only Microsoft Word files are accepted (.doc, .docx, .docm, .dotx, .dotm).');
             const buf = await f.arrayBuffer();
             const b = new Uint8Array(buf, 0, Math.min(8, buf.byteLength));
             const isZip = b[0] === 0x50 && b[1] === 0x4B;                                        // Word 2007+ (.docx/.docm/.dotx/.dotm)
@@ -9343,7 +9347,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 await _aiirLoadMammoth();
                 let out;
                 try { out = await window.mammoth.convertToHtml({ arrayBuffer: buf }); }
-                catch (e) { throw new Error('Hindi mabasa ang file. Hindi ito valid na Microsoft Word document.'); }
+                catch (e) { throw new Error('Could not read the file. It is not a valid Microsoft Word document.'); }
                 text = _aiirHtmlToText(out.value);
                 regexRes = parseAiirDocument(out.value);
             } else if (isOle) {
@@ -9356,7 +9360,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     regexRes.found = (regexRes.found || []).filter(k => k !== 'correctiveActions').concat('correctiveActions');
                 }
             } else {
-                throw new Error('Hindi ito valid na Microsoft Word document.');
+                throw new Error('This is not a valid Microsoft Word document.');
             }
             let res;
             try {
@@ -9364,7 +9368,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 res = await _aiirNatureFromDescription(res, text, regexRes);
             } catch (err) {
                 console.warn('AIIR AI extraction failed, using regex fallback:', err);
-                regexRes.notes = ['AI reader hindi available — regex parser ang ginamit (mas mababa ang accuracy). Suriing mabuti ang lahat ng fields.', ...(regexRes.notes || [])];
+                regexRes.notes = ['AI reader is not available — the regex parser was used (lower accuracy). Check all fields carefully.', ...(regexRes.notes || [])];
                 res = regexRes;
             }
             return _aiirApplyInjuredPersonRule(_aiirUseTableCorrectiveActions(res, regexRes));
@@ -9382,10 +9386,10 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 const f = inp.files && inp.files[0];
                 if (!f) return;
                 try {
-                    showToast('🤖 Binabasa ng AI ang AIIR...', 'info', 4000);
+                    showToast('🤖 The AI is reading the AIIR...', 'info', 4000);
                     const res = await _aiirReadFile(f);
                     if (!res.data.aiirNo && !res.data.dateOfAccident) {
-                        throw new Error('Walang nabasang AIIR No. o Date of Accident. Tama ba ang template (FM-ESH-13-01)?');
+                        throw new Error('No AIIR No. or Date of Accident found. Is the template correct (FM-ESH-13-01)?');
                     }
                     // Duplicate check across all projects — do not add if AIIR No. already exists
                     if (res.data.aiirNo) {
@@ -9394,7 +9398,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                             const list = (proj.vals && proj.vals['lta-registry_entries']) || [];
                             const di = list.findIndex(x => x && _aiirNorm(x.aiirNo) === key);
                             if (di >= 0) {
-                                showToast(`⚠️ ${res.data.aiirNo} ay existing na sa ${proj.name} — hindi dinagdag.`, 'error', 5000);
+                                showToast(`⚠️ ${res.data.aiirNo} already exists in ${proj.name} — not added.`, 'error', 5000);
                                 if (proj.name === pName) openLtaModal(pName, di, false);
                                 return;
                             }
@@ -9403,7 +9407,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     _ltaAutoEditMode();
                     window._ltaPrefill = res.data;
                     openLtaModal(pName, -1, true);
-                    showToast(`✅ ${res.found.length} fields na-fill ${res.ai ? '(AI)' : '(regex)'} mula sa AIIR. I-review bago i-save (lalo na ang dropdowns).`, 'success', 6000);
+                    showToast(`✅ ${res.found.length} fields filled ${res.ai ? '(AI)' : '(regex)'} from the AIIR. Review before saving (especially the dropdowns).`, 'success', 6000);
                     if (res.notes && res.notes.length) setTimeout(() => showToast('⚠️ ' + res.notes.join(' '), 'error', 9000), 600);
                 } catch (err) {
                     console.error('AIIR import failed:', err);
@@ -9603,7 +9607,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                             ${canEdit ? `<button type="button"
                                 id="ltamod-naBtn-${pId}"
                                 onclick="window._ltaModalToggleNA('${pId}')"
-                                title="Walang injured person — i-disable ang buong section"
+                                title="No injured person — disable the whole section"
                                 style="flex-shrink:0;padding:2px 10px;border-radius:6px;
                                     border:1.5px solid ${e.injuredPersonName==='N/A'?'#2e7d32':'#bbb'};
                                     background:${e.injuredPersonName==='N/A'?'#e8f5e9':'#f9f9f9'};
@@ -14681,10 +14685,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         const _isCurrentYear = _selYear === _realCurYear;
 
                         // ── DOLE deadline-aware overdue check ─────────────────────────────────
-                        // Red lang kung NAKALIPAS na ang actual DOLE submission deadline:
+                        // Red only if the actual DOLE submission deadline has PASSED:
                         //   WAIR / MOM / RSO : due on the 20th of the FOLLOWING month
                         //   (AEDR & AMR are annual — handled separately above)
-                        // Para sa ibang tabs, original logic pa rin (_isCurrentMonth || _isPastMonth).
+                        // For other tabs, the original logic still applies (_isCurrentMonth || _isPastMonth).
                         function _isDoleDeadlinePassed(monthIdx1Based) {
                             const _now = new Date();
                             const _nowY = _now.getFullYear();
@@ -22439,6 +22443,14 @@ function buildTrendChartHTML(tabType) {
         <div id="rateMiniVal_${key}" style="font-size:1.6rem;font-weight:800;line-height:1.2;margin:2px 0;color:var(--text-primary);">–</div>
         <div id="rateMiniSub_${key}" style="font-size:0.72rem;font-weight:700;min-height:20px;color:var(--text-secondary);"></div>
         <div style="position:relative;height:140px;margin-top:6px;"><canvas id="trendChart_rates_${key}"></canvas></div></div>`;
+    const _incKpi = (key, label) => `<div style="border:1px solid var(--border-color);border-radius:12px;padding:10px 12px;background:var(--bg-card);">
+        <div style="font-size:0.74rem;color:var(--text-secondary);">${label} (YTD)</div>
+        <div id="incKpi_${key}" style="font-size:1.5rem;font-weight:700;color:var(--text-primary);">0</div></div>`;
+    const _incidentLayout = '<div class="inc-kpis">' + _incKpi('fat','Fatality') + _incKpi('lta','LTA') + _incKpi('mt','Medical Treatment') + _incKpi('nm','Near-miss') + '</div>'
+        + '<div class="inc-split">'
+        + '<div><p style="font-size:0.8rem;font-weight:700;margin:0 0 6px;color:var(--text-primary);">Injuries and incidents</p><div style="position:relative;height:280px;"><canvas id="trendChart_medical_inj"></canvas></div></div>'
+        + '<div><p style="font-size:0.8rem;font-weight:700;margin:0 0 6px;color:var(--text-primary);">Near-miss reports</p><div style="position:relative;height:280px;"><canvas id="trendChart_medical_nm"></canvas></div></div>'
+        + '</div>';
     const persistentEl = document.getElementById(persistentId);
     if (persistentEl && !persistentEl.dataset.initialized) {
         persistentEl.dataset.initialized = 'true';
@@ -22471,6 +22483,7 @@ function buildTrendChartHTML(tabType) {
         <div style="padding: 14px 16px;">
           ${tabType === 'rates'
             ? '<div class="rate-mini-grid">' + _miniCard('ltir','LTIR · target 0.50') + _miniCard('trir','TRIR · target 1.25') + _miniCard('sev','SEVERITY RATE · no target') + '</div>'
+            : tabType === 'medical' ? _incidentLayout
             : '<canvas id="trendChart_' + tabType + '" style="max-height: 400px;width:100%;"></canvas>'}
         </div>
       </div>`;
@@ -22542,6 +22555,93 @@ function _renderRatesMini(datasets) {
     });
 }
 
+// ACCIDENT/INCIDENT TRENDS: YTD totals + stacked bars (injuries) + separate near-miss chart
+function _renderIncidentSplit(datasets) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dark = !!(state && state.darkMode);
+    const gridC = dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+    const tickC = dark ? '#9aa8a0' : '#5d6b63';
+    const byName = {};
+    datasets.forEach(d => { byName[d.label] = d.data; });
+    const zeros = () => new Array(12).fill(0);
+    const sum = a => (a || []).reduce((x, y) => x + y, 0);
+    const order = [
+        { n: 'First Aid', c: '#8bd17c' }, { n: 'Medical Treatment', c: '#f2c94c' }, { n: 'LTA', c: '#f2994a' },
+        { n: 'Dangerous Occurrences', c: '#e0613a' }, { n: 'High-Potential incident', c: '#d64545' }, { n: 'Fatality', c: '#7f1d1d' }
+    ];
+    const nmData = byName['No. of Identified Near-Miss'] || zeros();
+
+    const setK = (key, val, color) => {
+        const el = document.getElementById('incKpi_' + key);
+        if (el) { el.textContent = val; el.style.color = color || ''; }
+    };
+    const fat = sum(byName['Fatality']);
+    setK('fat', fat, fat ? '#b71c1c' : '#15803d');
+    setK('lta', sum(byName['LTA']));
+    setK('mt', sum(byName['Medical Treatment']));
+    setK('nm', sum(nmData));
+
+    const applyTheme = ch => {
+        ['x', 'y'].forEach(k => { ch.options.scales[k].ticks.color = tickC; });
+        ch.options.scales.y.grid.color = gridC;
+        if (ch.options.plugins.legend.labels) ch.options.plugins.legend.labels.color = tickC;
+    };
+
+    // Injuries: stacked bars
+    const stackDs = order.map(o => ({ label: o.n, data: byName[o.n] || zeros(), backgroundColor: o.c, borderRadius: 4, borderSkipped: false, maxBarThickness: 30 }));
+    const inj = trendChartInstances['medical_inj'];
+    if (inj) {
+        stackDs.forEach((d, i) => { inj.data.datasets[i].data = d.data; });
+        applyTheme(inj);
+        inj.update();
+    } else {
+        const cv = document.getElementById('trendChart_medical_inj');
+        if (cv) {
+            trendChartInstances['medical_inj'] = new Chart(cv.getContext('2d'), {
+                type: 'bar',
+                data: { labels: months, datasets: stackDs },
+                options: {
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8, color: tickC, font: { size: 11 } } },
+                        tooltip: { backgroundColor: 'rgba(0,0,0,0.85)', padding: 10, cornerRadius: 8 }
+                    },
+                    scales: {
+                        x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { color: tickC } },
+                        y: { stacked: true, beginAtZero: true, grid: { color: gridC }, border: { display: false }, ticks: { color: tickC, precision: 0 } }
+                    }
+                }
+            });
+        }
+    }
+
+    // Near-miss: own chart
+    const nm = trendChartInstances['medical_nm'];
+    if (nm) {
+        nm.data.datasets[0].data = nmData;
+        applyTheme(nm);
+        nm.update();
+    } else {
+        const cv2 = document.getElementById('trendChart_medical_nm');
+        if (cv2) {
+            trendChartInstances['medical_nm'] = new Chart(cv2.getContext('2d'), {
+                type: 'line',
+                data: { labels: months, datasets: [{ label: 'Near-miss', data: nmData, borderColor: '#7e57c2', backgroundColor: '#7e57c222', fill: true, borderWidth: 2.5, cubicInterpolationMode: 'monotone', pointRadius: 0, pointHoverRadius: 5 }] },
+                options: {
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.85)', padding: 10, cornerRadius: 8 } },
+                    scales: {
+                        x: { grid: { display: false }, border: { display: false }, ticks: { color: tickC, maxTicksLimit: 6 } },
+                        y: { beginAtZero: true, grid: { color: gridC }, border: { display: false }, ticks: { color: tickC, precision: 0 } }
+                    }
+                }
+            });
+        }
+    }
+}
+
 function populateProjectFilter(tabType) {
     const suffix = tabType || '';
     const ids = suffix ? [`trendProjectFilter_${suffix}`] : ['trendProjectFilter_rates', 'trendProjectFilter_medical'];
@@ -22587,7 +22687,7 @@ function _doUpdateTrendChart(tabType) {
     const regionFilter = document.getElementById(`trendRegionFilter_${tabType}`)?.value || 'all';
     const projectFilter = document.getElementById(`trendProjectFilter_${tabType}`)?.value || 'all';
     const chartId = `trendChart_${tabType}`;
-    const canvas = document.getElementById(chartId) || (tabType === 'rates' ? document.getElementById('trendChart_rates_ltir') : null);
+    const canvas = document.getElementById(chartId) || (tabType === 'rates' ? document.getElementById('trendChart_rates_ltir') : tabType === 'medical' ? document.getElementById('trendChart_medical_inj') : null);
     
     if (!canvas) return;
     
@@ -22720,6 +22820,8 @@ function _doUpdateTrendChart(tabType) {
                 pointHoverRadius: 6
             });
         });
+        _renderIncidentSplit(datasets);
+        return;
     }
     
     const ctx = canvas.getContext('2d');
@@ -24376,16 +24478,16 @@ function startForceLogoutListener(userId) {
     console.log('✅ Force logout listener active for uid:', userId);
 
     // ── PASSWORD CHANGED LISTENER ─────────────────────────────────────────
-    // Kapag nagbago ang password ng account (mula sa ibang device), auto-logout
-    // ang lahat ng ibang sessions para masiguro ang security.
+    // When the account password is changed (from another device), automatically log out
+    // all other sessions to keep the account secure.
     const pwChangedRef = window.firebase.dbRef(window.firebaseRealtimeDb, `password_changed/${userId}`);
     window.firebase.onValue(pwChangedRef, async (snapshot) => {
         if (!snapshot.exists()) return;
         const data = snapshot.val();
-        // Skip kung tayo mismo ang nagbago — ito ang device na nag-update
+        // Skip if this device made the change — this is the device that updated it
         if (data && data.changedBy && state.deviceFingerprint &&
             data.changedBy === state.deviceFingerprint) {
-            // Ito ang device na nagbago ng password — huwag i-logout, burahin lang ang flag
+            // This device changed the password — do not log out, just delete the flag
             try { await window.firebase.remove(pwChangedRef); } catch(e) {}
             return;
         }
@@ -24594,9 +24696,9 @@ function setupAuthObserver() {
                 window.RowSaveManager.attachRealtimeSync(_rsmYear);
             }
 
-            // ── AUTO-REFRESH: i-listen ang role changes para walang need ng hard refresh ──
-            // Kapag binago ng admin ang role/displayName ng user sa Firestore,
-            // automatic na ma-detect ito at mare-reload ang page para ma-apply agad.
+            // ── AUTO-REFRESH: listen for role changes so no hard refresh is needed ──
+            // When an admin changes a user's role/displayName in Firestore,
+            // it is detected automatically and the page reloads to apply it right away.
             try {
                 const roleDocRef = window.firebase.doc(window.firebaseDb, 'roles', user.uid);
                 window._roleUnsubscribe = window.firebase.onSnapshot(roleDocRef, (snap) => {
