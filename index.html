@@ -76,7 +76,7 @@
         window.firebaseDb = db;
         window.firebaseRealtimeDb = realtimeDb;
 
-        // ── SESSION PERSISTENCE: auto-logout kapag nagsara ng tab/browser ─────
+        // ── SESSION PERSISTENCE: auto-logout when the tab/browser is closed ─────
         try {
             await setPersistence(auth, browserSessionPersistence);
             console.log('🔒 Auth persistence: SESSION (auto-logout on tab/browser close)');
