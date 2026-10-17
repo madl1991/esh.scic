@@ -2040,17 +2040,20 @@
         .region-content {
             overflow: hidden;
             opacity: 1;
-            max-height: 9999px;
             border: 1px solid #c8e6c9;
             border-top: none;
             border-radius: 0 0 10px 10px;
             margin: 0 16px 10px;
             padding: 10px 0 4px;
-            transition: max-height 0.35s ease, opacity 0.25s ease, margin 0.25s ease;
+            transition: height 0.28s cubic-bezier(0.2, 0, 0, 1), opacity 0.2s ease, margin 0.25s ease;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .region-content { transition: none; }
         }
 
         .region-content.collapsed {
-            max-height: 0 !important;
+            height: 0;
             opacity: 0;
             border: none;
             margin-bottom: 0;
@@ -6250,3 +6253,36 @@ body.dark-mode [style*="var(--safety-yellow)"][style*="color: #1b5e20"] {color:#
 .inc-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
 .inc-split{display:grid;grid-template-columns:2fr 1fr;gap:14px}
 @media (max-width:760px){.inc-split{grid-template-columns:1fr}}
+
+/* ── Statistics rate YTD summary (tiles + status rows) ── */
+.srs-card{margin:0 16px 14px;padding:16px 18px;background:var(--bg-card,#fff);border:1px solid var(--border-color,#c8e6c9);border-left:5px solid #1b5e20;border-radius:10px;box-shadow:0 2px 10px rgba(27,94,32,.10)}
+.srs-title{font-family:Poppins,sans-serif;font-size:.88rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:.04em}
+.srs-sub{font-size:.62rem;color:var(--text-secondary,#5d6b61);margin:3px 0 14px;line-height:1.5}
+.srs-card{padding:12px 16px}
+.srs-sub{margin-bottom:10px}
+.srs-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:16px;align-items:start}
+.srs-tbl{width:100%;border-collapse:collapse;font-size:.7rem}
+.srs-tbl th{font-size:.6rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-secondary,#5d6b61);text-align:left;padding:4px 8px;border-bottom:1px solid var(--border-color,#dbe4dc)}
+.srs-tbl td{padding:5px 8px;border-bottom:1px solid var(--border-color,#e6ece7)}
+.srs-n{text-align:right!important}
+td.srs-n.srs-act,td.srs-n.srs-watch,td.srs-n.srs-ok{color:var(--c);font-weight:800}
+.srs-list{list-style:none;margin:0;padding:0;font-size:.68rem;line-height:1.5}
+.srs-list li{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px solid var(--border-color,#e6ece7)}
+.srs-badge{flex:none;min-width:58px;text-align:center;font-size:.54rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;background:var(--c);border-radius:999px;padding:2px 8px;margin-top:1px}
+.srs-ok{--c:#2e7d32}.srs-watch{--c:#b26a00}.srs-act{--c:#c62828}.srs-na{--c:#6b7a70}
+@media (max-width:700px){.srs-cols{grid-template-columns:minmax(0,1fr)}}
+
+
+/* Project card + table share one container.
+   Applies only when the table comes right after the project card. */
+.project-row:has(+ .table-container) {
+    margin-bottom: 0;
+    border-radius: 10px 10px 0 0;
+    box-shadow: none;
+}
+.project-row + .table-container {
+    margin: 0 14px 8px;
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
