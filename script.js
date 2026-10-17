@@ -20,6 +20,25 @@ function _barVerticalGradient(ctx, chartArea, color) {
     gradient.addColorStop(1, _lightenColor(color, 0.45));   // only the bottom portion fades to a lighter tint
     return gradient;
 }
+// ── DOLE report full names (display only — data keys stay WAIR / RSO / MOM / AEDR / AMR) ──
+var DOLE_FULL_NAMES = {
+    WAIR: 'Work Accident/Illness Report',
+    RSO:  'Report on Safety and Health Organization',
+    MOM:  'Minutes of the Meeting',
+    AEDR: 'Annual Work Accident/Illness Exposure Data Report',
+    AMR:  'Annual Medical Report'
+};
+function doleFullName(id) { return DOLE_FULL_NAMES[id] || id; }
+// Annual report (AEDR / AMR) N/A flag per project (per year) — stored as p.vals['dole_<ROW>__na'] = '1'
+function isDoleAnnualNA(p, row) { return !!(p && p.vals && p.vals['dole_' + row + '__na'] === '1'); }
+function isDoleAedrNA(p) { return isDoleAnnualNA(p, 'AEDR'); }
+function isDoleAmrNA(p) { return isDoleAnnualNA(p, 'AMR'); }
+window.DOLE_FULL_NAMES = DOLE_FULL_NAMES;
+window.doleFullName = doleFullName;
+window.isDoleAedrNA = isDoleAedrNA;
+window.isDoleAmrNA = isDoleAmrNA;
+window.isDoleAnnualNA = isDoleAnnualNA;
+
 (function() {
     function getEasterDate(year) {
         var a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25);
@@ -3563,6 +3582,7 @@ debugCommands.help() - Show this help
                     // or stoppage-year exemption → never flag as missing.
                     if (!isDoleAnnualRequired(project, _doleSelYr)) return;
                     if (isDoleAnnualStoppageExempt(project, _doleSelYr)) return;
+                    if (isDoleAnnualNA(project, row)) return; // marked N/A (AEDR or AMR) → never flag as missing
                     const val = project.vals[`dole_${row}`] ? (project.vals[`dole_${row}`][1] || '') : '';
                     if (!val || val.trim() === '') {
                         overdueTabs.push({ name: `${label} (Missing)`, tab: 'dole' });
@@ -3577,6 +3597,7 @@ debugCommands.help() - Show this help
                 const _embSelYr = _notifSelYr;
                 const key_emb = 'emb_SMR (Quarterly) - Submission Date';
                 const key_emb_coc = 'emb_SMR (Quarterly) - Care of Client';
+                const key_emb_na  = 'emb_SMR (Quarterly) - N/A';
                 for (let quarter = 1; quarter <= 4; quarter++) {
                     let isOverdue = false;
                     if (quarter === 4) {
@@ -3589,9 +3610,11 @@ debugCommands.help() - Show this help
                         else if (currentYear === _embSelYr && (currentMonth > deadlineMonth || (currentMonth === deadlineMonth && currentDay > 15))) isOverdue = true;
                     }
                     if (isOverdue) {
-                        // Check Care of Client exemption — if CoC is set, project is exempt for this quarter
+                        // Check Care of Client / N/A exemption — if either is set, project is exempt for this quarter
                         const cocV = project.vals[key_emb_coc] ? project.vals[key_emb_coc][quarter] : '';
-                        const isCocExempt = cocV === true || cocV === 'true' || cocV === '1';
+                        const naV  = project.vals[key_emb_na]  ? project.vals[key_emb_na][quarter]  : '';
+                        const isCocExempt = cocV === true || cocV === 'true' || cocV === '1'
+                                         || naV  === true || naV  === 'true' || naV  === '1';
                         if (!isCocExempt) {
                             const value = project.vals[key_emb] ? project.vals[key_emb][quarter] : '';
                             if (!value || value.toString().trim() === '') { hasEmbOverdue = true; break; }
@@ -6172,6 +6195,77 @@ function isProjectOnStoppage(p) {
     return !!(p.workStoppageDate && !p.workResumeDate);
 }
 
+// ── Shared project list + stats targets (single source for counts and rates) ──
+// Reporting projects = real projects only (no CORPORATE, no PLANT OPERATIONS).
+// Finished/stopped projects stay in the list, because their YTD data still counts.
+// Pass { activeOnly: true } to get only projects that are not stopped and not finished.
+window.STATS_TARGETS = { ltir: 0.50, trir: 1.25, sr: null }; // sr: null = no target set
+
+// ── Cumulative YTD rates (Jan → reporting month) ─────────────────────────
+// Base follows the OSHS / OSHA toggle (state.ratesStandard): OSHS = 1,000,000 hrs, OSHA = 200,000 hrs,
+// the same base for LTIR, TRIR and Severity Rate (as before).
+// Cases, lost workdays and man-hours accumulate month by month. A month with no new
+// incident keeps the earlier cases in the numerator, so the rate falls only because
+// man-hours grow. High-Potential Incident is not recordable.
+window.RATE_BASES = {};
+['LTIR', 'TRIR', 'SEVERITY RATE'].forEach(function(k) {
+    Object.defineProperty(window.RATE_BASES, k, { enumerable: true, get: function() {
+        return (typeof state !== 'undefined' && state && state.ratesStandard === 'osha') ? 200000 : 1000000;
+    } });
+});
+window.calcCumRate = function(rateKey, lta, rec, dl, mh) {
+    if (!(mh > 0)) return null;
+    const n = rateKey === 'LTIR' ? lta : rateKey === 'TRIR' ? rec : dl;
+    return (n * window.RATE_BASES[rateKey]) / mh;
+};
+// Display rounding. OSHS (PH, Rule 1056.03): LTIR 2 decimals, Severity Rate whole number.
+// TRIR is not in the OSH Standards, so it uses 2 decimals. OSHA: 2 decimals for all three.
+// Math stays at full precision; only the shown / stored text is rounded. 'std' is optional ('osha' | 'oshs').
+window.formatRate = function(rateKey, v, std) {
+    if (v === null || v === undefined || isNaN(v)) return '';
+    const s = std || ((typeof state !== 'undefined' && state && state.ratesStandard === 'osha') ? 'osha' : 'oshs');
+    const dec = (s !== 'osha' && rateKey === 'SEVERITY RATE') ? 0 : 2;
+    const out = v.toFixed(dec);
+    return parseFloat(out) === 0 ? '0' : out;
+};
+window.buildCumulativeSeries = function(projects, maxMonth) {
+    const n = maxMonth || 12;
+    const mh = new Array(13).fill(0), lta = new Array(13).fill(0),
+          rec = new Array(13).fill(0), dl = new Array(13).fill(0);
+    let cMh = 0, cLta = 0, cRec = 0, cDl = 0, last = 0;
+    for (let m = 1; m <= n; m++) {
+        let mMh = 0;
+        (projects || []).forEach(function(p) {
+            if (!p || !p.vals) return;
+            const g = function(k) { return parseFloat(p.vals[k] && p.vals[k][m]) || 0; };
+            mMh += g('exposures_Total Exposed Manhour');
+            const l = g('medical_LTA'), me = g('medical_Medical Treatment'), f = g('medical_Fatality');
+            cLta += l; cRec += l + me + f; cDl += g('medical_Days Lost/Charged');
+        });
+        cMh += mMh;
+        if (mMh > 0) last = m; // last month that has man-hours encoded
+        mh[m] = cMh; lta[m] = cLta; rec[m] = cRec; dl[m] = cDl;
+    }
+    return { mh: mh, lta: lta, rec: rec, dl: dl, last: last };
+};
+function getReportingProjects(list, opts) {
+    const src = list || (state && state.projects) || [];
+    const activeOnly = !!(opts && opts.activeOnly);
+    return src.filter(function(p) {
+        if (p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') return false;
+        if (activeOnly && (isProjectOnStoppage(p) || p.dateFinished)) return false;
+        return true;
+    });
+}
+// Label for the "N PROJECTS" pill. If the table also shows a Corporate row, say so.
+function getProjectCountLabel(list) {
+    // PLANT OPERATIONS is never counted or mentioned. Only the Corporate row is shown as an extra.
+    const all = (list || []).filter(function(p) { return p.region !== 'PLANT OPERATIONS'; });
+    const n = getReportingProjects(all).length;
+    const extra = all.length - n; // Corporate rows only
+    return n + ' PROJECTS' + (extra > 0 ? ' + ' + extra + ' CORP' : '');
+}
+
 // ── DOLE Annual Reports (AEDR / AMR) ─────────────────────────────────────────
 // The annual report shown under year Y covers Y-1 and is submitted in Y
 // (AEDR due Jan 30, AMR due Mar 31). There is NO "one year of operation" requirement:
@@ -6606,6 +6700,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             // ── Area 8: SMR Quarterly (4 quarters; Care-of-Client quarter → exempt) ──
             const _smrKey    = 'emb_SMR (Quarterly) - Submission Date';
             const _smrCocKey = 'emb_SMR (Quarterly) - Care of Client';
+            const _smrNaKey  = 'emb_SMR (Quarterly) - N/A';
             let smrF = 0, smrT = 0;
             for (let q = 1; q <= 4; q++) {
                 if (q * 3 > _cutM) continue; // quarter not due yet
@@ -6613,6 +6708,8 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 const _coc  = vals[_smrCocKey] && vals[_smrCocKey][q];
                 const _isCoC = _coc === true || _coc === 'true' || _coc === '1' || _coc === 1;
                 if (_isCoC) continue; // exempt quarter
+                const _na   = vals[_smrNaKey] && vals[_smrNaKey][q];
+                if (_na === true || _na === 'true' || _na === '1' || _na === 1) continue; // N/A quarter
                 smrT++;
                 const v = vals[_smrKey] && vals[_smrKey][q];
                 if (v && v.toString().trim() !== '') smrF++;
@@ -6623,6 +6720,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             // ── Area 9: CMR Semi-Annual (2 periods; Care-of-Client period → exempt) ──
             const _cmrKey    = 'emb_CMR (Semi-Annual) - Submission Date';
             const _cmrCocKey = 'emb_CMR (Semi-Annual) - Care of Client';
+            const _cmrNaKey  = 'emb_CMR (Semi-Annual) - N/A';
             let cmrF = 0, cmrT = 0;
             for (let p2 = 1; p2 <= 2; p2++) {
                 if (p2 * 6 > _cutM) continue; // period not due yet
@@ -6630,6 +6728,8 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 const _coc  = vals[_cmrCocKey] && vals[_cmrCocKey][p2];
                 const _isCoC = _coc === true || _coc === 'true' || _coc === '1' || _coc === 1;
                 if (_isCoC) continue;
+                const _na   = vals[_cmrNaKey] && vals[_cmrNaKey][p2];
+                if (_na === true || _na === 'true' || _na === '1' || _na === 1) continue; // N/A period
                 cmrT++;
                 const v = vals[_cmrKey] && vals[_cmrKey][p2];
                 if (v && v.toString().trim() !== '') cmrF++;
@@ -7117,10 +7217,13 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     // Area 8: SMR Quarterly
                     const _smrKey = 'emb_SMR (Quarterly) - Submission Date';
                     const _smrCocKey = 'emb_SMR (Quarterly) - Care of Client';
+                    const _smrNaKey  = 'emb_SMR (Quarterly) - N/A';
                     for (let q = 1; q <= 4; q++) {
                         if (q * 3 > _cutM) continue; // quarter not due yet
                         const _coc = vals[_smrCocKey] && vals[_smrCocKey][q];
                         if (_coc === true || _coc === 'true' || _coc === '1' || _coc === 1) continue;
+                        const _na = vals[_smrNaKey] && vals[_smrNaKey][q];
+                        if (_na === true || _na === 'true' || _na === '1' || _na === 1) continue;
                         addRequired('EMB Reportorial (SMR)', 1);
                         const v = vals[_smrKey] && vals[_smrKey][q];
                         if (!v || v.toString().trim() === '') addGap('EMB Reportorial (SMR)', proj, `Q${q} — SMR Submission Date missing`);
@@ -7128,10 +7231,13 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     // Area 9: CMR Semi-Annual
                     const _cmrKey = 'emb_CMR (Semi-Annual) - Submission Date';
                     const _cmrCocKey = 'emb_CMR (Semi-Annual) - Care of Client';
+                    const _cmrNaKey  = 'emb_CMR (Semi-Annual) - N/A';
                     for (let p2 = 1; p2 <= 2; p2++) {
                         if (p2 * 6 > _cutM) continue; // period not due yet
                         const _coc = vals[_cmrCocKey] && vals[_cmrCocKey][p2];
                         if (_coc === true || _coc === 'true' || _coc === '1' || _coc === 1) continue;
+                        const _na = vals[_cmrNaKey] && vals[_cmrNaKey][p2];
+                        if (_na === true || _na === 'true' || _na === '1' || _na === 1) continue;
                         addRequired('EMB Reportorial (CMR)', 1);
                         const v = vals[_cmrKey] && vals[_cmrKey][p2];
                         if (!v || v.toString().trim() === '') addGap('EMB Reportorial (CMR)', proj, `Period ${p2} — CMR Submission Date missing`);
@@ -8021,15 +8127,32 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
 
             if (expandedRegions.has(regionName)) {
                 expandedRegions.delete(regionName);
-                regionContent.classList.add('collapsed');
+                _animateRegion(regionContent, true);
                 regionBanner.classList.add('collapsed');
             } else {
                 expandedRegions.add(regionName);
-                regionContent.classList.remove('collapsed');
+                _animateRegion(regionContent, false);
                 regionBanner.classList.remove('collapsed');
             }
 
             localStorage.setItem(_EXP_KEY, JSON.stringify([...expandedRegions]));
+        }
+
+        function _animateRegion(el, collapse) {
+            clearTimeout(el._rhT);
+            if (collapse) {
+                el.style.height = el.offsetHeight + 'px';
+                void el.offsetHeight;
+                el.classList.add('collapsed');
+                el.style.height = '0px';
+            } else {
+                el.classList.remove('collapsed');
+                el.style.height = '0px';
+                const target = el.scrollHeight + (el.offsetHeight - el.clientHeight);
+                void el.offsetHeight;
+                el.style.height = target + 'px';
+                el._rhT = setTimeout(function () { el.style.height = ''; }, 300);
+            }
         }
 
         function isRegionCollapsed(regionName) {
@@ -10772,11 +10895,11 @@ body.dark-mode .ltadl[data-mode="scheduled"] .ltadl-pill input:checked+span{back
             if (!banner || !cont) return;
             if (expandedRegions.has(regionName)) {
                 expandedRegions.delete(regionName);
-                cont.classList.add('collapsed');
+                _animateRegion(cont, true);
                 banner.classList.add('collapsed');
             } else {
                 expandedRegions.add(regionName);
-                cont.classList.remove('collapsed');
+                _animateRegion(cont, false);
                 banner.classList.remove('collapsed');
             }
             localStorage.setItem(_EXP_KEY, JSON.stringify([...expandedRegions]));
@@ -12534,7 +12657,7 @@ function renderTabulation() {
                 html += `<div id="grand-stats">
                     <div class="stat-card">
                         <div class="stat-label">TOTAL PROJECTS</div>
-                        <div class="stat-value">${state.projects.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS').length}</div>
+                        <div class="stat-value">${getReportingProjects().length}</div>
                     </div>
                     <div class="stat-card" style="border-left-color: var(--safety-yellow); min-width:160px;">
                         <div class="stat-label" style="margin-bottom:2px;">${_mcLabel}</div>
@@ -12882,22 +13005,12 @@ function renderTabulation() {
                             const _disp = monthTotal > 0 ? fmtNum(monthTotal) : (_isPast ? '0' : '');
                             html += `<td class="${isNov ? 'nov-narrow-td' : 'monthly-data'}" style="font-weight:600;background:${monthTotal>0?'#f1f8e9':''};">${_disp}</td>`;
                         } else if (state.currentTab === 'rates' && ['LTIR','TRIR','SEVERITY RATE'].includes(row)) {
-                            const _rateBase = (state.ratesStandard === 'osha') ? 200000 : 1000000;
-                            let smh=0, slta=0, smed=0, sfat=0, ship=0, sdL=0;
-                            displayProjects.forEach(p => {
-                                smh  += parseFloat(p.vals['exposures_Total Exposed Manhour']?.[i]) || 0;
-                                slta += parseFloat(p.vals['medical_LTA']?.[i])                     || 0;
-                                smed += parseFloat(p.vals['medical_Medical Treatment']?.[i])       || 0;
-                                sfat += parseFloat(p.vals['medical_Fatality']?.[i])               || 0;
-                                ship += parseFloat(p.vals['medical_High-Potential incident']?.[i]) || 0;
-                                sdL  += parseFloat(p.vals['medical_Days Lost/Charged']?.[i])      || 0;
-                            });
-                            const srec = slta + smed + sfat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
+                            const _cs = window.buildCumulativeSeries(displayProjects, 12);
+                            const smh = (i <= _cs.last) ? _cs.mh[i] : 0;
                             let sval = '';
                             if (smh > 0) {
-                                if      (row === 'LTIR')          sval = parseFloat(((slta * _rateBase) / smh).toFixed(4)).toString();
-                                else if (row === 'TRIR')          sval = parseFloat(((srec * _rateBase) / smh).toFixed(4)).toString();
-                                else if (row === 'SEVERITY RATE') sval = parseFloat(((sdL  * _rateBase) / smh).toFixed(4)).toString();
+                                const _r = window.calcCumRate(row, _cs.lta[i], _cs.rec[i], _cs.dl[i], smh);
+                                if (_r !== null) sval = window.formatRate(row, _r);
                             }
                             const scolor = row === 'LTIR' ? '#1b5e20' : row === 'TRIR' ? '#1565c0' : '#b71c1c';
                             html += `<td class="monthly-data" style="font-weight:800;background:${smh>0?'rgba(27,94,32,0.06)':''};text-align:center;color:${smh>0?scolor:''}">${sval}</td>`;
@@ -12993,24 +13106,12 @@ function renderTabulation() {
                             });
                             html += `<td class="ytd-cell" style="font-weight: 800; font-size: 0.7rem;">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
                         } else if (state.currentTab === 'rates' && ['LTIR','TRIR','SEVERITY RATE'].includes(row)) {
-                            const _rateBase = (state.ratesStandard === 'osha') ? 200000 : 1000000;
-                            let ymh=0, ylta=0, ymed=0, yfat=0, yhip=0, ydL=0;
-                            displayProjects.forEach(p => {
-                                for (let _i = 1; _i <= 12; _i++) {
-                                    ymh  += parseFloat(p.vals['exposures_Total Exposed Manhour']?.[_i]) || 0;
-                                    ylta += parseFloat(p.vals['medical_LTA']?.[_i])                     || 0;
-                                    ymed += parseFloat(p.vals['medical_Medical Treatment']?.[_i])       || 0;
-                                    yfat += parseFloat(p.vals['medical_Fatality']?.[_i])               || 0;
-                                    yhip += parseFloat(p.vals['medical_High-Potential incident']?.[_i]) || 0;
-                                    ydL  += parseFloat(p.vals['medical_Days Lost/Charged']?.[_i])      || 0;
-                                }
-                            });
-                            const yrec = ylta + ymed + yfat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
+                            const _cs = window.buildCumulativeSeries(displayProjects, 12);
+                            const ymh = _cs.mh[12];
                             let yval = '';
                             if (ymh > 0) {
-                                if      (row === 'LTIR')          yval = parseFloat(((ylta * _rateBase) / ymh).toFixed(4)).toString();
-                                else if (row === 'TRIR')          yval = parseFloat(((yrec * _rateBase) / ymh).toFixed(4)).toString();
-                                else if (row === 'SEVERITY RATE') yval = parseFloat(((ydL  * _rateBase) / ymh).toFixed(4)).toString();
+                                const _r = window.calcCumRate(row, _cs.lta[12], _cs.rec[12], _cs.dl[12], ymh);
+                                if (_r !== null) yval = window.formatRate(row, _r);
                             }
                             const ycolor = row === 'LTIR' ? '#1b5e20' : row === 'TRIR' ? '#1565c0' : '#b71c1c';
                             html += `<td class="ytd-cell" style="font-weight:800;color:${ymh>0?ycolor:''};">${yval}</td>`;
@@ -13100,7 +13201,10 @@ function renderTabulation() {
                 if (tabBanners[state.currentTab]) {
                     const b = tabBanners[state.currentTab];
                     const _mergedTabs = ['activities', 'medical', 'exposures'];
-                    if (_mergedTabs.includes(state.currentTab)) {
+                    if (state.currentTab === 'exposures') {
+                        // Walang banner sa Total Exposures tab
+                        window._pendingTableHeader = null;
+                    } else if (_mergedTabs.includes(state.currentTab)) {
                         window._pendingTableHeader = `
                             <div style="margin: 0 20px 4px;">
                                 <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#2e7d32;border-radius:6px 6px 0 0;position:sticky;top:0;z-index:20;">
@@ -13109,7 +13213,7 @@ function renderTabulation() {
                                         <div style="font-size:0.68rem;color:rgba(255,255,255,0.8);margin-top:1px;">${b.sub1}</div>
                                     </div>
                                     <div style="display:flex;gap:6px;">
-                                        <span style="background:rgba(255,255,255,0.18);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:20px;padding:2px 10px;font-size:0.62rem;font-weight:800;">${displayProjects.length} PROJECTS</span>
+                                        <span style="background:rgba(255,255,255,0.18);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:20px;padding:2px 10px;font-size:0.62rem;font-weight:800;">${getProjectCountLabel(displayProjects)}</span>
                                         <span style="background:rgba(255,255,255,0.18);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:20px;padding:2px 10px;font-size:0.62rem;font-weight:800;">ALL REGIONS</span>
                                     </div>
                                 </div>
@@ -13125,7 +13229,7 @@ function renderTabulation() {
                             <p class="tib-sub" style="opacity:0.75;">${b.sub2}</p>
                         </div>
                         <div class="tib-badges">
-                            <span class="tib-pill tib-pill-green">${displayProjects.length} PROJECTS</span>
+                            <span class="tib-pill tib-pill-green">${getProjectCountLabel(displayProjects)}</span>
                             ${state.currentTab === 'rates' ? `
                             <div class="rates-standard-toggle" title="Switch between PH (OSHS) and US (OSHA) standard">
                                 <span class="rst-opt ${(state.ratesStandard||'oshs')==='oshs'?'active':''}"
@@ -13252,12 +13356,13 @@ function renderTabulation() {
 
                 const _useNavForTab = _TAB_NAV_TABS.includes(state.currentTab) && projs.length > 1;
                 let _navProjs = projs;
+                let _inlineNav = null; // Prev/Next now live inside the project card
                 if (_useNavForTab) {
                     const _nk = _tabNavKey(state.currentTab, reg);
                     let _navProjIdx = Math.min(_tabRegionProjectIdx[_nk] || 0, projs.length - 1);
                     _tabRegionProjectIdx[_nk] = _navProjIdx;
                     _navProjs = [projs[_navProjIdx]];
-                    html += _tabNavBar(state.currentTab, reg, _navProjIdx, projs.length);
+                    _inlineNav = { tab: state.currentTab, reg: reg, idx: _navProjIdx, total: projs.length };
                 }
 
                 _navProjs.forEach(p => {
@@ -13286,6 +13391,7 @@ function renderTabulation() {
                     const isDeleteLocked = !canDelete;
 
                     html += `<div class="project-row ${isLocked ? 'project-locked' : ''}" data-pname="${(p.name||'').replace(/"/g,'&quot;')}" data-region="${(p.region||'').replace(/"/g,'&quot;')}" data-status="${_derivedStatus}" style="${isWorkStopped ? 'opacity:0.7;' : ''}${state.currentTab === 'overall' ? 'cursor:pointer;' : ''}" ${state.currentTab === 'overall' ? `onclick="osOpenModal('${p.name.replace(/'/g, "\\'")}')"`  : ''}>\n                        
+                        ${_inlineNav ? _tabNavBtn(_inlineNav.tab, _inlineNav.reg, -1, _inlineNav.idx, _inlineNav.total) : ''}
                         ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="circular-progress" style="--percentage: ${percDeg}deg;${isWorkStopped ? 'opacity:0.45;' : ''}">
                             <div class="circular-progress-inner" style="${isWorkStopped ? 'font-size:0.62rem;color:#bf360c;' : ''}">${percDisplay}${percDisplay !== '—' ? '%' : ''}</div>
                         </div>`}
@@ -13297,6 +13403,7 @@ function renderTabulation() {
                                 ${(p.workStoppageDate && p.workResumeDate) ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;padding:2px 8px;border-radius:12px;font-size:0.68rem;font-weight:700;margin-left:8px;"><i class="fas fa-play-circle" style="font-size:0.65rem;"></i> RESUMED — Counting from ${formatDateDMY(p.workResumeDate)}</span>` : ''}
                             </div>
                             <div class="project-meta">${p.region === 'CORPORATE' ? 'Main Office' : p.region === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
+                            ${_inlineNav ? `<div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ${_inlineNav.idx + 1} of ${_inlineNav.total}</div>` : ''}
                         </div>
                         ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="project-dates">
                             <div><span class="date-label">Started:</span> ${p.dateStarted ? formatDateDMY(p.dateStarted) : 'Not set'}</div>
@@ -13305,6 +13412,7 @@ function renderTabulation() {
                             ${p.workResumeDate ? `<div style="color:#2e7d32;font-size:0.7rem;"><span class="date-label" style="color:#2e7d32;">Resume:</span> ${formatDateDMY(p.workResumeDate)}</div>` : ''}
                         </div>`}
                         ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<span class="status-badge ${statusClass}" onclick="event.stopPropagation(); ${isLocked ? 'showLockedMessage()' : `changeProjectStatus('${p.name}', event)`}">${statusLabel}</span>`}
+                        ${_inlineNav ? _tabNavBtn(_inlineNav.tab, _inlineNav.reg, 1, _inlineNav.idx, _inlineNav.total) : ''}
                         ${(state.isEditing && state.currentTab === 'overall') ? `
                             <button ${isLocked ? 'disabled' : ''} onclick="event.stopPropagation(); ${isLocked ? 'showLockedMessage()' : `openEditProjectModal('${p.name.replace(/'/g, "\\'")}', '${p.region}')`}" style="background:none;border:none;cursor:pointer;color:#555;font-size:1rem;padding:4px 6px;margin-right:2px;opacity:${isLocked ? '0.5' : '1'};" title="${isLocked ? 'View Only - Contact admin to edit' : 'Edit Project Details'}">
                                 <i class="fas fa-pen"></i>
@@ -14291,9 +14399,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     }
                     if (prevVal !== null) {
                         if (!p.vals[key]) p.vals[key] = new Array(14).fill('');
-                        p.vals[key][0] = prevVal.toFixed(4);
+                        p.vals[key][0] = window.formatRate(row, prevVal);
                     }
-                    const prevDisp = prevVal !== null ? parseFloat(prevVal.toFixed(4)).toString() : '—';
+                    const prevDisp = prevVal !== null ? window.formatRate(row, prevVal) : '—';
                     html += `<td class="prev-year" style="text-align:center;cursor:default;" title="Auto-computed from PREVIOUS year medical &amp; exposures data (${(state.ratesStandard==='osha')?'OSHA 200K':'OSHS 1M'} base) — read only">
                         <div style="font-size:0.72rem;font-weight:800;color:${prevVal !== null ? prevColor : '#bbb'};">${prevDisp}</div>
                         <div style="font-size:0.5rem;color:#aaa;margin-top:1px;display:flex;align-items:center;justify-content:center;gap:2px;"><i class="fas fa-lock" style="font-size:0.43rem;"></i> auto</div>
@@ -14602,28 +14710,17 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         </td>`;
                     }
                 } else if (state.currentTab === 'rates' && ['LTIR','TRIR','SEVERITY RATE'].includes(row)) {
-                    const _rateBase = (state.ratesStandard === 'osha') ? 200000 : 1000000;
-                    const _rateStdLabel = (state.ratesStandard === 'osha') ? 'OSHA 200K' : 'OSHS 1M';
+                    const _rateStdLabel = (state.ratesStandard === 'osha') ? 'OSHA 200K, cumulative YTD' : 'OSHS 1M, cumulative YTD';
+                    const _cs = window.buildCumulativeSeries([p], 12);
                     for (let i = 1; i <= 12; i++) {
-                        const mh  = parseFloat(p.vals['exposures_Total Exposed Manhour']?.[i])       || 0;
-                        const lta = parseFloat(p.vals['medical_LTA']?.[i])                           || 0;
-                        const med = parseFloat(p.vals['medical_Medical Treatment']?.[i])             || 0;
-                        const fat = parseFloat(p.vals['medical_Fatality']?.[i])                      || 0;
-                        const hip = parseFloat(p.vals['medical_High-Potential incident']?.[i])       || 0;
-                        const dL  = parseFloat(p.vals['medical_Days Lost/Charged']?.[i])           || 0;
-                        const rec = lta + med + fat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
                         let val = null;
-                        let color = '#1b5e20';
-                        if (mh > 0) {
-                            if      (row === 'LTIR')          { val = (lta * _rateBase) / mh; color = '#1b5e20'; }
-                            else if (row === 'TRIR')          { val = (rec * _rateBase) / mh; color = '#1565c0'; }
-                            else if (row === 'SEVERITY RATE') { val = (dL  * _rateBase) / mh; color = '#b71c1c'; }
-                        }
+                        const color = row === 'LTIR' ? '#1b5e20' : row === 'TRIR' ? '#1565c0' : '#b71c1c';
+                        if (i <= _cs.last) val = window.calcCumRate(row, _cs.lta[i], _cs.rec[i], _cs.dl[i], _cs.mh[i]);
                         if (val !== null) {
                             if (!p.vals[key]) p.vals[key] = new Array(14).fill('');
-                            p.vals[key][i] = val.toFixed(4);
+                            p.vals[key][i] = window.formatRate(row, val);
                         }
-                        const disp = val !== null ? (parseFloat(val.toFixed(4)) === 0 ? '0' : val.toFixed(4)) : '';
+                        const disp = val !== null ? window.formatRate(row, val) : '';
                         html += `<td class="monthly-data" style="text-align:center;background:${val !== null && val > 0 ? 'rgba(27,94,32,0.04)' : ''};cursor:default;" title="Auto-computed (${_rateStdLabel} base) — read only">
                             ${val !== null
                                 ? `<div style="font-size:0.75rem;font-weight:800;color:${color};">${disp}</div>
@@ -14789,26 +14886,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const _cum = computeExposureToDateSeries(p)[12];
                     html += `<td class="ytd-cell" data-todate-proj="${p.name}" data-todate-month="ytd">${_cum > 0 ? fmtNum(_cum) : ''}</td>`;
                 } else if (state.currentTab === 'rates' && ['LTIR','TRIR','SEVERITY RATE'].includes(row)) {
-                    const _rateBase = (state.ratesStandard === 'osha') ? 200000 : 1000000;
-                    let ytdMh = 0, ytdLta = 0, ytdMed = 0, ytdFat = 0, ytdHip = 0, ytdDL = 0;
-                    for (let _i = 1; _i <= 12; _i++) {
-                        ytdMh  += parseFloat(p.vals['exposures_Total Exposed Manhour']?.[_i])      || 0;
-                        ytdLta += parseFloat(p.vals['medical_LTA']?.[_i])                          || 0;
-                        ytdMed += parseFloat(p.vals['medical_Medical Treatment']?.[_i])            || 0;
-                        ytdFat += parseFloat(p.vals['medical_Fatality']?.[_i])                    || 0;
-                        ytdHip += parseFloat(p.vals['medical_High-Potential incident']?.[_i])     || 0;
-                        ytdDL  += parseFloat(p.vals['medical_Days Lost/Charged']?.[_i])         || 0;
-                    }
-                    const ytdRec = ytdLta + ytdMed + ytdFat + ytdHip;
+                    const _cs = window.buildCumulativeSeries([p], 12);
+                    const ytdMh = _cs.mh[12];
                     let ytdRate = 0;
-                    if (ytdMh > 0) {
-                        if      (row === 'LTIR')          ytdRate = (ytdLta * _rateBase) / ytdMh;
-                        else if (row === 'TRIR')          ytdRate = (ytdRec * _rateBase) / ytdMh;
-                        else if (row === 'SEVERITY RATE') ytdRate = (ytdDL  * _rateBase) / ytdMh;
-                    }
+                    if (ytdMh > 0) ytdRate = window.calcCumRate(row, _cs.lta[12], _cs.rec[12], _cs.dl[12], ytdMh) || 0;
                     const ytdColor = row === 'LTIR' ? '#1b5e20' : row === 'TRIR' ? '#1565c0' : '#b71c1c';
                     html += `<td class="ytd-cell" style="color:${ytdMh > 0 ? ytdColor : ''};font-weight:800;">
-                        ${ytdMh > 0 ? parseFloat(ytdRate.toFixed(4)).toString() : ''}
+                        ${ytdMh > 0 ? window.formatRate(row, ytdRate) : ''}
                     </td>`;
                 } else {
                     ytdValue = calculateYTD(p.vals[key], rowIdx);
@@ -15094,10 +15178,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
                                 + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
                                 + ' onclick="window.openDoleDialog(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + mo + '\',false)">'
-                                + '<span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">' + (mi2+1) + '</span>'
-                                + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:36px;text-align:center;">' + mo.substring(0,3).toUpperCase() + '</span>'
+                                + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:48px;box-sizing:border-box;text-align:center;">' + mo.substring(0,3).toUpperCase() + '</span>'
                                 + '<div style="flex:1;min-width:0;">'
-                                + '<div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);">' + mo + ' ' + dSelYear + curBadge + '</div>'
+                                + (isCurMo ? '<div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);">' + curBadge.trim() + '</div>' : '')
                                 + '<div style="font-size:0.62rem;color:#888;margin-top:1px;">' + rowSummary + '</div>'
                                 + '</div>'
                                 + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
@@ -15116,6 +15199,27 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     });
 
                     container.innerHTML = html;
+
+                    // ── AEDR / AMR N/A toggle (per project, per selected year) ─────────
+                    window.toggleDoleAnnualNA = function(pName, row, on) {
+                        var p = state.projects.find(function(x){ return x.name === pName; });
+                        var m = document.getElementById('dole-month-modal');
+                        var reopen = function() {
+                            if (m && typeof window.openDoleDialog === 'function') {
+                                window.openDoleDialog(m.getAttribute('data-regkey'), m.getAttribute('data-reg'), m.getAttribute('data-month'), m.getAttribute('data-canedit') === '1');
+                            }
+                        };
+                        if (!p) return;
+                        var _rb = UserAccounts.checkPermission(state.currentUser && state.currentUser.email, 'edit', p.region, 'dole');
+                        if (!_rb.allowed) { if (typeof showLockedMessage === 'function') showLockedMessage(_rb.reason); reopen(); return; }
+                        if (!p.vals) p.vals = {};
+                        p.vals['dole_' + row + '__na'] = on ? '1' : '';
+                        if (window.RowSaveManager) window.RowSaveManager.markDirty(pName, 'dole_' + row + '__na');
+                        if (typeof markPendingSync === 'function') markPendingSync();
+                        if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
+                        reopen();
+                    };
+                    window.toggleDoleAedrNA = function(pName, on) { window.toggleDoleAnnualNA(pName, 'AEDR', on); };
 
                     // ── DOLE Dialog ────────────────────────────────────────────────────
                     window.openDoleDialog = function(regKey, reg, month, editMode) {
@@ -15267,9 +15371,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                                 + ' style="' + inputStyle + '">')
                                     + '</td>';
                             }).join('');
-                            var rowDesc = row === 'WAIR' ? 'Work Accident/Illness Report' : row === 'RSO' ? 'Report on Safety and Health Organization' : 'Minutes of Meeting';
+                            var rowDesc = doleFullName(row);
                             return '<tr style="background:#f9fdf9;border-bottom:1px solid #c8e6c9;">'
-                                + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-weight:800;color:#1b5e20;background:#e8f5e9;min-width:80px;white-space:nowrap;">' + row + '</td>'
+                                + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-weight:800;color:#1b5e20;background:#e8f5e9;width:1%;white-space:nowrap;">' + doleFullName(row) + '</td>'
                                 + projCells + '</tr>';
                         }).join('');
 
@@ -15279,8 +15383,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var _annNowM = _annNow.getMonth() + 1;
                         var _annNowD = _annNow.getDate();
                         var _annDefs = [
-                            { row: 'AEDR', desc: 'Annual Exposure Data Report', dlM: 1,  dlD: 30 },
-                            { row: 'AMR',  desc: 'Annual Medical Report',        dlM: 3,  dlD: 31 }
+                            { row: 'AEDR', desc: doleFullName('AEDR'), dlM: 1,  dlD: 30 },
+                            { row: 'AMR',  desc: doleFullName('AMR'), dlM: 3,  dlD: 31 }
                         ];
                         var annualRows = _annDefs.map(function(rd) {
                             var dlY = selYear; // deadline is within selYear (AEDR: Jan 30, AMR: Mar 31 of selYear)
@@ -15298,10 +15402,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 var _annExempt = !stopped && isDoleAnnualStoppageExempt(proj, selYear);
                                 // No covered period yet (project started in/after selYear) → not required, never overdue
                                 var _annNotReq = !stopped && !_annExempt && !isDoleAnnualRequired(proj, selYear);
+                                var _annNA = isDoleAnnualNA(proj, rd.row);
                                 var _annTooltip = '';
                                 if (_annNotReq) {
                                     var _nrY = new Date(proj.dateStarted).getFullYear();
-                                    _annTooltip = 'Project started in ' + _nrY + ' — no covered period in ' + (selYear-1) + '. First AEDR/AMR covers ' + _nrY + ' (due ' + (_nrY+1) + ').';
+                                    _annTooltip = 'Project started in ' + _nrY + ' — no covered period in ' + (selYear-1) + '. The first annual reports (' + doleFullName('AEDR') + ' and ' + doleFullName('AMR') + ') cover ' + _nrY + ' (due ' + (_nrY+1) + ').';
                                 }
                                 if (_annExempt && proj.workStoppageDate) {
                                     var _asd = new Date(proj.workStoppageDate);
@@ -15315,10 +15420,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         _annTooltip += '. Annual report not required for stoppage year.';
                                     }
                                 }
+                                if (_annNA && !stopped && !_annExempt && !_annNotReq) { _annTooltip = 'Marked N/A — ' + doleFullName(rd.row) + ' is not applicable for this project.'; }
                                 var dis = (stopped || _annExempt || _annNotReq || !canEdit) ? 'disabled' : '';
                                 var k = 'dole_' + rd.row;
                                 var v = proj.vals[k] ? (proj.vals[k][1] || '') : '';
-                                var overdue = !v && passed && !_annExempt && !_annNotReq;
+                                if (_annNA) v = ''; // N/A takes priority (stored date is kept, just hidden)
+                                var overdue = !v && passed && !_annExempt && !_annNotReq && !_annNA;
                                 var bg  = stopped ? '#f5f5f5' : _annExempt ? '#f0f0f0' : v ? '#c8e6c9' : overdue ? '#ffcdd2' : '#f5f5f5';
                                 var bdr = stopped ? '#e0e0e0' : _annExempt ? '#d0d0d0' : v ? '#a5d6a7' : overdue ? '#ef9a9a' : '#e0e0e0';
                                 var clr = stopped ? '#9e9e9e' : _annExempt ? '#9e9e9e' : v ? '#2e7d32' : overdue ? '#c62828' : '#9e9e9e';
@@ -15334,34 +15441,39 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     cell = '<div style="font-size:0.62rem;color:#9e9e9e;text-align:center;padding:5px 4px;font-style:italic;display:flex;align-items:center;justify-content:center;gap:4px;" title="' + _annTooltip.replace(/"/g,'&quot;') + '"><i class="fas fa-pause-circle" style="font-size:0.75rem;"></i> Exempt (Stoppage)</div>';
                                 } else {
                                     var safeName = proj.name.replace(/[^a-zA-Z0-9]/g,'_');
-                                    
+                                    // N/A control: stacked under the date box (checkbox) — same for AEDR & AMR, keeps cell alignment
+                                    var _naBox = '<div style="width:120px;max-width:100%;margin:0 auto;box-sizing:border-box;border:1px solid #bdbdbd;border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:800;text-align:center;background:#eeeeee;color:#757575;">N/A</div>';
                                     var dateInput = '<input type="date" value="' + v + '" ' + (dis ? 'disabled' : '')
                                         + ' name="dolemod-' + rd.row + '-' + safeName + '"'
                                         + ' data-pname="' + pnEsc + '" data-row="' + rd.row + '" data-moIdx="1"'
                                         + ' style="' + inStyle + '"'
                                         + ' oninput="updateVal(\'' + pnEsc + '\',\'dole_' + rd.row + '\',1,this.value);_refreshDateCell(this)">';
-                                    cell = dateInput; // input directly in <td> (same as monthly rows) so it aligns with WAIR/RSO/MOM
+                                    var _naChk = '<label style="display:block;width:auto!important;margin:0!important;padding:0!important;text-align:center;font-size:0.6rem;font-weight:600;line-height:1.3;color:#757575;cursor:' + (dis ? 'not-allowed' : 'pointer') + ';" title="' + (_annNA ? 'Undo N/A' : 'Mark as N/A (not applicable)') + '">'
+                                        + '<input type="checkbox" style="display:inline-block!important;vertical-align:middle;width:13px!important;min-width:13px!important;height:13px!important;margin:0 4px 0 0!important;padding:0!important;" ' + (_annNA ? 'checked ' : '') + (dis ? 'disabled ' : '')
+                                        + 'onchange="window.toggleDoleAnnualNA(\'' + pnEsc + '\',\'' + rd.row + '\',this.checked)"><span style="vertical-align:middle;">N/A</span></label>';
+                                    // Same date-input style as the monthly rows (same width), centered; N/A checkbox stacked below
+                                    cell = '<div style="text-align:center;"><div style="margin-bottom:3px;">' + (_annNA ? _naBox : dateInput) + '</div>' + _naChk + '</div>';
                                 }
                                 return '<td style="' + tdStyle + '" title="' + ((_annExempt || _annNotReq) ? _annTooltip.replace(/"/g,'&quot;') : '') + '">' + cell + '</td>';
                             }).join('');
 
                             return '<tr style="background:#fff8e1;border-bottom:1px solid #ffe0b2;">'
-                                + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-weight:800;color:#e65100;background:#fff3e0;min-width:80px;white-space:nowrap;">'
-                                + rd.row + '<br><span style="font-size:0.55rem;font-weight:600;color:#bf360c;">' + dlLabel + '</span></td>'
+                                + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-weight:800;color:#e65100;background:#fff3e0;width:1%;white-space:nowrap;">'
+                                + doleFullName(rd.row) + '<br><span style="font-size:0.55rem;font-weight:600;color:#bf360c;">' + dlLabel + '</span></td>'
                                 + cells + '</tr>';
                         }).join('');
 
                         var tableHtml = '<table style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
                             + '<thead>'
                             + '<tr style="background:#9ecf9b;color:#1b5e20;font-size:0.67rem;font-weight:800;text-align:center;">'
-                            + '<th rowspan="2" style="padding:6px 8px;border:1px solid #c8e6c9;vertical-align:middle;min-width:80px;">REPORT</th>'
+                            + '<th rowspan="2" style="padding:6px 8px;border:1px solid #c8e6c9;vertical-align:middle;width:1%;white-space:nowrap;">REPORT</th>'
                             + '<th colspan="' + regProjs.length + '" style="padding:6px 8px;border:1px solid #c8e6c9;background:#1b5e20;color:#fff;">DATE SUBMITTED PER PROJECT</th>'
                             + '</tr>'
                             + '<tr style="background:#b7ddb5;">' + projHeaderCols + '</tr>'
                             + '</thead>'
                             + '<tbody>'
                             + tableRows
-                            + annualRows
+                            + (activeMo === 'January' ? annualRows : '') // AEDR & AMR: January only
                             + '</tbody></table>';
 
                         modal.innerHTML = '<div style="border-radius:12px;width:min(1600px,99vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
@@ -15591,14 +15703,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var statusFg  = allComplete ? '#2e7d32' : (noneF && isCur) ? '#1565c0' : noneF ? '#c62828' : '#e65100';
                         var statusLabel = allComplete ? '✓ Complete' : (noneF && isCur) ? '🕐 In Progress' : noneF ? '✗ Not submitted' : '⚠ Incomplete';
                         var curBadge = isCur ? ' <span style="background:#e3f2fd;color:#1565c0;border-radius:4px;padding:1px 5px;font-size:0.58rem;font-weight:700;vertical-align:middle;">CURRENT</span>' : '';
+                        var _mOnly = !!p2.monthOnly; // month rows: show only the month badge (no number, no full label)
                         html2 += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
                             + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
                             + ' onclick="' + openFn + '(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + p2.periodKey.replace(/'/g,"\\'") + '\',false)">'
-                            + '<span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">' + (idx+1) + '</span>'
-                            + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:36px;text-align:center;">' + p2.shortLabel + '</span>'
-                            + '<div style="flex:1;min-width:0;">'
-                            + '<div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);">' + p2.label + curBadge + '</div>'
-                            + '<div style="font-size:0.62rem;color:#888;margin-top:1px;">' + p2.sub + '</div>'
+                            + ((_mOnly || p2.noNumber) ? '' : '<span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">' + (idx+1) + '</span>')
+                            + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;' + (_mOnly ? 'min-width:48px;box-sizing:border-box;' : 'min-width:36px;') + 'text-align:center;">' + p2.shortLabel + '</span>'
+                            + (p2.oneLine ? '<div style="flex:1;min-width:0;display:flex;align-items:center;gap:12px;flex-wrap:nowrap;overflow:hidden;">' : '<div style="flex:1;min-width:0;">')
+                            + (_mOnly ? (isCur ? '<div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);">' + curBadge.trim() + '</div>' : '') : '<div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);' + (p2.oneLine ? 'white-space:nowrap;' : '') + '">' + p2.label + curBadge + '</div>')
+                            + '<div style="font-size:0.62rem;color:#888;' + (p2.oneLine ? 'white-space:nowrap;' : 'margin-top:1px;') + '">' + p2.sub + '</div>'
                             + '</div>'
                             + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
                             + '<span style="background:' + rowBg + ';color:' + statusFg + ';border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">' + statusLabel + '</span>'
@@ -15642,11 +15755,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     }
                     // Note: embCurQ / embCurH still used for region row-display loops below
 
-                    // Helper: check if a project has "Care of Client" set for a specific SMR quarter or CMR half
+                    // Helper: check if a project has "Care of Client" or "N/A" set for a specific SMR quarter or CMR half
                     function _isCocExempt(dp, type, idx) {
                         var cocK = type === 'SMR' ? 'emb_SMR (Quarterly) - Care of Client' : 'emb_CMR (Semi-Annual) - Care of Client';
+                        var naK  = type === 'SMR' ? 'emb_SMR (Quarterly) - N/A'           : 'emb_CMR (Semi-Annual) - N/A';
                         var v = dp.vals && dp.vals[cocK] && dp.vals[cocK][idx];
-                        return !!(v === true || v === 'true' || v === '1');
+                        var n = dp.vals && dp.vals[naK]  && dp.vals[naK][idx];
+                        return !!(v === true || v === 'true' || v === '1' || n === true || n === 'true' || n === '1');
                     }
 
                     // Summary — count only fields for periods whose deadline has passed
@@ -15728,6 +15843,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             periods2.push({
                                 label: 'SMR — ' + SMR_LABELS[q2-1] + ' &nbsp;<span style="font-size:0.6rem;color:#888;">'+SMR_DUE[q2-1]+'</span>' + upcomingBadgeQ,
                                 shortLabel: 'Q'+q2,
+                                noNumber: true, oneLine: true,
                                 filledCount: sdFill+rnFill, totalSlots: activeProjs.length*2,
                                 sub: 'Submission Date: <span style="color:'+(sdFill===activeProjs.length?'#2e7d32':sdFill>0?'#e65100':'#c62828')+';font-weight:700;">'+sdFill+'/'+activeProjs.length+'</span>'
                                     +' &nbsp;·&nbsp; Ref No: <span style="color:'+(rnFill===activeProjs.length?'#2e7d32':rnFill>0?'#e65100':'#c62828')+';font-weight:700;">'+rnFill+'/'+activeProjs.length+'</span>',
@@ -15743,6 +15859,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             periods2.push({
                                 label: 'CMR — ' + CMR_LABELS[h2-1] + ' &nbsp;<span style="font-size:0.6rem;color:#888;">'+CMR_DUE[h2-1]+'</span>' + upcomingBadgeH,
                                 shortLabel: 'H'+h2,
+                                noNumber: true, oneLine: true,
                                 filledCount: csdFill+crnFill, totalSlots: activeProjs.length*2,
                                 sub: 'Submission Date: <span style="color:'+(csdFill===activeProjs.length?'#2e7d32':csdFill>0?'#e65100':'#c62828')+';font-weight:700;">'+csdFill+'/'+activeProjs.length+'</span>'
                                     +' &nbsp;·&nbsp; Ref No: <span style="color:'+(crnFill===activeProjs.length?'#2e7d32':crnFill>0?'#e65100':'#c62828')+';font-weight:700;">'+crnFill+'/'+activeProjs.length+'</span>',
@@ -15771,6 +15888,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var sdKey  = isSmr ? 'emb_SMR (Quarterly) - Submission Date' : 'emb_CMR (Semi-Annual) - Submission Date';
                         var rnKey  = isSmr ? 'emb_SMR (Quarterly) - Reference No.'   : 'emb_CMR (Semi-Annual) - Reference No.';
                         var cocKey = isSmr ? 'emb_SMR (Quarterly) - Care of Client'   : 'emb_CMR (Semi-Annual) - Care of Client';
+                        var naKey  = isSmr ? 'emb_SMR (Quarterly) - N/A'              : 'emb_CMR (Semi-Annual) - N/A';
                         var extraKey = isSmr ? 'emb_extra_smr' : 'emb_extra_cmr';
 
                         // Overdue check
@@ -15833,10 +15951,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var sdVal  = (p.vals[sdKey]  && p.vals[sdKey][periodIdx])  ? p.vals[sdKey][periodIdx]  : '';
                             var rnVal  = (p.vals[rnKey]  && p.vals[rnKey][periodIdx])  ? p.vals[rnKey][periodIdx]  : '';
                             var cocVal = !!(p.vals[cocKey] && (p.vals[cocKey][periodIdx] === true || p.vals[cocKey][periodIdx] === 'true' || p.vals[cocKey][periodIdx] === '1'));
+                            var naVal  = !!(p.vals[naKey]  && (p.vals[naKey][periodIdx]  === true || p.vals[naKey][periodIdx]  === 'true' || p.vals[naKey][periodIdx]  === '1'));
 
-                            // "Care of Client" = project is permanently exempt for this period (green)
-                            // Fields still show but are treated as satisfied/compliant
-                            var _cocExempt = cocVal; // shorthand
+                            // "Care of Client" or "N/A" = project is exempt for this period (green)
+                            // Fields are hidden and treated as satisfied/compliant
+                            var _cocExempt = cocVal || naVal; // shorthand
 
                             // Extra entries from emb_extra_smr / emb_extra_cmr
                             var extras = (p.vals[extraKey] && Array.isArray(p.vals[extraKey])) ? p.vals[extraKey] : [];
@@ -15851,13 +15970,17 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var _rnEffective = _cocExempt ? true : rnVal;
                             html += '<div class="emb-entry-block" style="margin-bottom:8px;padding:8px;border:1px solid '+(_cocExempt?'#a5d6a7':'#a5d6a7')+';border-radius:6px;background:'+(_cocExempt?'#e8f5e9':'#f1f8f1')+';position:relative;">';
 
-                            if (!_cocExempt) {
+                            {   // fields stay visible; greyed out + disabled (and cleared) when Care of Client / N/A is set
+                                var _exBg = _embCellBg(''), _exBd = _embCellBorder(''), _exC = _embCellColor('');
+                                var _emptyAttr = ' data-ebg="' + _exBg + '" data-ebd="' + _exBd + '" data-ec="' + _exC + '"';
+                                var _dis = (pCanEdit && !_cocExempt) ? '' : 'disabled';
+                                var _vFac = _cocExempt ? '' : facVal, _vSd = _cocExempt ? '' : sdVal, _vRn = _cocExempt ? '' : rnVal;
                                 // Facility
                                 html += '<div style="margin-bottom:6px;">';
                                 html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">🏭 Facility</div>';
-                                var _facBg = _embCellBg(facVal); var _facBd = _embCellBorder(facVal); var _facC = _embCellColor(facVal);
-                                html += '<input type="text" value="' + (facVal||'').replace(/"/g,'&quot;') + '" ' + (pCanEdit?'':'disabled')
-                                    + ' data-pname="' + pnSafe + '" data-key="' + facKey + '" data-idx="' + periodIdx + '"'
+                                var _facBg = _cocExempt ? '#eeeeee' : _embCellBg(facVal); var _facBd = _cocExempt ? '#dddddd' : _embCellBorder(facVal); var _facC = _cocExempt ? '#9e9e9e' : _embCellColor(facVal);
+                                html += '<input type="text" value="' + (_vFac||'').replace(/"/g,'&quot;') + '" ' + _dis
+                                    + ' data-pname="' + pnSafe + '" data-key="' + facKey + '" data-idx="' + periodIdx + '"' + _emptyAttr
                                     + ' placeholder="Facility name..."'
                                     + ' style="width:100%;border:1px solid ' + _facBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _facBg + ';color:' + _facC + ';box-sizing:border-box;text-align:left;display:block;"'
                                     + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';this.setAttribute(\'data-tip\',this.value);"'
@@ -15869,21 +15992,21 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 html += '</div>';
 
                                 // Submission Date
-                                var _sdBg = _embCellBg(_sdEffective); var _sdBd = _embCellBorder(_sdEffective); var _sdC = _embCellColor(_sdEffective);
+                                var _sdBg = _cocExempt ? '#eeeeee' : _embCellBg(_sdEffective); var _sdBd = _cocExempt ? '#dddddd' : _embCellBorder(_sdEffective); var _sdC = _cocExempt ? '#9e9e9e' : _embCellColor(_sdEffective);
                                 html += '<div style="margin-bottom:6px;">';
                                 html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">📅 Submission Date</div>';
-                                html += '<input type="date" value="' + sdVal + '" ' + (pCanEdit?'':'disabled')
-                                    + ' data-pname="' + pnSafe + '" data-key="' + sdKey + '" data-idx="' + periodIdx + '"'
+                                html += '<input type="date" value="' + _vSd + '" ' + _dis
+                                    + ' data-pname="' + pnSafe + '" data-key="' + sdKey + '" data-idx="' + periodIdx + '"' + _emptyAttr
                                     + ' style="width:100%;border:1px solid ' + _sdBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _sdBg + ';color:' + _sdC + ';box-sizing:border-box;text-align:left;display:block;"'
                                     + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';">';
                                 html += '</div>';
 
                                 // Reference No.
-                                var _rnBg = _embCellBg(_rnEffective); var _rnBd = _embCellBorder(_rnEffective); var _rnC = _embCellColor(_rnEffective);
+                                var _rnBg = _cocExempt ? '#eeeeee' : _embCellBg(_rnEffective); var _rnBd = _cocExempt ? '#dddddd' : _embCellBorder(_rnEffective); var _rnC = _cocExempt ? '#9e9e9e' : _embCellColor(_rnEffective);
                                 html += '<div style="margin-bottom:6px;">';
                                 html += '<div style="font-size:0.6rem;color:#555;margin-bottom:3px;font-weight:600;">🔢 Reference No.</div>';
-                                html += '<input type="text" inputmode="numeric" pattern="[0-9]*" value="' + (rnVal||'').replace(/"/g,'&quot;') + '" ' + (pCanEdit?'':'disabled')
-                                    + ' data-pname="' + pnSafe + '" data-key="' + rnKey + '" data-idx="' + periodIdx + '"'
+                                html += '<input type="text" inputmode="numeric" pattern="[0-9]*" value="' + (_vRn||'').replace(/"/g,'&quot;') + '" ' + _dis
+                                    + ' data-pname="' + pnSafe + '" data-key="' + rnKey + '" data-idx="' + periodIdx + '"' + _emptyAttr
                                     + ' placeholder="Ref number..."'
                                     + ' style="width:100%;border:1px solid ' + _rnBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _rnBg + ';color:' + _rnC + ';box-sizing:border-box;text-align:left;display:block;"'
                                     + ' onkeypress="return /[0-9]/.test(event.key);"'
@@ -15891,14 +16014,23 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 html += '</div>';
                             }
 
-                            // Care of Client checkbox — when checked, project is permanently exempt for this period
-                            html += '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;padding:5px 6px;border-radius:4px;background:' + (_cocExempt?'#c8e6c9':'#f5f5f5') + ';border:1px solid '+(_cocExempt?'#a5d6a7':'#ddd')+';cursor:pointer;" onclick="this.querySelector(\'input[type=checkbox]\').click()">';
-                            html += '<input type="checkbox"' + (cocVal?' checked':'') + ' ' + (pCanEdit?'':'disabled')
-                                + ' data-pname="' + pnSafe + '" data-key="' + cocKey + '" data-idx="' + periodIdx + '" data-inputtype="checkbox"'
-                                + ' style="width:14px;height:14px;accent-color:#2e7d32;cursor:' + (canEdit?'pointer':'not-allowed') + ';"'
-                                + ' onclick="event.stopPropagation()"'
-                                + ' onchange="(function(el){var v=el.checked;updateVal(el.dataset.pname,el.dataset.key,parseInt(el.dataset.idx),v);var wrapper=el.closest(\'.emb-entry-block\');if(wrapper)wrapper.style.background=v?\'#e8f5e9\':\'#f1f8f1\';var lbl=el.nextElementSibling;if(lbl){lbl.textContent=v?\'✓ Care of Client (Exempted)\':\'Care of Client\';lbl.style.color=v?\'#2e7d32\':\'#555\';lbl.style.fontWeight=v?\'800\':\'normal\';}var par=el.parentElement;if(par){par.style.background=v?\'#c8e6c9\':\'#f5f5f5\';par.style.borderColor=v?\'#a5d6a7\':\'#ddd\';}render();})(this)">';
-                            html += '<span style="font-size:0.62rem;color:' + (_cocExempt?'#2e7d32':'#555') + ';cursor:pointer;font-weight:' + (_cocExempt?'800':'normal') + ';">' + (cocVal?'✓ Care of Client (Exempted)':'Care of Client') + '</span>';
+                            // Care of Client + N/A options (side by side). Either one exempts the project for this period; they are mutually exclusive.
+                            function _embExemptBox(kind, on, key) {
+                                var offLbl = kind === 'coc' ? 'Care of Client' : 'N/A';
+                                var onLbl  = kind === 'coc' ? '✓ Care of Client (Exempted)' : '✓ N/A';
+                                var b = '<div style="flex:1 1 auto;box-sizing:border-box;display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:4px;background:' + (on?'#c8e6c9':'#f5f5f5') + ';border:1px solid '+(on?'#a5d6a7':'#ddd')+';cursor:pointer;" onclick="this.querySelector(\'input[type=checkbox]\').click()">';
+                                b += '<input type="checkbox"' + (on?' checked':'') + ' ' + (pCanEdit?'':'disabled')
+                                    + ' data-pname="' + pnSafe + '" data-key="' + key + '" data-idx="' + periodIdx + '" data-inputtype="checkbox" data-exempt="' + kind + '"'
+                                    + ' style="width:14px;height:14px;accent-color:#2e7d32;cursor:' + (canEdit?'pointer':'not-allowed') + ';"'
+                                    + ' onclick="event.stopPropagation()"'
+                                    + ' onchange="window._embToggleExempt(this)">';
+                                b += '<span style="font-size:0.62rem;color:' + (on?'#2e7d32':'#555') + ';cursor:pointer;font-weight:' + (on?'800':'normal') + ';">' + (on?onLbl:offLbl) + '</span>';
+                                b += '</div>';
+                                return b;
+                            }
+                            html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">';
+                            html += _embExemptBox('coc', cocVal, cocKey);
+                            html += _embExemptBox('na',  naVal,  naKey);
                             html += '</div>';
                             html += '</div>'; // end primary entry block
 
@@ -16024,6 +16156,51 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var periodKey = modal ? modal.getAttribute('data-period') : '';
                         removeEmbEntry(pName, type, idx);
                         setTimeout(function(){ if(reg && periodKey) window.openEmbDialog(regKey, reg, periodKey, true); }, 350);
+                    };
+
+                    // Care of Client / N/A toggle — saves the value, un-checks the other option (mutually exclusive) and refreshes the box styling
+                    window._embToggleExempt = function(el) {
+                        function _style(inp) {
+                            var on = inp.checked, kind = inp.dataset.exempt;
+                            var lbl = inp.nextElementSibling, box = inp.parentElement;
+                            if (lbl) {
+                                lbl.textContent = on ? (kind === 'coc' ? '✓ Care of Client (Exempted)' : '✓ N/A') : (kind === 'coc' ? 'Care of Client' : 'N/A');
+                                lbl.style.color = on ? '#2e7d32' : '#555';
+                                lbl.style.fontWeight = on ? '800' : 'normal';
+                            }
+                            if (box) { box.style.background = on ? '#c8e6c9' : '#f5f5f5'; box.style.borderColor = on ? '#a5d6a7' : '#ddd'; }
+                        }
+                        var v = el.checked;
+                        updateVal(el.dataset.pname, el.dataset.key, parseInt(el.dataset.idx), v);
+                        var wrapper = el.closest('.emb-entry-block');
+                        if (v && wrapper) {
+                            wrapper.querySelectorAll('input[data-exempt]').forEach(function(o) {
+                                if (o !== el && o.checked) {
+                                    o.checked = false;
+                                    updateVal(o.dataset.pname, o.dataset.key, parseInt(o.dataset.idx), false);
+                                    _style(o);
+                                }
+                            });
+                        }
+                        _style(el);
+                        if (wrapper) {
+                            wrapper.style.background = v ? '#e8f5e9' : '#f1f8f1';
+                            var anyOn = false;
+                            wrapper.querySelectorAll('input[data-exempt]').forEach(function(o) { if (o.checked) anyOn = true; });
+                            // Facility / Submission Date / Reference No. of this entry
+                            wrapper.querySelectorAll('input[data-pname][data-key][data-idx]:not([data-exempt])').forEach(function(f) {
+                                if (anyOn) {
+                                    if (f.value !== '') updateVal(f.dataset.pname, f.dataset.key, parseInt(f.dataset.idx), '');
+                                    f.value = '';
+                                    f.disabled = true;
+                                    f.style.background = '#eeeeee'; f.style.borderColor = '#dddddd'; f.style.color = '#9e9e9e';
+                                } else {
+                                    f.disabled = el.disabled;
+                                    f.style.background = f.dataset.ebg || ''; f.style.borderColor = f.dataset.ebd || ''; f.style.color = f.dataset.ec || '';
+                                }
+                            });
+                        }
+                        render();
                     };
 
                     window._saveEmbModal = function() {
@@ -16292,6 +16469,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             emrPeriods.push({
                                 label: EMR_MONTHS[m2] + ' ' + emrSelYear,
                                 shortLabel: EMR_MONTHS[m2].substring(0,3).toUpperCase(),
+                                monthOnly: true,
                                 filledCount: mFill, totalSlots: nonNaProjs2.length,
                                 isCurrent: (emrSelYear === new Date().getFullYear() && m2 === emrCurMoIdx),
                                 sub: subLabel,
@@ -17082,14 +17260,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);border-left:4px solid ' + _kAccent + ';background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
                                 + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
                                 + ' onclick="window.openKpmDialog(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + mo + '\',false)">'
-                                // Number badge
-                                + '<span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">' + (mi+1) + '</span>'
                                 // Month label
-                                + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:36px;text-align:center;">' + mo.substring(0,3).toUpperCase() + '</span>'
+                                + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:48px;box-sizing:border-box;text-align:center;">' + mo.substring(0,3).toUpperCase() + '</span>'
                                 // Info
                                 + '<div style="flex:1;min-width:0;">'
                                 + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow:hidden;">'
-                                + '<span style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;">' + mo + ' ' + selYear + '</span>' + _kChips
+                                + _kChips
                                 + '<span style="font-size:0.62rem;color:#888;white-space:nowrap;margin-left:auto;">Submitted: <span style="color:' + submFg + ';font-weight:600;">' + submLabel + '</span></span></div>'
                                 + '</div>'
                                 // Score + edit btn
@@ -17218,7 +17394,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         // Build KPM table
                         var tableHtml = window._kpmBuildModalTable(regProjs, activeMo, dis, regKey);
 
-                        modal.innerHTML = '<div style="border-radius:12px;width:min(1600px,99vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">'
+                        modal.innerHTML = '<div style="border-radius:12px;width:min(1600px,99vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 12px);max-height:calc(100dvh - 12px);">'
                             // Header
                             + '<div style="background:linear-gradient(90deg,#0d3d0f,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
                             + '<div>'
@@ -17238,7 +17414,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             // Per-project submission meta
                             + metaHtml
                             // Table
-                            + '<div style="overflow-x:auto;max-height:76vh;overflow-y:auto;background:var(--bg-card);">'
+                            + '<div style="overflow:auto;flex:1 1 auto;min-height:0;background:var(--bg-card);">'
                             + tableHtml
                             + '</div>'
                             // Legend
@@ -20993,13 +21169,17 @@ function computeAggregateTabulation() {
     let lostDays        = 0;   // from Incident & Accident Registry (Scheduled Charge Item / actual dates)
 
     const _selYear = state && state.selectedYear ? parseInt(state.selectedYear) : new Date().getFullYear();
+    // YTD: Jan up to the last completed month (current year), or all 12 months for a past year.
+    const _maxMonth = (new Date().getFullYear() === _selYear) ? Math.max(1, new Date().getMonth()) : 12; // current month is still ongoing, so YTD stops at the last completed month
     const _hasDaysChargedFn = typeof window.computeDaysCharged === 'function';
 
-    state.projects
-        .filter(p => p.region !== 'PLANT OPERATIONS')
-        .forEach(p => {
+    // Same project list as the Total Projects card (no CORPORATE, no PLANT OPERATIONS).
+    const _projs = getReportingProjects();
+    const _activeCount = getReportingProjects(null, { activeOnly: true }).length;
+
+    _projs.forEach(p => {
         let pMh = 0;
-        for (let i = 1; i <= 12; i++) {
+        for (let i = 1; i <= _maxMonth; i++) {
             const mh = parseFloat(p.vals['exposures_Total Exposed Manhour']?.[i]) || 0;
             totalManHours += mh;
             pMh           += mh;
@@ -21028,7 +21208,7 @@ function computeAggregateTabulation() {
         } else {
             // Fallback (should not normally trigger — window.computeDaysCharged is
             // registered by showUI() before this card renders)
-            for (let i = 1; i <= 12; i++) {
+            for (let i = 1; i <= _maxMonth; i++) {
                 lostDays += parseFloat(p.vals['medical_Days Lost/Charged']?.[i]) || 0;
             }
         }
@@ -21037,7 +21217,8 @@ function computeAggregateTabulation() {
         totalManHoursToDate += prevMh + pMh;
     });
 
-    const recordableCases = ltaCases + medTreatment + fatality + highPotential;
+    // High-Potential Incident is NOT recordable (no actual injury) — same rule as the Rates table.
+    const recordableCases = ltaCases + medTreatment + fatality;
 
     let ltirOsha = 0, ltirOshs = 0, trirOsha = 0, trirOshs = 0, srOsha = 0, srOshs = 0;
     if (totalManHours > 0) {
@@ -21049,6 +21230,7 @@ function computeAggregateTabulation() {
         srOshs   = (lostDays        * 1000000)  / totalManHours;
     }
 
+    const _mo = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
     return {
         recordableCases: recordableCases,
         lostDays:        lostDays,
@@ -21056,9 +21238,14 @@ function computeAggregateTabulation() {
         totalHoursToDate: Math.round(totalManHoursToDate),
         ltaCases:        ltaCases,
         fatalCases:      fatality,
-        ltirOsha:  ltirOsha.toFixed(4), ltirOshs:  ltirOshs.toFixed(4),
-        trirOsha:  trirOsha.toFixed(4), trirOshs:  trirOshs.toFixed(4),
-        srOsha:    srOsha.toFixed(4),   srOshs:    srOshs.toFixed(4)
+        highPotential:   highPotential,
+        projectCount:    _projs.length,
+        activeCount:     _activeCount,
+        throughMonth:    _maxMonth,
+        throughLabel:    'JAN–' + _mo[_maxMonth - 1],
+        ltirOsha:  window.formatRate('LTIR', ltirOsha, 'osha'), ltirOshs:  window.formatRate('LTIR', ltirOshs, 'oshs'),
+        trirOsha:  window.formatRate('TRIR', trirOsha, 'osha'), trirOshs:  window.formatRate('TRIR', trirOshs, 'oshs'),
+        srOsha:    window.formatRate('SEVERITY RATE', srOsha, 'osha'), srOshs: window.formatRate('SEVERITY RATE', srOshs, 'oshs')
     };
 }
 
@@ -21072,7 +21259,7 @@ function buildIncidentTabulationHTML() {
         <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%); color: white; padding: 8px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           <i class="fas fa-calculator" style="font-size: 0.9rem;"></i>
           <span style="font-weight: 700; font-size: 0.85rem; letter-spacing: 0.4px;">INCIDENT TABULATION RATE</span>
-          <span style="background: var(--safety-yellow); color: #1b5e20; padding: 2px 8px; border-radius: 20px; font-size: 0.62rem; font-weight: 800; margin-left: 2px;">AUTO-COMPUTED FROM ALL PROJECTS</span>
+          <span style="background: var(--safety-yellow); color: #1b5e20; padding: 2px 8px; border-radius: 20px; font-size: 0.62rem; font-weight: 800; margin-left: 2px;">AUTO-COMPUTED · ${d.projectCount} PROJECTS (${d.activeCount} ACTIVE) · ${d.throughLabel}</span>
         </div>
 
         
@@ -21087,7 +21274,7 @@ function buildIncidentTabulationHTML() {
           <div style="padding: 10px 14px; text-align: center; border-right: 1px solid var(--border-color);">
             <div style="font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 3px;">No. of Recordable Cases</div>
             <div style="font-size: 1.5rem; font-weight: 900; color: #e65100; line-height: 1;">${d.recordableCases}</div>
-            <div style="font-size: 0.57rem; color: var(--text-secondary); margin-top: 2px;">LTA + Medical + Fatality + High-Pot.</div>
+            <div style="font-size: 0.57rem; color: var(--text-secondary); margin-top: 2px;">LTA + Medical + Fatality · High-Pot. (${d.highPotential}) not counted</div>
           </div>
 
           <div style="padding: 10px 14px; text-align: center; border-right: 1px solid var(--border-color);">
@@ -21099,7 +21286,7 @@ function buildIncidentTabulationHTML() {
           <div style="padding: 10px 14px; text-align: center; border-right: 1px solid var(--border-color);">
             <div style="font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 3px;">Total Man-hours Exposure</div>
             <div style="font-size: 1.5rem; font-weight: 900; color: #b71c1c; line-height: 1;">${d.totalHours.toLocaleString()}</div>
-            <div style="font-size: 0.57rem; color: var(--text-secondary); margin-top: 2px;">Total Exposed Manhour YTD</div>
+            <div style="font-size: 0.57rem; color: var(--text-secondary); margin-top: 2px;">Total Exposed Manhour ${d.throughLabel}</div>
           </div>
 
           <div style="padding: 10px 14px; text-align: center;">
@@ -21145,23 +21332,23 @@ function buildIncidentTabulationHTML() {
                   <div style="font-size:0.61rem;opacity:0.9;margin-top:2px;">LTA Cases × 200K or 1M ÷ Total Man-hours</div>
                 </td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.ltirOsha) <= 0.50 ? '#1b5e20' : '#c62828'};">${d.ltirOsha}</div>
+                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir ? '#1b5e20' : '#c62828'};">${d.ltirOsha}</div>
                   <div style="font-size:0.58rem;color:var(--text-secondary);">OSHA (200K base)</div>
                   <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;
-                    ${parseFloat(d.ltirOsha) <= 0.50 ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
-                    ${parseFloat(d.ltirOsha) <= 0.50 ? '✅ TARGET' : '⚠ EXCEEDED'}
+                    ${parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
+                    ${parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir ? '✅ TARGET' : '⚠ EXCEEDED'}
                   </div>
                 </td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.ltirOshs) <= 0.50 ? '#1b5e20' : '#c62828'};">${d.ltirOshs}</div>
+                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir ? '#1b5e20' : '#c62828'};">${d.ltirOshs}</div>
                   <div style="font-size:0.58rem;color:var(--text-secondary);">OSHS (1M base)</div>
                   <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;
-                    ${parseFloat(d.ltirOshs) <= 0.50 ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
-                    ${parseFloat(d.ltirOshs) <= 0.50 ? '✅ TARGET' : '⚠ EXCEEDED'}
+                    ${parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
+                    ${parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir ? '✅ TARGET' : '⚠ EXCEEDED'}
                   </div>
                 </td>
                 <td style="background:#fff9c4;padding:8px;text-align:center;border:1px solid #fbc02d;">
-                  <div style="font-size:1.3rem;font-weight:900;color:#f9a825;">0.50</div>
+                  <div style="font-size:1.3rem;font-weight:900;color:#f9a825;">${window.STATS_TARGETS.ltir.toFixed(2)}</div>
                   <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;background:#e8f5e9;color:#2e7d32;">
                     ✅ TARGET
                   </div>
@@ -21173,23 +21360,23 @@ function buildIncidentTabulationHTML() {
                   <div style="font-size:0.61rem;opacity:0.9;margin-top:2px;">Recordable Cases × 200K or 1M ÷ Total Man-hours</div>
                 </td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.trirOsha) <= 1.25 ? '#1565c0' : '#c62828'};">${d.trirOsha}</div>
+                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir ? '#1565c0' : '#c62828'};">${d.trirOsha}</div>
                   <div style="font-size:0.58rem;color:var(--text-secondary);">OSHA (200K base)</div>
                   <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;
-                    ${parseFloat(d.trirOsha) <= 1.25 ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
-                    ${parseFloat(d.trirOsha) <= 1.25 ? '✅ TARGET' : '⚠ EXCEEDED'}
+                    ${parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
+                    ${parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir ? '✅ TARGET' : '⚠ EXCEEDED'}
                   </div>
                 </td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.trirOshs) <= 1.25 ? '#1565c0' : '#c62828'};">${d.trirOshs}</div>
+                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir ? '#1565c0' : '#c62828'};">${d.trirOshs}</div>
                   <div style="font-size:0.58rem;color:var(--text-secondary);">OSHS (1M base)</div>
                   <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;
-                    ${parseFloat(d.trirOshs) <= 1.25 ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
-                    ${parseFloat(d.trirOshs) <= 1.25 ? '✅ TARGET' : '⚠ EXCEEDED'}
+                    ${parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
+                    ${parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir ? '✅ TARGET' : '⚠ EXCEEDED'}
                   </div>
                 </td>
                 <td style="background:#fff9c4;padding:8px;text-align:center;border:1px solid #fbc02d;">
-                  <div style="font-size:1.3rem;font-weight:900;color:#f9a825;">1.25</div>
+                  <div style="font-size:1.3rem;font-weight:900;color:#f9a825;">${window.STATS_TARGETS.trir.toFixed(2)}</div>
                   <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;background:#e8f5e9;color:#2e7d32;">
                     ✅ TARGET
                   </div>
@@ -22253,16 +22440,14 @@ function safetyOpenArchiveModal(type) {
 window.safetyOpenArchiveModal = safetyOpenArchiveModal;
 
 function buildIncidentRecommendationsHTML(tabType) {
+    if (tabType === 'rates') return ''; // Statistics Rate YTD Summary card removed (redundant with Incident Tabulation Rate)
     // ── Compute YTD incident/rate data from all active, non-Corp/Plant projects ──
     const _selYear = state.selectedYear || new Date().getFullYear();
-    const _curMonth = new Date().getFullYear() === _selYear ? new Date().getMonth() + 1 : 12; // months 1-12 completed so far
+    const _curMonth = new Date().getFullYear() === _selYear ? Math.max(1, new Date().getMonth()) : 12; // last completed month (current month is still ongoing)
     const _moShort  = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
     const _moFull   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-    const _projs = state.projects.filter(function(p) {
-        return p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS'
-            && !isProjectOnStoppage(p) && !p.dateFinished;
-    });
+    const _projs = getReportingProjects(); // same list as Total Projects card; finished/stopped kept (their YTD data still counts)
 
     // ── Per-month totals (indices 1-12) ──
     var _moLTA  = new Array(12).fill(0);
@@ -22326,43 +22511,82 @@ function buildIncidentRecommendationsHTML(tabType) {
 
     var _rateBase = (state.ratesStandard === 'osha') ? 200000 : 1000000;
     var _rateLabel = (state.ratesStandard === 'osha') ? 'OSHA (200K hrs)' : 'OSHS (1M hrs)';
-    var ytdLTIR   = ytdMH > 0 ? (ytdLTA  * _rateBase / ytdMH).toFixed(3) : '—';
-    var ytdTRIR   = ytdMH > 0 ? ((ytdLTA + ytdMed + ytdFat) * _rateBase / ytdMH).toFixed(3) : '—';
-    var ytdSevR   = ytdMH > 0 ? (ytdDL   * _rateBase / ytdMH).toFixed(3) : '—';
+    var ytdLTIR   = ytdMH > 0 ? window.formatRate('LTIR', ytdLTA * _rateBase / ytdMH) : '—';
+    var ytdTRIR   = ytdMH > 0 ? window.formatRate('TRIR', (ytdLTA + ytdMed + ytdFat) * _rateBase / ytdMH) : '—';
+    var ytdSevR   = ytdMH > 0 ? window.formatRate('SEVERITY RATE', ytdDL * _rateBase / ytdMH) : '—';
+
+    // Rates must match the Incident Tabulation Rate table exactly: take them from the same function.
+    var _agg = computeAggregateTabulation();
+    if (_agg.totalHours > 0) {
+        var _isOsha = (state.ratesStandard === 'osha');
+        ytdMH   = _agg.totalHours;
+        ytdDL   = _agg.lostDays;
+        ytdLTIR = _isOsha ? _agg.ltirOsha : _agg.ltirOshs;
+        ytdTRIR = _isOsha ? _agg.trirOsha : _agg.trirOshs;
+        ytdSevR = _isOsha ? _agg.srOsha : _agg.srOshs;
+    }
 
     // ── Build recommendation lines ──
     var recLines = [];
 
     if (tabType === 'rates') {
-        // Rate-focused recommendations
+        // Rate-focused summary: KPI tiles + status rows (Action first, OK last)
+        var _T = window.STATS_TARGETS || { ltir: 0.50, trir: 1.25, sr: null };
+        var _lv = parseFloat(ytdLTIR), _tv = parseFloat(ytdTRIR), _sv = parseFloat(ytdSevR);
+        var _status = function(val, target) {
+            if (val === 0) return 'ok';
+            if (target == null) return 'na';
+            if (val > target) return 'act';
+            if (val > target * 0.8) return 'watch';
+            return 'ok';
+        };
+        var _badge = { act: 'Action', watch: 'Watch', ok: 'OK', na: 'No target' };
+        var _rows = [];
+        var _tileSt = { ltir: 'na', trir: 'na', sr: 'na', hip: ytdHIP > 0 ? 'act' : 'ok' };
+
         if (ytdMH === 0) {
-            recLines.push('<li>No manhour data entered yet — LTIR, TRIR, and Severity Rate cannot be computed. Ensure manhour exposures are encoded for all active projects.</li>');
+            _rows.push({ s: 'na', k: 'No data', t: 'No manhour data entered yet. LTIR, TRIR, and Severity Rate cannot be computed. Encode manhour exposures for all projects.' });
         } else {
-            var _ltirVal = parseFloat(ytdLTIR);
-            var _trirVal = parseFloat(ytdTRIR);
-            var _sevVal  = parseFloat(ytdSevR);
+            _tileSt.ltir = _status(_lv, _T.ltir);
+            _tileSt.trir = _status(_tv, _T.trir);
+            _tileSt.sr   = _status(_sv, _T.sr);
+            var _tgtL = _T.ltir != null ? _T.ltir.toFixed(2) : '';
+            var _tgtT = _T.trir != null ? _T.trir.toFixed(2) : '';
+
             if (ytdFat > 0) {
-                recLines.push('<li><i class="fas fa-skull" style="color:#c62828;margin-right:4px;"></i><strong>FATALITY RECORDED:</strong> ' + ytdFat + ' fatality/ies recorded YTD. Conduct mandatory fatality investigation, report to DOLE within 24 hours, and immediately review all site safety protocols.</li>');
+                _rows.push({ s: 'act', k: 'Fatality', v: String(ytdFat), t: 'Fatality recorded YTD. Do the mandatory investigation, report to DOLE within 24 hours, and review site safety protocols.' });
             }
-            if (_ltirVal === 0) {
-                recLines.push('<li><i class="fas fa-shield-halved" style="color:#1b5e20;margin-right:4px;"></i><strong>LTIR of 0.000</strong> — No Lost Time Accidents recorded YTD. Sustain LTA-free performance through continued hazard controls and toolbox meetings.</li>');
-            } else if (_ltirVal <= 1.0) {
-                recLines.push('<li><strong>LTIR is ' + ytdLTIR + '</strong> (' + _rateLabel + '). LTA rate is within acceptable range. Monitor closely to prevent further incidents.</li>');
-            } else {
-                recLines.push('<li><i class="fas fa-triangle-exclamation" style="color:#c62828;margin-right:4px;"></i><strong>LTIR of ' + ytdLTIR + '</strong> (' + _rateLabel + ') is elevated. Conduct urgent hazard analysis and implement corrective actions for LTA-prone activities.</li>');
-            }
-            if (_trirVal === 0) {
-                recLines.push('<li><strong>TRIR of 0.000</strong> — Zero recordable injuries YTD. Commendable performance; maintain rigorous medical surveillance and near-miss reporting.</li>');
-            } else {
-                recLines.push('<li><strong>TRIR is ' + ytdTRIR + '</strong> — ' + (ytdLTA + ytdMed + ytdFat) + ' recordable case(s) YTD. Review incident classifications and ensure all cases are properly documented and investigated.</li>');
-            }
+            var _lt = _lv === 0 ? 'No LTA recorded YTD. Sustain hazard controls and toolbox meetings.'
+                : _tileSt.ltir === 'act'   ? 'Above target. Conduct hazard analysis for LTA-prone activities.'
+                : _tileSt.ltir === 'watch' ? 'Close to target. Monitor closely.'
+                : 'Within target. Keep monitoring.';
+            _rows.push({ s: _tileSt.ltir, k: 'LTIR', t: _lt });
+
+            var _tt = _tv === 0 ? 'Zero recordable injuries YTD. Maintain medical surveillance and near-miss reporting.'
+                : (_tileSt.trir === 'act' ? 'Above target. ' : _tileSt.trir === 'watch' ? 'Close to target. ' : 'Within target. ') + 'Check that all ' + _agg.recordableCases + ' recordable case(s) are documented and investigated.';
+            _rows.push({ s: _tileSt.trir, k: 'TRIR', t: _tt });
+
             if (ytdHIP > 0) {
-                recLines.push('<li><i class="fas fa-radiation" style="color:#7a5c00;margin-right:4px;"></i><strong>' + ytdHIP + ' High-Potential Incident(s)</strong> recorded. These require root cause analysis equal to LTAs — escalate findings to management immediately.</li>');
+                _rows.push({ s: 'act', k: 'High-Potential', t: ytdHIP + ' incident(s), not counted in TRIR. Do root cause analysis like LTAs and escalate to management.' });
             }
-            if (_sevVal > 0) {
-                recLines.push('<li><strong>Severity Rate of ' + ytdSevR + '</strong> — ' + ytdDL + ' total days lost/charged YTD. Focus on reducing severity through prompt medical management and light-duty return-to-work programs.</li>');
+            if (_sv > 0) {
+                _rows.push({ s: _tileSt.sr, k: 'Severity rate', t: Number(ytdDL).toLocaleString() + ' days lost/charged YTD. Focus on prompt medical management and light-duty return to work.' });
             }
         }
+
+        var _order = { act: 0, watch: 1, na: 2, ok: 3 };
+        _rows = _rows.map(function(r, i) { r.i = i; return r; })
+                     .sort(function(a, b) { return (_order[a.s] - _order[b.s]) || (a.i - b.i); });
+
+        var _listHTML = '<ul class="srs-list">' + _rows.map(function(r) {
+            return '<li><span class="srs-badge srs-' + r.s + '">' + _badge[r.s] + '</span><span>' + (r.k !== 'No data' ? '<b>' + r.k + '.</b> ' : '') + r.t + '</span></li>';
+        }).join('') + '</ul>';
+
+        return '<div class="srs-card">' +
+            '<div class="srs-title">💡 RECOMMENDED ACTIONS</div>' +
+            '<div class="srs-sub">Auto-computed from encoded manhours and incident data · ' + _agg.projectCount + ' projects (' + _agg.activeCount + ' active) · ' + _agg.throughLabel + ' · Standard: ' + _rateLabel + '</div>' +
+            '<div class="srs-cols">' + _listHTML + '</div>' +
+            '</div>';
     } else {
         // Incident-record focused recommendations
         if (ytdFat > 0) {
@@ -22716,7 +22940,7 @@ function _doUpdateTrendChart(tabType) {
     const datasets = [];
     
     if (tabType === 'rates') {
-        const _rateBase = (state.ratesStandard === 'osha') ? 200000 : 1000000;
+        const _cs = window.buildCumulativeSeries(filteredProjects, 12);
         const rateTypes = ['LTIR', 'TRIR', 'SEVERITY RATE'];
         const colors = ['#1b5e20', '#1565c0', '#b71c1c'];
 
@@ -22724,21 +22948,9 @@ function _doUpdateTrendChart(tabType) {
             const data = new Array(12).fill(null);
 
             for (let i = 1; i <= 12; i++) {
-                let mh = 0, lta = 0, med = 0, fat = 0, hip = 0, dL = 0;
-                filteredProjects.forEach(p => {
-                    if (!p.vals) return;
-                    mh  += parseFloat(p.vals['exposures_Total Exposed Manhour']?.[i]) || 0;
-                    lta += parseFloat(p.vals['medical_LTA']?.[i]) || 0;
-                    med += parseFloat(p.vals['medical_Medical Treatment']?.[i]) || 0;
-                    fat += parseFloat(p.vals['medical_Fatality']?.[i]) || 0;
-                    hip += parseFloat(p.vals['medical_High-Potential incident']?.[i]) || 0;
-                    dL  += parseFloat(p.vals['medical_Days Lost/Charged']?.[i]) || 0;
-                });
-                if (mh > 0) {
-                    const rec = lta + med + fat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
-                    if      (rateType === 'LTIR')          data[i-1] = parseFloat(((lta * _rateBase) / mh).toFixed(4));
-                    else if (rateType === 'TRIR')          data[i-1] = parseFloat(((rec * _rateBase) / mh).toFixed(4));
-                    else if (rateType === 'SEVERITY RATE') data[i-1] = parseFloat(((dL  * _rateBase) / mh).toFixed(4));
+                if (i <= _cs.last) {
+                    const _r = window.calcCumRate(rateType, _cs.lta[i], _cs.rec[i], _cs.dl[i], _cs.mh[i]);
+                    if (_r !== null) data[i-1] = parseFloat(window.formatRate(rateType, _r));
                 }
             }
 
@@ -23536,9 +23748,9 @@ async function syncExecutiveSummary() {
             recentIncidents.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
             const topIncidents = recentIncidents.slice(0, 10);
 
-            const ltir = mh > 0 ? +((lta * rateBase) / mh).toFixed(4) : 0;
-            const trir = mh > 0 ? +(((lta + med + fat) * rateBase) / mh).toFixed(4) : 0;
-            const sevR = mh > 0 ? +((dl * rateBase) / mh).toFixed(4) : 0;
+            const ltir = mh > 0 ? +window.formatRate('LTIR', (lta * rateBase) / mh) : 0;
+            const trir = mh > 0 ? +window.formatRate('TRIR', ((lta + med + fat) * rateBase) / mh) : 0;
+            const sevR = mh > 0 ? +window.formatRate('SEVERITY RATE', (dl * rateBase) / mh) : 0;
 
             const docData = {
                 region: region,
@@ -27528,11 +27740,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 h += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);border-left:4px solid ' + accent + ';background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
                    + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
                    + ' onclick="window.openGotMonthDialog(\'' + escQ(reg) + '\',' + m + ',false)">';
-                h += '<span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">' + m + '</span>';
-                h += '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:36px;text-align:center;">' + GOT_M[m - 1] + '</span>';
+                h += '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:48px;box-sizing:border-box;text-align:center;">' + GOT_M[m - 1] + '</span>';
                 h += '<div style="flex:1;min-width:0;">';
                 h += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
-                   + '<span style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;">' + GOT_M_FULL[m - 1] + ' ' + _selYr + '</span>'
                    + chips + '</div>';
                 h += '</div>';
                 h += '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">';
@@ -28246,7 +28456,7 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 
 (function() {
-    const GHG_FACTOR = 0.000694;   // tCO2 per kWh
+    const GHG_FACTOR = 0.0006935;  // tCO2 per kWh (DOE Grid Emission Factor)
 
     const ENV_REGIONS = ['CORPORATE', 'PLANT OPERATIONS', 'NCR', 'SOUTH LUZON', 'NORTH LUZON', 'VISAYAS & MINDANAO'];
     const ENV_MONTHS  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -28317,7 +28527,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (module === 'env_monitoring') {
                             row.kwh    = parseFloat(row.kwh)    || 0;
                             row.amount = parseFloat(row.amount) || 0;
-                            row.ghg    = parseFloat(row.ghg)    || 0;
+                            row.ghg    = row.kwh * GHG_FACTOR;   // always recompute from kWh
                             newEnvData.push(row);
                         } else if (module === 'env_waste') {
                             row.bioGen    = parseFloat(row.bioGen)    || 0;
@@ -28403,7 +28613,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ...row,
                     kwh:    parseFloat(row.kwh)    || 0,
                     amount: parseFloat(row.amount) || 0,
-                    ghg:    parseFloat(row.ghg)    || 0,
+                    ghg:    (parseFloat(row.kwh) || 0) * GHG_FACTOR,   // always recompute from kWh
                 }));
                 wasteData = rawWaste.map(row => ({
                     ...row,
@@ -31419,6 +31629,16 @@ function _tabNavBar(tabType, region, projIdx, regProjsLen) {
     </div>`;
 }
 window._tabNavBar = _tabNavBar;
+
+// Prev/Next button placed inside the project card (dir: -1 = Prev, 1 = Next)
+function _tabNavBtn(tabType, region, dir, projIdx, regProjsLen) {
+    const isPrev = dir < 0;
+    const off = isPrev ? projIdx === 0 : projIdx === regProjsLen - 1;
+    const t = tabType.replace(/'/g, "\\'");
+    const r = region.replace(/'/g, "\\'");
+    return `<button onclick="event.stopPropagation();tabNavProject('${t}','${r}', ${dir})" ${off ? 'disabled' : ''} style="flex-shrink:0;white-space:nowrap;background:${off ? '#ccc' : '#1b5e20'};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${off ? 'not-allowed' : 'pointer'};opacity:${off ? '0.4' : '1'};">${isPrev ? '<i class="fas fa-chevron-left"></i> Prev' : 'Next <i class="fas fa-chevron-right"></i>'}</button>`;
+}
+window._tabNavBtn = _tabNavBtn;
 
 function eshNavigateProject(tabType, region, delta) {
     const key = eshGetRegionKey(tabType, region);
@@ -35886,81 +36106,19 @@ async function exportCurrentTabToExcel() {
             { key: 'SEVERITY RATE', label: 'SEVERITY RATE', desc: 'Severity Rate',                 color: 'B71C1C', fill: 'FFEBEE' },
         ];
 
-        function getRateVal(proj, rateKey, moNum) {
-            if (moNum > _ratesMaxMo) return null; // future/ongoing month — not yet complete
-            const mh  = parseFloat(_v(proj, 'exposures_Total Exposed Manhour', moNum)) || 0;
-            if (mh <= 0) return null;
-            const lta = parseFloat(_v(proj, 'medical_LTA', moNum))                     || 0;
-            const med = parseFloat(_v(proj, 'medical_Medical Treatment', moNum))        || 0;
-            const fat = parseFloat(_v(proj, 'medical_Fatality', moNum))                 || 0;
-            const hip = parseFloat(_v(proj, 'medical_High-Potential incident', moNum))  || 0;
-            const dL  = parseFloat(_v(proj, 'medical_Days Lost/Charged', moNum))        || 0;
-            const rec = lta + med + fat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
-            if (rateKey === 'LTIR')          return (lta * _rateBase) / mh;
-            if (rateKey === 'TRIR')          return (rec * _rateBase) / mh;
-            if (rateKey === 'SEVERITY RATE') return (dL  * _rateBase) / mh;
-            return null;
+        // Cumulative Jan → month. Same helper as the dashboard so the export matches the screen.
+        function _cumRateFrom(projList, rateKey, moNum) {
+            const cs = window.buildCumulativeSeries(projList, _ratesMaxMo);
+            const m = moNum || _ratesMaxMo;
+            if (m > _ratesMaxMo) return null; // future/ongoing month — not yet complete
+            if (moNum && moNum > cs.last) return null;
+            return window.calcCumRate(rateKey, cs.lta[m], cs.rec[m], cs.dl[m], cs.mh[m]);
         }
-        function getRateYtd(proj, rateKey) {
-            let totalMh=0, totalLta=0, totalMed=0, totalFat=0, totalHip=0, totalDL=0;
-            for (let m = 1; m <= _ratesMaxMo; m++) {
-                totalMh  += parseFloat(_v(proj, 'exposures_Total Exposed Manhour', m))    || 0;
-                totalLta += parseFloat(_v(proj, 'medical_LTA', m))                         || 0;
-                totalMed += parseFloat(_v(proj, 'medical_Medical Treatment', m))            || 0;
-                totalFat += parseFloat(_v(proj, 'medical_Fatality', m))                     || 0;
-                totalHip += parseFloat(_v(proj, 'medical_High-Potential incident', m))      || 0;
-                totalDL  += parseFloat(_v(proj, 'medical_Days Lost/Charged', m))            || 0;
-            }
-            if (totalMh <= 0) return null;
-            const rec = totalLta + totalMed + totalFat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
-            if (rateKey === 'LTIR')          return (totalLta * _rateBase) / totalMh;
-            if (rateKey === 'TRIR')          return (rec      * _rateBase) / totalMh;
-            if (rateKey === 'SEVERITY RATE') return (totalDL  * _rateBase) / totalMh;
-            return null;
-        }
-        function fmtRate(v) { return v === null ? '' : parseFloat(v.toFixed(4)).toString(); }
-        function regionRateVal(region, rateKey, moNum) {
-            if (moNum && moNum > _ratesMaxMo) return null; // future/ongoing month — not yet complete
-            let mh=0,lta=0,med=0,fat=0,hip=0,dL=0;
-            const months = moNum ? [moNum] : Array.from({length:_ratesMaxMo}, function(_,i){return i+1;});
-            projsByRegion[region].forEach(function(p) {
-                months.forEach(function(m) {
-                    mh  += parseFloat(_v(p,'exposures_Total Exposed Manhour', m)) || 0;
-                    lta += parseFloat(_v(p,'medical_LTA', m))                     || 0;
-                    med += parseFloat(_v(p,'medical_Medical Treatment', m))        || 0;
-                    fat += parseFloat(_v(p,'medical_Fatality', m))                 || 0;
-                    hip += parseFloat(_v(p,'medical_High-Potential incident', m))  || 0;
-                    dL  += parseFloat(_v(p,'medical_Days Lost/Charged', m))        || 0;
-                });
-            });
-            if (mh <= 0) return null;
-            const rec = lta+med+fat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
-            if (rateKey === 'LTIR')          return (lta * _rateBase) / mh;
-            if (rateKey === 'TRIR')          return (rec * _rateBase) / mh;
-            if (rateKey === 'SEVERITY RATE') return (dL  * _rateBase) / mh;
-            return null;
-        }
-        function overallRateVal(rateKey, moNum) {
-            if (moNum && moNum > _ratesMaxMo) return null; // future/ongoing month — not yet complete
-            let mh=0,lta=0,med=0,fat=0,hip=0,dL=0;
-            const months = moNum ? [moNum] : Array.from({length:_ratesMaxMo}, function(_,i){return i+1;});
-            orderedProjs.forEach(function(p) {
-                months.forEach(function(m) {
-                    mh  += parseFloat(_v(p,'exposures_Total Exposed Manhour', m)) || 0;
-                    lta += parseFloat(_v(p,'medical_LTA', m))                     || 0;
-                    med += parseFloat(_v(p,'medical_Medical Treatment', m))        || 0;
-                    fat += parseFloat(_v(p,'medical_Fatality', m))                 || 0;
-                    hip += parseFloat(_v(p,'medical_High-Potential incident', m))  || 0;
-                    dL  += parseFloat(_v(p,'medical_Days Lost/Charged', m))        || 0;
-                });
-            });
-            if (mh <= 0) return null;
-            const rec = lta+med+fat; // High-Potential Incident excluded — no actual injury occurred, not an OSHA/OSHS recordable case
-            if (rateKey === 'TRIR')          return (rec * _rateBase) / mh;
-            if (rateKey === 'LTIR')          return (lta * _rateBase) / mh;
-            if (rateKey === 'SEVERITY RATE') return (dL  * _rateBase) / mh;
-            return null;
-        }
+        function getRateVal(proj, rateKey, moNum) { return _cumRateFrom([proj], rateKey, moNum); }
+        function getRateYtd(proj, rateKey) { return _cumRateFrom([proj], rateKey, 0); }
+        function fmtRate(v, key) { return v === null ? '' : window.formatRate(key, v); }
+        function regionRateVal(region, rateKey, moNum) { return _cumRateFrom(projsByRegion[region], rateKey, moNum); }
+        function overallRateVal(rateKey, moNum) { return _cumRateFrom(orderedProjs, rateKey, moNum); }
 
         // colMap: same KPM/GOT pattern
         const rColMap = [];
@@ -35981,7 +36139,7 @@ async function exportCurrentTabToExcel() {
             cell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
         }
         function rApplyVal(cell, val, rateRow) {
-            const txt = fmtRate(val);
+            const txt = fmtRate(val, rateRow.key);
             cell.value     = txt || '';
             cell.font      = { bold:!!txt, size:9, name:'Calibri', color:{argb: txt ? 'FF'+rateRow.color : 'FF9E9E9E'} };
             cell.alignment = { horizontal:'center', vertical:'middle' };
@@ -35989,7 +36147,7 @@ async function exportCurrentTabToExcel() {
             cell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}}, left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
         }
         function rApplyAvg(cell, val, rateRow) {
-            const txt = fmtRate(val);
+            const txt = fmtRate(val, rateRow.key);
             cell.value     = txt || '—';
             cell.font      = { bold:true, size:9, name:'Calibri', color:{argb: txt ? 'FF'+rateRow.color : 'FF9E9E9E'} };
             cell.alignment = { horizontal:'center', vertical:'middle' };
@@ -35999,7 +36157,7 @@ async function exportCurrentTabToExcel() {
 
         function buildRatesSheet(ws, sheetTitle, getValFn) {
             // Row 1: notes
-            const noteRow = ws.addRow(['Standard: ' + _rateStdLabel + '  |  LTIR = LTA × base ÷ MH  |  TRIR = (LTA+MTC+FAT+HIP) × base ÷ MH  |  Severity Rate = Days Lost × base ÷ MH']);
+            const noteRow = ws.addRow(['Standard: ' + _rateStdLabel + '  |  Cumulative Jan to month  |  LTIR = LTA × base ÷ MH  |  TRIR = (LTA+MTC+FAT+HIP) × base ÷ MH  |  Severity Rate = Days Lost × base ÷ MH']);
             ws.mergeCells(noteRow.number, 1, noteRow.number, R_TOTAL);
             const nc = noteRow.getCell(1);
             nc.font = { size:8, name:'Calibri', color:{argb:'FF5D4037'}, italic:true };
@@ -36051,9 +36209,9 @@ async function exportCurrentTabToExcel() {
             RATE_ROWS.forEach(function(rr) {
                 const rowArr = [rr.label, rr.desc];
                 rColMap.forEach(function(cm) {
-                    if (cm.type === 'proj')    rowArr.push(fmtRate(getValFn(cm.proj, rr.key)) || '');
-                    else if (cm.type === 'avg') rowArr.push(fmtRate(getValFn(null, rr.key, cm.region)) || '');
-                    else                        rowArr.push(fmtRate(getValFn(null, rr.key, 'overall')) || '');
+                    if (cm.type === 'proj')    rowArr.push(fmtRate(getValFn(cm.proj, rr.key), rr.key) || '');
+                    else if (cm.type === 'avg') rowArr.push(fmtRate(getValFn(null, rr.key, cm.region), rr.key) || '');
+                    else                        rowArr.push(fmtRate(getValFn(null, rr.key, 'overall'), rr.key) || '');
                 });
                 const dr = ws.addRow(rowArr);
                 dr.height = 28;
@@ -38648,7 +38806,7 @@ async function exportEmbExcel() {
     });
 
     // Column definitions
-    // A: REGION | B: PROJECT | C: TYPE | D: PERIOD | E: ENTRY # | F: FACILITY | G: SUBMISSION DATE | H: REFERENCE NO. | I: CARE OF CLIENT
+    // A: REGION | B: PROJECT | C: TYPE | D: PERIOD | E: ENTRY # | F: FACILITY | G: SUBMISSION DATE | H: REFERENCE NO. | I: CARE OF CLIENT | J: N/A
     const COLS = [
         { key: 'region',  header: 'REGION',          width: 22 },
         { key: 'project', header: 'PROJECT',          width: 35 },
@@ -38659,6 +38817,7 @@ async function exportEmbExcel() {
         { key: 'sd',      header: 'SUBMISSION DATE',  width: 20 },
         { key: 'rn',      header: 'REFERENCE NO.',    width: 22 },
         { key: 'coc',     header: 'CARE OF CLIENT',   width: 16 },
+        { key: 'na',      header: 'N/A',              width: 10 },
     ];
     COLS.forEach((c, i) => { ws.getColumn(i + 1).width = c.width; });
 
@@ -38713,6 +38872,7 @@ async function exportEmbExcel() {
             const smrSdKey  = 'emb_SMR (Quarterly) - Submission Date';
             const smrRnKey  = 'emb_SMR (Quarterly) - Reference No.';
             const smrCocKey = 'emb_SMR (Quarterly) - Care of Client';
+            const smrNaKey  = 'emb_SMR (Quarterly) - N/A';
             const smrExtKey = 'emb_extra_smr';
 
             // CMR key helpers
@@ -38720,6 +38880,7 @@ async function exportEmbExcel() {
             const cmrSdKey  = 'emb_CMR (Semi-Annual) - Submission Date';
             const cmrRnKey  = 'emb_CMR (Semi-Annual) - Reference No.';
             const cmrCocKey = 'emb_CMR (Semi-Annual) - Care of Client';
+            const cmrNaKey  = 'emb_CMR (Semi-Annual) - N/A';
             const cmrExtKey = 'emb_extra_cmr';
 
             function _val(key, idx) {
@@ -38730,8 +38891,10 @@ async function exportEmbExcel() {
                 return v === true || v === 'true' || v === '1' || v === 1;
             }
 
-            function _writeEntryRow(type, periodLabel, entryNum, fac, sd, rn, coc) {
+            function _writeEntryRow(type, periodLabel, entryNum, fac, sd, rn, coc, na) {
                 const isCoc = coc === true || coc === 'true' || coc === '1' || coc === 1 || coc === true;
+                const isNa  = na === true || na === 'true' || na === '1' || na === 1;
+                if (isCoc || isNa) { fac = ''; sd = ''; rn = ''; } // exempt (Care of Client / N/A) → no values
                 const typeBg = type === 'SMR' ? '388E3C' : '1565C0';
                 const row = ws.getRow(curRow);
 
@@ -38756,6 +38919,11 @@ async function exportEmbExcel() {
                 _applyData(ws.getCell(curRow, 6), fac || '', !!fac, false);
                 _applyData(ws.getCell(curRow, 7), sd ? _fmtDate(sd) : '', !!sd, false);
                 _applyData(ws.getCell(curRow, 8), rn || '', !!rn, false);
+                if (isCoc || isNa) {
+                    [6, 7, 8].forEach(function(ci) {
+                        ws.getCell(curRow, ci).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+                    });
+                }
 
                 // Care of Client cell
                 const cocCell = ws.getCell(curRow, 9);
@@ -38764,6 +38932,15 @@ async function exportEmbExcel() {
                 } else {
                     _applyData(cocCell, '—', false, false);
                     cocCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+                }
+
+                // N/A cell
+                const naCell = ws.getCell(curRow, 10);
+                if (isNa) {
+                    _applyData(naCell, '✓ N/A', true, true);
+                } else {
+                    _applyData(naCell, '—', false, false);
+                    naCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
                 }
 
                 row.height = 17;
@@ -38776,8 +38953,9 @@ async function exportEmbExcel() {
                 const sd   = _val(smrSdKey,  period.idx);
                 const rn   = _val(smrRnKey,  period.idx);
                 const coc  = _boolVal(smrCocKey, period.idx);
+                const na   = _boolVal(smrNaKey,  period.idx);
 
-                _writeEntryRow('SMR', period.label, 1, fac, sd, rn, coc);
+                _writeEntryRow('SMR', period.label, 1, fac, sd, rn, coc, na);
 
                 // Extra SMR entries for this period
                 const extras = Array.isArray(pv[smrExtKey]) ? pv[smrExtKey] : [];
@@ -38785,7 +38963,7 @@ async function exportEmbExcel() {
                     const eFac = (entry.fac && entry.fac[period.idx]) ? entry.fac[period.idx] : '';
                     const eSd  = (entry.sd  && entry.sd[period.idx])  ? entry.sd[period.idx]  : '';
                     const eRn  = (entry.rn  && entry.rn[period.idx])  ? entry.rn[period.idx]  : '';
-                    _writeEntryRow('SMR', period.label, eIdx + 2, eFac, eSd, eRn, false);
+                    _writeEntryRow('SMR', period.label, eIdx + 2, eFac, eSd, eRn, false, false);
                 });
             });
 
@@ -38795,8 +38973,9 @@ async function exportEmbExcel() {
                 const sd   = _val(cmrSdKey,  period.idx);
                 const rn   = _val(cmrRnKey,  period.idx);
                 const coc  = _boolVal(cmrCocKey, period.idx);
+                const na   = _boolVal(cmrNaKey,  period.idx);
 
-                _writeEntryRow('CMR', period.label, 1, fac, sd, rn, coc);
+                _writeEntryRow('CMR', period.label, 1, fac, sd, rn, coc, na);
 
                 // Extra CMR entries for this period
                 const extras = Array.isArray(pv[cmrExtKey]) ? pv[cmrExtKey] : [];
@@ -38804,7 +38983,7 @@ async function exportEmbExcel() {
                     const eFac = (entry.fac && entry.fac[period.idx]) ? entry.fac[period.idx] : '';
                     const eSd  = (entry.sd  && entry.sd[period.idx])  ? entry.sd[period.idx]  : '';
                     const eRn  = (entry.rn  && entry.rn[period.idx])  ? entry.rn[period.idx]  : '';
-                    _writeEntryRow('CMR', period.label, eIdx + 2, eFac, eSd, eRn, false);
+                    _writeEntryRow('CMR', period.label, eIdx + 2, eFac, eSd, eRn, false, false);
                 });
             });
 
@@ -38941,8 +39120,9 @@ async function exportDoleExcel() {
     function projAnnualScore(proj) {
         // No covered period yet / stoppage-year exempt → excluded from averages (null), like blacklisted months
         if (!isDoleAnnualRequired(proj, year) || isDoleAnnualStoppageExempt(proj, year)) return null;
-        const submitted = DOLE_ANNUAL_ROWS.filter(r => isAnnualSubmitted(proj, r.id)).length;
-        return DOLE_ANNUAL_ROWS.length > 0 ? (submitted / DOLE_ANNUAL_ROWS.length) * 100 : null;
+        const _applicable = DOLE_ANNUAL_ROWS.filter(r => !isDoleAnnualNA(proj, r.id));
+        const submitted = _applicable.filter(r => isAnnualSubmitted(proj, r.id)).length;
+        return _applicable.length > 0 ? (submitted / _applicable.length) * 100 : null;
     }
     // Overall score across all months + annual
     function projOverallScore(proj) {
@@ -39116,20 +39296,20 @@ async function exportDoleExcel() {
             colMap.forEach(cm => {
                 if (cm.type === 'proj') {
                     // If month is blacklisted for this project, push N/A marker
-                    if (moNum && isMonthBlacklistedForProject(cm.proj, moNum, year)) {
+                    if ((moNum && isMonthBlacklistedForProject(cm.proj, moNum, year)) || (typeLabel === 'ANNUAL' && isDoleAnnualNA(cm.proj, rowDef.id))) {
                         rowArr.push('N/A');
                     } else {
                         rowArr.push(getValFn(cm.proj, rowDef.id) || '');
                     }
                 } else if (cm.type === 'overall') {
                     const vals = orderedProjs
-                        .filter(p => !(moNum && isMonthBlacklistedForProject(p, moNum, year)))
+                        .filter(p => !(moNum && isMonthBlacklistedForProject(p, moNum, year)) && !(typeLabel === 'ANNUAL' && isDoleAnnualNA(p, rowDef.id)))
                         .map(p => getValFn(p, rowDef.id) !== null ? 1 : 0);
                     const pct  = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length * 100) : null;
                     rowArr.push(pct !== null ? Math.round(pct) + '%' : '—');
                 } else {
                     const rp   = projsByRegion[cm.region]
-                        .filter(p => !(moNum && isMonthBlacklistedForProject(p, moNum, year)));
+                        .filter(p => !(moNum && isMonthBlacklistedForProject(p, moNum, year)) && !(typeLabel === 'ANNUAL' && isDoleAnnualNA(p, rowDef.id)));
                     const vals = rp.map(p => getValFn(p, rowDef.id) !== null ? 1 : 0);
                     const pct  = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length * 100) : null;
                     rowArr.push(pct !== null ? Math.round(pct) + '%' : '—');
@@ -39161,7 +39341,7 @@ async function exportDoleExcel() {
                 const cell = dataRow.getCell(ci);
                 if (cm.type === 'proj') {
                     // Work-stoppage N/A styling
-                    if (moNum && isMonthBlacklistedForProject(cm.proj, moNum, year)) {
+                    if ((moNum && isMonthBlacklistedForProject(cm.proj, moNum, year)) || (typeLabel === 'ANNUAL' && isDoleAnnualNA(cm.proj, rowDef.id))) {
                         cell.value     = 'N/A';
                         cell.font      = { size: 8, name: 'Calibri', color: { argb: 'FF9E9E9E' }, italic: true };
                         cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
@@ -39176,7 +39356,7 @@ async function exportDoleExcel() {
                     }
                 } else if (cm.type === 'overall') {
                     const vals = orderedProjs
-                        .filter(p => !(moNum && isMonthBlacklistedForProject(p, moNum, year)))
+                        .filter(p => !(moNum && isMonthBlacklistedForProject(p, moNum, year)) && !(typeLabel === 'ANNUAL' && isDoleAnnualNA(p, rowDef.id)))
                         .map(p => getValFn(p, rowDef.id) !== null ? 1 : 0);
                     const pct  = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length * 100) : null;
                     applyAvgCell(cell, pct);
@@ -39184,7 +39364,7 @@ async function exportDoleExcel() {
                     cell.font = { bold: true, size: 9, name: 'Calibri', color: { argb: 'FF' + C_OVERALL_BG } };
                 } else {
                     const rp   = projsByRegion[cm.region]
-                        .filter(p => !(moNum && isMonthBlacklistedForProject(p, moNum, year)));
+                        .filter(p => !(moNum && isMonthBlacklistedForProject(p, moNum, year)) && !(typeLabel === 'ANNUAL' && isDoleAnnualNA(p, rowDef.id)));
                     const vals = rp.map(p => getValFn(p, rowDef.id) !== null ? 1 : 0);
                     const pct  = vals.length ? (vals.reduce((a,b)=>a+b,0) / vals.length * 100) : null;
                     applyAvgCell(cell, pct);
