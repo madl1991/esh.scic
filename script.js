@@ -19992,6 +19992,42 @@ function confirmAddPersonnel() {
         });
 }
 
+// ── OSHP (DOLE-accredited OSH Practitioner) helpers ──────────────────────────
+function oshpBadgeHtml(p) {
+    return (p && p.oshp)
+        ? `<span title="DOLE-accredited Occupational Safety and Health (OSH) Practitioner" style="display:inline-block;font-size:0.55rem;font-weight:800;color:#0d47a1;background:#e3f2fd;border:1px solid #90caf9;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle;letter-spacing:0.3px;">OSHP</span>`
+        : '';
+}
+
+// Adds the "DOLE-Accredited OSHP" checkbox under the OIC checkbox (no index.html change needed)
+function ensureOshpCheckbox() {
+    if (document.getElementById('editPersonnelOshpInput')) return;
+    const oicInput = document.getElementById('editPersonnelOicInput');
+    if (!oicInput) return;
+    const oicWrap = oicInput.closest('label') || oicInput.parentElement;
+    if (!oicWrap) return;
+    const clone = oicWrap.cloneNode(true);
+    clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    const input = clone.querySelector('input[type="checkbox"]');
+    if (!input) return;
+    input.id = 'editPersonnelOshpInput';
+    input.checked = false;
+    input.removeAttribute('onchange');
+    input.removeAttribute('onclick');
+    // Replace the label text
+    const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
+    let n, replaced = false;
+    while ((n = walker.nextNode())) {
+        if (n.nodeValue.trim()) {
+            n.nodeValue = replaced ? '' : ' DOLE-Accredited OSH Practitioner (OSHP)';
+            replaced = true;
+        }
+    }
+    clone.title = 'DOLE-accredited Occupational Safety and Health (OSH) Practitioner';
+    clone.style.marginTop = '6px';
+    oicWrap.insertAdjacentElement('afterend', clone);
+}
+
 function openEditPersonnelModal(index) {
     if (state.userRole === 'manager' || state.userRole === 'doc_controller') { showToast('👁️ Manager accounts are view-only.', 'warning'); return; }
     const person = state.personnelData[index];
@@ -20092,6 +20128,8 @@ function openEditPersonnelModal(index) {
     document.getElementById('editPersonnelAssignmentInput').value = person.current || '';
     document.getElementById('editPersonnelAreaInput').value = person.area || '';
     document.getElementById('editPersonnelOicInput').checked = person.oic || false;
+    ensureOshpCheckbox();
+    { const _oshpEl = document.getElementById('editPersonnelOshpInput'); if (_oshpEl) _oshpEl.checked = person.oshp || false; }
     document.getElementById('editPersonnelAgeInput').value = person.age || '';
     document.getElementById('editPersonnelGenderInput').value = person.gen || '';
     document.getElementById('editPersonnelEmailInput').value = person.mail || '';
@@ -20713,6 +20751,7 @@ function confirmEditPersonnel() {
     const current = document.getElementById('editPersonnelAssignmentInput').value;
     const area = document.getElementById('editPersonnelAreaInput').value.trim().toUpperCase();
     const oic = document.getElementById('editPersonnelOicInput').checked;
+    const oshp = !!(document.getElementById('editPersonnelOshpInput') || {}).checked;
     const age = document.getElementById('editPersonnelAgeInput').value;
     const gen = document.getElementById('editPersonnelGenderInput').value;
     const mail = document.getElementById('editPersonnelEmailInput').value.trim();
@@ -20796,6 +20835,7 @@ function confirmEditPersonnel() {
         addr: addr || '',
         len: len || '',
         oic: oic || false,
+        oshp: oshp || false,
         toUpdate: toUpdate.length > 0 ? toUpdate : null
     };
     updatedPerson._pid = existingPid || PersonnelDB.getPersonId(updatedPerson);
@@ -20918,7 +20958,7 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
         displayIndexRef.n++;
         const di = _projRowNum;
         const oicBadge = p.oic ? `<span style="display:inline-block;font-size:0.55rem;font-weight:800;color:#e65100;background:#fff3e0;border:1px solid #ffcc80;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle;letter-spacing:0.3px;">OIC</span>` : '';
-        const posDisplay = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>${oicBadge}` : '<span style="color:#bbb;font-size:0.7rem;">—</span>';
+        const posDisplay = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>${oicBadge}${oshpBadgeHtml(p)}` : '<span style="color:#bbb;font-size:0.7rem;">—</span>';
         const hasToUpdate = p.toUpdate && p.toUpdate.length > 0;
         const rowBg = hasToUpdate ? 'background:#ffebee;' : (di % 2 === 0 ? 'background:#ffffff;' : 'background:#f4f6f8;');
         const stickyBg = hasToUpdate ? 'background:#ffebee;' : (di%2===1?'background:#f4f6f8;':'background:#ffffff;');
@@ -21145,7 +21185,7 @@ function renderPTable() {
             displayIndexRef.n++;
             const di = _corpRowNum;
             const _oicBadge = p.oic ? `<span style="display:inline-block;font-size:0.55rem;font-weight:800;color:#e65100;background:#fff3e0;border:1px solid #ffcc80;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle;letter-spacing:0.3px;">OIC</span>` : '';
-            const posDisplay = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>${_oicBadge}` : '<span style="color:#bbb;font-size:0.7rem;">—</span>';
+            const posDisplay = p.pos && p.pos !== 'Select' ? `<span class="p-pos-badge">${p.pos}</span>${_oicBadge}${oshpBadgeHtml(p)}` : '<span style="color:#bbb;font-size:0.7rem;">—</span>';
             const _hasToUpdate = p.toUpdate && p.toUpdate.length > 0;
             const _rowBg = _hasToUpdate ? 'background:#ffebee;' : (di%2===0?'background:#ffffff;':'background:#f4f6f8;');
             const _stickyBg = _hasToUpdate ? 'background:#ffebee;' : (di%2===1?'background:#f4f6f8;':'background:#ffffff;');
@@ -23696,6 +23736,7 @@ const PersonnelDB = {
             addr:     person.addr     || '',
             len:      person.len      || '',
             oic:      person.oic      || false,
+            oshp:     person.oshp     || false,
             toUpdate: Array.isArray(person.toUpdate) && person.toUpdate.length > 0 ? person.toUpdate : null,
             _updatedBy: state.currentUser?.email || '',
             _updatedAt: new Date().toISOString()
@@ -38863,7 +38904,7 @@ async function exportPersonnelExcel() {
         return [
             region, projName, p.area || '—', mi + 1,
             (p.name || '').toUpperCase(),
-            (p.pos || '—') + (p.oic ? ' (OIC)' : ''),
+            (p.pos || '—') + (p.oic ? ' (OIC)' : '') + (p.oshp ? ' (OSHP)' : ''),
             p.id || '—',
             p.gen || p.gender || '—',
             p.age || '—',
@@ -39046,12 +39087,12 @@ async function exportPersonnelExcel() {
                 const dataRow = ws.addRow(_buildRow(region, projName, p, mi));
                 dataRow.height = 16;
                 dataRow.eachCell((cell, colNumber) => applyDataStyle(cell, colNumber));
-                if (p.oic) {
-                    dataRow.getCell(6).value = { richText: [
-                        { text: (p.pos || '—') + ' ', font: { size: 11, name: 'Calibri' } },
-                        { text: 'OIC', font: { bold: true, size: 11, name: 'Calibri', color: { argb: 'FFE65100' } } }
-                    ]};
-                    dataRow.getCell(6).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3E0' } };
+                if (p.oic || p.oshp) {
+                    const _rt = [{ text: (p.pos || '—') + ' ', font: { size: 11, name: 'Calibri' } }];
+                    if (p.oic) _rt.push({ text: 'OIC ', font: { bold: true, size: 11, name: 'Calibri', color: { argb: 'FFE65100' } } });
+                    if (p.oshp) _rt.push({ text: 'OSHP', font: { bold: true, size: 11, name: 'Calibri', color: { argb: 'FF0D47A1' } } });
+                    dataRow.getCell(6).value = { richText: _rt };
+                    dataRow.getCell(6).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: p.oic ? 'FFFFF3E0' : 'FFE3F2FD' } };
                 }
             });
 
