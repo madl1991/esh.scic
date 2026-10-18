@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESH COMPLIANCE DASHBOARD - SCIC</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><defs><linearGradient id=%22g1%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%25%22 stop-color=%22%232e7d32%22/><stop offset=%22100%25%22 stop-color=%22%231b5e20%22/></linearGradient></defs><path d=%22M16 2 L28 7 L28 17 C28 23 22 28 16 30 C10 28 4 23 4 17 L4 7 Z%22 fill=%22url(%23g1)%22/><path d=%22M16 2 L28 7 L28 17 C28 23 22 28 16 30 C10 28 4 23 4 17 L4 7 Z%22 fill=%22none%22 stroke=%22%23fbc02d%22 stroke-width=%221.5%22/><text x=%2216%22 y=%2219.5%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-weight=%22900%22 font-size=%228.5%22 fill=%22white%22 letter-spacing=%22-0.5%22>ESH</text></svg>">
-<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="styles.css?v=6">
     <!-- OPTIMIZED: consolidated font load — only weights actually used, preconnect for speed -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
     // ── GLOBAL REGION COLOR SOURCE OF TRUTH ──────────────────────────────────
@@ -1336,6 +1336,41 @@
 <div id="headlines-view" class="hidden" style="padding:20px 0 0;">
     <div id="safety-alert-award-panel"></div>
 </div>
+
+<!-- Weather column of the Safety Alerts panel: PAGASA box on top, Windy box below. script.js copies this into the panel (a <template> does not load anything until then). -->
+<template id="saw-wx-template">
+    <div class="saw-wx-stack">
+        <div class="saw-panel">
+            <div class="saw-panel-head">
+                <i class="fas fa-cloud-sun-rain" style="color:#1565c0;"></i>
+                <span style="font-weight:800;font-size:0.78rem;letter-spacing:0.4px;color:var(--text-primary);">PAGASA WEATHER</span>
+                <span style="margin-left:auto;font-size:0.62rem;color:var(--text-secondary);">Surface map</span>
+            </div>
+            <div class="saw-wx-pagasa">
+                <div id="saw-wx-loading" class="saw-wx-loading">Naglo-load ng larawan… mabagal ang server ng PAGASA</div>
+                <img id="saw-wx-pagasa-img" class="saw-wx-img" alt="PAGASA surface map" referrerpolicy="no-referrer"
+                     data-src="https://pubfiles.pagasa.dost.gov.ph/tamss/weather/surface_map.jpg" onload="sawWxImgDone(this)" onerror="sawWxImgErr(this)">
+                <a class="saw-wx-btn" href="https://pubfiles.pagasa.dost.gov.ph/tamss/weather/pf.pdf" target="_blank" rel="noopener">Daily Weather Forecast (PDF)</a>
+                <a class="saw-wx-btn alt" href="https://www.pagasa.dost.gov.ph/weather#daily-weather-forecast" target="_blank" rel="noopener">PAGASA weather page</a>
+                <a class="saw-wx-btn alt" href="https://www.pagasa.dost.gov.ph/tropical-cyclone-advisory-iframe" target="_blank" rel="noopener">Tropical Cyclone Advisory</a>
+            </div>
+        </div>
+        <div class="saw-panel">
+            <div class="saw-panel-head">
+                <i class="fas fa-satellite" style="color:#1565c0;"></i>
+                <span style="font-weight:800;font-size:0.78rem;letter-spacing:0.4px;color:var(--text-primary);">WINDY SATELLITE</span>
+                <span style="margin-left:auto;font-size:0.62rem;color:var(--text-secondary);">Philippines</span>
+            </div>
+            <iframe class="saw-weather-frame" loading="lazy"
+                src="https://embed.windy.com/embed2.html?lat=12.8797&lon=121.7740&detailLat=12.8797&detailLon=121.7740&width=650&height=650&zoom=5&level=surface&overlay=satellite&product=ecmwf&menu=&message=true&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1">
+            </iframe>
+            <div class="saw-weather-foot">
+                <span>Live satellite view</span>
+                <a href="https://www.windy.com/-Satellite-satellite?satellite,12.880,121.774,5" target="_blank" rel="noopener" style="color:#1565c0;text-decoration:none;font-weight:700;">Full map <i class="fas fa-up-right-from-square" style="font-size:0.55rem;"></i></a>
+            </div>
+        </div>
+    </div>
+</template>
 
 <div id="tabulation-view" class="hidden" style="padding:20px;">
 </div>
