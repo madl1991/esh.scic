@@ -6366,3 +6366,83 @@ td.srs-n.srs-act,td.srs-n.srs-watch,td.srs-n.srs-ok{color:var(--c);font-weight:7
     .modal-content, .confirm-modal-content, .success-modal-content, .modern-dialog,
     .esh-modal > *, .esh-pop-overlay > * { animation: none !important; }
 }
+
+/* ── Weather column: PAGASA box on top, Windy box below (Safety Alerts panel) ── */
+.saw-wx-stack { display:flex; flex-direction:column; gap:16px; }
+.saw-wx-stack > .saw-panel:last-child { flex:1; }
+.saw-wx-stack .saw-weather-frame { min-height:280px; }
+.saw-wx-pagasa { display:flex; flex-direction:column; gap:8px; padding:10px 12px; }
+.saw-wx-loading { padding:5px 10px; text-align:center; font-size:0.62rem; color:var(--text-secondary); background:#f5f5f5; border-radius:6px; }
+.saw-wx-img { width:100%; height:auto; display:block; border-radius:6px; border:1px solid var(--border-color); background:#f5f5f5; }
+.saw-wx-img.is-loading { min-height:160px; }
+.saw-wx-btn { display:block; text-align:center; padding:7px 10px; border-radius:6px; background:#1565c0; color:#fff !important; font-size:0.68rem; font-weight:700; text-decoration:none; }
+.saw-wx-btn.alt { background:transparent; color:#1565c0 !important; border:1px solid #1565c0; }
+body.dark-mode .saw-wx-img, body.dark-mode .saw-wx-loading { background:#2b2b2b; }
+
+/* Safety Alert list: items keep their natural height (no stretching to match the taller weather column) */
+.saw-grid .saw-alert-item { flex:0 0 auto; padding:12px; }
+
+
+/* ── KPM modal: Date Submitted indicator ── */
+@keyframes kpmDatePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(198,40,40,0.55); }
+    50%      { box-shadow: 0 0 0 6px rgba(198,40,40,0); }
+}
+@keyframes kpmDateShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-5px); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+}
+#kpm-modal-date-submitted.kpm-date-pulse, #ckpm-modal-date.kpm-date-pulse { animation: kpmDatePulse 1.4s ease-in-out infinite; }
+#kpm-modal-date-submitted.kpm-date-shake, #ckpm-modal-date.kpm-date-shake { animation: kpmDateShake 0.45s ease-in-out 1; }
+.kpm-date-hint {
+    align-items: center; gap: 5px;
+    background: #c62828; color: #fff;
+    font-size: 0.6rem; font-weight: 700;
+    padding: 3px 9px; border-radius: 999px;
+    white-space: nowrap;
+}
+.kpm-date-hint i { font-size: 0.6rem; }
+@media (prefers-reduced-motion: reduce) {
+    #kpm-modal-date-submitted.kpm-date-pulse, #ckpm-modal-date.kpm-date-pulse { animation: none; }
+}
+
+
+/* ── SIDEBAR: Archivo Narrow, ALL CAPS ───────────────────────────── */
+.nav-item,
+.nav-group-header,
+.nav-group-items .nav-item {
+    font-family: 'Archivo Narrow', sans-serif !important;
+    text-transform: uppercase;
+    font-weight: 600 !important;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+.nav-group-header > span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+.nav-group-header {
+    font-size: 0.8rem !important;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+.nav-item,
+.nav-group-items .nav-item {
+    font-size: 0.8rem !important;
+}
+.nav-item.active {
+    font-weight: 700 !important;
+}
+
+/* ── HEADER TITLE: Archivo Narrow ────────────────────────────────── */
+.header-title {
+    font-family: 'Archivo Narrow', sans-serif !important;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
