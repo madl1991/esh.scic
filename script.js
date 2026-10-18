@@ -1,3 +1,178 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// ESH POPUP ANIMATOR — one uniform open/close animation for EVERY popup.
+//
+//  • Static modals (#addProjectModal, #confirmModal, …) →  eshModalShow(el) / eshModalHide(el)
+//  • Dynamic popups (the many `document.createElement('div')` overlays) are
+//    detected automatically and animated on open. When their existing code
+//    calls `.remove()`, a visual "ghost" copy plays the exit animation, so none
+//    of the existing close handlers had to change.
+//
+// Timings / easing live in styles.css  (:root  --esh-pop-in / --esh-pop-out / --esh-pop-ease)
+// To exclude a popup:  overlay.setAttribute('data-esh-noanim', '')
+// ═══════════════════════════════════════════════════════════════════════════
+(function () {
+    'use strict';
+    if (window.__eshPopAnimator) return;
+    window.__eshPopAnimator = true;
+
+    var OUT_MS = 200;                       // keep in sync with --esh-pop-out in styles.css
+    var _remove = Element.prototype.remove;
+    var recentGhosts = {};
+
+    function reduceMotion() {
+        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    // ── A) STATIC MODALS ────────────────────────────────────────────────────
+    window.eshModalShow = function (el) {
+        if (!el) return;
+        if (el._eshHideT) { clearTimeout(el._eshHideT); el._eshHideT = null; }
+        el.classList.remove('esh-closing');
+        el.classList.add('esh-modal');
+        el.style.display = 'flex';
+        if (el.classList.contains('modal')) el.classList.add('show');
+    };
+
+    window.eshModalHide = function (el) {
+        if (!el) return;
+        var visible = el.isConnected && el.style.display !== 'none' &&
+                      getComputedStyle(el).display !== 'none';
+        el.classList.remove('show');                       // state checks (classList.contains('show')) stay accurate
+        if (!visible || reduceMotion()) {
+            if (el._eshHideT) { clearTimeout(el._eshHideT); el._eshHideT = null; }
+            el.classList.remove('esh-closing');
+            el.style.display = 'none';
+            return;
+        }
+        if (el._eshHideT) return;                          // already closing
+        el.classList.add('esh-closing');
+        el._eshHideT = setTimeout(function () {
+            el._eshHideT = null;
+            el.classList.remove('esh-closing');
+            if (el.classList.contains('show')) return;     // re-opened while closing
+            el.style.display = 'none';
+        }, OUT_MS);
+    };
+
+    // ── B) DYNAMIC POPUPS: detect on insert ─────────────────────────────────
+    function isCandidate(n) {
+        if (n.nodeType !== 1 || n.__eshPop || n.hasAttribute('data-esh-noanim')) return false;
+        var cls = typeof n.className === 'string' ? n.className : '';
+        if (cls.indexOf('esh-pop-ghost') > -1) return false;
+        return (n.style && n.style.position === 'fixed') ||
+               /overlay|modal|dialog|popup|lightbox/i.test(cls);
+    }
+
+    function isDimmedFullScreen(n) {
+        var cs = getComputedStyle(n);
+        if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') return false;
+        var r = n.getBoundingClientRect();
+        if (r.width < window.innerWidth * 0.9 || r.height < window.innerHeight * 0.9) return false;
+        var bg = cs.backgroundColor || '';
+        var m = /rgba?\(([^)]+)\)/.exec(bg);
+        if (!m) return false;
+        var alpha = 1, slash = /\/\s*([\d.]+)/.exec(m[1]);
+        if (slash) alpha = parseFloat(slash[1]);
+        else { var p = m[1].split(','); if (p.length > 3) alpha = parseFloat(p[3]); }
+        return alpha >= 0.15;
+    }
+
+    function arm(n) {
+        n.__eshPop = true;
+        // Same popup re-rendered in the same tick (remove old + insert new, same id)
+        // → treat as an in-place update: no exit ghost, no second entrance.
+        var g = n.id && recentGhosts[n.id];
+        if (g && performance.now() - g.t < 150) {
+            _remove.call(g.el);
+            delete recentGhosts[n.id];
+            return;
+        }
+        if (reduceMotion()) return;
+        var an = getComputedStyle(n).animationName;
+        if (an && an !== 'none') return;                   // already has its own (real) entrance animation
+        n.classList.add('esh-pop-overlay');
+        for (var i = 0; i < n.children.length; i++) {      // cards centred with transform → fade only (no jump)
+            if (getComputedStyle(n.children[i]).transform !== 'none') n.children[i].classList.add('esh-fade-only');
+        }
+    }
+
+    function startObserver() {
+        if (!document.body || window.__eshPopObserver) return;
+        window.__eshPopObserver = new MutationObserver(function (muts) {
+            for (var i = 0; i < muts.length; i++) {
+                var added = muts[i].addedNodes;
+                for (var j = 0; j < added.length; j++) {
+                    var n = added[j];
+                    try { if (isCandidate(n) && isDimmedFullScreen(n)) arm(n); } catch (e) {}
+                }
+            }
+        });
+        window.__eshPopObserver.observe(document.body, { childList: true, subtree: true });
+    }
+    if (document.body) startObserver();
+    else document.addEventListener('DOMContentLoaded', startObserver);
+
+    // ── C) DYNAMIC POPUPS: exit animation via a visual ghost ────────────────
+    function makeGhost(el) {
+        var cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.05) return null;
+        if (el.getElementsByTagName('*').length > 3000) return null;      // too heavy to clone
+
+        var g = el.cloneNode(true);
+        var all = g.querySelectorAll('*'), orig = el.querySelectorAll('*'), i;
+
+        // neutralise the copy so it can never clash with the live page
+        g.removeAttribute('id');
+        g.classList.remove('esh-pop-overlay');
+        g.classList.add('esh-pop-ghost');
+        g.setAttribute('inert', ''); g.setAttribute('aria-hidden', 'true');
+        for (i = 0; i < all.length; i++) {
+            var a = all[i];
+            a.removeAttribute('id'); a.removeAttribute('name'); a.removeAttribute('autofocus');
+        }
+        // heavy / live content can't be cloned faithfully → blank placeholder of the same size
+        for (i = 0; i < orig.length; i++) {
+            if (/^(IFRAME|VIDEO|AUDIO|EMBED|OBJECT|SCRIPT)$/.test(orig[i].tagName)) {
+                var ph = document.createElement('div');
+                var r = orig[i].getBoundingClientRect();
+                ph.style.cssText = 'width:' + r.width + 'px;height:' + r.height + 'px;';
+                all[i].parentNode && all[i].parentNode.replaceChild(ph, all[i]);
+            }
+        }
+        // keep what the person sees: canvases (charts), typed values, scroll positions
+        var oc = el.querySelectorAll('canvas'), gc = g.querySelectorAll('canvas');
+        for (i = 0; i < oc.length && i < gc.length; i++) {
+            try { gc[i].width = oc[i].width; gc[i].height = oc[i].height; gc[i].getContext('2d').drawImage(oc[i], 0, 0); } catch (e) {}
+        }
+        var of = el.querySelectorAll('input,textarea,select'), gf = g.querySelectorAll('input,textarea,select');
+        for (i = 0; i < of.length && i < gf.length; i++) {
+            try { gf[i].value = of[i].value; if (of[i].type === 'checkbox' || of[i].type === 'radio') gf[i].checked = of[i].checked; } catch (e) {}
+        }
+        g._scrolls = [];
+        if (el.scrollTop) g._scrolls.push([g, el.scrollTop]);
+        for (i = 0; i < orig.length; i++) {
+            if (orig[i].scrollTop && all[i]) g._scrolls.push([all[i], orig[i].scrollTop]);
+        }
+        return g;
+    }
+
+    Element.prototype.remove = function () {
+        var self = this;
+        try {
+            if (self.__eshPop && self.isConnected && self.parentNode && !reduceMotion()) {
+                var g = makeGhost(self);
+                if (g) {
+                    self.parentNode.insertBefore(g, self.nextSibling);
+                    for (var k = 0; k < g._scrolls.length; k++) g._scrolls[k][0].scrollTop = g._scrolls[k][1];
+                    if (self.id) recentGhosts[self.id] = { el: g, t: performance.now() };
+                    setTimeout(function () { _remove.call(g); }, OUT_MS + 40);
+                }
+            }
+        } catch (e) { /* never let the animation break closing */ }
+        return _remove.call(self);
+    };
+})();
+
 // ── Bar gradient helper: turns a flat hex color into a vertical gradient (light bottom → dark top). Colors themselves are untouched, only the fill style. Global scope — used by chart render code inside separate IIFEs below. ──
 function _hexToRgb(hex) {
     hex = hex.replace('#', '');
@@ -4324,8 +4499,7 @@ debugCommands.help() - Show this help
             document.getElementById('projectAddressInput').value = '';
             onProjectRegionChange(region || ''); // Show/hide date fields based on region
             const _aprojm = document.getElementById('addProjectModal');
-            _aprojm.style.display = 'flex';
-            _aprojm.classList.add('show');
+            eshModalShow(_aprojm);
         }
 
         function onProjectRegionChange(region) {
@@ -4359,8 +4533,7 @@ debugCommands.help() - Show this help
 
         function closeAddProjectModal() {
             const _aprojm = document.getElementById('addProjectModal');
-            _aprojm.classList.remove('show');
-            _aprojm.style.display = 'none';
+            eshModalHide(_aprojm);
         }
 
         let confirmModalResolve = null;
@@ -4369,15 +4542,13 @@ debugCommands.help() - Show this help
             return new Promise((resolve) => {
                 confirmModalResolve = resolve;
                 const modal = document.getElementById('confirmModal');
-                modal.style.display = 'flex';
-                modal.classList.add('show');
+                eshModalShow(modal);
             });
         }
 
         function closeConfirmModal(confirmed) {
             const modal = document.getElementById('confirmModal');
-            modal.classList.remove('show');
-            modal.style.display = 'none';
+            eshModalHide(modal);
             if (confirmModalResolve) {
                 confirmModalResolve(confirmed);
                 confirmModalResolve = null;
@@ -4407,8 +4578,7 @@ debugCommands.help() - Show this help
 
         function showSuccessModal() {
             const modal = document.getElementById('successModal');
-            modal.style.display = 'flex';
-            modal.classList.add('show');
+            eshModalShow(modal);
             
             let seconds = 3;
             const countdownEl = document.getElementById('countdown-timer');
@@ -4429,8 +4599,7 @@ debugCommands.help() - Show this help
 
         function closeSuccessModal() {
             const modal = document.getElementById('successModal');
-            modal.classList.remove('show');
-            modal.style.display = 'none';
+            eshModalHide(modal);
             
             if (countdownInterval) {
                 clearInterval(countdownInterval);
@@ -4566,14 +4735,12 @@ debugCommands.help() - Show this help
             document.getElementById('editProjectModalError').innerText = '';
             onEditProjectRegionChange(project.region); // show/hide date fields based on region
             const _eprojm = document.getElementById('editProjectModal');
-            _eprojm.style.display = 'flex';
-            _eprojm.classList.add('show');
+            eshModalShow(_eprojm);
         }
 
         function closeEditProjectModal() {
             const _eprojm = document.getElementById('editProjectModal');
-            _eprojm.classList.remove('show');
-            _eprojm.style.display = 'none';
+            eshModalHide(_eprojm);
             editingProjectOriginalName = '';
         }
 
@@ -19545,14 +19712,12 @@ function openAddPersonnelModal() {
     document.getElementById('personnelModalError').textContent = '';
     
     const _apm = document.getElementById('addPersonnelModal');
-    _apm.style.display = 'flex';
-    _apm.classList.add('show');
+    eshModalShow(_apm);
 }
 
 function closeAddPersonnelModal() {
     const _apm = document.getElementById('addPersonnelModal');
-    _apm.classList.remove('show');
-    _apm.style.display = 'none';
+    eshModalHide(_apm);
 }
 
 function confirmAddPersonnel() {
@@ -19836,8 +20001,7 @@ function openEditPersonnelModal(index) {
     });
     
     const _eepm = document.getElementById('editPersonnelModal');
-    _eepm.style.display = 'flex';
-    _eepm.classList.add('show');
+    eshModalShow(_eepm);
 
     const deleteBtn = document.getElementById('editPersonnelDeleteBtn');
     const transferBtn = document.getElementById('editPersonnelTransferBtn');
@@ -19861,8 +20025,7 @@ function openEditPersonnelModal(index) {
 
 function closeEditPersonnelModal() {
     const _eepm = document.getElementById('editPersonnelModal');
-    _eepm.classList.remove('show');
-    _eepm.style.display = 'none';
+    eshModalHide(_eepm);
 }
 
 // ── EDIT MODAL CERT HELPERS ────────────────────────────────────────────────
@@ -19902,6 +20065,9 @@ function _loadEditCertSection(person) {
     window._editCertCfg = certCfg;
     window._editCertPid = String(person._pid || person.id || '');
     window._editCertFile = null;
+    window._editCertOcrToken = (window._editCertOcrToken || 0) + 1;
+    const _ocrSt = document.getElementById('editCertOcrStatus');
+    if (_ocrSt) _ocrSt.style.display = 'none';
 
     // Label
     document.getElementById('editPersonnelCertLabel').innerHTML =
@@ -19945,6 +20111,115 @@ window.toggleCertToFollow = function(checked) {
     document.getElementById('editCertFields').style.display = checked ? 'none' : '';
 };
 
+// ── AUTO-DETECT EXPIRY DATE FROM CERTIFICATE PDF ───────────────────────────
+// Reads the PDF text with pdf.js and looks for "valid until / validity / expiry" + a date.
+// Only fills the field when exactly one clear date is found. No guessing.
+window._parseCertExpiryFromText = function(text) {
+    if (!text || text.replace(/\s+/g, '').length < 20) return { status: 'notext' };
+    const t = text.replace(/\s+/g, ' ');
+
+    const MONTHS = { january:1, february:2, march:3, april:4, may:5, june:6, july:7, august:8,
+                     september:9, october:10, november:11, december:12,
+                     jan:1, feb:2, mar:3, apr:4, jun:6, jul:7, aug:8, sep:9, sept:9, oct:10, nov:11, dec:12 };
+    const mon = 'january|february|march|april|may|june|july|august|september|october|november|december|sept|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec';
+
+    const fmt = (y, mo, d) => {
+        if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 1990 || y > 2100) return '';
+        const dt = new Date(Date.UTC(y, mo - 1, d));
+        if (dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return '';
+        return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    };
+
+    const toISO = (s) => {
+        s = s.trim();
+        let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (m) return fmt(+m[1], +m[2], +m[3]);
+        m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+        if (m) {
+            const a = +m[1], b = +m[2], y = +m[3];
+            if (a > 12 && b <= 12) return fmt(y, b, a);   // DD/MM/YYYY
+            if (b > 12 && a <= 12) return fmt(y, a, b);   // MM/DD/YYYY
+            if (a === b)           return fmt(y, a, b);
+            return '';                                    // ambiguous: do not guess
+        }
+        m = s.match(/^([a-z]+)\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/i);
+        if (m && MONTHS[m[1].toLowerCase()]) return fmt(+m[3], MONTHS[m[1].toLowerCase()], +m[2]);
+        m = s.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?([a-z]+)\.?,?\s+(\d{4})$/i);
+        if (m && MONTHS[m[2].toLowerCase()]) return fmt(+m[3], MONTHS[m[2].toLowerCase()], +m[1]);
+        return '';
+    };
+
+    const datePart =
+        '(' +
+        '(?:' + mon + ')\\.?\\s+\\d{1,2}(?:st|nd|rd|th)?,?\\s+\\d{4}' + '|' +
+        '\\d{1,2}(?:st|nd|rd|th)?\\s+(?:of\\s+)?(?:' + mon + ')\\.?,?\\s+\\d{4}' + '|' +
+        '\\d{4}-\\d{1,2}-\\d{1,2}' + '|' +
+        '\\d{1,2}[/\\-.]\\d{1,2}[/\\-.]\\d{4}' +
+        ')';
+    const labelPart =
+        '(?:valid\\s*(?:until|till|thru|through|up\\s*to)|validity(?:\\s*date)?|' +
+        'expir(?:y|ation)(?:\\s*date)?|expires(?:\\s*on)?)\\s*[:\\-]?\\s*';
+
+    const rx = new RegExp(labelPart + datePart, 'gi');
+    const found = new Set();
+    let m;
+    while ((m = rx.exec(t)) !== null) {
+        const iso = toISO(m[1]);
+        if (iso) found.add(iso);
+    }
+    if (found.size === 1) return { status: 'ok', date: Array.from(found)[0] };
+    if (found.size > 1)   return { status: 'multiple', dates: Array.from(found) };
+    return { status: 'none' };
+};
+
+window._editCertAutoDetectExpiry = async function(file) {
+    const cfg      = window._editCertCfg;
+    const expiryEl = document.getElementById('editCertExpiry');
+    if (!cfg || !cfg.hasExpiry || !expiryEl) return;
+
+    let st = document.getElementById('editCertOcrStatus');
+    if (!st) {
+        st = document.createElement('div');
+        st.id = 'editCertOcrStatus';
+        st.style.cssText = 'display:none;margin-top:6px;font-size:0.72rem;padding:6px 10px;border-radius:6px;';
+        expiryEl.parentNode.appendChild(st);
+    }
+    const show = (bg, border, color, html) => {
+        st.style.display = 'block';
+        st.style.background = bg;
+        st.style.border = '1px solid ' + border;
+        st.style.color = color;
+        st.innerHTML = html;
+    };
+
+    const token = (window._editCertOcrToken = (window._editCertOcrToken || 0) + 1);
+    show('#e3f2fd', '#90caf9', '#1565c0', '<i class="fas fa-spinner fa-spin"></i> Reading PDF for expiry date...');
+
+    let text = null;
+    try {
+        if (typeof extractTextFromPdf === 'function') text = await extractTextFromPdf(file);
+    } catch (e) { console.warn('Expiry auto-detect failed:', e); }
+
+    // A newer file was chosen while this one was being read
+    if (token !== window._editCertOcrToken || window._editCertFile !== file) return;
+
+    const r = window._parseCertExpiryFromText(text);
+    if (r.status === 'ok') {
+        expiryEl.value = r.date;
+        show('#e8f5e9', '#a5d6a7', '#2e7d32',
+            '<i class="fas fa-check-circle"></i> Expiry date detected: <strong style="margin-left:4px;">' + r.date + '</strong> — please verify before saving.');
+    } else if (r.status === 'multiple') {
+        show('#fff8e1', '#ffe082', '#f57f17',
+            '<i class="fas fa-triangle-exclamation"></i> More than one date found (' + r.dates.join(', ') + ') — please enter the expiry date manually.');
+    } else if (r.status === 'notext') {
+        show('#fff8e1', '#ffe082', '#f57f17',
+            '<i class="fas fa-triangle-exclamation"></i> PDF has no readable text (scanned?) — please enter the expiry date manually.');
+    } else {
+        show('#fff8e1', '#ffe082', '#f57f17',
+            '<i class="fas fa-triangle-exclamation"></i> No expiry date found in PDF — please enter it manually.');
+    }
+};
+
 window.onEditCertFileChosen = function(input) {
     const file = input.files[0];
     const errEl = document.getElementById('editCertError');
@@ -19959,6 +20234,7 @@ window.onEditCertFileChosen = function(input) {
     document.getElementById('editCertChosenName').style.display = 'block';
     document.getElementById('editCertDropZone').style.borderColor = '#2e7d32';
     document.getElementById('editCertDropZone').style.background = '#f1f8e9';
+    window._editCertAutoDetectExpiry(file);
 };
 
 // Called by confirmEditPersonnel — uploads cert if file chosen, saves cert data
@@ -20080,8 +20356,7 @@ function openTransferPersonnelModal() {
     }
 
     const _tpm = document.getElementById('transferPersonnelModal');
-    _tpm.style.display = 'flex';
-    _tpm.classList.add('show');
+    eshModalShow(_tpm);
 }
 
 function renderTransferProjectList(projects) {
@@ -20159,8 +20434,7 @@ function selectTransferProject(projName, el) {
 
 function closeTransferPersonnelModal() {
     const _tpm = document.getElementById('transferPersonnelModal');
-    _tpm.classList.remove('show');
-    _tpm.style.display = 'none';
+    eshModalHide(_tpm);
     _transferSelectedProject = null;
 }
 
@@ -21650,15 +21924,22 @@ function safetyRemovePhotoItem(kind, itemId) {
 }
 window.safetyRemovePhotoItem = safetyRemovePhotoItem;
 
+// Close helper (exit animation is handled globally by the ESH Popup Animator at the top of this file)
+function safetyCloseOverlay(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+}
+window.safetyCloseOverlay = safetyCloseOverlay;
+
 // ── Full-screen photo viewer (lightbox) ─────────────────────────────────────
 function safetyOpenLightbox(url) {
     if (!url) return;
     const overlay = document.createElement('div');
     overlay.id = 'safety-lightbox-overlay';
-    overlay.onclick = function(){ overlay.remove(); };
+    overlay.onclick = function(){ safetyCloseOverlay('safety-lightbox-overlay'); };
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:10002;display:flex;align-items:center;justify-content:center;padding:24px;cursor:zoom-out;';
     overlay.innerHTML = `
-        <span onclick="document.getElementById('safety-lightbox-overlay').remove()" style="position:absolute;top:18px;right:24px;color:#fff;font-size:2rem;cursor:pointer;line-height:1;">&times;</span>
+        <span onclick="safetyCloseOverlay('safety-lightbox-overlay')" style="position:absolute;top:18px;right:24px;color:#fff;font-size:2rem;cursor:pointer;line-height:1;">&times;</span>
         <img src="${url}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;box-shadow:0 10px 50px rgba(0,0,0,0.5);">`;
     document.body.appendChild(overlay);
 }
@@ -21678,7 +21959,7 @@ function safetyViewAwardDetail(id) {
     <div style="background:var(--bg-card);border-radius:12px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
         <div style="background:linear-gradient(135deg,#f57f17,#fbc02d);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;">
             <span style="font-weight:800;font-size:0.95rem;"><i class="fas fa-trophy"></i> ESH Award and Recognition</span>
-            <span onclick="document.getElementById('safety-detail-modal-overlay').remove()" style="cursor:pointer;font-size:1.2rem;">&times;</span>
+            <span onclick="safetyCloseOverlay('safety-detail-modal-overlay')" style="cursor:pointer;font-size:1.2rem;">&times;</span>
         </div>
         ${photos[0] ? `<img src="${photos[0]}" onclick="safetyOpenLightbox('${photos[0]}')" style="width:100%;max-height:320px;object-fit:cover;object-position:${aw.photoPosition||'center'};display:block;cursor:zoom-in;">` : ''}
         ${photos.length > 1 ? `<div style="display:flex;gap:6px;padding:10px 18px 0;flex-wrap:wrap;">${photos.map(function(u){return `<img src="${u}" onclick="safetyOpenLightbox('${u}')" style="width:52px;height:52px;object-fit:cover;border-radius:6px;cursor:zoom-in;">`;}).join('')}</div>` : ''}
@@ -21689,8 +21970,8 @@ function safetyViewAwardDetail(id) {
             ${aw.description ? `<div style="font-size:0.8rem;color:#3d2600;margin-top:10px;white-space:pre-wrap;">${aw.description.replace(/</g,'&lt;')}</div>` : ''}
         </div>
         ${canManage ? `<div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;">
-            <button onclick="document.getElementById('safety-detail-modal-overlay').remove();safetyEditAwardForm('${aw.id}');" style="padding:7px 14px;border-radius:6px;border:1px solid #1565c0;color:#1565c0;background:transparent;cursor:pointer;font-weight:700;">Edit</button>
-            <button onclick="deleteSafetyAward('${aw.id}');document.getElementById('safety-detail-modal-overlay').remove();" style="padding:7px 14px;border-radius:6px;border:1px solid #c62828;color:#c62828;background:transparent;cursor:pointer;font-weight:700;">Delete</button>
+            <button onclick="safetyCloseOverlay('safety-detail-modal-overlay');safetyEditAwardForm('${aw.id}');" style="padding:7px 14px;border-radius:6px;border:1px solid #1565c0;color:#1565c0;background:transparent;cursor:pointer;font-weight:700;">Edit</button>
+            <button onclick="deleteSafetyAward('${aw.id}');safetyCloseOverlay('safety-detail-modal-overlay');" style="padding:7px 14px;border-radius:6px;border:1px solid #c62828;color:#c62828;background:transparent;cursor:pointer;font-weight:700;">Delete</button>
         </div>` : ''}
     </div>`;
     document.body.appendChild(modal);
@@ -21766,14 +22047,14 @@ function safetyViewAlertDetail(id) {
     <div style="background:var(--bg-card);border-radius:12px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
         <div style="background:linear-gradient(135deg,#e65100,#ff9800);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;">
             <span style="font-weight:800;font-size:0.95rem;"><i class="fas fa-triangle-exclamation"></i> ESH Alert ${a.status === 'archived' ? '<span style="font-weight:400;font-size:0.7rem;">(archived)</span>' : ''}</span>
-            <span onclick="document.getElementById('safety-detail-modal-overlay').remove()" style="cursor:pointer;font-size:1.2rem;">&times;</span>
+            <span onclick="safetyCloseOverlay('safety-detail-modal-overlay')" style="cursor:pointer;font-size:1.2rem;">&times;</span>
         </div>
         ${bodyHtml}
         <div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
             ${canManage ? `
-            <button onclick="document.getElementById('safety-detail-modal-overlay').remove();safetyEditAlertForm('${a.id}');" style="padding:7px 14px;border-radius:6px;border:1px solid #1565c0;color:#1565c0;background:transparent;cursor:pointer;font-weight:700;">Edit</button>
-            ${a.status !== 'archived' ? `<button onclick="safetyArchiveAlert('${a.id}');document.getElementById('safety-detail-modal-overlay').remove();" style="padding:7px 14px;border-radius:6px;border:1px solid #e65100;color:#e65100;background:transparent;cursor:pointer;font-weight:700;">Archive</button>` : ''}
-            <button onclick="document.getElementById('safety-detail-modal-overlay').remove();safetyDeleteAlertConfirm('${a.id}');" style="padding:7px 14px;border-radius:6px;border:1px solid #c62828;color:#c62828;background:transparent;cursor:pointer;font-weight:700;">Delete</button>` : ''}
+            <button onclick="safetyCloseOverlay('safety-detail-modal-overlay');safetyEditAlertForm('${a.id}');" style="padding:7px 14px;border-radius:6px;border:1px solid #1565c0;color:#1565c0;background:transparent;cursor:pointer;font-weight:700;">Edit</button>
+            ${a.status !== 'archived' ? `<button onclick="safetyArchiveAlert('${a.id}');safetyCloseOverlay('safety-detail-modal-overlay');" style="padding:7px 14px;border-radius:6px;border:1px solid #e65100;color:#e65100;background:transparent;cursor:pointer;font-weight:700;">Archive</button>` : ''}
+            <button onclick="safetyCloseOverlay('safety-detail-modal-overlay');safetyDeleteAlertConfirm('${a.id}');" style="padding:7px 14px;border-radius:6px;border:1px solid #c62828;color:#c62828;background:transparent;cursor:pointer;font-weight:700;">Delete</button>` : ''}
         </div>
     </div>`;
     document.body.appendChild(modal);
@@ -25286,12 +25567,12 @@ console.log('🔥 Firebase integration loaded - OPTIMIZED: Save button only!');
         _leavePendingUrl = null;
         _leaveCallback   = null;
         const m = document.getElementById('leaveSiteModal');
-        if (m) { m.classList.remove('show'); m.style.display = 'none'; }
+        if (m) { eshModalHide(m); }
     };
 
     window.leaveSiteConfirm = function() {
         const m = document.getElementById('leaveSiteModal');
-        if (m) { m.classList.remove('show'); m.style.display = 'none'; }
+        if (m) { eshModalHide(m); }
         if (_leaveCallback) {
             const cb = _leaveCallback;
             _leaveCallback = null;
@@ -25306,7 +25587,7 @@ console.log('🔥 Firebase integration loaded - OPTIMIZED: Save button only!');
     function showLeaveSiteModal(callback) {
         _leaveCallback = callback || null;
         const m = document.getElementById('leaveSiteModal');
-        if (m) { m.style.display = 'flex'; m.classList.add('show'); }
+        if (m) { eshModalShow(m); }
     }
 
     document.addEventListener('click', function(e) {
@@ -28463,7 +28744,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Use global color source of truth — see window.REGION_COLORS declared at top of file
     const REGION_COLORS = window.REGION_COLORS;
-    const PIE_COLORS = ['#0d3d0f','#1b5e20','#2e7d32','#558b2f','#43a047','#00695c'];
 
     let envData = [];
     let waterData = [];
@@ -29040,7 +29320,6 @@ document.addEventListener('DOMContentLoaded', function() {
             <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:14px;">
                 <div class="${canEditReg?'rb-editable':''}" onclick="fuelToggleRegion('${region}')" style="${rc.white?'background:#ffffff;border-bottom:1.5px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.10);':'background:linear-gradient(90deg,'+rc.bg+' 0%,'+rc.bg+'dd 100%);'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <i id="fl-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:${rc.white?'#1b5e20':'rgba(255,255,255,0.7)'};font-size:0.65rem;"></i>
                         <i class="fas fa-gas-pump" style="color:${rc.white?'#1b5e20':'rgba(255,255,255,0.85)'};font-size:0.8rem;"></i>
                         <span style="font-weight:800;color:${rc.white?'#1b5e20':'white'};font-size:0.85rem;letter-spacing:0.5px;">${region}</span>
                         <span style="background:${rc.white?'#e8f5e9':'rgba(255,255,255,0.18)'};color:${rc.white?'#1b5e20':'white'};padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${projs.length} project${projs.length!==1?'s':''}</span>
@@ -29048,6 +29327,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div style="display:flex;gap:6px;align-items:center;">
                         ${rDiesel>0?`<span style="background:rgba(255,255,255,0.2);color:${rc.white?'#1b5e20':'white'};padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rDiesel.toLocaleString()} L D</span>`:''}
                         ${rGas>0?`<span style="background:rgba(255,255,255,0.2);color:${rc.white?'#2e7d32':'#c8e6c9'};padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rGas.toLocaleString()} L G</span>`:''}
+                        <i id="fl-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:${rc.white?'#1b5e20':'rgba(255,255,255,0.7)'};font-size:0.8rem;"></i>
                     </div>
                 </div>
                 <div id="fl-region-body-${rk}" style="display:${isOpen?'':'none'};">
@@ -29420,10 +29700,12 @@ document.addEventListener('DOMContentLoaded', function() {
             <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:14px;">
                 <div onclick="appliancesToggleRegion('${region}')" style="${rc.white?'background:#ffffff;border-bottom:1.5px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.10);':'background:linear-gradient(90deg,'+rc.bg+' 0%,'+rc.bg+'dd 100%);'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <i id="appl-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:${rc.white?'#2e7d32':'rgba(255,255,255,0.7)'};font-size:0.65rem;"></i>
                         <i class="fas fa-plug" style="color:${rc.white?'#1b5e20':'rgba(255,255,255,0.8)'};font-size:0.8rem;"></i>
                         <span style="font-weight:800;color:${rc.white?'#1b5e20':'white'};font-size:0.85rem;letter-spacing:0.5px;">${region}</span>
                         <span style="background:${rc.white?'#e8f5e9':'rgba(255,255,255,0.18)'};color:${rc.white?'#1b5e20':'white'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${projs.length} project${projs.length!==1?'s':''}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <i id="appl-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:${rc.white?'#2e7d32':'rgba(255,255,255,0.7)'};font-size:0.8rem;"></i>
                     </div>
                 </div>
                 <div id="appl-region-body-${rk}" style="display:${isOpen?'':'none'};">
@@ -29472,13 +29754,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 updatedAt: new Date().toISOString()
             }, { merge: true }).catch(e => console.warn('appliancesSaveAll error:', e.message));
         });
-    };
-
-    window.appliancesSaveFromInputs = function(projName, region, monthInputId, buildingInputId) {
-        const month    = document.getElementById(monthInputId)?.value    || 'January';
-        const building = document.getElementById(buildingInputId)?.value || 'Main Building';
-        const key      = appliancesKey(region, projName, month, building);
-        window.appliancesSave(key, projName, region, month, building);
     };
 
     function appliancesLoadAll(allProjects) {
@@ -29571,18 +29846,6 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     
-    window.envClearRegion = function(regionRaw) {
-        const userEmail = (typeof state !== 'undefined') ? state.currentUser?.email : null;
-        if (!UserAccounts.canEdit(userEmail, regionRaw) || !UserAccounts.canEditTab(userEmail, 'env-monitoring')) {
-            if (typeof showToast === 'function') showToast('🔒 You do not have permission to clear entries in this region.', 'warning');
-            return;
-        }
-        if (!envData.some(r => r.region === regionRaw)) return;
-        if (!confirm(`Clear all records for ${regionRaw}?`)) return;
-        envData = envData.filter(r => r.region !== regionRaw);
-        envRender();
-    };
-
     
     window.envToggleRegion = function(regionRaw) {
         envCollapsed[regionRaw] = !envCollapsed[regionRaw];
@@ -29762,14 +30025,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <div class="${canEditRegionEnv?'rb-editable':''}" onclick="envToggleRegion('${region}')" style="${rc.white?'background:#ffffff;border-bottom:1.5px solid #c8e6c9;':'background:linear-gradient(90deg,'+rc.bg+' 0%,'+rc.bg+'dd 100%);'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;box-shadow:${rc.white?'0 2px 8px rgba(0,0,0,0.10)':'none'};">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <i id="env-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:${rc.white?'#2e7d32':'rgba(255,255,255,0.7)'};font-size:0.65rem;"></i>
-                        <i class="fas fa-map-marker-alt" style="color:${rc.white?'#1b5e20':'rgba(255,255,255,0.8)'};font-size:0.8rem;"></i>
+                        <i class="fas fa-bolt" style="color:${rc.white?'#1b5e20':'rgba(255,255,255,0.8)'};font-size:0.8rem;"></i>
                         <span style="font-weight:800;color:${rc.white?'#1b5e20':'white'};font-size:0.85rem;letter-spacing:0.5px;">${region}</span>
                         <span style="background:${rc.white?'#e8f5e9':'rgba(255,255,255,0.18)'};color:${rc.white?'#1b5e20':'white'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${projs.length} project${projs.length!==1?'s':''}</span>
                     </div>
                     <div style="display:flex;gap:6px;align-items:center;">
                         ${rKwh>0?`<span style="background:${rc.white?'#e8f5e9':'rgba(255,255,255,0.2)'};color:${rc.white?'#1b5e20':'white'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rKwh.toLocaleString()} kWh</span>`:''}
                         ${rGhg>0?`<span style="background:${rc.white?'#e8f5e9':'rgba(100,255,100,0.2)'};color:${rc.white?'#2e7d32':'#c8f7c5'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rGhg.toFixed(4)} tCO2</span>`:''}
+                        <i id="env-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:${rc.white?'#2e7d32':'rgba(255,255,255,0.7)'};font-size:0.8rem;"></i>
                     </div>
                 </div>
 
@@ -29793,11 +30056,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const grandPotAmt  = overallSummary.reduce((s,r)=>s+(r.potAmt||0),0);
         const grandIndM3   = overallSummary.reduce((s,r)=>s+(r.indM3||0),0);
         const grandIndAmt  = overallSummary.reduce((s,r)=>s+(r.indAmt||0),0);
-        const grandBioGen  = overallSummary.reduce((s,r)=>s+(r.bioGen||0),0);
-        const grandNonbio  = overallSummary.reduce((s,r)=>s+(r.nonbioGen||0),0);
-        const grandRecGen  = overallSummary.reduce((s,r)=>s+(r.recGen||0),0);
-        const grandHazGen  = overallSummary.reduce((s,r)=>s+(r.hazGen||0),0);
-        const grandSeptage = overallSummary.reduce((s,r)=>s+(r.septage||0),0);
         const hasElecData = grandKwh > 0;
 
         // ── Electricity-only summary ────────────────────────────────────────────
@@ -30327,7 +30585,6 @@ document.addEventListener('DOMContentLoaded', function() {
             <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:14px;">
                 <div class="${canEditReg?'rb-editable':''}" onclick="waterToggleRegion('${region}')" style="${rc.white?'background:#ffffff;border-bottom:1.5px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.10);':'background:linear-gradient(90deg,'+rc.bg+' 0%,'+rc.bg+'dd 100%);'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <i id="wtr-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:${rc.white?'#2e7d32':'rgba(255,255,255,0.7)'};font-size:0.65rem;"></i>
                         <i class="fas fa-droplet" style="color:${rc.white?'#1b5e20':'rgba(255,255,255,0.8)'};font-size:0.8rem;"></i>
                         <span style="font-weight:800;color:${rc.white?'#1b5e20':'white'};font-size:0.85rem;letter-spacing:0.5px;">${region}</span>
                         <span style="background:${rc.white?'#e8f5e9':'rgba(255,255,255,0.18)'};color:${rc.white?'#1b5e20':'white'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${projs.length} project${projs.length!==1?'s':''}</span>
@@ -30335,6 +30592,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div style="display:flex;gap:6px;align-items:center;">
                         ${rDomM3>0?`<span style="background:${rc.white?'#e8f5e9':'rgba(255,255,255,0.2)'};color:${rc.white?'#1b5e20':'white'};border:${rc.white?'1px solid #a5d6a7':'none'};padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rDomM3.toLocaleString()} m³ Dom</span>`:''}
                         ${rIndM3>0?`<span style="background:${rc.white?'#f1f8e9':'rgba(100,255,100,0.2)'};color:${rc.white?'#388e3c':'#c8f7c5'};border:${rc.white?'1px solid #c8e6c9':'none'};padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rIndM3.toLocaleString()} m³ Ind</span>`:''}
+                        <i id="wtr-region-chevron-${rk}" class="fas ${isOpen?'fa-chevron-down':'fa-chevron-right'}" style="color:${rc.white?'#2e7d32':'rgba(255,255,255,0.7)'};font-size:0.8rem;"></i>
                     </div>
                 </div>
                 <div id="wtr-region-body-${rk}" style="display:${isOpen?'':'none'};">
@@ -30729,7 +30987,7 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `<div style="background:var(--bg-card);border-radius:12px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:14px;">
                 <div onclick="wasteToggleRegion('${region}')" style="${colors.white?'background:#ffffff;border-bottom:1.5px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.10);':'background:'+colors.bg+';'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
                     <div style="display:flex;align-items:center;gap:8px;">
-                        <i class="fas fa-map-marker-alt" style="color:${colors.white?'#1b5e20':'white'};font-size:0.9rem;"></i>
+                        <i class="fas fa-trash-alt" style="color:${colors.white?'#1b5e20':'white'};font-size:0.9rem;"></i>
                         <span style="font-weight:700;font-size:0.82rem;color:${colors.white?'#1b5e20':'white'};">${region}</span>
                         <span style="background:${colors.white?'#e8f5e9':'rgba(255,255,255,0.2)'};color:${colors.white?'#1b5e20':'white'};border:${colors.white?'1px solid #a5d6a7':'none'};padding:2px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;">${projs.length} PROJECT${projs.length!==1?'S':''}</span>
                         <span style="background:${colors.white?'#f1f8e9':'rgba(255,255,255,0.15)'};color:${colors.white?'#388e3c':'white'};border:${colors.white?'1px solid #c8e6c9':'none'};padding:2px 8px;border-radius:10px;font-size:0.62rem;">${regionRows.length} ENTRIES</span>
@@ -32938,7 +33196,7 @@ window.startCorpDrillCustomRowsSync = function() {
 
 window.eshCorpDrillAddRow = function() {
     const existing = document.getElementById('esh-corp-addrow-modal');
-    if (existing) { existing.style.display = 'flex'; return; }
+    if (existing) { eshModalShow(existing); return; }
     const m = document.createElement('div');
     m.id = 'esh-corp-addrow-modal';
     m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99999;display:flex;align-items:center;justify-content:center;';
@@ -32958,7 +33216,7 @@ window.eshCorpDrillAddRow = function() {
             <option value="As needed">As needed</option>
         </select>
         <div style="display:flex;gap:10px;justify-content:flex-end;">
-            <button onclick="document.getElementById('esh-corp-addrow-modal').style.display='none'"
+            <button onclick="eshModalHide(document.getElementById('esh-corp-addrow-modal'))"
                 style="padding:8px 18px;border:1.5px solid var(--border-color);border-radius:8px;background:transparent;color:var(--text-primary);font-size:0.8rem;font-weight:600;cursor:pointer;">Cancel</button>
             <button onclick="eshCorpDrillConfirmAddRow()"
                 style="padding:8px 20px;border:none;border-radius:8px;background:linear-gradient(135deg,#1b5e20,#388e3c);color:white;font-size:0.8rem;font-weight:700;cursor:pointer;">
@@ -32982,7 +33240,7 @@ window.eshCorpDrillConfirmAddRow = function() {
     rows.push({ name, freq });
     setCorpDrillCustomRows(rows);
     const modal = document.getElementById('esh-corp-addrow-modal');
-    if (modal) modal.style.display = 'none';
+    if (modal) eshModalHide(modal);
     renderCorpDrillsTab();
     if(typeof showToast==='function') showToast(name + ' added to Corporate Drills.', 'success');
 };
@@ -33462,14 +33720,12 @@ window.pcViewPersonnel = function(idx) {
     }
 
     const _pcvm = document.getElementById('pc-view-modal');
-    _pcvm.style.display = 'flex';
-    _pcvm.classList.add('show');
+    eshModalShow(_pcvm);
 };
 
 window.pcCloseView = function() {
     const _pcvm = document.getElementById('pc-view-modal');
-    _pcvm.classList.remove('show');
-    _pcvm.style.display = 'none';
+    eshModalHide(_pcvm);
 };
 
 window.pcOpenEditFromView = function() {
@@ -34796,11 +35052,11 @@ window.toggleSidebar = function() {
       fileInp.disabled = false;
       if (lockNote) lockNote.style.display = 'none';
     }
-    document.getElementById('pc-upload-modal').style.display = 'flex';
+    eshModalShow(document.getElementById('pc-upload-modal'));
   };
 
   window.pcCloseUpload = function() {
-    document.getElementById('pc-upload-modal').style.display = 'none';
+    eshModalHide(document.getElementById('pc-upload-modal'));
     _pcCurrentFile = null;
     // Revoke preview object URL to free memory
     const iframe = document.getElementById('pc-pdf-iframe');
@@ -35306,13 +35562,13 @@ function osOpenModal(projectName) {
 
     // Show modal
     const modal = document.getElementById('os-project-modal');
-    modal.style.display = 'flex';
+    eshModalShow(modal);
     setTimeout(() => modal.style.opacity = '1', 10);
 }
 
 function osCloseModal() {
     const modal = document.getElementById('os-project-modal');
-    modal.style.display = 'none';
+    eshModalHide(modal);
 }
 
 // os-project-modal backdrop click disabled — use × button to close
