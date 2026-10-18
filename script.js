@@ -20415,6 +20415,13 @@ window._saveEditCert = async function(personIdx) {
     if (existing.exists()) await updateDoc(docRef, { [cfg.key]: entry });
     else                   await setDoc(docRef,    { [cfg.key]: entry });
 
+    // Update local cache and re-render the table so the status changes without a page refresh
+    try {
+        if (!window._pcCertData) window._pcCertData = {};
+        window._pcCertData[pid] = Object.assign({}, window._pcCertData[pid] || {}, { [cfg.key]: entry });
+        if (typeof renderPTable === 'function') renderPTable();
+    } catch (e) { console.warn('edit cert table refresh failed:', e.message); }
+
     document.getElementById('editCertProgress').style.display = 'none';
 };
 
@@ -35385,6 +35392,14 @@ Do not include any other text, explanation, or markdown. JSON only.`
 
       pcCloseUpload();
 
+      // Update local cache right away and re-render the main table (no page refresh needed)
+      try {
+        if (!window._pcCertData) window._pcCertData = {};
+        const _pidNow = getCurPid();
+        window._pcCertData[_pidNow] = Object.assign({}, window._pcCertData[_pidNow] || {}, { [_pcCurrentCertKey]: entry });
+        if (typeof renderPTable === 'function') renderPTable();
+      } catch (e) { console.warn('post-save table refresh failed:', e.message); }
+
       // ── POST-SAVE REFRESH (mirrors uploadPDF pattern) ─────────────────────
       // Force a fresh Firestore read of the entire personnel_certificates
       // collection (same as how saveToFirebase + render() refreshes project PDFs),
@@ -35400,6 +35415,7 @@ Do not include any other text, explanation, or markdown. JSON only.`
         ).then(snap => {
           if (!window._pcCertData) window._pcCertData = {};
           window._pcCertData[_savePid] = snap.exists() ? snap.data() : {};
+          if (typeof renderPTable === 'function') renderPTable();
           if (_saveIdx !== null &&
               document.getElementById('pc-view-modal').classList.contains('show') &&
               window._pcCurrentIdx === _saveIdx) {
