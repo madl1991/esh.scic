@@ -20158,6 +20158,7 @@ const _EDIT_CERT_MAP = {
     'PCO':                { key:'PCO_ACCRED',label:'PCO Accreditation',                 icon:'fa-leaf',          hasExpiry: true  },
     'First Aider':        { key:'BLS',       label:'BLS Certificate',                   icon:'fa-heart-pulse',   hasExpiry: true  },
     'Project Nurse':      { key:'OHNAP',     label:'OHNAP Certificate',                 icon:'fa-user-nurse',    hasExpiry: false },
+    'Project Physician':  { key:'OHPHYS',    label:'OH Physician Certificate',          icon:'fa-user-doctor',   hasExpiry: false },
     'ESH Superintendent': { key:'DOLE_OSH',  label:'DOLE OSH Practitioner Certificate', icon:'fa-certificate',   hasExpiry: true  },
     'ESH Head':           { key:'DOLE_OSH',  label:'DOLE OSH Practitioner Certificate', icon:'fa-certificate',   hasExpiry: true  },
 };
@@ -20923,8 +20924,8 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
         const stickyBg = hasToUpdate ? 'background:#ffebee;' : (di%2===1?'background:#f4f6f8;':'background:#ffffff;');
         // Compute cert expiry cell before template literal
         const _certCell = (() => {
-            const _CMAP = {'PCO':'PCO_ACCRED','First Aider':'BLS','ESH Superintendent':'DOLE_OSH','ESH Head':'DOLE_OSH','Safety Officer I':'COSH','Safety Officer II':'COSH','Safety Officer III':'COSH','Safety Officer IV':'COSH','Project Nurse':'OHNAP'};
-            const _NOEXP = {'COSH':1,'OHNAP':1};
+            const _CMAP = {'PCO':'PCO_ACCRED','First Aider':'BLS','ESH Superintendent':'DOLE_OSH','ESH Head':'DOLE_OSH','Safety Officer I':'COSH','Safety Officer II':'COSH','Safety Officer III':'COSH','Safety Officer IV':'COSH','Project Nurse':'OHNAP','Project Physician':'OHPHYS'};
+            const _NOEXP = {'COSH':1,'OHNAP':1,'OHPHYS':1};
             const _ckey = _CMAP[p.pos];
             if (!_ckey) return '<td style="text-align:center;padding:5px 14px;color:#ccc;font-size:0.7rem;">—</td>';
             const _pid2 = (typeof PersonnelDB !== 'undefined') ? PersonnelDB.getPersonId(p) : String(p._pid || (p.id ? 'emp_' + String(p.id).trim() : String(origIdx)));
@@ -20938,7 +20939,7 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
             if (!_cdata) return '<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div style="font-size:0.56rem;font-weight:800;color:#c62828;background:#ffebee;padding:1px 6px;border-radius:8px;display:inline-block;">NOT UPLOADED</div></td>';
             if (p.certToFollow === _ckey) return '<td style="text-align:center;padding:5px 14px;font-size:0.65rem;color:#e65100;font-weight:700;">⏳ To Follow</td>';
             const _exp = _cdata.expiry;
-            if (!_exp) return '<td style="text-align:center;padding:5px 14px;font-size:0.68rem;color:#bbb;">—</td>';
+            if (!_exp) return '<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div title="Certificate is on file but expiry date is not set. Edit the personnel to add it." style="font-size:0.56rem;font-weight:800;color:#e65100;background:#fff3e0;padding:1px 6px;border-radius:8px;display:inline-block;">SET EXPIRY</div></td>';
             const _now = new Date(); _now.setHours(0,0,0,0);
             const _ed  = new Date(_exp); _ed.setHours(0,0,0,0);
             const _d   = Math.round((_ed - _now) / 86400000);
@@ -33738,6 +33739,7 @@ window.pcViewPersonnel = function(idx) {
         'PCO':                { key:'PCO_ACCRED',label:'PCO Accreditation',                 icon:'fa-leaf',          hasExpiry: true  },
         'First Aider':        { key:'BLS',       label:'BLS Certificate',                   icon:'fa-heart-pulse',   hasExpiry: true  },
         'Project Nurse':      { key:'OHNAP',     label:'OHNAP Certificate',                 icon:'fa-user-nurse',    hasExpiry: false },
+        'Project Physician':  { key:'OHPHYS',    label:'OH Physician Certificate',          icon:'fa-user-doctor',   hasExpiry: false },
         'ESH Superintendent': { key:'DOLE_OSH',  label:'DOLE OSH Practitioner Certificate', icon:'fa-certificate',   hasExpiry: true  },
         'ESH Head':           { key:'DOLE_OSH',  label:'DOLE OSH Practitioner Certificate', icon:'fa-certificate',   hasExpiry: true  },
     };
@@ -33834,7 +33836,8 @@ window.pcViewPersonnel = function(idx) {
 
             // Status — only compute if cert has expiry requirement
             const hasExp = !!(data.expiry);
-            const st  = d===null?'valid':d<0?'expired':d<=60?'expiring':'valid';
+            const missingExp = cfg.hasExpiry !== false && !hasExp;
+            const st  = missingExp?'expiring':d===null?'valid':d<0?'expired':d<=60?'expiring':'valid';
             const color  = st==='valid'?'#2e7d32':st==='expiring'?'#e65100':'#c62828';
             const bg     = st==='valid'?'#f1f8e9':st==='expiring'?'#fff3e0':'#ffebee';
             const border = st==='valid'?'#c8e6c9':st==='expiring'?'#ffcc80':'#ef9a9a';
@@ -33849,10 +33852,10 @@ window.pcViewPersonnel = function(idx) {
                   </div>
                   <div style="min-width:0;">
                     <div style="font-size:0.78rem;font-weight:700;color:#222;">${label}</div>
-                    <div style="font-size:0.63rem;color:#666;margin-top:2px;">${hasExp ? `Expires <strong>${data.expiry}</strong> · <span style="color:${color};font-weight:700;">${dLabel}</span>` : '<span style="color:#888;">No expiration date</span>'}</div>
+                    <div style="font-size:0.63rem;color:#666;margin-top:2px;">${hasExp ? `Expires <strong>${data.expiry}</strong> · <span style="color:${color};font-weight:700;">${dLabel}</span>` : missingExp ? '<span style="color:#e65100;font-weight:700;">Expiry date not set — please update</span>' : '<span style="color:#888;">No expiration date</span>'}</div>
                   </div>
                 </div>
-                <span style="font-size:0.55rem;font-weight:800;color:${color};background:${color}18;padding:2px 7px;border-radius:20px;border:1px solid ${border};white-space:nowrap;flex-shrink:0;">${hasExp ? stLabel : '✓ ON FILE'}</span>
+                <span style="font-size:0.55rem;font-weight:800;color:${color};background:${color}18;padding:2px 7px;border-radius:20px;border:1px solid ${border};white-space:nowrap;flex-shrink:0;">${hasExp ? stLabel : (missingExp ? 'SET EXPIRY' : '✓ ON FILE')}</span>
               </div>
               ${data.pdfUrl ? `<a href="${data.pdfUrl}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;padding:6px;background:#fff;border:1px solid ${border};border-radius:7px;font-size:0.68rem;font-weight:700;color:${color};text-decoration:none;"><i class="fas fa-file-pdf"></i> View Certificate PDF</a>` : `<div style="margin-top:8px;padding:5px;text-align:center;font-size:0.63rem;color:#bbb;">No PDF on file</div>`}
             </div>`;
@@ -35035,6 +35038,7 @@ window.toggleSidebar = function() {
 //    PCO                  → PCO Accreditation
 //    First Aider          → BLS Certificate
 //    Project Nurse        → OHNAP
+//    Project Physician    → OH Physician Certificate
 //    ESH Superintendent / ESH Head → DOLE OSH Practitioner Certificate
 //    Corporate positions  → Exempt (no cert required)
 // ══════════════════════════════════════════════════════════════════════
@@ -35050,6 +35054,7 @@ window.toggleSidebar = function() {
     'PCO':                { key:'PCO_ACCRED',label:'PCO Accreditation',                 icon:'fa-leaf' },
     'First Aider':        { key:'BLS',       label:'BLS Certificate',                   icon:'fa-heart-pulse' },
     'Project Nurse':      { key:'OHNAP',     label:'OHNAP',                             icon:'fa-user-nurse' },
+    'Project Physician':  { key:'OHPHYS',    label:'OH Physician Certificate',          icon:'fa-user-doctor' },
     'ESH Superintendent': { key:'DOLE_OSH',  label:'DOLE OSH Practitioner Certificate', icon:'fa-certificate' },
     'ESH Head':           { key:'DOLE_OSH',  label:'DOLE OSH Practitioner Certificate', icon:'fa-certificate' },
   };
@@ -38786,11 +38791,11 @@ async function exportPersonnelExcel() {
     // ── Cert helpers ──────────────────────────────────────────────────────────
     const CERT_KEYS_MAP = {
         'Safety Officer I':'COSH','Safety Officer II':'COSH','Safety Officer III':'COSH','Safety Officer IV':'COSH',
-        'PCO':'PCO_ACCRED','First Aider':'BLS','Project Nurse':'OHNAP',
+        'PCO':'PCO_ACCRED','First Aider':'BLS','Project Nurse':'OHNAP','Project Physician':'OHPHYS',
         'ESH Superintendent':'DOLE_OSH','ESH Head':'DOLE_OSH'
     };
     const CERT_LABELS_MAP = {
-        'COSH':'COSH','PCO_ACCRED':'PCO Accred.','BLS':'BLS','OHNAP':'OHNAP','DOLE_OSH':'DOLE OSHP'
+        'COSH':'COSH','PCO_ACCRED':'PCO Accred.','BLS':'BLS','OHNAP':'OHNAP','OHPHYS':'OH Physician','DOLE_OSH':'DOLE OSHP'
     };
     function _certStatus(expiry) {
         if (!expiry) return 'NONE';
@@ -38844,7 +38849,7 @@ async function exportPersonnelExcel() {
         if (!certKey) return { label: '—', expiry: '—', status: '—' };
         const label = CERT_LABELS_MAP[certKey] || certKey;
         const cd = _certLookup(p, certKey);
-        if (certKey === 'COSH' || certKey === 'OHNAP') {
+        if (certKey === 'COSH' || certKey === 'OHNAP' || certKey === 'OHPHYS') {
             const _up = !!(cd && cd.pdfUrl);
             return { label, expiry: _up ? 'UPLOADED' : 'NOT UPLOADED', status: _up ? 'UPLOADED' : 'NOT UPLOADED' };
         }
