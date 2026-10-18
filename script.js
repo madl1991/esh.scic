@@ -3590,6 +3590,41 @@ debugCommands.help() - Show this help
                 return [{ permitNo: raw[1] || '', dateIssued: raw[2] || '', expiryDate: raw[3] || '' }];
             }
 
+            // Helper: core documents that must be flagged when missing, EVEN IF the
+            // project is on work stoppage: CSHP, DOLE Certificate of Registration,
+            // DOE Safety Officer Permit (renewable only) and ECC (Environmental Permits).
+            function getMissingCoreDocs(project, isCorp, isPlant) {
+                const out = [];
+                const v = project.vals || {};
+                // CSHP (not for CORPORATE / PLANT OPERATIONS)
+                if (!isCorp && !isPlant) {
+                    const d = v['cshp_CSHP Approval Date'] ? v['cshp_CSHP Approval Date'][1] : '';
+                    if (!d || d.toString().trim() === '') out.push({ name: 'CSHP (Missing)', tab: 'cshp' });
+                }
+                // DOLE Certificate of Registration (not for PLANT OPERATIONS)
+                if (!isPlant) {
+                    const d = v['reg_DOLE Certificate of Registration Date'] ? v['reg_DOLE Certificate of Registration Date'][1] : '';
+                    if (!d || d.toString().trim() === '') out.push({ name: 'DOLE Certificate of Registration (Missing)', tab: 'reg' });
+                }
+                // DOE Safety Officer Permit (renewable only, not CORPORATE / PLANT OPERATIONS)
+                if (project.isRenewable === true && !isCorp && !isPlant && v['doe-permit_client_provided'] !== '1') {
+                    const pv = v['doe-permit_DOE Safety Officer Permit'];
+                    const no = pv ? pv[1] : '';
+                    if (!no || no.toString().trim() === '') out.push({ name: 'DOE Safety Officer Permit (Missing)', tab: 'doe-permit' });
+                }
+                // ECC under Environmental Permits (not for CORPORATE)
+                if (!isCorp) {
+                    const raw = v['permits_ECC'];
+                    const skip = raw && (raw['__na'] === '1' || v['permits_ECC__na'] === '1' || raw['__cp'] === '1' || v['permits_ECC__cp'] === '1');
+                    if (!skip) {
+                        const entries = getPermitEntries(project, 'ECC');
+                        const hasNo = entries.some(e => e.permitNo && e.permitNo.toString().trim() !== '');
+                        if (!hasNo) out.push({ name: 'Missing Permit(s): ECC', tab: 'permits' });
+                    }
+                }
+                return out;
+            }
+
             let projectOverdues = {};
 
             // ── KPM: pre-build region -> projects map ─────────────────────────
@@ -3626,7 +3661,17 @@ debugCommands.help() - Show this help
 
             state.projects.forEach(project => {
                 // ── Skip work-stoppage projects entirely — they are exempt ──────
-                if (project.status === 'work-stoppage') return;
+                // Work-stoppage projects are exempt from periodic reports, but still
+                // flagged when CSHP / DOLE Cert. of Registration / DOE SO Permit / ECC is missing.
+                // Re-derive status from the dates first, so a stale p.status can never hide a stoppage.
+                if (typeof syncProjectStatus === 'function') syncProjectStatus(project);
+                if (project.status === 'work-stoppage') {
+                    const _sReg = (project.region || '').toUpperCase();
+                    const _stopTabs = getMissingCoreDocs(project, _sReg === 'CORPORATE', _sReg === 'PLANT OPERATIONS');
+                    console.log('🔔 Bell: stoppage project "' + project.name + '" → missing core docs:', _stopTabs.map(t => t.name));
+                    if (_stopTabs.length > 0) projectOverdues[project.name] = _stopTabs;
+                    return;
+                }
                 // ── Skip finished projects — no longer active, no overdue alerts ──
                 if (project.status === 'finished') return;
 
@@ -3850,6 +3895,15 @@ debugCommands.help() - Show this help
                 }
                 } // end !_isCorp && !_isPlant CSHP
 
+                // ── DOLE Certificate of Registration ─────────────────────────────
+                // PLANT OPERATIONS is excluded from DOLE
+                if (!_isPlant) {
+                    const _regDate = project.vals['reg_DOLE Certificate of Registration Date'] ? project.vals['reg_DOLE Certificate of Registration Date'][1] : '';
+                    if (!_regDate || _regDate.toString().trim() === '') {
+                        overdueTabs.push({ name: 'DOLE Certificate of Registration (Missing)', tab: 'reg' });
+                    }
+                }
+
                 // ── PERMITS: expired / expiring soon / missing ──────────────────
                 // CORPORATE is excluded from Permits reporting
                 if (!_isCorp) {
@@ -3868,6 +3922,12 @@ debugCommands.help() - Show this help
 
                     const entries = getPermitEntries(project, row);
                     const noExpiry = NO_EXPIRY.includes(row);
+
+                    // ECC is mandatory: no entry at all counts as missing
+                    if (row === 'ECC' && entries.length === 0) {
+                        missingPermits.push(row);
+                        return;
+                    }
 
                     entries.forEach(entry => {
                         if (!entry.permitNo || entry.permitNo.trim() === '') {
@@ -17552,7 +17612,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<i class="fas fa-calendar-check" style="color:' + (_modalDateVal?'#2e7d32':'#c62828') + ';font-size:0.7rem;"></i>'
                             + '<span style="font-weight:700;font-size:0.64rem;color:#444;">Date Submitted:</span>'
                             + '<input type="date" id="kpm-modal-date-submitted" value="' + _modalDateVal + '" ' + (canEdit ? '' : 'disabled')
-                            + ' oninput="(function(el,v){var p=state.projects.find(function(x){return x.name===\'' + _modalProjSafe + '\';});if(p){if(!p.vals)p.vals={};p.vals[\'' + _modalDateKey + '\']=v;if(typeof markPendingSync===\'function\')markPendingSync();}var ok=!!v;el.style.background=ok?\'#c8e6c9\':\'#ffcdd2\';el.style.color=ok?\'#2e7d32\':\'#c62828\';el.style.borderColor=ok?\'#a5d6a7\':\'#ef9a9a\';var ico=el.parentElement.querySelector(\'i\');if(ico)ico.style.color=ok?\'#2e7d32\':\'#c62828\';})(this,this.value)"'
+                            + ' oninput="(function(el,v){var p=state.projects.find(function(x){return x.name===\'' + _modalProjSafe + '\';});if(p){if(!p.vals)p.vals={};p.vals[\'' + _modalDateKey + '\']=v;if(typeof markPendingSync===\'function\')markPendingSync();}var ok=!!v;el.style.background=ok?\'#c8e6c9\':\'#ffcdd2\';el.style.color=ok?\'#2e7d32\':\'#c62828\';el.style.borderColor=ok?\'#a5d6a7\':\'#ef9a9a\';var ico=el.parentElement.querySelector(\'i\');if(ico)ico.style.color=ok?\'#2e7d32\':\'#c62828\';window._kpmDateSync&&window._kpmDateSync(el);})(this,this.value)"'
                             + ' style="border:1px solid ' + (_modalDateVal?'#a5d6a7':'#ef9a9a') + ';border-radius:4px;padding:3px 7px;font-size:0.67rem;font-weight:700;background:' + (_modalDateVal?'#c8e6c9':'#ffcdd2') + ';color:' + (_modalDateVal?'#2e7d32':'#c62828') + ';cursor:' + (canEdit?'pointer':'not-allowed') + ';">'
                             + '</label>'
                             + '<span style="font-size:0.6rem;color:#888;margin-left:auto;white-space:nowrap;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll table horizontally</span>'
@@ -17602,6 +17662,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         // backdrop click disabled — use × button to close
                         document.body.appendChild(modal);
+                        if (window._kpmDateSync) window._kpmDateSync(document.getElementById('kpm-modal-date-submitted'));
                     };
 
                     window._kpmBuildModalTable = function(regProjs, activeMo, dis, regKey) {
@@ -17932,9 +17993,68 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     };
 
                     // Save & close
+                    // Date Submitted indicator: red pulse + "Required" tag while empty
+                    window._kpmDateSync = function(el) {
+                        if (!el || el.disabled) return;
+                        var ok = !!el.value;
+                        el.classList.toggle('kpm-date-pulse', !ok);
+                        var h = document.getElementById('kpm-date-hint');
+                        if (!h) {
+                            h = document.createElement('span');
+                            h.id = 'kpm-date-hint';
+                            h.className = 'kpm-date-hint';
+                            h.innerHTML = '<i class="fas fa-arrow-left"></i>Required: fill in the date';
+                            if (el.parentElement) el.parentElement.appendChild(h);
+                        }
+                        h.style.display = ok ? 'none' : 'inline-flex';
+                    };
+
+                    // Ask first if Date Submitted is empty, then run the real save
                     window.saveKpmModal = function() {
                         var modal = document.getElementById('kpm-month-modal');
                         if (!modal) return;
+                        var dateEl = document.getElementById('kpm-modal-date-submitted');
+                        if (dateEl && !dateEl.disabled && !dateEl.value) {
+                            var old = document.getElementById('kpm-date-confirm');
+                            if (old) old.remove();
+                            var box = document.createElement('div');
+                            box.id = 'kpm-date-confirm';
+                            box.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;';
+                            box.innerHTML = '<div style="background:var(--bg-card,#fff);border-radius:12px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.45);overflow:hidden;">'
+                                + '<div style="background:#fff3e0;border-bottom:1px solid #ffcc80;padding:14px 18px;display:flex;align-items:center;gap:10px;">'
+                                + '<i class="fas fa-triangle-exclamation" style="color:#e65100;font-size:1.2rem;"></i>'
+                                + '<div style="font-weight:800;font-size:0.9rem;color:#bf360c;font-family:Poppins,sans-serif;">Date Submitted is empty</div></div>'
+                                + '<div style="padding:16px 18px;font-size:0.8rem;line-height:1.5;color:var(--text-main,#333);">'
+                                + 'You did not fill in the <b>Date Submitted</b>. Without it, this month is counted as <b>not submitted</b> in the compliance score.<br><br>Do you still want to save?</div>'
+                                + '<div style="padding:12px 18px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--border-color,#ddd);">'
+                                + '<button id="kpm-date-confirm-save" style="background:#fff;color:#c62828;border:1px solid #ef9a9a;border-radius:7px;padding:8px 16px;font-size:0.76rem;font-weight:700;cursor:pointer;">Save anyway</button>'
+                                + '<button id="kpm-date-confirm-fill" style="background:#2e7d32;color:#fff;border:none;border-radius:7px;padding:8px 18px;font-size:0.76rem;font-weight:700;cursor:pointer;">Go back and fill in</button>'
+                                + '</div></div>';
+                            document.body.appendChild(box);
+                            document.getElementById('kpm-date-confirm-fill').onclick = function() {
+                                box.remove();
+                                var el = document.getElementById('kpm-modal-date-submitted');
+                                if (el) {
+                                    el.scrollIntoView({ block: 'center', inline: 'center' });
+                                    el.classList.remove('kpm-date-shake'); void el.offsetWidth;
+                                    el.classList.add('kpm-date-shake');
+                                    el.focus();
+                                    if (typeof el.showPicker === 'function') { try { el.showPicker(); } catch (e) {} }
+                                }
+                            };
+                            document.getElementById('kpm-date-confirm-save').onclick = function() {
+                                box.remove();
+                                window._kpmDoSave();
+                            };
+                            return;
+                        }
+                        window._kpmDoSave();
+                    };
+
+                    window._kpmDoSave = function() {
+                        var modal = document.getElementById('kpm-month-modal');
+                        if (!modal) return;
+
                         var reg = modal.getAttribute('data-reg');
                         var activeMo = modal.getAttribute('data-month');
                         if (!reg || !activeMo) { modal.remove(); render(); return; }
@@ -22181,10 +22301,10 @@ function renderSafetyAlertAwardPanel() {
     if (_safetyCarouselIdx >= awards.length) _safetyCarouselIdx = 0;
 
     // ── LEFT: Safety Alert list (Yahoo "Trending" equivalent) ──
-    const top5 = activeAlerts.slice(0, 5);
-    const alertsListHtml = top5.length === 0
+    const topAlerts = activeAlerts.slice(0, 8); // 8 items so the list fills the taller column without big gaps
+    const alertsListHtml = topAlerts.length === 0
         ? `<div style="padding:16px 14px;font-size:0.72rem;color:var(--text-secondary);">No active safety alerts.</div>`
-        : top5.map(function(a, i) {
+        : topAlerts.map(function(a, i) {
             const thumb = safetyAlertThumbUrl(a);
             const fileIcon = a.fileType === 'pdf' ? 'fa-file-pdf' : 'fa-file-word';
             const fileColor = a.fileType === 'pdf' ? '#c62828' : '#1565c0';
@@ -22228,30 +22348,39 @@ function renderSafetyAlertAwardPanel() {
         <div id="saw-award-inner">${buildSafetyAwardInnerHtml()}</div>
     </div>`;
 
-    // ── RIGHT: Weather satellite (Windy embed, focused on the Philippines) ──
-    const weatherCol = `
-    <div class="saw-panel">
-        <div class="saw-panel-head">
-            <i class="fas fa-satellite" style="color:#1565c0;"></i>
-            <span style="font-weight:800;font-size:0.78rem;letter-spacing:0.4px;color:var(--text-primary);">WEATHER</span>
-            <span style="margin-left:auto;font-size:0.62rem;color:var(--text-secondary);">Philippines</span>
-        </div>
-        <iframe class="saw-weather-frame" loading="lazy"
-            src="https://embed.windy.com/embed2.html?lat=12.8797&lon=121.7740&detailLat=12.8797&detailLon=121.7740&width=650&height=650&zoom=5&level=surface&overlay=satellite&product=ecmwf&menu=&message=true&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1">
-        </iframe>
-        <div class="saw-weather-foot">
-            <span>Live satellite view</span>
-            <a href="https://www.windy.com/-Satellite-satellite?satellite,12.880,121.774,5" target="_blank" rel="noopener" style="color:#1565c0;text-decoration:none;font-weight:700;">Full map <i class="fas fa-up-right-from-square" style="font-size:0.55rem;"></i></a>
-        </div>
-    </div>`;
+    // ── RIGHT: Weather (Windy + PAGASA tabs). Markup lives in index.html → <template id="saw-wx-template"> ──
+    const _wxTpl = document.getElementById('saw-wx-template');
+    const weatherCol = _wxTpl ? _wxTpl.innerHTML : '';
 
     container.innerHTML = `<div class="saw-grid">${alertsCol}${awardCol}${weatherCol}</div>`;
+    sawWxInit();
 
     if (awards.length > 1) {
         _safetyCarouselTimer = setInterval(function(){ safetyAwardNext(); }, 4000);
     }
 }
 window.renderSafetyAlertAwardPanel = renderSafetyAlertAwardPanel;
+
+// Weather column: PAGASA box + Windy box (markup in index.html). The PAGASA image loads right away.
+// The URL only changes once per hour, so the browser can reuse its cache.
+function sawWxInit() {
+    const img = document.getElementById('saw-wx-pagasa-img');
+    if (!img) return;
+    img.classList.add('is-loading');
+    img.src = img.dataset.src + '?t=' + Math.floor(Date.now() / 3600000);
+}
+function sawWxImgDone(img) {
+    img.classList.remove('is-loading');
+    document.getElementById('saw-wx-loading').style.display = 'none';
+}
+// If the image fails: retry once without the cache-buster, then show the message.
+function sawWxImgErr(img) {
+    if (img.src.indexOf('?') > -1) { img.src = img.src.split('?')[0]; return; }
+    sawWxImgDone(img);
+    img.alt = 'Hindi ma-load ang image. Buksan ang PAGASA page.';
+}
+window.sawWxImgDone = sawWxImgDone;
+window.sawWxImgErr = sawWxImgErr;
 
 function stopSafetyAwardCarousel() {
     if (_safetyCarouselTimer) { clearInterval(_safetyCarouselTimer); _safetyCarouselTimer = null; }
@@ -40734,6 +40863,9 @@ window.renderCorporateKpm = function() {
     const KPM_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const MO_SHORT   = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
     const curMoIdx   = new Date().getMonth();
+    // Last COMPLETED month index for the selected year: current month is still ongoing, so it is not listed yet
+    const _ckNow = new Date();
+    const lastDoneIdx = year < _ckNow.getFullYear() ? 11 : (year === _ckNow.getFullYear() ? _ckNow.getMonth() - 1 : -1);
 
     // ── Roster: only personnel whose KPM period overlaps the selected year ──
     const ROSTER = window.corpKpmGetRoster().filter(function(p) { return window.corpKpmActiveInYear(p, year); });
@@ -40829,7 +40961,7 @@ window.renderCorporateKpm = function() {
         var lsKey = 'corpKpmCollapsed_' + mi;
         var isCollapsed = (function(){ try { return localStorage.getItem(lsKey) === '1'; } catch(e){ return false; } })();
 
-        var periodMonths = KPM_MONTHS.filter(function(mo, idx) { return idx <= curMoIdx && isActiveMo(mi, idx); });
+        var periodMonths = KPM_MONTHS.filter(function(mo, idx) { return idx <= lastDoneIdx && isActiveMo(mi, idx); });
         var submittedCount = 0;
         periodMonths.forEach(function(mo) { if (ckGet(mi, mo, 'dateSubmitted')) submittedCount++; });
         var periodLabel = window.corpKpmFmtYm(p.start) + ' – ' + (p.end ? window.corpKpmFmtYm(p.end) : 'Present');
@@ -40857,7 +40989,7 @@ window.renderCorporateKpm = function() {
         // Month rows — only months inside this person's KPM period
         var hasAnyRow = false;
         KPM_MONTHS.forEach(function(mo, moIdx) {
-            if (moIdx > curMoIdx || !isActiveMo(mi, moIdx)) return;
+            if (moIdx > lastDoneIdx || !isActiveMo(mi, moIdx)) return;
             var score = mgrMonthScore(mi, mo);
             var dateSubm = ckGet(mi, mo, 'dateSubmitted');
             var isNA = ckIsNA(mi, mo);
@@ -40882,20 +41014,17 @@ window.renderCorporateKpm = function() {
             if (!isNA && _ckRows.length) {
                 if (_ckFilled === 0)                    _ckStatusChip = _ckChip('✖ Not filled', '#ffebee', '#c62828');
                 else if (_ckFilled < _ckRows.length)    _ckStatusChip = _ckChip('◐ Partial (' + _ckFilled + '/' + _ckRows.length + ')', '#fff3e0', '#e65100');
-                else                                    _ckStatusChip = _ckChip('✔ Complete', '#e8f5e9', '#2e7d32');
+                else                                    _ckStatusChip = _ckChip('✔ All ' + _ckRows.length + ' ' + (tpl.wpLabel === 'KPI' ? 'KPI' : 'work process') + (_ckRows.length !== 1 ? (tpl.wpLabel === 'KPI' ? 's' : 'es') : '') + ' complete', '#e8f5e9', '#2e7d32');
             }
+            // Left accent color (same logic as KPM tab): green = complete, orange = partial, red = not filled, gray = N/A
+            var _ckAccent = (isNA || !_ckRows.length) ? '#bdbdbd' : (_ckFilled === _ckRows.length ? '#43a047' : (_ckFilled === 0 ? '#c62828' : '#ef6c00'));
 
-            managersHtml += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
+            managersHtml += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);border-left:4px solid ' + _ckAccent + ';background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
                 + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
                 + ' onclick="window.openCorpKpmModal(' + mi + ',\'' + mo + '\',false)">'
-                + '<span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">' + (moIdx+1) + '</span>'
-                + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:36px;text-align:center;">' + mo.substring(0,3).toUpperCase() + '</span>'
-                + '<div style="flex:1;min-width:0;">'
-                +   '<div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow:hidden;">'
-                +     '<span style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;">' + mo + ' ' + year + '</span>' + _ckStatusChip
-                +     '<span style="font-size:0.62rem;color:#888;white-space:nowrap;margin-left:auto;">Submitted: <span style="color:' + submFg + ';font-weight:600;">' + submLabel + '</span>' + (isNA?' <span style="color:#e65100;font-size:0.6rem;">[N/A]</span>':'') + '</span>'
-                +   '</div>'
-                + '</div>'
+                + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:48px;box-sizing:border-box;text-align:center;">' + mo.substring(0,3).toUpperCase() + '</span>'
+                + '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">' + _ckStatusChip + '</div>'
+                + '<span style="font-size:0.62rem;color:#888;white-space:nowrap;margin-left:auto;">Submitted: <span style="color:' + submFg + ';font-weight:600;">' + submLabel + '</span>' + (isNA?' <span style="color:#e65100;font-size:0.6rem;">[N/A]</span>':'') + '</span>'
                 + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
                 + '<span style="background:' + scoreBg + ';color:' + scoreFg + ';border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">' + scoreLabel + '</span>'
                 + (canEditNow ? '<button onclick="event.stopPropagation();window.openCorpKpmModal(' + mi + ',\'' + mo + '\',true)" title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen"></i></button>' : '')
@@ -41083,7 +41212,7 @@ window.renderCorporateKpm = function() {
             +     '<i class="fas fa-calendar-check" style="color:' + (dateSubm?'#2e7d32':'#c62828') + ';"></i>'
             +     '<span style="font-weight:700;font-size:0.64rem;color:#444;">Date Submitted:</span>'
             +     '<input type="date" id="ckpm-modal-date" value="' + dateSubm + '" ' + (!isWdaAdmin?'disabled':'')
-            +     ' oninput="(function(el,v){window._ckpmDateChange(' + mgrIdx + ',\'' + moSafe + '\',v);var ok=!!v;el.style.background=ok?\'#c8e6c9\':\'#ffcdd2\';el.style.color=ok?\'#2e7d32\':\'#c62828\';el.style.borderColor=ok?\'#a5d6a7\':\'#ef9a9a\';})(this,this.value)"'
+            +     ' oninput="(function(el,v){window._ckpmDateChange(' + mgrIdx + ',\'' + moSafe + '\',v);var ok=!!v;el.style.background=ok?\'#c8e6c9\':\'#ffcdd2\';el.style.color=ok?\'#2e7d32\':\'#c62828\';el.style.borderColor=ok?\'#a5d6a7\':\'#ef9a9a\';window._kpmDateSync&&window._kpmDateSync(el);})(this,this.value)"'
             +     ' style="border:1px solid ' + (dateSubm?'#a5d6a7':'#ef9a9a') + ';border-radius:4px;padding:3px 7px;font-size:0.67rem;font-weight:700;background:' + (dateSubm?'#c8e6c9':'#ffcdd2') + ';color:' + (dateSubm?'#2e7d32':'#c62828') + ';cursor:' + (isWdaAdmin?'pointer':'not-allowed') + ';">'
             +   '</label>'
             +   (isWdaAdmin
@@ -41146,6 +41275,7 @@ window.renderCorporateKpm = function() {
             + '</div>';
 
         document.body.appendChild(modal);
+        if (window._kpmDateSync) window._kpmDateSync(document.getElementById('ckpm-modal-date'));
         // Close on backdrop click
         modal.addEventListener('click', function(e){ if (e.target === modal) modal.remove(); });
     };
@@ -41199,7 +41329,60 @@ window.renderCorporateKpm = function() {
         var m = document.getElementById('corp-kpm-modal'); if (m) m.remove();
         window.openCorpKpmModal(mgrIdx, mo, true);
     };
+    // Shared Date Submitted indicator (also defined in the region KPM block; defined here so it works on its own)
+    if (!window._kpmDateSync) window._kpmDateSync = function(el) {
+        if (!el || el.disabled) return;
+        var ok = !!el.value;
+        el.classList.toggle('kpm-date-pulse', !ok);
+        var h = document.getElementById('kpm-date-hint');
+        if (!h) {
+            h = document.createElement('span');
+            h.id = 'kpm-date-hint';
+            h.className = 'kpm-date-hint';
+            h.innerHTML = '<i class="fas fa-arrow-left"></i>Required: fill in the date';
+            if (el.parentElement) el.parentElement.appendChild(h);
+        }
+        h.style.display = ok ? 'none' : 'inline-flex';
+    };
     window._ckpmSaveModal = function(mgrIdx, mo) {
+        var dateEl = document.getElementById('ckpm-modal-date');
+        if (dateEl && !dateEl.disabled && !dateEl.value && !ckIsNA(mgrIdx, mo)) {
+            var old = document.getElementById('kpm-date-confirm');
+            if (old) old.remove();
+            var box = document.createElement('div');
+            box.id = 'kpm-date-confirm';
+            box.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;';
+            box.innerHTML = '<div style="background:var(--bg-card,#fff);border-radius:12px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.45);overflow:hidden;">'
+                + '<div style="background:#fff3e0;border-bottom:1px solid #ffcc80;padding:14px 18px;display:flex;align-items:center;gap:10px;">'
+                + '<i class="fas fa-triangle-exclamation" style="color:#e65100;font-size:1.2rem;"></i>'
+                + '<div style="font-weight:800;font-size:0.9rem;color:#bf360c;font-family:Poppins,sans-serif;">Date Submitted is empty</div></div>'
+                + '<div style="padding:16px 18px;font-size:0.8rem;line-height:1.5;color:var(--text-main,#333);">'
+                + 'You did not fill in the <b>Date Submitted</b>. Without it, this month is counted as <b>not submitted</b>.<br><br>Do you still want to save?</div>'
+                + '<div style="padding:12px 18px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--border-color,#ddd);">'
+                + '<button id="kpm-date-confirm-save" style="background:#fff;color:#c62828;border:1px solid #ef9a9a;border-radius:7px;padding:8px 16px;font-size:0.76rem;font-weight:700;cursor:pointer;">Save anyway</button>'
+                + '<button id="kpm-date-confirm-fill" style="background:#2e7d32;color:#fff;border:none;border-radius:7px;padding:8px 18px;font-size:0.76rem;font-weight:700;cursor:pointer;">Go back and fill in</button>'
+                + '</div></div>';
+            document.body.appendChild(box);
+            document.getElementById('kpm-date-confirm-fill').onclick = function() {
+                box.remove();
+                var el = document.getElementById('ckpm-modal-date');
+                if (el) {
+                    el.scrollIntoView({ block: 'center', inline: 'center' });
+                    el.classList.remove('kpm-date-shake'); void el.offsetWidth;
+                    el.classList.add('kpm-date-shake');
+                    el.focus();
+                    if (typeof el.showPicker === 'function') { try { el.showPicker(); } catch (e) {} }
+                }
+            };
+            document.getElementById('kpm-date-confirm-save').onclick = function() {
+                box.remove();
+                window._ckpmDoSave(mgrIdx, mo);
+            };
+            return;
+        }
+        window._ckpmDoSave(mgrIdx, mo);
+    };
+    window._ckpmDoSave = function(mgrIdx, mo) {
         if (typeof saveData === 'function') saveData();
         var m = document.getElementById('corp-kpm-modal'); if (m) m.remove();
         window.renderCorporateKpm();
