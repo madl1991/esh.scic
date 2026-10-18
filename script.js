@@ -20916,22 +20916,28 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
         const stickyBg = hasToUpdate ? 'background:#ffebee;' : (di%2===1?'background:#f4f6f8;':'background:#ffffff;');
         // Compute cert expiry cell before template literal
         const _certCell = (() => {
-            const _CMAP = {'PCO':'PCO_ACCRED','First Aider':'BLS','ESH Superintendent':'DOLE_OSH','ESH Head':'DOLE_OSH'};
+            const _CMAP = {'PCO':'PCO_ACCRED','First Aider':'BLS','ESH Superintendent':'DOLE_OSH','ESH Head':'DOLE_OSH','Safety Officer I':'COSH','Safety Officer II':'COSH','Safety Officer III':'COSH','Safety Officer IV':'COSH','Project Nurse':'OHNAP'};
+            const _NOEXP = {'COSH':1,'OHNAP':1};
             const _ckey = _CMAP[p.pos];
             if (!_ckey) return '<td style="text-align:center;padding:5px 14px;color:#ccc;font-size:0.7rem;">—</td>';
             const _pid2 = (typeof PersonnelDB !== 'undefined') ? PersonnelDB.getPersonId(p) : String(p._pid || (p.id ? 'emp_' + String(p.id).trim() : String(origIdx)));
             const _cdata = (window._pcCertData && window._pcCertData[_pid2] || {})[_ckey];
-            if (!_cdata) return '<td style="text-align:center;padding:5px 14px;font-size:0.68rem;color:#bbb;">No cert</td>';
+            if (_NOEXP[_ckey]) {
+                const _up = !!(_cdata && _cdata.pdfUrl);
+                return _up
+                    ? '<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div style="font-size:0.56rem;font-weight:800;color:#2e7d32;background:#f1f8e9;padding:1px 6px;border-radius:8px;display:inline-block;">UPLOADED</div></td>'
+                    : '<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div style="font-size:0.56rem;font-weight:800;color:#c62828;background:#ffebee;padding:1px 6px;border-radius:8px;display:inline-block;">NOT UPLOADED</div></td>';
+            }
+            if (!_cdata) return '<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div style="font-size:0.56rem;font-weight:800;color:#c62828;background:#ffebee;padding:1px 6px;border-radius:8px;display:inline-block;">NOT UPLOADED</div></td>';
             if (p.certToFollow === _ckey) return '<td style="text-align:center;padding:5px 14px;font-size:0.65rem;color:#e65100;font-weight:700;">⏳ To Follow</td>';
             const _exp = _cdata.expiry;
             if (!_exp) return '<td style="text-align:center;padding:5px 14px;font-size:0.68rem;color:#bbb;">—</td>';
             const _now = new Date(); _now.setHours(0,0,0,0);
             const _ed  = new Date(_exp); _ed.setHours(0,0,0,0);
             const _d   = Math.round((_ed - _now) / 86400000);
-            const _col = _d < 0 ? '#c62828' : _d <= 60 ? '#e65100' : '#2e7d32';
-            const _lbl = _d < 0 ? 'EXPIRED' : _d <= 60 ? 'EXPIRING' : 'VALID';
-            const _bg  = _d < 0 ? '#ffebee' : _d <= 60 ? '#fff3e0' : '#f1f8e9';
-            return `<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div style="font-size:0.68rem;font-weight:700;color:${_col};">${_exp}</div><div style="font-size:0.56rem;font-weight:800;color:${_col};background:${_bg};padding:1px 5px;border-radius:8px;display:inline-block;margin-top:1px;">${_lbl}</div></td>`;
+            const _col = _d < 0 ? '#c62828' : '#2e7d32';
+            const _tip = _d < 0 ? 'Expired' : 'Valid';
+            return `<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div title="${_tip}" style="font-size:0.68rem;font-weight:700;color:${_col};cursor:default;">${_exp}</div></td>`;
         })();
         rows += `
         <tr id="p-row-${origIdx}" style="${rowBg}">
@@ -38822,9 +38828,13 @@ async function exportPersonnelExcel() {
         if (!certKey) return { label: '—', expiry: '—', status: '—' };
         const label = CERT_LABELS_MAP[certKey] || certKey;
         const cd = _certLookup(p, certKey);
-        if (!cd) return { label, expiry: 'Not uploaded', status: 'NO CERT' };
+        if (certKey === 'COSH' || certKey === 'OHNAP') {
+            const _up = !!(cd && cd.pdfUrl);
+            return { label, expiry: _up ? 'UPLOADED' : 'NOT UPLOADED', status: _up ? 'UPLOADED' : 'NOT UPLOADED' };
+        }
+        if (!cd) return { label, expiry: 'NOT UPLOADED', status: 'NOT UPLOADED' };
         if (p.certToFollow === certKey) return { label, expiry: '—', status: 'TO FOLLOW' };
-        if (!cd.expiry) return { label, expiry: cd.pdfUrl ? 'No expiry set' : 'Not uploaded', status: cd.pdfUrl ? 'NO EXPIRY SET' : 'NO CERT' };
+        if (!cd.expiry) return { label, expiry: cd.pdfUrl ? 'No expiry set' : 'NOT UPLOADED', status: cd.pdfUrl ? 'NO EXPIRY SET' : 'NOT UPLOADED' };
         return { label, expiry: _fmtDate(cd.expiry), status: _certStatus(cd.expiry) };
     }
     function _buildRow(region, projName, p, mi) {
