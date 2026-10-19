@@ -16133,7 +16133,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         function _buildEmbProjectCol(p, projIdx) {
                             var stopped = isProjectOnStoppage(p);
                             var isFinished = !!p.dateFinished;
-                            var pCanEdit = canEdit && !isFinished; // freeze all fields once project is Finished
+                            var pCanEdit = canEdit; // SMR and CMR stay editable even when Finished
                             var pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
                             var pnJs   = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 
@@ -16153,8 +16153,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             // Extra entries from emb_extra_smr / emb_extra_cmr
                             var extras = (p.vals[extraKey] && Array.isArray(p.vals[extraKey])) ? p.vals[extraKey] : [];
 
-                            var html = '<td style="padding:8px;border:1px solid '+((stopped||isFinished)?'#e0e0e0':_cocExempt?'#81c784':'#c8e6c9')+';width:220px;min-width:220px;max-width:220px;vertical-align:top;text-align:left;background:'+((stopped||isFinished)?'#fafafa':_cocExempt?'#f1fff1':'')+';">'
-                                + (isFinished ? '<div style="font-size:0.58rem;font-weight:800;color:#9e9e9e;margin-bottom:4px;"><i class="fas fa-lock"></i> FINISHED — read only</div>' : '');
+                            var html = '<td style="padding:8px;border:1px solid '+(stopped?'#e0e0e0':_cocExempt?'#81c784':'#c8e6c9')+';width:220px;min-width:220px;max-width:220px;vertical-align:top;text-align:left;background:'+(stopped?'#fafafa':_cocExempt?'#f1fff1':'')+';">';
 
                             // ── Primary entry block ──
                             var facKey = isSmr ? 'emb_SMR (Quarterly) - Facility' : 'emb_CMR (Semi-Annual) - Facility';
@@ -27197,15 +27196,6 @@ function toggleOsh2Region(headerEl, contentId) {
     headerEl.classList.toggle('collapsed', isOpen);
 }
 
-function toggleOsh2Ref(headerEl) {
-    const panel = document.getElementById('osh2-ref-matrix');
-    const chevron = document.getElementById('osh2-ref-chevron');
-    if (!panel) return;
-    const open = panel.style.display === 'none';
-    panel.style.display = open ? 'block' : 'none';
-    if (chevron) chevron.style.transform = open ? 'rotate(90deg)' : '';
-}
-
 function renderOshTable() {}
 function toggleOshRef() {}
 
@@ -33941,7 +33931,6 @@ window.pcViewPersonnel = function(idx) {
     const certSection = document.getElementById('pc-cert-section');
     const certExempt  = document.getElementById('pc-cert-exempt');
     const certList    = document.getElementById('pc-cert-list');
-    const certLabel   = document.getElementById('pc-cert-section-label');
 
     if (isCorpPos) {
         certSection.style.display = 'none';
@@ -33952,7 +33941,6 @@ window.pcViewPersonnel = function(idx) {
     } else {
         certSection.style.display = 'block';
         certExempt.style.display  = 'none';
-        certLabel.textContent     = pos;
 
         // ── DIRECT FIRESTORE READ (same pattern as CSHP/DOLE/DOE-PERMIT) ─────
         // Instead of relying on an onSnapshot listener (which dies after logout),
@@ -34037,12 +34025,12 @@ window.pcViewPersonnel = function(idx) {
                   </div>
                   <div style="min-width:0;">
                     <div style="font-size:0.78rem;font-weight:700;color:#222;">${label}</div>
-                    <div style="font-size:0.63rem;color:#666;margin-top:2px;">${hasExp ? `Expires <strong>${data.expiry}</strong> · <span style="color:${color};font-weight:700;">${dLabel}</span>` : missingExp ? '<span style="color:#e65100;font-weight:700;">Expiry date not set — please update</span>' : '<span style="color:#888;">No expiration date</span>'}</div>
+                    <div style="font-size:0.63rem;color:#666;margin-top:2px;">${hasExp ? `Expires <strong>${data.expiry}</strong> · <span style="color:${color};font-weight:700;">${dLabel}</span>` : missingExp ? '<span style="color:#e65100;font-weight:700;">Expiry date not set — please update</span>' : '<span style="color:#000;">No expiration date</span>'}</div>
                   </div>
                 </div>
-                <span style="font-size:0.55rem;font-weight:800;color:${color};background:${color}18;padding:2px 7px;border-radius:20px;border:1px solid ${border};white-space:nowrap;flex-shrink:0;">${hasExp ? stLabel : (missingExp ? 'SET EXPIRY' : '✓ ON FILE')}</span>
+                ${(hasExp || missingExp) ? `<span style="font-size:0.55rem;font-weight:800;color:${color};background:${color}18;padding:2px 7px;border-radius:20px;border:1px solid ${border};white-space:nowrap;flex-shrink:0;">${hasExp ? stLabel : 'SET EXPIRY'}</span>` : ''}
               </div>
-              ${data.pdfUrl ? `<a href="${data.pdfUrl}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;padding:6px;background:#fff;border:1px solid ${border};border-radius:7px;font-size:0.68rem;font-weight:700;color:${color};text-decoration:none;"><i class="fas fa-file-pdf"></i> View Certificate PDF</a>` : `<div style="margin-top:8px;padding:5px;text-align:center;font-size:0.63rem;color:#bbb;">No PDF on file</div>`}
+              ${data.pdfUrl ? `<a href="${data.pdfUrl}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;padding:6px;background:#fff;border:1px solid ${border};border-radius:7px;font-size:0.68rem;font-weight:700;color:${color};text-decoration:none;"><i class="fas fa-file-pdf"></i> View Certificate PDF</a>` : `<div style="margin-top:8px;padding:5px;text-align:center;font-size:0.63rem;color:#000;">No PDF on file</div>`}
             </div>`;
         }
 
