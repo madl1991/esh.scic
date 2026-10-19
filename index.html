@@ -9,7 +9,7 @@
     <!-- OPTIMIZED: consolidated font load — only weights actually used, preconnect for speed -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
     // ── GLOBAL REGION COLOR SOURCE OF TRUTH ──────────────────────────────────
@@ -1332,7 +1332,7 @@
 <div id="safety-alerts-view" class="hidden" style="padding:20px;">
 </div>
 
-<div id="headlines-view" class="hidden" style="padding:20px 0 0;">
+<div id="headlines-view" class="hidden" style="padding:20px 0 28px;">
     <div id="safety-alert-award-panel"></div>
 </div>
 
@@ -1341,9 +1341,8 @@
     <div class="saw-wx-stack">
         <div class="saw-panel">
             <div class="saw-panel-head">
-                <i class="fas fa-cloud-sun-rain" style="color:#1565c0;"></i>
-                <span style="font-weight:800;font-size:0.78rem;letter-spacing:0.4px;color:var(--text-primary);">PAGASA WEATHER</span>
-                <span style="margin-left:auto;font-size:0.62rem;color:var(--text-secondary);">Surface map</span>
+                <div class="saw-ph-title"><i class="fas fa-cloud-sun-rain"></i>PAGASA weather</div>
+                <span class="saw-ph-side">Surface map</span>
             </div>
             <div class="saw-wx-pagasa">
                 <div id="saw-wx-loading" class="saw-wx-loading">Naglo-load ng larawan… mabagal ang server ng PAGASA</div>
@@ -1356,16 +1355,15 @@
         </div>
         <div class="saw-panel">
             <div class="saw-panel-head">
-                <i class="fas fa-satellite" style="color:#1565c0;"></i>
-                <span style="font-weight:800;font-size:0.78rem;letter-spacing:0.4px;color:var(--text-primary);">WINDY SATELLITE</span>
-                <span style="margin-left:auto;font-size:0.62rem;color:var(--text-secondary);">Philippines</span>
+                <div class="saw-ph-title"><i class="fas fa-satellite"></i>Windy satellite</div>
+                <span class="saw-ph-side">Philippines</span>
             </div>
-            <iframe class="saw-weather-frame" loading="lazy"
+            <iframe class="saw-weather-frame" loading="lazy" title="Windy satellite map"
                 src="https://embed.windy.com/embed2.html?lat=12.8797&lon=121.7740&detailLat=12.8797&detailLon=121.7740&width=650&height=650&zoom=5&level=surface&overlay=satellite&product=ecmwf&menu=&message=true&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1">
             </iframe>
             <div class="saw-weather-foot">
                 <span>Live satellite view</span>
-                <a href="https://www.windy.com/-Satellite-satellite?satellite,12.880,121.774,5" target="_blank" rel="noopener" style="color:#1565c0;text-decoration:none;font-weight:700;">Full map <i class="fas fa-up-right-from-square" style="font-size:0.55rem;"></i></a>
+                <a href="https://www.windy.com/-Satellite-satellite?satellite,12.880,121.774,5" target="_blank" rel="noopener">Full map <i class="fas fa-up-right-from-square" style="font-size:0.6rem;"></i></a>
             </div>
         </div>
     </div>
@@ -2092,6 +2090,42 @@
             var script = document.createElement('script');
             script.src = 'script.js?v=' + ts;
             document.body.appendChild(script);
+        })();
+    </script>
+    <script>
+        // Auto update check — no manual version bump. Compares the ETag/Last-Modified
+        // of index.html, styles.css, script.js. If any changed (new deploy), shows a banner.
+        (function() {
+            var FILES = ['index.html', 'styles.css', 'script.js'];
+            var base = null, shown = false;
+            function sig() {
+                return Promise.all(FILES.map(function(f) {
+                    return fetch(f + '?chk=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
+                        .then(function(r) { return r.headers.get('etag') || r.headers.get('last-modified') || ''; });
+                })).then(function(a) { return a.join('|'); });
+            }
+            function banner() {
+                if (shown) return; shown = true;
+                var d = document.createElement('div');
+                d.id = 'esh-update-banner';
+                d.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:999999;background:#1b5e20;color:#fff;padding:10px 16px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.35);font-weight:600;font-size:0.8rem;display:flex;align-items:center;gap:12px;';
+                d.innerHTML = '<span><i class="fas fa-rotate"></i> A new update is available. Press Ctrl + Shift + R to hard refresh.</span>'
+                    + '<button title="Dismiss" style="background:transparent;color:#fff;border:0;font-size:1rem;cursor:pointer;line-height:1;">&times;</button>';
+                d.querySelector('button').onclick = function() { d.remove(); };
+                document.body.appendChild(d);
+            }
+            function check() {
+                if (shown) return;
+                sig().then(function(s) {
+                    if (!s.replace(/\|/g, '')) return;   // no ETag/Last-Modified (e.g. file://)
+                    if (base === null) { base = s; return; }
+                    if (s !== base) banner();
+                }).catch(function() {});
+            }
+            window.addEventListener('load', function() { setTimeout(check, 3000); });
+            setInterval(check, 2 * 60 * 1000);
+            document.addEventListener('visibilitychange', function() { if (!document.hidden) check(); });
+            window.addEventListener('online', check);
         })();
     </script>
 </body>
