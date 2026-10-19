@@ -11888,7 +11888,7 @@ function renderTabulation() {
                 #osh-nov-view .nov-proj-row { display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s; }
                 #osh-nov-view .nov-proj-row:hover { background:var(--hover-bg,#f5f9f5); }
                 #osh-nov-view .nov-proj-row:last-child { border-bottom:none; }
-                #osh-nov-view .nov-region-card { background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:0 0 14px; }
+                #osh-nov-view .nov-region-card { background:transparent;border:none;box-shadow:none;margin:0 0 14px; }
                 .osh-nov-table { width:100%; border-collapse:collapse; font-size:0.74rem; }
                 .osh-nov-table th { background:#f9f9f9; color:#555; padding:6px 8px; text-align:center; font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; border-bottom:2px solid #e0e0e0; white-space:nowrap; }
                 .osh-nov-table thead tr th:first-child { border-left:3px solid #1b5e20; }
@@ -11951,53 +11951,37 @@ function renderTabulation() {
             </div>`;
 
             const NOV_REG_ORDER = ['CORPORATE','PLANT OPERATIONS','NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
-            const NOV_REG_CLR = {
-                'NCR':{'a':'#1b5e20','b':'#0d3311','white':false},
-                'SOUTH LUZON':{'a':'#24692a','b':'#133816','white':false},
-                'NORTH LUZON':{'a':'#2e7d32','b':'#1a4d1e','white':false},
-                'VISAYAS & MINDANAO':{'a':'#388e3c','b':'#215c26','white':false},
-                'PLANT OPERATIONS':{'a':'#ffffff','b':'#f5f5f5','white':true},
-                'CORPORATE':{'a':'#ffffff','b':'#f5f5f5','white':true}
-            };
 
             NOV_REG_ORDER.forEach(reg => {
                 const regProjs = displayProjects.filter(p => p.region === reg);
                 if (!regProjs.length) return;
                 const canEdit = UserAccounts.canEdit(state.currentUser?.email, reg) && UserAccounts.canEditTab(state.currentUser?.email, 'nov');
                 const isCollapsed = !expandedRegions.has(reg);
-                const _rc = NOV_REG_CLR[reg] || {'a':'#2e7d32','b':'#1b5020'};
+                const _regSlug = reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'');
                 const safeReg = reg.replace(/[^a-zA-Z0-9]/g,'_');
 
                 // Region totals
                 let regTotal=0, regOpen=0, regClosed=0;
                 regProjs.forEach(p => { const s=_oshNovSummary(p); regTotal+=s.total; regOpen+=s.open; regClosed+=s.closed; });
 
-                const _isWhite = _rc.white === true;
-                const _txtClr = _isWhite ? '#1b5e20' : 'white';
-                const _iconClr = _isWhite ? 'rgba(27,94,32,0.85)' : 'rgba(255,255,255,0.85)';
-                const _bannerBorder = _isWhite ? 'border:1.5px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.08);' : '';
-                const _projBadgeBg = _isWhite ? 'background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;' : 'background:rgba(255,255,255,0.18);color:white;';
-                const _novBadgeBg  = _isWhite ? 'background:#fff3e0;color:#e65100;border:1px solid #ffcc80;' : 'background:rgba(255,235,238,0.25);color:white;';
-                const _openBadgeBg = _isWhite ? 'background:#ffebee;color:#c62828;border:1px solid #ef9a9a;' : 'background:rgba(198,40,40,0.5);color:white;';
-                const _closedBadgeBg = _isWhite ? 'background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;' : 'background:rgba(46,125,50,0.5);color:white;';
 
                 html += `<div class="nov-region-card">
-                    <div id="osh-nov-region-banner-${safeReg}" class="${canEdit?'rb-editable':''}" onclick="toggleOshNovRegion('${reg}',event)"
-                        style="background:linear-gradient(135deg,${_rc.a} 0%,${_rc.b} 100%);${_bannerBorder}padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
-                        <div style="display:flex;align-items:center;gap:10px;">
-                            <i id="osh-nov-chev-${safeReg}" class="fas fa-chevron-down" style="color:${_iconClr};font-size:0.78rem;transition:transform 0.25s;${isCollapsed?'transform:rotate(-90deg);':''}"></i>
-                            <i class="fas fa-map-marker-alt" style="color:${_iconClr};"></i>
-                            <span style="font-weight:800;color:${_txtClr};font-size:0.9rem;letter-spacing:0.05em;">${reg}</span>
-
-                        </div>
-                        <div style="display:flex;gap:8px;align-items:center;">
-                            <span style="${_projBadgeBg}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regProjs.length} PROJ</span>
-                            ${regTotal>0?`<span style="${_novBadgeBg}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regTotal} NOV</span>`:''}
-                            ${regOpen>0?`<span style="${_openBadgeBg}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regOpen} Open</span>`:''}
-                            ${regClosed>0?`<span style="${_closedBadgeBg}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regClosed} Closed</span>`:''}
+                    <div id="osh-nov-region-banner-${safeReg}" class="region-banner region-${_regSlug} ${isCollapsed?'collapsed':''} ${canEdit?'rb-editable':''}" onclick="toggleOshNovRegion('${reg}',event)" style="margin:0;">
+                        <div class="region-banner-inner">
+                            <div class="region-banner-left">
+                                <i class="fas fa-location-dot region-icon"></i>
+                                <span class="region-name">${reg}</span>
+                            </div>
+                            <div class="region-banner-right">
+                                <span class="rbadge rbadge-count">${regProjs.length} PROJ</span>
+                                ${regTotal>0?`<span class="rbadge rbadge-nov">${regTotal} NOV</span>`:''}
+                                ${regOpen>0?`<span class="rbadge rbadge-open">${regOpen} Open</span>`:''}
+                                ${regClosed>0?`<span class="rbadge rbadge-closed">${regClosed} Closed</span>`:''}
+                                <i class="fas fa-chevron-down region-toggle-icon"></i>
+                            </div>
                         </div>
                     </div>
-                    <div id="osh-nov-region-content-${safeReg}" style="${isCollapsed?'display:none;':''}">`;
+                    <div id="osh-nov-region-content-${safeReg}" style="border:1px solid #c8e6c9;border-top:none;border-radius:0 0 10px 10px;overflow:hidden;background:var(--bg-card);${isCollapsed?'display:none;':''}">`;
 
                 regProjs.forEach((p, idx) => {
                     const pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -12012,7 +11996,7 @@ function renderTabulation() {
                         <span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">${idx+1}</span>
                         <div style="flex:1;min-width:0;">
                             <div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWS?'opacity:0.7;':''}">${p.name}${isWS?' <span style="background:#e53935;color:white;border-radius:8px;padding:0 6px;font-size:0.58rem;font-weight:700;">WORK STOPPAGE</span>':''}</div>
-                            <div style="font-size:0.62rem;color:#888;margin-top:1px;">${reg}</div>
+                            <div style="font-size:0.62rem;color:#888;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${reg === 'CORPORATE' ? 'Main Office' : reg === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
                         </div>
                         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
                             <span style="background:${scoreBg};color:${scoreFg};border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">${scoreLabel}</span>
@@ -12028,12 +12012,6 @@ function renderTabulation() {
 
             container.innerHTML = html;
 
-            // Re-attach chevron state for region toggle (since we replaced innerHTML)
-            NOV_REG_ORDER.forEach(reg => {
-                const safeReg = reg.replace(/[^a-zA-Z0-9]/g,'_');
-                const chev = document.getElementById('osh-nov-chev-' + safeReg);
-                if (chev && !expandedRegions.has(reg)) chev.style.transform = 'rotate(-90deg)';
-            });
         }
 
         // ── OSH NOV Full-Screen Modal ──────────────────────────────────────────
@@ -12191,16 +12169,16 @@ function renderTabulation() {
             if (event && (event.target.tagName === 'BUTTON' || event.target.closest('button'))) return;
             const safeReg = regionName.replace(/[^a-zA-Z0-9]/g,'_');
             const content = document.getElementById('osh-nov-region-content-' + safeReg);
-            const chev = document.getElementById('osh-nov-chev-' + safeReg);
+            const banner = document.getElementById('osh-nov-region-banner-' + safeReg);
             if (!content) return;
             if (expandedRegions.has(regionName)) {
                 expandedRegions.delete(regionName);
                 content.style.display = 'none';
-                if (chev) chev.style.transform = 'rotate(-90deg)';
+                if (banner) banner.classList.add('collapsed');
             } else {
                 expandedRegions.add(regionName);
                 content.style.display = '';
-                if (chev) chev.style.transform = '';
+                if (banner) banner.classList.remove('collapsed');
             }
             localStorage.setItem(_EXP_KEY, JSON.stringify([...expandedRegions]));
         }
@@ -12682,7 +12660,7 @@ function renderTabulation() {
                     <div style="display:flex;align-items:center;gap:10px;">
                         <i class="fas fa-magnifying-glass-chart" style="color:#1b5e20;font-size:1.1rem;"></i>
                         <div>
-                            <div style="font-family:Poppins,sans-serif;font-size:0.88rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">Monthly Compliance Gap Analysis</div>
+                            <div style="font-family:'Archivo Narrow',sans-serif;font-size:0.88rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">Monthly Compliance Gap Analysis</div>
                             <div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Detected gaps for <strong>${moName} ${selYear}</strong> — areas that reduced compliance below 100%. Click a region or area for the full breakdown.</div>
                         </div>
                     </div>
@@ -13067,7 +13045,7 @@ function renderTabulation() {
                                 <div style="display:flex;align-items:center;gap:10px;">
                                     <i class="fas fa-magnifying-glass-chart" style="color:#1b5e20;font-size:1.1rem;"></i>
                                     <div>
-                                        <div style="font-family:Poppins,sans-serif;font-size:0.88rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">Monthly Compliance Gap Analysis</div>
+                                        <div style="font-family:'Archivo Narrow',sans-serif;font-size:0.88rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">Monthly Compliance Gap Analysis</div>
                                         <div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Detected gaps for <strong>${moName} ${selYear}</strong> — areas that reduced compliance below 100%. Click a region or area for the full breakdown.</div>
                                     </div>
                                 </div>
@@ -14143,7 +14121,7 @@ if (state.currentTab === 'audit') {
                         #nov-env-view .nov-proj-row { display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s; }
                         #nov-env-view .nov-proj-row:hover { background:var(--hover-bg,#f5f9f5); }
                         #nov-env-view .nov-proj-row:last-child { border-bottom:none; }
-                        #nov-env-view .nov-region-card { background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin:0 0 14px; }
+                        #nov-env-view .nov-region-card { background:transparent;border:none;box-shadow:none;margin:0 0 14px; }
                         .nov-env-table { width:100%;border-collapse:collapse;font-size:0.74rem; }
                         .nov-env-table th { background:#f9f9f9;color:#555;padding:6px 8px;text-align:center;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid #e0e0e0;white-space:nowrap; }
                         .nov-env-table thead tr th:first-child { border-left:3px solid #1b5e20; }
@@ -14206,53 +14184,37 @@ if (state.currentTab === 'audit') {
                     </div>`;
 
                     const ENV_REG_ORDER = ['CORPORATE','PLANT OPERATIONS','NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
-                    const ENV_REG_CLR = {
-                        'NCR':{'a':'#1b5e20','b':'#0d3311','white':false},
-                        'SOUTH LUZON':{'a':'#24692a','b':'#133816','white':false},
-                        'NORTH LUZON':{'a':'#2e7d32','b':'#1a4d1e','white':false},
-                        'VISAYAS & MINDANAO':{'a':'#388e3c','b':'#215c26','white':false},
-                        'PLANT OPERATIONS':{'a':'#ffffff','b':'#f5f5f5','white':true},
-                        'CORPORATE':{'a':'#ffffff','b':'#f5f5f5','white':true}
-                    };
 
                     ENV_REG_ORDER.forEach(reg => {
                         const regProjs = displayProjects.filter(p => p.region === reg);
                         if (!regProjs.length) return;
                         const canEdit = UserAccounts.canEdit(state.currentUser?.email, reg) && UserAccounts.canEditTab(state.currentUser?.email, 'nov-env');
                         const isCollapsed = isRegionCollapsed(reg);
-                        const _rc = ENV_REG_CLR[reg] || {'a':'#2e7d32','b':'#1b5020'};
+                        const _regSlug = reg.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'');
                         const safeReg = reg.replace(/[^a-zA-Z0-9]/g,'_');
 
                         // Region totals
                         let regTotal=0, regOpen=0, regClosed=0;
                         regProjs.forEach(p => { const s=_envNovSummary(p); regTotal+=s.total; regOpen+=s.open; regClosed+=s.closed; });
 
-                        const _isWhiteE = _rc.white === true;
-                        const _txtClrE = _isWhiteE ? '#1b5e20' : 'white';
-                        const _iconClrE = _isWhiteE ? 'rgba(27,94,32,0.85)' : 'rgba(255,255,255,0.85)';
-                        const _bannerBorderE = _isWhiteE ? 'border:1.5px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.08);' : '';
-                        const _projBadgeBgE = _isWhiteE ? 'background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;' : 'background:rgba(255,255,255,0.18);color:white;';
-                        const _novBadgeBgE  = _isWhiteE ? 'background:#fff3e0;color:#e65100;border:1px solid #ffcc80;' : 'background:rgba(255,235,238,0.25);color:white;';
-                        const _openBadgeBgE = _isWhiteE ? 'background:#ffebee;color:#c62828;border:1px solid #ef9a9a;' : 'background:rgba(198,40,40,0.5);color:white;';
-                        const _closedBadgeBgE = _isWhiteE ? 'background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;' : 'background:rgba(46,125,50,0.5);color:white;';
 
                         envHtml += `<div class="nov-region-card">
-                            <div id="nov-env-region-banner-${safeReg}" class="${canEdit?'rb-editable':''}" onclick="toggleNovEnvRegion('${reg}',event)"
-                                style="background:linear-gradient(135deg,${_rc.a} 0%,${_rc.b} 100%);${_bannerBorderE}padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
-                                <div style="display:flex;align-items:center;gap:10px;">
-                                    <i id="nov-env-chev-${safeReg}" class="fas fa-chevron-down" style="color:${_iconClrE};font-size:0.78rem;transition:transform 0.25s;${isCollapsed?'transform:rotate(-90deg);':''}"></i>
-                                    <i class="fas fa-map-marker-alt" style="color:${_iconClrE};"></i>
-                                    <span style="font-weight:800;color:${_txtClrE};font-size:0.9rem;letter-spacing:0.05em;">${reg}</span>
-
-                                </div>
-                                <div style="display:flex;gap:8px;align-items:center;">
-                                    <span style="${_projBadgeBgE}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regProjs.length} PROJ</span>
-                                    ${regTotal>0?`<span style="${_novBadgeBgE}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regTotal} NOV</span>`:''}
-                                    ${regOpen>0?`<span style="${_openBadgeBgE}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regOpen} Open</span>`:''}
-                                    ${regClosed>0?`<span style="${_closedBadgeBgE}border-radius:12px;padding:2px 10px;font-size:0.65rem;font-weight:700;">${regClosed} Closed</span>`:''}
+                            <div id="nov-env-region-banner-${safeReg}" class="region-banner region-${_regSlug} ${isCollapsed?'collapsed':''} ${canEdit?'rb-editable':''}" onclick="toggleNovEnvRegion('${reg}',event)" style="margin:0;">
+                                <div class="region-banner-inner">
+                                    <div class="region-banner-left">
+                                        <i class="fas fa-location-dot region-icon"></i>
+                                        <span class="region-name">${reg}</span>
+                                    </div>
+                                    <div class="region-banner-right">
+                                        <span class="rbadge rbadge-count">${regProjs.length} PROJ</span>
+                                        ${regTotal>0?`<span class="rbadge rbadge-nov">${regTotal} NOV</span>`:''}
+                                        ${regOpen>0?`<span class="rbadge rbadge-open">${regOpen} Open</span>`:''}
+                                        ${regClosed>0?`<span class="rbadge rbadge-closed">${regClosed} Closed</span>`:''}
+                                        <i class="fas fa-chevron-down region-toggle-icon"></i>
+                                    </div>
                                 </div>
                             </div>
-                            <div id="nov-env-region-content-${safeReg}" style="${isCollapsed?'display:none;':''}">`;
+                            <div id="nov-env-region-content-${safeReg}" style="border:1px solid #c8e6c9;border-top:none;border-radius:0 0 10px 10px;overflow:hidden;background:var(--bg-card);${isCollapsed?'display:none;':''}">`;
 
                         regProjs.forEach((p, idx) => {
                             const pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -14266,7 +14228,7 @@ if (state.currentTab === 'audit') {
                                 <span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">${idx+1}</span>
                                 <div style="flex:1;min-width:0;">
                                     <div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWS?'opacity:0.7;':''}">${p.name}${isWS?' <span style="background:#e53935;color:white;border-radius:8px;padding:0 6px;font-size:0.58rem;font-weight:700;">WORK STOPPAGE</span>':''}</div>
-                                    <div style="font-size:0.62rem;color:#888;margin-top:1px;">${reg}</div>
+                                    <div style="font-size:0.62rem;color:#888;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${reg === 'CORPORATE' ? 'Main Office' : reg === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
                                 </div>
                                 <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
                                     <span style="background:${scoreBg};color:${scoreFg};border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">${scoreLabel}</span>
@@ -14438,16 +14400,16 @@ if (state.currentTab === 'audit') {
                     if (event && (event.target.tagName === 'BUTTON' || event.target.closest('button'))) return;
                     const safeReg = regionName.replace(/[^a-zA-Z0-9]/g,'_');
                     const content = document.getElementById('nov-env-region-content-' + safeReg);
-                    const chev = document.getElementById('nov-env-chev-' + safeReg);
+                    const banner = document.getElementById('nov-env-region-banner-' + safeReg);
                     if (!content) return;
                     if (expandedRegions.has(regionName)) {
                         expandedRegions.delete(regionName);
                         content.style.display = 'none';
-                        if (chev) chev.style.transform = 'rotate(-90deg)';
+                        if (banner) banner.classList.add('collapsed');
                     } else {
                         expandedRegions.add(regionName);
                         content.style.display = '';
-                        if (chev) chev.style.transform = '';
+                        if (banner) banner.classList.remove('collapsed');
                     }
                     localStorage.setItem(_EXP_KEY, JSON.stringify([...expandedRegions]));
                 };
@@ -16942,7 +16904,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">'
                             + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
                             + '<div>'
-                            + '<div style="font-family:Poppins,sans-serif;font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">📊 KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT</div>'
+                            + '<div style="font-family:\'Archivo Narrow\',sans-serif;font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">📊 KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT</div>'
                             + '<div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Monthly ESH Consolidated KPM — FM-RNI-04-04 Rev.4 | Eff. Date: 06 Aug 2018 &bull; Overall weighted % per region per month &bull; Year: ' + selYear + '</div>'
                             + '</div></div>'
                             + '<div style="overflow-x:auto;padding:14px 16px 10px;position:relative;">'
@@ -23108,7 +23070,7 @@ function buildIncidentRecommendationsHTML(tabType) {
 
     return '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">' +
         '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;">' +
-        '<div style="font-family:Poppins,sans-serif;font-size:0.88rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">' + _tabIcon + ' ' + _tabTitle + '</div>' +
+        '<div style="font-family:\'Archivo Narrow\',sans-serif;font-size:0.88rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">' + _tabIcon + ' ' + _tabTitle + '</div>' +
         '<div style="font-size:0.59rem;color:#388e3c;font-weight:500;margin-top:2px;">' + _tabSubtitle + '</div>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">' + _chipsHTML + '</div>' +
         '</div>' +
@@ -28881,7 +28843,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">'
                 + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
                 + '<div style="flex:1;min-width:0;">'
-                + '<div style="font-family:Poppins,sans-serif;font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">📊 GOT Monthly Performance by Region (Jan – Dec ' + (state.selectedYear || new Date().getFullYear()) + ')</div>'
+                + '<div style="font-family:\'Archivo Narrow\',sans-serif;font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">📊 GOT Monthly Performance by Region (Jan – Dec ' + (state.selectedYear || new Date().getFullYear()) + ')</div>'
                 + '<div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Overall average compliance rating per region per month &bull; Rating: 25%=Started | 50%=Partial | 75%=Mostly Done | 100%=Fully Implemented</div>'
                 + '</div>'
                 + '<div style="display:flex;gap:6px;margin-left:auto;flex-shrink:0;">'
@@ -32208,7 +32170,7 @@ function renderEshCalendar(tabType) {
         }
         .esh-sum-kpm-hdr i.sum-icon { font-size: 1rem; color: #2e7d32; flex-shrink: 0; }
         .esh-sum-kpm-hdr .sum-title {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Archivo Narrow', sans-serif;
             font-size: 0.9rem; font-weight: 800;
             color: #1b5e20; text-transform: uppercase; letter-spacing: 0.04em;
         }
@@ -32415,7 +32377,7 @@ function renderEshCalendar(tabType) {
             <div class="esh-sum-kpm-hdr">
                 <i class="fas fa-triangle-exclamation sum-icon"></i>
                 <div>
-                    <div class="sum-title">⚠ Overdue Summary — ${_ssYear} ESH Calendar: ${col.label}</div>
+                    <div class="sum-title">Overdue Summary — ${_ssYear} ESH Calendar: ${col.label}</div>
                     <div class="sum-sub">Scheduled ${_ssTypeLabel} with no recorded completion as of ${_ssDateStr} · Click a region to expand</div>
                 </div>
                 <div class="sum-total-pill">
