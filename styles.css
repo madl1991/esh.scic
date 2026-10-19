@@ -4725,8 +4725,8 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
 #p-grp-banner-PLANT_OPERATIONS .region-name::after,
 .region-banner.region-plant-operations .region-name::after {
     content: "Plant Operations";
-    color: #2e7d32;
-    opacity: 0.6;
+    color: #000;
+    opacity: 1;
 }
 
 /* CORPORATE */
@@ -4734,8 +4734,8 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
 #p-grp-banner-CORPORATE .region-name::after,
 .region-banner.region-corporate .region-name::after {
     content: "Corporate Office";
-    color: #2e7d32;
-    opacity: 0.6;
+    color: #000;
+    opacity: 1;
 }
 
 /* LTA + OSH-NOV region banners */
@@ -6492,3 +6492,103 @@ body.dark-mode .saw-wx-img, body.dark-mode .saw-wx-loading { background:#2b2b2b;
 .region-banner[id*="PLANT"] .rbadge.rbadge-closed {
     background: #e8f5e9 !important; color: #2e7d32 !important; border: 1px solid #a5d6a7 !important;
 }
+
+
+/* ── Personnel tab: region banner + project card = one continuous card ── */
+[id^="p-grp-body-"].region-content { padding: 0; }
+[id^="p-grp-body-"] .p-project-card { margin-bottom: 0 !important; }
+[id^="p-grp-banner-"]:not(.collapsed) { box-shadow: none; }
+[id^="p-grp-banner-"]:not(.collapsed):hover { box-shadow: none; }
+[id^="p-grp-body-"] tbody tr:not(:last-child) td { border-bottom: 1px solid #eef3ee; }
+.p-project-card thead th,
+[id^="p-grp-body-"] thead th { background: #e8f5e9 !important; color: #1b5e20 !important; border-bottom: 2px solid #a5d6a7 !important; }
+
+/* ── ESH NOV Monitoring: banner + table = one continuous card ── */
+.region-content.nov-mon-rc { padding: 0; overflow: hidden; }
+.nov-mon-rc > .table-container { margin: 0; padding: 0; border: none; border-radius: 0; }
+.nov-mon-rc .nov-monitoring-table { margin: 0; }
+.region-banner:has(+ .nov-mon-rc:not(.collapsed)),
+.region-banner:has(+ .nov-mon-rc:not(.collapsed)):hover { box-shadow: none; }
+
+/* ── Corporate / Plant Operations banner subtitle: black for visibility ──
+   Tabs: Incident & Accident Registry, OSH Reg. Issued NOV, ENVI Reg. Issued NOV, ESH NOV Monitoring */
+[id^="lta-region-banner-"][id*="CORPORATE"] .region-name::after,
+[id^="lta-region-banner-"][id*="PLANT"] .region-name::after,
+[id^="osh-nov-region-banner-"][id*="CORPORATE"] .region-name::after,
+[id^="osh-nov-region-banner-"][id*="PLANT"] .region-name::after,
+[id^="nov-env-region-banner-"][id*="CORPORATE"] .region-name::after,
+[id^="nov-env-region-banner-"][id*="PLANT"] .region-name::after,
+.region-banner[id*="CORPORATE"]:has(+ .nov-mon-rc) .region-name::after,
+.region-banner[id*="PLANT"]:has(+ .nov-mon-rc) .region-name::after {
+    color: #000 !important;
+    opacity: 1 !important;
+}
+
+/* ── Overall Summary: Corporate / Plant Operations subtitle black ── */
+.region-banner.overall-rb[id*="CORPORATE"] .region-name::after,
+.region-banner.overall-rb[id*="PLANT"] .region-name::after {
+    color: #000 !important;
+    opacity: 1 !important;
+}
+
+/* ═══ UNIFIED REGION CARD — one rule set for ALL tabs ═══════════════════════
+   Region banner + project bar + table/list = one continuous card (no gaps).
+   Applies to every .region-content (Statistics Rate, Exposures, Activities,
+   KPM, GOT, DOLE, EMB, DOE, EMR, Medical, Audit, CSHP, Permits, Env Monitoring…).
+   Edit here once — no per-tab changes needed.                              */
+.region-content { padding: 0; }
+.region-content > .project-row {
+    margin: 0; border: none; border-bottom: 1px solid var(--border-color);
+    border-radius: 0; box-shadow: none;
+}
+.region-content > .project-row + .table-container,
+.region-content > .table-container {
+    margin: 0; padding: 0; border: none; border-radius: 0; box-shadow: none;
+}
+.region-content > .table-container + .project-row { border-top: 1px solid var(--border-color); }
+.region-banner:has(+ .region-content:not(.collapsed)),
+.region-banner:has(+ .region-content:not(.collapsed)):hover { box-shadow: none; }
+
+/* ── Consistent project row height: dates block is always 2 lines tall ──
+   Started/Status stay in column 1; Stoppage/Resume go to column 2 (side by side),
+   so Work Stoppage / Resumed projects no longer make the row taller. */
+.project-dates {
+    display: grid;
+    grid-template-rows: repeat(2, auto);
+    grid-auto-flow: column;
+    column-gap: 18px;
+    row-gap: 3px;
+    align-content: center;
+}
+
+/* ── Incident & Accident Registry: one merged project bar (no separate nav bar / duplicate name) ── */
+.lta-region-content > .lta-project-card {
+    margin: 0 !important; border: none !important; border-radius: 0 !important;
+    border-bottom: 1px solid var(--border-color) !important; box-shadow: none !important;
+}
+.lta-project-card > .lta-project-header {
+    background: #f1f8e9 !important; border-bottom: 1px solid #c8e6c9;
+    border-left: 3px solid #fbc02d;
+}
+.lta-project-card > .lta-project-header .lta-project-name { color: #1b5e20 !important; }
+.lta-project-header .lta-proj-sub { font-size: 0.6rem; font-weight: 600; color: #558b2f; margin-top: 1px; }
+
+/* ── Accident/Incident Record: YTD summary + recommendations (plain & simple) ── */
+.ytd-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; margin: 0 16px 12px; overflow: hidden; }
+.ytd-head { padding: 9px 16px 6px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ytd-title { font-size: 0.76rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-primary); }
+.ytd-sub { font-size: 0.66rem; color: var(--text-secondary); }
+.ytd-stats { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 9px; }
+.ytd-stat { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 11px; border: 1px solid var(--border-color); border-radius: 999px; }
+.ytd-num { font-size: 0.95rem; font-weight: 700; line-height: 1.2; color: var(--text-primary); }
+.ytd-lbl { font-size: 0.66rem; color: var(--text-secondary); }
+.ytd-recs { padding: 8px 16px 9px; border-top: 1px solid var(--border-color); }
+.ytd-recs-title { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 3px; }
+.ytd-list { list-style: none; margin: 0; padding: 0; }
+.ytd-list li { position: relative; padding: 1px 0 1px 14px; font-size: 0.7rem; line-height: 1.5; color: var(--text-primary); }
+.ytd-list li::before { content: ""; position: absolute; left: 2px; top: 8px; width: 4px; height: 4px; border-radius: 50%; background: #2e7d32; }
+.ytd-empty { font-size: 0.7rem; color: var(--text-secondary); margin: 0; }
+
+/* ── Trend chart split: let columns shrink so the near-miss chart never gets cut off ── */
+.inc-split { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.inc-split > div { min-width: 0; }
