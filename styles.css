@@ -6414,10 +6414,11 @@ body.dark-mode .saw-wx-img, body.dark-mode .saw-wx-loading { background:#2b2b2b;
 .nav-item,
 .nav-group-header,
 .nav-group-items .nav-item {
-    font-family: 'Archivo Narrow', sans-serif !important;
+    font-family: 'Archivo Narrow', 'Arial Narrow', 'Roboto Condensed', 'Liberation Sans Narrow', sans-serif !important;
+    font-stretch: condensed;
     text-transform: uppercase;
-    font-weight: 600 !important;
-    letter-spacing: 0.01em;
+    font-weight: 400 !important;
+    letter-spacing: -0.01em;
     white-space: nowrap;
 }
 .nav-group-header > span {
@@ -6427,16 +6428,16 @@ body.dark-mode .saw-wx-img, body.dark-mode .saw-wx-loading { background:#2b2b2b;
     min-width: 0;
 }
 .nav-group-header {
-    font-size: 0.8rem !important;
+    font-size: 0.78rem !important;
     padding-left: 10px;
     padding-right: 10px;
 }
 .nav-item,
 .nav-group-items .nav-item {
-    font-size: 0.8rem !important;
+    font-size: 0.78rem !important;
 }
 .nav-item.active {
-    font-weight: 700 !important;
+    font-weight: 400 !important;
 }
 
 /* ── HEADER TITLE: Archivo Narrow ────────────────────────────────── */
@@ -6445,4 +6446,49 @@ body.dark-mode .saw-wx-img, body.dark-mode .saw-wx-loading { background:#2b2b2b;
     font-size: 1.2rem;
     font-weight: 700;
     letter-spacing: 0.04em;
+}
+
+
+/* ── OSH / ENVI Regulatory Issued NOV: region banner matches ESH NOV Monitoring ── */
+.nov-region-card > .region-banner {
+    margin: 0 !important;
+    border-radius: 10px 10px 0 0;
+}
+.nov-region-card > .region-banner.collapsed {
+    margin: 0 !important;
+    border-radius: 10px;
+}
+.region-banner .rbadge-nov {
+    background: rgba(255,235,238,0.25);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.30);
+}
+.region-banner .rbadge-open {
+    background: rgba(198,40,40,0.5);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.25);
+}
+.region-banner .rbadge-closed {
+    background: rgba(46,125,50,0.5);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.25);
+}
+/* White banners (CORPORATE, PLANT OPERATIONS): keep NOV / Open / Closed colors distinct */
+.region-banner.region-corporate .rbadge.rbadge-nov,
+.region-banner[id*="CORPORATE"] .rbadge.rbadge-nov,
+.region-banner.region-plant-operations .rbadge.rbadge-nov,
+.region-banner[id*="PLANT"] .rbadge.rbadge-nov {
+    background: #fff3e0 !important; color: #e65100 !important; border: 1px solid #ffcc80 !important;
+}
+.region-banner.region-corporate .rbadge.rbadge-open,
+.region-banner[id*="CORPORATE"] .rbadge.rbadge-open,
+.region-banner.region-plant-operations .rbadge.rbadge-open,
+.region-banner[id*="PLANT"] .rbadge.rbadge-open {
+    background: #ffebee !important; color: #c62828 !important; border: 1px solid #ef9a9a !important;
+}
+.region-banner.region-corporate .rbadge.rbadge-closed,
+.region-banner[id*="CORPORATE"] .rbadge.rbadge-closed,
+.region-banner.region-plant-operations .rbadge.rbadge-closed,
+.region-banner[id*="PLANT"] .rbadge.rbadge-closed {
+    background: #e8f5e9 !important; color: #2e7d32 !important; border: 1px solid #a5d6a7 !important;
 }
