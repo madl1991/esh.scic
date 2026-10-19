@@ -10962,7 +10962,7 @@ body.dark-mode .ltadl[data-mode="scheduled"] .ltadl-pill input:checked+span{back
                 html += `<div id="lta-region-banner-${reg}" class="lta-region-banner region-banner region-${reg.toLowerCase()} ${isCollapsed?'collapsed':''} ${canEditReg?'rb-editable':''}" onclick="toggleLtaRegion('${reg}',event)">
                     <div class="region-banner-inner">
                         <div class="region-banner-left">
-                            <i class="fas fa-location-dot region-icon"></i>
+                            <i class="fas ${reg==='CORPORATE'?'fa-building-columns':reg==='PLANT OPERATIONS'?'fa-industry':'fa-location-dot'} region-icon"></i>
                             <span class="region-name">${reg}</span>
                         </div>
                         <div class="region-banner-right">
@@ -10975,12 +10975,13 @@ body.dark-mode .ltadl[data-mode="scheduled"] .ltadl-pill input:checked+span{back
                 <div id="lta-region-content-${reg}" class="lta-region-content region-content ${isCollapsed?'collapsed':''}">`;
 
                 let _ltaNavProjs = regProjs;
+                let _ltaInlineNav = null; // Prev/Next live inside the project header (no separate bar)
                 if (regProjs.length > 1) {
                     const _ltaNk = _tabNavKey('lta-registry', reg);
                     let _ltaIdx = Math.min(_tabRegionProjectIdx[_ltaNk] || 0, regProjs.length - 1);
                     _tabRegionProjectIdx[_ltaNk] = _ltaIdx;
                     _ltaNavProjs = [regProjs[_ltaIdx]];
-                    html += _tabNavBar('lta-registry', reg, _ltaIdx, regProjs.length);
+                    _ltaInlineNav = { idx: _ltaIdx, total: regProjs.length };
                 }
 
                 _ltaNavProjs.forEach(p => {
@@ -10993,17 +10994,20 @@ body.dark-mode .ltadl[data-mode="scheduled"] .ltadl-pill input:checked+span{back
 
                     const _ltaIsWS = isProjectOnStoppage(p);
                     html += `<div class="lta-project-card" style="${_ltaIsWS ? 'opacity:0.85;' : ''}">
-                        <div class="lta-project-header" onclick="toggleLtaProject('lta-proj-${pId}')" style="${_ltaIsWS ? 'background:linear-gradient(90deg,#bf360c,#8d1c0a);' : ''}">
-                            <div style="display:flex;align-items:center;gap:8px;">
-                                <span class="lta-project-name">${p.name}</span>
-                                <span class="lta-region-badge">${p.region}</span>
-
+                        <div class="lta-project-header" onclick="toggleLtaProject('lta-proj-${pId}')" style="${_ltaIsWS ? 'background:#ffebee;border-left-color:#c62828;' : ''}">
+                            <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                                ${_ltaInlineNav ? _tabNavBtn('lta-registry', reg, -1, _ltaInlineNav.idx, _ltaInlineNav.total) : ''}
+                                <div style="min-width:0;">
+                                    <div class="lta-project-name">${p.name}</div>
+                                    ${_ltaInlineNav ? `<div class="lta-proj-sub">Project ${_ltaInlineNav.idx + 1} of ${_ltaInlineNav.total}</div>` : ''}
+                                </div>
                             </div>
                             <div style="display:flex;align-items:center;gap:8px;">
                                 ${(state.isEditing && canEdit) ? `<button class="lta-add-btn" onclick="event.stopPropagation();window._importAiirViaFile('${pnSafe}')" title="Import from AIIR (Microsoft Word)"><i class="fas fa-file-import"></i> Import AIIR</button><button class="lta-add-btn" onclick="event.stopPropagation();window._addLtaEntryViaModal('${pnSafe}')"><i class="fas fa-plus"></i> Add Entry</button>` : ''}
                                 <span style="background:rgba(198,40,40,0.8);color:white;border-radius:10px;padding:2px 8px;font-size:0.62rem;font-weight:700;">${entries.length} entries</span>
                                 <span style="background:rgba(255,160,0,0.8);color:white;border-radius:10px;padding:2px 8px;font-size:0.62rem;font-weight:700;">${totalDL} days charged</span>
-                                <i id="lta-proj-${pId}-icon" class="fas fa-chevron-down" style="color:rgba(255,255,255,0.7);font-size:0.8rem;transition:transform 0.3s;"></i>
+                                ${_ltaInlineNav ? _tabNavBtn('lta-registry', reg, 1, _ltaInlineNav.idx, _ltaInlineNav.total) : ''}
+                                <i id="lta-proj-${pId}-icon" class="fas fa-chevron-down" style="color:#1b5e20;font-size:0.8rem;transition:transform 0.3s;"></i>
                             </div>
                         </div>
                         <div id="lta-proj-${pId}-content" class="lta-project-body">`;
@@ -11969,7 +11973,7 @@ function renderTabulation() {
                     <div id="osh-nov-region-banner-${safeReg}" class="region-banner region-${_regSlug} ${isCollapsed?'collapsed':''} ${canEdit?'rb-editable':''}" onclick="toggleOshNovRegion('${reg}',event)" style="margin:0;">
                         <div class="region-banner-inner">
                             <div class="region-banner-left">
-                                <i class="fas fa-location-dot region-icon"></i>
+                                <i class="fas ${reg==='CORPORATE'?'fa-building-columns':reg==='PLANT OPERATIONS'?'fa-industry':'fa-location-dot'} region-icon"></i>
                                 <span class="region-name">${reg}</span>
                             </div>
                             <div class="region-banner-right">
@@ -13525,7 +13529,7 @@ function renderTabulation() {
                 const isCorporateDataTab = isCorporateReg && CORP_DATA_TABS.includes(state.currentTab);
                 const regIcon = isCorporateReg ? 'fa-building-columns' : (isPlantReg ? 'fa-industry' : 'fa-location-dot');
                 const regLabel = reg;
-                html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''} ${canEditRegion ? 'rb-editable' : ''}" onclick="toggleRegion('${reg}', event)">
+                html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''} ${canEditRegion ? 'rb-editable' : ''} ${state.currentTab === 'overall' ? 'overall-rb' : ''}" onclick="toggleRegion('${reg}', event)">
                     <div class="region-banner-inner">
                         <div class="region-banner-left">
                             <i class="fas ${regIcon} region-icon"></i>
@@ -14202,7 +14206,7 @@ if (state.currentTab === 'audit') {
                             <div id="nov-env-region-banner-${safeReg}" class="region-banner region-${_regSlug} ${isCollapsed?'collapsed':''} ${canEdit?'rb-editable':''}" onclick="toggleNovEnvRegion('${reg}',event)" style="margin:0;">
                                 <div class="region-banner-inner">
                                     <div class="region-banner-left">
-                                        <i class="fas fa-location-dot region-icon"></i>
+                                        <i class="fas ${reg==='CORPORATE'?'fa-building-columns':reg==='PLANT OPERATIONS'?'fa-industry':'fa-location-dot'} region-icon"></i>
                                         <span class="region-name">${reg}</span>
                                     </div>
                                     <div class="region-banner-right">
@@ -15361,7 +15365,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 // Only count projects that are NOT on stoppage for this month
                                 var eligibleProjs = activeProjs.filter(function(p){ return !isMonthBlacklistedForProject(p, mi2+1, dSelYear); });
                                 var filled = eligibleProjs.filter(function(p){ var v = p.vals['dole_'+row] ? (p.vals['dole_'+row][mi2+1]||'') : ''; return v && v.trim(); }).length;
-                                return row + ': <span style="color:' + (filled===eligibleProjs.length?'#2e7d32':filled>0?'#e65100':'#c62828') + ';font-weight:700;">' + filled + '/' + eligibleProjs.length + '</span>';
+                                return '<span style="color:var(--text-primary,#1a1a1a);font-weight:800;letter-spacing:0.03em;">' + row + ':</span> <span style="color:' + (filled===eligibleProjs.length?'#2e7d32':filled>0?'#e65100':'#c62828') + ';font-weight:700;">' + filled + '/' + eligibleProjs.length + '</span>';
                             }).join(' &nbsp;·&nbsp; ');
 
                             html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
@@ -15370,7 +15374,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:48px;box-sizing:border-box;text-align:center;">' + mo.substring(0,3).toUpperCase() + '</span>'
                                 + '<div style="flex:1;min-width:0;">'
                                 + (isCurMo ? '<div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);">' + curBadge.trim() + '</div>' : '')
-                                + '<div style="font-size:0.62rem;color:#888;margin-top:1px;">' + rowSummary + '</div>'
+                                + '<div style="font-size:0.72rem;color:#9e9e9e;margin-top:1px;">' + rowSummary + '</div>'
                                 + '</div>'
                                 + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
                                 + '<span style="background:' + rowBg + ';color:' + statusFg + ';border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">' + statusLabel + '</span>'
@@ -16845,19 +16849,20 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var allVals = regAvg.filter(function(v){ return v !== null; });
                         var overallAvg = allVals.length ? allVals.reduce(function(s,v){return s+v;},0)/allVals.length : null;
 
+                        function _pctSpan(v){ return '<strong style="color:' + cellFg(v) + ';">' + (v*100).toFixed(1) + '%</strong>'; }
                         var recLines = [];
                         targetRegs.forEach(function(reg, ri){
                             var avg = regAvg[ri];
                             if (avg !== null) {
-                                if (avg < 0.85) recLines.push('<li><strong>' + reg + '</strong>: Score of ' + (avg*100).toFixed(1) + '% is below target. Recommend immediate review of ESH program implementation and corrective action plan.</li>');
-                                else if (avg < 0.90) recLines.push('<li><strong>' + reg + '</strong>: Score of ' + (avg*100).toFixed(1) + '% is satisfactory but has room for improvement. Focus on consistency and closing compliance gaps.</li>');
-                                else recLines.push('<li><strong>' + reg + '</strong>: Score of ' + (avg*100).toFixed(1) + '% is excellent. Sustain performance and share best practices with other regions.</li>');
+                                if (avg < 0.85) recLines.push('<li><strong>' + reg + '</strong>: Score of ' + _pctSpan(avg) + ' is below target. Recommend immediate review of ESH program implementation and corrective action plan.</li>');
+                                else if (avg < 0.90) recLines.push('<li><strong>' + reg + '</strong>: Score of ' + _pctSpan(avg) + ' is satisfactory but has room for improvement. Focus on consistency and closing compliance gaps.</li>');
+                                else recLines.push('<li><strong>' + reg + '</strong>: Score of ' + _pctSpan(avg) + ' is excellent. Sustain performance and share best practices with other regions.</li>');
                             }
                         });
                         var minMoScore = null, minMoName = '';
                         moAvg.forEach(function(s, mi){ if (s !== null && (minMoScore === null || s < minMoScore)){ minMoScore = s; minMoName = moShort[mi]; }});
                         if (minMoScore !== null && minMoScore < 0.90) {
-                            recLines.push('<li><i class="fas fa-calendar-xmark" style="color:#c62828;margin-right:4px;"></i><strong>' + minMoName + '</strong> had the lowest company average (' + (minMoScore*100).toFixed(1) + '%). Investigate root causes and strengthen monitoring during similar periods.</li>');
+                            recLines.push('<li><i class="fas fa-calendar-xmark" style="color:#c62828;margin-right:4px;"></i><strong>' + minMoName + '</strong> had the lowest company average (' + _pctSpan(minMoScore) + '). Investigate root causes and strengthen monitoring during similar periods.</li>');
                         }
 
                         var thCells = '<th style="min-width:110px;text-align:left;background:#1b5e20;color:#fff;font-size:0.62rem;padding:7px 10px;border:1px solid #388e3c;position:sticky;left:0;z-index:3;">REGION</th>';
@@ -16897,8 +16902,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         compRow += '<td style="text-align:center;font-weight:900;font-size:0.7rem;color:#ffd54f;background:#0d3311;padding:7px 5px;border:2px solid #0d3311;">' + (oav!==null?(oav*100).toFixed(1)+'%':'—') + '</td>';
 
                         var recsHtml = recLines.length
-                            ? '<ul style="margin:0;padding-left:18px;font-size:0.62rem;color:#333;line-height:1.7;">' + recLines.join('') + '</ul>'
-                            : '<p style="font-size:0.62rem;color:#888;margin:0;">No data available yet to generate recommendations.</p>';
+                            ? '<ul class="ytd-list">' + recLines.join('').replace(/<i class="fas [^"]*"[^>]*><\/i>/g, '') + '</ul>'
+                            : '<p class="ytd-empty">No data available yet to generate recommendations.</p>';
 
                         html +=
                             '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">'
@@ -16919,11 +16924,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<span style="font-size:0.59rem;color:#888;margin-left:auto;">— = no data entered for that month</span>'
                             + '</div>'
                             + '</div>'
-                            + '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.08);border:1px solid #c8e6c9;border-left:5px solid #43a047;margin:0 16px 14px;">'
-                            + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:8px;">'
-                            + '<div style="font-family:Poppins,sans-serif;font-size:0.82rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">💡 Recommendations based on YTD Performance</div>'
+                            + '<div class="ytd-card">'
+                            + '<div class="ytd-head">'
+                            + '<div class="ytd-title">KEY PERFORMANCE MEASURES — YTD SUMMARY</div>'
+                            + '<div class="ytd-sub">Recommendations based on year-to-date KPM performance across all regions</div>'
                             + '</div>'
-                            + '<div style="padding:12px 20px 14px;">'
+                            + '<div class="ytd-recs">'
+                            + '<div class="ytd-recs-title">Recommendations</div>'
                             + recsHtml
                             + '</div></div>';
                     })();
@@ -18943,7 +18950,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     html += `<div id="region-banner-${reg}" class="region-banner region-${reg.toLowerCase()} ${isCollapsed ? 'collapsed' : ''} ${canEditRegion ? 'rb-editable' : ''}" onclick="toggleRegion('${reg}', event)">
                         <div class="region-banner-inner">
                             <div class="region-banner-left">
-                                <i class="fas fa-location-dot region-icon"></i>
+                                <i class="fas ${reg==='CORPORATE'?'fa-building-columns':reg==='PLANT OPERATIONS'?'fa-industry':'fa-location-dot'} region-icon"></i>
                                 <span class="region-name">${reg}</span>
                             </div>
                             <div class="region-banner-right">
@@ -18953,7 +18960,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         </div>
                     </div>`;
                     
-                    html += `<div id="region-content-${reg}" class="region-content ${isCollapsed ? 'collapsed' : ''}">`;
+                    html += `<div id="region-content-${reg}" class="region-content nov-mon-rc ${isCollapsed ? 'collapsed' : ''}">`;
                     
                     html += `<div class="table-container">
                         <table class="nov-monitoring-table">
@@ -20253,17 +20260,18 @@ window._parseCertExpiryFromText = function(text) {
 
     const toISO = (s) => {
         s = s.trim();
-        let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        const sn = s.replace(/\s*([\/\-.])\s*/g, '$1');   // "05 / 03 / 2027" -> "05/03/2027"
+        let m = sn.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
         if (m) return fmt(+m[1], +m[2], +m[3]);
-        m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+        m = sn.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4}|\d{2})$/);
         if (m) {
-            const a = +m[1], b = +m[2], y = +m[3];
+            const a = +m[1], b = +m[2], y = m[3].length === 2 ? 2000 + (+m[3]) : +m[3];
             if (a > 12 && b <= 12) return fmt(y, b, a);   // DD/MM/YYYY
             if (b > 12 && a <= 12) return fmt(y, a, b);   // MM/DD/YYYY
             if (a === b)           return fmt(y, a, b);
             return '';                                    // ambiguous: do not guess
         }
-        m = s.match(/^([a-z]+)\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/i);
+        m = s.match(/^([a-z]+)\.?[\s\-]+(\d{1,2})(?:st|nd|rd|th)?\s*[,\-]?\s*(\d{4})$/i);
         if (m && MONTHS[m[1].toLowerCase()]) return fmt(+m[3], MONTHS[m[1].toLowerCase()], +m[2]);
         m = s.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?([a-z]+)\.?,?\s+(\d{4})$/i);
         if (m && MONTHS[m[2].toLowerCase()]) return fmt(+m[3], MONTHS[m[2].toLowerCase()], +m[1]);
@@ -20272,25 +20280,153 @@ window._parseCertExpiryFromText = function(text) {
 
     const datePart =
         '(' +
-        '(?:' + mon + ')\\.?\\s+\\d{1,2}(?:st|nd|rd|th)?,?\\s+\\d{4}' + '|' +
+        '(?:' + mon + ')\\.?[\\s\\-]+\\d{1,2}(?:st|nd|rd|th)?\\s*[,\\-]?\\s*\\d{4}' + '|' +
         '\\d{1,2}(?:st|nd|rd|th)?\\s+(?:of\\s+)?(?:' + mon + ')\\.?,?\\s+\\d{4}' + '|' +
-        '\\d{4}-\\d{1,2}-\\d{1,2}' + '|' +
-        '\\d{1,2}[/\\-.]\\d{1,2}[/\\-.]\\d{4}' +
+        '\\d{4}\\s*-\\s*\\d{1,2}\\s*-\\s*\\d{1,2}' + '|' +
+        '\\d{1,2}\\s*[/\\-.]\\s*\\d{1,2}\\s*[/\\-.]\\s*(?:\\d{4}|\\d{2})(?!\\d)' +
         ')';
     const labelPart =
-        '(?:valid\\s*(?:until|till|thru|through|up\\s*to)|validity(?:\\s*date)?|' +
-        'expir(?:y|ation)(?:\\s*date)?|expires(?:\\s*on)?)\\s*[:\\-]?\\s*';
+        '(?:valid\\s*(?:only\\s*)?(?:until|till|thru|through|to|up\\s*to)|validity(?:\\s*date)?|' +
+        'expir(?:y|ation)(?:\\s*date)?|expires(?:\\s*on)?)\\s*[:\\-\u2013\u2014]?\\s*';
 
     const rx = new RegExp(labelPart + datePart, 'gi');
     const found = new Set();
     let m;
+    const unclear = [];   // dates that were found but day/month order is not clear
     while ((m = rx.exec(t)) !== null) {
         const iso = toISO(m[1]);
-        if (iso) found.add(iso);
+        if (iso) found.add(iso); else unclear.push(m[1].trim());
     }
+    // "Valid from <date> to <date>": the second date is the expiry
+    const rxRange = new RegExp('valid\\s*from\\s*' + datePart + '\\s*(?:to|until|till|thru|through|-|\u2013|\u2014)\\s*' + datePart, 'gi');
+    while ((m = rxRange.exec(t)) !== null) {
+        const iso = toISO(m[2]);
+        if (iso) found.add(iso); else unclear.push(m[2].trim());
+    }
+    // Label written AFTER the date: "05/21/2028 EXPIRY"
+    const rxAfter = new RegExp(datePart + '\\s*(?:date\\s*of\\s*)?(?:expiry|expiration|expires)', 'gi');
+    while ((m = rxAfter.exec(t)) !== null) {
+        const iso = toISO(m[1]);
+        if (iso) found.add(iso); else unclear.push(m[1].trim());
+    }
+
+    // Fallback when the OCR lost the word "EXPIRY" (e.g. "DATE OF 05/22/2026 ... DATE OF 05/21/2028 ... ISSUANCE").
+    // Word order in OCR text is often scrambled, so do not rely on which word is next to which date.
+    // Rule: the text mentions "issuance/issued", there are exactly two dates, and both are clear.
+    // Then the later one is the expiry. Marked as inferred so the user checks it.
+    if (found.size === 0 && unclear.length === 0 && /issu/i.test(t)) {
+        const rxAny = new RegExp(datePart, 'gi');
+        const all = new Set();
+        let bad = false;
+        while ((m = rxAny.exec(t)) !== null) {
+            const iso = toISO(m[1]);
+            if (iso) all.add(iso);
+            else if (!/^\d{4}\s*-/.test(m[1].trim())) bad = true;   // year-first form is never ambiguous, so an invalid one is just noise (e.g. "2009-20-8" from a permit number)
+        }
+        if (!bad && all.size === 2) {
+            const sorted = Array.from(all).sort();
+            return { status: 'ok', date: sorted[1], inferred: true };
+        }
+    }
+
     if (found.size === 1) return { status: 'ok', date: Array.from(found)[0] };
     if (found.size > 1)   return { status: 'multiple', dates: Array.from(found) };
+    if (unclear.length)   return { status: 'unclear', raw: unclear[0] };
     return { status: 'none' };
+};
+
+// ── CERTIFICATE PDF READER ─────────────────────────────────────────────────
+// Step 1: read the PDF text layer with pdf.js (fast).
+// Step 2: if no date is found, render the pages and run Tesseract OCR in the browser.
+window._CERT_PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+window._certLoadTesseract = function() {
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    if (window._certTessPromise) return window._certTessPromise;
+    window._certTessPromise = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+        s.onload  = () => window.Tesseract ? resolve(window.Tesseract) : reject(new Error('Tesseract not available'));
+        s.onerror = () => { window._certTessPromise = null; reject(new Error('Tesseract failed to load')); };
+        document.head.appendChild(s);
+    });
+    return window._certTessPromise;
+};
+
+window._certReadPdfTextLayer = async function(pdf, maxPages) {
+    let out = '';
+    const last = Math.min(pdf.numPages, maxPages);
+    for (let i = 1; i <= last; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        let lastY = null;
+        content.items.forEach(it => {
+            if (!it.str) return;
+            const y = it.transform ? Math.round(it.transform[5]) : lastY;
+            if (lastY !== null && y !== null && Math.abs(y - lastY) > 4) out += '\n';
+            out += it.str + ' ';
+            lastY = y;
+        });
+        out += '\n';
+    }
+    // Some OCR tools save one letter per text item: "E X P I R Y" -> "EXPIRY"
+    out = out.replace(/\b(?:[A-Za-z] ){3,}[A-Za-z]\b/g, m => m.replace(/ /g, ''));
+    return out;
+};
+
+window._certOcrPdf = async function(pdf, onStatus, parse) {
+    const spin = (msg) => { if (onStatus) onStatus('<i class="fas fa-spinner fa-spin"></i> ' + msg); };
+    const T = await window._certLoadTesseract();
+    const worker = await T.createWorker('eng');
+
+    // Render a page (or one region of it, as fractions 0..1) to a canvas
+    const renderToCanvas = async (page, scale, region) => {
+        const vp = page.getViewport({ scale });
+        const x0 = region ? Math.floor(vp.width  * region.x0) : 0;
+        const y0 = region ? Math.floor(vp.height * region.y0) : 0;
+        const w  = region ? Math.ceil(vp.width  * (region.x1 - region.x0)) : Math.ceil(vp.width);
+        const h  = region ? Math.ceil(vp.height * (region.y1 - region.y0)) : Math.ceil(vp.height);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, w, h);
+        await page.render({ canvasContext: ctx, viewport: vp, transform: [1, 0, 0, 1, -x0, -y0] }).promise;
+        return canvas;
+    };
+    const good = (r) => r && (r.status === 'ok' || r.status === 'multiple');
+
+    let text = '', result = { status: 'notext' };
+    try {
+        // Pass 1: whole page (first 2 pages), about 290 DPI
+        const last = Math.min(pdf.numPages, 2);
+        for (let i = 1; i <= last; i++) {
+            spin('Running OCR, page ' + i + ' of ' + last + '...');
+            const page = await pdf.getPage(i);
+            const canvas = await renderToCanvas(page, 4, null);
+            const res = await worker.recognize(canvas);
+            text += ((res && res.data && res.data.text) || '') + '\n';
+        }
+        console.log('[cert expiry] OCR pass 1, first 400 chars:', text.slice(0, 400));
+        result = parse(text);
+        if (good(result)) return { text, result, pass: 1 };
+
+        // Pass 2: small print. Many certificates put "Validity: <date>" beside the photo, top-right.
+        // Zoom into that corner (about 430 DPI) and read it as one block of text.
+        spin('Reading the top-right corner (small print)...');
+        const page1 = await pdf.getPage(1);
+        const corner = await renderToCanvas(page1, 6, { x0: 0.55, y0: 0, x1: 1, y1: 0.4 });
+        await worker.setParameters({ tessedit_pageseg_mode: (T.PSM && T.PSM.SINGLE_BLOCK) || '6' });
+        const res2 = await worker.recognize(corner);
+        const text2 = (res2 && res2.data && res2.data.text) || '';
+        console.log('[cert expiry] OCR pass 2 (corner):', text2.slice(0, 300));
+        const result2 = parse(text2);
+        if (good(result2)) return { text: text2, result: result2, pass: 2 };
+        if (result.status === 'notext') result = result2;
+    } finally {
+        try { await worker.terminate(); } catch (e) {}
+    }
+    return { text, result, pass: 1 };
 };
 
 window._editCertAutoDetectExpiry = async function(file) {
@@ -20312,32 +20448,66 @@ window._editCertAutoDetectExpiry = async function(file) {
         st.style.color = color;
         st.innerHTML = html;
     };
+    const info = (html) => show('#e3f2fd', '#90caf9', '#1565c0', html);
+    const warn = (html) => show('#fff8e1', '#ffe082', '#f57f17', '<i class="fas fa-triangle-exclamation"></i> ' + html);
 
     const token = (window._editCertOcrToken = (window._editCertOcrToken || 0) + 1);
-    show('#e3f2fd', '#90caf9', '#1565c0', '<i class="fas fa-spinner fa-spin"></i> Reading PDF for expiry date...');
+    const stale = () => token !== window._editCertOcrToken || window._editCertFile !== file;
+    info('<i class="fas fa-spinner fa-spin"></i> Reading PDF for expiry date...');
 
-    let text = null;
+    let r = { status: 'notext' }, via = 'text', failReason = '';
     try {
-        if (typeof extractTextFromPdf === 'function') text = await extractTextFromPdf(file);
-    } catch (e) { console.warn('Expiry auto-detect failed:', e); }
+        if (typeof pdfjsLib === 'undefined') throw new Error('pdfjs_missing');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = window._CERT_PDFJS_WORKER;
+        const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+
+        const text = await window._certReadPdfTextLayer(pdf, 3);
+        console.log('[cert expiry] text layer, first 400 chars:', text.slice(0, 400));
+        r = window._parseCertExpiryFromText(text);
+        if (stale()) return;
+
+        if (r.status === 'notext' || r.status === 'none') {
+            info('<i class="fas fa-spinner fa-spin"></i> No date in the PDF text. Running OCR on the page image (10–30 seconds)...');
+            try {
+                const o = await window._certOcrPdf(pdf, info, window._parseCertExpiryFromText);
+                if (stale()) return;
+                const r2 = o.result;
+                if (r2.status === 'ok' || r2.status === 'multiple') { r = r2; via = 'ocr'; }
+                else if (r.status === 'notext') r = r2;
+            } catch (e) {
+                console.warn('[cert expiry] OCR failed:', e);
+                failReason = 'ocr_failed';
+            }
+        }
+    } catch (e) {
+        console.warn('[cert expiry] failed:', e);
+        failReason = (e && e.message === 'pdfjs_missing') ? 'pdfjs_missing' : 'read_failed';
+    }
 
     // A newer file was chosen while this one was being read
-    if (token !== window._editCertOcrToken || window._editCertFile !== file) return;
+    if (stale()) return;
 
-    const r = window._parseCertExpiryFromText(text);
     if (r.status === 'ok') {
         expiryEl.value = r.date;
         show('#e8f5e9', '#a5d6a7', '#2e7d32',
-            '<i class="fas fa-check-circle"></i> Expiry date detected: <strong style="margin-left:4px;">' + r.date + '</strong> — please verify before saving.');
+            '<i class="fas fa-check-circle"></i> Expiry date detected' + (via === 'ocr' ? ' (OCR)' : '') +
+            ': <strong style="margin-left:4px;">' + r.date + '</strong> — ' +
+            (r.inferred ? 'the word "expiry" was not found; this is the later of two dates on the certificate. ' : '') +
+            'please verify before saving.');
     } else if (r.status === 'multiple') {
-        show('#fff8e1', '#ffe082', '#f57f17',
-            '<i class="fas fa-triangle-exclamation"></i> More than one date found (' + r.dates.join(', ') + ') — please enter the expiry date manually.');
+        warn('More than one date found (' + r.dates.join(', ') + ') — please enter the expiry date manually.');
+    } else if (r.status === 'unclear') {
+        warn('Found "' + r.raw + '" but cannot tell day from month — please enter the expiry date manually.');
+    } else if (failReason === 'pdfjs_missing') {
+        warn('PDF reader (pdf.js) is not loaded — please enter the expiry date manually.');
+    } else if (failReason === 'read_failed') {
+        warn('Could not open this PDF — please enter the expiry date manually.');
+    } else if (failReason === 'ocr_failed') {
+        warn('The PDF text has no expiry date, and OCR could not run (check internet) — please enter the expiry date manually.');
     } else if (r.status === 'notext') {
-        show('#fff8e1', '#ffe082', '#f57f17',
-            '<i class="fas fa-triangle-exclamation"></i> PDF has no readable text (scanned?) — please enter the expiry date manually.');
+        warn('No readable text found, even after OCR — please enter the expiry date manually.');
     } else {
-        show('#fff8e1', '#ffe082', '#f57f17',
-            '<i class="fas fa-triangle-exclamation"></i> No expiry date found in PDF — please enter it manually.');
+        warn('No expiry date found in PDF — please enter it manually.');
     }
 };
 
@@ -20885,30 +21055,36 @@ window.pToggleGroupSafe = function(safeKey) {
 };
 
 function P_TABLE_THEAD() {
-    return `<tr style="background:linear-gradient(90deg,#1b5e20 0%,#388e3c 100%);">
-    <th style="padding:7px 10px 7px 12px;color:white;text-align:left;font-weight:700;letter-spacing:0.3px;border:none;position:sticky;left:0;z-index:10;background:#1b5e20;width:320px;min-width:320px;">#&nbsp;&nbsp;Full Name</th>
-    <th style="padding:7px 14px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Position</th>
-    <th style="padding:7px 14px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">ID No.</th>
-    <th style="padding:7px 14px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Cert. Expiry</th>
-    ${state.isEditing ? '<th style="padding:7px 12px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Action</th>' : ''}
+    return `<tr style="background:#e8f5e9;border-bottom:2px solid #a5d6a7;">
+    <th style="padding:7px 10px 7px 12px;color:#1b5e20;text-align:left;font-weight:700;letter-spacing:0.3px;border:none;position:sticky;left:0;z-index:10;background:#e8f5e9;width:320px;min-width:320px;">#&nbsp;&nbsp;Full Name</th>
+    <th style="padding:7px 14px;color:#1b5e20;text-align:center;white-space:nowrap;font-weight:700;border:none;">Position</th>
+    <th style="padding:7px 14px;color:#1b5e20;text-align:center;white-space:nowrap;font-weight:700;border:none;">ID No.</th>
+    <th style="padding:7px 14px;color:#1b5e20;text-align:center;white-space:nowrap;font-weight:700;border:none;">Cert. Expiry</th>
+    ${state.isEditing ? '<th style="padding:7px 12px;color:#1b5e20;text-align:center;white-space:nowrap;font-weight:700;border:none;">Action</th>' : ''}
 </tr>`;
 }
 
 function P_CORP_TABLE_THEAD() {
-    return `<tr style="background:linear-gradient(90deg,#1b5e20 0%,#388e3c 100%);">
-    <th style="padding:7px 10px 7px 12px;color:white;text-align:left;font-weight:700;letter-spacing:0.3px;border:none;position:sticky;left:0;z-index:10;background:#1b5e20;width:320px;min-width:320px;">#&nbsp;&nbsp;Full Name</th>
-    <th style="padding:7px 14px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Position</th>
-    <th style="padding:7px 14px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">ID No.</th>
-    ${state.isEditing ? '<th style="padding:7px 12px;color:white;text-align:center;white-space:nowrap;font-weight:700;border:none;">Action</th>' : ''}
+    return `<tr style="background:#e8f5e9;border-bottom:2px solid #a5d6a7;">
+    <th style="padding:7px 10px 7px 12px;color:#1b5e20;text-align:left;font-weight:700;letter-spacing:0.3px;border:none;position:sticky;left:0;z-index:10;background:#e8f5e9;width:320px;min-width:320px;">#&nbsp;&nbsp;Full Name</th>
+    <th style="padding:7px 14px;color:#1b5e20;text-align:center;white-space:nowrap;font-weight:700;border:none;">Position</th>
+    <th style="padding:7px 14px;color:#1b5e20;text-align:center;white-space:nowrap;font-weight:700;border:none;">ID No.</th>
+    ${state.isEditing ? '<th style="padding:7px 12px;color:#1b5e20;text-align:center;white-space:nowrap;font-weight:700;border:none;">Action</th>' : ''}
 </tr>`;
 }
 
-function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isCorporateCard) {
+function _pHeaderNavBtn(region, dir, off) {
+    const isPrev = dir < 0;
+    const r = String(region).replace(/'/g, "\\'");
+    return `<button onclick="event.stopPropagation();_pNavProject('${r}', ${dir})" ${off ? 'disabled' : ''} style="flex-shrink:0;white-space:nowrap;background:${off ? '#e0e0e0' : '#1b5e20'};color:${off ? '#9e9e9e' : '#ffffff'};border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${off ? 'not-allowed' : 'pointer'};opacity:${off ? '0.6' : '1'};">${isPrev ? '<i class="fas fa-chevron-left"></i> Prev' : 'Next <i class="fas fa-chevron-right"></i>'}</button>`;
+}
+
+function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isCorporateCard, navInfo) {
     const safeKey = projName.replace(/[^a-zA-Z0-9]/g, '_');
     const count = personnel.length;
-    const headerBg = 'background:linear-gradient(90deg,#1b5e20 0%,#2e7d32 60%,#388e3c 100%);border-left:3px solid #fbc02d;';
+    const headerBg = 'background:#f1f8e9;border-bottom:1px solid #c8e6c9;border-left:3px solid #fbc02d;';
     const iconEl = isCorporateCard ? 'fa-building-columns' : 'fa-solar-panel';
-    const badgeBg = 'rgba(251,192,45,0.25)';
+    const badgeBg = '#fff8e1';
 
     let rows = '';
     let _projRowNum = 0;
@@ -20966,10 +21142,18 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
     return `
     <div class="p-project-card" style="margin-bottom:2px;">
         <div class="p-proj-header" data-proj-key="${safeKey}" style="${headerBg}">
-            <div style="display:flex;align-items:center;gap:8px;padding:7px 16px 7px 18px;color:white;font-weight:700;font-size:0.71rem;letter-spacing:0.4px;">
-                <i class="fas ${iconEl}" style="font-size:0.65rem;opacity:0.85;color:#fbc02d;"></i>
-                <span style="flex:1;">${projName}</span>
-                <span style="background:${badgeBg};color:#fbc02d;padding:2px 9px;border-radius:10px;font-size:0.6rem;font-weight:800;border:1px solid rgba(251,192,45,0.4);">${count}</span>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 16px 7px 18px;color:#1b5e20;font-weight:700;font-size:0.71rem;letter-spacing:0.4px;">
+                <div style="flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:flex-start;">
+                    ${navInfo ? _pHeaderNavBtn(navInfo.region, -1, navInfo.idx === 0) : ''}
+                </div>
+                <div style="flex:0 1 auto;min-width:0;text-align:center;">
+                    <div>${projName}</div>
+                    ${navInfo ? `<div style="font-size:0.6rem;font-weight:600;opacity:0.75;margin-top:2px;">Project ${navInfo.idx + 1} of ${navInfo.total}</div>` : ''}
+                </div>
+                <div style="flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+                    <span style="background:${badgeBg};color:#b26a00;padding:2px 9px;border-radius:10px;font-size:0.6rem;font-weight:800;border:1px solid rgba(251,192,45,0.6);">${count}</span>
+                    ${navInfo ? _pHeaderNavBtn(navInfo.region, 1, navInfo.idx === navInfo.total - 1) : ''}
+                </div>
             </div>
         </div>
         <div id="p-proj-body-${safeKey}" style="overflow-x:auto;">
@@ -21241,7 +21425,6 @@ function renderPTable() {
             </div>
         </div>
         <div id="p-grp-body-${grpSafe}" class="region-content${grpIsCollapsed?' collapsed':''}">
-            ${_navBarHtml}
             ${(() => {
                 const _pName = _visibleProjName;
                 const _pPersonnel = (projMap[_pName] || []).sort((a,b) => {
@@ -21257,7 +21440,7 @@ function renderPTable() {
                     }
                     return 0;
                 });
-                return buildProjectCard(_pName, _pPersonnel, projOptions, displayIndexRef, false);
+                return buildProjectCard(_pName, _pPersonnel, projOptions, displayIndexRef, false, _showNavBar ? { region: region, idx: _pNavIdx, total: projectNames.length } : null);
             })()}
         </div>`;
     });
@@ -23038,8 +23221,8 @@ function buildIncidentRecommendationsHTML(tabType) {
     }
 
     var recsHtml = recLines.length
-        ? '<ul style="margin:0;padding-left:18px;font-size:0.62rem;color:#333;line-height:1.7;">' + recLines.join('') + '</ul>'
-        : '<p style="font-size:0.62rem;color:#888;margin:0;">No data available yet to generate recommendations.</p>';
+        ? '<ul class="ytd-list">' + recLines.join('').replace(/<i class="fas [^"]*"[^>]*><\/i>/g, '') + '</ul>'
+        : '<p class="ytd-empty">No data available yet to generate recommendations.</p>';
 
     // ── KPI summary chips (always shown) ──
     var _chipsHTML = '';
@@ -23050,16 +23233,15 @@ function buildIncidentRecommendationsHTML(tabType) {
             '<span style="background:#ffebee;color:#c62828;font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid #ef9a9a;white-space:nowrap;">SEV RATE: ' + ytdSevR + '</span>' +
             '<span style="background:#fff8e1;color:#7a5c00;font-size:0.58rem;font-weight:600;padding:3px 9px;border-radius:20px;border:1px solid #ffe082;white-space:nowrap;">' + _rateLabel + '</span>';
     } else {
-        var _zeroStyle  = 'background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;';
-        var _ltaChipBg  = ytdLTA  > 0 ? 'background:#ffebee;color:#c62828;border:1px solid #ef9a9a;' : _zeroStyle;
-        var _fatChipBg  = ytdFat  > 0 ? 'background:#b71c1c;color:#fff;border:1px solid #c62828;'    : _zeroStyle;
-        var _hipChipBg  = ytdHIP  > 0 ? 'background:#fff3e0;color:#e65100;border:1px solid #ffcc80;' : _zeroStyle;
+        var _stat = function(label, val, alertColor) {
+            return '<div class="ytd-stat"><span class="ytd-num" style="' + (val > 0 && alertColor ? 'color:' + alertColor + ';' : '') + '">' + val + '</span><span class="ytd-lbl">' + label + '</span></div>';
+        };
         _chipsHTML =
-            '<span style="' + _ltaChipBg + 'font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;">LTA: ' + ytdLTA + '</span>' +
-            '<span style="background:#e3f2fd;color:#1565c0;font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid #90caf9;white-space:nowrap;">Med Tx: ' + ytdMed + '</span>' +
-            '<span style="background:#f3e5f5;color:#6a1b9a;font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid #ce93d8;white-space:nowrap;">First Aid: ' + ytdFA + '</span>' +
-            '<span style="' + _fatChipBg + 'font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;">Fatality: ' + ytdFat + '</span>' +
-            '<span style="' + _hipChipBg + 'font-size:0.58rem;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;">Hi-Pot: ' + ytdHIP + '</span>';
+            _stat('LTA', ytdLTA, '#c62828') +
+            _stat('Medical Tx', ytdMed, '') +
+            _stat('First Aid', ytdFA, '') +
+            _stat('Fatality', ytdFat, '#c62828') +
+            _stat('Hi-Pot', ytdHIP, '#e65100');
     }
 
     var _tabTitle   = tabType === 'rates' ? 'STATISTICS RATE — YTD SUMMARY' : 'ACCIDENT/INCIDENT RECORD — YTD SUMMARY';
@@ -23068,17 +23250,15 @@ function buildIncidentRecommendationsHTML(tabType) {
         : 'Consolidated incident counts from January to ' + _moFull[_curMonth - 1] + ' ' + _selYear + ' across all active projects';
     var _tabIcon = tabType === 'rates' ? '📈' : '🚨';
 
-    return '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">' +
-        '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;">' +
-        '<div style="font-family:\'Archivo Narrow\',sans-serif;font-size:0.88rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">' + _tabIcon + ' ' + _tabTitle + '</div>' +
-        '<div style="font-size:0.59rem;color:#388e3c;font-weight:500;margin-top:2px;">' + _tabSubtitle + '</div>' +
-        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">' + _chipsHTML + '</div>' +
+    return '<div class="ytd-card">' +
+        '<div class="ytd-head">' +
+        '<div class="ytd-title">' + _tabTitle + '</div>' +
+        '<div class="ytd-sub">' + _tabSubtitle + '</div>' +
         '</div>' +
-        '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.08);border:1px solid #c8e6c9;border-left:5px solid #43a047;margin:12px 14px 12px;">' +
-        '<div style="padding:9px 16px 8px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;">' +
-        '<div style="font-family:Poppins,sans-serif;font-size:0.78rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">💡 Recommendations based on YTD ' + (tabType === 'rates' ? 'Statistics Rate' : 'Incident') + ' Performance</div>' +
-        '</div>' +
-        '<div style="padding:10px 18px 12px;">' + recsHtml + '</div>' +
+        '<div class="ytd-stats">' + _chipsHTML + '</div>' +
+        '<div class="ytd-recs">' +
+        '<div class="ytd-recs-title">Recommendations</div>' +
+        recsHtml +
         '</div>' +
         '</div>';
 }
@@ -26918,18 +27098,20 @@ function renderOsh2() {
         html += `
         <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:16px;">
             
-            <div class="${canEditRegion?'rb-editable':''}" style="background:linear-gradient(90deg,${rColor} 0%,${rColor}dd 100%);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;position:relative;overflow:hidden;" onclick="toggleOsh2Region(this,'osh2-region-${region.replace(/[^a-z0-9]/gi,'_')}')">
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <i class="fas fa-chevron-right" style="color:rgba(255,255,255,0.7);font-size:0.65rem;transition:transform 0.3s;"></i>
-                    <i class="fas fa-map-marker-alt" style="color:rgba(255,255,255,0.8);font-size:0.8rem;"></i>
-                    <span style="font-weight:800;color:white;font-size:0.85rem;letter-spacing:0.5px;">${region}</span>
-                    <span style="background:rgba(255,255,255,0.18);color:white;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${projects.length} project${projects.length!==1?'s':''}</span>
-                </div>
-                <div style="display:flex;gap:8px;align-items:center;">
-                    <span style="background:rgba(76,175,80,0.3);color:#a5d6a7;padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${rCompliant} OK</span>
-                    ${rDeficient > 0 ? `<span style="background:rgba(255,82,82,0.3);color:#ff8a80;padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;animation:osh-pulse 2s infinite;">${rDeficient} Deficient</span>` : ''}
-                    ${rNoInput > 0 ? `<span style="background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);padding:2px 10px;border-radius:10px;font-size:0.65rem;">${rNoInput} No Input</span>` : ''}
-                    <span style="color:white;font-size:0.72rem;font-weight:700;">${(rCompliant+rDeficient)>0?rPct+'% Compliant':''}</span>
+            <div id="osh2-rbanner-${region.replace(/[^a-zA-Z0-9]/g,'_')}" class="region-banner region-${region.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')} collapsed ${canEditRegion?'rb-editable':''}" onclick="toggleOsh2Region(this,'osh2-region-${region.replace(/[^a-z0-9]/gi,'_')}')" style="margin:0;">
+                <div class="region-banner-inner">
+                    <div class="region-banner-left">
+                        <i class="fas fa-location-dot region-icon"></i>
+                        <span class="region-name">${region}</span>
+                    </div>
+                    <div class="region-banner-right">
+                        <span class="rbadge rbadge-count">${projects.length} PROJECT${projects.length!==1?'S':''}</span>
+                        <span class="rbadge" style="background:rgba(76,175,80,0.3);color:#a5d6a7;">${rCompliant} OK</span>
+                        ${rDeficient > 0 ? `<span class="rbadge" style="background:rgba(255,82,82,0.3);color:#ff8a80;animation:osh-pulse 2s infinite;">${rDeficient} Deficient</span>` : ''}
+                        ${rNoInput > 0 ? `<span class="rbadge" style="background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);">${rNoInput} No Input</span>` : ''}
+                        ${(rCompliant+rDeficient)>0 ? `<span class="rbadge rbadge-avg">${rPct}% COMPLIANT</span>` : ''}
+                        <i class="fas fa-chevron-down region-toggle-icon"></i>
+                    </div>
                 </div>
             </div>
 
@@ -26969,9 +27151,9 @@ function renderOsh2() {
         if (!el) return;
         el.style.display = '';
         const hdr = el.previousElementSibling;
-        const chev = hdr && hdr.querySelector('.fa-chevron-down,.fa-chevron-right');
-        if (chev) { chev.classList.add('fa-chevron-down'); chev.classList.remove('fa-chevron-right'); }
+        if (hdr) hdr.classList.remove('collapsed');
     });
+    if (typeof applyRegionBannerColors === 'function') applyRegionBannerColors();
     applyNumFmtToInputs();
 
     const tot = totalCompliant + totalDeficient;
@@ -27010,13 +27192,9 @@ function updateOsh2Manpower(projectName, value) {
 function toggleOsh2Region(headerEl, contentId) {
     const content = document.getElementById(contentId);
     if (!content) return;
-    const chevron = headerEl.querySelector('.fa-chevron-down,.fa-chevron-right');
     const isOpen = content.style.display !== 'none';
     content.style.display = isOpen ? 'none' : '';
-    if (chevron) {
-        chevron.classList.toggle('fa-chevron-down', !isOpen);
-        chevron.classList.toggle('fa-chevron-right', isOpen);
-    }
+    headerEl.classList.toggle('collapsed', isOpen);
 }
 
 function toggleOsh2Ref(headerEl) {
@@ -28785,20 +28963,21 @@ document.addEventListener('DOMContentLoaded', function() {
             var allVals2 = regAvg.filter(function(v){ return v !== null; });
             var overallAvg = allVals2.length ? allVals2.reduce(function(s,v){return s+v;},0)/allVals2.length : null;
 
+            function _pctSpan(v){ return '<strong style="color:' + cellFg(v) + ';">' + (v*100).toFixed(1) + '%</strong>'; }
             var recLines = [];
             targetRegs.forEach(function(reg, ri){
                 var avg = regAvg[ri];
                 if (avg !== null) {
-                    if (avg < 0.50) recLines.push('<li><strong>' + reg + '</strong>: Score of ' + (avg*100).toFixed(1) + '% is critically low. Immediate corrective action plan and management intervention required.</li>');
-                    else if (avg < 0.75) recLines.push('<li><strong>' + reg + '</strong>: Score of ' + (avg*100).toFixed(1) + '% needs improvement. Strengthen goal implementation and monitoring of deliverables.</li>');
-                    else if (avg < 1.00) recLines.push('<li><strong>' + reg + '</strong>: Score of ' + (avg*100).toFixed(1) + '% is on track. Continue monitoring to achieve 100% target compliance by year end.</li>');
-                    else recLines.push('<li><strong>' + reg + '</strong>: Score of ' + (avg*100).toFixed(1) + '% — fully compliant. Maintain performance and document best practices for replication.</li>');
+                    if (avg < 0.50) recLines.push('<li><strong>' + reg + '</strong>: Score of ' + _pctSpan(avg) + ' is critically low. Immediate corrective action plan and management intervention required.</li>');
+                    else if (avg < 0.75) recLines.push('<li><strong>' + reg + '</strong>: Score of ' + _pctSpan(avg) + ' needs improvement. Strengthen goal implementation and monitoring of deliverables.</li>');
+                    else if (avg < 1.00) recLines.push('<li><strong>' + reg + '</strong>: Score of ' + _pctSpan(avg) + ' is on track. Continue monitoring to achieve 100% target compliance by year end.</li>');
+                    else recLines.push('<li><strong>' + reg + '</strong>: Score of ' + _pctSpan(avg) + ' — fully compliant. Maintain performance and document best practices for replication.</li>');
                 }
             });
             var minMoScore = null, minMoName = '';
             moAvg.forEach(function(s, mi){ if (s !== null && (minMoScore === null || s < minMoScore)){ minMoScore = s; minMoName = moShort[mi]; }});
             if (minMoScore !== null && minMoScore < 0.75) {
-                recLines.push('<li><i class="fas fa-calendar-xmark" style="color:#c62828;margin-right:4px;"></i><strong>' + minMoName + '</strong> had the lowest company average (' + (minMoScore*100).toFixed(1) + '%). Review root causes and address compliance gaps for that period.</li>');
+                recLines.push('<li><i class="fas fa-calendar-xmark" style="color:#c62828;margin-right:4px;"></i><strong>' + minMoName + '</strong> had the lowest company average (' + _pctSpan(minMoScore) + '). Review root causes and address compliance gaps for that period.</li>');
             }
 
             var thCells = '<th style="min-width:120px;text-align:left;background:#1b5e20;color:#fff;font-size:0.62rem;padding:7px 10px;border:1px solid #388e3c;position:sticky;left:0;z-index:3;">REGION</th>';
@@ -28836,8 +29015,8 @@ document.addEventListener('DOMContentLoaded', function() {
             compRow += '<td style="text-align:center;font-weight:900;font-size:0.7rem;color:#ffd54f;background:#0d3311;padding:7px 5px;border:2px solid #0d3311;">' + (oav!==null?(oav*100).toFixed(1)+'%':'—') + '</td>';
 
             var recsHtml = recLines.length
-                ? '<ul style="margin:0;padding-left:18px;font-size:0.62rem;color:#333;line-height:1.7;">' + recLines.join('') + '</ul>'
-                : '<p style="font-size:0.62rem;color:#888;margin:0;">No data available yet to generate recommendations.</p>';
+                ? '<ul class="ytd-list">' + recLines.join('').replace(/<i class="fas [^"]*"[^>]*><\/i>/g, '') + '</ul>'
+                : '<p class="ytd-empty">No data available yet to generate recommendations.</p>';
 
             html +=
                 '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">'
@@ -28863,12 +29042,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 + '<span style="font-size:0.59rem;color:#888;margin-left:auto;">— = no data entered for that month</span>'
                 + '</div>'
                 + '</div>'
-                + '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.08);border:1px solid #c8e6c9;border-left:5px solid #43a047;margin:0 16px 14px;">'
-                + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:8px;">'
-                + '<div style="font-family:Poppins,sans-serif;font-size:0.82rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">💡 Recommendations based on YTD GOT Performance</div>'
+                + '<div class="ytd-card">'
+                + '<div class="ytd-head">'
+                + '<div class="ytd-title">GOALS, OBJECTIVES &amp; TARGETS — YTD SUMMARY</div>'
+                + '<div class="ytd-sub">Recommendations based on year-to-date GOT performance across all regions</div>'
                 + '</div>'
-                + '<div style="padding:12px 20px 14px;">' + recsHtml + '</div>'
-                + '</div>';
+                + '<div class="ytd-recs">'
+                + '<div class="ytd-recs-title">Recommendations</div>'
+                + recsHtml
+                + '</div></div>';
         })();
 
         html += renderTabStrip();
@@ -35021,6 +35203,9 @@ window.toggleSidebar = function() {
         sidebar.classList.add('sidebar-collapsed');
         if (content) content.style.marginLeft = '';
     }
+
+    // Charts: re-measure after the sidebar transition so nothing stays clipped/stale
+    [60, 360].forEach(function(ms) { setTimeout(function() { window.dispatchEvent(new Event('resize')); }, ms); });
 
     // Update hamburger icon if present
     const btn = document.getElementById('hamburger-btn');
