@@ -1,3 +1,6 @@
+// Chart.js draws on <canvas>, which CSS cannot reach. One default so every chart uses the same font.
+if (window.Chart && Chart.defaults && Chart.defaults.font) { Chart.defaults.font.family = "'Inter', sans-serif"; }
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ESH POPUP ANIMATOR — one uniform open/close animation for EVERY popup.
 //
@@ -3046,7 +3049,7 @@ debugCommands.help() - Show this help
                                     color: #757575;
                                     border: 2px solid #e0e0e0;
                                     min-width: 100px;
-                                    font-family: 'Teko', sans-serif;
+                                    
                                     letter-spacing: 1px;
                                 ">${fromYear}</div>
                                 <div style="font-size:0.68rem; color:#9e9e9e; margin-top:6px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Current</div>
@@ -3071,7 +3074,7 @@ debugCommands.help() - Show this help
                                     color: #1b5e20;
                                     border: 2px solid #4caf50;
                                     min-width: 100px;
-                                    font-family: 'Teko', sans-serif;
+                                    
                                     letter-spacing: 1px;
                                     box-shadow: 0 4px 12px rgba(46,125,50,0.2);
                                 ">${toYear}</div>
@@ -7648,7 +7651,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     const _rcNextOk = _rcv < _rcMaxMonth;
                     const _rcMonthLabel = _rcv === 0 ? 'Overall Average' : _RC_MONTHS[_rcv - 1];
                     _rcNav.innerHTML =
-                        `<span style="font-size:0.72rem;font-weight:700;color:${_rcv === 0 ? '#888' : '#1b5e20'};min-width:100px;text-align:center;letter-spacing:0.03em;">${_rcMonthLabel}</span>`;
+                        `<span style="font-size:0.72rem;font-weight:700;color:${_rcv === 0 ? 'var(--hv-muted)' : 'var(--hv-brand)'};min-width:100px;text-align:center;letter-spacing:0.03em;">${_rcMonthLabel}</span>`;
                 }
 
                 const regionCtx = document.getElementById('regionChart');
@@ -8040,28 +8043,17 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             pcoNonEnvTabs.forEach(tab => {
                 const el = document.querySelector(`.nav-item[data-tab="${tab}"]`);
                 if (!el) return;
-                if (isPCO) {
-                    el.style.opacity = '0.55';
-                    el.style.fontStyle = 'italic';
-                    if (!el.querySelector('.pco-lock-icon')) {
-                        const icon = document.createElement('i');
-                        icon.className = 'fas fa-lock pco-lock-icon';
-                        icon.style.cssText = 'font-size:0.6rem;margin-left:5px;color:#f57c00;vertical-align:middle;';
-                        icon.title = 'View only for PCO';
-                        el.appendChild(icon);
-                    }
-                } else {
-                    el.style.opacity = '';
-                    el.style.fontStyle = '';
-                    const lockIcon = el.querySelector('.pco-lock-icon');
-                    if (lockIcon) lockIcon.remove();
-                }
+                // PCO: no grey/italic/padlock styling — access is already enforced by RBAC
+                el.style.opacity = '';
+                el.style.fontStyle = '';
+                const lockIcon = el.querySelector('.pco-lock-icon');
+                if (lockIcon) lockIcon.remove();
             });
 
             const auditEl = document.querySelector('.nav-item[data-tab="audit"]');
             if (auditEl) {
-                auditEl.style.opacity = isPCO ? '0.55' : '';
-                auditEl.style.fontStyle = isPCO ? 'italic' : '';
+                auditEl.style.opacity = '';
+                auditEl.style.fontStyle = '';
             }
 
             if (isManager) {
@@ -9884,7 +9876,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 <div style="background:linear-gradient(90deg,#1b5e20,#2e7d32);padding:14px 20px;
                     display:flex;align-items:center;justify-content:space-between;">
                     <div>
-                        <div style="color:white;font-weight:800;font-size:0.9rem;font-family:Poppins,sans-serif;">
+                        <div style="color:white;font-weight:800;font-size:0.9rem;">
                             ${isNew ? '➕ New Incident / Accident Entry' : (canEdit ? '✏️ Edit Entry #' + entryNum : '🔍 View Entry #' + entryNum)}
                         </div>
                         <div style="color:#c8e6c9;font-size:0.68rem;margin-top:2px;">${pName}</div>
@@ -10859,7 +10851,7 @@ body.dark-mode .ltadl[data-mode="scheduled"] .ltadl-pill input:checked+span{back
             });
 
             let html = `<style>
-                .lta-view { font-family: 'Inter', sans-serif; }
+                .lta-view {  }
                 .lta-region-banner { cursor:pointer; user-select:none; }
                 .lta-region-content { overflow:hidden; max-height:9999px; transition:max-height 0.35s ease, opacity 0.25s ease; }
                 .lta-region-content.collapsed { max-height:0 !important; opacity:0; }
@@ -11805,7 +11797,7 @@ function renderTabulation() {
     }
 
     let html = `
-    <div style="font-family:'Inter',sans-serif;max-width:1400px;margin:0 auto;">
+    <div style="max-width:1400px;margin:0 auto;">
 
         
         <div style="display:flex;align-items:center;gap:14px;margin:10px 0 12px;padding:10px 16px;background:var(--bg-card,#fff);border:1px solid #c8e6c9;border-left:4px solid #2e7d32;border-radius:8px;box-shadow:0 1px 4px rgba(27,94,32,0.07);flex-wrap:wrap;">
@@ -11813,7 +11805,7 @@ function renderTabulation() {
                 <i class="fas fa-table-list"></i>
             </div>
             <div style="flex:1;min-width:0;">
-                <p style="font-family:'Poppins',sans-serif;font-size:0.83rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:linear-gradient(90deg,#1b5e20 0%,#43a047 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:0 0 2px;">SCIC Incident / Accident Tabulation</p>
+                <p style="font-size:0.83rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:linear-gradient(90deg,#1b5e20 0%,#43a047 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:0 0 2px;">SCIC Incident / Accident Tabulation</p>
                 <p style="font-size:0.65rem;color:var(--text-secondary,#555);margin:0;line-height:1.5;">
                     Showing data for ${year} · FM-ESH-01-42
                     ${d.isAutoComputed ? `<span style="background:#fff8e1;color:#7a5c00;border:1px solid #ffe082;border-radius:20px;padding:2px 8px;font-size:0.6rem;font-weight:800;margin-left:6px;">⚡ AUTO-COMPUTED</span>` : ''}
@@ -12133,7 +12125,7 @@ function renderTabulation() {
             modal.innerHTML = `<div style="border-radius:12px;width:min(1300px,98vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.45);overflow:hidden;">
                 <div style="background:linear-gradient(90deg,#0d3311,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
                     <div>
-                        <div style="color:white;font-weight:800;font-size:0.95rem;font-family:Poppins,sans-serif;">
+                        <div style="color:white;font-weight:800;font-size:0.95rem;">
                             <i class="fas fa-hard-hat" style="margin-right:8px;color:#fbc02d;"></i>OSH NOV — <span style="color:#fbc02d;">${p.name}</span>
                             ${isWS?'<span style="background:#e53935;color:white;border-radius:8px;padding:1px 8px;font-size:0.65rem;font-weight:700;margin-left:8px;">WORK STOPPAGE</span>':''}
                         </div>
@@ -12282,7 +12274,7 @@ function renderTabulation() {
                 const _rcNextOk = _rcv < _rcMaxMonth;
                 const _rcMonthLabel = _rcv === 0 ? 'Overall Average' : _RC_MONTHS[_rcv - 1];
                 _rcNav.innerHTML =
-                    `<span style="font-size:0.72rem;font-weight:700;color:${_rcv === 0 ? '#888' : '#1b5e20'};min-width:100px;text-align:center;letter-spacing:0.03em;">${_rcMonthLabel}</span>`;
+                    `<span style="font-size:0.72rem;font-weight:700;color:${_rcv === 0 ? 'var(--hv-muted)' : 'var(--hv-brand)'};min-width:100px;text-align:center;letter-spacing:0.03em;">${_rcMonthLabel}</span>`;
             }
 
             setTimeout(() => {
@@ -12499,6 +12491,62 @@ function renderTabulation() {
             if (typeof window.renderGapSectionOnly === 'function') window.renderGapSectionOnly();
         };
 
+        // ── Compliance gap panel ───────────────────────────────────────────────
+        // Markup only. Every color, size and font lives in styles.css (.cga-*).
+        window.cgaStatus = function(p) { return p >= 90 ? 'ok' : p >= 70 ? 'warn' : 'bad'; };
+        window.cgaNavBtn = function(ok, dir, action) {
+            return '<span class="cga-nav' + (ok ? '' : ' is-off') + '"' + (ok ? ' onclick="' + action + '"' : '') +
+                   ' title="' + (dir === 'prev' ? 'Previous month' : 'Next month') + '">' +
+                   (dir === 'prev' ? '&#8249;' : '&#8250;') + '</span>';
+        };
+        window.cgaHeaderHtml = function(moName, selYear, prevBtn, nextBtn) {
+            return '<div class="cga-head">' +
+                '<div class="cga-head-left">' +
+                    '<i class="fas fa-magnifying-glass-chart cga-icon"></i>' +
+                    '<div>' +
+                        '<div class="cga-title">Monthly Compliance Gap Analysis</div>' +
+                        '<div class="cga-sub">Detected gaps for <strong>' + moName + ' ' + selYear + '</strong> — areas that reduced compliance below 100%. Click a region or area for the full breakdown.</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="cga-month">' + prevBtn + '<span class="cga-month-label">' + moName + ' ' + selYear + '</span>' + nextBtn + '</div>' +
+            '</div>' +
+            '<div class="cga-legend">' +
+                '<span><i class="cga-dot cga-bar-ok"></i>90% and above</span>' +
+                '<span><i class="cga-dot cga-bar-warn"></i>70% to 89%</span>' +
+                '<span><i class="cga-dot cga-bar-bad"></i>Below 70%</span>' +
+            '</div>';
+        };
+        window.cgaBodyHtml = function(regGaps, selMonth, moName, selYear, detailLabels) {
+            if (regGaps.length === 0) {
+                return '<div class="cga-grid"><div class="cga-empty"><i class="fas fa-circle-check"></i>No gaps detected for ' + moName + ' ' + selYear + '.</div></div>';
+            }
+            var maxRows = Math.max.apply(null, regGaps.map(function (r) { return r.gaps.length; }));
+            var out = '<div class="cga-grid">';
+            regGaps.forEach(function (r) {
+                var region = r.region, score = r.score, gaps = r.gaps;
+                var regionSafe = region.replace(/'/g, "\\'");
+                var rows = '';
+                if (gaps.length === 0) {
+                    rows = '<div class="cga-done"><i class="fas fa-circle-check"></i> All compliance areas complete!</div>';
+                } else {
+                    gaps.forEach(function (g) {
+                        var pct = Math.round(g.rate * 100);
+                        var focus = ((detailLabels && detailLabels[g.key]) || g.label).replace(/'/g, "\\'");
+                        rows += '<div class="cga-item cga-' + cgaStatus(pct) + '" onclick="event.stopPropagation();showComplianceGapModal(\'' + regionSafe + '\', ' + selMonth + ', \'' + focus + '\');" title="Click to see which projects/fields are missing">' +
+                                    '<div class="cga-line"><span>' + g.label + '</span><span class="cga-count"><b>' + g.missing + '</b> missing / ' + g.total + '</span></div>' +
+                                    '<div class="cga-track"><div class="cga-fill cga-bar-' + cgaStatus(pct) + '" style="width:' + pct + '%"></div></div>' +
+                                '</div>';
+                    });
+                    if (gaps.length < maxRows) rows += '<div class="cga-clear">No other gaps this month</div>';
+                }
+                out += '<div class="cga-card cga-' + cgaStatus(score) + '" onclick="showComplianceGapModal(\'' + regionSafe + '\', ' + selMonth + ');" title="Click for full compliance breakdown">' +
+                           '<div class="cga-top"><span class="cga-region">' + region + ' <i class="fas fa-circle-info cga-info"></i></span><span class="cga-pill">' + score + '%</span></div>' +
+                           rows +
+                       '</div>';
+            });
+            return out + '</div>';
+        };
+
         // ── renderGapSectionOnly: re-renders just the gap analysis container ──
         window.renderGapSectionOnly = function() {
             const _gapWrap = document.getElementById('compliance-gap-section');
@@ -12545,20 +12593,10 @@ function renderTabulation() {
             const _prevOk = _cv > 1;
             const _nextOk = _cv < _mcMaxMonth;
 
-            const _navBtnStyle = (ok, dir) =>
-                'display:inline-flex;align-items:center;justify-content:center;' +
-                'width:26px;height:26px;border-radius:6px;' +
-                'background:' + (ok ? '#ffffff' : 'transparent') + ';' +
-                'border:' + (ok ? '1px solid #a5d6a7' : '1px solid transparent') + ';' +
-                'color:' + (ok ? '#1b5e20' : '#bdbdbd') + ';' +
-                'font-size:1rem;font-weight:700;cursor:' + (ok ? 'pointer' : 'default') + ';' +
-                'user-select:none;transition:all 0.15s;';
-
             const _prevAction = _prevOk ? 'state.complianceView=' + (_cv - 1) + ';renderComplianceCardOnly();' : '';
             const _nextAction = _nextOk ? 'state.complianceView=' + (_cv + 1) + ';renderComplianceCardOnly();' : '';
-
-            const _prevBtn = '<span onclick="' + _prevAction + '" title="Previous month" style="' + _navBtnStyle(_prevOk, 'prev') + '">&#8249;</span>';
-            const _nextBtn = '<span onclick="' + _nextAction + '" title="Next month" style="' + _navBtnStyle(_nextOk, 'next') + '">&#8250;</span>';
+            const _prevBtn = cgaNavBtn(_prevOk, 'prev', _prevAction);
+            const _nextBtn = cgaNavBtn(_nextOk, 'next', _nextAction);
 
             const regGaps = _TARGET_REGS.map(region => {
                 const projects = (state.projects || []).filter(p =>
@@ -12657,68 +12695,7 @@ function renderTabulation() {
                 return { region, score, gaps, projCount: projects.length };
             }).filter(r => r !== null && r.score !== null && r.projCount > 0);
 
-            const _RCOLOR = { 'NCR':'#5C6BC0', 'SOUTH LUZON':'#26A69A', 'NORTH LUZON':'#EF5350', 'VISAYAS & MINDANAO':'#FFA726' };
-
-            let innerHtml = `
-                <div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <i class="fas fa-magnifying-glass-chart" style="color:#1b5e20;font-size:1.1rem;"></i>
-                        <div>
-                            <div style="font-family:'Archivo Narrow',sans-serif;font-size:0.88rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">Monthly Compliance Gap Analysis</div>
-                            <div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Detected gaps for <strong>${moName} ${selYear}</strong> — areas that reduced compliance below 100%. Click a region or area for the full breakdown.</div>
-                        </div>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:6px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:4px 8px;">
-                        ${_prevBtn}
-                        <span style="font-size:0.72rem;font-weight:700;color:#1b5e20;min-width:80px;text-align:center;">${moName} ${selYear}</span>
-                        ${_nextBtn}
-                    </div>
-                </div>
-                <div style="padding:14px 18px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">`;
-
-            if (regGaps.length === 0) {
-                innerHtml += `<div style="grid-column:1/-1;text-align:center;color:#388e3c;font-size:0.78rem;padding:16px;"><i class="fas fa-circle-check" style="margin-right:6px;"></i>No gaps detected for ${moName} ${selYear}.</div>`;
-            } else {
-                regGaps.forEach(({ region, score, gaps }) => {
-                    const rc = _RCOLOR[region] || '#546e7a';
-                    const sc = score >= 90 ? '#2e7d32' : score >= 75 ? '#e65100' : '#c62828';
-                    const sb = score >= 90 ? '#e8f5e9' : score >= 75 ? '#fff3e0' : '#ffebee';
-                    const _regionSafe = region.replace(/'/g, "\\'");
-
-                    let gapRows = '';
-                    if (gaps.length === 0) {
-                        gapRows = `<div style="font-size:0.65rem;color:#2e7d32;padding:6px 0;display:flex;align-items:center;gap:6px;"><i class="fas fa-circle-check" style="color:#43a047;"></i> All compliance areas complete!</div>`;
-                    } else {
-                        gaps.forEach(({ key, label, rate, missing, total }) => {
-                            const pct = Math.round(rate * 100);
-                            const bc  = rate === 0 ? '#c62828' : rate < 0.5 ? '#e53935' : rate < 0.8 ? '#fb8c00' : '#fdd835';
-                            const _focusLabel = (_GAP_KEY_TO_DETAIL_LABEL[key] || label).replace(/'/g, "\\'");
-                            gapRows += `
-                                <div onclick="event.stopPropagation();showComplianceGapModal('${_regionSafe}', ${selMonth}, '${_focusLabel}');" style="margin-bottom:7px;cursor:pointer;" title="Click to see which projects/fields are missing">
-                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-                                        <span style="font-size:0.62rem;font-weight:600;color:#333;">${label}</span>
-                                        <span style="font-size:0.6rem;font-weight:700;color:${bc};">${missing} missing / ${total}</span>
-                                    </div>
-                                    <div style="background:#f0f0f0;border-radius:4px;height:6px;overflow:hidden;">
-                                        <div style="height:100%;width:${pct}%;background:${bc};border-radius:4px;"></div>
-                                    </div>
-                                </div>`;
-                        });
-                    }
-
-                    innerHtml += `
-                        <div onclick="showComplianceGapModal('${_regionSafe}', ${selMonth});" style="background:#fafafa;border-radius:8px;border:1px solid #e0e0e0;border-top:3px solid ${rc};padding:12px 14px;cursor:pointer;transition:box-shadow 0.15s;" title="Click for full compliance breakdown" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                                <span style="font-size:0.7rem;font-weight:800;color:${rc};">${region} <i class="fas fa-circle-info" style="font-size:0.6rem;opacity:0.6;margin-left:2px;"></i></span>
-                                <span style="font-size:0.72rem;font-weight:900;color:${sc};background:${sb};padding:2px 8px;border-radius:12px;">${score}%</span>
-                            </div>
-                            ${gapRows}
-                        </div>`;
-                });
-            }
-
-            innerHtml += `</div>`;
-            _gapWrap.innerHTML = innerHtml;
+            _gapWrap.innerHTML = cgaHeaderHtml(moName, selYear, _prevBtn, _nextBtn) + cgaBodyHtml(regGaps, selMonth, moName, selYear, _GAP_KEY_TO_DETAIL_LABEL);
         };
         // ── End renderGapSectionOnly ──────────────────────────────────────────
 
@@ -12784,7 +12761,7 @@ function renderTabulation() {
             }
 
             const auditNavLock = document.getElementById('audit-nav-lock');
-            if (auditNavLock) auditNavLock.style.display = state.isAdmin ? 'none' : 'inline';
+            if (auditNavLock) auditNavLock.style.display = (state.isAdmin || state.userRole === 'pco') ? 'none' : 'inline';
 
             const container = document.getElementById('dashboard-content');
             let html = '';
@@ -12887,7 +12864,7 @@ function renderTabulation() {
                     </div>
                 </div>
                 <div class="charts-container">
-                    <div class="chart-box"><h3><i class="fas fa-chart-bar"></i> Compliance by Region <span style="font-size:0.68rem;font-weight:500;color:#888;margin-left:6px;"><i class="fas fa-hand-pointer"></i> click a bar to see what's missing</span></h3><canvas id="regionChart"></canvas></div>
+                    <div class="chart-box"><h3><i class="fas fa-chart-bar"></i> Compliance by Region <span class="cb-hint"><i class="fas fa-hand-pointer"></i> click a bar to see what's missing</span></h3><canvas id="regionChart"></canvas></div>
                     <div class="chart-box"><h3><i class="fas fa-chart-pie"></i> Project Status</h3><canvas id="statusChart"></canvas></div>
                 </div>
                 `;
@@ -13026,80 +13003,15 @@ function renderTabulation() {
 
                     if (regGaps.length === 0) return;
 
-                    const _RCOLOR = { 'NCR':'#5C6BC0', 'SOUTH LUZON':'#26A69A', 'NORTH LUZON':'#EF5350', 'VISAYAS & MINDANAO':'#FFA726' };
-
                     const _gNavPrevOk = selMonth > 1;
                     const _gNavNextOk = selMonth < _mcMaxMonth;
-                    const _gNavBtnStyle = (ok) =>
-                        'display:inline-flex;align-items:center;justify-content:center;' +
-                        'width:26px;height:26px;border-radius:6px;' +
-                        'background:' + (ok ? '#ffffff' : 'transparent') + ';' +
-                        'border:' + (ok ? '1px solid #a5d6a7' : '1px solid transparent') + ';' +
-                        'color:' + (ok ? '#1b5e20' : '#bdbdbd') + ';' +
-                        'font-size:1rem;font-weight:700;cursor:' + (ok ? 'pointer' : 'default') + ';' +
-                        'user-select:none;transition:all 0.15s;';
                     const _gNavPrevAction = _gNavPrevOk ? 'state.complianceView=' + (selMonth - 1) + ';renderComplianceCardOnly();' : '';
                     const _gNavNextAction = _gNavNextOk ? 'state.complianceView=' + (selMonth + 1) + ';renderComplianceCardOnly();' : '';
-                    const _gNavPrevBtn = '<span onclick="' + _gNavPrevAction + '" title="Previous month" style="' + _gNavBtnStyle(_gNavPrevOk) + '">&#8249;</span>';
-                    const _gNavNextBtn = '<span onclick="' + _gNavNextAction + '" title="Next month" style="' + _gNavBtnStyle(_gNavNextOk) + '">&#8250;</span>';
 
-                    let gapHtml = `
-                        <div id="compliance-gap-section" style="margin:0 16px 16px;background:#fff;border-radius:10px;border:1px solid #e0e0e0;border-left:5px solid #1b5e20;box-shadow:0 2px 10px rgba(0,0,0,0.06);overflow:hidden;">
-                            <div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-                                <div style="display:flex;align-items:center;gap:10px;">
-                                    <i class="fas fa-magnifying-glass-chart" style="color:#1b5e20;font-size:1.1rem;"></i>
-                                    <div>
-                                        <div style="font-family:'Archivo Narrow',sans-serif;font-size:0.88rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">Monthly Compliance Gap Analysis</div>
-                                        <div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Detected gaps for <strong>${moName} ${selYear}</strong> — areas that reduced compliance below 100%. Click a region or area for the full breakdown.</div>
-                                    </div>
-                                </div>
-                                <div style="display:flex;align-items:center;gap:6px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:4px 8px;">
-                                    ${_gNavPrevBtn}
-                                    <span style="font-size:0.72rem;font-weight:700;color:#1b5e20;min-width:80px;text-align:center;">${moName} ${selYear}</span>
-                                    ${_gNavNextBtn}
-                                </div>
-                            </div>
-                            <div style="padding:14px 18px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">`;
-
-                    regGaps.forEach(({ region, score, gaps }) => {
-                        const rc = _RCOLOR[region] || '#546e7a';
-                        const sc = score >= 90 ? '#2e7d32' : score >= 75 ? '#e65100' : '#c62828';
-                        const sb = score >= 90 ? '#e8f5e9' : score >= 75 ? '#fff3e0' : '#ffebee';
-                        const _regionSafe = region.replace(/'/g, "\\'");
-
-                        let gapRows = '';
-                        if (gaps.length === 0) {
-                            gapRows = `<div style="font-size:0.65rem;color:#2e7d32;padding:6px 0;display:flex;align-items:center;gap:6px;"><i class="fas fa-circle-check" style="color:#43a047;"></i> All compliance areas complete!</div>`;
-                        } else {
-                            gaps.forEach(({ key, label, rate, missing, total }) => {
-                                const pct = Math.round(rate * 100);
-                                const bc  = rate === 0 ? '#c62828' : rate < 0.5 ? '#e53935' : rate < 0.8 ? '#fb8c00' : '#fdd835';
-                                const _focusLabel = (_GAP_KEY_TO_DETAIL_LABEL[key] || label).replace(/'/g, "\\'");
-                                gapRows += `
-                                    <div onclick="event.stopPropagation();showComplianceGapModal('${_regionSafe}', ${selMonth}, '${_focusLabel}');" style="margin-bottom:7px;cursor:pointer;" title="Click to see which projects/fields are missing">
-                                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-                                            <span style="font-size:0.62rem;font-weight:600;color:#333;">${label}</span>
-                                            <span style="font-size:0.6rem;font-weight:700;color:${bc};">${missing} missing / ${total}</span>
-                                        </div>
-                                        <div style="background:#f0f0f0;border-radius:4px;height:6px;overflow:hidden;">
-                                            <div style="height:100%;width:${pct}%;background:${bc};border-radius:4px;"></div>
-                                        </div>
-                                    </div>`;
-                            });
-                        }
-
-                        gapHtml += `
-                            <div onclick="showComplianceGapModal('${_regionSafe}', ${selMonth});" style="background:#fafafa;border-radius:8px;border:1px solid #e0e0e0;border-top:3px solid ${rc};padding:12px 14px;cursor:pointer;transition:box-shadow 0.15s;" title="Click for full compliance breakdown" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                                    <span style="font-size:0.7rem;font-weight:800;color:${rc};">${region} <i class="fas fa-circle-info" style="font-size:0.6rem;opacity:0.6;margin-left:2px;"></i></span>
-                                    <span style="font-size:0.72rem;font-weight:900;color:${sc};background:${sb};padding:2px 8px;border-radius:12px;">${score}%</span>
-                                </div>
-                                ${gapRows}
-                            </div>`;
-                    });
-
-                    gapHtml += `</div></div>`;
-                    html += gapHtml;
+                    html += '<div id="compliance-gap-section">' +
+                        cgaHeaderHtml(moName, selYear, cgaNavBtn(_gNavPrevOk, 'prev', _gNavPrevAction), cgaNavBtn(_gNavNextOk, 'next', _gNavNextAction)) +
+                        cgaBodyHtml(regGaps, selMonth, moName, selYear, _GAP_KEY_TO_DETAIL_LABEL) +
+                        '</div>';
                 })();
                 // ── End Compliance Gap Detector ──────────────────────────────────────
 
@@ -13658,7 +13570,7 @@ if (state.currentTab === 'audit') {
                 width: 100%;
                 max-width: 1100px;
                 margin: 20px auto;
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                
                 border-radius: 12px;
                 overflow: hidden;
                 box-shadow: 0 2px 12px rgba(46,125,50,0.10), 0 2px 6px rgba(0, 0, 0, 0.06);
@@ -13775,7 +13687,7 @@ if (state.currentTab === 'audit') {
                 transition: all 0.2s ease;
                 background: white;
                 color: #1b5e20;
-                font-family: 'Inter', sans-serif;
+                
             }
             
             .audit-table input:focus {
@@ -14364,7 +14276,7 @@ if (state.currentTab === 'audit') {
                     modal.innerHTML = `<div style="border-radius:12px;width:min(1300px,98vw);margin:auto;box-shadow:0 24px 80px rgba(0,0,0,0.45);overflow:hidden;">
                         <div style="background:linear-gradient(90deg,#0d3311,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
                             <div>
-                                <div style="color:white;font-weight:800;font-size:0.95rem;font-family:Poppins,sans-serif;">
+                                <div style="color:white;font-weight:800;font-size:0.95rem;">
                                     <i class="fas fa-leaf" style="margin-right:8px;color:#a5d6a7;"></i>ENVI NOV — <span style="color:#fbc02d;">${p.name}</span>
                                     ${isWS?'<span style="background:#e53935;color:white;border-radius:8px;padding:1px 8px;font-size:0.65rem;font-weight:700;margin-left:8px;">WORK STOPPAGE</span>':''}
                                 </div>
@@ -15673,7 +15585,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             // Header
                             + '<div style="background:linear-gradient(90deg,#0d3d0f,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
                             + '<div>'
-                            + '<div style="color:white;font-weight:800;font-size:0.95rem;font-family:Poppins,sans-serif;">'
+                            + '<div style="color:white;font-weight:800;font-size:0.95rem;">'
                             + (isNew ? '➕ New DOLE Entry' : (canEdit ? '✏️ Edit DOLE' : '🔍 View DOLE'))
                             + ' — <span style="color:#fbc02d;">' + activeMo + ' ' + selYear + '</span></div>'
                             + '<div style="color:#a5d6a7;font-size:0.67rem;margin-top:3px;"><i class="fas fa-location-dot" style="margin-right:4px;"></i>' + reg + ' · <span style="color:#c8e6c9;">' + regProjs.length + ' project' + (regProjs.length!==1?'s':'') + '</span></div>'
@@ -15765,7 +15677,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 function _modalHeader(gradientCss, title, subtitle, closeId) {
                     return '<div style="background:' + gradientCss + ';padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
                         + '<div>'
-                        + '<div style="color:white;font-weight:800;font-size:0.95rem;font-family:Poppins,sans-serif;">' + title + '</div>'
+                        + '<div style="color:white;font-weight:800;font-size:0.95rem;">' + title + '</div>'
                         + '<div style="color:rgba(255,255,255,0.7);font-size:0.67rem;margin-top:3px;">' + subtitle + '</div>'
                         + '</div>'
                         + '<button onclick="document.getElementById(\'' + closeId + '\').remove()" title="Close" style="background:rgba(255,255,255,0.15);color:white;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.3)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'"><i class="fas fa-times"></i></button>'
@@ -16908,7 +16820,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">'
                             + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
                             + '<div>'
-                            + '<div style="font-family:\'Archivo Narrow\',sans-serif;font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">📊 KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT</div>'
+                            + '<div style="font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">📊 KEY PERFORMANCE MEASURES (KPM) MONTHLY REPORT</div>'
                             + '<div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Monthly ESH Consolidated KPM — FM-RNI-04-04 Rev.4 | Eff. Date: 06 Aug 2018 &bull; Overall weighted % per region per month &bull; Year: ' + selYear + '</div>'
                             + '</div></div>'
                             + '<div style="overflow-x:auto;padding:14px 16px 10px;position:relative;">'
@@ -17593,7 +17505,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             // Header
                             + '<div style="background:linear-gradient(90deg,#0d3d0f,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
                             + '<div>'
-                            + '<div style="color:white;font-weight:800;font-size:0.95rem;font-family:Poppins,sans-serif;">'
+                            + '<div style="color:white;font-weight:800;font-size:0.95rem;">'
                             + (isNew ? '➕ New KPM Entry' : (canEdit ? '✏️ Edit KPM' : '🔍 View KPM'))
                             + ' — <span style="color:#fbc02d;">' + activeMo + ' ' + selYear + '</span>'
                             + '</div>'
@@ -17991,7 +17903,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             box.innerHTML = '<div style="background:var(--bg-card,#fff);border-radius:12px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.45);overflow:hidden;">'
                                 + '<div style="background:#fff3e0;border-bottom:1px solid #ffcc80;padding:14px 18px;display:flex;align-items:center;gap:10px;">'
                                 + '<i class="fas fa-triangle-exclamation" style="color:#e65100;font-size:1.2rem;"></i>'
-                                + '<div style="font-weight:800;font-size:0.9rem;color:#bf360c;font-family:Poppins,sans-serif;">Date Submitted is empty</div></div>'
+                                + '<div style="font-weight:800;font-size:0.9rem;color:#bf360c;">Date Submitted is empty</div></div>'
                                 + '<div style="padding:16px 18px;font-size:0.8rem;line-height:1.5;color:var(--text-main,#333);">'
                                 + 'You did not fill in the <b>Date Submitted</b>. Without it, this month is counted as <b>not submitted</b> in the compliance score.<br><br>Do you still want to save?</div>'
                                 + '<div style="padding:12px 18px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--border-color,#ddd);">'
@@ -18761,7 +18673,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         border-collapse: collapse;
                         width: 100%;
                         margin: 10px 0;
-                        font-family: Arial, sans-serif;
+                        
                         border: none;
                     }
                     
@@ -22385,31 +22297,10 @@ let _safetyCarouselIdx = 0;
 
 // ── One-time CSS injection for the Yahoo-style 3-column layout ─────────────
 function ensureSafetyAwardGridStyles() {
-    if (document.getElementById('saw-grid-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'saw-grid-styles';
-    style.textContent = `
-        .saw-grid { display:grid; grid-template-columns:240px minmax(0,1fr) 300px; gap:16px; align-items:stretch; margin:0 20px 14px; }
-        .saw-panel { display:flex; flex-direction:column; background:var(--bg-card); border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.08); border:1px solid var(--border-color); overflow:hidden; }
-        .saw-panel-head { padding:10px 14px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border-color); }
-        .saw-alert-list { flex:1; display:flex; flex-direction:column; }
-        .saw-alert-item { flex:1; display:flex; align-items:center; gap:10px; padding:9px 12px; cursor:pointer; border-bottom:1px solid var(--border-color); }
-        .saw-alert-item:last-child { border-bottom:none; }
-        .saw-alert-item:hover { background:rgba(230,81,0,0.06); }
-        .saw-alert-num { flex-shrink:0; width:18px; height:18px; border-radius:4px; background:#fff3e0; color:#e65100; font-size:0.68rem; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:1px; }
-        .saw-alert-title { font-size:0.76rem; font-weight:700; color:var(--text-primary); line-height:1.3; }
-        .saw-alert-meta { font-size:0.62rem; color:var(--text-secondary); margin-top:2px; }
-        .saw-mini-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:12px; }
-        .saw-mini-card { cursor:pointer; }
-        .saw-mini-img { width:100%; aspect-ratio:4/3; border-radius:6px; background-size:cover; background-position:center; background-color:#c8e6c9; display:flex; align-items:center; justify-content:center; }
-        .saw-mini-title { font-size:0.68rem; font-weight:700; color:var(--text-primary); margin-top:5px; line-height:1.25; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-        .saw-weather-frame { flex:1; width:100%; min-height:320px; border:none; display:block; }
-        .saw-weather-foot { padding:8px 12px; font-size:0.6rem; color:var(--text-secondary); display:flex; justify-content:space-between; align-items:center; }
-        @media (max-width: 1050px) {
-            .saw-grid { grid-template-columns: 1fr; }
-        }
-    `;
-    document.head.appendChild(style);
+    // Home page styles now live in styles.css (section "Home page (Headlines tab)").
+    // Remove the old injected block if an older version left one behind.
+    var old = document.getElementById('saw-grid-styles');
+    if (old) old.remove();
 }
 
 // Builds just the hero-carousel + mini-cards markup for the current _safetyCarouselIdx.
@@ -22418,40 +22309,42 @@ function ensureSafetyAwardGridStyles() {
 function buildSafetyAwardInnerHtml() {
     const awards = (window._safetyAwards || []).slice(0, 8);
     if (_safetyCarouselIdx >= awards.length) _safetyCarouselIdx = 0;
+    const esc = function(s) { return String(s == null ? '' : s).replace(/</g, '&lt;'); };
 
     let heroHtml;
     if (awards.length === 0) {
         heroHtml = `
-        <div style="width:100%;aspect-ratio:16/9;max-height:380px;background:#c8e6c9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;">
-            <i class="fas fa-trophy" style="font-size:2rem;color:#66bb6a;"></i>
-            <span style="font-size:0.72rem;color:#2e7d32;font-weight:600;">No safety awards recorded yet.</span>
+        <div class="saw-hero saw-hero-empty">
+            <i class="fas fa-trophy"></i>
+            <span>No safety awards recorded yet.</span>
         </div>`;
     } else {
         const slides = awards.map(function(aw, i) {
             const photo = (Array.isArray(aw.photos) && aw.photos[0]) ? aw.photos[0] : null;
+            const on = i === _safetyCarouselIdx;
             return `
-            <div class="safety-award-slide" data-idx="${i}" onclick="safetyViewAwardDetail('${aw.id}')" style="position:absolute;inset:0;opacity:${i === _safetyCarouselIdx ? 1 : 0};pointer-events:${i === _safetyCarouselIdx ? 'auto' : 'none'};z-index:${i === _safetyCarouselIdx ? 1 : 0};transition:opacity 0.6s;cursor:pointer;">
+            <div class="saw-slide" data-idx="${i}" onclick="safetyViewAwardDetail('${aw.id}')" style="opacity:${on ? 1 : 0};pointer-events:${on ? 'auto' : 'none'};z-index:${on ? 1 : 0};">
                 ${photo
-                    ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;object-position:${aw.photoPosition||'center'};">`
-                    : `<div style="width:100%;height:100%;background:#c8e6c9;display:flex;align-items:center;justify-content:center;"><i class="fas fa-trophy" style="font-size:2.2rem;color:#66bb6a;"></i></div>`}
-                <div style="position:absolute;left:0;right:0;bottom:0;padding:20px 22px;background:linear-gradient(to top,rgba(27,94,32,0.85),rgba(27,94,32,0.15) 80%,transparent);">
-                    <div style="font-size:0.72rem;font-weight:700;color:#c8e6c9;letter-spacing:0.5px;">${(aw.awardTitle||'ESH AWARD AND RECOGNITION').toUpperCase()}</div>
-                    <div style="font-size:1.5rem;font-weight:800;color:#fff;margin-top:4px;">${(aw.awardeeName||'').replace(/</g,'&lt;')}</div>
-                    <div style="font-size:0.78rem;color:#e8f5e9;margin-top:4px;">${aw.project ? aw.project.replace(/</g,'&lt;') : 'Company-wide'} · ${aw.date || ''}${aw.awardingBody ? ' · ' + aw.awardingBody.replace(/</g,'&lt;') : ''}</div>
+                    ? `<img class="saw-slide-img" src="${photo}" alt="" style="object-position:${aw.photoPosition || 'center'};">`
+                    : `<div class="saw-slide-ph"><i class="fas fa-trophy"></i></div>`}
+                <div class="saw-hero-txt">
+                    <div class="saw-kicker">${esc(aw.awardTitle || 'ESH award and recognition')}</div>
+                    <h2 class="saw-hero-title">${esc(aw.awardeeName)}</h2>
+                    <div class="saw-hero-meta">${aw.project ? esc(aw.project) : 'Company-wide'} · ${esc(aw.date)}${aw.awardingBody ? ' · ' + esc(aw.awardingBody) : ''}</div>
                 </div>
             </div>`;
         }).join('');
         const dots = awards.map(function(_, i) {
-            return `<span onclick="event.stopPropagation();safetyAwardGoTo(${i})" style="width:6px;height:6px;border-radius:50%;cursor:pointer;background:${i === _safetyCarouselIdx ? '#fff' : 'rgba(255,255,255,0.5)'};"></span>`;
+            return `<button type="button" class="${i === _safetyCarouselIdx ? 'on' : ''}" aria-label="Go to award ${i + 1}" onclick="event.stopPropagation();safetyAwardGoTo(${i})"></button>`;
         }).join('');
         heroHtml = `
-        <div id="safety-award-hero" style="position:relative;width:100%;aspect-ratio:16/9;max-height:380px;overflow:hidden;">
+        <div id="safety-award-hero" class="saw-hero">
             ${slides}
             ${awards.length > 1 ? `
-            <button onclick="event.stopPropagation();safetyAwardPrev()" aria-label="Previous" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,0.9);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;"><i class="fas fa-chevron-left" style="font-size:0.85rem;color:#1b5e20;"></i></button>
-            <button onclick="event.stopPropagation();safetyAwardNext()" aria-label="Next" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,0.9);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;"><i class="fas fa-chevron-right" style="font-size:0.85rem;color:#1b5e20;"></i></button>
-            <div style="position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:2;">${dots}</div>
-            <div style="position:absolute;top:14px;right:16px;background:rgba(0,0,0,0.4);color:#fff;font-size:0.7rem;font-weight:600;padding:4px 10px;border-radius:20px;z-index:2;">${_safetyCarouselIdx + 1} of ${awards.length}</div>` : ''}
+            <button type="button" class="saw-arrow l" aria-label="Previous" onclick="event.stopPropagation();safetyAwardPrev()"><i class="fas fa-chevron-left"></i></button>
+            <button type="button" class="saw-arrow r" aria-label="Next" onclick="event.stopPropagation();safetyAwardNext()"><i class="fas fa-chevron-right"></i></button>
+            <div class="saw-dots">${dots}</div>
+            <div class="saw-count">${_safetyCarouselIdx + 1} of ${awards.length}</div>` : ''}
         </div>`;
     }
 
@@ -22464,9 +22357,9 @@ function buildSafetyAwardInnerHtml() {
             return `
             <div class="saw-mini-card" onclick="safetyViewAwardDetail('${aw.id}')">
                 <div class="saw-mini-img" style="${photo ? `background-image:url('${photo}')` : ''}">
-                    ${photo ? '' : '<i class="fas fa-trophy" style="color:#66bb6a;"></i>'}
+                    ${photo ? '' : '<i class="fas fa-trophy"></i>'}
                 </div>
-                <div class="saw-mini-title">${(aw.awardeeName || aw.awardTitle || 'Safety Award').replace(/</g, '&lt;')}</div>
+                <div class="saw-mini-title">${esc(aw.awardeeName || aw.awardTitle || 'Safety Award')}</div>
             </div>`;
         }).join('')}
     </div>`;
@@ -22498,57 +22391,57 @@ function renderSafetyAlertAwardPanel() {
 
     if (_safetyCarouselIdx >= awards.length) _safetyCarouselIdx = 0;
 
-    // ── LEFT: Safety Alert list (Yahoo "Trending" equivalent) ──
-    const topAlerts = activeAlerts.slice(0, 8); // 8 items so the list fills the taller column without big gaps
+    // ── LEFT: Safety Alert list ──
+    const topAlerts = activeAlerts.slice(0, 8);
     const alertsListHtml = topAlerts.length === 0
-        ? `<div style="padding:16px 14px;font-size:0.72rem;color:var(--text-secondary);">No active safety alerts.</div>`
+        ? `<div class="saw-empty">No active safety alerts.</div>`
         : topAlerts.map(function(a, i) {
             const thumb = safetyAlertThumbUrl(a);
             const fileIcon = a.fileType === 'pdf' ? 'fa-file-pdf' : 'fa-file-word';
             const fileColor = a.fileType === 'pdf' ? '#c62828' : '#1565c0';
             const thumbHtml = thumb
-                ? `<img src="${thumb}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0;">`
-                : `<div style="width:40px;height:40px;border-radius:6px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas ${fileIcon}" style="color:${fileColor};font-size:1rem;"></i></div>`;
+                ? `<img class="saw-thumb" src="${thumb}" alt="">`
+                : `<div class="saw-thumb"><i class="fas ${fileIcon}" style="color:${fileColor};"></i></div>`;
             return `
             <div class="saw-alert-item" onclick="safetyViewAlertDetail('${a.id}')">
                 <span class="saw-alert-num">${i + 1}</span>
-                ${thumbHtml}
                 <div style="min-width:0;">
                     <div class="saw-alert-title">${(a.title || 'Untitled Alert').replace(/</g, '&lt;')}</div>
-                    <div class="saw-alert-meta">${a.project ? a.project.replace(/</g, '&lt;') : 'Company-wide'} · ${a.dateIssued || ''}</div>
+                    <div class="saw-alert-meta"><span>${a.project ? a.project.replace(/</g, '&lt;') : 'Company-wide'}</span><span class="saw-date">${a.dateIssued || ''}</span></div>
                 </div>
+                ${thumbHtml}
             </div>`;
         }).join('');
     const alertsCol = `
-    <div class="saw-panel">
-        <div class="saw-panel-head" style="background:#fff3e0;border-bottom:1px solid #ffb74d;">
-            <i class="fas fa-triangle-exclamation" style="color:#e65100;"></i>
-            <span style="font-weight:800;font-size:0.78rem;letter-spacing:0.4px;color:#e65100;">SAFETY ALERT</span>
+    <div class="saw-col">
+      <section class="saw-panel">
+        <div class="saw-panel-head">
+            <div class="saw-ph-title"><i class="fas fa-triangle-exclamation"></i>Safety alert</div>
+            ${topAlerts.length > 0 ? `<span class="saw-ph-side">${topAlerts.length} latest</span>` : ''}
         </div>
         <div class="saw-alert-list">${alertsListHtml}</div>
-        ${activeAlerts.length > 0 ? `
-        <div onclick="changeTab('safety-alerts')" style="cursor:pointer;text-align:center;padding:9px;font-size:0.68rem;font-weight:700;color:#e65100;border-top:1px solid var(--border-color);">
-            See more alerts <i class="fas fa-chevron-right" style="font-size:0.58rem;"></i>
-        </div>` : ''}
+        ${activeAlerts.length > 0 ? `<div class="saw-more" onclick="changeTab('safety-alerts')">See more alerts</div>` : ''}
+      </section>
     </div>`;
 
-    // ── CENTER: Safety Award hero carousel + mini cards (Yahoo headline equivalent) ──
+    // ── CENTER: ESH award hero carousel + mini cards ──
     const awardCol = `
-    <div class="saw-panel">
-        <div class="saw-panel-head" style="background:#e8f5e9;border-bottom:1px solid #c8e6c9;">
-            <i class="fas fa-trophy" style="color:#2e7d32;"></i>
-            <span style="font-weight:800;font-size:0.8rem;letter-spacing:0.4px;color:#1b5e20;">ESH AWARD AND RECOGNITION</span>
-            <span style="margin-left:auto;display:flex;gap:6px;">
-                ${canPublish ? `<button onclick="safetyOpenAwardForm()" style="background:#2e7d32;border:none;color:#fff;border-radius:6px;padding:3px 8px;font-size:0.62rem;cursor:pointer;font-weight:700;">+ Award</button>` : ''}
-                <button onclick="safetyOpenArchiveModal('award')" style="background:transparent;border:1px solid #2e7d32;color:#2e7d32;border-radius:6px;padding:3px 8px;font-size:0.62rem;cursor:pointer;font-weight:700;">View All</button>
-            </span>
+    <div class="saw-col">
+      <section class="saw-panel">
+        <div class="saw-panel-head">
+            <div class="saw-ph-title"><i class="fas fa-trophy"></i>ESH award and recognition</div>
+            <div class="saw-ph-actions">
+                ${canPublish ? `<button type="button" class="saw-chip fill" onclick="safetyOpenAwardForm()">+ Award</button>` : ''}
+                <button type="button" class="saw-chip" onclick="safetyOpenArchiveModal('award')">View all</button>
+            </div>
         </div>
         <div id="saw-award-inner">${buildSafetyAwardInnerHtml()}</div>
+      </section>
     </div>`;
 
-    // ── RIGHT: Weather (Windy + PAGASA tabs). Markup lives in index.html → <template id="saw-wx-template"> ──
+    // ── RIGHT: Weather (PAGASA + Windy). Markup lives in index.html → <template id="saw-wx-template"> ──
     const _wxTpl = document.getElementById('saw-wx-template');
-    const weatherCol = _wxTpl ? _wxTpl.innerHTML : '';
+    const weatherCol = _wxTpl ? '<div class="saw-col">' + _wxTpl.innerHTML + '</div>' : '';
 
     container.innerHTML = `<div class="saw-grid">${alertsCol}${awardCol}${weatherCol}</div>`;
     sawWxInit();
@@ -25716,7 +25609,7 @@ const WARNING_SECS     = 60;             // countdown seconds shown in popup
                 </p>
                 <div id="idle-countdown-display" style="
                     font-size:2.5rem; font-weight:900; color:#e65100;
-                    font-family:'Poppins',sans-serif; line-height:1;
+                     line-height:1;
                     margin-bottom:24px; letter-spacing:-1px;">
                     60
                 </div>
@@ -28509,7 +28402,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Header
             + '<div style="background:linear-gradient(90deg,#0d3311,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
             + '<div>'
-            + '<div style="color:white;font-weight:800;font-size:0.95rem;font-family:Poppins,sans-serif;">'
+            + '<div style="color:white;font-weight:800;font-size:0.95rem;">'
             + (canEdit ? '✏️ Edit Compliance' : '🔍 View Compliance') + ' — <span id="gotm-title-month" style="color:#fbc02d;">' + GOT_M_FULL[month - 1] + ' ' + selYr + '</span>'
             + '</div>'
             + '<div style="color:#a5d6a7;font-size:0.67rem;margin-top:3px;">'
@@ -28722,7 +28615,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Header
             + '<div style="background:linear-gradient(90deg,#0d3311,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
             + '<div>'
-            + '<div style="color:white;font-weight:800;font-size:0.95rem;font-family:Poppins,sans-serif;">'
+            + '<div style="color:white;font-weight:800;font-size:0.95rem;">'
             + (editMode ? '✏️ Edit Compliance' : '🔍 View Compliance') + ' — <span style="color:#fbc02d;">' + pName + '</span>'
             + '</div>'
             + '<div style="color:#a5d6a7;font-size:0.67rem;margin-top:3px;">'
@@ -29012,7 +28905,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">'
                 + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
                 + '<div style="flex:1;min-width:0;">'
-                + '<div style="font-family:\'Archivo Narrow\',sans-serif;font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">📊 GOT Monthly Performance by Region (Jan – Dec ' + (state.selectedYear || new Date().getFullYear()) + ')</div>'
+                + '<div style="font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">📊 GOT Monthly Performance by Region (Jan – Dec ' + (state.selectedYear || new Date().getFullYear()) + ')</div>'
                 + '<div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Overall average compliance rating per region per month &bull; Rating: 25%=Started | 50%=Partial | 75%=Mostly Done | 100%=Fully Implemented</div>'
                 + '</div>'
                 + '<div style="display:flex;gap:6px;margin-left:auto;flex-shrink:0;">'
@@ -32332,7 +32225,7 @@ function renderEshCalendar(tabType) {
             border: 1px solid #c8e6c9;
             border-left: 5px solid #1b5e20;
             margin: 0 0 14px;
-            font-family: 'Inter', sans-serif;
+            
         }
         .esh-sum-kpm-hdr {
             padding: 11px 18px 9px;
@@ -32342,7 +32235,7 @@ function renderEshCalendar(tabType) {
         }
         .esh-sum-kpm-hdr i.sum-icon { font-size: 1rem; color: #2e7d32; flex-shrink: 0; }
         .esh-sum-kpm-hdr .sum-title {
-            font-family: 'Archivo Narrow', sans-serif;
+            
             font-size: 0.9rem; font-weight: 800;
             color: #1b5e20; text-transform: uppercase; letter-spacing: 0.04em;
         }
@@ -32364,11 +32257,11 @@ function renderEshCalendar(tabType) {
             padding: 12px 18px;
             display: flex; align-items: center; gap: 12px;
             margin: 0 0 14px;
-            font-family: 'Inter', sans-serif;
+            
         }
         .esh-sum-allclear i { color: #2e7d32; font-size: 1.2rem; flex-shrink: 0; }
         .esh-sum-allclear .ac-txt {
-            font-family: 'Poppins', sans-serif;
+            
             font-size: 0.82rem; font-weight: 800; color: #1b5e20;
         }
         .esh-sum-allclear .ac-sub { font-size: 0.62rem; color: #388e3c; margin-top: 2px; }
@@ -33519,7 +33412,7 @@ window.eshCorpDrillAddRow = function() {
     m.id = 'esh-corp-addrow-modal';
     m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99999;display:flex;align-items:center;justify-content:center;';
     m.innerHTML = `<div style="background:var(--bg-card);border-radius:14px;padding:28px 30px;min-width:340px;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-        <div style="font-family:Poppins,sans-serif;font-size:1rem;font-weight:700;color:#1b5e20;margin-bottom:18px;">
+        <div style="font-size:1rem;font-weight:700;color:#1b5e20;margin-bottom:18px;">
             <i class="fas fa-plus-circle" style="margin-right:8px;color:#2e7d32;"></i>Add Custom Drill / Activity
         </div>
         <label style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">Drill / Activity Name</label>
@@ -33745,7 +33638,7 @@ window.eshAddRowModal = function(tabType, projName) {
     m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99999;display:flex;align-items:center;justify-content:center;';
     const escapedProj = (projName || '').replace(/'/g, "\\'");
     m.innerHTML = `<div style="background:var(--bg-card);border-radius:14px;padding:28px 30px;min-width:340px;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-        <div style="font-family:Poppins,sans-serif;font-size:1rem;font-weight:700;color:#1b5e20;margin-bottom:6px;">
+        <div style="font-size:1rem;font-weight:700;color:#1b5e20;margin-bottom:6px;">
             <i class="fas fa-plus-circle" style="margin-right:8px;color:#2e7d32;"></i>Add Custom Row
         </div>
         <div style="font-size:0.72rem;color:var(--text-secondary);margin-bottom:16px;">
@@ -40926,7 +40819,7 @@ window.corpKpmOpenPersonModal = function(pid) {
     var overlay = document.createElement('div');
     overlay.id = 'corp-kpm-person-modal';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99999;display:flex;align-items:center;justify-content:center;';
-    overlay.innerHTML = `<div style="background:#fff;border-radius:14px;box-shadow:0 24px 80px rgba(0,0,0,0.4);width:min(460px,94vw);overflow:hidden;font-family:Calibri,Arial,sans-serif;">
+    overlay.innerHTML = `<div style="background:#fff;border-radius:14px;box-shadow:0 24px 80px rgba(0,0,0,0.4);width:min(460px,94vw);overflow:hidden;">
         <div style="background:#1B5E20;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
             <div><div style="color:#fff;font-weight:700;font-size:1rem;">${isEdit ? '✏️ Edit Personnel' : '➕ Register Personnel'}</div>
             <div style="color:#A5D6A7;font-size:0.72rem;margin-top:2px;">${isEdit ? 'Correct the details or set an end month' : 'The KPM starts on the start month you choose'}</div></div>
@@ -41143,7 +41036,7 @@ window.renderCorporateKpm = function() {
     var summaryHtml = '<div style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(27,94,32,0.10);border:1px solid #c8e6c9;border-left:5px solid #1b5e20;margin:0 16px 14px;">'
         + '<div style="padding:11px 18px 9px;background:#f1f8e9;border-bottom:1px solid #c8e6c9;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
         +   '<div>'
-        +     '<div style="font-family:Poppins,sans-serif;font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">🏢 CORPORATE KPM MONTHLY REPORT</div>'
+        +     '<div style="font-size:0.9rem;font-weight:800;color:#1b5e20;text-transform:uppercase;letter-spacing:0.04em;">🏢 CORPORATE KPM MONTHLY REPORT</div>'
         +     '<div style="font-size:0.6rem;color:#388e3c;font-weight:500;margin-top:1px;">Weighted % per personnel per month · Year: ' + year + '</div>'
         +   '</div>'
         +   (isWdaAdmin
@@ -41401,7 +41294,7 @@ window.renderCorporateKpm = function() {
             // Header
             + '<div style="background:linear-gradient(90deg,#0d3d0f,#1b5e20,#2e7d32);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">'
             +   '<div>'
-            +     '<div style="color:white;font-weight:800;font-size:0.95rem;font-family:Poppins,sans-serif;">'
+            +     '<div style="color:white;font-weight:800;font-size:0.95rem;">'
             +       (isNewEntry ? '➕ New KPM Entry' : (canEdit ? '✏️ Edit KPM' : '🔍 View KPM'))
             +       ' — <span style="color:#fbc02d;">' + activeMo + ' ' + year + '</span>'
             +     '</div>'
@@ -41430,7 +41323,7 @@ window.renderCorporateKpm = function() {
             + (isNA ? '<div style="background:#fff8e1;border-bottom:1px solid #fbc02d;padding:8px 16px;font-size:0.73rem;color:#7a5c00;font-weight:700;">⚠️ ' + activeMo + ' is marked as N/A / Exempt.</div>' : '')
             // Table
             + '<div style="overflow-x:auto;max-height:72vh;overflow-y:auto;background:var(--bg-card);">'
-            +   '<table style="border-collapse:collapse;width:100%;font-family:Poppins,sans-serif;">'
+            +   '<table style="border-collapse:collapse;width:100%;">'
             +   '<thead>'
             +   '<tr style="background:#1b5e20;">'
             +     '<th colspan="4" style="padding:6px 4px;border:1px solid #388e3c;font-size:0.7rem;color:#fff;font-weight:700;">KEY PERFORMANCE MEASURES</th>'
@@ -41562,7 +41455,7 @@ window.renderCorporateKpm = function() {
             box.innerHTML = '<div style="background:var(--bg-card,#fff);border-radius:12px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.45);overflow:hidden;">'
                 + '<div style="background:#fff3e0;border-bottom:1px solid #ffcc80;padding:14px 18px;display:flex;align-items:center;gap:10px;">'
                 + '<i class="fas fa-triangle-exclamation" style="color:#e65100;font-size:1.2rem;"></i>'
-                + '<div style="font-weight:800;font-size:0.9rem;color:#bf360c;font-family:Poppins,sans-serif;">Date Submitted is empty</div></div>'
+                + '<div style="font-weight:800;font-size:0.9rem;color:#bf360c;">Date Submitted is empty</div></div>'
                 + '<div style="padding:16px 18px;font-size:0.8rem;line-height:1.5;color:var(--text-main,#333);">'
                 + 'You did not fill in the <b>Date Submitted</b>. Without it, this month is counted as <b>not submitted</b>.<br><br>Do you still want to save?</div>'
                 + '<div style="padding:12px 18px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--border-color,#ddd);">'
@@ -41620,7 +41513,7 @@ function exportCorporateKpmExcel() {
     const overlay = document.createElement('div');
     overlay.id = 'corp-kpm-export-modal';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99999;display:flex;align-items:center;justify-content:center;';
-    overlay.innerHTML = '<div style="background:#fff;border-radius:14px;box-shadow:0 24px 80px rgba(0,0,0,0.4);width:min(420px,92vw);overflow:hidden;font-family:Calibri,Arial,sans-serif;">'
+    overlay.innerHTML = '<div style="background:#fff;border-radius:14px;box-shadow:0 24px 80px rgba(0,0,0,0.4);width:min(420px,92vw);overflow:hidden;">'
         + '<div style="background:#1B5E20;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">'
         +   '<div><div style="color:#fff;font-weight:700;font-size:1rem;">📥 Export Corporate KPM</div>'
         +   '<div style="color:#A5D6A7;font-size:0.72rem;margin-top:2px;">Select which personnel to export</div></div>'
