@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESH COMPLIANCE DASHBOARD - SCIC</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><defs><linearGradient id=%22g1%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%25%22 stop-color=%22%232e7d32%22/><stop offset=%22100%25%22 stop-color=%22%231b5e20%22/></linearGradient></defs><path d=%22M16 2 L28 7 L28 17 C28 23 22 28 16 30 C10 28 4 23 4 17 L4 7 Z%22 fill=%22url(%23g1)%22/><path d=%22M16 2 L28 7 L28 17 C28 23 22 28 16 30 C10 28 4 23 4 17 L4 7 Z%22 fill=%22none%22 stroke=%22%23fbc02d%22 stroke-width=%221.5%22/><text x=%2216%22 y=%2219.5%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-weight=%22900%22 font-size=%228.5%22 fill=%22white%22 letter-spacing=%22-0.5%22>ESH</text></svg>">
-<link rel="stylesheet" href="styles.css?v=6">
+<link rel="stylesheet" href="styles.css?v=7">
     <!-- OPTIMIZED: consolidated font load — only weights actually used, preconnect for speed -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -191,7 +191,7 @@
                     <div class="login-greeting-sub">Sign in to your ESH account</div>
 
                     <div id="login-full-view">
-                        <form class="login-form" onsubmit="handleLogin(event)" autocomplete="off" style="margin-top:0;">
+                        <form class="login-form ix-3ada42c" onsubmit="handleLogin(event)" autocomplete="off">
                             <div class="login-input-group">
                                 <div class="login-input-group-label">Email Address</div>
                                 <i class="fas fa-envelope"></i>
@@ -219,12 +219,12 @@
 
                     <div class="login-notice">
                         <i class="fas fa-triangle-exclamation"></i>
-                        <span><strong style="color:#555;">Authorized Personnel Only.</strong> Access is limited to ESH Department personnel and authorized accounts.</span>
+                        <span><strong class="ix-b7b411d">Authorized Personnel Only.</strong> Access is limited to ESH Department personnel and authorized accounts.</span>
                     </div>
 
                     <div class="login-footer">
                         &copy; 2026 Environmental Safety &amp; Health Department<br>
-                        <strong style="color:#aaa;">Sta. Clara International Corporation</strong>
+                        <strong class="ix-efae927">Sta. Clara International Corporation</strong>
                     </div>
 
                 </div>
@@ -247,7 +247,7 @@
             </div>
 
             <div class="confirm-modal-body">
-                <strong style="display: block; margin-bottom: 10px; color: var(--text-primary);">
+                <strong class="ix-787d653">
                     ⚠️ After changing your password:
                 </strong>
                 <ul>
@@ -275,21 +275,21 @@
 
     
     <div id="leaveSiteModal" class="modal" style="display:none;z-index:99999;">
-        <div class="confirm-modal-content" style="max-width:420px;">
+        <div class="confirm-modal-content ix-d513ae0">
             <div class="confirm-modal-header">
                 <div class="modal-icon confirm-modal-icon" style="background:linear-gradient(135deg,#c62828,#ef5350);box-shadow:0 5px 20px rgba(198,40,40,0.3);">
                     <i class="fas fa-exclamation-triangle"></i>
                 </div>
-                <div class="confirm-modal-title" style="font-size:1.25rem;">
+                <div class="confirm-modal-title ix-4dba189">
                     Leave Site?
                 </div>
                 <div class="confirm-modal-subtitle">Changes you made may not be saved.</div>
             </div>
             <div class="confirm-modal-buttons">
-                <button class="btn btn-cancel" onclick="leaveSiteCancel()" style="flex:1;max-width:none;">
+                <button class="btn btn-cancel ix-cfb57c2" onclick="leaveSiteCancel()">
                     <i class="fas fa-arrow-left"></i> Stay
                 </button>
-                <button class="btn btn-proceed" onclick="leaveSiteConfirm()" style="flex:1;max-width:none;background:linear-gradient(135deg,#c62828,#ef5350);">
+                <button class="btn btn-proceed ix-1b19fb9" onclick="leaveSiteConfirm()">
                     <i class="fas fa-sign-out-alt"></i> Leave
                 </button>
             </div>
@@ -310,7 +310,7 @@
             </div>
 
             <div class="success-modal-body">
-                <strong style="display: block; margin-bottom: 10px; color: var(--text-primary);">
+                <strong class="ix-787d653">
                     🔐 For your security:
                 </strong>
                 <ul>
@@ -369,17 +369,17 @@
             </div>
             
             <div class="form-group">
-                <label>Project Address <span style="color:#aaa;font-weight:400;font-size:0.75rem;">(optional)</span></label>
+                <label>Project Address <span class="ix-04bad91">(optional)</span></label>
                 <input type="text" id="projectAddressInput" placeholder="e.g. Brgy. Sto. Niño, Cagayan de Oro City">
             </div>
 
             <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <label class="ix-cf355da">
                     <input type="checkbox" id="projectIsRenewable" style="width: auto; cursor: pointer;">
                     <span>Renewable Energy Project</span>
                     <i class="fas fa-leaf" style="color: #4caf50;"></i>
                 </label>
-                <small style="color: var(--text-secondary); font-size: 0.75rem; display: block; margin-top: 5px;">
+                <small class="ix-cdb44ae">
                     <i class="fas fa-info-circle"></i> Check if this is a Renewable Energy project (required for DOE Reportorial)
                 </small>
             </div>
@@ -417,8 +417,8 @@
                 <input type="text" id="personnelFirstNameInput" placeholder="Enter first name" required style="text-transform: uppercase;">
             </div>
 <div class="form-group c3">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Middle Name</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Middle Name</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_middleName" onchange="toggleToUpdateField('personnelMiddleNameInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="text" id="personnelMiddleNameInput" placeholder="Enter middle name" style="text-transform: uppercase;">
@@ -436,8 +436,8 @@
                 </select>
             </div>
 <div class="form-group c4">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Position *</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Position *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_position" onchange="toggleToUpdateField('personnelPositionInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <select id="personnelPositionInput" required>
@@ -474,15 +474,15 @@
                 </select>
             </div>
 <div class="form-group c4">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">ID Number *</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">ID Number *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_id" onchange="toggleToUpdateField('personnelIdInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="text" id="personnelIdInput" placeholder="Enter ID number" required>
             </div>
 <div class="form-group c4">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Date Hired *</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Date Hired *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_hired" onchange="toggleToUpdateField('personnelHiredInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="date" id="personnelHiredInput" required>
@@ -495,15 +495,15 @@
                 </select>
             </div>
 <div class="form-group c6">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Area of Assignment</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Area of Assignment</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_area" onchange="toggleToUpdateField('personnelAreaInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="text" id="personnelAreaInput" autocomplete="off" placeholder="e.g. Laydown Area, Substation Yard" style="text-transform: uppercase;">
             </div>
 <div class="form-group c2">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Age *</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Age *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_age" onchange="toggleToUpdateField('personnelAgeInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="number" id="personnelAgeInput" placeholder="Enter age" min="18" max="100" required>
@@ -517,22 +517,22 @@
                 </select>
             </div>
 <div class="form-group c5">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Email</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Email</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_email" onchange="toggleToUpdateField('personnelEmailInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="email" id="personnelEmailInput" placeholder="email@example.com">
             </div>
 <div class="form-group c3">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Contact Number</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Contact Number</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_contact" onchange="toggleToUpdateField('personnelContactInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="tel" id="personnelContactInput" placeholder="09XX XXX XXXX" oninput="this.value=fmtPhone(this.value)" maxlength="13">
             </div>
 <div class="form-group c12">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Home Address</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Home Address</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="tu_address" onchange="toggleToUpdateField('personnelAddressInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <textarea id="personnelAddressInput" placeholder="Enter home address" oninput="this.value=titleCase(this.value)"></textarea>
@@ -572,8 +572,8 @@
                 <input type="text" id="editPersonnelFirstNameInput" placeholder="Enter first name" required style="text-transform: uppercase;">
             </div>
 <div class="form-group c3">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Middle Name</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Middle Name</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_middleName" onchange="toggleToUpdateField('editPersonnelMiddleNameInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="text" id="editPersonnelMiddleNameInput" placeholder="Enter middle name" style="text-transform: uppercase;">
@@ -591,8 +591,8 @@
                 </select>
             </div>
 <div class="form-group c4">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Position *</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Position *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_position" onchange="toggleToUpdateField('editPersonnelPositionInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <select id="editPersonnelPositionInput" required onchange="
@@ -633,15 +633,15 @@
                 </select>
             </div>
 <div class="form-group c4">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">ID Number *</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">ID Number *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_id" onchange="toggleToUpdateField('editPersonnelIdInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="text" id="editPersonnelIdInput" placeholder="Enter ID number" required>
             </div>
 <div class="form-group c4">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Date Hired *</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Date Hired *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_hired" onchange="toggleToUpdateField('editPersonnelHiredInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="date" id="editPersonnelHiredInput" required>
@@ -654,8 +654,8 @@
                 </select>
             </div>
 <div class="form-group c4">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Area of Assignment</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Area of Assignment</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_area" onchange="toggleToUpdateField('editPersonnelAreaInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="text" id="editPersonnelAreaInput" placeholder="e.g. Laydown Area, Substation Yard" style="text-transform: uppercase;">
@@ -667,8 +667,8 @@
                 </label>
             </div>
 <div class="form-group c2">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Age *</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Age *</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_age" onchange="toggleToUpdateField('editPersonnelAgeInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="number" id="editPersonnelAgeInput" placeholder="Enter age" min="18" max="100" required>
@@ -682,22 +682,22 @@
                 </select>
             </div>
 <div class="form-group c5">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Email</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Email</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_email" onchange="toggleToUpdateField('editPersonnelEmailInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="email" id="editPersonnelEmailInput" placeholder="email@example.com">
             </div>
 <div class="form-group c3">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Contact Number</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Contact Number</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_contact" onchange="toggleToUpdateField('editPersonnelContactInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <input type="tel" id="editPersonnelContactInput" placeholder="09XX XXX XXXX" oninput="this.value=fmtPhone(this.value)" maxlength="13">
             </div>
 <div class="form-group c12">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <label style="margin:0;">Home Address</label>
+                <div class="ix-22f7221">
+                    <label class="ix-1cc0260">Home Address</label>
                     <label style="font-size:0.68rem;color:#e65100;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="etu_address" onchange="toggleToUpdateField('editPersonnelAddressInput',this.checked)" style="accent-color:#e65100;"> To Update</label>
                 </div>
                 <textarea id="editPersonnelAddressInput" placeholder="Enter home address" oninput="this.value=titleCase(this.value)"></textarea>
@@ -715,23 +715,23 @@
                 <!-- To Follow checkbox -->
                 <label style="display:flex;align-items:center;gap:8px;font-size:0.75rem;color:#e65100;font-weight:500;cursor:pointer;margin-bottom:12px;padding:8px 12px;background:#fff8f0;border:1px solid #ffcc80;border-radius:8px;">
                     <input type="checkbox" id="editCert_toFollow" onchange="toggleCertToFollow(this.checked)" style="accent-color:#e65100;width:14px;height:14px;">
-                    Certificate not yet available — mark as <strong style="margin-left:2px;">To Follow</strong>
+                    Certificate not yet available — mark as <strong class="ix-b8de95c">To Follow</strong>
                 </label>
 
                 <div id="editCertFields">
                     <!-- Expiry date — only for BLS, PCO, DOLE OSH -->
                     <div id="editCertExpiryGroup" style="display:none;" class="form-group">
-                        <label>Expiry Date <span style="color:#c62828;">*</span></label>
+                        <label>Expiry Date <span class="ix-a8f4960">*</span></label>
                         <input type="date" id="editCertExpiry" data-allow-future>
                     </div>
 
                     <!-- PDF upload -->
                     <div class="form-group">
-                        <label>Certificate PDF <span style="font-size:0.65rem;color:#aaa;font-weight:400;">(max 500KB)</span></label>
+                        <label>Certificate PDF <span class="ix-87295f9">(max 500KB)</span></label>
                         <div id="editCertDropZone" onclick="document.getElementById('editCertFileInput').click()"
                             style="border:2px dashed #c8e6c9;border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:#fafffe;transition:all 0.2s;">
                             <i class="fas fa-file-pdf" style="font-size:1.4rem;color:#c8e6c9;display:block;margin-bottom:6px;"></i>
-                            <div style="font-size:0.72rem;color:#aaa;">Click to choose PDF file</div>
+                            <div class="ix-334a4e4">Click to choose PDF file</div>
                             <div id="editCertExistingName" style="display:none;margin-top:6px;font-size:0.68rem;color:#2e7d32;font-weight:500;"></div>
                         </div>
                         <input type="file" id="editCertFileInput" accept=".pdf" style="display:none;" onchange="onEditCertFileChosen(this)">
@@ -744,15 +744,15 @@
                     <!-- Upload progress -->
                     <div id="editCertProgress" style="display:none;margin-bottom:10px;">
                         <div style="font-size:0.7rem;color:#666;margin-bottom:4px;">Uploading certificate...</div>
-                        <div style="background:#e8f5e9;border-radius:100px;height:5px;overflow:hidden;">
+                        <div class="ix-9079917">
                             <div id="editCertProgressBar" style="height:100%;background:linear-gradient(90deg,#1b5e20,#4caf50);width:0%;transition:width 0.3s;border-radius:100px;"></div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-buttons" style="justify-content:space-between;align-items:center;">
-                <div style="display:flex;flex-direction:column;gap:6px;">
-                    <div style="display:flex;gap:8px;">
+            <div class="modal-buttons ix-5d61985">
+                <div class="ix-d775a48">
+                    <div class="ix-fe105db">
                         <button class="btn" id="editPersonnelDeleteBtn" onclick="deletePersonnelFromModal()" style="background:#d32f2f;color:white;border:none;padding:10px 18px;border-radius:8px;font-size:0.8rem;font-weight:500;display:flex;align-items:center;gap:6px;cursor:pointer;transition:background 0.2s;" title="Delete this personnel">
                             <i class="fas fa-trash"></i> Delete
                         </button>
@@ -760,12 +760,12 @@
                             <i class="fas fa-arrow-right-arrow-left"></i> Transfer
                         </button>
                     </div>
-                    <div style="font-size:0.62rem;color:#888;display:flex;align-items:center;gap:5px;padding-left:2px;">
+                    <div class="ix-f24e4ab">
                         <i class="fas fa-lightbulb" style="color:#fbc02d;font-size:0.6rem;"></i>
-                        Moving to another project? Use <strong style="color:#1565c0;">Transfer</strong>, not Delete.
+                        Moving to another project? Use <strong class="ix-1a70927">Transfer</strong>, not Delete.
                     </div>
                 </div>
-                <div style="display:flex;gap:8px;">
+                <div class="ix-fe105db">
                     <button class="btn btn-secondary" onclick="closeEditPersonnelModal()">Cancel</button>
                     <button class="btn btn-primary" onclick="confirmEditPersonnel()">Save Changes</button>
                 </div>
@@ -776,15 +776,15 @@
 
     
     <div id="transferPersonnelModal" class="modal" style="display:none;">
-        <div class="modal-content" style="max-width:440px;">
-            <div class="modal-header" style="background:linear-gradient(135deg,#1565c0,#1976d2);">
+        <div class="modal-content ix-356341f">
+            <div class="modal-header ix-94e78cf">
                 <span><i class="fas fa-arrow-right-arrow-left" style="margin-right:8px;"></i>Transfer Personnel</span>
                 <button class="modal-close" onclick="closeTransferPersonnelModal()">&times;</button>
             </div>
             <div class="modal-subtitle" id="transferPersonnelSubtitle" style="color:#1565c0;font-weight:500;"></div>
-            <div style="display:flex;align-items:flex-start;gap:8px;margin:0 0 4px 0;padding:10px 14px;background:#fff8e1;border-left:4px solid #fbc02d;border-radius:6px;font-size:0.72rem;color:#5d4037;line-height:1.5;">
+            <div class="ix-4ae3fbd">
                 <i class="fas fa-circle-info" style="color:#fbc02d;margin-top:2px;flex-shrink:0;"></i>
-                <span><strong style="color:#e65100;">Note:</strong> If transferring a personnel to another project, <strong>do not use Delete</strong> — use this <strong>Transfer</strong> function instead so their records are preserved.</span>
+                <span><strong class="ix-ac3bb9b">Note:</strong> If transferring a personnel to another project, <strong>do not use Delete</strong> — use this <strong>Transfer</strong> function instead so their records are preserved.</span>
             </div>
             <div class="modal-form-group">
                 <label style="font-weight:600;font-size:0.8rem;color:#333;">Transfer To:</label>
@@ -796,7 +796,7 @@
                 <div id="transferProjectList" style="max-height:260px;overflow-y:auto;border:1.5px solid #e0e0e0;border-radius:8px;background:#fafafa;"></div>
                 <div id="transferSelectedDisplay" style="margin-top:10px;display:none;">
                     <div style="font-size:0.7rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#888;margin-bottom:4px;">Selected:</div>
-                    <div id="transferSelectedName" style="background:#e3f2fd;border:1.5px solid #1976d2;border-radius:8px;padding:8px 12px;font-size:0.82rem;font-weight:500;color:#1565c0;display:flex;align-items:center;gap:8px;">
+                    <div class="ix-83c4833" id="transferSelectedName">
                         <i class="fas fa-solar-panel"></i>
                         <span id="transferSelectedNameText"></span>
                     </div>
@@ -832,7 +832,7 @@
                 <div class="form-group">
                     <label>Date Finished</label>
                     <input type="date" id="editProjectDateFinished" data-allow-future>
-                    <small style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 5px; display: block;">
+                    <small class="ix-41d92ec">
                         <i class="fas fa-info-circle"></i> Adding a finish date will automatically set status to "Finished"
                     </small>
                 </div>
@@ -850,17 +850,17 @@
             </div>
             
             <div class="form-group">
-                <label>Project Address <span style="color:#aaa;font-weight:400;font-size:0.75rem;">(optional)</span></label>
+                <label>Project Address <span class="ix-04bad91">(optional)</span></label>
                 <input type="text" id="editProjectAddressInput" placeholder="e.g. Brgy. Sto. Niño, Cagayan de Oro City">
             </div>
 
             <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <label class="ix-cf355da">
                     <input type="checkbox" id="editProjectIsRenewable" style="width: auto; cursor: pointer;">
                     <span>Renewable Energy Project</span>
                     <i class="fas fa-leaf" style="color: #4caf50;"></i>
                 </label>
-                <small style="color: var(--text-secondary); font-size: 0.75rem; display: block; margin-top: 5px;">
+                <small class="ix-cdb44ae">
                     <i class="fas fa-info-circle"></i> Check if this is a Renewable Energy project (required for DOE Reportorial)
                 </small>
             </div>
@@ -869,13 +869,13 @@
             <div id="editProjectWorkStoppageFields" style="border:1.5px solid #ffccbc;border-radius:8px;padding:12px 14px;margin-top:4px;background:#fff3e0;">
                 <div style="font-weight:600;font-size:0.78rem;color:#bf360c;margin-bottom:10px;display:flex;align-items:center;gap:7px;">
                     <i class="fas fa-hand-paper"></i> WORK STOPPAGE
-                    <span style="font-weight:400;font-size:0.68rem;color:#888;margin-left:4px;">— Optional. Filled months during stoppage will be excluded from compliance counting.</span>
+                    <span class="ix-a845096">— Optional. Filled months during stoppage will be excluded from compliance counting.</span>
                 </div>
                 <div class="form-group" style="margin-bottom:10px;">
                     <label style="font-size:0.75rem;">Work Stoppage Date</label>
                     <input type="date" id="editProjectWorkStoppageDate"
                         style="padding:7px 10px;border:1px solid #ffccbc;border-radius:6px;font-size:0.82rem;width:100%;background:#fffde7;color:var(--text-primary);">
-                    <small style="color:#bf360c;font-size:0.7rem;margin-top:3px;display:block;">
+                    <small class="ix-8ab8f46">
                         <i class="fas fa-info-circle"></i> If a Stoppage Date is set, the project will be excluded from compliance counting until a Resume Date is provided.
                     </small>
                 </div>
@@ -883,7 +883,7 @@
                     <label style="font-size:0.75rem;">Work Resume Date</label>
                     <input type="date" id="editProjectWorkResumeDate" data-allow-future
                         style="padding:7px 10px;border:1px solid #c8e6c9;border-radius:6px;font-size:0.82rem;width:100%;background:#f1f8e9;color:var(--text-primary);">
-                    <small style="color:#2e7d32;font-size:0.7rem;margin-top:3px;display:block;">
+                    <small class="ix-a2a7980">
                         <i class="fas fa-info-circle"></i> Once a Resume Date is set, months prior to it are excluded from compliance. Only months from the resume month onwards are counted.
                     </small>
                 </div>
@@ -900,7 +900,7 @@
 
     <aside id="main-sidebar" class="hidden sidebar-collapsed">
         <div class="sidebar-header">
-            <div style="font-size: 1.4rem; font-weight: 800; line-height: 1.1; margin-top: 5px;">ESH <span style="color:var(--safety-yellow)">COMPLIANCE</span><br>DASHBOARD</div>
+            <div style="font-size: 1.4rem; font-weight: 800; line-height: 1.1; margin-top: 5px;">ESH <span class="ix-b613287">COMPLIANCE</span><br>DASHBOARD</div>
             <div id="live-date" style="font-size:0.58rem;font-weight:500;color:#ffffff;letter-spacing:0.3px;margin-top:6px;"></div>
             <div id="live-clock" style="font-size:0.82rem;font-weight:600;color:rgba(251,192,45,0.85);letter-spacing:0.5px;margin-bottom:4px;"></div>
             <div id="user-badge" class="user-badge" >
@@ -1015,7 +1015,7 @@
 
     <main id="main-content" class="hidden">
         <header>
-            <div style="display:flex;align-items:center;gap:12px;">
+            <div class="ix-6b9d087">
                 <button id="hamburger-btn" onclick="toggleSidebar()" title="Toggle Menu" style="
                     background: none;
                     border: none;
@@ -1027,9 +1027,9 @@
                     border-radius: 6px;
                     transition: background 0.2s;
                 " onmouseover="this.style.background='rgba(27,94,32,0.08)'" onmouseout="this.style.background='none'">
-                    <span style="display:block;width:22px;height:2.5px;background:#1b5e20;border-radius:2px;transition:all 0.3s;"></span>
-                    <span style="display:block;width:22px;height:2.5px;background:#1b5e20;border-radius:2px;transition:all 0.3s;"></span>
-                    <span style="display:block;width:22px;height:2.5px;background:#1b5e20;border-radius:2px;transition:all 0.3s;"></span>
+                    <span class="ix-95653be"></span>
+                    <span class="ix-95653be"></span>
+                    <span class="ix-95653be"></span>
                 </button>
                 <h2 class="header-title">OVERALL SUMMARY</h2>
             </div>
@@ -1072,8 +1072,8 @@
                             </div>
                         </div>
                         <div class="dropdown-list" id="users-list"></div>
-                        <div style="padding: 8px 12px; border-top: 1px solid var(--border-color);">
-                            <button onclick="clearStalePresenceData()" style="width:100%; padding:7px; background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:8px; font-size:12px; font-weight:500; cursor:pointer;">
+                        <div class="ix-f33f8e9">
+                            <button class="ix-3f86ada" onclick="clearStalePresenceData()">
                                 <i class="fas fa-broom"></i> Clear Stale Data
                             </button>
                         </div>
@@ -1109,14 +1109,14 @@
                     
                     <div class="chat-panel" id="chat-panel" style="display:none;">
                         <div class="chat-panel-header">
-                            <div style="display:flex;align-items:center;gap:8px;">
+                            <div class="ix-fc898ec">
                                 <div class="chat-online-dot"></div>
                                 <div>
                                     <div class="chat-panel-title">ESH Team Chat</div>
                                     <div class="chat-panel-sub" id="chat-panel-sub">General</div>
                                 </div>
                             </div>
-                            <button onclick="toggleChatPanel(event)" style="background:none;border:none;color:rgba(255,255,255,0.8);cursor:pointer;font-size:1rem;padding:4px;"><i class="fas fa-times"></i></button>
+                            <button class="ix-829d36f" onclick="toggleChatPanel(event)"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="chat-rooms-bar" id="chat-rooms-bar"></div>
                         <div class="chat-messages-panel" id="chat-messages-panel">
@@ -1144,7 +1144,7 @@
                     </span>
                     <div class="notification-dropdown hidden" id="notification-dropdown">
                         <div class="ud-header">
-                            <div class="ud-header-icon" style="background:#fff3e0"><i class="fas fa-bell" style="color:#e65100"></i></div>
+                            <div class="ud-header-icon ix-99eb027"><i class="fas fa-bell" style="color:#e65100"></i></div>
                             <div>
                                 <div class="ud-header-text">Overdue Reports</div>
                                 <div class="ud-header-sub">Requires your attention</div>
@@ -1210,37 +1210,34 @@
 
 
 <div id="personnel-view" class="hidden" style="padding: 20px; max-height: calc(100vh - 70px); overflow-y: auto;">
-    <div style="border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid var(--border-color);">
+    <div style="border-radius: 10px; overflow: hidden; border: 1px solid #e3e9e4;">
 
         
-        <div style="background: linear-gradient(135deg, #0d3d0f 0%, #1b5e20 25%, #2e7d32 50%, #43a047 75%, #66bb6a 100%); padding: 18px 24px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:space-between; box-shadow: 0 4px 15px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1); position: relative; overflow: hidden;">
-            <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%); pointer-events: none; z-index: 1;"></div>
-            <div style="display:flex; align-items:center; gap:10px; position: relative; z-index: 2;">
-                <i class="fas fa-users-gear" style="font-size:1.3rem; color:var(--safety-yellow);"></i>
-                <div>
-                    <div style="font-size:1rem; font-weight:700; color:white; letter-spacing:0.5px;">ESH PERSONNEL MONITORING</div>
-                    <div style="font-size:0.65rem; color:#a5d6a7; margin-top:2px;">Environment, Safety &amp; Health Team Registry</div>
-                </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg-card);border-bottom:1px solid #e3e9e4;padding:10px 16px;">
+            <i class="fas fa-users-gear" style="font-size:1.2rem;color:#2e7d32;"></i>
+            <div style="flex:1;min-width:220px;">
+                <div style="margin:0;font-size:.85rem;font-weight:800;letter-spacing:.04em;color:#2e7d32;text-transform:uppercase;">ESH PERSONNEL MONITORING</div>
+                <div style="color:#555;font-size:.7rem;margin-top:2px;">Environment, Safety &amp; Health Team Registry</div>
             </div>
-            <div id="p-summary-badges" style="display:flex; gap:8px; flex-wrap:wrap; position: relative; z-index: 2;"></div>
+            <div id="p-summary-badges" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
         </div>
 
         
-        <div style="padding: 14px 20px; background: var(--bg-card); border-bottom: 1px solid var(--border-color); display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-            <div style="display:flex; gap:8px; flex:1; min-width:280px;">
-                <div style="position:relative; flex:1;">
+        <div class="ix-c994d65">
+            <div class="ix-8c734b2" style="flex:0 1 auto !important;min-width:0 !important;">
+                <div class="ix-950edb4" style="flex:0 0 auto !important;width:300px;max-width:100%;">
                     <input type="text" id="p-filter-value" placeholder="Search personnel..."
                         autocomplete="off"
                         oninput="filterPTable(); pcShowSearchDropdown(this.value)"
                         onkeyup="filterPTable()"
-                        style="width:100%; padding:8px 12px; border-radius:6px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-primary); font-size:0.75rem; box-sizing:border-box;">
+                        style="width:100%; padding:8px 12px; border-radius:6px; border:1.5px solid #81c784; background:var(--input-bg); color:var(--text-primary); font-size:0.75rem; box-sizing:border-box;">
                     <div id="pc-search-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:9999;
                         background:white; border:1.5px solid #c8e6c9; border-radius:8px; box-shadow:0 4px 18px rgba(0,0,0,0.13);
                         max-height:260px; overflow-y:auto; margin-top:3px;">
                     </div>
                 </div>
             </div>
-            <div style="display:flex; gap:8px; align-items:center;">
+            <div class="ix-52d498a">
                 <button id="p-add-personnel-btn" class="btn btn-primary" onclick="openAddPersonnelModal()" style="padding:8px 16px; display:none; align-items:center; gap:6px; font-size:0.78rem; border-radius:6px;">
                     <i class="fas fa-user-plus"></i> Add Personnel
                 </button>
@@ -1255,7 +1252,7 @@
         <div id="p-cards-container" style="padding: 0;">
             <div id="p-empty" style="display:none; padding:40px; text-align:center; color:var(--text-secondary);">
                 <i class="fas fa-users" style="font-size:2.5rem; opacity:0.3; margin-bottom:10px;"></i>
-                <div style="font-size:0.85rem;">No personnel records yet. Click <strong>Add Personnel</strong> to get started.</div>
+                <div class="ix-a6302aa">No personnel records yet. Click <strong>Add Personnel</strong> to get started.</div>
             </div>
         </div>
 
@@ -1270,20 +1267,17 @@
 <div id="osh-requirement-view" class="hidden" style="padding:20px;">
 
     
-    <div style="background:var(--bg-card);border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);border:1px solid var(--border-color);margin-bottom:20px;">
-        <div style="background:linear-gradient(135deg,#0d3d0f 0%,#2e7d32 50%,#388e3c 100%);padding:18px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;position:relative;overflow:hidden;">
-            <div style="position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.06) 50%,transparent 70%);pointer-events:none;"></div>
-            <div style="display:flex;align-items:center;gap:10px;position:relative;z-index:2;">
-                <i class="fas fa-shield-halved" style="font-size:1.4rem;color:#ffd54f;"></i>
-                <div>
-                    <div style="font-size:1rem;font-weight:700;color:white;letter-spacing:0.5px;">OSH PERSONNEL REQUIREMENT MONITORING</div>
-                    <div style="font-size:0.65rem;color:#a5d6a7;margin-top:2px;">DOLE OSHS Construction – Section 22 Auto-Detection &amp; Registry Cross-Reference</div>
-                </div>
+    <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid #e3e9e4;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg-card);border-bottom:1px solid #e3e9e4;padding:10px 16px;">
+            <i class="fas fa-shield-halved" style="font-size:1.2rem;color:#2e7d32;"></i>
+            <div style="flex:1;min-width:220px;">
+                <div style="margin:0;font-size:.85rem;font-weight:800;letter-spacing:.04em;color:#2e7d32;text-transform:uppercase;">OSH PERSONNEL REQUIREMENT MONITORING</div>
+                <div style="color:#555;font-size:.7rem;margin-top:2px;">DOLE OSHS Construction – Section 22 Auto-Detection &amp; Registry Cross-Reference</div>
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;position:relative;z-index:2;">
-                <div id="osh2-badge-total" style="background:rgba(255,255,255,0.12);color:white;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:600;border:1px solid rgba(255,255,255,0.25);">–</div>
-                <div id="osh2-badge-compliant" style="background:rgba(76,175,80,0.25);color:#a5d6a7;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:600;border:1px solid rgba(76,175,80,0.4);">–</div>
-                <div id="osh2-badge-deficient" style="background:rgba(244,67,54,0.2);color:#ef9a9a;padding:5px 14px;border-radius:20px;font-size:0.7rem;font-weight:600;border:1px solid rgba(244,67,54,0.35);">–</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div id="osh2-badge-total" style="background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;padding:3px 11px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;">–</div>
+                <div id="osh2-badge-compliant" style="background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;padding:3px 11px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;">–</div>
+                <div id="osh2-badge-deficient" style="background:#fdecec;color:#c62828;border:1px solid #f5b5b5;padding:3px 11px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;">–</div>
             </div>
         </div>
 
@@ -1291,31 +1285,31 @@
         <div id="osh2-stat-bar" style="display:flex;gap:0;border-bottom:1px solid var(--border-color);overflow:hidden;"></div>
 
         
-        <div style="padding:9px 18px;display:flex;align-items:center;gap:8px;font-size:0.76rem;font-weight:600;color:var(--text-secondary);background:var(--input-bg);border-top:1px solid var(--border-color);">
+        <div class="ix-0c8cd6e">
             <i class="fas fa-table-list" style="color:#2e7d32;"></i>
             DO 252-25 Section 22 – OSHS for the Construction Industry
         </div>
         <div id="osh2-ref-matrix" style="overflow-x:auto;padding:12px 16px;">
-            <table style="width:100%;border-collapse:collapse;font-size:0.7rem;min-width:650px;">
+            <table class="ix-a956584">
                 <thead>
-                    <tr style="background:#1b5e20;">
-                        <th style="padding:9px 12px;text-align:center;border:1px solid #2e7d32;color:white;font-weight:600;">No. of Workers</th>
-                        <th style="padding:9px 12px;text-align:center;border:1px solid #2e7d32;color:white;font-weight:600;">First Aider</th>
-                        <th style="padding:9px 12px;text-align:center;border:1px solid #2e7d32;color:white;font-weight:600;">Safety Officer</th>
-                        <th style="padding:9px 12px;text-align:center;border:1px solid #2e7d32;color:white;font-weight:600;">OH Nurse</th>
-                        <th style="padding:9px 12px;text-align:center;border:1px solid #2e7d32;color:white;font-weight:600;">OH Dentist</th>
-                        <th style="padding:9px 12px;text-align:center;border:1px solid #2e7d32;color:white;font-weight:600;">OH Physician</th>
+                    <tr>
+                        <th style="padding:9px 12px;text-align:center;border:1px solid #e3e9e4;background:#b9dfbb;color:#1b5e20;font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;">No. of Workers</th>
+                        <th style="padding:9px 12px;text-align:center;border:1px solid #e3e9e4;background:#b9dfbb;color:#1b5e20;font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;">First Aider</th>
+                        <th style="padding:9px 12px;text-align:center;border:1px solid #e3e9e4;background:#b9dfbb;color:#1b5e20;font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;">Safety Officer</th>
+                        <th style="padding:9px 12px;text-align:center;border:1px solid #e3e9e4;background:#b9dfbb;color:#1b5e20;font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;">OH Nurse</th>
+                        <th style="padding:9px 12px;text-align:center;border:1px solid #e3e9e4;background:#b9dfbb;color:#1b5e20;font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;">OH Dentist</th>
+                        <th style="padding:9px 12px;text-align:center;border:1px solid #e3e9e4;background:#b9dfbb;color:#1b5e20;font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;">OH Physician</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;font-weight:500;">1 – 9</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">1</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">1 SO2</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td></tr>
-                    <tr style="background:#f1f8e9;"><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;font-weight:500;">10 – 50</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">2</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">2 SO2</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td></tr>
-                    <tr><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;font-weight:500;">51 – 99</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">2</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">2 SO2</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">2 PT</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td></tr>
-                    <tr style="background:#f1f8e9;"><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;font-weight:500;">100 – 199</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">3</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">3 SO2/2 SO3</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">1 PT</td></tr>
-                    <tr><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;font-weight:500;">200 – 500</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">6</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">2 SO3 + 1 SO4</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">1 FT</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">1 PT</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">2 PT</td></tr>
-                    <tr style="background:#f1f8e9;"><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;font-weight:500;">501 – 2000</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;"></td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;"></td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">2 PT/1 FT</td></tr>
-                    <tr><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;font-weight:500;">Every +250</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">1 FT</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td></tr>
-                    <tr style="background:#f1f8e9;"><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;font-weight:500;">Every +500</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">1</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">1 SO2</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e8f5e9;text-align:center;">4 PT/1 FT</td></tr>
+                    <tr><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;font-weight:700;color:#1f2d23;">1 – 9</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">1</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">1 SO2</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td></tr>
+                    <tr style="background:#f4faf4;"><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;font-weight:700;color:#1f2d23;">10 – 50</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">2</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">2 SO2</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td></tr>
+                    <tr><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;font-weight:700;color:#1f2d23;">51 – 99</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">2</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">2 SO2</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">2 PT</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td></tr>
+                    <tr style="background:#f4faf4;"><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;font-weight:700;color:#1f2d23;">100 – 199</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">3</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">3 SO2/2 SO3</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">1 PT</td></tr>
+                    <tr><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;font-weight:700;color:#1f2d23;">200 – 500</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">6</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">2 SO3 + 1 SO4</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">1 FT</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">1 PT</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">2 PT</td></tr>
+                    <tr style="background:#f4faf4;"><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;font-weight:700;color:#1f2d23;">501 – 2000</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;"></td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;"></td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">2 PT/1 FT</td></tr>
+                    <tr><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;font-weight:700;color:#1f2d23;">Every +250</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">1 FT</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td></tr>
+                    <tr style="background:#f4faf4;"><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;font-weight:700;color:#1f2d23;">Every +500</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">1</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">1 SO2</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">–</td><td style="padding:7px 12px;border:1px solid #e3e9e4;text-align:center;">4 PT/1 FT</td></tr>
                 </tbody>
             </table>
             <div style="margin-top:10px;padding:8px 12px;background:#fff8e1;border-radius:6px;font-size:0.68rem;color:#795548;border-left:3px solid #fbc02d;">
@@ -1345,8 +1339,7 @@
                 <span class="saw-ph-side">Surface map</span>
             </div>
             <div class="saw-wx-pagasa">
-                <div id="saw-wx-loading" class="saw-wx-loading">Naglo-load ng larawan… mabagal ang server ng PAGASA</div>
-                <img id="saw-wx-pagasa-img" class="saw-wx-img" alt="PAGASA surface map" referrerpolicy="no-referrer"
+                             <img id="saw-wx-pagasa-img" class="saw-wx-img" alt="PAGASA surface map" referrerpolicy="no-referrer"
                      data-src="https://pubfiles.pagasa.dost.gov.ph/tamss/weather/surface_map.jpg" onload="sawWxImgDone(this)" onerror="sawWxImgErr(this)">
                 <a class="saw-wx-btn" href="https://pubfiles.pagasa.dost.gov.ph/tamss/weather/pf.pdf" target="_blank" rel="noopener">Daily Weather Forecast (PDF)</a>
                 <a class="saw-wx-btn alt" href="https://www.pagasa.dost.gov.ph/weather#daily-weather-forecast" target="_blank" rel="noopener">PAGASA weather page</a>
@@ -1385,18 +1378,18 @@
 
     
     <div style="background:var(--bg-card);border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);border:1px solid var(--border-color);margin-bottom:16px;">
-        <div style="background:linear-gradient(135deg,#0d3d0f 0%,#1b6e1f 50%,#2e7d32 100%);padding:16px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;position:relative;overflow:hidden;">
-            <div style="position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.06) 50%,transparent 70%);pointer-events:none;"></div>
-            <div style="display:flex;align-items:center;gap:10px;position:relative;z-index:2;">
+        <div class="ix-5315203">
+            <div class="ix-0701853"></div>
+            <div class="ix-95bdc07">
                 <i class="fas fa-seedling" style="font-size:1.4rem;color:#a5d6a7;"></i>
                 <div>
-                    <div style="font-size:1rem;font-weight:700;color:white;letter-spacing:0.5px;">ENVIRONMENTAL MONITORING</div>
+                    <div class="ix-f714078">ENVIRONMENTAL MONITORING</div>
                     <div style="font-size:0.65rem;color:#a5d6a7;margin-top:2px;" id="env-header-sub">Electricity Consumption &amp; GHG Emission Tracker — Per Region</div>
                 </div>
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;position:relative;z-index:2;align-items:center;">
+            <div class="ix-945cec6">
                 
-                <div style="display:flex;border-radius:20px;overflow:hidden;border:1.5px solid rgba(255,255,255,0.3);">
+                <div class="ix-db884ea">
                     <button id="env-toggle-elec" onclick="envSwitchMode('electricity')"
                         style="padding:5px 14px;font-size:0.7rem;font-weight:600;border:none;cursor:pointer;transition:all 0.2s;background:white;color:#1b5e20;">
                         ⚡ Electricity
@@ -1439,7 +1432,7 @@
         
         <div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
             <i class="fas fa-bolt" style="color:#2e7d32;font-size:1.2rem;"></i>
-            <div style="font-size:0.74rem;color:var(--text-primary);line-height:1.6;flex:1;">
+            <div class="ix-ea938d5">
                 Log <strong>Electricity Consumption</strong> per region — kWh usage and billing amount in Php. Auto-calculates <strong>GHG emissions</strong> (tCO2).
             </div>
         </div>
@@ -1451,7 +1444,7 @@
     <div id="env-water-section" style="display:none;">
         <div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
             <i class="fas fa-droplet" style="color:#2e7d32;font-size:1.2rem;"></i>
-            <div style="font-size:0.74rem;color:var(--text-primary);line-height:1.6;flex:1;">
+            <div class="ix-ea938d5">
                 Log <strong>Water Consumption</strong> per region — Domestic Use (m³), Potable Use (Liters), and Industrial Use (m³), each with corresponding amount in Php.
             </div>
         </div>
@@ -1462,7 +1455,7 @@
     <div id="env-waste-section" style="display:none;">
         <div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
             <i class="fas fa-trash-alt" style="color:#5d4037;font-size:1.2rem;"></i>
-            <div style="font-size:0.74rem;color:var(--text-primary);line-height:1.6;flex:1;">
+            <div class="ix-ea938d5">
                 Log <strong>Waste Generation and Disposal</strong> per region — Biodegradable, Non-Biodegradable/Residual, Recyclable, and Hazardous Wastes (MT), plus Septage Disposal (m³).
             </div>
         </div>
@@ -1474,7 +1467,7 @@
     <div id="env-appliances-section" style="display:none;">
         <div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
             <i class="fas fa-plug" style="color:#2e7d32;font-size:1.2rem;"></i>
-            <div style="font-size:0.74rem;color:var(--text-primary);line-height:1.6;flex:1;">
+            <div class="ix-ea938d5">
                 Inventory of <strong>Electrical Equipment &amp; Lighting Fixtures Used</strong> — quantity in units per project, per region.
             </div>
         </div>
@@ -1485,9 +1478,9 @@
     <div id="env-fuel-section" style="display:none;">
         <div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
             <i class="fas fa-gas-pump" style="color:#2e7d32;font-size:1.2rem;"></i>
-            <div style="font-size:0.74rem;color:var(--text-primary);line-height:1.6;flex:1;">
+            <div class="ix-ea938d5">
                 Log <strong>Fuel Consumption</strong> per region — Diesel (Liters) and Gasoline (Liters) per project per month. Auto-calculates <strong>Total GHG Emissions</strong> (t CO₂e).
-                <span style="font-size:0.68rem;color:#2e7d32;font-style:italic;">Data to be collected from Warehouse Department.</span>
+                <span class="ix-5f6f957">Data to be collected from Warehouse Department.</span>
             </div>
         </div>
         <div id="env-fuel-regions-container"></div>
@@ -1502,61 +1495,60 @@
 <div id="env-pdf-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:14px;width:min(520px,94vw);box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">
     <!-- Header -->
-    <div style="background:linear-gradient(135deg,#0d3d0f,#1b6e1f,#2e7d32);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:10px;">
+    <div class="ix-b601c51">
+      <div class="ix-c1d47ed">
         <i class="fas fa-file-pdf" style="color:#a5d6a7;font-size:1.2rem;"></i>
         <div>
-          <div style="color:white;font-weight:700;font-size:0.95rem;">Export Environmental Monitoring</div>
+          <div class="ix-ce75d8e">Export Environmental Monitoring</div>
           <div style="color:#a5d6a7;font-size:0.65rem;margin-top:1px;">Select tabs to include in PDF</div>
         </div>
       </div>
-      <button onclick="closeEnvPdfModal()" style="background:rgba(255,255,255,0.15);color:white;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:0.75rem;font-weight:600;">
+      <button class="ix-6916732" onclick="closeEnvPdfModal()">
         <i class="fas fa-times"></i> Close
       </button>
     </div>
     <!-- Body -->
-    <div style="padding:20px 24px;">
+    <div class="ix-726fdcd">
       <div style="font-size:0.75rem;font-weight:600;color:#1b5e20;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px;">Choose tabs to export:</div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
         <label id="envpdf-chk-elec"   style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid #c8e6c9;cursor:pointer;background:#f1f8e9;user-select:none;">
           <input type="checkbox" id="envpdf-cb-elec"   checked style="width:16px;height:16px;accent-color:#1b5e20;cursor:pointer;">
-          <span style="font-size:0.75rem;font-weight:600;color:#1b5e20;">⚡ Electricity Consumption</span>
-          <span style="margin-left:auto;font-size:0.65rem;color:#888;">kWh · Amount · GHG</span>
+          <span class="ix-ec2cc74">⚡ Electricity Consumption</span>
+          <span class="ix-642afbb">kWh · Amount · GHG</span>
         </label>
         <label id="envpdf-chk-water"  style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid #c8e6c9;cursor:pointer;background:#f1f8e9;user-select:none;">
           <input type="checkbox" id="envpdf-cb-water"  checked style="width:16px;height:16px;accent-color:#1b5e20;cursor:pointer;">
-          <span style="font-size:0.75rem;font-weight:600;color:#1b5e20;">💧 Water Consumption</span>
-          <span style="margin-left:auto;font-size:0.65rem;color:#888;">Domestic · Potable · Industrial</span>
+          <span class="ix-ec2cc74">💧 Water Consumption</span>
+          <span class="ix-642afbb">Domestic · Potable · Industrial</span>
         </label>
         <label id="envpdf-chk-waste"  style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid #c8e6c9;cursor:pointer;background:#f1f8e9;user-select:none;">
           <input type="checkbox" id="envpdf-cb-waste"  checked style="width:16px;height:16px;accent-color:#1b5e20;cursor:pointer;">
-          <span style="font-size:0.75rem;font-weight:600;color:#1b5e20;">🗑️ Waste Generation</span>
-          <span style="margin-left:auto;font-size:0.65rem;color:#888;">Bio · Non-Bio · Recyclable · Hazardous</span>
+          <span class="ix-ec2cc74">🗑️ Waste Generation</span>
+          <span class="ix-642afbb">Bio · Non-Bio · Recyclable · Hazardous</span>
         </label>
         <label id="envpdf-chk-appl"   style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid #c8e6c9;cursor:pointer;background:#f1f8e9;user-select:none;">
           <input type="checkbox" id="envpdf-cb-appl"   checked style="width:16px;height:16px;accent-color:#1b5e20;cursor:pointer;">
-          <span style="font-size:0.75rem;font-weight:600;color:#1b5e20;">🔌 Appliance Inventory</span>
-          <span style="margin-left:auto;font-size:0.65rem;color:#888;">A · A1 · B · C sections</span>
+          <span class="ix-ec2cc74">🔌 Appliance Inventory</span>
+          <span class="ix-642afbb">A · A1 · B · C sections</span>
         </label>
         <label id="envpdf-chk-fuel"   style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid #c8e6c9;cursor:pointer;background:#f1f8e9;user-select:none;">
           <input type="checkbox" id="envpdf-cb-fuel"   checked style="width:16px;height:16px;accent-color:#1b5e20;cursor:pointer;">
-          <span style="font-size:0.75rem;font-weight:600;color:#1b5e20;">⛽ Fuel Consumption</span>
-          <span style="margin-left:auto;font-size:0.65rem;color:#888;">Diesel · Gasoline · GHG</span>
+          <span class="ix-ec2cc74">⛽ Fuel Consumption</span>
+          <span class="ix-642afbb">Diesel · Gasoline · GHG</span>
         </label>
       </div>
       <!-- Select All / None -->
       <div style="display:flex;gap:8px;margin-bottom:18px;">
-        <button onclick="envPdfSelectAll(true)"  style="flex:1;padding:6px;background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;border-radius:6px;font-size:0.7rem;font-weight:600;cursor:pointer;">✓ Select All</button>
-        <button onclick="envPdfSelectAll(false)" style="flex:1;padding:6px;background:#fafafa;color:#666;border:1px solid #ddd;border-radius:6px;font-size:0.7rem;font-weight:600;cursor:pointer;">✕ Deselect All</button>
+        <button class="ix-71ff24a" onclick="envPdfSelectAll(true)">✓ Select All</button>
+        <button class="ix-b9ab5b6" onclick="envPdfSelectAll(false)">✕ Deselect All</button>
       </div>
       <!-- Year info -->
       <div style="background:#f9fbe7;border:1px solid #c8e6c9;border-radius:8px;padding:8px 12px;margin-bottom:18px;display:flex;align-items:center;gap:8px;">
         <i class="fas fa-calendar-check" style="color:#2e7d32;font-size:0.85rem;"></i>
-        <span style="font-size:0.72rem;color:#2e7d32;font-weight:500;">Report Year: <strong id="envpdf-year-label">—</strong> &nbsp;·&nbsp; All Regions &amp; Projects</span>
+        <span class="ix-ac14f28">Report Year: <strong id="envpdf-year-label">—</strong> &nbsp;·&nbsp; All Regions &amp; Projects</span>
       </div>
       <!-- Generate button -->
-      <button onclick="generateEnvPDF()" id="envpdf-generate-btn"
-        style="width:100%;padding:11px;background:linear-gradient(135deg,#1b5e20,#2e7d32);color:white;border:none;border-radius:8px;font-size:0.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:0.3px;"
+      <button class="ix-9d688aa" onclick="generateEnvPDF()" id="envpdf-generate-btn"
         onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
         <i class="fas fa-download"></i> Generate &amp; Download PDF
       </button>
@@ -1685,14 +1677,14 @@
                 <strong>Requirements:</strong> 8+ characters &middot; include numbers &amp; special chars &middot; all devices will be logged out after update.
               </div>
               <div class="settings-input-group">
-                <label class="settings-label"><i class="fas fa-lock"></i> Current Password <span style="color:#e53935;font-size:11px;font-weight:normal;">(required)</span></label>
+                <label class="settings-label"><i class="fas fa-lock"></i> Current Password <span class="ix-f3babde">(required)</span></label>
                 <div class="settings-input-icon">
                   <input type="password" id="current-password" class="settings-input" placeholder="Enter your current password">
                   <button class="icon-btn" onclick="togglePwd('current-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
                 </div>
               </div>
               <div class="settings-input-group">
-                <label class="settings-label"><i class="fas fa-key"></i> New Password <span style="color:#666;font-size:11px;font-weight:normal;">(min. 8 characters)</span></label>
+                <label class="settings-label"><i class="fas fa-key"></i> New Password <span class="ix-c1f9dfb">(min. 8 characters)</span></label>
                 <div class="settings-input-icon">
                   <input type="password" id="new-password" class="settings-input" placeholder="Min. 8 chars, include numbers &amp; special chars">
                   <button class="icon-btn" onclick="togglePwd('new-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
@@ -1755,10 +1747,10 @@
 
       </div><!-- /.settings-accordion -->
 
-      <div style="text-align:center;padding:28px 20px 10px;">
-        <div style="font-size:0.73rem;color:var(--text-secondary);line-height:1.9;">
+      <div class="ix-7b72543">
+        <div class="ix-461948e">
           <div>© <span id="copyright-year">2026</span> Sta. Clara International Corporation. All rights reserved.</div>
-          <div style="font-size:0.68rem;opacity:0.75;">Environmental Safety &amp; Health Department</div>
+          <div class="ix-3b4732b">Environmental Safety &amp; Health Department</div>
         </div>
       </div>
 
@@ -1794,6 +1786,9 @@
     <i id="floating-edit-icon" class="fas fa-edit"></i>
     <span id="floating-edit-tooltip" class="edit-tooltip">Click to Edit</span>
 </button>
+    <button id="floating-cancel-btn" class="floating-cancel-btn" onclick="requestCancelEdit()" title="Cancel editing (Esc)" aria-label="Cancel editing">
+    <i class="fas fa-times"></i>
+</button>
     <div id="toast-container"></div>
     
     <footer id="esh-global-footer" style="
@@ -1810,9 +1805,9 @@
         z-index:10;
     ">
         <i class="fas fa-shield-halved" style="margin-right:5px;color:rgba(255,255,255,0.35);"></i>
-        &copy; <span id="footer-copyright-year">2026</span> <strong style="color:rgba(255,255,255,0.75);">Environmental Safety &amp; Health Department</strong>
+        &copy; <span id="footer-copyright-year">2026</span> <strong class="ix-c551303">Environmental Safety &amp; Health Department</strong>
         &nbsp;&mdash;&nbsp;
-        <strong style="color:rgba(255,255,255,0.75);">Sta. Clara International Corporation</strong>
+        <strong class="ix-c551303">Sta. Clara International Corporation</strong>
         &nbsp;&mdash;&nbsp; All Rights Reserved.
     </footer>
 
@@ -1824,13 +1819,13 @@
 <div id="health-report-pending-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.55); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
   <div style="border-radius:20px; max-width:500px; width:90%; padding:0; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.25); animation:slideUp 0.3s ease-out;">
     <!-- Header -->
-    <div style="background:linear-gradient(135deg,#0a2e10 0%,#1b5e20 60%,#2e7d32 100%); padding:28px 30px 22px; position:relative;">
-      <div style="display:flex; align-items:center; gap:14px;">
-        <div style="width:52px; height:52px; border-radius:14px; background:rgba(251,192,45,0.2); border:2px solid rgba(251,192,45,0.5); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+    <div class="ix-95569f7">
+      <div class="ix-7e6c325">
+        <div class="ix-ef286b4">
           <i class="fas fa-notes-medical" style="color:#fbc02d; font-size:1.4rem;"></i>
         </div>
         <div>
-          <div style="font-size:1.05rem; font-weight:700; color:white; letter-spacing:0.3px;">Health Reportorial</div>
+          <div class="ix-f6521c5">Health Reportorial</div>
           <div style="font-size:0.72rem; color:#a5d6a7; margin-top:3px;">ESH Health Report Module</div>
         </div>
       </div>
@@ -1839,12 +1834,12 @@
       </button>
     </div>
     <!-- Body -->
-    <div style="padding:28px 30px 30px; background:var(--bg-card,#fff);">
+    <div class="ix-5435970">
       <div style="display:flex; align-items:flex-start; gap:14px; background:#e3f2fd; border:1.5px solid #90caf9; border-radius:12px; padding:18px 20px; margin-bottom:22px;">
         <i class="fas fa-hourglass-half" style="color:#1976d2; font-size:1.4rem; margin-top:2px; flex-shrink:0;"></i>
         <div>
           <div style="font-size:0.88rem; font-weight:600; color:#0d47a1; margin-bottom:6px;">Awaiting Revised Report Modules</div>
-          <div style="font-size:0.8rem; color:#37474f; line-height:1.7;">
+          <div class="ix-87ea476">
             This module is currently empty and is pending the revised Health Reportorial format from the <strong>Corporate Nurse</strong>. No data entry is available until the updated report structure and requirements have been finalized and submitted.
           </div>
         </div>
@@ -1853,7 +1848,7 @@
         <i class="fas fa-circle-info" style="color:#1976d2; margin-right:6px;"></i>
         Once the revised modules are received from the Corporate Nurse, this section will be updated accordingly. Please coordinate directly with the Corporate Health team for the expected timeline.
       </div>
-      <button onclick="closeHealthReportModal()" style="width:100%; padding:12px; background:linear-gradient(135deg,#1b5e20,#2e7d32); color:white; border:none; border-radius:10px; font-size:0.85rem; font-weight:600; cursor:pointer; letter-spacing:0.3px;">
+      <button class="ix-00dea10" onclick="closeHealthReportModal()">
         <i class="fas fa-check"></i> &nbsp;Understood
       </button>
     </div>
@@ -1869,21 +1864,21 @@
   <div style="background:#fff;border-radius:16px;width:92%;max-width:520px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.25);animation:scaleIn 0.25s ease-out;">
 
     <!-- Header bar -->
-    <div style="background:linear-gradient(135deg,#1b5e20 0%,#2e7d32 100%);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:10px;">
+    <div class="ix-9ad29f8">
+      <div class="ix-c1d47ed">
         <i class="fas fa-id-card" style="color:rgba(255,255,255,0.7);font-size:0.9rem;"></i>
-        <span style="font-size:0.82rem;font-weight:600;color:white;letter-spacing:0.5px;text-transform:uppercase;">Personnel Profile</span>
+        <span class="ix-89681ad">Personnel Profile</span>
       </div>
       <button onclick="pcCloseView()" style="background:rgba(255,255,255,0.15);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">&times;</button>
     </div>
 
     <!-- Name section -->
-    <div style="padding:16px 20px 14px;border-bottom:1px solid #e8f5e9;flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:12px;">
+    <div class="ix-10ef9fb">
+      <div class="ix-6b9d087">
         <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#1b5e20,#388e3c);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px rgba(27,94,32,0.3);">
           <i class="fas fa-user" style="color:white;font-size:1.1rem;"></i>
         </div>
-        <div style="min-width:0;">
+        <div class="ix-dca0755">
           <div id="pc-view-name" style="font-size:0.95rem;font-weight:700;color:#1b5e20;letter-spacing:0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;">
             <span id="pc-view-pos-badge" style="font-size:0.6rem;background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:20px;font-weight:600;border:1px solid #c8e6c9;"></span>
@@ -1894,7 +1889,7 @@
     </div>
 
     <!-- Scrollable body -->
-    <div style="overflow-y:auto;flex:1;padding:16px 20px 20px;">
+    <div class="ix-442c5ba">
 
       <!-- Info grid -->
       <div style="font-size:0.6rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Information</div>
@@ -1923,19 +1918,19 @@
 <div id="pc-upload-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:16px;width:90%;max-width:440px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,0.3);animation:slideUp 0.25s ease-out;">
     <!-- Header -->
-    <div style="background:linear-gradient(135deg,#1b5e20,#2e7d32);padding:16px 20px;position:relative;flex-shrink:0;">
+    <div class="ix-a8d1526">
       <div id="pc-upload-title" style="font-size:0.9rem;font-weight:700;color:white;"></div>
       <div style="font-size:0.68rem;color:#a5d6a7;margin-top:2px;">Upload PDF — max 500KB &nbsp;·&nbsp; <i class="fas fa-magic" style="margin-right:3px;"></i>Auto-detects expiry date</div>
       <button onclick="pcCloseUpload()" style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.15);border:none;color:white;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:0.8rem;"><i class="fas fa-times"></i></button>
     </div>
     <!-- Scrollable body -->
-    <div style="overflow-y:auto;flex:1;padding:18px 20px;">
+    <div class="ix-ff4224b">
       <!-- PDF Upload section (first — so OCR can fill expiry below) -->
       <div style="margin-bottom:14px;">
-        <label style="font-size:0.72rem;font-weight:600;color:#333;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">PDF File <span style="font-weight:400;color:#aaa;">(max 500KB)</span></label>
+        <label style="font-size:0.72rem;font-weight:600;color:#333;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">PDF File <span class="ix-d9470bd">(max 500KB)</span></label>
         <div id="pc-upload-drop" onclick="document.getElementById('pc-upload-file').click()" style="border:2px dashed #c8e6c9;border-radius:10px;padding:18px;text-align:center;cursor:pointer;background:#fafffe;transition:all 0.2s;">
           <i class="fas fa-file-pdf" style="font-size:1.6rem;color:#c8e6c9;margin-bottom:6px;display:block;"></i>
-          <div style="font-size:0.74rem;color:#aaa;">Click to upload PDF</div>
+          <div class="ix-70baf02">Click to upload PDF</div>
         </div>
         <input type="file" id="pc-upload-file" accept=".pdf" style="display:none;" onchange="pcFileChosen(this)">
         <div id="pc-upload-fname" style="display:none;margin-top:6px;font-size:0.7rem;color:#2e7d32;padding:5px 10px;background:#f1f8e9;border-radius:6px;border:1px solid #c8e6c9;">
@@ -1946,7 +1941,7 @@
         </div>
         <div id="pc-upload-locked-note" style="display:none;margin-top:8px;font-size:0.7rem;padding:8px 10px;background:#fff8e1;border-radius:6px;border:1px solid #ffe082;align-items:center;gap:7px;">
           <i class="fas fa-lock" style="color:#f9a825;font-size:0.85rem;flex-shrink:0;"></i>
-          <span style="color:#795548;line-height:1.4;">PDF is <strong>locked</strong> — once uploaded, certificates cannot be replaced. You may still update the expiry date.</span>
+          <span class="ix-17b7267">PDF is <strong>locked</strong> — once uploaded, certificates cannot be replaced. You may still update the expiry date.</span>
         </div>
       </div>
 
@@ -1957,7 +1952,7 @@
       <div id="pc-pdf-preview-wrap" style="display:none;margin-bottom:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
           <label style="font-size:0.72rem;font-weight:600;color:#333;text-transform:uppercase;letter-spacing:0.5px;">Preview</label>
-          <button onclick="document.getElementById('pc-pdf-preview-wrap').style.display='none'" style="font-size:0.65rem;background:none;border:none;color:#aaa;cursor:pointer;">Hide</button>
+          <button class="ix-587df77" onclick="document.getElementById('pc-pdf-preview-wrap').style.display='none'">Hide</button>
         </div>
         <iframe id="pc-pdf-iframe" src="" style="width:100%;height:260px;border:1.5px solid #c8e6c9;border-radius:8px;background:#f5f5f5;"></iframe>
       </div>
@@ -1976,7 +1971,7 @@
       <!-- Upload progress -->
       <div id="pc-upload-progress" style="display:none;margin-bottom:12px;">
         <div style="font-size:0.7rem;color:#666;margin-bottom:4px;">Uploading...</div>
-        <div style="background:#e8f5e9;border-radius:100px;height:5px;overflow:hidden;">
+        <div class="ix-9079917">
           <div id="pc-upload-bar" style="height:100%;background:linear-gradient(90deg,#1b5e20,#4caf50);width:0%;transition:width 0.3s;border-radius:100px;"></div>
         </div>
       </div>
@@ -1985,8 +1980,8 @@
     </div>
 
     <!-- Footer buttons (fixed at bottom) -->
-    <div style="padding:12px 20px;border-top:1px solid #f0f0f0;display:flex;gap:8px;background:#fafafa;flex-shrink:0;">
-      <button onclick="pcCloseUpload()" style="flex:1;padding:9px;background:#f5f5f5;color:#666;border:none;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;">Cancel</button>
+    <div class="ix-fada942">
+      <button class="ix-c1962e3" onclick="pcCloseUpload()">Cancel</button>
       <button id="pc-upload-save-btn" onclick="pcSaveCert()" style="flex:2;padding:9px;background:linear-gradient(135deg,#1b5e20,#2e7d32);color:white;border:none;border-radius:8px;font-size:0.8rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
         <i class="fas fa-save"></i> Save
       </button>
@@ -2014,9 +2009,8 @@
       box-shadow:0 8px 40px rgba(0,0,0,0.22);">
 
     <!-- Header -->
-    <div id="os-modal-header" style="padding:16px 20px 14px;
-        background:linear-gradient(135deg,#1b5e20,#2e7d32); display:flex; align-items:flex-start; justify-content:space-between; flex-shrink:0;">
-      <div style="flex:1; min-width:0;">
+    <div class="ix-19106bc" id="os-modal-header">
+      <div class="ix-dd35f48">
         <div id="os-modal-title" style="font-size:1rem; font-weight:700; color:white; letter-spacing:0.2px;"></div>
         <div id="os-modal-address" style="font-size:0.68rem; color:rgba(255,255,255,0.75); margin-top:3px; display:none;"><i class="fas fa-map-marker-alt" style="margin-right:4px; font-size:0.6rem;"></i><span id="os-modal-address-text"></span></div>
         <div style="display:flex; gap:6px; margin-top:5px; flex-wrap:wrap; align-items:center;">
@@ -2034,7 +2028,7 @@
     </div>
 
     <!-- Scrollable body -->
-    <div style="padding:18px 20px 22px; overflow-y:auto; flex:1; background:white;">
+    <div class="ix-c5c488d">
 
       <!-- Year label -->
       <div id="os-modal-year-label" style="font-size:0.7rem; color:#888; font-weight:500;
@@ -2043,7 +2037,7 @@
       <!-- Personnel section -->
       <div id="os-modal-personnel" style="margin-bottom:8px; display:none;
           background:#f0faf1; border:1.5px solid #c8e6c9; border-radius:8px; padding:6px 12px;">
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <div class="ix-0844e73">
           <div id="os-modal-head-card" style="flex:1; min-width:140px; background:white;
               border-radius:6px; padding:5px 10px; border:1px solid #e0f2e1; display:none;">
             <div style="font-size:0.55rem; color:#888; font-weight:500; text-transform:uppercase;
@@ -2052,8 +2046,7 @@
           </div>
           <div id="os-modal-esh-count-card" style="background:white; border-radius:6px;
               padding:5px 10px; border:1px solid #e0f2e1; display:none; align-items:center; gap:7px;">
-            <div style="width:24px; height:24px; border-radius:6px; background:#1b5e2018;
-                display:flex; align-items:center; justify-content:center;">
+            <div class="ix-399e76f">
               <i class="fas fa-users" style="color:#1b5e20; font-size:0.75rem;"></i>
             </div>
             <div>
