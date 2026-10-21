@@ -11562,10 +11562,10 @@ function renderTabulation() {
     };
 
     const cellStyle = (bg='', bold=false, center=true, color='') =>
-        `style="padding:6px 8px;border:1px solid #c8e6c9;${bg?'background:'+bg+';':''}${bold?'font-weight:700;':''}${center?'text-align:center;':'text-align:left;'}${color?'color:'+color+';':''}font-size:0.72rem;"`;
+        `style="padding:6px 8px;border:none;border-bottom:1px solid #e8efe8;${bg?'background:'+bg+';':'background:var(--bg-card);'}${bold?'font-weight:700;':''}${center?'text-align:center;':'text-align:left;'}${color?'color:'+color+';':''}font-size:0.72rem;"`;
 
     const stickyFirstCell = (bg='', bold=false, color='', extraStyle='') =>
-        `style="padding:6px 8px;border:1px solid #c8e6c9;${bg?'background:'+bg+';':'background:var(--bg-card);'}${bold?'font-weight:700;':''}text-align:left;${color?'color:'+color+';':''}font-size:0.72rem;position:sticky;left:0;z-index:2;white-space:nowrap;${extraStyle}"`;
+        `style="padding:6px 8px;border:none;border-bottom:1px solid #e8efe8;${bg?'background:'+bg+';':'background:var(--bg-card);'}${bold?'font-weight:700;':''}text-align:left;${color?'color:'+color+';':''}font-size:0.72rem;position:sticky;left:0;z-index:2;white-space:nowrap;${extraStyle}"`;
 
     const headerCell = (txt, span='', rowspan='', bg=C.tblHdrDark, color='#1b5e20') =>
         `<th ${span?'colspan="'+span+'"':''} ${rowspan?'rowspan="'+rowspan+'"':''} style="padding:8px 10px;background:${bg};color:${color};font-weight:700;text-align:center;border:1px solid #c8e6c9;font-size:0.72rem;white-space:nowrap;">${txt}</th>`;
@@ -11591,11 +11591,23 @@ function renderTabulation() {
         const hasAccum = data.headers.includes('Accumulated') || data.headers.includes('Running');
         const accumLabel = data.headers.includes('Accumulated') ? 'Accumulated' : 'Running';
 
+        const _now = new Date();
+        const _curM = (year === _now.getFullYear()) ? _now.getMonth() : (year < _now.getFullYear() ? 11 : -1);
+        const MUTED = '#c4c4c4';
+        const valCell = (v, mi, name, bg, isTot) => {
+            const future = mi > _curM;
+            if (isTot) return `<td ${cellStyle(C.header, true, true, 'white')}>${v !== null && v !== undefined ? ((future && !v) ? '–' : v) : '—'}</td>`;
+            if (v === null || v === undefined || (future && !v)) return `<td ${cellStyle(bg, false, true, MUTED)}>–</td>`;
+            if (!v) return `<td ${cellStyle(bg, false, true, MUTED)}>0</td>`;
+            const red = /^(fatality|lta)$/i.test(String(name).trim());
+            return `<td ${cellStyle(bg, true, true, red ? '#c62828' : 'var(--text-primary)')}>${v}</td>`;
+        };
+
         let html = `<table style="width:100%;border-collapse:collapse;margin-bottom:0;">
             <thead><tr>
                 ${stickyHeaderCell('Incident / Accident', '', 2, C.tblHdrDark, '#1b5e20')}
                 ${headerCell('Previous', '', 2, C.tblHdrDark, '#1b5e20')}
-                ${months.map(m => headerCell(m, '', '', C.tblHdrLight, '#1b5e20')).join('')}
+                ${months.map((m, mi) => { const h = headerCell(m, '', '', C.tblHdrLight, '#1b5e20'); return mi === _curM ? h.replace('white-space:nowrap;"', 'white-space:nowrap;box-shadow:inset 0 -3px 0 #2e7d32;"') : h; }).join('')}
                 ${headerCell('Total', '', 2, C.tblHdrDark, '#1b5e20')}
                 ${hasAccum ? headerCell(accumLabel, '', 2, C.tblHdrDark, '#1b5e20') : ''}
             </tr></thead><tbody>`;
@@ -11608,15 +11620,15 @@ function renderTabulation() {
             const accum = hasAccum ? row[row.length - 1] : null;
             const rowColor = incidentRowColor(name);
             const isTotalRow = name === 'Total';
-            const bg = isTotalRow ? C.header : (i % 2 === 0 ? C.rowAlt : C.rowWhite);
-            const fc = isTotalRow ? 'white' : (rowColor || '#1b5e20');
+            const bg = isTotalRow ? C.header : 'var(--bg-card)';
+            const fc = isTotalRow ? 'white' : 'var(--text-primary)';
 
             html += `<tr>
                 <td ${stickyFirstCell(bg, isTotalRow, fc, `padding-left:${name.startsWith('  ') ? '20px' : '8px'};`)}>${name.trim()}</td>
-                <td ${cellStyle(bg, isTotalRow, true, fc)}>${prev ?? '—'}</td>
-                ${vals.map(v => `<td ${cellStyle(bg, false, true, fc)}>${v !== null && v !== undefined ? v : '—'}</td>`).join('')}
-                <td ${cellStyle(isTotalRow ? C.header : C.tblHdrDark, true, true, isTotalRow ? 'white' : '#1b5e20')}>${total ?? '—'}</td>
-                ${hasAccum ? `<td ${cellStyle(isTotalRow ? C.header : C.rowAlt, true, true, isTotalRow ? 'white' : C.header)}>${accum ?? '—'}</td>` : ''}
+                <td ${cellStyle(bg, isTotalRow || !!prev, true, (!isTotalRow && !prev) ? MUTED : fc)}>${prev ?? '—'}</td>
+                ${vals.map((v, mi) => valCell(v, mi, name, bg, isTotalRow)).join('')}
+                <td ${cellStyle(isTotalRow ? C.header : 'rgba(46,125,50,0.07)', true, true, isTotalRow ? 'white' : (total ? 'var(--text-primary)' : MUTED))}>${total ?? '—'}</td>
+                ${hasAccum ? `<td ${cellStyle(isTotalRow ? C.header : 'rgba(46,125,50,0.07)', true, true, isTotalRow ? 'white' : 'var(--text-primary)')}>${accum ?? '—'}</td>` : ''}
             </tr>`;
         });
 
@@ -11629,7 +11641,7 @@ function renderTabulation() {
             html += `<tr style="background:${C.header};">
                 <td ${stickyFirstCell(C.header, true, 'white')}>Total</td>
                 <td ${cellStyle(C.header, true, true, 'white')}>${prev ?? '—'}</td>
-                ${tvals.map(v => `<td ${cellStyle(C.header, true, true, 'white')}>${v !== null && v !== undefined ? v : '—'}</td>`).join('')}
+                ${tvals.map((v, mi) => valCell(v, mi, 'Total', C.header, true)).join('')}
                 <td ${cellStyle(C.headerDark, true, true, C.accent)}>${ttotal ?? '—'}</td>
                 ${hasAccum ? `<td ${cellStyle(C.headerDark, true, true, C.accent)}>${taccum ?? '—'}</td>` : ''}
             </tr>`;
@@ -11651,11 +11663,11 @@ function renderTabulation() {
             const name = row[0];
             const vals = row.slice(1);
             const total = vals.reduce((a, b) => a + (b||0), 0);
-            const bg = i % 2 === 0 ? C.rowAlt : C.rowWhite;
+            const bg = 'var(--bg-card)';
             html += `<tr>
-                <td ${stickyFirstCell(bg, false, '#1b5e20')}>${name}</td>
-                ${vals.map(v => `<td ${cellStyle(bg, false, true, '#2e7d32')}>${v || 0}</td>`).join('')}
-                <td ${cellStyle(total > 0 ? C.tblHdrDark : bg, total > 0, true, total > 0 ? '#1b5e20' : '')}>${total}</td>
+                <td ${stickyFirstCell(bg, false, 'var(--text-primary)')}>${name}</td>
+                ${vals.map(v => v ? `<td ${cellStyle(bg, true, true, 'var(--text-primary)')}>${v}</td>` : `<td ${cellStyle(bg, false, true, '#c4c4c4')}>0</td>`).join('')}
+                <td ${cellStyle(total > 0 ? 'rgba(46,125,50,0.07)' : bg, total > 0, true, total > 0 ? 'var(--text-primary)' : '#c4c4c4')}>${total}</td>
             </tr>`;
         });
         html += `<tr style="background:${C.header};">
@@ -11682,13 +11694,13 @@ function renderTabulation() {
             const vals = row.slice(2);
             const total = vals.reduce((a, b) => a + (b||0), 0);
             if (factor) { currentFactor = factor; currentColor = factorColors[factor] || C.factorPeople; }
-            const bg = i % 2 === 0 ? C.rowAlt : C.rowWhite;
-            const catBg = factor ? currentColor : bg;
+            const bg = 'var(--bg-card)';
+            const catBg = bg;
             html += `<tr>
-                <td ${stickyFirstCell(catBg, !!factor, factor ? 'white' : '#1b5e20')}>${factor || ''}</td>
-                <td style="padding:6px 8px;border:1px solid #c8e6c9;background:${bg};font-size:0.72rem;text-align:left;position:sticky;left:90px;z-index:2;white-space:nowrap;color:#1b5e20;">${subfactor}</td>
-                ${vals.map(v => `<td ${cellStyle(bg, false, true, '#2e7d32')}>${v || 0}</td>`).join('')}
-                <td ${cellStyle(total > 0 ? C.tblHdrDark : bg, total > 0, true, total > 0 ? '#1b5e20' : '')}>${total}</td>
+                <td ${stickyFirstCell(catBg, !!factor, factor ? currentColor : 'var(--text-primary)')}>${factor || ''}</td>
+                <td style="padding:6px 8px;border:none;border-bottom:1px solid #e8efe8;background:${bg};font-size:0.72rem;text-align:left;position:sticky;left:90px;z-index:2;white-space:nowrap;color:var(--text-primary);">${subfactor}</td>
+                ${vals.map(v => v ? `<td ${cellStyle(bg, true, true, 'var(--text-primary)')}>${v}</td>` : `<td ${cellStyle(bg, false, true, '#c4c4c4')}>0</td>`).join('')}
+                <td ${cellStyle(total > 0 ? 'rgba(46,125,50,0.07)' : bg, total > 0, true, total > 0 ? 'var(--text-primary)' : '#c4c4c4')}>${total}</td>
             </tr>`;
         });
         html += `<tr style="background:${C.header};">
@@ -11844,21 +11856,16 @@ function renderTabulation() {
     let tabContent = '';
     if (curTab === 'summary') {
         tabContent = `
-            <div style="font-weight:700;font-size:0.78rem;color:#1b5e20;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-                <i class="fas fa-list-check"></i> Incident Summary
-            </div>
             <div style="overflow-x:auto;">${renderSummaryTable(year, d.summary)}</div>`;
     } else if (curTab === 'mechanism' && d.mechanism) {
         tabContent = `
             <div style="font-weight:700;font-size:0.78rem;color:#1b5e20;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-                <i class="fas fa-gear"></i> Incident Mechanism
                 <span style="margin-left:auto;font-size:0.65rem;color:#888;font-weight:400;"><i class="fas fa-arrows-up-down" style="margin-right:3px;"></i>Scroll to view all rows</span>
             </div>
             <div style="overflow-x:auto;overflow-y:auto;max-height:460px;border-radius:6px;border:1px solid #c8e6c9;box-shadow:inset 0 -4px 8px rgba(0,0,0,0.04);">${renderMechanismTable(d.mechanism)}</div>`;
     } else if (curTab === 'factors' && d.factors) {
         tabContent = `
             <div style="font-weight:700;font-size:0.78rem;color:#1b5e20;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-                <i class="fas fa-circle-exclamation"></i> Incident Contributing Factors
                 <span style="margin-left:auto;font-size:0.65rem;color:#888;font-weight:400;"><i class="fas fa-arrows-up-down" style="margin-right:3px;"></i>Scroll to view all rows</span>
             </div>
             <div style="overflow-x:auto;overflow-y:auto;max-height:460px;border-radius:6px;border:1px solid #c8e6c9;box-shadow:inset 0 -4px 8px rgba(0,0,0,0.04);">${renderFactorsTable(d.factors)}</div>`;
@@ -11890,21 +11897,7 @@ function renderTabulation() {
         
         <div style="background:var(--bg-card);border-radius:12px;margin-bottom:20px;overflow:hidden;box-shadow:0 2px 12px rgba(46,125,50,0.08);border:1px solid #c8e6c9;">
             
-            <div style="background:linear-gradient(135deg,#1b5e20 0%,#0d3311 100%);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <i class="fas fa-calendar" style="color:rgba(255,255,255,0.7);font-size:1rem;"></i>
-                    <div>
-                        <div style="color:white;font-weight:800;font-size:0.95rem;">Incident / Accident Tabulation ${year}</div>
-                        <div style="color:rgba(255,255,255,0.7);font-size:0.68rem;">SCIC · FM-ESH-01-42</div>
-                    </div>
-                </div>
-                <div style="background:rgba(255,255,255,0.15);border-radius:20px;padding:4px 14px;text-align:center;">
-                    <span style="color:white;font-weight:800;font-size:0.88rem;">${d.yearlyTotal}</span>
-                    <span style="color:rgba(255,255,255,0.7);font-size:0.6rem;text-transform:uppercase;margin-left:5px;">Year Total</span>
-                </div>
-            </div>
-
-            <div style="padding:16px;">
+                        <div style="padding:16px;">
                 ${tabContent}
             </div>
         </div>
@@ -26300,6 +26293,35 @@ function renderOsh2() {
     const container = document.getElementById('osh2-regions-container');
     if (!container) return;
 
+    if (!document.getElementById('osh2-card-css')) {
+        const st = document.createElement('style');
+        st.id = 'osh2-card-css';
+        st.textContent = [
+            '.osh2-list{padding:8px;display:flex;flex-direction:column;gap:6px}',
+            '.osh2-card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:7px 12px}',
+            '.osh2-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}',
+            '.osh2-title{flex:1;min-width:200px;font-weight:600;font-size:.78rem;line-height:1.2}',
+            '.osh2-idx{color:var(--text-secondary);font-size:.62rem;margin-right:5px}',
+            '.osh2-sub{font-size:.58rem;color:var(--text-secondary);font-weight:400}',
+            '.osh2-mp{display:flex;align-items:center;gap:6px;font-size:.58rem;color:var(--text-secondary)}.osh2-mp input,.osh2-mp>div{width:56px!important;padding:3px 5px!important;font-size:.7rem!important}',
+            '.osh2-chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin-top:6px}',
+            '.osh2-chip{border-radius:6px;padding:3px 8px;border:1px solid transparent;display:flex;flex-direction:column;gap:0;line-height:1.2}',
+            '.osh2-cl{font-size:.56rem;font-weight:600;opacity:.85}',
+            '.osh2-cv{font-size:.74rem;font-weight:800;display:flex;align-items:center;gap:5px}.osh2-cv i{font-size:.7rem}',
+            '.osh2-cs{font-size:.54rem;font-weight:600}.osh2-cs:empty{display:none}',
+            '.osh2-chip.ok{background:#e8f5e9;border-color:#a5d6a7;color:#2e7d32}',
+            '.osh2-chip.part{background:#fff3e0;border-color:#ffcc80;color:#e65100}',
+            '.osh2-chip.none{background:#ffebee;border-color:#ef9a9a;color:#c62828}',
+            '.osh2-chip.nr{background:var(--input-bg);color:#9e9e9e}',
+            '.osh2-chip.nr .osh2-cv{font-size:.68rem;font-weight:600;opacity:.6}',
+            '.osh2-people{margin-top:5px;padding-top:4px;border-top:1px solid var(--border-color);display:flex;flex-wrap:wrap;gap:2px 14px}',
+            'body.dark-mode .osh2-chip.ok{background:rgba(76,175,80,.15);border-color:rgba(76,175,80,.4);color:#a5d6a7}',
+            'body.dark-mode .osh2-chip.part{background:rgba(255,152,0,.15);border-color:rgba(255,152,0,.4);color:#ffb74d}',
+            'body.dark-mode .osh2-chip.none{background:rgba(244,67,54,.15);border-color:rgba(244,67,54,.4);color:#ef9a9a}'
+        ].join('');
+        document.head.appendChild(st);
+    }
+
     const regionFilter = (document.getElementById('osh2-region-filter') || {}).value || 'all';
     const statusFilter = (document.getElementById('osh2-status-filter') || {}).value || 'all';
 
@@ -26372,24 +26394,19 @@ function renderOsh2() {
             );
 
             function makeCell(cat, reqCount, actCount, label) {
+                const CAT_NAMES = { firstAider:'First aider', safetyOfficer:'Safety officer', ohNurse:'OH nurse', ohDentist:'OH dentist', ohPhysician:'OH physician' };
+                const catName = CAT_NAMES[cat] || cat;
                 if (reqCount === 0) {
-                    return `<td style="text-align:center;background:var(--input-bg);color:#9e9e9e;font-size:0.7rem;padding:8px 6px;">
-                        <span style="opacity:0.5;">N/R</span>
-                    </td>`;
+                    const _nrPeople = actual.names.filter(n => n.cat === cat);
+                    const _nrTitle = _nrPeople.length ? ' title="' + _nrPeople.map(n => n.name + ' (' + n.pos + ')').join('\n').replace(/"/g, '&quot;') + '"' : '';
+                    return `<div class="osh2-chip nr"${_nrTitle}><span class="osh2-cl">${catName}</span><span class="osh2-cv">N/R</span><span class="osh2-cs"></span></div>`;
                 }
 
-                // For the safetyOfficer cell, also check SO4 sub-requirement
-                let ok = actCount >= reqCount;
-                if (cat === 'safetyOfficer' && req.soLabel && req.soLabel.includes('SO4') && actual.so4Count < 1) {
-                    ok = false; // has enough total SOs but missing required SO4
-                }
+                // Safety officer: SO4 sub-requirement (ESH Head/Supt are SO3 only)
+                const so4Missing = (cat === 'safetyOfficer' && req.soLabel && req.soLabel.includes('SO4') && actual.so4Count < 1);
+                const ok = actCount >= reqCount && !so4Missing;
+                const kind = ok ? 'ok' : (actCount > 0 ? 'part' : 'none');
 
-                const bg = ok ? '#e8f5e9' : '#fff3e0';
-                const bord = ok ? '#a5d6a7' : '#ffcc80';
-                const icon = ok ? '✓' : '⚠';
-                const icolor = ok ? '#2e7d32' : '#e65100';
-
-                // For safetyOfficer, collect all SO sub-level names
                 const SO_CATS = ['safetyOfficerSO4','safetyOfficerSO3','safetyOfficerSO2','safetyOfficerSO1'];
                 const peopleInCat = cat === 'safetyOfficer'
                     ? actual.names.filter(n => SO_CATS.includes(n.cat))
@@ -26397,25 +26414,20 @@ function renderOsh2() {
                 const namesTooltip = peopleInCat.length
                     ? peopleInCat.map(n => n.name + ' (' + n.pos + ')').join('\n')
                     : 'None assigned';
+                const so4Warning = so4Missing ? '\nNo Safety Officer IV assigned' : '';
 
-                // Append SO4 warning to tooltip when applicable
-                const so4Warning = (cat === 'safetyOfficer' && req.soLabel && req.soLabel.includes('SO4') && actual.so4Count < 1)
-                    ? '\n⚠ No Safety Officer IV assigned (ESH Head/Supt are SO3 only)'
-                    : '';
-
-                return `<td style="text-align:center;background:${bg};border-left:1px solid ${bord};padding:8px 6px;" title="${namesTooltip}${so4Warning}">
-                    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-                        <span style="font-size:0.75rem;font-weight:800;color:${icolor};">${icon} ${actCount}/${reqCount}</span>
-                        <span style="font-size:0.6rem;color:#5d4037;font-weight:600;">${label || ''}</span>
-                    </div>
-                </td>`;
+                return `<div class="osh2-chip ${kind}" title="${namesTooltip}${so4Warning}">
+                    <span class="osh2-cl">${catName}</span>
+                    <span class="osh2-cv">${window._rowStatus(kind, '', '', false)}<span>${actCount}/${reqCount}</span></span>
+                    <span class="osh2-cs">${so4Missing ? 'Missing: SO4' : (label || '')}</span>
+                </div>`;
             }
 
             const statusBadge = !req
-                ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;background:#f5f5f5;color:#9e9e9e;font-size:0.62rem;font-weight:700;border:1px solid #e0e0e0;">❓ NO INPUT</span>`
+                ? window._rowStatus('wait', 'No input', '', true)
                 : rowStatus === 'compliant'
-                    ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;background:#e8f5e9;color:#2e7d32;font-size:0.62rem;font-weight:700;border:1px solid #a5d6a7;">✓ COMPLIANT</span>`
-                    : `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;background:#fff3e0;color:#e65100;font-size:0.62rem;font-weight:700;border:1px solid #ffcc80;animation:osh-pulse 2s infinite;">⚠ DEFICIENT</span>`;
+                    ? window._rowStatus('ok', 'Compliant', '', true)
+                    : window._rowStatus('part', 'Deficient', '', true);
 
             const allAssigned = actual.names;
             const assignedHtml = allAssigned.length
@@ -26423,35 +26435,32 @@ function renderOsh2() {
                     + (allAssigned.length > 4 ? `<div style="font-size:0.58rem;color:#9e9e9e;">+${allAssigned.length-4} more…</div>` : '')
                 : `<span style="font-size:0.6rem;color:#bdbdbd;">No ESH personnel tagged</span>`;
 
-            const rowBg = idx % 2 === 0 ? '' : 'background:rgba(0,0,0,0.015);';
+            const mpHtml = canEditThisRegion
+                ? `<input class="osh2-mp-input" type="number" min="0" value="${manpower||''}" placeholder="0"
+                        onchange="updateOsh2Manpower('${safeN}',this.value)"
+                        style="width:65px;padding:5px 6px;border:1.5px solid ${manpower>0?'#2e7d32':'var(--border-color)'};border-radius:6px;background:var(--input-bg);color:var(--text-primary);font-size:0.78rem;text-align:center;font-weight:700;" />`
+                : `<div style="width:65px;padding:5px 6px;border:1.5px solid var(--border-color);border-radius:6px;background:rgba(0,0,0,0.04);color:var(--text-secondary);font-size:0.78rem;text-align:center;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:4px;cursor:not-allowed;" title="You can only edit your assigned region">
+                        <i class="fas fa-lock" style="font-size:0.6rem;opacity:0.5;"></i>
+                        <span>${manpower > 0 ? manpower : '–'}</span>
+                   </div>`;
 
-            regionRows += `<tr style="${rowBg}">
-                <td style="padding:8px 10px;font-weight:600;font-size:0.72rem;min-width:190px;position:sticky;left:0;z-index:5;background:var(--bg-card);${idx%2===1?'background:rgba(0,0,0,0.015);':''}">
-                    <span style="color:var(--text-secondary);font-size:0.63rem;margin-right:4px;">${idx+1}</span>
-                    ${proj.name}
-                    <div style="font-size:0.6rem;color:var(--text-secondary);font-weight:400;margin-top:1px;">${proj.status||'on-going'}</div>
-                </td>
-                <td style="text-align:center;padding:6px;min-width:80px;">
-                    ${canEditThisRegion
-                        ? `<input class="osh2-mp-input" type="number" min="0" value="${manpower||''}" placeholder="0"
-                            onchange="updateOsh2Manpower('${safeN}',this.value)"
-                            style="width:65px;padding:5px 6px;border:1.5px solid ${manpower>0?'#2e7d32':'var(--border-color)'};border-radius:6px;background:var(--input-bg);color:var(--text-primary);font-size:0.78rem;text-align:center;font-weight:700;" />`
-                        : `<div style="width:65px;padding:5px 6px;border:1.5px solid var(--border-color);border-radius:6px;background:rgba(0,0,0,0.04);color:var(--text-secondary);font-size:0.78rem;text-align:center;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:4px;cursor:not-allowed;" title="You can only edit your assigned region">
-                            <i class="fas fa-lock" style="font-size:0.6rem;opacity:0.5;"></i>
-                            <span>${manpower > 0 ? manpower : '–'}</span>
-                          </div>`
-                    }
-                </td>
-                ${req ? makeCell('firstAider', req.firstAider, actual.firstAider, req.soLabel ? '' : '') : '<td style="text-align:center;color:#bdbdbd;font-size:0.7rem;">–</td>'}
-                ${req ? makeCell('safetyOfficer', req.safetyOfficer, actual.safetyOfficer, req.soLabel) : '<td style="text-align:center;color:#bdbdbd;font-size:0.7rem;">–</td>'}
-                ${req ? makeCell('ohNurse', req.ohNurse, actual.ohNurse, req.nurseLabel) : '<td style="text-align:center;color:#bdbdbd;font-size:0.7rem;">–</td>'}
-                ${req ? makeCell('ohDentist', req.ohDentist, actual.ohDentist, req.dentistLabel||'') : '<td style="text-align:center;color:#bdbdbd;font-size:0.7rem;">–</td>'}
-                ${req ? makeCell('ohPhysician', req.ohPhysician, actual.ohPhysician, req.physLabel) : '<td style="text-align:center;color:#bdbdbd;font-size:0.7rem;">–</td>'}
-                <td style="padding:8px 6px;text-align:center;">${statusBadge}</td>
-                <td style="padding:6px 8px;min-width:150px;">
-                    <div style="font-size:0.6rem;">${assignedHtml}</div>
-                </td>
-            </tr>`;
+            regionRows += `<div class="osh2-card">
+                <div class="osh2-top">
+                    <div class="osh2-title">
+                        <span class="osh2-idx">${idx+1}</span>${proj.name}
+                        <div class="osh2-sub">${proj.status||'on-going'}</div>
+                    </div>
+                    <div class="osh2-mp"><span>Manpower</span>${mpHtml}</div>
+                    <div>${statusBadge}</div>
+                </div>
+                ${req ? `<div class="osh2-chips">
+                    ${makeCell('firstAider', req.firstAider, actual.firstAider, '')}
+                    ${makeCell('safetyOfficer', req.safetyOfficer, actual.safetyOfficer, req.soLabel)}
+                    ${makeCell('ohNurse', req.ohNurse, actual.ohNurse, req.nurseLabel)}
+                    ${makeCell('ohDentist', req.ohDentist, actual.ohDentist, req.dentistLabel||'')}
+                    ${makeCell('ohPhysician', req.ohPhysician, actual.ohPhysician, req.physLabel)}
+                </div>` : ''}
+            </div>`;
         });
 
         totalCompliant += rCompliant;
@@ -26477,9 +26486,9 @@ function renderOsh2() {
                     </div>
                     <div class="region-banner-right">
                         <span class="rbadge rbadge-count">${projects.length} PROJECT${projects.length!==1?'S':''}</span>
-                        <span class="rbadge" style="background:rgba(76,175,80,0.3);color:#a5d6a7;">${rCompliant} OK</span>
-                        ${rDeficient > 0 ? `<span class="rbadge" style="background:rgba(255,82,82,0.3);color:#ff8a80;animation:osh-pulse 2s infinite;">${rDeficient} Deficient</span>` : ''}
-                        ${rNoInput > 0 ? `<span class="rbadge" style="background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);">${rNoInput} No Input</span>` : ''}
+                        <span class="rbadge" style="background:rgba(76,175,80,0.3);color:#a5d6a7;"><i class="fas fa-circle-check"></i> ${rCompliant} OK</span>
+                        ${rDeficient > 0 ? `<span class="rbadge" style="background:rgba(255,82,82,0.3);color:#ff8a80;animation:osh-pulse 2s infinite;"><i class="fas fa-circle-half-stroke"></i> ${rDeficient} Deficient</span>` : ''}
+                        ${rNoInput > 0 ? `<span class="rbadge" style="background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);"><i class="fas fa-clock"></i> ${rNoInput} No Input</span>` : ''}
                         ${(rCompliant+rDeficient)>0 ? `<span class="rbadge rbadge-avg">${rPct}% COMPLIANT</span>` : ''}
                         <i class="fas fa-chevron-down region-toggle-icon"></i>
                     </div>
@@ -26488,22 +26497,7 @@ function renderOsh2() {
 
             
             <div id="osh2-region-${region.replace(/[^a-z0-9]/gi,'_')}" style="overflow-x:auto;display:none;">
-                <table class="env-tbl" style="width:100%;font-size:0.72rem;">
-                    <thead>
-                        <tr>
-                            <th class="env-th-left env-th-sticky env-th-dark" style="white-space:nowrap;">PROJECT</th>
-                            <th style="white-space:nowrap;">MANPOWER<br><span style="font-weight:400;opacity:0.75;">(Input)</span></th>
-                            <th style="white-space:nowrap;">FIRST AIDER<br><span style="font-weight:400;opacity:0.75;">Req / Act</span></th>
-                            <th style="white-space:nowrap;">SAFETY OFFICER<br><span style="font-weight:400;opacity:0.75;">Req / Act</span></th>
-                            <th style="white-space:nowrap;">OH NURSE<br><span style="font-weight:400;opacity:0.75;">Req / Act</span></th>
-                            <th style="white-space:nowrap;">OH DENTIST<br><span style="font-weight:400;opacity:0.75;">Req / Act</span></th>
-                            <th style="white-space:nowrap;">OH PHYSICIAN<br><span style="font-weight:400;opacity:0.75;">Req / Act</span></th>
-                            <th style="white-space:nowrap;">STATUS</th>
-                            <th style="text-align:left;white-space:nowrap;min-width:150px;">ASSIGNED ESH PERSONNEL<br><span style="font-weight:400;opacity:0.75;font-size:0.6rem;">(from registry)</span></th>
-                        </tr>
-                    </thead>
-                    <tbody>${regionRows}</tbody>
-                </table>
+                <div class="osh2-list">${regionRows}</div>
             </div>
         </div>`;
     });
@@ -26533,8 +26527,8 @@ function renderOsh2() {
     const b2 = document.getElementById('osh2-badge-compliant');
     const b3 = document.getElementById('osh2-badge-deficient');
     if (b1) b1.textContent = `${allProjects.length} Projects`;
-    if (b2) b2.textContent = `✅ ${totalCompliant} Compliant`;
-    if (b3) b3.textContent = totalDeficient > 0 ? `⚠ ${totalDeficient} Deficient` : `✓ All Checked`;
+    if (b2) b2.innerHTML = `<i class="fas fa-circle-check"></i> ${totalCompliant} Compliant`;
+    if (b3) b3.innerHTML = totalDeficient > 0 ? `<i class="fas fa-circle-half-stroke"></i> ${totalDeficient} Deficient` : `<i class="fas fa-circle-check"></i> All Checked`;
 
     const statBar = document.getElementById('osh2-stat-bar');
     if (statBar && allProjects.length > 0) {
