@@ -1,6 +1,16 @@
 // Chart.js draws on <canvas>, which CSS cannot reach. One default so every chart uses the same font.
 if (window.Chart && Chart.defaults && Chart.defaults.font) { Chart.defaults.font.family = "'Inter', sans-serif"; }
 
+// Shared month-row status: icon (+ short text unless complete). Used by KPM, GOT, DOLE, EMB and EMR rows.
+window._rowStatus = function(kind, txt, title, showTxt) {
+    var ic = { ok:'fa-circle-check', part:'fa-circle-half-stroke', none:'fa-circle-xmark', wait:'fa-clock', prog:'fa-clock', warn:'fa-triangle-exclamation' }[kind] || 'fa-circle';
+    var show = (showTxt !== undefined) ? showTxt : (kind !== 'ok');
+    var t = title || (show ? '' : txt) || '';
+    t = String(t).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    return '<span class="ckpm-stw"' + (t ? ' title="' + t + '"' : '') + '><i class="fas ' + ic + ' ckpm-ck ' + kind + '"></i>'
+         + (show && txt ? '<span class="ckpm-st ' + kind + '">' + txt + '</span>' : '') + '</span>';
+};
+
 // ESH: status pills shown on every region banner (replaces the old 4 stat cards above the banners)
 window._rbStatusPills = function(tot, fill, ovd, ovdLabel) {
     var h = '';
@@ -341,6 +351,7 @@ window.isDoleAnnualNA = isDoleAnnualNA;
     function getTimeGreeting(){var h=new Date().getHours();if(h>=5&&h<12)return'Good morning';if(h>=12&&h<18)return'Good afternoon';if(h>=18&&h<22)return'Good evening';return'Working late';}
     var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     window._showGreetingRibbon=function(){
+        return; // greeting ribbon disabled (plain UI) — remove this line to re-enable
         try{if(sessionStorage.getItem('esh_greeting_dismissed')==='1')return;}catch(e){}
         var ribbon=document.getElementById('greeting-ribbon'),iconEl=document.getElementById('greeting-ribbon-icon'),textEl=document.getElementById('greeting-ribbon-text'),badge=document.getElementById('greeting-ribbon-badge');
         if(!ribbon||!textEl)return;
@@ -5123,7 +5134,7 @@ debugCommands.help() - Show this help
             if (floatingBtn) {
                 floatingBtn.classList.add('save-mode');
                 floatingBtn.setAttribute('onclick', 'saveData()');
-                floatingBtn.setAttribute('title', 'Save Changes');
+                floatingBtn.setAttribute('aria-label', 'Save changes');
             }
             if (floatingIcon) {
                 floatingIcon.className = 'fas fa-save';
@@ -5193,7 +5204,7 @@ debugCommands.help() - Show this help
             if (fb) {
                 fb.classList.remove('save-mode');
                 fb.setAttribute('onclick', 'toggleEdit()');
-                fb.setAttribute('title', 'Edit Mode');
+                fb.setAttribute('aria-label', 'Edit mode');
                 fb.style.pointerEvents = 'auto';
                 fb.style.opacity = '1';
             }
@@ -5296,7 +5307,7 @@ debugCommands.help() - Show this help
                     if (floatingBtn) {
                         floatingBtn.classList.remove('save-mode');
                         floatingBtn.setAttribute('onclick', 'toggleEdit()');
-                        floatingBtn.setAttribute('title', 'Edit Mode');
+                        floatingBtn.setAttribute('aria-label', 'Edit mode');
                         floatingBtn.style.pointerEvents = 'auto';
                         floatingBtn.style.opacity = '1';
                     }
@@ -5327,7 +5338,7 @@ debugCommands.help() - Show this help
                     if (floatingBtn) {
                         floatingBtn.classList.remove('save-mode');
                         floatingBtn.setAttribute('onclick', 'toggleEdit()');
-                        floatingBtn.setAttribute('title', 'Edit Mode');
+                        floatingBtn.setAttribute('aria-label', 'Edit mode');
                         floatingBtn.style.pointerEvents = 'auto';
                         floatingBtn.style.opacity = '1';
                     }
@@ -5409,16 +5420,20 @@ debugCommands.help() - Show this help
             const tab = state.currentTab;
 
             let bannerHtml = '';
+            if (!document.getElementById('rbac-line-css')) {
+                const st = document.createElement('style');
+                st.id = 'rbac-line-css';
+                st.textContent = '.rbac-line{padding:4px 18px;font-size:.7rem;color:#6b7770;background:#f5f7f6;border-bottom:1px solid #e3e9e4;font-weight:500}'
+                    + '.rbac-line b{font-weight:600;color:#4a5750}'
+                    + 'body.dark-mode .rbac-line{background:#1b261f;border-color:#2f4034;color:#9fb0a4}'
+                    + 'body.dark-mode .rbac-line b{color:#c5d3c9}';
+                document.head.appendChild(st);
+            }
+            const _line = (text, tip) => `<div class="rbac-line"${tip ? ` title="${tip}"` : ''}>${text}</div>`;
 
             if (info.role === 'admin') {
-                bannerHtml = `
-                <div style="display:flex;align-items:center;gap:10px;
-                    background:#e8f5e9;
-                    border-bottom:1.5px solid #c8e6c9;border-radius:0;
-                    padding:6px 18px;font-size:0.75rem;color:#1b5e20;font-weight:500;">
-                    <span style="flex-shrink:0;font-size:0.95rem;">🛡️</span>
-                    <span><strong>Admin — CORPORATE Region</strong> — Read access to all regions. Write access to CORPORATE projects only. <span style="font-weight:400;opacity:0.8;">· Includes Settings, Personnel, User Mgmt, Audit</span></span>
-                </div>`;
+                bannerHtml = _line('<b>Admin</b> · CORPORATE · Read: all regions · Write: CORPORATE only',
+                    'Includes Settings, Personnel, User Mgmt, Audit');
             }
 
             if (info.role === 'superintendent') {
@@ -5429,80 +5444,32 @@ debugCommands.help() - Show this help
                     'lta-registry','health-report',
                     'esh-calendar-safety','esh-calendar-health','esh-calendar-drills'
                 ].includes(tab);
-                const isCorpDrillsTab = tab === 'esh-calendar-corp-drills';
-                bannerHtml = `
-                <div style="display:flex;align-items:center;gap:10px;
-                    background:#fff8e1;
-                    border-left:3px solid #f9a825;border-radius:0 6px 6px 0;
-                    padding:7px 12px;font-size:0.79rem;color:#e65100;font-weight:600;">
-                    ${isSuperEditableTab
-                        ? `✏️ <strong>Editable</strong> — Superintendent access · Region: <strong>${info.region}</strong>`
-                        : isCorpDrillsTab
-                            ? `🔒 <strong>Read-Only</strong> — Corporate Drills is Admin-managed only.`
-                            : `🔒 <strong>Read-Only</strong> — This tab is not editable for Superintendent.`}
-                    <span style="font-weight:400;opacity:0.8;margin-left:4px;">· Write: Safety &amp; Health tabs within <strong>${info.region}</strong> · Env tabs managed by PCO</span>
-                </div>`;
+                bannerHtml = _line(`<b>Superintendent</b> · ${info.region} · ${isSuperEditableTab ? 'Editable' : 'Read-only'}`,
+                    `Write: Safety &amp; Health tabs within ${info.region}. Env tabs managed by PCO. Corporate Drills is Admin-managed only.`);
             }
 
             if (info.role === 'pco') {
                 const isPcoEditableTab = UserAccounts.PCO_EDITABLE_TABS && UserAccounts.PCO_EDITABLE_TABS.includes(tab);
-                bannerHtml = `
-                <div style="display:flex;align-items:center;gap:10px;
-                    background:#e3f2fd;
-                    border-left:3px solid #1976d2;border-radius:0 6px 6px 0;
-                    padding:7px 12px;font-size:0.79rem;color:#0d47a1;font-weight:600;">
-                    ${isPcoEditableTab
-                        ? `✏️ <strong>Editable</strong> — PCO access · Region: <strong>${info.region}</strong>`
-                        : `🔒 <strong>Read-Only</strong> — PCO accounts can only edit Environmental modules.`}
-                    <span style="font-weight:400;opacity:0.8;margin-left:4px;">· Env Monitoring · EMB Reportorial · Env Permits · ESH Calendar (Env)</span>
-                </div>`;
+                bannerHtml = _line(`<b>PCO</b> · ${info.region} · ${isPcoEditableTab ? 'Editable' : 'Read-only'}`,
+                    'PCO can only edit Environmental modules: Env Monitoring, EMB Reportorial, Env Permits, ESH Calendar (Env)');
             }
 
             if (info.role === 'manager') {
-                bannerHtml = `
-                <div style="display:flex;align-items:center;gap:10px;
-                    background:#eceff1;
-                    border-left:3px solid #546e7a;border-radius:0 6px 6px 0;
-                    padding:7px 12px;font-size:0.79rem;color:#37474f;font-weight:600;">
-                    👁️ <strong>View-Only Access</strong> — Manager accounts can view all data but cannot make changes.
-                    <span style="font-weight:400;opacity:0.8;margin-left:4px;">· Contact Admin to request edit access</span>
-                </div>`;
+                bannerHtml = _line('<b>Manager</b> · View only', 'Contact Admin to request edit access');
             }
 
             if (info.role === 'doc_controller') {
-                bannerHtml = `
-                <div style="display:flex;align-items:center;gap:10px;
-                    background:#e8eaf6;
-                    border-left:3px solid #3949ab;border-radius:0 6px 6px 0;
-                    padding:7px 12px;font-size:0.79rem;color:#1a237e;font-weight:600;">
-                    👁️ <strong>View-Only Access</strong> — Document Controller accounts can view all data but cannot make changes.
-                    <span style="font-weight:400;opacity:0.8;margin-left:4px;">· Document control functions managed through Admin panel</span>
-                </div>`;
+                bannerHtml = _line('<b>Document Controller</b> · View only', 'Document control functions are managed through the Admin panel');
             }
 
             if (info.role === 'envi_head') {
                 const isEnviTab = UserAccounts.ENVI_HEAD_EDITABLE_TABS && UserAccounts.ENVI_HEAD_EDITABLE_TABS.includes(tab);
-                bannerHtml = `
-                <div style="display:flex;align-items:center;gap:10px;
-                    background:#e0f2f1;
-                    border-left:3px solid #00695c;border-radius:0 6px 6px 0;
-                    padding:7px 12px;font-size:0.79rem;color:#004d40;font-weight:600;">
-                    ${isEnviTab
-                        ? `✏️ <strong>Editable</strong> — Environmental Head access.`
-                        : `🔒 <strong>Read-Only</strong> — Environmental Head can only edit environmental modules.`}
-                    <span style="font-weight:400;opacity:0.8;margin-left:4px;">· Env Monitoring · EMB · Permits · NOV-Env · ESH Calendar (Env)</span>
-                </div>`;
+                bannerHtml = _line(`<b>Environmental Head</b> · ${isEnviTab ? 'Editable' : 'Read-only'}`,
+                    'Editable: Env Monitoring, EMB, Permits, NOV-Env, ESH Calendar (Env)');
             }
 
             if (info.role === 'corp_nurse') {
-                bannerHtml = `
-                <div style="display:flex;align-items:center;gap:10px;
-                    background:#fce4ec;
-                    border-left:3px solid #ad1457;border-radius:0 6px 6px 0;
-                    padding:7px 12px;font-size:0.79rem;color:#880e4f;font-weight:600;">
-                    👁️ <strong>View-Only</strong> — Corporate Nurse has read-only access to all tabs.
-                    <span style="font-weight:400;opacity:0.8;margin-left:4px;">· Health data entry handled by assigned Superintendent</span>
-                </div>`;
+                bannerHtml = _line('<b>Corporate Nurse</b> · View only', 'Health data entry is handled by the assigned Superintendent');
             }
 
             if (bannerHtml) {
@@ -5524,6 +5491,7 @@ debugCommands.help() - Show this help
             '.rpt-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid #e3e9e4;border-radius:10px;padding:10px 16px;margin-bottom:10px}',
             '.rpt-bar h2{margin:0;font-size:.85rem;font-weight:800;letter-spacing:.04em;color:#2e7d32;text-transform:uppercase}',
             '.rpt-sub{color:#555;font-size:.7rem;flex:1;min-width:180px}',
+            '.rpt-sub .rpt-sub-1l{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.6rem}',
             '.rpt-pill{display:inline-block;padding:3px 11px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;white-space:nowrap}',
             '.rpt-pill.gold{background:#fff8e1;color:#7a5c00;border-color:#ffe082}',
             '.rpt-pill.view{background:#fff;color:#3a6ea5;border-color:#b9cfe8}',
@@ -5596,7 +5564,7 @@ debugCommands.help() - Show this help
         window.rptCard = function(title, sub, badges, thead, tbody, mode) {
             window.rptInjectCss();
             return '<div class="rpt-wrap">'
-                + '<div class="rpt-bar"><h2>' + title + '</h2><div class="rpt-sub">' + sub + '</div>' + (badges || '') + '</div>'
+                + '<div class="rpt-bar">' + (title ? '<h2>' + title + '</h2>' : '') + '<div class="rpt-sub">' + sub + '</div>' + (badges || '') + '</div>'
                 + '<div class="rpt-card"><div class="rpt-scroll"><table class="rpt-table"><thead><tr>' + thead + '</tr></thead><tbody>' + tbody + '</tbody></table></div>'
                 + window.rptLegend(mode) + '</div></div>';
         };
@@ -7772,25 +7740,25 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     });
                     const _projectNames = Object.keys(_byProject);
 
-                    bodyHtml += '<div style="margin-bottom:12px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;">';
+                    bodyHtml += '<div style="margin-bottom:12px;border:1px solid #e3e9e4;border-radius:8px;overflow:hidden;">';
                     // ── Area summary header (always visible, click to expand) ──
                     bodyHtml += '<div data-arealabel="' + area.replace(/"/g,'&quot;') + '" onclick="var b=document.getElementById(\'' + _areaId + '\');var i=document.getElementById(\'' + _areaId + 'Icon\');'
                         + 'if(b.style.display===\'none\'){b.style.display=\'block\';i.style.transform=\'rotate(90deg)\';}'
                         + 'else{b.style.display=\'none\';i.style.transform=\'rotate(0deg)\';}" '
-                        + 'style="background:#fff3e0;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;">';
-                    bodyHtml += '<strong style="color:#e65100;font-size:0.85rem;"><i id="' + _areaId + 'Icon" class="fas fa-chevron-right" style="font-size:0.68rem;margin-right:6px;transition:transform 0.15s;"></i>' + area + '</strong>';
+                        + 'style="background:#f6f8f6;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;">';
+                    bodyHtml += '<strong style="color:#1b5e20;font-size:0.85rem;"><i id="' + _areaId + 'Icon" class="fas fa-chevron-right" style="font-size:0.68rem;margin-right:6px;transition:transform 0.15s;"></i>' + area + '</strong>';
                     bodyHtml += '<span style="display:flex;align-items:center;gap:8px;">'
-                        + '<span style="font-size:0.68rem;color:#a15b00;">' + _areaPct + '% done</span>'
-                        + '<span style="background:#e65100;color:white;font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:10px;">' + g.missing + ' / ' + g.required + ' missing</span>'
+                        + '<span style="font-size:0.68rem;color:#6b7770;">' + _areaPct + '% done</span>'
+                        + '<span style="background:#fdecea;color:#b3261e;font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:10px;">' + g.missing + ' / ' + g.required + ' missing</span>'
                         + '</span>';
                     bodyHtml += '</div>';
                     // ── Expandable per-project detail (collapsed by default) ──
-                    bodyHtml += '<div id="' + _areaId + '" style="display:none;padding:8px 14px;max-height:220px;overflow-y:auto;background:#fffaf5;">';
+                    bodyHtml += '<div id="' + _areaId + '" style="display:none;padding:8px 14px;max-height:220px;overflow-y:auto;background:#fff;">';
                     _projectNames.forEach(pname => {
                         bodyHtml += '<div style="margin-bottom:8px;">';
-                        bodyHtml += '<div style="font-weight:700;color:#333;font-size:0.78rem;margin-bottom:2px;"><i class="fas fa-building" style="font-size:0.68rem;color:#999;margin-right:4px;"></i>' + pname + ' <span style="color:#e65100;font-weight:600;">(' + _byProject[pname].length + ')</span></div>';
+                        bodyHtml += '<div style="font-weight:700;color:#333;font-size:0.78rem;margin-bottom:2px;"><i class="fas fa-building" style="font-size:0.68rem;color:#999;margin-right:4px;"></i>' + pname + ' <span style="color:#b3261e;font-weight:600;">(' + _byProject[pname].length + ')</span></div>';
                         _byProject[pname].forEach(detail => {
-                            bodyHtml += '<div style="padding:3px 0 3px 20px;border-bottom:1px solid #f5f0e8;font-size:0.75rem;color:#666;">' + detail + '</div>';
+                            bodyHtml += '<div style="padding:3px 0 3px 20px;border-bottom:1px solid #eef1ef;font-size:0.75rem;color:#666;">' + detail + '</div>';
                         });
                         bodyHtml += '</div>';
                     });
@@ -7800,16 +7768,14 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
 
             const modalHtml = `
                 <div id="complianceGapModalOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this) this.remove()">
-                    <div style="background:white;border-radius:12px;max-width:640px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
-                        <div style="padding:18px 22px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#1b5e20,#2e7d32);border-radius:12px 12px 0 0;">
-                            <div>
-                                <div style="color:white;font-weight:800;font-size:1rem;">Why isn't ${region} at 100%?</div>
-                                <div style="color:#c8e6c9;font-size:0.78rem;margin-top:2px;">${monthLabel} · Current score: ${scorePct}% · ${totalRequired-totalMissing} of ${totalRequired} required items complete</div>
-                            </div>
-                            <button onclick="document.getElementById('complianceGapModalOverlay').remove()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:1rem;">×</button>
-                        </div>
-                        <div id="gapModalBody" style="padding:18px 22px;overflow-y:auto;flex:1;">${totalMissing > 0 ? `<div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:10px;"><a onclick="document.getElementById('gapModalBody').querySelectorAll('[id^=gapArea]:not([id$=Icon])').forEach(b=>b.style.display='block');document.getElementById('gapModalBody').querySelectorAll('[id$=Icon]').forEach(i=>i.style.transform='rotate(90deg)');" style="font-size:0.7rem;color:#1b5e20;cursor:pointer;font-weight:600;">Expand all</a><a onclick="document.getElementById('gapModalBody').querySelectorAll('[id^=gapArea]:not([id$=Icon])').forEach(b=>b.style.display='none');document.getElementById('gapModalBody').querySelectorAll('[id$=Icon]').forEach(i=>i.style.transform='rotate(0deg)');" style="font-size:0.7rem;color:#888;cursor:pointer;font-weight:600;">Collapse all</a></div>` : ''}${bodyHtml}</div>
-                    </div>
+                    ${window._mdlHtml({
+                        icon:'fa-clipboard-list',
+                        title:`Why isn't ${region} at 100%?<span style="display:block;font-weight:400;font-size:0.76rem;color:#6b7770;margin-top:2px;">${monthLabel} · Current score: ${scorePct}% · ${totalRequired-totalMissing} of ${totalRequired} required items complete</span>`,
+                        width:640,
+                        closeJs:"document.getElementById('complianceGapModalOverlay').remove()",
+                        body:`<div id="gapModalBody" style="padding:14px 16px;">${totalMissing > 0 ? `<div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:10px;"><a onclick="document.getElementById('gapModalBody').querySelectorAll('[id^=gapArea]:not([id$=Icon])').forEach(b=>b.style.display='block');document.getElementById('gapModalBody').querySelectorAll('[id$=Icon]').forEach(i=>i.style.transform='rotate(90deg)');" style="font-size:0.7rem;color:#1b5e20;cursor:pointer;font-weight:600;">Expand all</a><a onclick="document.getElementById('gapModalBody').querySelectorAll('[id^=gapArea]:not([id$=Icon])').forEach(b=>b.style.display='none');document.getElementById('gapModalBody').querySelectorAll('[id$=Icon]').forEach(i=>i.style.transform='rotate(0deg)');" style="font-size:0.7rem;color:#888;cursor:pointer;font-weight:600;">Collapse all</a></div>` : ''}${bodyHtml}</div>`,
+                        foot:`<button class="mdl-btn" onclick="document.getElementById('complianceGapModalOverlay').remove()">Close</button>`
+                    })}
                 </div>`;
             const existing = document.getElementById('complianceGapModalOverlay');
             if (existing) existing.remove();
@@ -10589,7 +10555,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             if (!num || !lbl || !sub) return;
             num.classList.toggle('has', mode !== 'na' && n > 0);
             if (mode === 'na') {
-                num.textContent = '0'; lbl.textContent = 'days, not counted';
+                num.textContent = '0'; lbl.textContent = 'days';
                 sub.textContent = 'Not added to Medical tab: Days Lost/Charged';
             } else if (mode === 'scheduled') {
                 num.textContent = n.toLocaleString(); lbl.textContent = 'days charged';
@@ -10948,8 +10914,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 radioHtml += `<div class="lta-computed-dl" style="background:#f5f5f5;border-color:#ccc;grid-column:1/-1;">
                     <i class="fas fa-ban" style="color:#9e9e9e;font-size:1rem;"></i>
                     <div><div style="font-size:0.62rem;color:#888;font-weight:600;">DAYS LOST / CHARGED — NOT APPLICABLE</div>
-                    <div style="font-size:0.85rem;font-weight:800;color:#9e9e9e;">0 days — excluded from computation</div>
-                    <div style="font-size:0.58rem;color:#aaa;margin-top:2px;">This entry will NOT be counted in Medical Tab → Days Lost/Charged</div></div></div>`;
+                    <div style="font-size:0.85rem;font-weight:800;color:#9e9e9e;">0 days — excluded from computation</div></div></div>`;
             } else if (useScheduled) {
                 const scOpts = typeof SCHEDULED_CHARGES_GROUPS !== 'undefined' ? SCHEDULED_CHARGES_GROUPS.map(g =>
                     '<optgroup label="' + g.group + '">' + g.items.map(item =>
@@ -14161,8 +14126,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
     const _isEnvStyleTab = true; // apply to all tabs in this renderer
     if (state.currentTab === 'dole') html += `<div style="background:var(--bg-card);border:1px solid #c8e6c9;border-radius:0 0 8px 8px;margin-bottom:14px;overflow:hidden;">`;
     window._pendingTableFooter = null;
-    html += `<div class="table-container"><table class="env-tbl">`;
-    html += `<tr><th class="env-th-left env-th-sticky env-th-dark" style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; white-space: normal; padding: 10px 12px; line-height: 1.3; vertical-align: middle;">TYPE</th>`;
+    const _isPermitsTbl = state.currentTab === 'permits';
+    html += `<div class="table-container"><table class="${_isPermitsTbl ? 'got-tbl' : 'env-tbl'}"${_isPermitsTbl ? ' style="width:auto;min-width:100%;"' : ''}>`;
+    html += `<tr><th class="${_isPermitsTbl ? 'got-th-left got-th-dark' : 'env-th-left env-th-sticky env-th-dark'}" style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; white-space: normal; padding: 10px 12px; line-height: 1.3; vertical-align: middle;">TYPE</th>`;
 
     if (isCshp) {
         const headerText = (state.currentTab === 'cshp') ? "DATE APPROVED" : "DATE REGISTERED";
@@ -15042,19 +15008,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             else if (dSelYear > dNowY) { _deadlinePassed2 = false; }
                             else { _deadlinePassed2 = (dNowY > _dlYr2) || (dNowY === _dlYr2 && dNowM > _dlMo2) || (dNowY === _dlYr2 && dNowM === _dlMo2 && dNowD > 20); }
 
-                            var rowBg, statusFg, statusLabel;
-                            if (allComplete) {
-                                rowBg = '#e8f5e9'; statusFg = '#2e7d32'; statusLabel = '✓ Complete';
-                            } else if (isCurMo && noneFilledMo) {
-                                rowBg = '#e3f2fd'; statusFg = '#1565c0'; statusLabel = '🕐 In Progress';
-                            } else if (!_deadlinePassed2) {
-                                // Deadline not yet passed — show as pending, not overdue
-                                rowBg = '#fff8e1'; statusFg = '#e65100'; statusLabel = '🕐 Pending (due ' + DOLE_MONTHS[_dlMo2 - 1].substring(0,3) + ' 20)';
-                            } else if (noneFilledMo) {
-                                rowBg = '#ffebee'; statusFg = '#c62828'; statusLabel = '✗ Not submitted';
-                            } else {
-                                rowBg = '#ffebee'; statusFg = '#c62828'; statusLabel = '⚠ Incomplete';
-                            }
+                            var _dKind, _dTxt;
+                            if (allComplete) { _dKind = 'ok'; _dTxt = 'Complete'; }
+                            else if (isCurMo && noneFilledMo) { _dKind = 'prog'; _dTxt = 'In progress'; }
+                            else if (!_deadlinePassed2) { _dKind = 'wait'; _dTxt = 'Pending (due ' + DOLE_MONTHS[_dlMo2 - 1].substring(0,3) + ' 20)'; }
+                            else if (noneFilledMo) { _dKind = 'none'; _dTxt = 'Not submitted'; }
+                            else { _dKind = 'warn'; _dTxt = 'Incomplete'; }
                             var curBadge = isCurMo ? ' <span style="background:#e3f2fd;color:#1565c0;border-radius:4px;padding:1px 5px;font-size:0.58rem;font-weight:700;vertical-align:middle;">CURRENT</span>' : '';
 
                             var rowSummary = DOLE_MONTHLY_ROWS.map(function(row){
@@ -15064,18 +15023,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 return '<span style="color:var(--text-primary,#1a1a1a);font-weight:800;letter-spacing:0.03em;">' + row + ':</span> <span style="color:' + (filled===eligibleProjs.length?'#2e7d32':filled>0?'#e65100':'#c62828') + ';font-weight:700;">' + filled + '/' + eligibleProjs.length + '</span>';
                             }).join(' &nbsp;·&nbsp; ');
 
-                            html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
-                                + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
-                                + ' onclick="window.openDoleDialog(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + mo + '\',false)">'
-                                + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:48px;box-sizing:border-box;text-align:center;">' + mo.substring(0,3).toUpperCase() + '</span>'
-                                + '<div style="flex:1;min-width:0;">'
-                                + (isCurMo ? '<div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);">' + curBadge.trim() + '</div>' : '')
-                                + '<div style="font-size:0.72rem;color:#9e9e9e;margin-top:1px;">' + rowSummary + '</div>'
-                                + '</div>'
-                                + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
-                                + '<span style="background:' + rowBg + ';color:' + statusFg + ';border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">' + statusLabel + '</span>'
-                                + (canEditReg ? '<button onclick="event.stopPropagation();window.openDoleDialog(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + mo + '\',true)" title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen"></i></button>' : '')
-                                + '</div>'
+                            html += '<div class="ckpm-rw" onclick="window.openDoleDialog(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + mo + '\',false)">'
+                                + '<span class="ckpm-mo">' + mo.substring(0,3) + '</span>'
+                                + '<div class="ckpm-fl">' + window._rowStatus(_dKind, _dTxt) + (isCurMo ? curBadge : '') + '<span class="ckpm-sub">' + rowSummary + '</span></div>'
+                                + (canEditReg ? '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;"><button onclick="event.stopPropagation();window.openDoleDialog(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + mo + '\',true)" title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen"></i></button></div>' : '')
                                 + '</div>';
                         }
 
@@ -15588,24 +15539,21 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var allComplete = pct === 1;
                         var noneF = p2.filledCount === 0;
                         var isCur = !!p2.isCurrent;
-                        var rowBg     = allComplete ? '#e8f5e9' : (noneF && isCur) ? '#e3f2fd' : noneF ? '#ffebee' : '#fff8e1';
-                        var statusFg  = allComplete ? '#2e7d32' : (noneF && isCur) ? '#1565c0' : noneF ? '#c62828' : '#e65100';
-                        var statusLabel = allComplete ? '✓ Complete' : (noneF && isCur) ? '🕐 In Progress' : noneF ? '✗ Not submitted' : '⚠ Incomplete';
+                        var _pKind, _pTxt;
+                        if (allComplete) { _pKind = 'ok'; _pTxt = 'Complete'; }
+                        else if (noneF && isCur) { _pKind = 'prog'; _pTxt = 'In progress'; }
+                        else if (noneF) { _pKind = 'none'; _pTxt = 'Not submitted'; }
+                        else { _pKind = 'part'; _pTxt = 'Incomplete'; }
                         var curBadge = isCur ? ' <span style="background:#e3f2fd;color:#1565c0;border-radius:4px;padding:1px 5px;font-size:0.58rem;font-weight:700;vertical-align:middle;">CURRENT</span>' : '';
-                        var _mOnly = !!p2.monthOnly; // month rows: show only the month badge (no number, no full label)
-                        html2 += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
-                            + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
-                            + ' onclick="' + openFn + '(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + p2.periodKey.replace(/'/g,"\\'") + '\',false)">'
-                            + ((_mOnly || p2.noNumber) ? '' : '<span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">' + (idx+1) + '</span>')
-                            + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;' + (_mOnly ? 'min-width:48px;box-sizing:border-box;' : 'min-width:36px;') + 'text-align:center;">' + p2.shortLabel + '</span>'
-                            + (p2.oneLine ? '<div style="flex:1;min-width:0;display:flex;align-items:center;gap:12px;flex-wrap:nowrap;overflow:hidden;">' : '<div style="flex:1;min-width:0;">')
-                            + (_mOnly ? (isCur ? '<div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);">' + curBadge.trim() + '</div>' : '') : '<div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);' + (p2.oneLine ? 'white-space:nowrap;' : '') + '">' + p2.label + curBadge + '</div>')
-                            + '<div style="font-size:0.62rem;color:#888;' + (p2.oneLine ? 'white-space:nowrap;' : 'margin-top:1px;') + '">' + p2.sub + '</div>'
-                            + '</div>'
-                            + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
-                            + '<span style="background:' + rowBg + ';color:' + statusFg + ';border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">' + statusLabel + '</span>'
-                            + (canEditReg ? '<button onclick="event.stopPropagation();' + openFn + '(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + p2.periodKey.replace(/'/g,"\\'") + '\',true)" title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen"></i></button>' : '')
-                            + '</div></div>';
+                        var _mOnly = !!p2.monthOnly; // month rows: show only the month label
+                        var _sl = _mOnly ? (String(p2.shortLabel).charAt(0) + String(p2.shortLabel).slice(1).toLowerCase()) : p2.shortLabel;
+                        html2 += '<div class="ckpm-rw" onclick="' + openFn + '(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + p2.periodKey.replace(/'/g,"\\'") + '\',false)">'
+                            + '<span class="ckpm-mo">' + _sl + '</span>'
+                            + '<div class="ckpm-fl">' + window._rowStatus(_pKind, _pTxt)
+                            + (_mOnly ? '' : '<span class="ckpm-lbl">' + p2.label + '</span>') + (isCur ? curBadge : '')
+                            + '<span class="ckpm-sub">' + p2.sub + '</span></div>'
+                            + (canEditReg ? '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;"><button onclick="event.stopPropagation();' + openFn + '(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + p2.periodKey.replace(/'/g,"\\'") + '\',true)" title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen"></i></button></div>' : '')
+                            + '</div>';
                     });
                     return html2;
                 }
@@ -16564,7 +16512,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             ? '<ul class="ytd-list">' + recLines.join('').replace(/<i class="fas [^"]*"[^>]*><\/i>/g, '') + '</ul>'
                             : '<p class="ytd-empty">No data available yet to generate recommendations.</p>';
 
-                        html += window.rptCard('Key Performance Measures (KPM) Monthly Report',
+                        html += window.rptCard('',
                             'Monthly ESH consolidated KPM — FM-RNI-04-04 Rev.4 | Eff. Date: 06 Aug 2018 &bull; Overall weighted % per region per month &bull; Year: ' + selYear,
                             '', thCells, bodyRows, 'kpm')
                             + '<div class="ytd-card">'
@@ -17072,44 +17020,30 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 else if (f === KPM_ESH_ROWS.length) _kDone++;
                                 else { _kPart++; _kPartNames.push(p.name); }
                             });
-                            var _kChip = function(txt, bg, fg, title) {
-                                return '<span' + (title ? ' title="' + String(title).replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '"' : '')
-                                     + ' style="background:' + bg + ';color:' + fg + ';border-radius:9px;padding:1px 8px;font-size:0.6rem;font-weight:700;white-space:nowrap;">' + txt + '</span>';
-                            };
                             var _kAllDone = _kDone === _kElig.length;
                             var _kChips = '';
-                            if (_kAllDone) _kChips += _kChip('✔ All ' + _kElig.length + ' project' + (_kElig.length !== 1 ? 's' : '') + ' complete', '#e8f5e9', '#2e7d32');
+                            if (_kAllDone) _kChips = window._rowStatus('ok', 'All ' + _kElig.length + ' project' + (_kElig.length !== 1 ? 's' : '') + ' complete', '', false);
                             else {
-                                if (_kDone) _kChips += _kChip('✔ ' + _kDone + ' complete', '#e8f5e9', '#2e7d32');
-                                if (_kPart) _kChips += _kChip('◐ ' + _kPart + ' partial', '#fff3e0', '#e65100', _kPartNames.join(', '));
-                                if (_kNone) _kChips += _kChip('✖ ' + _kNone + ' not filled', '#ffebee', '#c62828', _kNoneNames.join(', '));
+                                if (_kDone) _kChips += window._rowStatus('ok', _kDone + ' complete', '', true);
+                                if (_kPart) _kChips += window._rowStatus('part', _kPart + ' partial', _kPartNames.join(', '), true);
+                                if (_kNone) _kChips += window._rowStatus('none', _kNone + ' not filled', _kNoneNames.join(', '), true);
                             }
-                            var _kAccent = _kAllDone ? '#43a047' : ((_kDone + _kPart === 0) ? '#c62828' : '#ef6c00');
                             hasAnyRow = true;
 
-                            var scoreBg = score === null ? '#f5f5f5' : score >= 0.90 ? '#e8f5e9' : score >= 0.85 ? '#fff8e1' : '#ffebee';
-                            var scoreFg = score === null ? '#aaa'    : score >= 0.90 ? '#2e7d32' : score >= 0.85 ? '#e65100' : '#c62828';
+                            var scoreCls = score === null ? 'n' : score >= 0.90 ? 'g' : score >= 0.85 ? 'a' : 'r';
                             var scoreLabel = score === null ? '—' : (score*100).toFixed(1) + '%';
-                            if (score === null && !anySubm && !anyData) { scoreBg = '#ffebee'; scoreFg = '#c62828'; scoreLabel = 'MISSED'; }
-                            var submFg = anySubm ? '#2e7d32' : '#c62828';
+                            if (score === null && !anySubm && !anyData) { scoreCls = 'r'; scoreLabel = 'MISSED'; }
+                            var submFg = anySubm ? '' : '#c62828';
                             // Collect unique submitted dates from active projects
                             var submDates = activeProjs.map(function(p){ return p.vals['kpm_v3_' + mo + '_dateSubmitted'] || ''; }).filter(Boolean);
                             var submLabel = submDates.length ? submDates[0] : 'Not submitted';
 
-                            html += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);border-left:4px solid ' + _kAccent + ';background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
-                                + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
-                                + ' onclick="window.openKpmDialog(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + mo + '\',false)">'
-                                // Month label
-                                + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:48px;box-sizing:border-box;text-align:center;">' + mo.substring(0,3).toUpperCase() + '</span>'
-                                // Info
-                                + '<div style="flex:1;min-width:0;">'
-                                + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow:hidden;">'
-                                + _kChips
-                                + '<span style="font-size:0.62rem;color:#888;white-space:nowrap;margin-left:auto;">Submitted: <span style="color:' + submFg + ';font-weight:600;">' + submLabel + '</span></span></div>'
-                                + '</div>'
-                                // Score + edit btn
+                            html += '<div class="ckpm-rw" onclick="window.openKpmDialog(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + mo + '\',false)">'
+                                + '<span class="ckpm-mo">' + mo.substring(0,3) + '</span>'
+                                + '<div class="ckpm-fl">' + _kChips + '</div>'
+                                + '<span class="ckpm-dt">Submitted <span' + (submFg ? ' style="color:' + submFg + ';font-weight:600;"' : '') + '>' + submLabel + '</span></span>'
                                 + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
-                                + '<span style="background:' + scoreBg + ';color:' + scoreFg + ';border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">' + scoreLabel + '</span>'
+                                + '<span class="ckpm-pc ' + scoreCls + '">' + scoreLabel + '</span>'
                                 + (canEditReg ? '<button onclick="event.stopPropagation();window.openKpmDialog(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + mo + '\',true)" title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen"></i></button>' : '')
                                 + '</div>'
                                 + '</div>';
@@ -17764,12 +17698,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         const schemaRow  = SCHEMA[state.currentTab][0];
                         const key        = `${state.currentTab}_${schemaRow}`;
 
-                        html += `<div class="table-container"><table class="env-tbl">
-                            <tr>
-                                <th class="env-th-left env-th-sticky env-th-dark" style="width:250px;">PROJECT NAME</th>
+                        html += `<div class="table-container"><table class="got-tbl" style="width:auto;min-width:100%;">
+                            <thead><tr>
+                                <th class="got-th-left got-th-dark" style="min-width:250px;text-align:left;padding-left:10px;">PROJECT</th>
                                 <th>${headerText}</th>
                                 <th>PDF DOCUMENT</th>
-                            </tr>`;
+                            </tr></thead><tbody>`;
 
                         projs.forEach(p => {
                             const v = p.vals[key] ? (p.vals[key][1] ?? "") : "";
@@ -17814,7 +17748,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             // Format date value as MM/DD/YYYY for display badge
                             const _vDisplay = v ? (function(d){ var p=d.split('-'); return p.length===3?p[1]+'/'+p[2]+'/'+p[0]:d; })(v) : '';
                             html += `<tr style="${!v ? 'background:#ffebee;' : ''}">
-                                <td style="text-align:left;font-weight:600;background:var(--border-color);color:${v ? '#2e7d32' : '#c62828'}; position: sticky; left: 0; z-index: 5;">
+                                <td class="got-td-proj" style="text-align:left;background:${v ? '#e8f5e9' : '#ffcdd2'};color:${v ? '#2e7d32' : '#c62828'};position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;">
                                     ${p.isRenewable ? '<i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;" title="Renewable Energy Project"></i>' : ''}
                                     ${p.name}
                                 </td>
@@ -17827,13 +17761,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         oninput="(function(el){
                                             updateVal('${p.name}','${key}',1,el.value);
                                             var td=el.closest('td'); if(td) td.style.background='';
-                                            var tr=el.closest('tr'); if(tr){tr.style.background=el.value?'':'#ffebee'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background=el.value?'var(--border-color)':'#ffcdd2';}
+                                            var tr=el.closest('tr'); if(tr){tr.style.background=el.value?'':'#ffebee'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background=el.value?'#e8f5e9':'#ffcdd2';}
                                             var clrBtn=document.getElementById('cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}'); if(clrBtn) clrBtn.style.display=el.value?'inline':'none';
                                         })(this)"
                                         onchange="(function(el){
                                             updateVal('${p.name}','${key}',1,el.value);
                                             var td=el.closest('td'); if(td) td.style.background='';
-                                            var tr=el.closest('tr'); if(tr){tr.style.background=el.value?'':'#ffebee'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background=el.value?'var(--border-color)':'#ffcdd2';}
+                                            var tr=el.closest('tr'); if(tr){tr.style.background=el.value?'':'#ffebee'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background=el.value?'#e8f5e9':'#ffcdd2';}
                                             var clrBtn=document.getElementById('cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}'); if(clrBtn) clrBtn.style.display=el.value?'inline':'none';
                                         })(this)"
                                         style="border:1px solid ${v ? '#a5d6a7' : '#ef9a9a'};border-radius:4px;padding:3px 6px;font-family:inherit;font-size:inherit;${v ? 'background:#c8e6c9;' : 'background:#fff5f5;'}">
@@ -17850,61 +17784,46 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             </tr>`;
                         });
 
-                        html += `</table></div>`;
+                        html += `</tbody></table></div>`;
 
                     } else if (isAudit) {
+                        // Table style follows DOE Reportorial (got-tbl)
+                        const _auEdit = (state.isEditing && canEditRegion);
+                        const _auQ = [['Q1','Q1 (JAN-MAR)'],['Q2','Q2 (APR-JUN)'],['Q3','Q3 (JUL-SEP)'],['Q4','Q4 (OCT-DEC)']];
+                        const _auSub = 'font-size:0.62rem;font-weight:700;';
                         html += `<div class="table-container">
-                            <table class="audit-table env-tbl">
+                            <table class="got-tbl" style="width:auto;min-width:100%;">
                                 <thead>
                                     <tr>
-                                        <th rowspan="3" class="env-th-left env-th-sticky env-th-dark" style="min-width:200px; padding-left: 12px; border-right: 2px solid rgba(27,94,32,0.2);">PROJECT NAME</th>
-                                        <th colspan="3" style="border-right: 2px solid rgba(27,94,32,0.2);">Q1 (JAN-MAR)</th>
-                                        <th colspan="3" style="border-right: 2px solid rgba(27,94,32,0.2);">Q2 (APR-JUN)</th>
-                                        <th colspan="3" style="border-right: 2px solid rgba(27,94,32,0.2);">Q3 (JUL-SEP)</th>
-                                        <th colspan="3" style="border-right: 2px solid rgba(27,94,32,0.2);">Q4 (OCT-DEC)</th>
-                                        <th rowspan="3" class="cell-grand-total" style="border-left: 3px solid #fbc02d; vertical-align: middle; line-height: 1.3;">GRAND<br>TOTAL<br>AVERAGE</th>
+                                        <th rowspan="3" class="got-th-left got-th-dark" style="min-width:180px;text-align:left;padding-left:10px;">PROJECT</th>
+                                        ${_auQ.map(x => `<th colspan="3" style="min-width:330px;">${x[1]}</th>`).join('')}
+                                        <th rowspan="3" style="min-width:90px;border-left:3px solid #fbc02d;line-height:1.3;">GRAND<br>TOTAL<br>AVERAGE</th>
                                     </tr>
                                     <tr>
-                                        <th colspan="3" class="env-th-dark" style="border-right: 2px solid rgba(27,94,32,0.2);">Quarterly Score</th>
-                                        <th colspan="3" class="env-th-dark" style="border-right: 2px solid rgba(27,94,32,0.2);">Quarterly Score</th>
-                                        <th colspan="3" class="env-th-dark" style="border-right: 2px solid rgba(27,94,32,0.2);">Quarterly Score</th>
-                                        <th colspan="3" class="env-th-dark" style="border-right: 2px solid rgba(27,94,32,0.2);">Quarterly Score</th>
+                                        ${_auQ.map(() => `<th colspan="3">Quarterly Score</th>`).join('')}
                                     </tr>
                                     <tr>
-                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
-                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
-                                        <th style="border-right: 2px solid #c8e6c9;">Average</th>
-                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
-                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
-                                        <th style="border-right: 2px solid #c8e6c9;">Average</th>
-                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
-                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
-                                        <th style="border-right: 2px solid #c8e6c9;">Average</th>
-                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Implementation</th>
-                                        <th style="background:#c5e8c3; color:#1b5e20; font-size:10px; font-weight:600;">Documentation & Compliance</th>
-                                        <th style="border-right: 2px solid #c8e6c9;">Average</th>
+                                        ${_auQ.map(() => `<th style="${_auSub}">Implementation</th><th style="${_auSub}">Documentation &amp; Compliance</th><th style="${_auSub}">Average</th>`).join('')}
                                     </tr>
                                 </thead>
                                 <tbody>`;
 
                         projs.forEach(p => {
                             let totalYearAvg = 0;
-                            html += `<tr><td style="text-align:left; font-weight:700; background:#f8f9fa; padding:10px 12px; color:#1b5e20; border-right: 2px solid #e0e0e0; position: sticky; left: 0; z-index: 5;">
-                                ${p.isRenewable ? '<i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;" title="Renewable Energy Project"></i>' : ''}
-                                ${p.name}
+                            html += `<tr><td class="got-td-proj" style="text-align:left;background:#e8f5e9;color:#1b5e20;position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;">
+                                ${p.isRenewable ? '<i class="fas fa-leaf" style="color:#4caf50;margin-right:5px;" title="Renewable Energy Project"></i>' : ''}${p.name}
                             </td>`;
                             ['Q1','Q2','Q3','Q4'].forEach(q => {
                                 const audit = p.auditData?.[q] || { scoreImpl: 0, docuComp: 0 };
                                 const qAvg  = (audit.scoreImpl + audit.docuComp) / 2;
                                 totalYearAvg += qAvg;
-                                html += `
-                                    <td class="cell-white"><input type="number" min="0" max="100" value="${audit.scoreImpl}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
-                                        oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)" placeholder="0"></td>
-                                    <td class="cell-white"><input type="number" min="0" max="100" value="${audit.docuComp}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'}
-                                        oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)" placeholder="0"></td>
-                                    <td class="cell-avg-gray" style="border-right: 2px solid #e0e0e0;">${qAvg.toFixed(2)}</td>`;
+                                const _auInp = (field, val) => `<td style="background:#e8f5e9;text-align:center;padding:4px 5px;"><input type="number" min="0" max="100" value="${val}" ${_auEdit ? '' : 'disabled'}
+                                        oninput="updateAuditData('${p.name}','${q}','${field}',this.value)" placeholder="0"
+                                        style="border:1.5px solid #a5d6a7;border-radius:4px;padding:3px 4px;background:#f1fff1;color:#2e7d32;width:70px;font-size:0.75rem;text-align:center;"></td>`;
+                                html += _auInp('scoreImpl', audit.scoreImpl) + _auInp('docuComp', audit.docuComp)
+                                    + `<td style="background:#c8e6c9;color:#1b5e20;font-weight:700;text-align:center;border-right:2px solid #a5d6a7;">${qAvg.toFixed(2)}</td>`;
                             });
-                            html += `<td class="cell-grand-total">${(totalYearAvg/4).toFixed(2)}</td></tr>`;
+                            html += `<td style="background:#fff8e1;color:#7a5c00;font-weight:800;text-align:center;border-left:3px solid #fbc02d;">${(totalYearAvg/4).toFixed(2)}</td></tr>`;
                         });
 
                         html += `</tbody></table></div>`;
@@ -17961,17 +17880,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     `;
                 } else {
                     html += `<div style="margin: 0 20px 0;">
-                        <div style="background:#1b5e20;border-radius:10px 10px 0 0;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-                            <div style="display:flex;align-items:center;gap:10px;">
-                                <i class="fas fa-solar-panel" style="color:rgba(255,255,255,0.85);font-size:1rem;"></i>
-                                <div>
-                                    <div style="font-size:0.85rem;font-weight:800;color:white;letter-spacing:0.05em;">DOE REPORTORIAL — RENEWABLE ENERGY PROJECTS</div>
-                                    <div style="font-size:0.67rem;color:rgba(255,255,255,0.75);margin-top:1px;">Quarterly submission — Due: 20th of the month after each quarter</div>
-                                </div>
-                            </div>
+                        <div style="background:#fff;border:1px solid #e3e9e4;border-radius:10px 10px 0 0;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                            <div style="font-size:0.7rem;color:#555;">Quarterly submission • Due: 20th of the month after each quarter</div>
                             <div style="display:flex;gap:6px;">
-                                <span style="background:rgba(255,255,255,0.18);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:20px;padding:2px 10px;font-size:0.62rem;font-weight:800;">${renewableProjects.length} ACTIVE</span>
-                                <span style="background:rgba(255,255,255,0.18);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:20px;padding:2px 10px;font-size:0.62rem;font-weight:800;">QUARTERLY</span>
+                                <span style="background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;border-radius:20px;padding:3px 11px;font-size:0.62rem;font-weight:800;letter-spacing:0.04em;white-space:nowrap;">${renewableProjects.length} ACTIVE</span>
+                                <span style="background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;border-radius:20px;padding:3px 11px;font-size:0.62rem;font-weight:800;letter-spacing:0.04em;white-space:nowrap;">QUARTERLY</span>
                             </div>
                         </div>
                     `;
@@ -18026,71 +17939,75 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         html += `<div id="region-content-${reg}" class="region-content ${isCollapsed ? 'collapsed' : ''}">`;
                         
                         html += `
-                        <div class="table-container">
-                            <table class="env-tbl">
+                        <div class="table-container doe-wrap">
+                            <table class="env-tbl doe-clean">
                                 <tr>
                                     <th class="env-th-left env-th-sticky env-th-dark" style="width: 280px;">PROJECT NAME</th>
-                                    <th>Q1 (JAN-MAR)<br><small style="font-weight: 400; font-size: 0.65rem;">Due: Apr 20</small></th>
-                                    <th>Q2 (APR-JUN)<br><small style="font-weight: 400; font-size: 0.65rem;">Due: Jul 20</small></th>
-                                    <th>Q3 (JUL-SEP)<br><small style="font-weight: 400; font-size: 0.65rem;">Due: Oct 20</small></th>
-                                    <th>Q4 (OCT-DEC)<br><small style="font-weight: 400; font-size: 0.65rem;">Due: Jan 20</small></th>
+                                    <th>Q1 (JAN-MAR)<small>Due: Apr 20</small></th>
+                                    <th>Q2 (APR-JUN)<small>Due: Jul 20</small></th>
+                                    <th>Q3 (JUL-SEP)<small>Due: Oct 20</small></th>
+                                    <th>Q4 (OCT-DEC)<small>Due: Jan 20</small></th>
                                 </tr>
                         `;
-                        
+
                         regProjects.forEach(p => {
                             const _doeClient = !!(p.vals && (p.vals['doe_client_provided'] === '1' || p.vals['doe-permit_client_provided'] === '1'));
-                            const _doePnSafe = p.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                             const _doeStopped = isProjectOnStoppage(p);
 
-                            html += `<tr>
-                                <td style="text-align: left; font-weight: 700; background: #e8f5e9; color: #1b5e20; position: sticky; left: 0; z-index: 5;">
-                                    <i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;"></i>
-                                    ${p.name}
-                                    ${_doeStopped ? '<span style="background:#e53935;color:white;border-radius:8px;padding:0 6px;font-size:0.58rem;font-weight:700;margin-left:6px;">WORK STOPPAGE</span>' : ''}
-                                </td>`;
+                            html += `<tr><td class="doe-nm"><i class="fas fa-leaf"></i>${p.name}${_doeStopped ? '<span class="doe-tag">WORK STOPPAGE</span>' : ''}</td>`;
 
                             if (_doeClient) {
                                 // Single merged cell spanning all 4 quarters
-                                html += `<td colspan="4" style="text-align:center;color:var(--text-secondary);font-size:0.78rem;font-style:italic;">Care of Client</td>`;
+                                html += `<td colspan="4" class="doe-x">Care of Client</td>`;
                             } else {
-
-                            const _doeNowQ = Math.ceil((new Date().getMonth() + 1) / 3);
-                            const _doeSelYr = state.selectedYear || new Date().getFullYear();
-                            const _doeThisYear = _doeSelYr === new Date().getFullYear();
-                            for (let q = 1; q <= 4; q++) {
-                                const _doeFutureQ = _doeThisYear && q > _doeNowQ;
-                                const _doeQBlacklisted = !_doeFutureQ && isQuarterBlacklistedForProject(p, q, _doeSelYr);
-                                if (_doeQBlacklisted) {
-                                    const _dqR2 = getQuarterExemptReason(p, q, _doeSelYr);
-                                    html += `<td style="background:#ffcdd2;text-align:center;padding:5px;border:1px solid #ef9a9a;" title="${getQuarterExemptTip(p, q, _doeSelYr).replace(/"/g, '&quot;')}">
-                                        <span style="color:#b71c1c;font-size:0.68rem;font-weight:700;"><i class="fas ${_dqR2 === 'finished' ? 'fa-flag-checkered' : _dqR2 === 'not-started' ? 'fa-hourglass-start' : 'fa-pause-circle'}" style="margin-right:3px;"></i>${_dqR2 === 'finished' ? 'Finished' : _dqR2 === 'not-started' ? 'Not Started' : 'Work Stoppage'}</span>
-                                    </td>`;
-                                    continue;
-                                }
-                                const val = p.vals[key] ? (p.vals[key][q] ?? '') : '';
-                                const hasPdf = p.doePdfFiles && p.doePdfFiles[`Q${q}`];
-                                const _doeDueDates = { 1: [3,20], 2: [6,20], 3: [9,20], 4: [0,20] }; // [month0based, day]
                                 const _doeNow2 = new Date();
-                                const _doeDueArr = _doeDueDates[q];
-                                const _doeDueDate = q === 4
-                                    ? new Date(_doeSelYr + 1, _doeDueArr[0], _doeDueArr[1])
-                                    : new Date(_doeSelYr, _doeDueArr[0], _doeDueArr[1]);
-                                const _doeIsPastDue = _doeThisYear && !_doeFutureQ && _doeNow2 > _doeDueDate;
-                                const _doeCellBg = !_doeThisYear ? '' : (_doeFutureQ ? 'background:#f5f5f5;opacity:0.65;' : val ? 'background:#e8f5e9;' : _doeIsPastDue ? 'background:#ffebee;' : 'background:#fff8e1;');
-                                const _doeInputStyle = (_doeThisYear && !_doeFutureQ) ? `border:1.5px solid ${val?'#a5d6a7':_doeIsPastDue?'#ef9a9a':'#ffe082'};border-radius:4px;padding:3px 4px;background:${val?'#f1fff1':_doeIsPastDue?'#fff5f5':'#fffde7'};color:${val?'#2e7d32':_doeIsPastDue?'#c62828':'#7a5c00'};width:140px;` : 'width:140px;';
-                                
-                                if (false) { // exempt branch removed — handled above via colspan
-                                    // (dead code — kept for structure only)
-                                    html += '';
-                                } else {
-                                html += `<td style="${_doeCellBg}">
-                                    <input type="date" 
-                                           value="${val}" 
-                                           ${(state.isEditing && canEditRegion && !_doeFutureQ) ? '' : 'disabled'} 
-                                           oninput="updateVal('${p.name}','${key}',${q},this.value);_refreshDateCell(this)"
-                                           style="${_doeInputStyle}">
-                                    
-                                    ${(state.isEditing && canEditRegion) ? `
+                                const _doeNowQ = Math.ceil((_doeNow2.getMonth() + 1) / 3);
+                                const _doeSelYr = state.selectedYear || _doeNow2.getFullYear();
+                                const _doeThisYear = _doeSelYr === _doeNow2.getFullYear();
+                                const _doePastYear = _doeSelYr < _doeNow2.getFullYear();
+                                const _doeDueDates = { 1: [3,20], 2: [6,20], 3: [9,20], 4: [0,20] }; // [month0based, day]
+                                const _doeDueLbl = { 1: 'Apr 20', 2: 'Jul 20', 3: 'Oct 20', 4: 'Jan 20' };
+
+                                // Work out each quarter first, so neighbours with the same reason can be merged into one cell
+                                const _doeCells = [];
+                                for (let q = 1; q <= 4; q++) {
+                                    const _doeFutureQ = _doeThisYear && q > _doeNowQ;
+                                    const _doeQBlacklisted = !_doeFutureQ && isQuarterBlacklistedForProject(p, q, _doeSelYr);
+                                    if (_doeQBlacklisted) {
+                                        _doeCells.push({ x: true, reason: getQuarterExemptReason(p, q, _doeSelYr), tip: getQuarterExemptTip(p, q, _doeSelYr) });
+                                    } else {
+                                        _doeCells.push({ x: false, q: q, futureQ: _doeFutureQ });
+                                    }
+                                }
+
+                                for (let ci = 0; ci < 4; ci++) {
+                                    const c = _doeCells[ci];
+                                    if (c.x) {
+                                        let span = 1;
+                                        while (ci + span < 4 && _doeCells[ci + span].x && _doeCells[ci + span].reason === c.reason && _doeCells[ci + span].tip === c.tip) span++;
+                                        const _ico = c.reason === 'finished' ? 'fa-flag-checkered' : c.reason === 'not-started' ? 'fa-hourglass-start' : 'fa-pause-circle';
+                                        const _lbl = c.reason === 'finished' ? 'Finished' : c.reason === 'not-started' ? 'Not Started' : 'Work Stoppage';
+                                        html += `<td${span > 1 ? ' colspan="' + span + '"' : ''} class="doe-x" title="${String(c.tip || '').replace(/"/g, '&quot;')}"><i class="fas ${_ico}"></i>${_lbl}</td>`;
+                                        ci += span - 1;
+                                        continue;
+                                    }
+                                    const q = c.q;
+                                    const val = p.vals[key] ? (p.vals[key][q] ?? '') : '';
+                                    const hasPdf = p.doePdfFiles && p.doePdfFiles[`Q${q}`];
+                                    const _doeDueArr = _doeDueDates[q];
+                                    const _doeDueDate = q === 4
+                                        ? new Date(_doeSelYr + 1, _doeDueArr[0], _doeDueArr[1])
+                                        : new Date(_doeSelYr, _doeDueArr[0], _doeDueArr[1]);
+                                    const _doeIsPastDue = _doePastYear || (_doeThisYear && !c.futureQ && _doeNow2 > _doeDueDate);
+                                    const _doeEditable = state.isEditing && canEditRegion && !c.futureQ;
+
+                                    if (_doeEditable) {
+                                        html += `<td>
+                                    <input type="date" class="doe-in"
+                                           value="${val}"
+                                           oninput="updateVal('${p.name}','${key}',${q},this.value)">
+
+                                    ${`
                                         <div class="pdf-upload-container">
                                             ${hasPdf ? `
                                                 <span class="pdf-file-info">
@@ -18098,21 +18015,21 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                                     <span style="font-size: 0.65rem; color: var(--text-secondary);">
                                                         ${p.doePdfFiles[`Q${q}`].fileName.substring(0, 12)}...
                                                     </span>
-                                                    <button class="pdf-view-btn" 
-                                                            onclick="viewDoePdf('${p.name}', ${q})" 
+                                                    <button class="pdf-view-btn"
+                                                            onclick="viewDoePdf('${p.name}', ${q})"
                                                             title="View PDF">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    <button class="pdf-delete-btn" 
-                                                            onclick="deleteDoePdf('${p.name}', ${q})" 
+                                                    <button class="pdf-delete-btn"
+                                                            onclick="deleteDoePdf('${p.name}', ${q})"
                                                             title="Delete PDF">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </span>
                                             ` : `
                                                 <div>
-                                                    <button class="pdf-upload-btn" 
-                                                            onclick="uploadDoePdf('${p.name}', ${q})" 
+                                                    <button class="pdf-upload-btn"
+                                                            onclick="uploadDoePdf('${p.name}', ${q})"
                                                             title="Upload Certificate PDF">
                                                         <i class="fas fa-upload"></i> Upload
                                                     </button>
@@ -18122,15 +18039,22 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                                 </div>
                                             `}
                                         </div>
-                                    ` : ''}
+                                    `}
                                 </td>`;
-                                } // end else (not client-provided)
-                            } // end for q
-                            } // end else (not client-provided — outer)
-                            
+                                    } else if (val) {
+                                        const _m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(val));
+                                        html += `<td><span class="doe-ok"><i class="fas fa-circle-check"></i>${_m ? _m[2] + '/' + _m[3] + '/' + _m[1] : val}</span></td>`;
+                                    } else if (_doeIsPastDue) {
+                                        html += `<td><span class="doe-late"><i class="fas fa-circle-exclamation"></i>Overdue</span></td>`;
+                                    } else {
+                                        html += `<td><span class="doe-soon">Due ${_doeDueLbl[q]}</span></td>`;
+                                    }
+                                }
+                            }
+
                             html += `</tr>`;
                         });
-                        
+
                         html += `
                             </table>
                         </div>
@@ -18240,9 +18164,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         
                         html += `
                         <div class="table-container">
-                            <table class="env-tbl">
+                            <table class="got-tbl" style="width:auto;min-width:100%;">
                                 <tr>
-                                    <th class="env-th-left env-th-sticky env-th-dark" style="width: 280px;">PROJECT NAME</th>
+                                    <th class="got-th-left got-th-dark" style="min-width:280px;text-align:left;padding-left:10px;">PROJECT</th>
                                     <th style="white-space:nowrap;">Client-Provided</th>
                                     <th>SAFETY OFFICER PERMIT NUMBER</th>
                                     <th>VALID UNTIL</th>
@@ -18310,7 +18234,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             }
 
                             html += `<tr>
-                                <td style="text-align: left; font-weight: 700; background: #e8f5e9; color: #1b5e20; position: sticky; left: 0; z-index: 5;">
+                                <td class="got-td-proj" style="text-align:left;background:#e8f5e9;color:#1b5e20;position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;">
                                     <i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;"></i>
                                     ${p.name}
                                 </td>
@@ -21026,7 +20950,8 @@ function updatePersonnelSummary() {
         const color = POS_COLORS[pos] || '#546e7a';
         const label = POS_LABELS[pos] || pos;
         const bgLight = color + '12';
-        return `<div title="${pos}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 14px 10px;border-right:1px solid var(--border-color);min-width:80px;flex:1;position:relative;gap:1px;cursor:default;transition:background 0.15s;overflow:hidden;background:${bgLight};" onmouseover="this.style.filter='brightness(0.96)'" onmouseout="this.style.filter=''">
+        const posAttr = String(pos).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+        return `<div title="${posAttr} — click to view list" data-pos="${posAttr}" onclick="openPositionListModal(this.dataset.pos)" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 14px 10px;border-right:1px solid var(--border-color);min-width:80px;flex:1;position:relative;gap:1px;cursor:pointer;transition:background 0.15s;overflow:hidden;background:${bgLight};" onmouseover="this.style.filter='brightness(0.96)'" onmouseout="this.style.filter=''">
             <i class="fas ${icon}" style="position:absolute;bottom:-6px;right:-4px;font-size:2.6rem;color:${color};opacity:0.10;pointer-events:none;transform:rotate(-10deg);"></i>
             <div style="font-size:1.4rem;font-weight:900;color:${color};line-height:1;position:relative;z-index:1;">${cnt}</div>
             <div style="font-size:0.54rem;color:${color};font-weight:700;text-align:center;line-height:1.3;white-space:nowrap;opacity:0.8;position:relative;z-index:1;">${label}</div>
@@ -21035,6 +20960,47 @@ function updatePersonnelSummary() {
     }).join('');
 
     summaryEl.innerHTML = pills;
+}
+
+function openPositionListModal(pos) {
+    const modal = document.getElementById('positionListModal');
+    if (!modal) return;
+    const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const list = (state.personnelData || [])
+        .map((p, i) => ({ p, i }))
+        .filter(x => x.p.pos === pos)
+        .sort((a, b) => String(a.p.name || '').localeCompare(String(b.p.name || '')));
+
+    document.getElementById('positionListTitle').textContent = pos;
+    document.getElementById('positionListSubtitle').textContent = list.length + ' personnel in this position';
+
+    const searchEl = document.getElementById('positionListSearch');
+    if (searchEl) searchEl.value = '';
+
+    const body = document.getElementById('positionListBody');
+    if (!list.length) {
+        body.innerHTML = '<tr><td colspan="4" class="pl-empty">No personnel found.</td></tr>';
+    } else {
+        body.innerHTML = list.map((x, n) => `
+            <tr>
+                <td class="pl-num">${n + 1}</td>
+                <td class="pl-name"><span class="pl-link" onclick="pcViewPersonnel(${x.i})" title="View profile">${esc(x.p.name)}</span>${x.p.oic ? ' <span class="pl-oic">OIC</span>' : ''}</td>
+                <td>${esc(x.p.current || '—')}</td>
+                <td>${x.p.gen === 'Male' ? '<span class="pl-gen m">Male</span>' : x.p.gen === 'Female' ? '<span class="pl-gen f">Female</span>' : esc(x.p.gen || '—')}</td>
+            </tr>`).join('');
+    }
+    eshModalShow(modal);
+}
+
+function filterPositionList(q) {
+    q = String(q || '').trim().toLowerCase();
+    document.querySelectorAll('#positionListBody tr').forEach(tr => {
+        tr.style.display = (!q || tr.textContent.toLowerCase().includes(q)) ? '' : 'none';
+    });
+}
+
+function closePositionListModal() {
+    eshModalHide(document.getElementById('positionListModal'));
 }
 
 function pRowEdit(i) {
@@ -21135,6 +21101,32 @@ function pRowDelete(i) {
     });
 }
 
+// Personnel search matcher: every word typed must match the start of a word in
+// name / position / project, or ID. Email and number are searched only when the
+// word looks like an email or a number. Address and gender are not searched.
+// Returns 0 when it does not match, otherwise a score (higher = better match).
+function pcMatchScore(p, rawQuery) {
+    const norm = t => String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[,.;]/g, ' ').replace(/\s+/g, ' ').trim();
+    const q = norm(rawQuery);
+    if (!q) return 0;
+    const words = t => norm(t).split(' ').filter(Boolean);
+    const nameW = words(p.name), posW = words(p.pos), projW = words(p.current);
+    const startsAny = (arr, tok) => arr.some(w => w.startsWith(tok));
+    let score = 1;
+    for (const tok of q.split(' ')) {
+        let s1 = 0;
+        if (startsAny(nameW, tok)) s1 = 3;
+        else if (startsAny(posW, tok) || startsAny(projW, tok)) s1 = 2;
+        else if (norm(p.id).includes(tok)) s1 = 2;
+        else if (/@/.test(tok) && norm(p.mail).includes(tok)) s1 = 1;
+        else if (/^[0-9+\-]{3,}$/.test(tok) && norm(p.num).replace(/[\s\-]/g, '').includes(tok.replace(/[\s\-]/g, ''))) s1 = 1;
+        if (!s1) return 0;
+        score += s1;
+    }
+    if (norm(p.name).startsWith(q)) score += 5;
+    return score;
+}
+
 function pcShowSearchDropdown(val) {
     const dropdown = document.getElementById('pc-search-dropdown');
     if (!dropdown) return;
@@ -21167,9 +21159,10 @@ function pcShowSearchDropdown(val) {
             if (p.current === 'Corporate Office') return;
             if (!allowedProjects.has(p.current)) return;
         }
-        const isMatch = fields.some(k => (p[k] || '').toLowerCase().includes(query));
-        if (isMatch) matches.push({ idx, p });
+        const sc = pcMatchScore(p, query);
+        if (sc > 0) matches.push({ idx, p, sc });
     });
+    matches.sort((a, b) => b.sc - a.sc);
 
     if (matches.length === 0) {
         dropdown.innerHTML = '<div style="padding:10px 14px; color:#aaa; font-size:0.75rem;">No results found.</div>';
@@ -21221,8 +21214,7 @@ function filterPTable() {
 
         let shouldShow = false;
         if (column === 'all') {
-            shouldShow = ['name','pos','id','current','gen','mail','num','addr']
-                .some(k => (person[k]||'').toLowerCase().includes(filterValue));
+            shouldShow = pcMatchScore(person, filterValue) > 0;
         } else {
             shouldShow = (person[column]||'').toLowerCase().includes(filterValue);
         }
@@ -21329,9 +21321,12 @@ function computeAggregateTabulation() {
 
 function buildIncidentTabulationHTML() {
     const d = computeAggregateTabulation();
+    // Flat status style (same look as Corporate KPM legend): colored number + small dot + text
+    const _stNum = (v, ok, neutral) => `<div style="font-size:1.3rem;font-weight:800;color:${neutral ? 'var(--text-primary)' : (ok ? '#2e7d32' : '#c62828')};">${v}</div>`;
+    const _stDot = ok => `<div style="font-size:0.62rem;color:#4b554d;margin-top:3px;display:flex;align-items:center;justify-content:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:${ok ? '#2e7d32' : '#c62828'};display:inline-block;"></span>${ok ? 'Within target' : 'Exceeded'}</div>`;
     return `
-    <div id="incident-tabulation-panel" style="padding: 12px 20px 0 20px;">
-      <div style="background: var(--bg-card); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid var(--border-color); margin-bottom: 6px;">
+    <div id="incident-tabulation-panel" style="padding: 0 16px;">
+      <div style="background: var(--bg-card); border-radius: 0 0 12px 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color); border-top: none; margin-bottom: 10px;">
 
         
         <div style="background: #2f7d4f; color: white; padding: 8px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
@@ -21352,7 +21347,7 @@ function buildIncidentTabulationHTML() {
           <div style="padding: 10px 14px; text-align: center; border-right: 1px solid var(--border-color);">
             <div style="font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 3px;">No. of Recordable Cases</div>
             <div style="font-size: 1.5rem; font-weight: 900; color: #1f3d2b; line-height: 1;">${d.recordableCases}</div>
-            <div style="font-size: 0.57rem; color: var(--text-secondary); margin-top: 2px;">LTA + Medical + Fatality · High-Pot. (${d.highPotential}) not counted</div>
+            <div style="font-size: 0.57rem; color: var(--text-secondary); margin-top: 2px;">LTA + Medical + Fatality</div>
           </div>
 
           <div style="padding: 10px 14px; text-align: center; border-right: 1px solid var(--border-color);">
@@ -21380,103 +21375,52 @@ function buildIncidentTabulationHTML() {
           <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
             <thead>
               <tr>
-                <th style="background: #cfe4d3; color: #1f5b3a; padding: 8px 12px; text-align: left; border: none; width: 40%;">INJURY / ILLNESS</th>
-                <th style="background: #cfe4d3; color: #1f5b3a; padding: 8px 12px; text-align: center; border: none; width: 22%;">OSHA<br><span style="font-size:0.65rem;font-weight:400;">200,000 hrs base</span></th>
-                <th style="background: #cfe4d3; color: #1f5b3a; padding: 8px 12px; text-align: center; border: none; width: 22%;">OSHS<br><span style="font-size:0.65rem;font-weight:400;">1,000,000 hrs base</span></th>
-                <th style="background: #f6c945; color: #4a3a00; padding: 8px 12px; text-align: center; border: none; width: 16%; font-weight: 800; letter-spacing: 0.5px;">TARGET</th>
+                <th style="background:#b7ddb5;color:#1b5e20;padding:8px 12px;text-align:left;border:none;width:40%;font-weight:700;letter-spacing:0.4px;">INJURY / ILLNESS</th>
+                <th style="background:#b7ddb5;color:#1b5e20;padding:8px 12px;text-align:center;border:none;width:22%;font-weight:700;letter-spacing:0.4px;">OSHA<br><span style="font-size:0.65rem;font-weight:500;">200,000 hrs base</span></th>
+                <th style="background:#b7ddb5;color:#1b5e20;padding:8px 12px;text-align:center;border:none;width:22%;font-weight:700;letter-spacing:0.4px;">OSHS<br><span style="font-size:0.65rem;font-weight:500;">1,000,000 hrs base</span></th>
+                <th style="background:#b7ddb5;color:#1b5e20;padding:8px 12px;text-align:center;border:none;border-left:2px solid #9ecf9b;width:16%;font-weight:700;letter-spacing:0.4px;">TARGET</th>
               </tr>
             </thead>
             <tbody>
-              
-              <tr style="border-bottom: 2px solid #dfe7e0;">
-                <td style="background:#ffe3c2;color:#7a3a00;padding:8px 12px;border:none;">
-                  <div style="font-weight:800;font-size:0.78rem;display:flex;align-items:center;gap:6px;"><i class="fas fa-skull-crossbones" style="font-size:0.78rem;"></i> Fatality</div>
-                  <div style="font-size:0.61rem;opacity:0.85;margin-top:2px;">Zero fatality target for all projects</div>
+              <tr>
+                <td style="background:var(--bg-card);color:var(--text-primary);padding:8px 12px;border:none;border-bottom:1px solid var(--border-color);">
+                  <div style="font-weight:700;font-size:0.78rem;">Fatality</div>
+                  <div style="font-size:0.61rem;color:var(--text-secondary);margin-top:2px;">Zero fatality target for all projects</div>
                 </td>
-                <td colspan="2" style="background:#fff8ee;padding:8px;text-align:center;border:1px solid #dfe7e0;">
-                  <div style="font-size:1.3rem;font-weight:900;color:#1f3d2b;">0</div>
-                  <div style="font-size:0.58rem;color:#1f3d2b;font-weight:700;">ACTUAL: ${d.fatalCases ?? 0}</div>
+                <td colspan="2" style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);">
+                  ${_stNum(d.fatalCases ?? 0, (d.fatalCases ?? 0) <= 0)}
+                  ${_stDot((d.fatalCases ?? 0) <= 0)}
                 </td>
-                <td style="background:#fff7da;padding:8px;text-align:center;border:1px solid #dfe7e0;">
-                  <div style="font-size:1.3rem;font-weight:900;color:#8a6100;">0</div>
-                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;background:#e8f5e9;color:#2e7d32;">
-                    ✅ TARGET
-                  </div>
-                </td>
-              </tr>
-              <tr style="border-bottom: 1px solid var(--border-color);">
-                <td style="background:#e8f3ea;color:#1f3d2b;padding:8px 12px;border:none;">
-                  <div style="font-weight:700;font-size:0.78rem;">LTIR — Lost Time Incident Rate</div>
-                  <div style="font-size:0.61rem;opacity:0.9;margin-top:2px;">LTA Cases × 200K or 1M ÷ Total Man-hours</div>
-                </td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir ? '#1f3d2b' : '#c62828'};">${d.ltirOsha}</div>
-                  <div style="font-size:0.58rem;color:var(--text-secondary);">OSHA (200K base)</div>
-                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;
-                    ${parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
-                    ${parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir ? '✅ TARGET' : '⚠ EXCEEDED'}
-                  </div>
-                </td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir ? '#1f3d2b' : '#c62828'};">${d.ltirOshs}</div>
-                  <div style="font-size:0.58rem;color:var(--text-secondary);">OSHS (1M base)</div>
-                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;
-                    ${parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
-                    ${parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir ? '✅ TARGET' : '⚠ EXCEEDED'}
-                  </div>
-                </td>
-                <td style="background:#fff7da;padding:8px;text-align:center;border:1px solid #dfe7e0;">
-                  <div style="font-size:1.3rem;font-weight:900;color:#8a6100;">${window.STATS_TARGETS.ltir.toFixed(2)}</div>
-                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;background:#e8f5e9;color:#2e7d32;">
-                    ✅ TARGET
-                  </div>
-                </td>
-              </tr>
-              <tr style="border-bottom: 1px solid var(--border-color);">
-                <td style="background:#e8f3ea;color:#1f3d2b;padding:8px 12px;border:none;">
-                  <div style="font-weight:700;font-size:0.78rem;">TRIR — Total Recordable Incident Rate</div>
-                  <div style="font-size:0.61rem;opacity:0.9;margin-top:2px;">Recordable Cases × 200K or 1M ÷ Total Man-hours</div>
-                </td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir ? '#1f3d2b' : '#c62828'};">${d.trirOsha}</div>
-                  <div style="font-size:0.58rem;color:var(--text-secondary);">OSHA (200K base)</div>
-                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;
-                    ${parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
-                    ${parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir ? '✅ TARGET' : '⚠ EXCEEDED'}
-                  </div>
-                </td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.3rem;font-weight:800;color:${parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir ? '#1f3d2b' : '#c62828'};">${d.trirOshs}</div>
-                  <div style="font-size:0.58rem;color:var(--text-secondary);">OSHS (1M base)</div>
-                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;
-                    ${parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir ? 'background:#e8f5e9;color:#2e7d32;' : 'background:#ffebee;color:#c62828;'}">
-                    ${parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir ? '✅ TARGET' : '⚠ EXCEEDED'}
-                  </div>
-                </td>
-                <td style="background:#fff7da;padding:8px;text-align:center;border:1px solid #dfe7e0;">
-                  <div style="font-size:1.3rem;font-weight:900;color:#8a6100;">${window.STATS_TARGETS.trir.toFixed(2)}</div>
-                  <div style="display:inline-flex;align-items:center;gap:3px;margin-top:3px;padding:2px 8px;border-radius:20px;font-size:0.6rem;font-weight:800;background:#e8f5e9;color:#2e7d32;">
-                    ✅ TARGET
-                  </div>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);border-left:2px solid #dfe7e0;">
+                  ${_stNum(0, true, true)}
                 </td>
               </tr>
               <tr>
-                <td style="background:#e8f3ea;color:#1f3d2b;padding:8px 12px;border:none;">
+                <td style="background:var(--bg-card);color:var(--text-primary);padding:8px 12px;border:none;border-bottom:1px solid var(--border-color);">
+                  <div style="font-weight:700;font-size:0.78rem;">LTIR — Lost Time Incident Rate</div>
+                  <div style="font-size:0.61rem;color:var(--text-secondary);margin-top:2px;">LTA cases × base ÷ man-hours</div>
+                </td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);">${_stNum(d.ltirOsha, parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir)}${_stDot(parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir)}</td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);">${_stNum(d.ltirOshs, parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir)}${_stDot(parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir)}</td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);border-left:2px solid #dfe7e0;">${_stNum(window.STATS_TARGETS.ltir.toFixed(2), true, true)}</td>
+              </tr>
+              <tr>
+                <td style="background:var(--bg-card);color:var(--text-primary);padding:8px 12px;border:none;border-bottom:1px solid var(--border-color);">
+                  <div style="font-weight:700;font-size:0.78rem;">TRIR — Total Recordable Incident Rate</div>
+                  <div style="font-size:0.61rem;color:var(--text-secondary);margin-top:2px;">Recordable cases × base ÷ man-hours</div>
+                </td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);">${_stNum(d.trirOsha, parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir)}${_stDot(parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir)}</td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);">${_stNum(d.trirOshs, parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir)}${_stDot(parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir)}</td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);border-left:2px solid #dfe7e0;">${_stNum(window.STATS_TARGETS.trir.toFixed(2), true, true)}</td>
+              </tr>
+              <tr>
+                <td style="background:var(--bg-card);color:var(--text-primary);padding:8px 12px;border:none;">
                   <div style="font-weight:700;font-size:0.78rem;">SR — Severity Rate</div>
-                  <div style="font-size:0.61rem;opacity:0.9;margin-top:2px;">Total Days Lost × 200K or 1M ÷ Total Man-hours</div>
+                  <div style="font-size:0.61rem;color:var(--text-secondary);margin-top:2px;">Total days lost × base ÷ man-hours</div>
                 </td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.3rem;font-weight:800;color:#1f3d2b;">${d.srOsha}</div>
-                  <div style="font-size:0.58rem;color:var(--text-secondary);">OSHA (200K base)</div>
-                </td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:1px solid var(--border-color);">
-                  <div style="font-size:1.3rem;font-weight:800;color:#1f3d2b;">${d.srOshs}</div>
-                  <div style="font-size:0.58rem;color:var(--text-secondary);">OSHS (1M base)</div>
-                </td>
-                <td style="background:#fff7da;padding:8px;text-align:center;border:1px solid #dfe7e0;">
-                  <div style="font-size:1.1rem;font-weight:700;color:#9e9e9e;">—</div>
-                  <div style="font-size:0.58rem;color:#9e9e9e;">No target set</div>
-                </td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;">${_stNum(d.srOsha, true, true)}</td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;">${_stNum(d.srOshs, true, true)}</td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-left:2px solid #dfe7e0;"><div style="font-size:1.1rem;font-weight:700;color:#9e9e9e;">—</div></td>
               </tr>
             </tbody>
           </table>
@@ -21751,6 +21695,14 @@ window.safetyOpenLightbox = safetyOpenLightbox;
 
 
 // ── View full detail (opened by clicking a photo) ───────────────────────────
+function _mdlHtml(o) {
+    return `<div class="mdl" style="max-width:${o.width || 520}px;">
+        <div class="mdl-head"><i class="fas ${o.icon || 'fa-circle-info'} mdl-ic"></i><span class="mdl-title">${o.title}</span><button class="mdl-x" onclick="${o.closeJs}" title="Close" aria-label="Close">&times;</button></div>
+        <div class="mdl-body">${o.body}</div>
+        <div class="mdl-foot">${o.foot || ''}</div>
+    </div>`;
+}
+window._mdlHtml = _mdlHtml;
 function safetyViewAwardDetail(id) {
     const aw = (window._safetyAwards || []).find(function(a){ return a.id === id; });
     if (!aw) return;
@@ -21759,25 +21711,20 @@ function safetyViewAwardDetail(id) {
     const modal = document.createElement('div');
     modal.id = 'safety-detail-modal-overlay';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
-    modal.innerHTML = `
-    <div style="background:var(--bg-card);border-radius:12px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
-        <div style="background:linear-gradient(135deg,#f57f17,#fbc02d);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;">
-            <span style="font-weight:800;font-size:0.95rem;"><i class="fas fa-trophy"></i> ESH Award and Recognition</span>
-            <span onclick="safetyCloseOverlay('safety-detail-modal-overlay')" style="cursor:pointer;font-size:1.2rem;">&times;</span>
-        </div>
+    const _awBody = `
         ${photos[0] ? `<img src="${photos[0]}" onclick="safetyOpenLightbox('${photos[0]}')" style="width:100%;max-height:320px;object-fit:cover;object-position:${aw.photoPosition||'center'};display:block;cursor:zoom-in;">` : ''}
         ${photos.length > 1 ? `<div style="display:flex;gap:6px;padding:10px 18px 0;flex-wrap:wrap;">${photos.map(function(u){return `<img src="${u}" onclick="safetyOpenLightbox('${u}')" style="width:52px;height:52px;object-fit:cover;border-radius:6px;cursor:zoom-in;">`;}).join('')}</div>` : ''}
         <div style="padding:16px 18px;">
-            <div style="font-size:0.65rem;font-weight:800;color:#f57f17;letter-spacing:0.4px;">${(aw.awardTitle||'ESH AWARD AND RECOGNITION').toUpperCase()}</div>
-            <div style="font-size:1.15rem;font-weight:800;color:#5d4200;margin:2px 0;">${(aw.awardeeName||'').replace(/</g,'&lt;')}</div>
-            <div style="font-size:0.72rem;color:#8d6a00;">${aw.project ? aw.project.replace(/</g,'&lt;') : 'Company-wide'} · ${aw.date || ''}${aw.awardingBody ? ' · Awarded by ' + aw.awardingBody.replace(/</g,'&lt;') : ''}</div>
-            ${aw.description ? `<div style="font-size:0.8rem;color:#3d2600;margin-top:10px;white-space:pre-wrap;">${aw.description.replace(/</g,'&lt;')}</div>` : ''}
-        </div>
-        ${canManage ? `<div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;">
-            <button onclick="safetyCloseOverlay('safety-detail-modal-overlay');safetyEditAwardForm('${aw.id}');" style="padding:7px 14px;border-radius:6px;border:1px solid #1565c0;color:#1565c0;background:transparent;cursor:pointer;font-weight:700;">Edit</button>
-            <button onclick="deleteSafetyAward('${aw.id}');safetyCloseOverlay('safety-detail-modal-overlay');" style="padding:7px 14px;border-radius:6px;border:1px solid #c62828;color:#c62828;background:transparent;cursor:pointer;font-weight:700;">Delete</button>
-        </div>` : ''}
-    </div>`;
+            <div style="font-size:0.65rem;font-weight:800;color:#6b7770;letter-spacing:0.4px;">${(aw.awardTitle||'ESH AWARD AND RECOGNITION').toUpperCase()}</div>
+            <div style="font-size:1.15rem;font-weight:800;color:#1b5e20;margin:2px 0;">${(aw.awardeeName||'').replace(/</g,'&lt;')}</div>
+            <div style="font-size:0.72rem;color:#6b7770;">${aw.project ? aw.project.replace(/</g,'&lt;') : 'Company-wide'} · ${aw.date || ''}${aw.awardingBody ? ' · Awarded by ' + aw.awardingBody.replace(/</g,'&lt;') : ''}</div>
+            ${aw.description ? `<div style="font-size:0.8rem;color:#333;margin-top:10px;white-space:pre-wrap;">${aw.description.replace(/</g,'&lt;')}</div>` : ''}
+        </div>`;
+    const _awFoot = canManage ? `
+        <button class="mdl-btn danger" onclick="deleteSafetyAward('${aw.id}');safetyCloseOverlay('safety-detail-modal-overlay');">Delete</button>
+        <button class="mdl-btn primary" onclick="safetyCloseOverlay('safety-detail-modal-overlay');safetyEditAwardForm('${aw.id}');">Edit</button>` : `
+        <button class="mdl-btn" onclick="safetyCloseOverlay('safety-detail-modal-overlay')">Close</button>`;
+    modal.innerHTML = _mdlHtml({ icon:'fa-award', title:'ESH award and recognition', width:560, closeJs:"safetyCloseOverlay('safety-detail-modal-overlay')", body:_awBody, foot:_awFoot });
     document.body.appendChild(modal);
 }
 window.safetyViewAwardDetail = safetyViewAwardDetail;
@@ -21816,18 +21763,18 @@ function safetyViewAlertDetail(id) {
         bodyHtml = `
         ${photo ? `<img src="${photo}" onclick="safetyOpenLightbox('${photo}')" style="width:100%;max-height:280px;object-fit:cover;display:block;cursor:zoom-in;">` : ''}
         <div style="padding:16px 18px;">
-            <div style="font-size:1.05rem;font-weight:800;color:#5d2c00;">${esc(a.title||'Untitled Alert')}</div>
-            <div style="font-size:0.72rem;color:#8d5a2b;margin-top:2px;">${a.project ? esc(a.project) : 'Company-wide'} · ${a.dateIssued || ''}</div>
-            ${text ? `<div style="font-size:0.8rem;color:#5d2c00;margin-top:10px;white-space:pre-wrap;">${esc(text)}</div>` : ''}
+            <div style="font-size:1.05rem;font-weight:800;color:#1b5e20;">${esc(a.title||'Untitled Alert')}</div>
+            <div style="font-size:0.72rem;color:#6b7770;margin-top:2px;">${a.project ? esc(a.project) : 'Company-wide'} · ${a.dateIssued || ''}</div>
+            ${text ? `<div style="font-size:0.8rem;color:#333;margin-top:10px;white-space:pre-wrap;">${esc(text)}</div>` : ''}
         </div>`;
     } else {
         const fileIcon = a.fileType === 'pdf' ? 'fa-file-pdf' : 'fa-file-word';
         const fileColor = a.fileType === 'pdf' ? '#c62828' : '#1565c0';
         bodyHtml = `
         <div style="padding:16px 18px;">
-            <div style="font-size:0.62rem;font-weight:800;color:#e65100;">${esc(a.alertNo || '')}</div>
-            <div style="font-size:1.05rem;font-weight:800;color:#5d2c00;margin-top:2px;">${esc(a.title||'Untitled Alert')}</div>
-            <div style="font-size:0.72rem;color:#8d5a2b;margin-top:2px;">${a.project ? esc(a.project) : 'Company-wide'} · ${a.dateIssued || ''}</div>
+            <div style="font-size:0.62rem;font-weight:800;color:#6b7770;">${esc(a.alertNo || '')}</div>
+            <div style="font-size:1.05rem;font-weight:800;color:#1b5e20;margin-top:2px;">${esc(a.title||'Untitled Alert')}</div>
+            <div style="font-size:0.72rem;color:#6b7770;margin-top:2px;">${a.project ? esc(a.project) : 'Company-wide'} · ${a.dateIssued || ''}</div>
 
             ${a.fileUrl ? `
             <div onclick="window.open('${a.fileUrl}','_blank')" style="margin-top:14px;border:1px solid var(--border-color);border-radius:8px;overflow:hidden;cursor:pointer;">
@@ -21839,7 +21786,6 @@ function safetyViewAlertDetail(id) {
                     <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${esc(a.fileName || 'Attachment')}</span>
                 </div>
             </div>
-            <button onclick="window.open('${a.fileUrl}','_blank')" style="margin-top:10px;width:100%;padding:9px;border-radius:6px;border:none;background:#e65100;color:#fff;font-weight:700;cursor:pointer;"><i class="fas fa-up-right-from-square"></i> Open Full File</button>
             ` : `<div style="margin-top:14px;font-size:0.76rem;color:var(--text-secondary);">No file attached.</div>`}
         </div>`;
     }
@@ -21847,20 +21793,13 @@ function safetyViewAlertDetail(id) {
     const modal = document.createElement('div');
     modal.id = 'safety-detail-modal-overlay';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
-    modal.innerHTML = `
-    <div style="background:var(--bg-card);border-radius:12px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
-        <div style="background:linear-gradient(135deg,#e65100,#ff9800);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;">
-            <span style="font-weight:800;font-size:0.95rem;"><i class="fas fa-triangle-exclamation"></i> ESH Alert ${a.status === 'archived' ? '<span style="font-weight:400;font-size:0.7rem;">(archived)</span>' : ''}</span>
-            <span onclick="safetyCloseOverlay('safety-detail-modal-overlay')" style="cursor:pointer;font-size:1.2rem;">&times;</span>
-        </div>
-        ${bodyHtml}
-        <div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
-            ${canManage ? `
-            <button onclick="safetyCloseOverlay('safety-detail-modal-overlay');safetyEditAlertForm('${a.id}');" style="padding:7px 14px;border-radius:6px;border:1px solid #1565c0;color:#1565c0;background:transparent;cursor:pointer;font-weight:700;">Edit</button>
-            ${a.status !== 'archived' ? `<button onclick="safetyArchiveAlert('${a.id}');safetyCloseOverlay('safety-detail-modal-overlay');" style="padding:7px 14px;border-radius:6px;border:1px solid #e65100;color:#e65100;background:transparent;cursor:pointer;font-weight:700;">Archive</button>` : ''}
-            <button onclick="safetyCloseOverlay('safety-detail-modal-overlay');safetyDeleteAlertConfirm('${a.id}');" style="padding:7px 14px;border-radius:6px;border:1px solid #c62828;color:#c62828;background:transparent;cursor:pointer;font-weight:700;">Delete</button>` : ''}
-        </div>
-    </div>`;
+    const _alFoot = `
+        ${canManage ? `
+        <button class="mdl-btn danger" onclick="safetyCloseOverlay('safety-detail-modal-overlay');safetyDeleteAlertConfirm('${a.id}');">Delete</button>
+        ${a.status !== 'archived' ? `<button class="mdl-btn neutral" onclick="safetyArchiveAlert('${a.id}');safetyCloseOverlay('safety-detail-modal-overlay');">Archive</button>` : ''}
+        <button class="mdl-btn" onclick="safetyCloseOverlay('safety-detail-modal-overlay');safetyEditAlertForm('${a.id}');">Edit</button>` : ''}
+        ${a.fileUrl ? `<button class="mdl-btn primary" onclick="window.open('${a.fileUrl}','_blank')"><i class="fas fa-up-right-from-square"></i> Open full file</button>` : (canManage ? '' : `<button class="mdl-btn" onclick="safetyCloseOverlay('safety-detail-modal-overlay')">Close</button>`)}`;
+    modal.innerHTML = _mdlHtml({ icon:'fa-triangle-exclamation', title:`ESH alert${a.status === 'archived' ? ' <span style="font-weight:400;font-size:0.72rem;color:#6b7770;">(archived)</span>' : ''}`, width:480, closeJs:"safetyCloseOverlay('safety-detail-modal-overlay')", body:bodyHtml, foot:_alFoot });
     document.body.appendChild(modal);
 }
 window.safetyViewAlertDetail = safetyViewAlertDetail;
@@ -21990,7 +21929,7 @@ function renderSafetyAlertAwardPanel() {
     <div class="saw-col">
       <section class="saw-panel">
         <div class="saw-panel-head">
-            <div class="saw-ph-title"><i class="fas fa-triangle-exclamation"></i>Safety alert</div>
+            <div class="saw-ph-title">Safety alert</div>
             ${topAlerts.length > 0 ? `<span class="saw-ph-side">${topAlerts.length} latest</span>` : ''}
         </div>
         <div class="saw-alert-list">${alertsListHtml}</div>
@@ -22003,7 +21942,7 @@ function renderSafetyAlertAwardPanel() {
     <div class="saw-col">
       <section class="saw-panel">
         <div class="saw-panel-head">
-            <div class="saw-ph-title"><i class="fas fa-trophy"></i>ESH award and recognition</div>
+            <div class="saw-ph-title">ESH award and recognition</div>
             <div class="saw-ph-actions">
                 ${canPublish ? `<button type="button" class="saw-chip fill" onclick="safetyOpenAwardForm()">+ Award</button>` : ''}
                 <button type="button" class="saw-chip" onclick="safetyOpenArchiveModal('award')">View all</button>
@@ -22071,7 +22010,7 @@ function renderSafetyAlertsPage() {
     let cardsHtml;
     if (items.length === 0) {
         cardsHtml = `<div style="padding:60px 20px;text-align:center;color:var(--text-secondary);">
-            <i class="fas fa-triangle-exclamation" style="font-size:2.2rem;color:#ffcc80;"></i>
+            <i class="fas fa-triangle-exclamation" style="font-size:2.2rem;color:#c5cdc8;"></i>
             <div style="margin-top:10px;font-size:0.85rem;">No safety alerts yet.</div>
         </div>`;
     } else {
@@ -22079,20 +22018,20 @@ function renderSafetyAlertsPage() {
             items.map(function(a) {
                 const photo = safetyAlertThumbUrl(a);
                 return `
-                <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);border:1px solid var(--border-color);">
-                    <div onclick="safetyViewAlertDetail('${a.id}')" style="cursor:pointer;aspect-ratio:16/10;background:#ffe0b2;display:flex;align-items:center;justify-content:center;overflow:hidden;">
-                        ${photo ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;object-position:${a.photoPosition||'center'};">` : `<i class="fas fa-triangle-exclamation" style="font-size:2rem;color:#e65100;"></i>`}
+                <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;box-shadow:none;border:1px solid var(--border-color);">
+                    <div onclick="safetyViewAlertDetail('${a.id}')" style="cursor:pointer;aspect-ratio:16/10;background:#f0f2f1;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                        ${photo ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;object-position:${a.photoPosition||'center'};">` : `<i class="fas fa-triangle-exclamation" style="font-size:2rem;color:#9aa59e;"></i>`}
                     </div>
                     <div style="padding:12px 14px;">
                         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                            <span style="font-weight:800;font-size:0.85rem;color:#3d2600;">${(a.title||'Untitled Alert').replace(/</g,'&lt;')}</span>
-                            ${a.status === 'archived' ? `<span style="font-size:0.58rem;font-weight:700;background:#eee;color:#888;border-radius:20px;padding:2px 8px;">ARCHIVED</span>` : `<span style="font-size:0.58rem;font-weight:700;background:#e65100;color:#fff;border-radius:20px;padding:2px 8px;">ACTIVE</span>`}
+                            <span style="font-weight:800;font-size:0.85rem;color:#1b5e20;">${(a.title||'Untitled Alert').replace(/</g,'&lt;')}</span>
+                            ${a.status === 'archived' ? `<span style="font-size:0.58rem;font-weight:700;background:#eee;color:#888;border-radius:20px;padding:2px 8px;">ARCHIVED</span>` : `<span style="font-size:0.58rem;font-weight:700;background:transparent;color:#2e7d32;border:1px solid #a5d6a7;border-radius:20px;padding:2px 8px;">ACTIVE</span>`}
                         </div>
-                        <div style="font-size:0.68rem;color:#8d6a00;margin-top:3px;">${a.project ? a.project.replace(/</g,'&lt;') : 'Company-wide'} · ${a.dateIssued || ''}</div>
-                        <div style="font-size:0.76rem;color:#5d2c00;margin-top:8px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${safetyAlertSummaryText(a).replace(/</g,'&lt;')}</div>
+                        <div style="font-size:0.68rem;color:#6b7770;margin-top:3px;">${a.project ? a.project.replace(/</g,'&lt;') : 'Company-wide'} · ${a.dateIssued || ''}</div>
+                        <div style="font-size:0.76rem;color:#4a5750;margin-top:8px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${safetyAlertSummaryText(a).replace(/</g,'&lt;')}</div>
                         <div style="display:flex;gap:8px;margin-top:10px;">
-                            <button onclick="safetyViewAlertDetail('${a.id}')" style="flex:1;padding:6px;border-radius:6px;border:1px solid #e65100;color:#e65100;background:transparent;font-size:0.68rem;font-weight:700;cursor:pointer;">View Details</button>
-                            ${canManage ? `<button onclick="safetyEditAlertForm('${a.id}')" title="Edit" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border-color);background:transparent;cursor:pointer;color:#1565c0;"><i class="fas fa-pen" style="font-size:0.68rem;"></i></button>` : ''}
+                            <button onclick="safetyViewAlertDetail('${a.id}')" style="flex:1;padding:6px;border-radius:6px;border:1px solid #2e7d32;color:#2e7d32;background:transparent;font-size:0.68rem;font-weight:700;cursor:pointer;">View Details</button>
+                            ${canManage ? `<button onclick="safetyEditAlertForm('${a.id}')" title="Edit" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border-color);background:transparent;cursor:pointer;color:#4a5750;"><i class="fas fa-pen" style="font-size:0.68rem;"></i></button>` : ''}
                             ${canManage && a.status === 'archived' ? `<button onclick="safetyRestoreAlert('${a.id}')" title="Restore to Active" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border-color);background:transparent;cursor:pointer;color:#2e7d32;"><i class="fas fa-rotate-left" style="font-size:0.68rem;"></i></button>` : ''}
                             ${canManage ? `<button onclick="safetyDeleteAlertConfirm('${a.id}')" title="Delete permanently" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border-color);background:transparent;cursor:pointer;color:#c62828;"><i class="fas fa-trash" style="font-size:0.68rem;"></i></button>` : ''}
                         </div>
@@ -22103,7 +22042,7 @@ function renderSafetyAlertsPage() {
 
     view.innerHTML = `
     ${canManage ? `<div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:16px;">
-        <button onclick="safetyOpenAlertForm()" style="background:#e65100;border:none;color:#fff;border-radius:8px;padding:9px 18px;font-size:0.8rem;font-weight:700;cursor:pointer;"><i class="fas fa-plus"></i> New Safety Alert</button>
+        <button onclick="safetyOpenAlertForm()" style="background:#2e7d32;border:none;color:#fff;border-radius:8px;padding:9px 18px;font-size:0.8rem;font-weight:700;cursor:pointer;"><i class="fas fa-plus"></i> New Safety Alert</button>
     </div>` : ''}
     ${cardsHtml}`;
 }
@@ -22228,12 +22167,12 @@ function safetyOpenAlertForm(existing) {
     modal.id = 'safety-alert-modal-overlay';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
     modal.innerHTML = `
-    <div style="background:var(--bg-card);border-radius:12px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
-        <div style="background:linear-gradient(135deg,#e65100,#ff9800);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;">
-            <span style="font-weight:800;font-size:1rem;"><i class="fas fa-triangle-exclamation"></i> ${isEdit ? 'Edit ESH Alert' : 'New ESH Alert'}</span>
-            <span onclick="document.getElementById('safety-alert-modal-overlay').remove()" style="cursor:pointer;font-size:1.2rem;">&times;</span>
+    <div style="background:transparent;border-radius:10px;max-width:460px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,0.2);">
+        <div style="background:#2e7d32;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:1;border-radius:10px 10px 0 0;">
+            <button class="pc-mac-close" onclick="document.getElementById('safety-alert-modal-overlay').remove()" title="Close" aria-label="Close">&times;</button>
+            <span style="font-weight:600;font-size:0.82rem;letter-spacing:0.5px;text-transform:uppercase;">${isEdit ? 'Edit ESH Alert' : 'New ESH Alert'}</span>
         </div>
-        <div style="padding:18px 20px;display:flex;flex-direction:column;gap:10px;">
+        <div style="background:var(--bg-card);padding:18px 20px;display:flex;flex-direction:column;gap:10px;">
             <input type="hidden" id="sa-id" value="${isEdit ? existing.id : ''}">
 
             <div><div style="${lbl}">ESH Alert No. *</div>
@@ -22255,7 +22194,7 @@ function safetyOpenAlertForm(existing) {
         </div>
         <div style="padding:14px 20px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:var(--bg-card);">
             <button onclick="document.getElementById('safety-alert-modal-overlay').remove()" style="padding:8px 16px;border-radius:6px;border:1px solid var(--border-color);background:transparent;cursor:pointer;">Cancel</button>
-            <button id="sa-submit-btn" onclick="safetySubmitAlert()" style="padding:8px 20px;border-radius:6px;border:none;background:#e65100;color:#fff;font-weight:700;cursor:pointer;">${isEdit ? 'Save Changes' : 'Publish Alert'}</button>
+            <button id="sa-submit-btn" onclick="safetySubmitAlert()" style="padding:8px 20px;border-radius:6px;border:none;background:#2e7d32;color:#fff;font-weight:700;cursor:pointer;">${isEdit ? 'Save Changes' : 'Publish Alert'}</button>
         </div>
     </div>`;
     document.body.appendChild(modal);
@@ -22375,12 +22314,12 @@ function safetyOpenAwardForm(existing) {
     modal.id = 'safety-award-modal-overlay';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
     modal.innerHTML = `
-    <div style="background:var(--bg-card);border-radius:12px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
-        <div style="background:linear-gradient(135deg,#f57f17,#fbc02d);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
-            <span style="font-weight:800;font-size:1rem;"><i class="fas fa-trophy"></i> ${isEdit ? 'Edit Safety Award' : 'New Safety Award'}</span>
-            <span onclick="document.getElementById('safety-award-modal-overlay').remove()" style="cursor:pointer;font-size:1.2rem;">&times;</span>
+    <div style="background:transparent;border-radius:10px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,0.2);">
+        <div style="background:#2e7d32;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:1;border-radius:10px 10px 0 0;">
+            <button class="pc-mac-close" onclick="document.getElementById('safety-award-modal-overlay').remove()" title="Close" aria-label="Close">&times;</button>
+            <span style="font-weight:600;font-size:0.82rem;letter-spacing:0.5px;text-transform:uppercase;">${isEdit ? 'Edit Safety Award' : 'New Safety Award'}</span>
         </div>
-        <div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px;">
+        <div style="background:var(--bg-card);padding:18px 20px;display:flex;flex-direction:column;gap:12px;">
             <input type="hidden" id="sw-id" value="${isEdit ? existing.id : ''}">
             <div><label style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">Awardee Name / Team *</label>
                 <input id="sw-name" type="text" value="${isEdit ? (existing.awardeeName||'').replace(/"/g,'&quot;') : ''}" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;box-sizing:border-box;margin-top:4px;"></div>
@@ -22403,9 +22342,9 @@ function safetyOpenAwardForm(existing) {
                 <div id="sw-upload-status" style="font-size:0.68rem;color:var(--text-secondary);margin-top:4px;"></div>
             </div>
         </div>
-        <div style="padding:14px 20px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;">
+        <div style="padding:14px 20px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;background:var(--bg-card);">
             <button onclick="document.getElementById('safety-award-modal-overlay').remove()" style="padding:8px 16px;border-radius:6px;border:1px solid var(--border-color);background:transparent;cursor:pointer;">Cancel</button>
-            <button id="sw-submit-btn" onclick="safetySubmitAward()" style="padding:8px 20px;border-radius:6px;border:none;background:#f57f17;color:#fff;font-weight:700;cursor:pointer;">${isEdit ? 'Save Changes' : 'Publish Award'}</button>
+            <button id="sw-submit-btn" onclick="safetySubmitAward()" style="padding:8px 20px;border-radius:6px;border:none;background:#2e7d32;color:#fff;font-weight:700;cursor:pointer;">${isEdit ? 'Save Changes' : 'Publish Award'}</button>
         </div>
     </div>`;
     document.body.appendChild(modal);
@@ -22630,7 +22569,7 @@ function buildIncidentRecommendationsHTML(tabType) {
             _rows.push({ s: _tileSt.trir, k: 'TRIR', t: _tt });
 
             if (ytdHIP > 0) {
-                _rows.push({ s: 'act', k: 'High-Potential', t: ytdHIP + ' incident(s), not counted in TRIR. Do root cause analysis like LTAs and escalate to management.' });
+                _rows.push({ s: 'act', k: 'High-Potential', t: ytdHIP + ' incident(s). Do root cause analysis like LTAs and escalate to management.' });
             }
             if (_sv > 0) {
                 _rows.push({ s: _tileSt.sr, k: 'Severity rate', t: Number(ytdDL).toLocaleString() + ' days lost/charged YTD. Focus on prompt medical management and light-duty return to work.' });
@@ -22739,7 +22678,7 @@ function buildTrendChartHTML(tabType) {
     if (persistentEl && !persistentEl.dataset.initialized) {
         persistentEl.dataset.initialized = 'true';
         persistentEl.innerHTML = `
-      <div style="background: var(--bg-card); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color); margin-bottom: 16px;">
+      <div style="background: var(--bg-card); border-radius: ${tabType === 'rates' ? '12px 12px 0 0' : '12px'}; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color); margin-bottom: ${tabType === 'rates' ? '0' : '16px'};">
         <div style="background: #2f7d4f; color: white; padding: 7px 16px; position: relative; overflow: hidden;">
           <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 15px; position: relative; z-index: 2;">
             <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
@@ -27751,30 +27690,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 var n       = inf.eligible.length;
                 var allDone = inf.complete === n;
                 var isPast  = (_selYr < _cy) || (_selYr === _cy && m < _curMo);
-                var accent  = allDone ? '#43a047' : ((inf.complete + inf.partial === 0) ? (isPast ? '#c62828' : '#bdbdbd') : '#ef6c00');
                 var sc      = inf.score;
-                var scBg    = sc === null ? (isPast ? '#ffebee' : '#f5f5f5') : sc >= 0.90 ? '#e8f5e9' : sc >= 0.75 ? '#fff8e1' : '#ffebee';
-                var scFg    = sc === null ? (isPast ? '#c62828' : '#888')    : sc >= 0.90 ? '#2e7d32' : sc >= 0.75 ? '#e65100' : '#c62828';
+                var scCls   = sc === null ? (isPast ? 'r' : 'n') : sc >= 0.90 ? 'g' : sc >= 0.75 ? 'a' : 'r';
                 var scLabel = sc !== null ? fmtAvg(sc) : (isPast ? 'MISSED' : 'NO DATA');
 
                 var chips = '';
-                if (allDone) chips += _gotChip('✔ All ' + n + ' project' + (n !== 1 ? 's' : '') + ' complete', '#e8f5e9', '#2e7d32');
+                if (allDone) chips = window._rowStatus('ok', 'All ' + n + ' project' + (n !== 1 ? 's' : '') + ' complete', '', false);
                 else {
-                    if (inf.complete) chips += _gotChip('✔ ' + inf.complete + ' complete', '#e8f5e9', '#2e7d32');
-                    if (inf.partial)  chips += _gotChip('◐ ' + inf.partial + ' partial', '#fff3e0', '#e65100', inf.partialNames.join(', '));
-                    if (inf.missing)  chips += _gotChip('✖ ' + inf.missing + ' not filled', '#ffebee', '#c62828', inf.missingNames.join(', '));
+                    if (inf.complete) chips += window._rowStatus('ok', inf.complete + ' complete', '', true);
+                    if (inf.partial)  chips += window._rowStatus('part', inf.partial + ' partial', inf.partialNames.join(', '), true);
+                    if (inf.missing)  chips += window._rowStatus('none', inf.missing + ' not filled', inf.missingNames.join(', '), true);
                 }
 
-                h += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);border-left:4px solid ' + accent + ';background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
-                   + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
-                   + ' onclick="window.openGotMonthDialog(\'' + escQ(reg) + '\',' + m + ',false)">';
-                h += '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:48px;box-sizing:border-box;text-align:center;">' + GOT_M[m - 1] + '</span>';
-                h += '<div style="flex:1;min-width:0;">';
-                h += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
-                   + chips + '</div>';
-                h += '</div>';
+                h += '<div class="ckpm-rw" onclick="window.openGotMonthDialog(\'' + escQ(reg) + '\',' + m + ',false)">';
+                h += '<span class="ckpm-mo">' + GOT_M[m - 1].charAt(0) + GOT_M[m - 1].slice(1).toLowerCase() + '</span>';
+                h += '<div class="ckpm-fl">' + chips + '</div>';
                 h += '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">';
-                h += '<span style="background:' + scBg + ';color:' + scFg + ';border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">' + scLabel + '</span>';
+                h += '<span class="ckpm-pc ' + scCls + '">' + scLabel + '</span>';
                 if (canEditReg) {
                     h += '<button onclick="event.stopPropagation();window.openGotMonthDialog(\'' + escQ(reg) + '\',' + m + ',true)"'
                        + ' title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;">'
@@ -28415,8 +28347,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 ? '<ul class="ytd-list">' + recLines.join('').replace(/<i class="fas [^"]*"[^>]*><\/i>/g, '') + '</ul>'
                 : '<p class="ytd-empty">No data available yet to generate recommendations.</p>';
 
-            html += window.rptCard('GOT Monthly Performance by Region (Jan – Dec ' + (state.selectedYear || new Date().getFullYear()) + ')',
-                'Overall average compliance rating per region per month &bull; Rating: 25%=Started | 50%=Partial | 75%=Mostly Done | 100%=Fully Implemented',
+            html += window.rptCard('',
+                '<span class="rpt-sub-1l">Overall average compliance rating per region per month &bull; Rating: 25%=Started | 50%=Partial | 75%=Mostly Done | 100%=Fully Implemented</span>',
                 '<span class="rpt-pill">' + allProjects.length + ' projects</span><span class="rpt-pill gold">6 goals</span>', thCells, bodyRows, 'got')
                 + '<div class="ytd-card">'
                 + '<div class="ytd-head">'
@@ -33115,13 +33047,13 @@ window.pcViewPersonnel = function(idx) {
     // Name
     document.getElementById('pc-view-name').textContent      = (p.name || '').toUpperCase();
     document.getElementById('pc-view-pos-badge').textContent  = p.pos || '—';
-    document.getElementById('pc-view-assign').textContent    = p.current ? `📍 ${p.current}` : '';
+    document.getElementById('pc-view-assign').textContent    = p.current ? `· ${p.current}` : '';
 
     // Info grid — compact, clean
     function _iRow(label, val) {
         const v = (!val || val === '—') ? '<span style="color:#ccc;">—</span>' : val;
-        return `<div style="padding:8px 10px;border:1px solid #f0f0f0;border-radius:8px;background:#fafafa;">
-          <div style="font-size:0.58rem;color:#bbb;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">${label}</div>
+        return `<div style="padding:8px 0;border-bottom:1px solid #eef1ef;">
+          <div style="font-size:0.58rem;color:#9aa59e;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">${label}</div>
           <div style="font-size:0.75rem;color:#333;font-weight:600;line-height:1.3;">${v}</div>
         </div>`;
     }
@@ -35030,9 +34962,10 @@ function osOpenModal(projectName) {
     const complianceBadge = document.getElementById('os-modal-compliance');
     const perc = typeof getPerc === 'function' ? getPerc(project, true) : null; // include finished projects' historical score, not a dash
     if (perc !== null) {
-        const percColor = perc >= 90 ? 'rgba(255,255,255,0.25)' : perc >= 75 ? 'rgba(255,193,7,0.35)' : 'rgba(244,67,54,0.35)';
+        const percColor = perc >= 90 ? '#e3efe5' : perc >= 75 ? '#fdf1e1' : '#fdecea';
         complianceBadge.textContent = `✔ ${perc}% Compliant`;
         complianceBadge.style.background = percColor;
+        complianceBadge.style.color = perc >= 90 ? '#1b5e20' : perc >= 75 ? '#7a4a05' : '#b3261e';
         complianceBadge.style.display = '';
     } else {
         complianceBadge.style.display = 'none';
@@ -35101,15 +35034,17 @@ function osOpenModal(projectName) {
         { label: 'Severity Rate',                value: sr,       icon: 'fa-gauge',                color: '#37474f' },
     ];
 
+    const _osWarnLabels = ['LTA Cases','Medical Treatment','High-Potential Inc.','Dangerous Occurrence','Near Miss','Fatality','Days Lost/Charged'];
+    const _osStatColor = (st) => (_osWarnLabels.includes(st.label) && Number(st.value) > 0) ? '#c62828' : '#1f2d23';
     document.getElementById('os-modal-stats').innerHTML = stats.map(s => `
-        <div style="background:#f8fffe; border:1.5px solid #e8f5e9; border-radius:10px;
+        <div style="background:#f7f9f8; border:1px solid #eceeec; border-radius:8px;
             padding:10px 12px; display:flex; align-items:center; gap:10px;">
-            <div style="width:32px; height:32px; border-radius:8px; background:${s.color}18;
+            <div style="width:32px; height:32px; border-radius:8px; background:#eef1ef;
                 display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                <i class="fas ${s.icon}" style="color:${s.color}; font-size:0.85rem;"></i>
+                <i class="fas ${s.icon}" style="color:#4a5750; font-size:0.85rem;"></i>
             </div>
             <div>
-                <div style="font-size:1rem; font-weight:800; color:${s.color}; line-height:1;">${s.value}</div>
+                <div style="font-size:1rem; font-weight:800; color:${_osStatColor(s)}; line-height:1;">${s.value}</div>
                 <div style="font-size:0.6rem; color:#888; font-weight:600; margin-top:2px;">${s.label}</div>
             </div>
         </div>
@@ -40357,9 +40292,9 @@ window.renderCorporateKpm = function() {
 
     var _ckBadge = isWdaAdmin
         ? (canEditNow ? '<span style="margin-left:auto;display:flex;align-items:center;gap:8px;"><button onclick="window.corpKpmOpenPersonModal()" style="background:#2e7d32;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:0.68rem;font-weight:700;cursor:pointer;"><i class="fas fa-user-plus" style="margin-right:5px;"></i>Register Personnel</button></span>' : '')
-        : '<span class="rpt-pill view" style="margin-left:auto;"><i class="fas fa-eye" style="margin-right:3px;"></i>View only</span>';
+        : '<span class="rpt-pill view" style="margin-left:auto;" title="Only the WDA System Admin can make changes"><i class="fas fa-eye" style="margin-right:3px;"></i>View only</span>';
 
-    var summaryHtml = window.rptCard('Corporate KPM Monthly Report', 'Weighted % per personnel per month · Year: ' + year, _ckBadge, thCells, bodyRows, 'kpm');
+    var summaryHtml = window.rptCard('', 'Weighted % per personnel per month · Year: ' + year, _ckBadge, thCells, bodyRows, 'kpm');
 
     // ── Build per-personnel sections (one per registered person active in the selected year) ──
     var managersHtml = '';
@@ -40379,16 +40314,14 @@ window.renderCorporateKpm = function() {
             + ' onclick="window.corpKpmToggleMgr(' + mi + ',event)">'
             + '<div class="region-banner-inner">'
             +   '<div class="region-banner-left">'
-            +     '<span style="background:rgba(255,255,255,0.22);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;margin-right:4px;">' + (pi+1) + '</span>'
-            +     '<span style="background:rgba(255,255,255,0.15);color:#fff;border-radius:5px;padding:2px 7px;font-size:0.63rem;font-weight:800;margin-right:6px;">' + tpl.badge + '</span>'
+            +     '<span class="ckpm-num">' + (pi+1) + '</span>'
             +     '<span class="region-name">' + esc(p.name) + '</span>'
             +   '</div>'
+            +   '<span class="ckpm-meta">' + esc(tpl.role) + ' · ' + periodLabel + ' · ' + submittedCount + '/' + periodMonths.length + ' submitted</span>'
             +   '<div class="region-banner-right">'
-            +     '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">' + esc(tpl.role) + '</span>'
-            +     '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">' + periodLabel + '</span>'
-            +     '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">' + submittedCount + '/' + periodMonths.length + ' submitted</span>'
             +     (canEditNow ? '<button class="lta-add-btn" onclick="event.stopPropagation();window.openCorpKpmModal(' + mi + ',null,true)" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-plus"></i> Add Entry</button>' : '')
             +     (canEditNow ? '<button class="lta-add-btn" onclick="event.stopPropagation();window.corpKpmOpenPersonModal(' + mi + ')" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-pen"></i> Edit</button>' : '')
+            +     '<i class="fas fa-lock ckpm-lock"></i>'
             +     '<i class="fas fa-chevron-down region-toggle-icon"></i>'
             +   '</div>'
             + '</div></div>'
@@ -40403,10 +40336,9 @@ window.renderCorporateKpm = function() {
             var isNA = ckIsNA(mi, mo);
             hasAnyRow = true;
 
-            var scoreBg = score===null ? '#f5f5f5' : cellBg(score);
-            var scoreFg = score===null ? '#aaa' : cellFg(score);
+            var scoreCls = score===null ? 'n' : (score>=0.90 ? 'g' : (score>=0.85 ? 'a' : 'r'));
             var scoreLabel = score===null ? '—' : (score*100).toFixed(1)+'%';
-            var submFg = dateSubm ? '#2e7d32' : '#c62828';
+            var submFg = dateSubm ? '' : '#c62828';
             var submLabel = dateSubm ? dateSubm : (isNA ? 'N/A' : 'Not submitted');
 
             // Fill status for this person/month: every KPM row needs an Actual Performance value
@@ -40415,26 +40347,22 @@ window.renderCorporateKpm = function() {
                 var _raw = String(ckGet(mi, mo, row.id + '_ep') || '').replace('%','').trim();
                 if (_raw !== '' && !isNaN(parseFloat(_raw))) _ckFilled++;
             });
-            var _ckChip = function(txt, bg, fg) {
-                return '<span style="background:' + bg + ';color:' + fg + ';border-radius:9px;padding:1px 8px;font-size:0.6rem;font-weight:700;white-space:nowrap;">' + txt + '</span>';
-            };
-            var _ckStatusChip = '';
+            var _ckStatus = '';
             if (!isNA && _ckRows.length) {
-                if (_ckFilled === 0)                    _ckStatusChip = _ckChip('✖ Not filled', '#ffebee', '#c62828');
-                else if (_ckFilled < _ckRows.length)    _ckStatusChip = _ckChip('◐ Partial (' + _ckFilled + '/' + _ckRows.length + ')', '#fff3e0', '#e65100');
-                else                                    _ckStatusChip = _ckChip('✔ All ' + _ckRows.length + ' ' + (tpl.wpLabel === 'KPI' ? 'KPI' : 'work process') + (_ckRows.length !== 1 ? (tpl.wpLabel === 'KPI' ? 's' : 'es') : '') + ' complete', '#e8f5e9', '#2e7d32');
+                if (_ckFilled === 0)
+                    _ckStatus = '<i class="fas fa-circle-xmark ckpm-ck none"></i><span class="ckpm-st none">Not filled</span>';
+                else if (_ckFilled < _ckRows.length)
+                    _ckStatus = '<i class="fas fa-circle-half-stroke ckpm-ck part"></i><span class="ckpm-st part">Partial (' + _ckFilled + '/' + _ckRows.length + ')</span>';
+                else
+                    _ckStatus = '<i class="fas fa-circle-check ckpm-ck" title="All ' + _ckRows.length + ' ' + (tpl.wpLabel === 'KPI' ? 'KPI' : 'work process') + (_ckRows.length !== 1 ? (tpl.wpLabel === 'KPI' ? 's' : 'es') : '') + ' complete"></i>';
             }
-            // Left accent color (same logic as KPM tab): green = complete, orange = partial, red = not filled, gray = N/A
-            var _ckAccent = (isNA || !_ckRows.length) ? '#bdbdbd' : (_ckFilled === _ckRows.length ? '#43a047' : (_ckFilled === 0 ? '#c62828' : '#ef6c00'));
 
-            managersHtml += '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border-color);border-left:4px solid ' + _ckAccent + ';background:var(--bg-card);cursor:pointer;transition:background 0.15s;"'
-                + ' onmouseenter="this.style.background=\'var(--hover-bg,#f5f9f5)\'" onmouseleave="this.style.background=\'var(--bg-card)\'"'
-                + ' onclick="window.openCorpKpmModal(' + mi + ',\'' + mo + '\',false)">'
-                + '<span style="background:rgba(27,94,32,0.1);color:#1b5e20;border-radius:6px;padding:3px 9px;font-size:0.65rem;font-weight:800;flex-shrink:0;min-width:48px;box-sizing:border-box;text-align:center;">' + mo.substring(0,3).toUpperCase() + '</span>'
-                + '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">' + _ckStatusChip + '</div>'
-                + '<span style="font-size:0.62rem;color:#888;white-space:nowrap;margin-left:auto;">Submitted: <span style="color:' + submFg + ';font-weight:600;">' + submLabel + '</span>' + (isNA?' <span style="color:#e65100;font-size:0.6rem;">[N/A]</span>':'') + '</span>'
+            managersHtml += '<div class="ckpm-rw" onclick="window.openCorpKpmModal(' + mi + ',\'' + mo + '\',false)">'
+                + '<span class="ckpm-mo">' + mo.substring(0,3) + '</span>'
+                + '<div class="ckpm-fl">' + _ckStatus + '</div>'
+                + '<span class="ckpm-dt">Submitted <span' + (submFg ? ' style="color:' + submFg + ';font-weight:600;"' : '') + '>' + submLabel + '</span>' + (isNA?' <span style="color:#e65100;font-size:0.6rem;">[N/A]</span>':'') + '</span>'
                 + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
-                + '<span style="background:' + scoreBg + ';color:' + scoreFg + ';border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">' + scoreLabel + '</span>'
+                + '<span class="ckpm-pc ' + scoreCls + '">' + scoreLabel + '</span>'
                 + (canEditNow ? '<button onclick="event.stopPropagation();window.openCorpKpmModal(' + mi + ',\'' + mo + '\',true)" title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen"></i></button>' : '')
                 + '</div>'
                 + '</div>';
@@ -40798,9 +40726,8 @@ window.renderCorporateKpm = function() {
     };
 
     // ── Assemble ──
-    container.innerHTML = '<div id="ckpm-root" style="padding:14px 10px;">'
+    container.innerHTML = '<div id="ckpm-root">'
         + summaryHtml
-        + (!isWdaAdmin ? '<div style="background:#e3f2fd;border:1.5px solid #90caf9;border-radius:6px;padding:7px 14px;font-size:0.72rem;color:#1565c0;font-weight:600;margin:0 16px 12px;"><i class="fas fa-info-circle" style="margin-right:5px;"></i>You have view-only access. Only the WDA System Admin can make changes.</div>' : '')
         + managersHtml
         + '</div>';
 };
