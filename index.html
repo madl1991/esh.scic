@@ -2097,36 +2097,84 @@
         })();
     </script>
     <script>
-        // Auto update check — no manual version bump. Compares the ETag/Last-Modified
-        // of index.html, styles.css, script.js. If any changed (new deploy), shows a banner.
+        // Auto update check (no manual version bump).
+        // Compares the ETag/Last-Modified of index.html, styles.css and script.js with what
+        // was there when this page loaded. The banner only appears after a change is CONFIRMED
+        // by two checks a few seconds apart, so deploys-in-progress, failed requests and
+        // CDN edge differences no longer cause false "new update" alerts.
         (function() {
             var FILES = ['index.html', 'styles.css', 'script.js'];
-            var base = null, shown = false;
+            var CONFIRM_MS = 15000;   // a change must still be there this long after first seen
+            var base = null;          // signature when this page loaded
+            var pending = null, pendingAt = 0;
+            var dismissed = null;     // newest signature the user already dismissed
+            var banner = null, busy = false;
+
+            function norm(v) { return (v || '').replace(/^W\//, '').replace(/"/g, ''); }
+
+            // Resolves to a signature string, or null when the check isn't reliable
+            // (network error, any non-2xx response, or the server sends no validators).
             function sig() {
                 return Promise.all(FILES.map(function(f) {
                     return fetch(f + '?chk=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
-                        .then(function(r) { return r.headers.get('etag') || r.headers.get('last-modified') || ''; });
-                })).then(function(a) { return a.join('|'); });
+                        .then(function(r) {
+                            if (!r.ok) throw new Error('status ' + r.status);
+                            return norm(r.headers.get('etag')) || r.headers.get('last-modified') || '';
+                        });
+                })).then(function(a) {
+                    return a.some(function(x) { return x; }) ? a.join('|') : null;
+                }).catch(function() { return null; });
             }
-            function banner() {
-                if (shown) return; shown = true;
-                var d = document.createElement('div');
+
+            function reload(btn) {
+                btn.disabled = true; btn.textContent = 'Reloading…';
+                // Refresh the HTTP cache for the files the browser may be holding on to,
+                // so a plain reload behaves like Ctrl + Shift + R (also works on phones).
+                var css = document.querySelector('link[rel="stylesheet"][href^="styles.css"]');
+                var urls = [location.href, css && css.href].filter(Boolean);
+                Promise.all(urls.map(function(u) {
+                    return fetch(u, { cache: 'reload' }).catch(function() {});
+                })).then(function() { location.reload(); });
+            }
+
+            function show(s) {
+                var d = banner = document.createElement('div');
                 d.id = 'esh-update-banner';
-                d.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:999999;background:#1b5e20;color:#fff;padding:10px 16px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.35);font-weight:600;font-size:0.8rem;display:flex;align-items:center;gap:12px;';
-                d.innerHTML = '<span><i class="fas fa-rotate"></i> A new update is available. Press Ctrl + Shift + R to hard refresh.</span>'
-                    + '<button title="Dismiss" style="background:transparent;color:#fff;border:0;font-size:1rem;cursor:pointer;line-height:1;">&times;</button>';
-                d.querySelector('button').onclick = function() { d.remove(); };
+                d.setAttribute('role', 'status');
+                d.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:999999;background:#1b5e20;color:#fff;padding:10px 16px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.35);font-weight:600;font-size:0.8rem;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 24px);';
+                d.innerHTML = '<span><i class="fas fa-rotate"></i> A new update is available.</span>'
+                    + '<button type="button" data-act="reload" style="background:#fff;color:#1b5e20;border:0;border-radius:6px;padding:4px 10px;font-weight:700;font-size:0.8rem;cursor:pointer;">Reload</button>'
+                    + '<button type="button" data-act="dismiss" title="Dismiss" aria-label="Dismiss" style="background:transparent;color:#fff;border:0;font-size:1rem;cursor:pointer;line-height:1;">&times;</button>';
+                d.addEventListener('click', function(e) {
+                    var act = e.target.getAttribute && e.target.getAttribute('data-act');
+                    if (act === 'reload') reload(e.target);
+                    else if (act === 'dismiss') { dismissed = s; banner = null; d.remove(); }
+                });
                 document.body.appendChild(d);
             }
+
             function check() {
-                if (shown) return;
+                if (busy || banner) return;
+                if (document.hidden && base !== null) return;   // don't poll from background tabs
+                busy = true;
                 sig().then(function(s) {
-                    if (!s.replace(/\|/g, '')) return;   // no ETag/Last-Modified (e.g. file://)
-                    if (base === null) { base = s; return; }
-                    if (s !== base) banner();
-                }).catch(function() {});
+                    busy = false;
+                    if (s === null) return;                      // unreliable result: ignore it
+                    if (base === null) { base = s; return; }     // first good reading = what we loaded
+                    if (s === base) { pending = null; return; }  // back to normal (transient blip)
+                    if (s === dismissed) return;                 // user already waved this one off
+                    if (s !== pending) {                         // first sighting: wait and re-check
+                        pending = s; pendingAt = Date.now();
+                        setTimeout(check, CONFIRM_MS + 500);
+                        return;
+                    }
+                    if (Date.now() - pendingAt >= CONFIRM_MS) show(s);   // confirmed and stable
+                });
             }
-            window.addEventListener('load', function() { setTimeout(check, 3000); });
+
+            // Take the baseline right away (no delay) so a deploy right after load isn't missed.
+            if (document.readyState === 'complete') check();
+            else window.addEventListener('load', check);
             setInterval(check, 2 * 60 * 1000);
             document.addEventListener('visibilitychange', function() { if (!document.hidden) check(); });
             window.addEventListener('online', check);
