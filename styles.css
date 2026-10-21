@@ -1747,6 +1747,23 @@
             border-bottom: 5px solid transparent;
         }
 
+        /* While editing, the red Cancel button sits to the left of the Save button,
+           exactly where the tooltip normally appears. Show the tooltip ABOVE the button instead. */
+        body.is-editing .floating-edit-btn .edit-tooltip {
+            right: 0;
+            top: auto;
+            bottom: calc(100% + 12px);
+        }
+        body.is-editing .floating-edit-btn .edit-tooltip::after {
+            right: 24px;
+            top: 100%;
+            transform: none;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid rgba(0, 0, 0, 0.8);
+            border-bottom: 0;
+        }
+
         body.dark-mode .floating-edit-btn {
             border-color: rgba(255, 255, 255, 0.2);
         }
@@ -8400,3 +8417,61 @@ body.dark-mode .pl-modal .pl-table tbody tr:hover td { background: #2b4132; }
 body.dark-mode .pl-modal .pl-table td.pl-name, body.dark-mode .pl-link { color: #e8f5e9; }
 body.dark-mode .pl-link:hover { color: #a5d6a7; }
 body.dark-mode .pl-search { border-color: #2f4034; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   OSH PERSONNEL REQUIREMENT MONITORING — table look matched to the
+   KEY PERFORMANCE MEASURES REPORT table (green header, #c8e6c9 grid,
+   tinted rows, compact type). Looks only: no rows/columns/markup changed.
+   Scoped to #osh2-regions-container so no other table is affected.
+   ═══════════════════════════════════════════════════════════════════════ */
+#osh2-regions-container .env-tbl {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.68rem !important;
+}
+#osh2-regions-container .env-tbl thead th {
+    background: #9ecf9b;
+    color: #1b5e20;
+    font-size: 0.67rem;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    text-align: center;
+    vertical-align: middle;
+    padding: 8px 6px;
+    border: 1px solid #c8e6c9;
+}
+#osh2-regions-container .env-tbl thead th.env-th-left { text-align: left; padding-left: 12px; }
+#osh2-regions-container .env-tbl thead th.env-th-dark,
+#osh2-regions-container .env-tbl thead th.env-th-sticky { background: #9ecf9b; }
+
+#osh2-regions-container .env-tbl tbody tr:nth-child(odd)  { background: #edf7ed !important; }
+#osh2-regions-container .env-tbl tbody tr:nth-child(even) { background: #f9fdf9 !important; }
+#osh2-regions-container .env-tbl tbody td {
+    border: 1px solid #c8e6c9;
+    vertical-align: middle;
+}
+/* sticky first column keeps the row tint instead of painting its own card colour */
+#osh2-regions-container .env-tbl tbody td:first-child { background: inherit !important; }
+
+/* "N/R" (not required) cells — same treatment as the KPM "N/A" cells */
+body:not(.dark-mode) #osh2-regions-container .env-tbl tbody td[style*="var(--input-bg)"] {
+    background: #f5f5f5 !important;
+    border: 1px solid #e0e0e0;
+}
+#osh2-regions-container .env-tbl tbody td[style*="var(--input-bg)"] span {
+    opacity: 1 !important;
+    color: #bdbdbd;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+/* dark mode (KPM table has no dark variant, so keep the existing env-tbl dark palette) */
+body.dark-mode #osh2-regions-container .env-tbl thead th,
+body.dark-mode #osh2-regions-container .env-tbl thead th.env-th-dark,
+body.dark-mode #osh2-regions-container .env-tbl thead th.env-th-sticky {
+    background: #163518; color: #a5d6a7; border-color: #2e7d32;
+}
+body.dark-mode #osh2-regions-container .env-tbl tbody tr:nth-child(odd)  { background: #1f2e1f !important; }
+body.dark-mode #osh2-regions-container .env-tbl tbody tr:nth-child(even) { background: #2d2d2d !important; }
+body.dark-mode #osh2-regions-container .env-tbl tbody td { border-color: rgba(46,125,50,0.25); }
