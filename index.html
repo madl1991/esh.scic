@@ -393,6 +393,28 @@
     </div>
 
     
+    <div id="positionListModal" class="modal" style="display:none;" onclick="if(event.target===this)closePositionListModal()">
+        <div class="modal-content pl-modal">
+            <div class="pm-head">
+                <div class="modal-icon"><i class="fas fa-users"></i></div>
+                <div class="pm-titles">
+                    <div class="modal-header"><span id="positionListTitle"></span></div>
+                    <div class="modal-subtitle" id="positionListSubtitle"></div>
+                </div>
+                <button class="modal-close" onclick="closePositionListModal()">&times;</button>
+            </div>
+            <input type="text" id="positionListSearch" class="pl-search" placeholder="Search in this list..." oninput="filterPositionList(this.value)">
+            <div class="pl-table-wrap">
+                <table class="pl-table">
+                    <thead>
+                        <tr><th>#</th><th>Name</th><th>Project / Assignment</th><th>Gender</th></tr>
+                    </thead>
+                    <tbody id="positionListBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div id="addPersonnelModal" class="modal" style="display:none;">
         <div class="modal-content pm-compact">
             <div class="pm-head">
@@ -1326,7 +1348,7 @@
 <div id="safety-alerts-view" class="hidden" style="padding:20px;">
 </div>
 
-<div id="headlines-view" class="hidden" style="padding:20px 0 28px;">
+<div id="headlines-view" class="hidden" style="padding:12px 0 12px;">
     <div id="safety-alert-award-panel"></div>
 </div>
 
@@ -1335,20 +1357,22 @@
     <div class="saw-wx-stack">
         <div class="saw-panel">
             <div class="saw-panel-head">
-                <div class="saw-ph-title"><i class="fas fa-cloud-sun-rain"></i>PAGASA weather</div>
+                <div class="saw-ph-title">PAGASA weather</div>
                 <span class="saw-ph-side">Surface map</span>
             </div>
             <div class="saw-wx-pagasa">
                              <img id="saw-wx-pagasa-img" class="saw-wx-img" alt="PAGASA surface map" referrerpolicy="no-referrer"
                      data-src="https://pubfiles.pagasa.dost.gov.ph/tamss/weather/surface_map.jpg" onload="sawWxImgDone(this)" onerror="sawWxImgErr(this)">
-                <a class="saw-wx-btn" href="https://pubfiles.pagasa.dost.gov.ph/tamss/weather/pf.pdf" target="_blank" rel="noopener">Daily Weather Forecast (PDF)</a>
-                <a class="saw-wx-btn alt" href="https://www.pagasa.dost.gov.ph/weather#daily-weather-forecast" target="_blank" rel="noopener">PAGASA weather page</a>
-                <a class="saw-wx-btn alt" href="https://www.pagasa.dost.gov.ph/tropical-cyclone-advisory-iframe" target="_blank" rel="noopener">Tropical Cyclone Advisory</a>
+                <div class="saw-wx-row">
+                    <a class="saw-wx-btn alt" href="https://pubfiles.pagasa.dost.gov.ph/tamss/weather/pf.pdf" target="_blank" rel="noopener" title="Daily Weather Forecast (PDF)">Forecast (PDF)</a>
+                    <a class="saw-wx-btn alt" href="https://www.pagasa.dost.gov.ph/weather#daily-weather-forecast" target="_blank" rel="noopener" title="PAGASA weather page">PAGASA page</a>
+                    <a class="saw-wx-btn alt" href="https://www.pagasa.dost.gov.ph/tropical-cyclone-advisory-iframe" target="_blank" rel="noopener" title="Tropical Cyclone Advisory">Cyclone advisory</a>
+                </div>
             </div>
         </div>
         <div class="saw-panel">
             <div class="saw-panel-head">
-                <div class="saw-ph-title"><i class="fas fa-satellite"></i>Windy satellite</div>
+                <div class="saw-ph-title">Windy satellite</div>
                 <span class="saw-ph-side">Philippines</span>
             </div>
             <iframe class="saw-weather-frame" loading="lazy" title="Windy satellite map"
@@ -1782,7 +1806,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
 
-<button id="floating-edit-btn" class="floating-edit-btn" onclick="toggleEdit()" title="Edit Mode" style="display:none;">
+<button id="floating-edit-btn" class="floating-edit-btn" onclick="toggleEdit()" aria-label="Edit mode" style="display:none;">
     <i id="floating-edit-icon" class="fas fa-edit"></i>
     <span id="floating-edit-tooltip" class="edit-tooltip">Click to Edit</span>
 </button>
@@ -1861,55 +1885,44 @@
 <!-- PERSONNEL VIEW MODAL — Shows info + position-specific certificates -->
 <!-- ══════════════════════════════════════════════════════════════════ -->
 <div id="pc-view-modal" class="modal" style="z-index:9999;">
-  <div style="background:#fff;border-radius:16px;width:92%;max-width:520px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.25);animation:scaleIn 0.25s ease-out;">
+  <div class="mdl" style="width:92%;max-width:520px;animation:scaleIn 0.25s ease-out;">
 
-    <!-- Header bar -->
-    <div class="ix-9ad29f8">
-      <div class="ix-c1d47ed">
-        <i class="fas fa-id-card" style="color:rgba(255,255,255,0.7);font-size:0.9rem;"></i>
-        <span class="ix-89681ad">Personnel Profile</span>
-      </div>
-      <button onclick="pcCloseView()" style="background:rgba(255,255,255,0.15);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">&times;</button>
+    <div class="mdl-head">
+      <i class="fas fa-id-card mdl-ic"></i>
+      <span class="mdl-title">Personnel profile</span>
+      <button class="mdl-x" onclick="pcCloseView()" title="Close" aria-label="Close">&times;</button>
     </div>
 
-    <!-- Name section -->
-    <div class="ix-10ef9fb">
-      <div class="ix-6b9d087">
-        <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#1b5e20,#388e3c);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 10px rgba(27,94,32,0.3);">
-          <i class="fas fa-user" style="color:white;font-size:1.1rem;"></i>
-        </div>
-        <div class="ix-dca0755">
-          <div id="pc-view-name" style="font-size:0.95rem;font-weight:700;color:#1b5e20;letter-spacing:0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-          <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;">
-            <span id="pc-view-pos-badge" style="font-size:0.6rem;background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:20px;font-weight:600;border:1px solid #c8e6c9;"></span>
-            <span id="pc-view-assign" style="font-size:0.63rem;color:#888;"></span>
+    <div class="mdl-body">
+      <div style="padding:16px 18px 12px;border-bottom:1px solid #eef1ef;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:34px;height:34px;border-radius:50%;background:#eef1ef;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fas fa-user" style="color:#6b7770;font-size:0.85rem;"></i>
+          </div>
+          <div style="min-width:0;flex:1;">
+            <div id="pc-view-name" style="font-size:0.95rem;font-weight:700;color:#1b5e20;letter-spacing:0.2px;"></div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;">
+              <span id="pc-view-pos-badge" style="font-size:0.6rem;background:transparent;color:#4a5750;padding:2px 8px;border-radius:20px;font-weight:600;border:1px solid #d5dbd7;"></span>
+              <span id="pc-view-assign" style="font-size:0.63rem;color:#888;"></span>
+            </div>
           </div>
         </div>
       </div>
+
+      <div style="padding:14px 18px 16px;">
+        <div style="font-size:0.6rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Information</div>
+        <div id="pc-view-info-grid" style="display:grid;grid-template-columns:1fr 1fr;column-gap:24px;row-gap:0;margin-bottom:14px;"></div>
+
+        <div id="pc-cert-section" style="display:none;">
+          <div style="font-size:0.6rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Required Credentials</div>
+          <div id="pc-cert-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+
+        <div id="pc-cert-exempt" style="display:none;padding:4px 0;color:#9aa59e;font-size:0.7rem;">Corporate personnel are not subject to certificate tracking.</div>
+      </div>
     </div>
 
-    <!-- Scrollable body -->
-    <div class="ix-442c5ba">
-
-      <!-- Info grid -->
-      <div style="font-size:0.6rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Information</div>
-      <div id="pc-view-info-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:18px;"></div>
-
-      <!-- Credentials -->
-      <div id="pc-cert-section" style="display:none;">
-        <div style="font-size:0.6rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Required Credentials</div>
-        <div id="pc-cert-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-      </div>
-
-      <!-- Corporate exempt -->
-      <div id="pc-cert-exempt" style="display:none;text-align:center;padding:20px;color:#bbb;font-size:0.75rem;">
-        <i class="fas fa-building-columns" style="display:block;font-size:1.8rem;margin-bottom:8px;opacity:0.3;"></i>
-        Corporate personnel are not subject to certificate tracking.
-      </div>
-
-    </div>
-
-    <!-- Footer removed — use × in header to close -->
+    <div class="mdl-foot"><button class="mdl-btn" onclick="pcCloseView()">Close</button></div>
 
   </div>
 </div>
@@ -2004,31 +2017,28 @@
 <div id="os-project-modal" style="display:none; position:fixed; inset:0; z-index:10000;
     background:rgba(0,0,0,0.6); backdrop-filter:blur(4px);
     align-items:center; justify-content:center;">
-  <div onclick="event.stopPropagation()" style="border-radius:14px; width:92%; max-width:560px;
-      max-height:88vh; display:flex; flex-direction:column; overflow:hidden;
-      box-shadow:0 8px 40px rgba(0,0,0,0.22);">
+  <div class="mdl" onclick="event.stopPropagation()" style="width:92%; max-width:560px; max-height:88vh;">
 
     <!-- Header -->
-    <div class="ix-19106bc" id="os-modal-header">
+    <div class="mdl-head" id="os-modal-header" style="align-items:flex-start;">
+      <i class="fas fa-building mdl-ic" style="margin-top:4px;"></i>
       <div class="ix-dd35f48">
-        <div id="os-modal-title" style="font-size:1rem; font-weight:700; color:white; letter-spacing:0.2px;"></div>
-        <div id="os-modal-address" style="font-size:0.68rem; color:rgba(255,255,255,0.75); margin-top:3px; display:none;"><i class="fas fa-map-marker-alt" style="margin-right:4px; font-size:0.6rem;"></i><span id="os-modal-address-text"></span></div>
+        <div id="os-modal-title" style="font-size:0.95rem; font-weight:700; color:#1f2d23; letter-spacing:0.2px;"></div>
+        <div id="os-modal-address" style="font-size:0.68rem; color:#6b7770; margin-top:3px; display:none;"><i class="fas fa-map-marker-alt" style="margin-right:4px; font-size:0.6rem;"></i><span id="os-modal-address-text"></span></div>
         <div style="display:flex; gap:6px; margin-top:5px; flex-wrap:wrap; align-items:center;">
-          <span id="os-modal-region" style="font-size:0.62rem; background:rgba(255,255,255,0.2);
-              color:white; padding:2px 9px; border-radius:20px; font-weight:600;"></span>
-          <span id="os-modal-status" style="font-size:0.62rem; background:rgba(255,255,255,0.15);
-              color:white; padding:2px 9px; border-radius:20px; font-weight:500;"></span>
-          <span id="os-modal-compliance" style="font-size:0.62rem; background:rgba(255,255,255,0.15);
-              color:white; padding:2px 9px; border-radius:20px; font-weight:600; display:none;"></span>
+          <span id="os-modal-region" style="font-size:0.62rem; background:transparent;
+              color:#4a5750; border:1px solid #d5dbd7; padding:2px 9px; border-radius:20px; font-weight:600;"></span>
+          <span id="os-modal-status" style="font-size:0.62rem; background:transparent;
+              color:#4a5750; border:1px solid #d5dbd7; padding:2px 9px; border-radius:20px; font-weight:500;"></span>
+          <span id="os-modal-compliance" style="font-size:0.62rem; background:transparent;
+              color:#4a5750; border:1px solid #d5dbd7; padding:2px 9px; border-radius:20px; font-weight:600; display:none;"></span>
         </div>
       </div>
-      <button onclick="osCloseModal()" style="background:rgba(255,255,255,0.15); border:none;
-          color:white; border-radius:50%; width:30px; height:30px; font-size:1rem;
-          cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-left:10px;">×</button>
+      <button class="mdl-x" onclick="osCloseModal()" title="Close" aria-label="Close">&times;</button>
     </div>
 
     <!-- Scrollable body -->
-    <div class="ix-c5c488d">
+    <div class="mdl-body" style="padding:16px 18px 18px;">
 
       <!-- Year label -->
       <div id="os-modal-year-label" style="font-size:0.7rem; color:#888; font-weight:500;
@@ -2036,16 +2046,16 @@
 
       <!-- Personnel section -->
       <div id="os-modal-personnel" style="margin-bottom:8px; display:none;
-          background:#f0faf1; border:1.5px solid #c8e6c9; border-radius:8px; padding:6px 12px;">
+          background:#f7f9f8; border:1px solid #eceeec; border-radius:8px; padding:6px 12px;">
         <div class="ix-0844e73">
           <div id="os-modal-head-card" style="flex:1; min-width:140px; background:white;
-              border-radius:6px; padding:5px 10px; border:1px solid #e0f2e1; display:none;">
+              border-radius:6px; padding:5px 10px; border:1px solid #eceeec; display:none;">
             <div style="font-size:0.55rem; color:#888; font-weight:500; text-transform:uppercase;
                 letter-spacing:0.3px; margin-bottom:1px;" id="os-modal-head-pos"></div>
             <div style="font-size:0.78rem; font-weight:700; color:#1b5e20;" id="os-modal-head-name"></div>
           </div>
           <div id="os-modal-esh-count-card" style="background:white; border-radius:6px;
-              padding:5px 10px; border:1px solid #e0f2e1; display:none; align-items:center; gap:7px;">
+              padding:5px 10px; border:1px solid #eceeec; display:none; align-items:center; gap:7px;">
             <div class="ix-399e76f">
               <i class="fas fa-users" style="color:#1b5e20; font-size:0.75rem;"></i>
             </div>
@@ -2066,6 +2076,7 @@
       <div id="os-modal-chart" style="display:none;"></div>
 
     </div>
+    <div class="mdl-foot"><button class="mdl-btn" onclick="osCloseModal()">Close</button></div>
   </div>
 </div>
 
