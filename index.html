@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESH COMPLIANCE DASHBOARD - SCIC</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><defs><linearGradient id=%22g1%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%25%22 stop-color=%22%232e7d32%22/><stop offset=%22100%25%22 stop-color=%22%231b5e20%22/></linearGradient></defs><path d=%22M16 2 L28 7 L28 17 C28 23 22 28 16 30 C10 28 4 23 4 17 L4 7 Z%22 fill=%22url(%23g1)%22/><path d=%22M16 2 L28 7 L28 17 C28 23 22 28 16 30 C10 28 4 23 4 17 L4 7 Z%22 fill=%22none%22 stroke=%22%23fbc02d%22 stroke-width=%221.5%22/><text x=%2216%22 y=%2219.5%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-weight=%22900%22 font-size=%228.5%22 fill=%22white%22 letter-spacing=%22-0.5%22>ESH</text></svg>">
-<link rel="stylesheet" href="styles.css?v=8">
+<link rel="stylesheet" href="styles.css?v=17">
     <!-- OPTIMIZED: consolidated font load — only weights actually used, preconnect for speed -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -140,9 +140,15 @@
     
     <div id="firebase-loading-overlay">
         <div class="shield-loader">
-            <i class="fas fa-shield-halved"></i>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2 3 5.5v6c0 5 3.6 9.3 9 10.5 5.4-1.2 9-5.5 9-10.5v-6L12 2Zm0 2.1 7 2.7v4.7c0 4-2.8 7.4-7 8.6V4.1Z"/></svg>
         </div>
-        <p>🛡️ SECURING YOUR WORKSPACE...</p>
+        <p class="fl-name">SCIC ESH Monitoring System</p>
+        <div class="fl-steps">
+            <span>SECURING YOUR WORKSPACE...</span>
+            <span>LOADING PROJECTS...</span>
+            <span>SYNCING DATA...</span>
+        </div>
+        <div class="fl-dots"><i></i><i></i><i></i></div>
     </div>
 
     <div id="login-overlay" style="display:none;">
@@ -248,7 +254,7 @@
 
             <div class="confirm-modal-body">
                 <strong class="ix-787d653">
-                    ⚠️ After changing your password:
+                    <i class="fa-solid fa-triangle-exclamation"></i> After changing your password:
                 </strong>
                 <ul>
                     <li>You will be logged out automatically</li>
@@ -274,29 +280,6 @@
     </div>
 
     
-    <div id="leaveSiteModal" class="modal" style="display:none;z-index:99999;">
-        <div class="confirm-modal-content ix-d513ae0">
-            <div class="confirm-modal-header">
-                <div class="modal-icon confirm-modal-icon" style="background:linear-gradient(135deg,#c62828,#ef5350);box-shadow:0 5px 20px rgba(198,40,40,0.3);">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <div class="confirm-modal-title ix-4dba189">
-                    Leave Site?
-                </div>
-                <div class="confirm-modal-subtitle">Changes you made may not be saved.</div>
-            </div>
-            <div class="confirm-modal-buttons">
-                <button class="btn btn-cancel ix-cfb57c2" onclick="leaveSiteCancel()">
-                    <i class="fas fa-arrow-left"></i> Stay
-                </button>
-                <button class="btn btn-proceed ix-1b19fb9" onclick="leaveSiteConfirm()">
-                    <i class="fas fa-sign-out-alt"></i> Leave
-                </button>
-            </div>
-        </div>
-    </div>
-
-    
     <div id="successModal" class="modal" style="display:none;">
         <div class="success-modal-content">
             <div class="success-modal-header">
@@ -304,14 +287,14 @@
                     <i class="fas fa-check-circle"></i>
                 </div>
                 <div class="success-modal-title">
-                    ✅ PASSWORD CHANGED SUCCESSFULLY!
+                    <i class="fa-solid fa-circle-check"></i> PASSWORD CHANGED SUCCESSFULLY!
                 </div>
                 <div class="success-modal-subtitle">Your password has been updated securely</div>
             </div>
 
             <div class="success-modal-body">
                 <strong class="ix-787d653">
-                    🔐 For your security:
+                    <i class="fa-solid fa-lock"></i> For your security:
                 </strong>
                 <ul>
                     <li>All sessions have been logged out</li>
@@ -333,15 +316,15 @@
     </div>
 
     <div id="addProjectModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <div class="modal-icon">
-                <i class="fas fa-folder-plus"></i>
-            </div>
-            <div class="modal-header">
-                <span>Add New Project</span>
+        <div class="modal-content esh-form">
+            <div class="pm-head">
+                <div class="modal-icon"><i class="fas fa-folder-plus"></i></div>
+                <div class="pm-titles">
+                    <div class="modal-header"><span>Add New Project</span></div>
+                    <div class="modal-subtitle">Create a new project site to track ESH compliance</div>
+                </div>
                 <button class="modal-close" onclick="closeAddProjectModal()">&times;</button>
             </div>
-            <div class="modal-subtitle">Create a new project site to track ESH compliance</div>
             <div class="form-group">
                 <label>Project Name *</label>
                 <input type="text" id="projectNameInput" placeholder="Enter project name" required>
@@ -393,7 +376,7 @@
     </div>
 
     
-    <div id="positionListModal" class="modal" style="display:none;" onclick="if(event.target===this)closePositionListModal()">
+    <div id="positionListModal" class="modal" style="display:none;">
         <div class="modal-content pl-modal">
             <div class="pm-head">
                 <div class="modal-icon"><i class="fas fa-users"></i></div>
@@ -798,12 +781,15 @@
 
     
     <div id="transferPersonnelModal" class="modal" style="display:none;">
-        <div class="modal-content ix-356341f">
-            <div class="modal-header ix-94e78cf">
-                <span><i class="fas fa-arrow-right-arrow-left" style="margin-right:8px;"></i>Transfer Personnel</span>
+        <div class="modal-content esh-form ix-356341f">
+            <div class="pm-head">
+                <div class="modal-icon"><i class="fas fa-arrow-right-arrow-left"></i></div>
+                <div class="pm-titles">
+                    <div class="modal-header"><span>Transfer Personnel</span></div>
+                    <div class="modal-subtitle" id="transferPersonnelSubtitle"></div>
+                </div>
                 <button class="modal-close" onclick="closeTransferPersonnelModal()">&times;</button>
             </div>
-            <div class="modal-subtitle" id="transferPersonnelSubtitle" style="color:#1565c0;font-weight:500;"></div>
             <div class="ix-4ae3fbd">
                 <i class="fas fa-circle-info" style="color:#fbc02d;margin-top:2px;flex-shrink:0;"></i>
                 <span><strong class="ix-ac3bb9b">Note:</strong> If transferring a personnel to another project, <strong>do not use Delete</strong> — use this <strong>Transfer</strong> function instead so their records are preserved.</span>
@@ -811,7 +797,7 @@
             <div class="modal-form-group">
                 <label style="font-weight:600;font-size:0.8rem;color:#333;">Transfer To:</label>
                 <div style="position:relative;margin-top:6px;">
-                    <input type="text" id="transferProjectSearch" placeholder="🔍  Search project..." oninput="filterTransferProjects(this.value)"
+                    <input type="text" id="transferProjectSearch" placeholder="Search project..." oninput="filterTransferProjects(this.value)"
                         style="width:100%;padding:9px 14px;border:1.5px solid #ccc;border-radius:8px;font-size:0.82rem;outline:none;box-sizing:border-box;margin-bottom:8px;transition:border-color 0.2s;"
                         onfocus="this.style.borderColor='#1976d2'" onblur="this.style.borderColor='#ccc'">
                 </div>
@@ -837,9 +823,13 @@
 
     
     <div id="editProjectModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span>Edit Project Details</span>
+        <div class="modal-content esh-form">
+            <div class="pm-head">
+                <div class="modal-icon"><i class="fas fa-pen-to-square"></i></div>
+                <div class="pm-titles">
+                    <div class="modal-header"><span>Edit Project Details</span></div>
+                    <div class="modal-subtitle">Update project information</div>
+                </div>
                 <button class="modal-close" onclick="closeEditProjectModal()">&times;</button>
             </div>
             <div class="form-group">
@@ -931,104 +921,7 @@
                 </div>
             </div>
         </div>
-        <nav style="flex-grow: 1; padding-top: 10px; padding-bottom: 130px; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none;">
-            
-            <div class="nav-group">
-                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)" data-tip="Dashboard & Analytics">
-                    <span><i class="fas fa-chart-bar" style="margin-right: 6px;"></i> Dashboard & Analytics</span>
-                    <i class="fas fa-chevron-down chevron"></i>
-                </div>
-                <div class="nav-group-items collapsed">
-                    <div class="nav-item" data-tab="headlines" onclick="changeTab('headlines')"><i class="fas fa-house"></i> Home</div>
-                    <div class="nav-item active" data-tab="overall" onclick="changeTab('overall')"><i class="fas fa-gauge-high"></i> Overall Dashboard</div>
-                    <div class="nav-item" data-tab="rates" onclick="changeTab('rates')"><i class="fas fa-chart-line"></i> Statistics Rate</div>
-                </div>
-            </div>
-
-            
-            <div class="nav-group">
-                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)" data-tip="Monitoring">
-                    <span><i class="fas fa-eye" style="margin-right: 6px;"></i> Monitoring</span>
-                    <i class="fas fa-chevron-down chevron"></i>
-                </div>
-                <div class="nav-group-items collapsed">
-                    <div class="nav-item" data-tab="exposures" onclick="changeTab('exposures')"><i class="fas fa-stopwatch"></i> Total Exposures</div>
-                    <div class="nav-item" data-tab="personnel" onclick="changeTab('personnel')"><i class="fas fa-users-viewfinder"></i> ESH Personnel Monitoring</div>
-                    <div class="nav-item" data-tab="osh-requirement" onclick="changeTab('osh-requirement')"><i class="fas fa-shield-halved"></i> OSH Personnel Requirement</div>
-                    <div class="nav-item" data-tab="activities" onclick="changeTab('activities')"><i class="fas fa-clipboard-check"></i> ESH Activities & Programs</div>
-                </div>
-            </div>
-
-            
-            <div class="nav-group">
-                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)" data-tip="Reportorial">
-                    <span><i class="fas fa-file-alt" style="margin-right: 6px;"></i> Reportorial</span>
-                    <i class="fas fa-chevron-down chevron"></i>
-                </div>
-                <div class="nav-group-items collapsed">
-                    <div class="nav-item" data-tab="corporate-kpm" onclick="changeTab('corporate-kpm')" style="display:none;border-left:3px solid #1b5e20;padding-left:13px;"><i class="fas fa-chart-bar"></i> Corporate KPM Report <i class="fas fa-lock" id="corp-kpm-nav-lock" style="font-size:0.6rem;margin-left:4px;color:#1b5e20;" title="WDA Admin only"></i></div>
-                    <div class="nav-item" data-tab="kpm" onclick="changeTab('kpm')"><i class="fas fa-file-lines"></i> KPM</div>
-                    <div class="nav-item" data-tab="got-monitoring" onclick="changeTab('got-monitoring')"><i class="fas fa-bullseye"></i> GOT Monitoring</div>
-                    <div class="nav-item" data-tab="dole" onclick="changeTab('dole')"><i class="fas fa-file-contract"></i> DOLE Reportorial</div>
-                    <div class="nav-item" data-tab="emb" onclick="changeTab('emb')"><i class="fas fa-industry"></i> EMB Reportorial</div>
-                    <div class="nav-item" data-tab="doe" onclick="changeTab('doe')"><i class="fas fa-solar-panel"></i> DOE Reportorial</div>
-                    <div class="nav-item" data-tab="env-monthly-report" onclick="changeTab('env-monthly-report')"><i class="fas fa-leaf"></i> Envi Reportorial</div>
-                    <div class="nav-item" data-tab="health-report" onclick="changeTab('health-report')"><i class="fas fa-notes-medical"></i> Health Reportorial</div>
-                </div>
-            </div>
-
-            
-            <div class="nav-group">
-                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)" data-tip="ESH Records">
-                    <span><i class="fas fa-triangle-exclamation" style="margin-right: 6px;"></i> ESH Records</span>
-                    <i class="fas fa-chevron-down chevron"></i>
-                </div>
-                <div class="nav-group-items collapsed">
-                    <div class="nav-item" data-tab="safety-alerts" onclick="changeTab('safety-alerts')"><i class="fas fa-bell"></i> Safety Alerts</div>
-                    <div class="nav-item" data-tab="medical" onclick="changeTab('medical')"><i class="fas fa-triangle-exclamation"></i> Accident/Incident Record</div>
-                    <div class="nav-item" data-tab="lta-registry" onclick="changeTab('lta-registry')"><i class="fas fa-hospital-user"></i> Incident & Accident Registry</div>
-                    <div class="nav-item" data-tab="tabulation" onclick="changeTab('tabulation')"><i class="fas fa-table-list"></i> Incident Tabulation</div>
-                    <div class="nav-item" data-tab="nov" onclick="changeTab('nov')"><i class="fas fa-hard-hat"></i> OSH Issued NOV</div>
-                    <div class="nav-item" data-tab="nov-env" onclick="changeTab('nov-env')"><i class="fas fa-leaf"></i> Envi Issued NOV</div>
-                    <div class="nav-item" data-tab="nov-monitoring" onclick="changeTab('nov-monitoring')"><i class="fas fa-chart-gantt"></i> ESH NOV Monitoring</div>
-                </div>
-            </div>
-
-            
-            <div class="nav-group">
-                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)" data-tip="Compliance & Audit">
-                    <span><i class="fa-solid fa-magnifying-glass-chart" style="margin-right: 6px;"></i> Compliance & Audit</span>
-                    <i class="fas fa-chevron-down chevron"></i>
-                </div>
-                <div class="nav-group-items collapsed">
-                    <div class="nav-item" data-tab="audit" onclick="changeTab('audit')"><i class="fas fa-magnifying-glass-dollar"></i> Internal ESH Audit Result <i class="fas fa-lock" id="audit-nav-lock" style="font-size:0.7rem; margin-left:4px; color:#fb8c00; display:none;" title="Admin only"></i></div>
-                    <div class="nav-item" data-tab="cshp" onclick="changeTab('cshp')"><i class="fas fa-shield-heart"></i> CSHP</div>
-                    <div class="nav-item" data-tab="reg" onclick="changeTab('reg')"><i class="fas fa-certificate"></i> Certificate of Registration</div>
-                    <div class="nav-item" data-tab="doe-permit" onclick="changeTab('doe-permit')"><i class="fas fa-id-card"></i> DOE Safety Officer Permit</div>
-                    <div class="nav-item" data-tab="permits" onclick="changeTab('permits')"><i class="fas fa-leaf"></i> Environmental Permits</div>
-                    <div class="nav-item" data-tab="env-monitoring" onclick="changeTab('env-monitoring')"><i class="fas fa-seedling"></i> Environmental Monitoring</div>
-
-                </div>
-            </div>
-
-            
-            <div class="nav-group">
-                <div class="nav-group-header collapsed" onclick="toggleNavGroup(this)" data-tip="ESH Calendar & Drills">
-                    <span><i class="fas fa-calendar-check" style="margin-right: 6px;"></i> ESH Calendar & Drills</span>
-                    <i class="fas fa-chevron-down chevron"></i>
-                </div>
-                <div class="nav-group-items collapsed">
-                    <div class="nav-item" data-tab="esh-calendar-env" onclick="changeTab('esh-calendar-env')"><i class="fas fa-leaf"></i> Environment Trainings</div>
-                    <div class="nav-item" data-tab="esh-calendar-safety" onclick="changeTab('esh-calendar-safety')"><i class="fas fa-hard-hat"></i> Safety Trainings</div>
-                    <div class="nav-item" data-tab="esh-calendar-health" onclick="changeTab('esh-calendar-health')"><i class="fas fa-heart-pulse"></i> Health Awareness</div>
-                    <div class="nav-item" data-tab="esh-calendar-drills" onclick="changeTab('esh-calendar-drills')"><i class="fas fa-person-running"></i> Emergency Drills</div>
-                    <div class="nav-item" data-tab="esh-calendar-corp-drills" onclick="changeTab('esh-calendar-corp-drills')" style="border-left:3px solid #fbc02d;padding-left:13px;"><i class="fas fa-building-columns"></i> Corporate Drills</div>
-                </div>
-            </div>
-
-            
-            <div class="nav-item" data-tab="settings" onclick="changeTab('settings')" style="display: none;"><i class="fas fa-sliders"></i> Settings</div>
-        </nav>
+        <nav id="main-nav"></nav>
 
         
         
@@ -1038,17 +931,7 @@
     <main id="main-content" class="hidden">
         <header>
             <div class="ix-6b9d087">
-                <button id="hamburger-btn" onclick="toggleSidebar()" title="Toggle Menu" style="
-                    background: none;
-                    border: none;
-                    cursor: pointer;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 5px;
-                    padding: 6px;
-                    border-radius: 6px;
-                    transition: background 0.2s;
-                " onmouseover="this.style.background='rgba(27,94,32,0.08)'" onmouseout="this.style.background='none'">
+                <button id="hamburger-btn" class="hamburger-btn" onclick="toggleSidebar()" title="Toggle Menu">
                     <span class="ix-95653be"></span>
                     <span class="ix-95653be"></span>
                     <span class="ix-95653be"></span>
@@ -1061,14 +944,6 @@
                 
 
                 
-                <span class="na-badge" id="export-pdf-btn" style="display:none;">
-                  <!-- PDF export hidden — all tabs now use Excel -->
-                </span>
-
-                <span class="na-badge" id="export-overall-excel-wrap" style="display:none;"></span>
-                <span class="na-badge" id="export-emb-excel-wrap" style="display:none;"></span>
-                <span class="na-badge" id="export-kpm-excel-wrap" style="display:none;"></span>
-
                 <span class="na-badge">
                   <button id="export-excel-btn" class="na-icon" onclick="exportCurrentTabToExcel()" title="Export to Excel" style="display:none;">
                     <svg><use href="#ic-excel"/></svg>
@@ -1094,11 +969,6 @@
                             </div>
                         </div>
                         <div class="dropdown-list" id="users-list"></div>
-                        <div class="ix-f33f8e9">
-                            <button class="ix-3f86ada" onclick="clearStalePresenceData()">
-                                <i class="fas fa-broom"></i> Clear Stale Data
-                            </button>
-                        </div>
                     </div>
                 </div>
 
@@ -1131,14 +1001,14 @@
                     
                     <div class="chat-panel" id="chat-panel" style="display:none;">
                         <div class="chat-panel-header">
-                            <div class="ix-fc898ec">
-                                <div class="chat-online-dot"></div>
+                            <div class="chat-panel-head-l">
+                                <div class="ud-header-icon"><i class="fas fa-comments"></i></div>
                                 <div>
-                                    <div class="chat-panel-title">ESH Team Chat</div>
+                                    <div class="ud-header-text">ESH Team Chat</div>
                                     <div class="chat-panel-sub" id="chat-panel-sub">General</div>
                                 </div>
                             </div>
-                            <button class="ix-829d36f" onclick="toggleChatPanel(event)"><i class="fas fa-times"></i></button>
+                            <button class="chat-panel-close" onclick="toggleChatPanel(event)"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="chat-rooms-bar" id="chat-rooms-bar"></div>
                         <div class="chat-messages-panel" id="chat-messages-panel">
@@ -1166,7 +1036,7 @@
                     </span>
                     <div class="notification-dropdown hidden" id="notification-dropdown">
                         <div class="ud-header">
-                            <div class="ud-header-icon ix-99eb027"><i class="fas fa-bell" style="color:#e65100"></i></div>
+                            <div class="ud-header-icon"><i class="fas fa-bell"></i></div>
                             <div>
                                 <div class="ud-header-text">Overdue Reports</div>
                                 <div class="ud-header-sub">Requires your attention</div>
@@ -1196,9 +1066,9 @@
                                 <i class="fas fa-chevron-right smi-arrow"></i>
                             </div>
                             <div class="settings-menu-item" onclick="toggleDarkModeFromMenu()">
-                                <div class="smi-icon" style="background:#e3f2fd"><i class="fas fa-moon" id="settings-theme-icon" style="color:#1976d2"></i></div>
+                                <div class="smi-icon" style="background:#e8f5e9"><i class="fas fa-moon" id="settings-theme-icon" style="color:#2e7d32"></i></div>
                                 <span class="smi-label" id="settings-theme-text">Dark Mode</span>
-                                <i class="fas fa-chevron-right smi-arrow"></i>
+                                <span class="smi-switch"></span>
                             </div>
 
                             <div class="settings-divider"></div>
@@ -1212,15 +1082,6 @@
                 
             </div>
         </header>
-
-<!-- ── GREETING RIBBON ───────────────────────────────────────────────────── -->
-<div id="greeting-ribbon" style="display:none;">
-    <span id="greeting-ribbon-icon">🌤</span>
-    <span id="greeting-ribbon-text">Welcome back!</span>
-    <span id="greeting-ribbon-badge"></span>
-    <button id="greeting-ribbon-dismiss" title="Dismiss" onclick="(function(){document.getElementById('greeting-ribbon').style.display='none';try{sessionStorage.setItem('esh_greeting_dismissed','1');}catch(e){}})()">✕</button>
-</div>
-<!-- ── END GREETING RIBBON ────────────────────────────────────────────────── -->
 
 <div id="global-rbac-banner" style="display:none;"></div>
 
@@ -1401,44 +1262,40 @@
 <div id="env-monitoring-view" class="hidden" style="padding:20px;">
 
     
-    <div style="background:var(--bg-card);border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);border:1px solid var(--border-color);margin-bottom:16px;">
+    <div class="env-one">
+    <div>
         <div class="ix-5315203">
             <div class="ix-0701853"></div>
-            <div class="ix-95bdc07">
+            <div class="ix-95bdc07" style="flex:1 1 260px;min-width:0;">
                 <i class="fas fa-seedling" style="font-size:1.4rem;color:#a5d6a7;"></i>
-                <div>
-                    <div class="ix-f714078">ENVIRONMENTAL MONITORING</div>
-                    <div style="font-size:0.65rem;color:#a5d6a7;margin-top:2px;" id="env-header-sub">Electricity Consumption &amp; GHG Emission Tracker — Per Region</div>
+                <div style="min-width:0;">
+                    <div style="font-size:0.8rem;font-weight:700;color:white;letter-spacing:0.3px;" id="env-header-sub">Electricity Consumption &amp; GHG Emission Tracker — Per Region</div>
                 </div>
             </div>
-            <div class="ix-945cec6">
+            <div class="ix-945cec6" style="flex-shrink:0;">
                 
                 <div class="ix-db884ea">
                     <button id="env-toggle-elec" onclick="envSwitchMode('electricity')"
                         style="padding:5px 14px;font-size:0.7rem;font-weight:600;border:none;cursor:pointer;transition:all 0.2s;background:white;color:#1b5e20;">
-                        ⚡ Electricity
+                        <i class="fa-solid fa-bolt"></i> Electricity
                     </button>
                     <button id="env-toggle-water" onclick="envSwitchMode('water')"
                         style="padding:5px 14px;font-size:0.7rem;font-weight:600;border:none;cursor:pointer;transition:all 0.2s;background:rgba(255,255,255,0.15);color:white;">
-                        💧 Water
+                        <i class="fa-solid fa-droplet"></i> Water
                     </button>
                     <button id="env-toggle-waste" onclick="envSwitchMode('waste')"
                         style="padding:5px 14px;font-size:0.7rem;font-weight:600;border:none;cursor:pointer;transition:all 0.2s;background:rgba(255,255,255,0.15);color:white;">
-                        🗑️ Waste
+                        <i class="fa-solid fa-trash"></i> Waste
                     </button>
                     <button id="env-toggle-appliances" onclick="envSwitchMode('appliances')"
                         style="padding:5px 14px;font-size:0.7rem;font-weight:600;border:none;cursor:pointer;transition:all 0.2s;background:rgba(255,255,255,0.15);color:white;">
-                        🔌 Appliances
+                        <i class="fa-solid fa-plug"></i> Appliances
                     </button>
                     <button id="env-toggle-fuel" onclick="envSwitchMode('fuel')"
                         style="padding:5px 14px;font-size:0.7rem;font-weight:600;border:none;cursor:pointer;transition:all 0.2s;background:rgba(255,255,255,0.15);color:white;">
-                        ⛽ Fuel
+                        <i class="fa-solid fa-gas-pump"></i> Fuel
                     </button>
                 </div>
-
-                <button id="env-export-pdf-btn" onclick="openEnvPdfModal()" style="padding:6px 16px;background:rgba(255,255,255,0.18);color:white;border:1.5px solid rgba(255,255,255,0.5);border-radius:20px;font-size:0.7rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.18)'">
-                    <i class="fas fa-file-pdf"></i> Export PDF
-                </button>
 
             </div>
         </div>
@@ -1450,135 +1307,38 @@
     <div id="env-summary-waste"       style="margin-bottom:16px;display:none;"></div>
     <div id="env-summary-appliances"  style="margin-bottom:16px;display:none;"></div>
     <div id="env-summary-fuel"        style="margin-bottom:16px;display:none;"></div>
+    </div><!-- /.env-one -->
 
     
     <div id="env-electricity-section">
         
-        <div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
-            <i class="fas fa-bolt" style="color:#2e7d32;font-size:1.2rem;"></i>
-            <div class="ix-ea938d5">
-                Log <strong>Electricity Consumption</strong> per region — kWh usage and billing amount in Php. Auto-calculates <strong>GHG emissions</strong> (tCO2).
-            </div>
-        </div>
         
         <div id="env-regions-container"></div>
     </div>
 
     
     <div id="env-water-section" style="display:none;">
-        <div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
-            <i class="fas fa-droplet" style="color:#2e7d32;font-size:1.2rem;"></i>
-            <div class="ix-ea938d5">
-                Log <strong>Water Consumption</strong> per region — Domestic Use (m³), Potable Use (Liters), and Industrial Use (m³), each with corresponding amount in Php.
-            </div>
-        </div>
         <div id="env-water-regions-container"></div>
     </div>
 
     
     <div id="env-waste-section" style="display:none;">
-        <div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
-            <i class="fas fa-trash-alt" style="color:#5d4037;font-size:1.2rem;"></i>
-            <div class="ix-ea938d5">
-                Log <strong>Waste Generation and Disposal</strong> per region — Biodegradable, Non-Biodegradable/Residual, Recyclable, and Hazardous Wastes (MT), plus Septage Disposal (m³).
-            </div>
-        </div>
         
         <div id="env-waste-regions-container"></div>
     </div>
 
     
     <div id="env-appliances-section" style="display:none;">
-        <div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
-            <i class="fas fa-plug" style="color:#2e7d32;font-size:1.2rem;"></i>
-            <div class="ix-ea938d5">
-                Inventory of <strong>Electrical Equipment &amp; Lighting Fixtures Used</strong> — quantity in units per project, per region.
-            </div>
-        </div>
         <div id="env-appliances-regions-container"></div>
     </div>
 
     
     <div id="env-fuel-section" style="display:none;">
-        <div style="background:var(--bg-card);border-radius:12px;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.06);padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
-            <i class="fas fa-gas-pump" style="color:#2e7d32;font-size:1.2rem;"></i>
-            <div class="ix-ea938d5">
-                Log <strong>Fuel Consumption</strong> per region — Diesel (Liters) and Gasoline (Liters) per project per month. Auto-calculates <strong>Total GHG Emissions</strong> (t CO₂e).
-                <span class="ix-5f6f957">Data to be collected from Warehouse Department.</span>
-            </div>
-        </div>
         <div id="env-fuel-regions-container"></div>
     </div>
 
 </div>
 
-
-<!-- ══════════════════════════════════════════════════════════
-     ENV MONITORING — PDF EXPORT MODAL
-══════════════════════════════════════════════════════════ -->
-<div id="env-pdf-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:14px;width:min(520px,94vw);box-shadow:0 24px 80px rgba(0,0,0,0.4);overflow:hidden;">
-    <!-- Header -->
-    <div class="ix-b601c51">
-      <div class="ix-c1d47ed">
-        <i class="fas fa-file-pdf" style="color:#a5d6a7;font-size:1.2rem;"></i>
-        <div>
-          <div class="ix-ce75d8e">Export Environmental Monitoring</div>
-          <div style="color:#a5d6a7;font-size:0.65rem;margin-top:1px;">Select tabs to include in PDF</div>
-        </div>
-      </div>
-      <button class="ix-6916732" onclick="closeEnvPdfModal()">
-        <i class="fas fa-times"></i> Close
-      </button>
-    </div>
-    <!-- Body -->
-    <div class="ix-726fdcd">
-      <div style="font-size:0.75rem;font-weight:600;color:#1b5e20;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px;">Choose tabs to export:</div>
-      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-        <label id="envpdf-chk-elec"   style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid #c8e6c9;cursor:pointer;background:#f1f8e9;user-select:none;">
-          <input type="checkbox" id="envpdf-cb-elec"   checked style="width:16px;height:16px;accent-color:#1b5e20;cursor:pointer;">
-          <span class="ix-ec2cc74">⚡ Electricity Consumption</span>
-          <span class="ix-642afbb">kWh · Amount · GHG</span>
-        </label>
-        <label id="envpdf-chk-water"  style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid #c8e6c9;cursor:pointer;background:#f1f8e9;user-select:none;">
-          <input type="checkbox" id="envpdf-cb-water"  checked style="width:16px;height:16px;accent-color:#1b5e20;cursor:pointer;">
-          <span class="ix-ec2cc74">💧 Water Consumption</span>
-          <span class="ix-642afbb">Domestic · Potable · Industrial</span>
-        </label>
-        <label id="envpdf-chk-waste"  style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid #c8e6c9;cursor:pointer;background:#f1f8e9;user-select:none;">
-          <input type="checkbox" id="envpdf-cb-waste"  checked style="width:16px;height:16px;accent-color:#1b5e20;cursor:pointer;">
-          <span class="ix-ec2cc74">🗑️ Waste Generation</span>
-          <span class="ix-642afbb">Bio · Non-Bio · Recyclable · Hazardous</span>
-        </label>
-        <label id="envpdf-chk-appl"   style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid #c8e6c9;cursor:pointer;background:#f1f8e9;user-select:none;">
-          <input type="checkbox" id="envpdf-cb-appl"   checked style="width:16px;height:16px;accent-color:#1b5e20;cursor:pointer;">
-          <span class="ix-ec2cc74">🔌 Appliance Inventory</span>
-          <span class="ix-642afbb">A · A1 · B · C sections</span>
-        </label>
-        <label id="envpdf-chk-fuel"   style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid #c8e6c9;cursor:pointer;background:#f1f8e9;user-select:none;">
-          <input type="checkbox" id="envpdf-cb-fuel"   checked style="width:16px;height:16px;accent-color:#1b5e20;cursor:pointer;">
-          <span class="ix-ec2cc74">⛽ Fuel Consumption</span>
-          <span class="ix-642afbb">Diesel · Gasoline · GHG</span>
-        </label>
-      </div>
-      <!-- Select All / None -->
-      <div style="display:flex;gap:8px;margin-bottom:18px;">
-        <button class="ix-71ff24a" onclick="envPdfSelectAll(true)">✓ Select All</button>
-        <button class="ix-b9ab5b6" onclick="envPdfSelectAll(false)">✕ Deselect All</button>
-      </div>
-      <!-- Year info -->
-      <div style="background:#f9fbe7;border:1px solid #c8e6c9;border-radius:8px;padding:8px 12px;margin-bottom:18px;display:flex;align-items:center;gap:8px;">
-        <i class="fas fa-calendar-check" style="color:#2e7d32;font-size:0.85rem;"></i>
-        <span class="ix-ac14f28">Report Year: <strong id="envpdf-year-label">—</strong> &nbsp;·&nbsp; All Regions &amp; Projects</span>
-      </div>
-      <!-- Generate button -->
-      <button class="ix-9d688aa" onclick="generateEnvPDF()" id="envpdf-generate-btn"
-        onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
-        <i class="fas fa-download"></i> Generate &amp; Download PDF
-      </button>
-    </div>
-  </div>
-</div>
 
 <div id="got-monitoring-view" class="hidden" style="padding:10px 0 0 0;">
     <div id="got-monitoring-container" style="padding-bottom: 100px;"></div>
@@ -1799,11 +1559,7 @@
 
     </main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
 
 <button id="floating-edit-btn" class="floating-edit-btn" onclick="toggleEdit()" aria-label="Edit mode" style="display:none;">
@@ -1922,7 +1678,7 @@
       </div>
     </div>
 
-    <div class="mdl-foot"><button class="mdl-btn" onclick="pcCloseView()">Close</button></div>
+    <div class="mdl-gap"></div>
 
   </div>
 </div>
@@ -2007,8 +1763,8 @@
      OVERALL SUMMARY — FIXED DROPDOWN (outside re-render zone)
 ═══════════════════════════════════════════════════════════════ -->
 <div id="os-search-dropdown" style="display:none; position:fixed; z-index:99999;
-    background:white; border:1.5px solid #c8e6c9; border-radius:8px;
-    box-shadow:0 4px 18px rgba(0,0,0,0.15); max-height:280px; overflow-y:auto;">
+    background:white; border:1px solid #e5e7eb; border-radius:8px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.08); max-height:280px; overflow-y:auto;">
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════
@@ -2076,7 +1832,7 @@
       <div id="os-modal-chart" style="display:none;"></div>
 
     </div>
-    <div class="mdl-foot"><button class="mdl-btn" onclick="osCloseModal()">Close</button></div>
+    <div class="mdl-gap"></div>
   </div>
 </div>
 
