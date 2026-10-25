@@ -9361,3 +9361,105 @@ body.dark-mode .project-dates .date-label { color: var(--text-secondary); }
 body.dark-mode .status-badge.status-ongoing   { background: transparent; color: #90caf9; }
 body.dark-mode .status-badge.status-finished  { background: transparent; color: #b0bec5; }
 body.dark-mode .status-badge.status-stoppage  { background: #d84343; color: #fff; }
+
+/* ═══════════════════════════════════════════════════════════════
+   LOGIN — fullscreen layout + Facebook-style floating-label fields
+   ═══════════════════════════════════════════════════════════════ */
+#login-overlay { padding: 0; align-items: stretch; justify-content: stretch; }
+#login-overlay .login-card {
+    max-width: none; width: 100%; height: 100%; padding: 0; max-height: none;
+    border-radius: 0; box-shadow: none; animation: none;
+}
+#login-overlay .login-left-panel  { width: 50%; border-radius: 0; padding: 48px; }
+#login-overlay .login-right-panel { border-radius: 0; padding: 48px 40px; align-items: stretch; overflow-y: auto; }
+#login-overlay .login-right-panel .login-right-inner { max-width: 360px !important; margin: auto; }
+
+/* left side — scaled up for fullscreen */
+#login-overlay .login-left-inner  { gap: 22px; }
+#login-overlay .login-esh-shield  { width: 112px; height: 112px; }
+#login-overlay .login-left-corp   { font-size: 0.8rem; letter-spacing: 2px; }
+#login-overlay .login-left-title  { font-size: clamp(1.8rem, 2.8vw, 2.9rem); }
+#login-overlay .login-left-divider{ width: 56px; height: 3px; }
+#login-overlay .login-esh-row     { max-width: 360px; }
+#login-overlay .login-esh-item i  { font-size: 1.8rem; }
+
+/* right side — text sizes */
+#login-overlay .login-greeting     { font-size: 1.5rem; }
+#login-overlay .login-greeting     { margin-bottom: 8px; }
+#login-overlay .login-greeting-sub { font-size: 0.8rem; margin-bottom: 28px; }
+#login-overlay .login-form         { max-width: none; }
+#login-overlay .login-remember-label,
+#login-overlay .login-forgot       { font-size: 0.72rem; }
+#login-overlay .login-caps-warn    { font-size: 0.7rem; margin: 6px 0 0 14px; }
+#login-overlay .login-notice       { font-size: 0.7rem; margin-top: 28px; }
+#login-overlay .login-footer       { font-size: 0.62rem; margin-top: 22px; padding-top: 16px; }
+
+/* floating-label fields */
+#login-overlay .login-float { margin-bottom: 18px; }
+#login-overlay .login-right-panel .login-float input {
+    height: 48px; padding: 18px 14px 3px !important; border-radius: 8px !important;
+    font-size: 0.88rem; background: #fff !important; border: 1px solid #ccd0d5 !important;
+}
+#login-overlay .login-right-panel .login-float #login-pass { padding-right: 46px !important; }
+#login-overlay .login-right-panel .login-float input:focus,
+#login-overlay .login-right-panel .login-float input:focus-visible {
+    border-color: #3c4043 !important; box-shadow: none !important; outline: none !important; background: #fff !important;
+}
+#login-overlay .login-float input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 100px #fff inset !important; -webkit-text-fill-color: #222 !important;
+}
+#login-overlay .login-float label {
+    position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+    font-family: var(--font-main); font-size: 0.88rem; color: #6b7280;
+    pointer-events: none; white-space: nowrap;
+    transition: top .15s ease, font-size .15s ease, transform .15s ease, color .15s ease;
+}
+#login-overlay .login-float input:focus + label,
+#login-overlay .login-float input:not(:placeholder-shown) + label,
+#login-overlay .login-float input:-webkit-autofill + label {
+    top: 6px; transform: none; font-size: 0.62rem;
+}
+#login-overlay .login-float input:focus + label { color: #3c4043; }
+#login-overlay .login-right-panel .login-input-group .login-eye { right: 8px; width: 32px; height: 32px; }
+#login-overlay .login-right-panel .login-input-group .login-eye i { font-size: 0.9rem; }
+#login-overlay .login-right-panel .login-btn { height: 40px; padding-top: 0; padding-bottom: 0; border-radius: 999px !important; font-size: 0.85rem; letter-spacing: 0 !important; text-transform: none; margin-top: 18px; background: #fbc02d !important; color: #1a1a1a !important; }
+#login-overlay .login-right-panel .login-btn:hover { background: #f9a825 !important; }
+#login-overlay .login-right-panel .login-forgot { display: block; margin: 16px 0 0; text-align: center; font-size: 0.8rem; color: #1a1a1a; text-decoration: none; }
+#login-overlay .login-right-panel .login-forgot:hover { text-decoration: underline; }
+body.dark-mode #login-overlay .login-right-panel .login-forgot { color: #e0e0e0; }
+#login-overlay .login-right-panel .login-btn i { display: none; }
+
+body.dark-mode #login-overlay .login-right-panel .login-float input { background: #2e2e2e !important; border-color: #555 !important; }
+body.dark-mode #login-overlay .login-right-panel .login-float input:focus,
+body.dark-mode #login-overlay .login-right-panel .login-float input:focus-visible { border-color: #e0e0e0 !important; box-shadow: none !important; outline: none !important; }
+body.dark-mode #login-overlay .login-float input:-webkit-autofill { -webkit-box-shadow: 0 0 0 100px #2e2e2e inset !important; -webkit-text-fill-color: #e4e4e4 !important; }
+body.dark-mode #login-overlay .login-float label { color: #aaa; }
+body.dark-mode #login-overlay .login-float input:focus + label { color: #e0e0e0; }
+
+@media screen and (max-width: 640px) {
+    #login-overlay .login-card { flex-direction: column; overflow-y: auto; }
+    #login-overlay .login-left-panel { width: 100%; padding: 28px 24px 22px; }
+    #login-overlay .login-esh-shield { width: 60px; height: 60px; }
+    #login-overlay .login-left-title { font-size: 1.3rem; }
+    #login-overlay .login-right-panel { padding: 28px 20px 32px; overflow-y: visible; flex: 1 0 auto; }
+    #login-overlay .login-greeting { font-size: 1.4rem; }
+}
+
+/* LOGIN — big headline (bottom-left), added on top of the original left-panel content */
+#login-overlay .login-left-title { text-transform: uppercase; letter-spacing: 0.5px; font-size: clamp(2.2rem, 3.5vw, 3.6rem); line-height: 1.15; white-space: normal; }
+#login-overlay .login-left-panel { justify-content: flex-start; padding-top: 56px; }
+#login-overlay .login-left-headline {
+    position: absolute; left: 56px; bottom: 48px; z-index: 1; margin: 0; text-align: left;
+    color: #fff; font-family: var(--font-main); font-weight: 700;
+    font-size: clamp(2rem, 3.2vw, 3.2rem); line-height: 1.06; letter-spacing: -0.03em;
+    text-shadow: 0 2px 18px rgba(0,0,0,0.25);
+}
+#login-overlay .login-left-headline .c-gold { color: #fbc02d; }
+@media screen and (max-height: 820px) { #login-overlay .login-left-headline { font-size: clamp(1.6rem, 2.4vw, 2.4rem); bottom: 36px; } }
+@media screen and (max-height: 680px), screen and (max-width: 640px) { #login-overlay .login-left-headline { display: none; } }
+
+/* LOGIN — footer text visible in light mode */
+#login-overlay .login-footer { color: #6b7280; border-top-color: #e5e7eb; }
+#login-overlay .login-footer strong { color: #374151 !important; }
+body.dark-mode #login-overlay .login-footer { color: #ccc; border-top-color: #414141; }
+body.dark-mode #login-overlay .login-footer strong { color: #aaa !important; }
