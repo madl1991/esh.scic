@@ -4999,14 +4999,14 @@ function applyNumFmtToInputs() {
             st.id = 'rpt-css';
             st.textContent = [
             '.rpt-wrap{margin:0 16px 14px}',
-            '.rpt-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid #e3e9e4;border-radius:10px;padding:10px 16px;margin-bottom:10px}',
+            '.rpt-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:10px;padding:10px 16px;margin-bottom:10px}',
             '.rpt-bar h2{margin:0;font-size:.85rem;font-weight:800;letter-spacing:.04em;color:#2e7d32;text-transform:uppercase}',
             '.rpt-sub{color:#555;font-size:.7rem;flex:1;min-width:180px}',
             '.rpt-sub .rpt-sub-1l{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.6rem}',
             '.rpt-pill{display:inline-block;padding:3px 11px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;white-space:nowrap}',
             '.rpt-pill.gold{background:#fff8e1;color:#7a5c00;border-color:#ffe082}',
             '.rpt-pill.view{background:#fff;color:#3a6ea5;border-color:#b9cfe8}',
-            '.rpt-card{background:#fff;border:1px solid #e3e9e4;border-radius:10px;overflow:hidden}',
+            '.rpt-card{background:#fff;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:10px;overflow:hidden}',
             '.rpt-scroll{overflow-x:auto}',
             '.rpt-table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:1000px}',
             '.rpt-table th,.rpt-table td{width:auto!important;min-width:0!important;max-width:none!important}',
@@ -7211,7 +7211,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     });
                     const _projectNames = Object.keys(_byProject);
 
-                    bodyHtml += '<div style="margin-bottom:12px;border:1px solid #e3e9e4;border-radius:8px;overflow:hidden;">';
+                    bodyHtml += '<div style="margin-bottom:12px;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:8px;overflow:hidden;">';
                     // ── Area summary header (always visible, click to expand) ──
                     bodyHtml += '<div data-arealabel="' + area.replace(/"/g,'&quot;') + '" onclick="var b=document.getElementById(\'' + _areaId + '\');var i=document.getElementById(\'' + _areaId + 'Icon\');'
                         + 'if(b.style.display===\'none\'){b.style.display=\'block\';i.style.transform=\'rotate(90deg)\';}'
@@ -9683,66 +9683,21 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                             <label>Root Cause</label>
                             <textarea name="ltamod-rootCause" ${dis} style="min-height:60px;">${e.rootCause||''}</textarea>
                         </div>
+                        <div class="lta-section-label" style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                            <span><i class="fas fa-clipboard-list" style="margin-right:5px;"></i>Corrective / Preventive Action</span>
+                            ${canEdit ? `<button type="button" class="lta-ca-add" onclick="window._ltaAddCARow('${pId}')"><i class="fas fa-plus"></i> Add Row</button>` : ''}
+                        </div>
                         <div class="lta-field lta-field-full" style="margin-top:2px;">
-                            <label style="margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
-                                <span>Corrective / Preventive Action</span>
-                                ${canEdit ? `<button type="button" onclick="window._ltaAddCARow('${pId}')"
-                                    style="display:flex;align-items:center;gap:5px;padding:4px 11px;border-radius:6px;
-                                    border:1.5px solid #2e7d32;background:#e8f5e9;color:#1b5e20;font-size:0.72rem;
-                                    font-weight:700;cursor:pointer;font-family:inherit;">
-                                    <i class="fas fa-plus"></i> Add Row
-                                </button>` : ''}
-                            </label>
-                            <div style="border:1.5px solid #c8e6c9;border-radius:8px;overflow:hidden;">
-                                <table style="width:100%;border-collapse:collapse;font-size:0.76rem;font-family:inherit;">
-                                    <thead>
-                                        <tr style="background:#2e7d32;">
-                                            <th style="padding:7px 10px;text-align:left;font-weight:700;color:#fff;border-right:1px solid #6aad6e;width:60%;">CORRECTIVE / PREVENTIVE ACTION</th>
-                                            <th style="padding:7px 10px;text-align:left;font-weight:700;color:#fff;border-right:1px solid #6aad6e;width:22%;">RESPONSIBLE</th>
-                                            <th style="padding:7px 10px;text-align:left;font-weight:700;color:#fff;${canEdit?'border-right:1px solid #6aad6e;':''}width:18%;">TIMELINE</th>
-                                            ${canEdit ? `<th style="padding:7px 6px;width:28px;"></th>` : ''}
-                                        </tr>
-                                    </thead>
-                                    <tbody id="ltamod-ca-tbody-${pId}">
-                                        ${(()=>{
-                                            // Normalize data: support new array format & legacy single-field format
-                                            const rows = Array.isArray(e.correctiveActions) && e.correctiveActions.length
-                                                ? e.correctiveActions
-                                                : (e.correctiveAction||e.responsible||e.timeline
-                                                    ? [{action: e.correctiveAction||'', responsible: e.responsible||'', timeline: e.timeline||''}]
-                                                    : [{action:'',responsible:'',timeline:''}]);
-                                            return rows.map((r,ri)=>`
-                                            <tr data-ri="${ri}" style="border-top:${ri>0?'1px solid #e8f5e9':'none'};">
-                                                <td style="padding:5px 7px;border-right:1px solid #e8f5e9;vertical-align:top;">
-                                                    <textarea rows="2" ${dis} data-ca-field="action"
-                                                        style="width:100%;border:none;outline:none;resize:vertical;font-size:0.75rem;
-                                                        font-family:inherit;background:transparent;padding:2px;"
-                                                        placeholder="Describe corrective/preventive action...">${r.action||''}</textarea>
-                                                </td>
-                                                <td style="padding:5px 7px;border-right:1px solid #e8f5e9;vertical-align:top;">
-                                                    <textarea rows="2" ${dis} data-ca-field="responsible"
-                                                        style="width:100%;border:none;outline:none;resize:vertical;font-size:0.75rem;
-                                                        font-family:inherit;background:transparent;padding:2px;"
-                                                        placeholder="e.g. Safety Officer">${r.responsible||''}</textarea>
-                                                </td>
-                                                <td style="padding:5px 7px;${canEdit?'border-right:1px solid #e8f5e9;':''}vertical-align:top;">
-                                                    <textarea rows="2" ${dis} data-ca-field="timeline"
-                                                        style="width:100%;border:none;outline:none;resize:vertical;font-size:0.75rem;
-                                                        font-family:inherit;background:transparent;padding:2px;"
-                                                        placeholder="e.g. Immediate">${r.timeline||''}</textarea>
-                                                </td>
-                                                ${canEdit ? `<td style="padding:4px 4px;vertical-align:middle;text-align:center;">
-                                                    <button type="button" onclick="window._ltaRemoveCARow('${pId}',this)"
-                                                        style="width:22px;height:22px;border-radius:50%;border:1.5px solid #ef9a9a;
-                                                        background:#fff8f8;color:#c62828;font-size:0.75rem;cursor:pointer;
-                                                        display:flex;align-items:center;justify-content:center;margin:auto;">
-                                                        <i class="fas fa-times"></i>
-                                                    </button>
-                                                </td>` : ''}
-                                            </tr>`).join('');
-                                        })()}
-                                    </tbody>
-                                </table>
+                            <div id="ltamod-ca-tbody-${pId}" class="lta-ca-list">
+                                ${(()=>{
+                                    // Normalize data: support new array format & legacy single-field format
+                                    const rows = Array.isArray(e.correctiveActions) && e.correctiveActions.length
+                                        ? e.correctiveActions
+                                        : (e.correctiveAction||e.responsible||e.timeline
+                                            ? [{action: e.correctiveAction||'', responsible: e.responsible||'', timeline: e.timeline||''}]
+                                            : [{action:'',responsible:'',timeline:''}]);
+                                    return rows.map(r => window._ltaCARowHtml(pId, r, canEdit, dis)).join('');
+                                })()}
                             </div>
                         </div>
 
@@ -10061,54 +10016,38 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         };
         // ─────────────────────────────────────────────────────────────────────
 
-                window._ltaAddCARow = function(pId) {
-            const tbody = document.getElementById('ltamod-ca-tbody-' + pId);
-            if (!tbody) return;
-            const ri = tbody.querySelectorAll('tr').length;
-            const tr = document.createElement('tr');
-            tr.dataset.ri = ri;
-            tr.style.borderTop = '1px solid #e8f5e9';
-            tr.innerHTML = `
-                <td style="padding:5px 7px;border-right:1px solid #e8f5e9;vertical-align:top;">
-                    <textarea rows="2" data-ca-field="action"
-                        style="width:100%;border:none;outline:none;resize:vertical;font-size:0.75rem;
-                        font-family:inherit;background:transparent;padding:2px;"
-                        placeholder="Describe corrective/preventive action..."></textarea>
-                </td>
-                <td style="padding:5px 7px;border-right:1px solid #e8f5e9;vertical-align:top;">
-                    <textarea rows="2" data-ca-field="responsible"
-                        style="width:100%;border:none;outline:none;resize:vertical;font-size:0.75rem;
-                        font-family:inherit;background:transparent;padding:2px;"
-                        placeholder="e.g. Safety Officer"></textarea>
-                </td>
-                <td style="padding:5px 7px;border-right:1px solid #e8f5e9;vertical-align:top;">
-                    <textarea rows="2" data-ca-field="timeline"
-                        style="width:100%;border:none;outline:none;resize:vertical;font-size:0.75rem;
-                        font-family:inherit;background:transparent;padding:2px;"
-                        placeholder="e.g. Immediate"></textarea>
-                </td>
-                <td style="padding:4px 4px;vertical-align:middle;text-align:center;">
-                    <button type="button" onclick="window._ltaRemoveCARow('${pId}',this)"
-                        style="width:22px;height:22px;border-radius:50%;border:1.5px solid #ef9a9a;
-                        background:#fff8f8;color:#c62828;font-size:0.75rem;cursor:pointer;
-                        display:flex;align-items:center;justify-content:center;margin:auto;">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </td>`;
-            tbody.appendChild(tr);
-            tr.querySelector('[data-ca-field="action"]').focus();
+window._ltaCARowHtml = function(pId, r, canEdit, dis) {
+            const esc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+            r = r || {};
+            return `<div class="lta-ca-row${canEdit ? '' : ' ro'}">
+                <div class="lta-field"><label>Action</label>
+                    <textarea rows="2" ${dis || ''} data-ca-field="action" placeholder="Describe corrective/preventive action...">${esc(r.action)}</textarea></div>
+                <div class="lta-field"><label>Responsible</label>
+                    <textarea rows="2" ${dis || ''} data-ca-field="responsible" placeholder="e.g. Safety Officer">${esc(r.responsible)}</textarea></div>
+                <div class="lta-field"><label>Timeline</label>
+                    <textarea rows="2" ${dis || ''} data-ca-field="timeline" placeholder="e.g. Immediate">${esc(r.timeline)}</textarea></div>
+                ${canEdit ? `<button type="button" class="lta-ca-del" title="Remove row" onclick="window._ltaRemoveCARow('${pId}',this)"><i class="fas fa-times"></i></button>` : ''}
+            </div>`;
+        };
+
+        window._ltaAddCARow = function(pId) {
+            const list = document.getElementById('ltamod-ca-tbody-' + pId);
+            if (!list) return;
+            list.insertAdjacentHTML('beforeend', window._ltaCARowHtml(pId, {}, true, ''));
+            const last = list.lastElementChild;
+            if (last) last.querySelector('[data-ca-field="action"]').focus();
         };
 
         window._ltaRemoveCARow = function(pId, btn) {
-            const tbody = document.getElementById('ltamod-ca-tbody-' + pId);
-            if (!tbody) return;
-            const tr = btn.closest('tr');
+            const list = document.getElementById('ltamod-ca-tbody-' + pId);
+            if (!list) return;
+            const row = btn.closest('.lta-ca-row');
             // Never remove the last row — just clear it instead
-            if (tbody.querySelectorAll('tr').length <= 1) {
-                tr.querySelectorAll('textarea').forEach(ta => ta.value = '');
+            if (list.querySelectorAll('.lta-ca-row').length <= 1) {
+                row.querySelectorAll('textarea').forEach(ta => ta.value = '');
                 return;
             }
-            tr.remove();
+            row.remove();
         };
         // ──────────────────────────────────────────────────────────────────────
 
@@ -10187,7 +10126,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             // Read corrective action rows from table
             const caTbody = document.getElementById('ltamod-ca-tbody-' + pId);
             if (caTbody) {
-                const caRows = Array.from(caTbody.querySelectorAll('tr')).map(tr => ({
+                const caRows = Array.from(caTbody.querySelectorAll('.lta-ca-row')).map(tr => ({
                     action:      (tr.querySelector('[data-ca-field="action"]')?.value || '').trim(),
                     responsible: (tr.querySelector('[data-ca-field="responsible"]')?.value || '').trim(),
                     timeline:    (tr.querySelector('[data-ca-field="timeline"]')?.value || '').trim()
@@ -11331,7 +11270,7 @@ function renderTabulation() {
         ${tabStrip}
 
         
-        <div style="background:var(--bg-card);border-radius:12px;margin-bottom:20px;overflow:hidden;box-shadow:0 2px 12px rgba(46,125,50,0.08);border:1px solid #c8e6c9;">
+        <div style="background:var(--bg-card);border-radius:12px;margin-bottom:20px;overflow:hidden;box-shadow:0 2px 12px rgba(46,125,50,0.08);border:none;">
             
                         <div style="padding:0;">
                 ${tabContent}
@@ -11421,7 +11360,7 @@ function renderTabulation() {
                             </div>
                         </div>
                     </div>
-                    <div id="osh-nov-region-content-${safeReg}" style="border:1px solid #c8e6c9;border-top:none;border-radius:0 0 10px 10px;overflow:hidden;background:var(--bg-card);${isCollapsed?'display:none;':''}">`;
+                    <div id="osh-nov-region-content-${safeReg}" style="border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:0 0 10px 10px;overflow:hidden;background:var(--bg-card);${isCollapsed?'display:none;':''}">`;
 
                 regProjs.forEach((p, idx) => {
                     const pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -12424,7 +12363,7 @@ function renderTabulation() {
                                 <span style="background:rgba(255,255,255,0.18);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:20px;padding:2px 10px;font-size:0.62rem;font-weight:800;">ALL REGIONS</span>
                             </div>
                         </div>
-                        <div style="overflow-x:auto;border:1px solid #c8e6c9;border-top:none;border-radius:0 0 6px 6px;"><table class="env-tbl" style="margin:0;">
+                        <div style="overflow-x:auto;border:none;border-radius:0 0 6px 6px;"><table class="env-tbl" style="margin:0;">
                             <tr>
                                 <th class="env-th-left env-th-sticky env-th-dark" style="width:250px;">TYPE</th>
                                 <th class="prev-year${isNov ? ' nov-narrow-th' : ''}" style="background:#e65100;color:white;">PREVIOUS</th>`;
@@ -12853,7 +12792,6 @@ function renderTabulation() {
                                 ${window._dispProjName(p.name)}
                                 ${p.isRenewable ? '<span style="display: inline-flex; align-items: center; gap: 4px; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; margin-left: 8px;"><i class="fas fa-leaf" style="color: #4caf50;"></i> RE</span>' : ''}
 
-                                ${(p.workStoppageDate && p.workResumeDate) ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;padding:2px 8px;border-radius:12px;font-size:0.68rem;font-weight:700;margin-left:8px;"><i class="fas fa-play-circle" style="font-size:0.65rem;"></i> RESUMED — Counting from ${formatDateDMY(p.workResumeDate)}</span>` : ''}
                             </div>
                             <div class="project-meta">${p.region === 'CORPORATE' ? 'SCIC Head Office' : p.region === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
                             ${_inlineNav ? `<div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ${_inlineNav.idx + 1} of ${_inlineNav.total}</div>` : ''}
@@ -13218,7 +13156,7 @@ if (state.currentTab === 'audit') {
                                     </div>
                                 </div>
                             </div>
-                            <div id="nov-env-region-content-${safeReg}" style="border:1px solid #c8e6c9;border-top:none;border-radius:0 0 10px 10px;overflow:hidden;background:var(--bg-card);${isCollapsed?'display:none;':''}">`;
+                            <div id="nov-env-region-content-${safeReg}" style="border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:0 0 10px 10px;overflow:hidden;background:var(--bg-card);${isCollapsed?'display:none;':''}">`;
 
                         regProjs.forEach((p, idx) => {
                             const pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -13367,7 +13305,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
     }
 
     const _isEnvStyleTab = true; // apply to all tabs in this renderer
-    if (state.currentTab === 'dole') html += `<div style="background:var(--bg-card);border:1px solid #c8e6c9;border-radius:0 0 8px 8px;margin-bottom:14px;overflow:hidden;">`;
+    if (state.currentTab === 'dole') html += `<div style="background:var(--bg-card);border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:0 0 8px 8px;margin-bottom:14px;overflow:hidden;">`;
     window._pendingTableFooter = null;
     const _isPermitsTbl = state.currentTab === 'permits';
     const _isExpTbl = state.currentTab === 'exposures' || state.currentTab === 'medical' || state.currentTab === 'rates' || state.currentTab === 'activities'; // same KPM-style per-project table
@@ -15998,7 +15936,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var periodCov0   = (_allProjs[0] && _allProjs[0].vals[periodKey0])   || '';
                         var impPnSafe0   = _allProjs[0] ? _allProjs[0].name.replace(/\\/g,'\\\\').replace(/'/g,"\\'") : '';
 
-                        return '<div style="background:var(--bg-card);border-radius:8px;overflow:hidden;border:1px solid var(--border-color);margin-bottom:6px;">'
+                        return '<div style="background:var(--bg-card);border-radius:8px;overflow:hidden;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:6px;">'
                             + '<div style="background:#f8f9fa;border-bottom:2px solid #e8f5e9;padding:6px 10px;display:flex;flex-wrap:wrap;gap:3px;align-items:center;">'
                             + '<span style="font-size:0.65rem;font-weight:700;color:#888;margin-right:6px;white-space:nowrap;">\uD83D\uDCC5 MONTH:</span>'
                             + moTabsHtml
@@ -16995,7 +16933,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     `;
                 } else {
                     html += `<div style="margin: 0 20px 0;">
-                        <div style="background:#fff;border:1px solid #e3e9e4;border-radius:10px 10px 0 0;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                        <div style="background:#fff;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:10px 10px 0 0;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
                             <div style="font-size:0.7rem;color:#555;">Quarterly submission • Due: 20th of the month after each quarter</div>
                             <div style="display:flex;gap:6px;">
                                 <span style="background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;border-radius:20px;padding:3px 11px;font-size:0.62rem;font-weight:800;letter-spacing:0.04em;white-space:nowrap;">${renewableProjects.length} ACTIVE</span>
@@ -17202,8 +17140,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             <div style="display:flex;align-items:center;gap:10px;">
                                 <i class="fas fa-id-card" style="color:rgba(255,255,255,0.85);font-size:1rem;"></i>
                                 <div>
-                                    <div style="font-size:0.85rem;font-weight:800;color:white;letter-spacing:0.05em;">DOE SAFETY OFFICER PERMIT</div>
-                                    <div style="font-size:0.67rem;color:rgba(255,255,255,0.75);margin-top:1px;">Dept. Circular DC2012-11-0009 — RE Safety, Health and Environment Rules</div>
+                                    <div style="font-size:0.72rem;font-weight:600;color:rgba(255,255,255,0.9);">Dept. Circular DC2012-11-0009 — RE Safety, Health and Environment Rules</div>
                                 </div>
                             </div>
                             <div style="display:flex;gap:6px;">
@@ -17241,13 +17178,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                     (function(){
                         function _mkCard2(bg,border,icon,iconColor,label,value,sub,valueColor){
-                            return '<div style="flex:1;min-width:130px;background:'+bg+';padding:12px 16px;display:flex;flex-direction:column;gap:3px;border-right:1px solid '+border+';">'
+                            return '<div style="flex:1;min-width:130px;background:'+bg+';padding:12px 16px;display:flex;flex-direction:column;gap:3px;border-right:none;">'
                                 +'<div style="font-size:0.6rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;"><i class="fas '+icon+'" style="color:'+iconColor+';margin-right:5px;"></i>'+label+'</div>'
                                 +'<div style="font-size:1.5rem;font-weight:900;color:'+valueColor+';line-height:1;">'+value+'</div>'
                                 +'<div style="font-size:0.6rem;color:#888;">'+sub+'</div>'
                                 +'</div>';
                         }
-                        html += '<div style="display:flex;flex-wrap:wrap;border:1px solid #c8e6c9;border-top:none;border-radius:0 0 10px 10px;overflow:hidden;margin-bottom:14px;">'
+                        html += '<div style="display:flex;flex-wrap:wrap;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:0 0 10px 10px;overflow:hidden;margin-bottom:14px;">'
                             + _mkCard2('#e8f5e9','#a5d6a7','fa-solar-panel','#2e7d32','RE Projects',renewableProjects.length,_dpClientProjs.length+' client-handled, '+_dpActProjs.length+' self-managed','#1b5e20')
                             + _mkCard2(_dpPctBg,_dpPctBd,'fa-chart-pie',_dpPctC,'Permit Compliance',_dpPct+'%',_dpCompliant+' of '+_dpTotal+' with valid permit',_dpPctC)
                             + _mkCard2(_dpExpiringSoon>0?'#fff3e0':'#e8f5e9',_dpExpiringSoon>0?'#ffcc80':'#a5d6a7','fa-clock',_dpExpiringSoon>0?'#e65100':'#2e7d32','Expiring Soon',_dpExpiringSoon,'Within 90 days',_dpExpiringSoon>0?'#e65100':'#2e7d32')
@@ -20298,7 +20235,7 @@ function buildIncidentTabulationHTML() {
     const _stDot = ok => `<div style="font-size:0.62rem;color:#4b554d;margin-top:3px;display:flex;align-items:center;justify-content:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:${ok ? '#2e7d32' : '#c62828'};display:inline-block;"></span>${ok ? 'Within target' : 'Exceeded'}</div>`;
     return `
     <div id="incident-tabulation-panel" style="padding: 0 16px;">
-      <div style="background: var(--bg-card); border-radius: 0 0 12px 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color); border-top: none; margin-bottom: 10px;">
+      <div style="background: var(--bg-card); border-radius: 0 0 12px 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border:none; border-top: none; margin-bottom: 10px;">
 
         
         <div style="background: #2f7d4f; color: white; padding: 8px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
@@ -20874,7 +20811,7 @@ function safetyViewAlertDetail(id) {
             <div style="font-size:0.72rem;color:#6b7770;margin-top:2px;">${a.project ? esc(a.project) : 'Company-wide'} · ${a.dateIssued || ''}</div>
 
             ${a.fileUrl ? `
-            <div onclick="window.open('${a.fileUrl}','_blank')" style="margin-top:14px;border:1px solid var(--border-color);border-radius:8px;overflow:hidden;cursor:pointer;">
+            <div onclick="window.open('${a.fileUrl}','_blank')" style="margin-top:14px;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:8px;overflow:hidden;cursor:pointer;">
                 ${a.thumbnailUrl
                     ? `<img src="${a.thumbnailUrl}" style="width:100%;max-height:320px;object-fit:contain;background:#f5f5f5;display:block;">`
                     : `<div style="padding:36px 0;background:#f5f5f5;display:flex;flex-direction:column;align-items:center;gap:8px;"><i class="fas ${fileIcon}" style="font-size:2.4rem;color:${fileColor};"></i></div>`}
@@ -21705,12 +21642,12 @@ function buildTrendChartHTML(tabType) {
     const icon = tabType === 'rates' ? 'fa-chart-line' : 'fa-chart-area';
     const persistentId = `trend-chart-persistent-${tabType}`;
 
-    const _miniCard = (key, label) => `<div style="border:1px solid var(--border-color);border-radius:12px;padding:12px 14px;background:var(--bg-card);">
+    const _miniCard = (key, label) => `<div style="border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:12px;padding:12px 14px;background:var(--bg-card);">
         <div style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);">${label}</div>
         <div id="rateMiniVal_${key}" style="font-size:1.6rem;font-weight:800;line-height:1.2;margin:2px 0;color:var(--text-primary);">–</div>
         <div id="rateMiniSub_${key}" style="font-size:0.72rem;font-weight:700;min-height:20px;color:var(--text-secondary);"></div>
         <div style="position:relative;height:140px;margin-top:6px;"><canvas id="trendChart_rates_${key}"></canvas></div></div>`;
-    const _incKpi = (key, label) => `<div style="border:1px solid var(--border-color);border-radius:12px;padding:10px 12px;background:var(--bg-card);">
+    const _incKpi = (key, label) => `<div style="border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:12px;padding:10px 12px;background:var(--bg-card);">
         <div style="font-size:0.74rem;color:var(--text-secondary);">${label} (YTD)</div>
         <div id="incKpi_${key}" style="font-size:1.5rem;font-weight:700;color:var(--text-primary);">0</div></div>`;
     const _incidentLayout = '<div class="inc-kpis">' + _incKpi('fat','Fatality') + _incKpi('lta','LTA') + _incKpi('mt','Medical Treatment') + _incKpi('nm','Near-miss') + '</div>'
@@ -21722,7 +21659,7 @@ function buildTrendChartHTML(tabType) {
     if (persistentEl && !persistentEl.dataset.initialized) {
         persistentEl.dataset.initialized = 'true';
         persistentEl.innerHTML = `
-      <div style="background: var(--bg-card); border-radius: ${tabType === 'rates' ? '12px 12px 0 0' : '12px'}; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color); margin-bottom: ${tabType === 'rates' ? '0' : '16px'};">
+      <div style="background: var(--bg-card); border-radius: ${tabType === 'rates' ? '12px 12px 0 0' : '12px'}; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border:none; margin-bottom: ${tabType === 'rates' ? '0' : '16px'};">
         <div style="background: #2f7d4f; color: white; padding: 7px 16px; position: relative; overflow: hidden;">
           <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 15px; position: relative; z-index: 2;">
             <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
@@ -23391,7 +23328,7 @@ function renderForceLogoutList() {
             }
 
             return `
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-card);gap:10px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:8px;background:var(--bg-card);gap:10px;flex-wrap:wrap;">
                 <div style="display:flex;align-items:center;gap:10px;min-width:0;">
                     <div style="width:9px;height:9px;border-radius:50%;background:${badgeColor};flex-shrink:0;box-shadow:${dotGlow};"></div>
                     <div style="min-width:0;">
@@ -24941,7 +24878,7 @@ function renderOsh2() {
         st.id = 'osh2-card-css';
         st.textContent = [
             '.osh2-list{padding:8px;display:flex;flex-direction:column;gap:6px}',
-            '.osh2-card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:7px 12px}',
+            '.osh2-card{background:var(--bg-card);border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:10px;padding:7px 12px}',
             '.osh2-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}',
             '.osh2-title{flex:1;min-width:200px;font-weight:600;font-size:.78rem;line-height:1.2}',
             '.osh2-idx{color:var(--text-secondary);font-size:.62rem;margin-right:5px}',
@@ -25119,7 +25056,7 @@ function renderOsh2() {
         const canEditRegion = state.isEditing && UserAccounts.canEdit(state.currentUser?.email, region);
 
         html += `
-        <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:16px;">
+        <div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:16px;">
             
             <div id="osh2-rbanner-${region.replace(/[^a-zA-Z0-9]/g,'_')}" class="region-banner region-${region.toLowerCase().replace(/\s/g,'-').replace(/[^a-z0-9-]/g,'')} collapsed ${canEditRegion?'rb-editable':''}" onclick="toggleOsh2Region(this,'osh2-region-${region.replace(/[^a-z0-9]/gi,'_')}')" style="margin:0;">
                 <div class="region-banner-inner">
@@ -25150,7 +25087,7 @@ function renderOsh2() {
     container.querySelectorAll('[id^="osh2-region-"]').forEach(function(el) {
         if (el.style.display !== 'none') _osh2Open.push(el.id);
     });
-    container.innerHTML = html || `<div style="padding:50px;text-align:center;color:var(--text-secondary);background:var(--bg-card);border-radius:10px;border:1px solid var(--border-color);">
+    container.innerHTML = html || `<div style="padding:50px;text-align:center;color:var(--text-secondary);background:var(--bg-card);border-radius:10px;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
         <i class="fas fa-hard-hat" style="font-size:2.5rem;opacity:0.25;margin-bottom:12px;"></i>
         <div style="font-weight:600;">No projects match the current filter.</div>
     </div>`;
@@ -25543,7 +25480,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }).join('');
 
         return `
-        <div style="border:1px solid var(--border-color);border-radius:8px;overflow:hidden;margin-bottom:8px;">
+        <div style="border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:8px;overflow:hidden;margin-bottom:8px;">
             <div onclick="hrToggleSection('${sectionId}')"
                 style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--input-bg);cursor:pointer;user-select:none;">
                 <div style="display:flex;align-items:center;gap:8px;">
@@ -25654,7 +25591,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const status = getHrSectionStatus(p, fields);
         const rows = fields.map(f => buildFieldRow(p, f, canEdit)).join('');
         return `
-        <div style="border:1px solid var(--border-color);border-radius:8px;overflow:hidden;margin-bottom:8px;">
+        <div style="border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:8px;overflow:hidden;margin-bottom:8px;">
             <div onclick="hrToggleSection('${sectionId}')"
                 style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:var(--input-bg);cursor:pointer;user-select:none;">
                 <div style="display:flex;align-items:center;gap:8px;">
@@ -25680,7 +25617,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const equipmentHtml   = buildSectionHtml(p, 'equipment',   '3. Equipment',        'fa-stethoscope', HR_FIELDS.EQUIPMENT,        canEdit, false);
 
         return `
-        <div id="${cardId}" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;overflow:hidden;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <div id="${cardId}" style="background:var(--bg-card);border:none;border-radius:10px;overflow:hidden;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
             <div style="background:${regionColors.bg};padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
                 <div style="display:flex;align-items:center;gap:8px;">
                     <i class="fas fa-building" style="color:${regionColors.badge};font-size:0.85rem;"></i>
@@ -25738,7 +25675,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             html += `
-            <div style="background:var(--bg-card);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid var(--border-color);margin-bottom:16px;">
+            <div style="background:var(--bg-card);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:none;margin-bottom:16px;">
                 <div onclick="hrToggleRegion('${region}')" style="background:${rc.bg};padding:12px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
                     <div style="display:flex;align-items:center;gap:10px;">
                         <i class="fas fa-map-marker-alt" style="color:${rc.badge};"></i>
@@ -29400,19 +29337,19 @@ function _tabRegionBanner(o) {
         const b = c.kind === 'b';
         const bg  = w ? (b ? '#f1f8e9' : '#e8f5e9') : (b ? 'rgba(100,255,100,0.2)' : 'rgba(255,255,255,0.2)');
         const col = w ? (b ? '#2e7d32' : '#1b5e20') : (b ? '#c8f7c5' : 'white');
-        const bd  = w ? (b ? '1px solid #c8e6c9' : '1px solid #a5d6a7') : 'none';
+        const bd  = 'none';
         return `<span style="background:${bg};color:${col};border:${bd};padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">${c.text}</span>`;
     };
     const n = o.projCount;
     const strip = o.viewOnly
-        ? `<div style="padding:9px 14px;background:${rc.light};border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:7px;font-size:0.71rem;color:${rc.bg};font-weight:600;">${window.icon('lock')} This region is <strong>view-only</strong> for your account.</div>`
+        ? `<div style="padding:9px 14px;background:${rc.light};border-bottom:none;display:flex;align-items:center;gap:7px;font-size:0.71rem;color:${rc.bg};font-weight:600;">${window.icon('lock')} This region is <strong>view-only</strong> for your account.</div>`
         : '';
-    const head = `<div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:1px solid var(--border-color);box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:14px;">
-        <div class="${o.editable ? 'rb-editable' : ''}" onclick="${o.toggle}('${o.region}')" style="${w ? 'background:#ffffff;border-bottom:1.5px solid #c8e6c9;box-shadow:0 2px 8px rgba(0,0,0,0.10);' : 'background:linear-gradient(90deg,' + rc.bg + ' 0%,' + rc.bg + 'dd 100%);'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
+    const head = `<div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:14px;">
+        <div class="${o.editable ? 'rb-editable' : ''}" onclick="${o.toggle}('${o.region}')" style="${w ? 'background:#ffffff;border-bottom:none;box-shadow:0 2px 8px rgba(0,0,0,0.10);' : 'background:linear-gradient(90deg,' + rc.bg + ' 0%,' + rc.bg + 'dd 100%);'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
             <div style="display:flex;align-items:center;gap:8px;">
                 <span style="color:${w ? '#1b5e20' : 'rgba(255,255,255,0.8)'};font-size:0.8rem;">${window.icon(o.icon)}</span>
                 <span style="font-weight:800;color:${w ? '#1b5e20' : 'white'};font-size:0.85rem;letter-spacing:0.5px;">${o.region}</span>
-                <span style="background:${w ? '#e8f5e9' : 'rgba(255,255,255,0.18)'};color:${w ? '#1b5e20' : 'white'};border:${w ? '1px solid #a5d6a7' : 'none'};padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${n} project${n !== 1 ? 's' : ''}</span>
+                <span style="background:${w ? '#e8f5e9' : 'rgba(255,255,255,0.18)'};color:${w ? '#1b5e20' : 'white'};border:none;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${n} project${n !== 1 ? 's' : ''}</span>
             </div>
             <div style="display:flex;gap:6px;align-items:center;">
                 ${(o.chips || []).filter(Boolean).map(chip).join('')}
@@ -29445,7 +29382,7 @@ function _tabProjHeader(o) {
         ? (!st || st === 'on-going' ? '' : `<span style="background:${st==='on-hold'?'#fff3e0':'#e8f5e9'};color:${st==='on-hold'?'#e65100':'#2e7d32'};padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;">${st}</span>`)
         : (o.status || '');
     const sub = multi ? `<div style="font-size:0.6rem;font-weight:600;color:#888;margin-top:2px;">Project ${o.idx + 1} of ${o.projs.length}</div>` : '';
-    return `<div style="background:linear-gradient(90deg,${c}22,${c}11);padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #c8e6c9;">
+    return `<div style="background:linear-gradient(90deg,${c}22,${c}11);padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:none;">
         <div style="flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:flex-start;">${multi ? _tabNavBtn(o.tabType, o.region, -1, o.idx, o.projs.length) : ''}</div>
         <div style="flex:0 1 auto;min-width:0;text-align:center;">
             <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;">
@@ -38370,6 +38307,7 @@ window.renderCorporateKpm = function() {
         : '<span class="rpt-pill view" style="margin-left:auto;" title="Only the WDA System Admin can make changes"><i class="fas fa-eye" style="margin-right:3px;"></i>View only</span>';
 
     var summaryHtml = window.rptCard('', 'Weighted % per personnel per month · Year: ' + year, _ckBadge, thCells, bodyRows, 'kpm');
+    summaryHtml = summaryHtml.replace('class="rpt-wrap"', 'class="rpt-wrap ckpm-sum"');
 
     // ── Build per-personnel sections (one per registered person active in the selected year) ──
     var managersHtml = '';
