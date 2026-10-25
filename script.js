@@ -3789,12 +3789,12 @@ function applyNumFmtToInputs() {
             if (!el) return;
             const h = new Date().getHours();
             let emoji, word, rest;
-            if      (h >= 5  && h < 12) { emoji = '☀️';  word = 'Good';    rest = ' morning!';   }
-            else if (h >= 12 && h < 13) { emoji = '🌤️'; word = 'Good';    rest = ' noon!';      }
-            else if (h >= 13 && h < 18) { emoji = '🌤️'; word = 'Good';    rest = ' afternoon!'; }
-            else if (h >= 18 && h < 20) { emoji = '🌆';  word = 'Good';    rest = ' evening!';   }
-            else if (h >= 20 && h < 24) { emoji = '🌙';  word = 'Good';    rest = ' night!';     }
-            else                         { emoji = '🌑';  word = 'Working'; rest = ' late?';      }
+            if      (h >= 5  && h < 12) { emoji = '☕';  word = 'Good';    rest = ' morning!';   }
+            else if (h >= 12 && h < 13) { emoji = '🌞'; word = 'Good';    rest = ' noon!';      }
+            else if (h >= 13 && h < 18) { emoji = '⛅'; word = 'Good';    rest = ' afternoon!'; }
+            else if (h >= 18 && h < 20) { emoji = '🌙';  word = 'Good';    rest = ' evening!';   }
+            else if (h >= 20 && h < 24) { emoji = '🌛';  word = 'Good';    rest = ' night!';     }
+            else                         { emoji = '🦉';  word = 'Working'; rest = ' late?';      }
             el.innerHTML = emoji + ' <span class="accent">' + word + '</span>' + rest;
         }
         setLoginGreeting();
@@ -3887,7 +3887,7 @@ function applyNumFmtToInputs() {
                 else if (error.code === 'auth/network-request-failed') msg = 'Network error. Check your connection.';
                 errorDiv.innerText = msg;
                 loginBtn.disabled = false;
-                loginBtn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Access System';
+                loginBtn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Log in';
             }
         }
 
@@ -23726,7 +23726,7 @@ function setupAuthObserver() {
             const loginBtn = document.getElementById('login-btn');
             if (loginBtn) {
                 loginBtn.disabled = false;
-                loginBtn.innerHTML = '<i class="fas fa-shield-halved"></i> Access System';
+                loginBtn.innerHTML = '<i class="fas fa-shield-halved"></i> Log in';
             }
         }
     });
