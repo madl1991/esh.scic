@@ -789,17 +789,18 @@
         
         aside nav::-webkit-scrollbar { display: none; }
 
+        /* Sidebar slide (YouTube style): the sidebar keeps its full 260px size and slides out to the left,
+           so the menu text, padding and background image never squeeze or resize while it moves.
+           visibility:hidden is applied only after the slide ends, so hidden menu items cannot be tabbed to. */
         aside {
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s;
             overflow-x: hidden;
         }
 
         aside.sidebar-collapsed {
-            width: 0 !important;
-            min-width: 0 !important;
-            max-width: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
+            margin-left: -260px;
+            visibility: hidden;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.3s;
         }
 
         main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-body); }
@@ -7531,10 +7532,7 @@ body.dark-mode .header-title {
     color: #81c784;
 }
 
-/* 2. Tanggal ang shadow bleed sa kaliwang gilid kapag collapsed ang sidebar */
-aside.sidebar-collapsed {
-    box-shadow: none !important;
-}
+/* 2. Shadow bleed kapag collapsed: hindi na kailangan ng rule dito, visibility:hidden (tingnan ang aside.sidebar-collapsed sa itaas) ang nagtatago ng sidebar at shadow pagkatapos ng slide */
 
 /* 3. Mas visible na divider sa ilalim ng header */
 header { border-bottom: 1px solid #e5e7eb; }
@@ -9260,3 +9258,106 @@ body.dark-mode .env-sum-kpm :is(.esk-cards > div > div, .esk-cards-flat > div) {
 /* ── Corporate KPM summary: wider PERSONNEL column so long names stay on one line (no horizontal scroll) ── */
 .ckpm-sum .rpt-table thead th.first { width: 22% !important; min-width: 250px !important; }
 .ckpm-sum .rpt-table tbody th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ═══ Score tables (KPM, GOT, Corporate KPM): uniform cells, only the NUMBER is colored ═══════════
+   ok = green · mid = amber · bad = red. Same colors are used by the YTD Summary percentages.      */
+.rpt-wrap.rpt-score { --sc-cell: #ffffff; --sc-ok: #2e7d32; --sc-mid: #b26a00; --sc-bad: #c62828; --sc-none: #9aa59c; }
+body.dark-mode .rpt-wrap.rpt-score,
+body.dark-mode .rpt-pct { --sc-cell: var(--bg-card, #1e2a22); --sc-ok: #66bb6a; --sc-mid: #ffca28; --sc-bad: #ef5350; --sc-none: #6b7f70; }
+
+.rpt-wrap.rpt-score .rpt-card .rpt-table tbody tr td:not(.off) {
+    background: var(--sc-cell) !important;
+    box-shadow: none !important;
+}
+.rpt-wrap.rpt-score .rpt-card .rpt-table tbody tr td.ok:not(.off)   { color: var(--sc-ok)   !important; font-weight: 700 !important; }
+.rpt-wrap.rpt-score .rpt-card .rpt-table tbody tr td.mid:not(.off)  { color: var(--sc-mid)  !important; font-weight: 700 !important; }
+.rpt-wrap.rpt-score .rpt-card .rpt-table tbody tr td.bad:not(.off)  { color: var(--sc-bad)  !important; font-weight: 700 !important; }
+.rpt-wrap.rpt-score .rpt-card .rpt-table tbody tr td.none:not(.off),
+.rpt-wrap.rpt-score .rpt-card .rpt-table tbody tr td.future:not(.off) { color: var(--sc-none) !important; font-weight: 400 !important; }
+/* OVERALL AVG row: same uniform cells, slightly heavier numbers; the label cell stays green */
+.rpt-wrap.rpt-score .rpt-card .rpt-table tbody tr.total td:not(.off) { font-weight: 800 !important; }
+
+/* YTD Summary percentages */
+.rpt-pct { font-weight: 800; }
+.rpt-pct.ok   { color: #2e7d32; }
+.rpt-pct.mid  { color: #b26a00; }
+.rpt-pct.bad  { color: #c62828; }
+body.dark-mode .rpt-pct.ok  { color: #66bb6a; }
+body.dark-mode .rpt-pct.mid { color: #ffca28; }
+body.dark-mode .rpt-pct.bad { color: #ef5350; }
+
+/* ═══ Tooltips — dark rounded box, arrow, no border ═══════════════════════════════════════════════ */
+#esh-tip {
+    position: fixed; left: 0; top: 0; z-index: 2147483000;
+    max-width: 280px; padding: 7px 13px;
+    background: #0f0f0f; color: #fff;
+    font-family: inherit; font-size: 0.76rem; font-weight: 600; line-height: 1.35;
+    white-space: pre-line; overflow-wrap: anywhere;
+    border: none; border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+    pointer-events: none;
+    opacity: 0; visibility: hidden; transition: opacity 0.12s ease;
+}
+#esh-tip.on { opacity: 1; visibility: visible; }
+#esh-tip::after { content: ''; position: absolute; width: 0; height: 0; border: 6px solid transparent; }
+#esh-tip[data-side="right"]::after  { left: -6px;  top: var(--ao, 50%);  margin-top: -6px;  border-left-width: 0;  border-right-color: #0f0f0f; }
+#esh-tip[data-side="left"]::after   { right: -6px; top: var(--ao, 50%);  margin-top: -6px;  border-right-width: 0; border-left-color: #0f0f0f; }
+#esh-tip[data-side="top"]::after    { bottom: -6px; left: var(--ao, 50%); margin-left: -6px; border-bottom-width: 0; border-top-color: #0f0f0f; }
+#esh-tip[data-side="bottom"]::after { top: -6px;   left: var(--ao, 50%); margin-left: -6px; border-top-width: 0;    border-bottom-color: #0f0f0f; }
+body.dark-mode #esh-tip { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6); }
+
+/* Existing CSS tooltips — same look */
+.floating-edit-btn .edit-tooltip { background: #0f0f0f; border-radius: 10px; padding: 7px 14px; font-weight: 600; }
+.floating-edit-btn .edit-tooltip::after { border-left-color: #0f0f0f; }
+body.is-editing .floating-edit-btn .edit-tooltip::after { border-left-color: transparent; border-top-color: #0f0f0f; }
+
+.permit-add-btn::after { background: #0f0f0f; border-radius: 10px; padding: 6px 12px; font-size: 0.7rem; font-weight: 600; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28); }
+.permit-add-btn::before {
+    content: ''; position: absolute; bottom: 100%; right: 8px; margin-bottom: 1px;
+    border: 6px solid transparent; border-bottom-width: 0; border-top-color: #0f0f0f;
+    opacity: 0; pointer-events: none; transition: opacity 0.15s;
+}
+.permit-add-btn:hover::before { opacity: 1; }
+
+.tooltip-content { background: #0f0f0f; border-radius: 10px; font-weight: 600; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28); }
+.tooltip-content::after { border-top-color: #0f0f0f; }
+body.dark-mode .tooltip-content { background: #0f0f0f; border: none; }
+body.dark-mode .tooltip-content::after { border-top-color: #0f0f0f; }
+
+/* ═══ Total Exposures (.rpt-sum): TYPE and RUNNING YTD columns sized to their content ═══
+   Narrower first/last columns give the month columns more room. Number size is unchanged.
+   To undo: delete this block.                                                              */
+.rpt-wrap.rpt-sum .rpt-table :is(th, td):first-child {
+    width: 165px !important; min-width: 165px !important; max-width: 165px !important;
+}
+.rpt-wrap.rpt-sum .rpt-table th.ytd-header {
+    width: 98px !important; min-width: 98px !important; max-width: 98px !important;
+}
+
+/* ═══ Project rows — quiet style (thin flat ring, plain dates, soft status pill) ═══════════════════
+   Region banner is not touched. To undo: delete this block.                                         */
+.circular-progress {
+    background: conic-gradient(#2e7d32 var(--percentage), #e0e0e0 0);
+    box-shadow: none;
+}
+.circular-progress::before { display: none; }
+.circular-progress-inner { width: 34px; height: 34px; box-shadow: none; font-size: 0.7rem; font-weight: 600; }
+body.dark-mode .circular-progress { background: conic-gradient(#66bb6a var(--percentage), #3a3f3b 0); }
+
+.project-dates { background: none; padding: 0; border-radius: 0; border-left: none; color: var(--text-primary); font-size: 0.68rem; }
+body.dark-mode .project-dates { background: none; }
+.project-dates .date-label {
+    text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 0.64rem;
+    color: var(--text-secondary); width: 56px;
+}
+body.dark-mode .project-dates .date-label { color: var(--text-secondary); }
+
+/* Status badge: On-Going and Finished are quiet (icon + text), Work Stoppage is the only solid one so it stands out. */
+.status-badge { display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-shadow: none; border-radius: 6px; font-weight: 600; min-width: 118px; padding: 6px 10px; font-size: 0.72rem; text-transform: none; letter-spacing: 0; }
+.status-badge i { font-size: 0.8rem; }
+.status-badge.status-ongoing   { background: transparent; color: #1565c0; }
+.status-badge.status-finished  { background: transparent; color: #607d8b; }
+.status-badge.status-stoppage  { background: #c62828; color: #fff; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.64rem; }
+body.dark-mode .status-badge.status-ongoing   { background: transparent; color: #90caf9; }
+body.dark-mode .status-badge.status-finished  { background: transparent; color: #b0bec5; }
+body.dark-mode .status-badge.status-stoppage  { background: #d84343; color: #fff; }
