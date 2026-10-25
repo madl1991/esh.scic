@@ -9167,3 +9167,96 @@ body.dark-mode .region-banner.region-corporate:not(#p-grp-banner-CORP_OFFICE) .r
     color: #fff !important;
 }
 .region-banner.region-corporate:not(#p-grp-banner-CORP_OFFICE) .region-name { justify-content: flex-start; }
+
+
+/* ═══ NO-OUTLINE CONTAINERS — same clean look as OVERALL SUMMARY ═══════════
+   Overall Summary cards have no border, only a soft shadow. Same rule for
+   all other tabs. Container outlines removed; inputs, buttons, table row
+   lines and alert notes keep their borders.                                */
+.table-container,
+.tab-info-bar, .tab-info-bar.tib-oneline,
+.esh-cal-legend,
+.esh-region-content,
+.esh-table,
+.corp-drills-table-outer,
+.settings-accordion,
+.adm-user-card,
+.srs-card,
+.saw-panel,
+.lta-project-card,
+.lta-entry-card,
+.esh-sum-wrap,
+.esh-sum-allclear,
+.audit-table,
+.pl-table-wrap,
+.region-content[id^="ckpm-content-"],
+.region-banner[id^="ckpm-mgr-banner-"] {
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.region-content.collapsed[id^="ckpm-content-"] { box-shadow: none; }
+
+/* Divider lines between project bar and table inside a region card */
+.region-content > .project-row { border-bottom: none; }
+.region-content > .table-container + .project-row { border-top: none; }
+
+/* Dark mode */
+body.dark-mode .table-container,
+body.dark-mode .tab-info-bar,
+body.dark-mode .esh-cal-legend,
+body.dark-mode .esh-region-content,
+body.dark-mode .esh-table,
+body.dark-mode .corp-drills-table-outer,
+body.dark-mode .settings-accordion,
+body.dark-mode .adm-user-card,
+body.dark-mode .srs-card,
+body.dark-mode .saw-panel,
+body.dark-mode .lta-project-card,
+body.dark-mode .lta-entry-card,
+body.dark-mode .esh-sum-wrap,
+body.dark-mode .esh-sum-allclear,
+body.dark-mode .audit-table,
+body.dark-mode .pl-table-wrap,
+body.dark-mode .region-content[id^="ckpm-content-"],
+body.dark-mode .region-banner[id^="ckpm-mgr-banner-"] {
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+}
+
+/* ═══ NO-OUTLINE (round 2): YTD Summary cards, Env Monitoring ═══════════════ */
+.ytd-card, .env-one {
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.ytd-stat { border: none; background: rgba(46, 125, 50, 0.08); }
+.ytd-recs { border-top: none; }
+.env-sum-kpm :is(.esk-cards > div > div, .esk-cards-flat > div) {
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+body.dark-mode .ytd-card, body.dark-mode .env-one {
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+}
+body.dark-mode .ytd-stat { background: rgba(129, 199, 132, 0.12); }
+body.dark-mode .env-sum-kpm :is(.esk-cards > div > div, .esk-cards-flat > div) {
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28) !important;
+}
+
+/* ── Incident entry modal: Corrective / Preventive Action — plain fields like the rest of the form ── */
+.lta-ca-list { display: flex; flex-direction: column; gap: 8px; }
+.lta-ca-row { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1.3fr) minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+.lta-ca-row.ro { grid-template-columns: minmax(0, 3fr) minmax(0, 1.3fr) minmax(0, 1fr); }
+.lta-ca-add { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 6px; border: 1px solid #c8e6c9; background: transparent; color: #2e7d32; font-size: 0.7rem; font-weight: 600; cursor: pointer; font-family: inherit; text-transform: none; letter-spacing: 0; }
+.lta-ca-add:hover { background: rgba(46, 125, 50, 0.08); }
+.lta-ca-del { align-self: end; width: 28px; height: 28px; border: none; border-radius: 6px; background: transparent; color: #c62828; cursor: pointer; font-size: 0.8rem; }
+.lta-ca-del:hover { background: rgba(198, 40, 40, 0.1); }
+@media (max-width: 700px) {
+    .lta-ca-row, .lta-ca-row.ro { grid-template-columns: 1fr; }
+    .lta-ca-del { justify-self: end; }
+}
+
+/* ── Corporate KPM summary: wider PERSONNEL column so long names stay on one line (no horizontal scroll) ── */
+.ckpm-sum .rpt-table thead th.first { width: 22% !important; min-width: 250px !important; }
+.ckpm-sum .rpt-table tbody th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
