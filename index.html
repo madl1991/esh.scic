@@ -140,7 +140,10 @@
     
     <div id="firebase-loading-overlay">
         <div class="shield-loader">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2 3 5.5v6c0 5 3.6 9.3 9 10.5 5.4-1.2 9-5.5 9-10.5v-6L12 2Zm0 2.1 7 2.7v4.7c0 4-2.8 7.4-7 8.6V4.1Z"/></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path class="sl-outline" pathLength="1" d="M12 2.5 4 5.8v5.7c0 4.6 3.3 8.4 8 9.5 4.7-1.1 8-4.9 8-9.5V5.8L12 2.5Z"/>
+                <polyline class="sl-check" pathLength="1" points="8.5 12 11 14.5 15.5 9.5"/>
+            </svg>
         </div>
         <p class="fl-name">SCIC ESH Monitoring System</p>
         <div class="fl-steps">
@@ -148,7 +151,6 @@
             <span>LOADING PROJECTS...</span>
             <span>SYNCING DATA...</span>
         </div>
-        <div class="fl-dots"><i></i><i></i><i></i></div>
     </div>
 
     <div id="login-overlay" style="display:none;">
@@ -171,9 +173,9 @@
                         <text x="16" y="19.5" text-anchor="middle" font-family="Arial" font-weight="900" font-size="8.5" fill="white" letter-spacing="-0.5">ESH</text>
                     </svg>
 
-                    <div class="login-left-corp">Sta. Clara International<br>Corporation</div>
+                    <div class="login-left-corp">Sta. Clara International Corporation</div>
 
-                    <div class="login-left-title">ESH <span class="c-gold">Compliance</span><br>Dashboard</div>
+                    <div class="login-left-title">ESH <span class="c-gold">Compliance</span> Dashboard</div>
 
                     <div class="login-left-divider"></div>
 
@@ -197,22 +199,34 @@
                     <div class="login-greeting-sub">Sign in to your ESH account</div>
 
                     <div id="login-full-view">
-                        <form class="login-form ix-3ada42c" onsubmit="handleLogin(event)" autocomplete="off">
+                        <form class="login-form ix-3ada42c" onsubmit="handleLogin(event)" autocomplete="on">
                             <div class="login-input-group">
                                 <div class="login-input-group-label">Email Address</div>
-                                <i class="fas fa-envelope"></i>
-                                <input type="email" id="login-user" placeholder="corporate@scic.com.ph" required autocomplete="off">
+                                <div class="login-input-wrap">
+                                    <i class="fas fa-envelope"></i>
+                                    <input type="email" id="login-user" placeholder="corporate@scic.com.ph" required autocomplete="username">
+                                </div>
                             </div>
                             <div class="login-input-group">
                                 <div class="login-input-group-label">Password</div>
-                                <i class="fas fa-lock"></i>
-                                <input type="password" id="login-pass" placeholder="••••••••••" required autocomplete="off">
+                                <div class="login-input-wrap">
+                                    <i class="fas fa-lock"></i>
+                                    <input type="password" id="login-pass" placeholder="••••••••••" required autocomplete="current-password"
+                                        onkeydown="loginCapsCheck(event)" onkeyup="loginCapsCheck(event)" onblur="loginCapsCheck(event)">
+                                    <button type="button" class="login-eye" id="login-eye" onclick="toggleLoginPass()" aria-label="Show password" tabindex="-1">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="login-caps-warn" id="login-caps-warn" style="display:none;">
+                                    <i class="fas fa-triangle-exclamation"></i> Caps Lock is on
+                                </div>
                             </div>
 
                             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
                                 <input type="checkbox" id="login-remember" style="width:14px;height:14px;accent-color:#4caf50;cursor:pointer;flex-shrink:0;"
                                     onchange="if(!this.checked){ localStorage.removeItem('esh_remember_email'); document.getElementById('login-user').value=''; }">
-                                <label for="login-remember" style="font-size:0.62rem;color:#bbb;cursor:pointer;user-select:none;">Remember my email on this device</label>
+                                <label for="login-remember" class="login-remember-label">Remember my email on this device</label>
+                                <a href="#" class="login-forgot" onclick="handleForgotPassword(event)">Forgot password?</a>
                             </div>
 
                             <button type="submit" class="login-btn" id="login-btn">
@@ -221,11 +235,11 @@
                         </form>
                     </div>
 
-                    <div id="login-error" class="error-message" style="margin-top:10px;color:#c62828;font-size:0.75rem;"></div>
+                    <div id="login-error" class="error-message" style="margin-top:10px;font-size:0.75rem;"></div>
 
                     <div class="login-notice">
-                        <i class="fas fa-triangle-exclamation"></i>
-                        <span><strong class="ix-b7b411d">Authorized Personnel Only.</strong> Access is limited to ESH Department personnel and authorized accounts.</span>
+                        <strong class="ix-b7b411d">Authorized personnel only.</strong><br>
+                        Access is limited to ESH Department and authorized accounts.
                     </div>
 
                     <div class="login-footer">
