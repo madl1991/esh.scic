@@ -5053,21 +5053,25 @@ function applyNumFmtToInputs() {
             if (withAvg) h += '<th class="avg">AVG</th>';
             return h;
         };
+        // One source of truth for score colors (table cells + YTD summary text).
+        // Uses the value as displayed (1 decimal) so 89.96 → "90.0%" is colored as 90.0%.
+        window.rptTone = function(v, mode) {
+            var p = Math.round(v * 1000) / 10;
+            return mode === 'got' ? (p >= 75 ? 'ok' : p >= 50 ? 'mid' : 'bad') : (p >= 90 ? 'ok' : p >= 85 ? 'mid' : 'bad');
+        };
         window.rptTd = function(v, i, cur, mode) {
             if (v === null || v === undefined) return '<td class="' + (i > cur ? 'future' : 'none') + '">—</td>';
-            var c = mode === 'got' ? (v >= 0.75 ? '' : v >= 0.50 ? 'mid' : 'bad') : (v >= 0.90 ? '' : v >= 0.85 ? 'mid' : 'bad');
-            return '<td' + (c ? ' class="' + c + '"' : '') + '>' + (v * 100).toFixed(1) + '%</td>';
+            return '<td class="' + window.rptTone(v, mode) + '">' + (v * 100).toFixed(1) + '%</td>';
         };
         window.rptAvgTd = function(v, mode) {
             if (v === null || v === undefined) return '<td class="none avg">—</td>';
-            var c = mode === 'got' ? (v >= 0.75 ? '' : v >= 0.50 ? 'mid' : 'bad') : (v >= 0.90 ? '' : v >= 0.85 ? 'mid' : 'bad');
-            return '<td class="avg' + (c ? ' ' + c : '') + '">' + (v * 100).toFixed(1) + '%</td>';
+            return '<td class="avg ' + window.rptTone(v, mode) + '">' + (v * 100).toFixed(1) + '%</td>';
         };
         window.rptRowHead = function(name, sub) { return '<th>' + name + (sub ? '<small>' + sub + '</small>' : '') + '</th>'; };
         window.rptTotalRow = function(label, vals, cur, overall, mode) {
             var r = '<tr class="total"><th>' + label + '</th>';
             vals.forEach(function(v, i) { r += window.rptTd(v, i, cur, mode); });
-            r += (overall === null || overall === undefined) ? '<td class="none avg">—</td>' : '<td class="avg">' + (overall * 100).toFixed(1) + '%</td>';
+            r += (overall === null || overall === undefined) ? '<td class="none avg">—</td>' : '<td class="avg ' + window.rptTone(overall, mode) + '">' + (overall * 100).toFixed(1) + '%</td>';
             return r + '</tr>';
         };
         window.rptLegend = function(mode) {
@@ -5078,7 +5082,7 @@ function applyNumFmtToInputs() {
         };
         window.rptCard = function(title, sub, badges, thead, tbody, mode) {
             window.rptInjectCss();
-            return '<div class="rpt-wrap">'
+            return '<div class="rpt-wrap rpt-score">'
                 + window.rptBar({ title: title, sub: sub, html: badges })
                 + '<div class="rpt-card"><div class="rpt-scroll"><table class="rpt-table"><thead><tr>' + thead + '</tr></thead><tbody>' + tbody + '</tbody></table></div>'
                 + window.rptLegend(mode) + '</div></div>';
@@ -7490,7 +7494,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                             '.status-donut{display:flex;flex-direction:column;width:100%;height:100%;}' +
                             '.status-donut svg{flex:1 1 auto;min-height:0;width:100%;display:block;}' +
                             '.status-donut .sd-slice{cursor:pointer;}' +
-                            '.status-donut .sd-gap{stroke:var(--hv-panel,var(--bg-card,#fff));stroke-width:3;}' +
+                            '.status-donut .sd-gap{stroke:var(--hv-panel,var(--bg-card,#fff));stroke-width:6;}' +
                             '.status-donut text{font-family:Inter,sans-serif;text-anchor:middle;dominant-baseline:middle;pointer-events:none;}' +
                             '.status-donut .sd-pct{font-weight:700;font-size:36px;fill:#1b5e20;}' +
                             '.status-donut .sd-lbl{font-size:17px;fill:#666;}' +
@@ -12767,6 +12771,7 @@ function renderTabulation() {
                     const _derivedStatus = p.dateFinished ? 'finished' : isWorkStopped ? 'work-stoppage' : 'on-going';
                     const statusClass = _derivedStatus === 'on-going' ? 'status-ongoing' : _derivedStatus === 'work-stoppage' ? 'status-stoppage' : 'status-finished';
                     const statusLabel = _derivedStatus === 'on-going' ? 'On-Going' : _derivedStatus === 'work-stoppage' ? 'Work Stoppage' : 'Finished';
+                    const statusIcon = _derivedStatus === 'on-going' ? 'fa-circle-play' : _derivedStatus === 'work-stoppage' ? 'fa-circle-pause' : 'fa-circle-check';
                     
                     const canEdit = UserAccounts.canEdit(state.currentUser?.email, p.region) && UserAccounts.canEditTab(state.currentUser?.email, state.currentTab);
                     const isLocked = !canEdit;
@@ -12784,13 +12789,13 @@ function renderTabulation() {
 
                     html += `<div class="project-row ${isLocked ? 'project-locked' : ''}" data-pname="${(p.name||'').replace(/"/g,'&quot;')}" data-region="${(p.region||'').replace(/"/g,'&quot;')}" data-status="${_derivedStatus}" style="${isWorkStopped ? 'opacity:0.7;' : ''}${state.currentTab === 'overall' ? 'cursor:pointer;' : ''}" ${state.currentTab === 'overall' ? `onclick="osOpenModal('${p.name.replace(/'/g, "\\'")}')"`  : ''}>\n                        
                         ${_inlineNav ? _tabNavBtn(_inlineNav.tab, _inlineNav.reg, -1, _inlineNav.idx, _inlineNav.total) : ''}
-                        ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="circular-progress" style="--percentage: ${percDeg}deg;${isWorkStopped ? 'opacity:0.45;' : ''}">
+                        ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="circular-progress" title="Project Compliance" style="--percentage: ${percDeg}deg;${isWorkStopped ? 'opacity:0.45;' : ''}">
                             <div class="circular-progress-inner" style="${isWorkStopped ? 'font-size:0.62rem;color:#bf360c;' : ''}">${percDisplay}${percDisplay !== '—' ? '%' : ''}</div>
                         </div>`}
                         <div class="project-info">
-                            <div class="project-name" ${isWorkStopped ? 'style="color:#c62828;"' : ''}>
+                            <div class="project-name">
                                 ${window._dispProjName(p.name)}
-                                ${p.isRenewable ? '<span style="display: inline-flex; align-items: center; gap: 4px; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; margin-left: 8px;"><i class="fas fa-leaf" style="color: #4caf50;"></i> RE</span>' : ''}
+                                ${p.isRenewable ? '<i class="fas fa-leaf" title="Renewable Energy" style="color: #4caf50; font-size: 0.9rem; margin-left: 8px;"></i>' : ''}
 
                             </div>
                             <div class="project-meta">${p.region === 'CORPORATE' ? 'SCIC Head Office' : p.region === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
@@ -12798,11 +12803,11 @@ function renderTabulation() {
                         </div>
                         ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="project-dates">
                             <div><span class="date-label">Started:</span> ${p.dateStarted ? formatDateDMY(p.dateStarted) : 'Not set'}</div>
-                            <div><span class="date-label">${p.dateFinished ? 'Finished:' : 'Status:'}</span> ${p.dateFinished ? formatDateDMY(p.dateFinished) : isWorkStopped ? '<span style="color:#c62828;font-weight:700;">Work Stoppage</span>' : 'Ongoing'}</div>
+                            ${p.dateFinished ? `<div><span class="date-label">Finished:</span> ${formatDateDMY(p.dateFinished)}</div>` : ''}
                             ${p.workStoppageDate ? `<div style="color:#757575;font-size:0.7rem;"><span class="date-label" style="color:#757575;">Stoppage:</span> ${formatDateDMY(p.workStoppageDate)}</div>` : ''}
                             ${p.workResumeDate ? `<div style="color:#2e7d32;font-size:0.7rem;"><span class="date-label" style="color:#2e7d32;">Resume:</span> ${formatDateDMY(p.workResumeDate)}</div>` : ''}
                         </div>`}
-                        ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<span class="status-badge ${statusClass}" onclick="event.stopPropagation(); ${isLocked ? 'showLockedMessage()' : `changeProjectStatus('${p.name}', event)`}">${statusLabel}</span>`}
+                        ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<span class="status-badge ${statusClass}" onclick="event.stopPropagation(); ${isLocked ? 'showLockedMessage()' : `changeProjectStatus('${p.name}', event)`}"><i class="fa-solid ${statusIcon}"></i>${statusLabel}</span>`}
                         ${_inlineNav ? _tabNavBtn(_inlineNav.tab, _inlineNav.reg, 1, _inlineNav.idx, _inlineNav.total) : ''}
                         ${(state.isEditing && state.currentTab === 'overall') ? `
                             <button ${isLocked ? 'disabled' : ''} onclick="event.stopPropagation(); ${isLocked ? 'showLockedMessage()' : `openEditProjectModal('${p.name.replace(/'/g, "\\'")}', '${p.region}')`}" style="background:none;border:none;cursor:pointer;color:#555;font-size:1rem;padding:4px 6px;margin-right:2px;opacity:${isLocked ? '0.5' : '1'};" title="${isLocked ? 'View Only - Contact admin to edit' : 'Edit Project Details'}">
@@ -12822,7 +12827,7 @@ if (state.currentTab === 'dole' && projs.length > 1) {
     html += `<div style="display:flex;align-items:center;gap:10px;background:#f0f7f0;border-radius:6px 6px 0 0;padding:7px 14px;margin-top:6px;">
         <i class="fas fa-building" style="color:#2e7d32;font-size:0.85rem;"></i>
         <span style="font-weight:800;font-size:0.82rem;color:#1b5e20;">${p.name}</span>
-        ${p.isRenewable ? '<span style="background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;border-radius:10px;font-size:0.62rem;font-weight:700;padding:1px 7px;margin-left:4px;"><i class="fas fa-leaf" style="font-size:0.58rem;margin-right:3px;"></i>RE</span>' : ''}
+        ${p.isRenewable ? '<i class="fas fa-leaf" title="Renewable Energy" style="color:#4caf50;font-size:0.75rem;margin-left:5px;"></i>' : ''}
 
         <span style="background:${_dolePercBg};color:${_dolePercColor};border-radius:10px;font-size:0.65rem;font-weight:800;padding:2px 9px;margin-left:auto;">${_dolePercDisplay} compliant</span>
     </div>`;
@@ -15636,7 +15641,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var allVals = regAvg.filter(function(v){ return v !== null; });
                         var overallAvg = allVals.length ? allVals.reduce(function(s,v){return s+v;},0)/allVals.length : null;
 
-                        function _pctSpan(v){ return '<strong style="color:' + cellFg(v) + ';">' + (v*100).toFixed(1) + '%</strong>'; }
+                        function _pctSpan(v){ return '<strong class="rpt-pct ' + window.rptTone(v, 'kpm') + '">' + (v*100).toFixed(1) + '%</strong>'; }
                         var recLines = [];
                         targetRegs.forEach(function(reg, ri){
                             var avg = regAvg[ri];
@@ -15649,7 +15654,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var minMoScore = null, minMoName = '';
                         moAvg.forEach(function(s, mi){ if (s !== null && (minMoScore === null || s < minMoScore)){ minMoScore = s; minMoName = moShort[mi]; }});
                         if (minMoScore !== null && minMoScore < 0.90) {
-                            recLines.push('<li><i class="fas fa-calendar-xmark" style="color:#c62828;margin-right:4px;"></i><strong>' + minMoName + '</strong> had the lowest company average (' + _pctSpan(minMoScore) + '). Investigate root causes and strengthen monitoring during similar periods.</li>');
+                            recLines.push('<li><i class="fas fa-calendar-xmark" style="color:#c62828;margin-right:4px;"></i><strong>' + minMoName + '</strong> had the lowest overall average (' + _pctSpan(minMoScore) + '). Investigate root causes and strengthen monitoring during similar periods.</li>');
                         }
 
                         var thCells = window.rptHead('Region', moShort, currentMoIdx, true);
@@ -15658,7 +15663,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             regData[ri].forEach(function(v, mi){ cells += window.rptTd(v, mi, currentMoIdx, 'kpm'); });
                             cells += window.rptAvgTd(regAvg[ri], 'kpm');
                             return '<tr>' + cells + '</tr>';
-                        }).join('') + window.rptTotalRow('Company avg', moAvg, currentMoIdx, overallAvg, 'kpm');
+                        }).join('') + window.rptTotalRow('OVERALL AVG', moAvg, currentMoIdx, overallAvg, 'kpm');
 
                         var recsHtml = recLines.length
                             ? '<ul class="ytd-list">' + recLines.join('').replace(/<i class="fas [^"]*"[^>]*><\/i>/g, '') + '</ul>'
@@ -16797,7 +16802,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             const _vDisplay = v ? (function(d){ var p=d.split('-'); return p.length===3?p[1]+'/'+p[2]+'/'+p[0]:d; })(v) : '';
                             html += `<tr style="${!v ? 'background:#ffebee;' : ''}">
                                 <td class="got-td-proj" style="text-align:left;background:${v ? '#e8f5e9' : '#ffcdd2'};color:${v ? '#2e7d32' : '#c62828'};position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;">
-                                    ${p.isRenewable ? '<i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;" title="Renewable Energy Project"></i>' : ''}
+                                    ${p.isRenewable ? '<i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;" title="Renewable Energy"></i>' : ''}
                                     ${p.name}
                                 </td>
                                 <td id="cshp-td-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}" style="white-space:nowrap;text-align:center;">
@@ -16864,7 +16869,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         projs.forEach(p => {
                             let totalYearAvg = 0;
                             html += `<tr><td class="got-td-proj" title="${String(p.name||'').replace(/"/g,'&quot;')}" style="text-align:left;background:#e8f5e9;color:#1b5e20;position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                                ${p.isRenewable ? '<i class="fas fa-leaf" style="color:#4caf50;margin-right:5px;" title="Renewable Energy Project"></i>' : ''}${p.name}
+                                ${p.isRenewable ? '<i class="fas fa-leaf" style="color:#4caf50;margin-right:5px;" title="Renewable Energy"></i>' : ''}${p.name}
                             </td>`;
                             ['Q1','Q2','Q3','Q4'].forEach(q => {
                                 const audit = p.auditData?.[q] || { scoreImpl: 0, docuComp: 0 };
@@ -16893,7 +16898,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 const key = `${schemaKey}_${row}`;
                                 html += `<tr>
                                     <td style="text-align:left;font-weight:600;background:var(--border-color); position: sticky; left: 0; z-index: 5;">
-                                        ${p.isRenewable ? '<i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;" title="Renewable Energy Project"></i>' : ''}
+                                        ${p.isRenewable ? '<i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;" title="Renewable Energy"></i>' : ''}
                                         ${p.name}
                                     </td>`;
                                 for (let i = 1; i <= 12; i++) {
@@ -17435,7 +17440,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         if (!p.vals[key]) p.vals[key] = new Array(17).fill("");
 
                         html += `<tr>
-                            <td class="project-name" title="${_novEsc(p.name)}"><div class="pn">${p.isRenewable ? '<i class="fas fa-leaf" style="color:#4caf50;margin-right:5px;" title="Renewable Energy Project"></i>' : ''}${p.name}</div></td>
+                            <td class="project-name" title="${_novEsc(p.name)}"><div class="pn">${p.isRenewable ? '<i class="fas fa-leaf" style="color:#4caf50;margin-right:5px;" title="Renewable Energy"></i>' : ''}${p.name}</div></td>
                             <td class="prev-year c-prev">${_novCell(0, p, key)}</td>`;
 
                         regionalTotals.prev += parseFloat(p.vals[key][0]) || 0;
@@ -26589,7 +26594,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var allVals2 = regAvg.filter(function(v){ return v !== null; });
             var overallAvg = allVals2.length ? allVals2.reduce(function(s,v){return s+v;},0)/allVals2.length : null;
 
-            function _pctSpan(v){ return '<strong style="color:' + cellFg(v) + ';">' + (v*100).toFixed(1) + '%</strong>'; }
+            function _pctSpan(v){ return '<strong class="rpt-pct ' + window.rptTone(v, 'got') + '">' + (v*100).toFixed(1) + '%</strong>'; }
             var recLines = [];
             targetRegs.forEach(function(reg, ri){
                 var avg = regAvg[ri];
@@ -26603,7 +26608,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var minMoScore = null, minMoName = '';
             moAvg.forEach(function(s, mi){ if (s !== null && (minMoScore === null || s < minMoScore)){ minMoScore = s; minMoName = moShort[mi]; }});
             if (minMoScore !== null && minMoScore < 0.75) {
-                recLines.push('<li><i class="fas fa-calendar-xmark" style="color:#c62828;margin-right:4px;"></i><strong>' + minMoName + '</strong> had the lowest company average (' + _pctSpan(minMoScore) + '). Review root causes and address compliance gaps for that period.</li>');
+                recLines.push('<li><i class="fas fa-calendar-xmark" style="color:#c62828;margin-right:4px;"></i><strong>' + minMoName + '</strong> had the lowest overall average (' + _pctSpan(minMoScore) + '). Review root causes and address compliance gaps for that period.</li>');
             }
 
             var thCells = window.rptHead('Region', moShort, curMoIdx, true);
@@ -26612,7 +26617,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 regData[ri].forEach(function(v, mi){ cells += window.rptTd(v, mi, curMoIdx, 'got'); });
                 cells += window.rptAvgTd(regAvg[ri], 'got');
                 return '<tr>' + cells + '</tr>';
-            }).join('') + window.rptTotalRow('Company avg', moAvg, curMoIdx, overallAvg, 'got');
+            }).join('') + window.rptTotalRow('OVERALL AVG', moAvg, curMoIdx, overallAvg, 'got');
 
             var recsHtml = recLines.length
                 ? '<ul class="ytd-list">' + recLines.join('').replace(/<i class="fas [^"]*"[^>]*><\/i>/g, '') + '</ul>'
@@ -32330,7 +32335,7 @@ window.toggleSidebar = function() {
     }
 
     // Charts: re-measure after the sidebar transition so nothing stays clipped/stale
-    [60, 360].forEach(function(ms) { setTimeout(function() { window.dispatchEvent(new Event('resize')); }, ms); });
+    [340].forEach(function(ms) { setTimeout(function() { window.dispatchEvent(new Event('resize')); }, ms); });
 
     // Update hamburger icon if present
     const btn = document.getElementById('hamburger-btn');
@@ -38307,7 +38312,7 @@ window.renderCorporateKpm = function() {
         : '<span class="rpt-pill view" style="margin-left:auto;" title="Only the WDA System Admin can make changes"><i class="fas fa-eye" style="margin-right:3px;"></i>View only</span>';
 
     var summaryHtml = window.rptCard('', 'Weighted % per personnel per month · Year: ' + year, _ckBadge, thCells, bodyRows, 'kpm');
-    summaryHtml = summaryHtml.replace('class="rpt-wrap"', 'class="rpt-wrap ckpm-sum"');
+    summaryHtml = summaryHtml.replace('class="rpt-wrap rpt-score"', 'class="rpt-wrap rpt-score ckpm-sum"');
 
     // ── Build per-personnel sections (one per registered person active in the selected year) ──
     var managersHtml = '';
@@ -39877,3 +39882,106 @@ async function exportKpmExcel() {
         showToast('KPM export failed. Check console for details.', 'error');
     }
 }
+
+
+// ═══ Custom tooltip — replaces the browser's native title tooltip everywhere ═══
+// Dark rounded box with an arrow, no border. Works for any element with a title attribute
+// (including ones created later), because it listens on the document.
+(function () {
+    if (window.__eshTipInit) return;
+    window.__eshTipInit = true;
+
+    var tip = null, anchor = null, timer = null;
+
+    function ensureTip() {
+        if (tip && tip.isConnected) return tip;
+        tip = document.createElement('div');
+        tip.id = 'esh-tip';
+        tip.setAttribute('role', 'tooltip');
+        document.body.appendChild(tip);
+        return tip;
+    }
+
+    function hide() {
+        clearTimeout(timer);
+        timer = null;
+        anchor = null;
+        if (tip) tip.classList.remove('on');
+    }
+
+    function show(el, cx, cy) {
+        var text = el.getAttribute('data-tip');
+        if (!text || !el.isConnected) return;
+        var t = ensureTip();
+        anchor = el;
+        t.textContent = text;
+        t.classList.remove('on');
+        t.style.left = '0px';
+        t.style.top = '0px';
+
+        var r = el.getBoundingClientRect();
+        // Very large elements (wide cells, whole cards): point at the cursor instead of the whole element
+        if (r.width > 240 || r.height > 120) {
+            r = { left: cx - 1, right: cx + 1, top: cy - 8, bottom: cy + 8, width: 2, height: 16 };
+        }
+        var w = t.offsetWidth, h = t.offsetHeight, g = 10, m = 8;
+        var vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
+        var side = 'right', x = r.right + g, y = r.top + r.height / 2 - h / 2;
+
+        if (x + w > vw - m) { side = 'left'; x = r.left - g - w; }
+        if (x < m) {
+            side = (r.top - g - h >= m) ? 'top' : 'bottom';
+            x = r.left + r.width / 2 - w / 2;
+            y = side === 'top' ? r.top - g - h : r.bottom + g;
+        }
+        x = Math.max(m, Math.min(x, vw - w - m));
+        y = Math.max(m, Math.min(y, vh - h - m));
+
+        // Arrow points at the middle of the element
+        var ao = (side === 'left' || side === 'right')
+            ? (r.top + r.height / 2) - y
+            : (r.left + r.width / 2) - x;
+        ao = Math.max(14, Math.min(ao, (side === 'left' || side === 'right' ? h : w) - 14));
+
+        t.setAttribute('data-side', side);
+        t.style.setProperty('--ao', ao + 'px');
+        t.style.left = Math.round(x) + 'px';
+        t.style.top = Math.round(y) + 'px';
+        t.classList.add('on');
+    }
+
+    document.addEventListener('mouseover', function (e) {
+        var el = e.target && e.target.closest ? e.target.closest('[title],[data-tip]') : null;
+        if (!el || el === anchor) return;
+        hide();
+
+        // Take over the native title so the browser doesn't show its own tooltip
+        var native = el.getAttribute('title');
+        if (native !== null) {
+            if (native.trim()) {
+                el.setAttribute('data-tip', native);
+                if (!el.getAttribute('aria-label') && !(el.textContent || '').trim()) el.setAttribute('aria-label', native);
+            }
+            el.removeAttribute('title');
+        }
+        if (!el.getAttribute('data-tip')) return;
+
+        var cx = e.clientX, cy = e.clientY;
+        timer = setTimeout(function () { show(el, cx, cy); }, 250);
+    }, true);
+
+    document.addEventListener('mouseout', function (e) {
+        if (!anchor && !timer) return;
+        var to = e.relatedTarget;
+        var el = e.target && e.target.closest ? e.target.closest('[data-tip]') : null;
+        if (el && to && el.contains(to)) return;      // still inside the same element
+        hide();
+    }, true);
+
+    document.addEventListener('mousemove', function () {
+        if (anchor && !anchor.isConnected) hide();    // element was re-rendered while hovered
+    }, true);
+    ['mousedown', 'keydown', 'wheel', 'scroll', 'blur'].forEach(function (ev) {
+        window.addEventListener(ev, hide, true);
+    });
+})();
