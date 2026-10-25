@@ -2,6 +2,7 @@
 window.ENV_REGIONS = Object.freeze(['CORPORATE', 'PLANT OPERATIONS', 'NCR', 'SOUTH LUZON', 'NORTH LUZON', 'VISAYAS & MINDANAO']);
 
 // ── ICONS (Font Awesome 6.4.0) — one place for every UI icon. Usage: icon('warn') ──────────
+window._dispProjName = function (n) { return n === 'Corporate' ? 'ESH Corporate' : n; }; // display only: real name stays 'Corporate' (used as data key)
 window.ESH_ICONS = { "warn": "fa-triangle-exclamation", "error": "fa-circle-xmark", "lock": "fa-lock", "ok": "fa-circle-check", "info": "fa-circle-info", "wait": "fa-hourglass-half", "edit": "fa-pen", "pin": "fa-location-dot", "pinned": "fa-thumbtack", "trash": "fa-trash", "view": "fa-eye", "list": "fa-clipboard-list", "dot-red": [ "fa-circle", "#e53935" ], "file": "fa-file-lines", "building": "fa-building", "plant": "fa-industry", "dot-orange": [ "fa-circle", "#fb8c00" ], "search": "fa-magnifying-glass", "calendar": "fa-calendar-days", "refresh": "fa-rotate", "stop": "fa-ban", "globe": "fa-globe", "block": "fa-ban", "shield": "fa-shield-halved", "nophone": "fa-mobile-screen", "weather": "fa-cloud-sun", "numbers": "fa-hashtag", "idea": "fa-lightbulb", "key": "fa-key", "alert": "fa-bell", "leaf": "fa-leaf", "upload": "fa-upload", "water": "fa-droplet", "save": "fa-floppy-disk", "chart": "fa-chart-column", "sq-green": [ "fa-square", "#43a047" ], "sq-yellow": [ "fa-square", "#fdd835" ], "sq-red": [ "fa-square", "#e53935" ], "sq-dark": [ "fa-square", "#424242" ], "cloud": "fa-cloud", "download": "fa-download", "tool": "fa-wrench", "sun": "fa-sun", "city": "fa-city", "moon": "fa-moon", "newmoon": [ "fa-circle", "#424242" ], "checked": "fa-square-check", "gear": "fa-gear", "bolt": "fa-bolt", "plus": "fa-plus", "lock2": "fa-lock", "robot": "fa-robot", "plug": "fa-plug", "fuel": "fa-gas-pump", "hardhat": "fa-helmet-safety", "unlock": "fa-lock-open", "home": "fa-house", "seedling": "fa-seedling", "chevron-down": "fa-chevron-down", "chevron-right": "fa-chevron-right", "folder": "fa-folder-open", "calc": "fa-calculator", "times": "fa-xmark", "plus-circle": "fa-circle-plus", "snowflake": "fa-snowflake", "desktop": "fa-desktop" };
 window.icon = function (name, extraClass, attrs) {   // attrs = extra attributes as a string, e.g. 'id="x" style="font-size:.8rem"' (do not pass style for icons that have a color in the pack)
     var d = window.ESH_ICONS[name]; if (!d) return '';
@@ -2666,6 +2667,7 @@ function applyNumFmtToInputs() {
             state.darkMode = true;
             localStorage.setItem('esh_theme_preference', 'dark');
             updateThemeIcon();
+            applyChartTheme();
         }
 
         function disableDarkMode() {
@@ -2673,6 +2675,42 @@ function applyNumFmtToInputs() {
             state.darkMode = false;
             localStorage.setItem('esh_theme_preference', 'light');
             updateThemeIcon();
+            applyChartTheme();
+        }
+
+        // Charts (canvas) hindi sumusunod sa CSS, kaya inaayos dito ang kulay ng text/grid
+        // at ni-re-draw ang lahat ng live chart tuwing nagpapalit ng theme.
+        function applyChartTheme() {
+            if (!window.Chart) return;
+            var dark = document.body.classList.contains('dark-mode');
+            var tick = dark ? '#a9b4ad' : '#5d6b63';
+            var grid = dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+            try {
+                Chart.defaults.color = dark ? '#b0b0b0' : '#666';
+                Chart.defaults.borderColor = dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.1)';
+            } catch (e) {}
+            var list = [];
+            try { if (state && state.charts) Object.keys(state.charts).forEach(function (k) { list.push(state.charts[k]); }); } catch (e) {}
+            try { if (typeof trendChartInstances !== 'undefined') Object.keys(trendChartInstances).forEach(function (k) { list.push(trendChartInstances[k]); }); } catch (e) {}
+            var cardBg = (getComputedStyle(document.body).getPropertyValue('--bg-card') || '').trim();
+            list.forEach(function (ch) {
+                try {
+                    if (!ch || !ch.options || (ch.canvas && !ch.canvas.isConnected)) return;
+                    var sc = ch.options.scales;
+                    if (sc) Object.keys(sc).forEach(function (k) {
+                        var sx = sc[k]; if (!sx) return;
+                        if (sx.ticks) sx.ticks.color = tick;
+                        if (sx.grid && sx.grid.display !== false && typeof sx.grid.color !== 'function') sx.grid.color = grid;
+                    });
+                    var lg = ch.options.plugins && ch.options.plugins.legend && ch.options.plugins.legend.labels;
+                    if (lg) lg.color = tick;
+                    if (ch.config && ch.config.type === 'doughnut' && cardBg && ch.data && ch.data.datasets && ch.data.datasets[0]) {
+                        ch.data.datasets[0].borderColor = cardBg;
+                    }
+                    if (ch._animatingLabels === true) ch._animatingLabels = false;
+                    ch.update('none');
+                } catch (e) {}
+            });
         }
 
         function updateThemeIcon() {
@@ -3791,6 +3829,7 @@ function applyNumFmtToInputs() {
             const errorDiv = document.getElementById('login-error');
             const loginBtn = document.getElementById('login-btn');
 
+            errorDiv.classList.remove('ok');
             errorDiv.innerText = '';
 
             if (!email || !password) {
@@ -3843,15 +3882,54 @@ function applyNumFmtToInputs() {
             } catch (error) {
                 console.error('❌ Firebase login error:', error);
                 let msg = 'Invalid email or password';
-                if (error.code === 'auth/user-not-found') msg = 'No account found with this email';
-                else if (error.code === 'auth/wrong-password') msg = 'Incorrect password';
-                else if (error.code === 'auth/invalid-email') msg = 'Invalid email address';
+                if (error.code === 'auth/invalid-email') msg = 'Invalid email address';
                 else if (error.code === 'auth/too-many-requests') msg = 'Too many attempts. Try again later.';
                 else if (error.code === 'auth/network-request-failed') msg = 'Network error. Check your connection.';
                 errorDiv.innerText = msg;
                 loginBtn.disabled = false;
-                loginBtn.innerHTML = '<i class="fas fa-right-to-bracket"></i> ACCESS SYSTEM';
+                loginBtn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Access System';
             }
+        }
+
+        function toggleLoginPass() {
+            const input = document.getElementById('login-pass');
+            const btn = document.getElementById('login-eye');
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            btn.querySelector('i').className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+            btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        }
+
+        function loginCapsCheck(e) {
+            const warn = document.getElementById('login-caps-warn');
+            if (!warn) return;
+            const on = e.type !== 'blur' && e.getModifierState && e.getModifierState('CapsLock');
+            warn.style.display = on ? 'block' : 'none';
+        }
+
+        async function handleForgotPassword(event) {
+            event.preventDefault();
+            const email = document.getElementById('login-user').value.trim();
+            const errorDiv = document.getElementById('login-error');
+            errorDiv.classList.remove('ok');
+            if (!email) {
+                errorDiv.innerText = 'Enter your email first, then click Forgot password';
+                return;
+            }
+            if (!window.firebase || !window.firebaseAuth) {
+                errorDiv.innerText = 'Securing workspace, please try again...';
+                return;
+            }
+            try {
+                await window.firebase.sendPasswordResetEmail(window.firebaseAuth, email);
+            } catch (error) {
+                if (error.code === 'auth/invalid-email') { errorDiv.innerText = 'Invalid email address'; return; }
+                if (error.code === 'auth/network-request-failed') { errorDiv.innerText = 'Network error. Check your connection.'; return; }
+                if (error.code === 'auth/too-many-requests') { errorDiv.innerText = 'Too many attempts. Try again later.'; return; }
+                // any other error (e.g. user-not-found): show the same message, so we don't reveal which emails exist
+            }
+            errorDiv.classList.add('ok');
+            errorDiv.innerText = 'If this email has an account, a reset link was sent.';
         }
 
       function handleLogout() {
@@ -7146,12 +7224,12 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                         + '</span>';
                     bodyHtml += '</div>';
                     // ── Expandable per-project detail (collapsed by default) ──
-                    bodyHtml += '<div id="' + _areaId + '" style="display:none;padding:8px 14px;max-height:220px;overflow-y:auto;background:#fff;">';
+                    bodyHtml += '<div id="' + _areaId + '" class="gap-area-body" style="display:none;padding:8px 14px;max-height:220px;overflow-y:auto;background:#fff;">';
                     _projectNames.forEach(pname => {
                         bodyHtml += '<div style="margin-bottom:8px;">';
-                        bodyHtml += '<div style="font-weight:700;color:#333;font-size:0.78rem;margin-bottom:2px;"><i class="fas fa-building" style="font-size:0.68rem;color:#999;margin-right:4px;"></i>' + pname + ' <span style="color:#b3261e;font-weight:600;">(' + _byProject[pname].length + ')</span></div>';
+                        bodyHtml += '<div class="gap-proj" style="font-weight:700;color:#333;font-size:0.78rem;margin-bottom:2px;"><i class="fas fa-building" style="font-size:0.68rem;color:#999;margin-right:4px;"></i>' + pname + ' <span style="color:#b3261e;font-weight:600;">(' + _byProject[pname].length + ')</span></div>';
                         _byProject[pname].forEach(detail => {
-                            bodyHtml += '<div style="padding:3px 0 3px 20px;border-bottom:1px solid #eef1ef;font-size:0.75rem;color:#666;">' + detail + '</div>';
+                            bodyHtml += '<div class="gap-det" style="padding:3px 0 3px 20px;border-bottom:1px solid #eef1ef;font-size:0.75rem;color:#666;">' + detail + '</div>';
                         });
                         bodyHtml += '</div>';
                     });
@@ -7388,7 +7466,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                                 }
                             },
                             scales: {
-                                y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
+                                y: { beginAtZero: true, max: 100, grid: { color: function () { return document.body.classList.contains('dark-mode') ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'; } } },
                                 x: { grid: { display: false }, ticks: { maxRotation: 0, minRotation: 0, autoSkip: false, font: { size: 12, weight: '600' } } }
                             }
                         },
@@ -7399,158 +7477,117 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
 
                 const statusCtx = document.getElementById('statusChart');
                 if (statusCtx) {
-                    const existingStatusChart = Chart.getChart(statusCtx);
-                    if (existingStatusChart && existingStatusChart === state.charts.status) {
-                        // Same canvas kept across the repaint: just update the numbers, no rebuild / no re-animation from zero
-                        existingStatusChart._statusCounts = statusCounts;
-                        const _stDs = existingStatusChart.data.datasets[0];
-                        _stDs.data = [statusCounts['on-going'], statusCounts['work-stoppage'], statusCounts['finished']];
-                        _stDs.borderColor = (getComputedStyle(document.body).getPropertyValue('--bg-card') || '').trim() || '#ffffff';
-                        existingStatusChart.update();
-                        return; // the status chart is the last thing this callback builds
-                    }
-                    if (existingStatusChart) existingStatusChart.destroy();
-                    const ctx = statusCtx.getContext('2d');
-                    
-                    const _statusColors = ['#1976D2', '#d32f2f', '#616161']; // On-Going, Work Stoppage, Finished
-                    
-                    const centerTextPlugin = {
-                        id: 'centerText',
-                        afterDraw: function(chart) {
-                            const ctx = chart.ctx;
-                            const width = chart.width;
-                            const height = chart.height;
-                            const _ca = chart.chartArea;
-                            const _cx = _ca ? (_ca.left + _ca.right) / 2 : width / 2;
-                            const _cy = _ca ? (_ca.top + _ca.bottom) / 2 : height / 2;
-                            
-                            ctx.restore();
-                            
-                            const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                            const _hov = (typeof chart._hoverIdx === 'number') ? chart._hoverIdx : -1;
-                            const _dsData = chart.data.datasets[0].data;
-                            const percentage = _hov >= 0
-                                ? (total > 0 ? (_dsData[_hov] / total * 100).toFixed(1) : 0)
-                                : (total > 0 ? Math.round(((chart._statusCounts || statusCounts)['on-going'] / total) * 100) : 0);
-                            
-                            const fontSize = (height / 180).toFixed(2);
-                            ctx.font = `bold ${fontSize}em Inter, sans-serif`;
-                            ctx.textBaseline = 'middle';
-                            ctx.fillStyle = _hov >= 0 ? _statusColors[_hov] : '#1b5e20';
-                            
-                            const percentText = percentage + '%';
-                            const percentTextX = Math.round(_cx - ctx.measureText(percentText).width / 2);
-                            const percentTextY = _cy - 23;
-                            
-                            ctx.fillText(percentText, percentTextX, percentTextY);
-                            
-                            const labelFontSize = (height / 320).toFixed(2);
-                            ctx.font = `${labelFontSize}em Inter, sans-serif`;
-                            ctx.fillStyle = '#666';
-                            
-                            const labelText = _hov >= 0 ? (chart.data.labels[_hov] + ' \u00b7 ' + _dsData[_hov]) : 'On-Going';
-                            const labelTextX = Math.round(_cx - ctx.measureText(labelText).width / 2);
-                            const labelTextY = _cy + 5;
-                            
-                            ctx.fillText(labelText, labelTextX, labelTextY);
+                    // Project Status donut drawn as SVG (vector): edges stay sharp at any zoom or screen density.
+                    const _stColors = ['#1976D2', '#d32f2f', '#616161']; // On-Going, Work Stoppage, Finished
+                    const _stLabels = ['On-Going', 'Work Stoppage', 'Finished'];
+                    const _stData = [statusCounts['on-going'], statusCounts['work-stoppage'], statusCounts['finished']];
+                    const _stTotal = _stData.reduce((a, b) => a + b, 0);
 
-                            if (_hov < 0) {
-                                const subFont = (height / 400).toFixed(2);
-                                ctx.font = `${subFont}em Inter, sans-serif`;
-                                ctx.fillStyle = '#8a948c';
-                                const subText = (chart._statusCounts || statusCounts)['on-going'] + ' of ' + total + ' projects';
-                                const subX = Math.round(_cx - ctx.measureText(subText).width / 2);
-                                ctx.fillText(subText, subX, labelTextY + 26);
-                            }
-                            
-                            ctx.save();
+                    if (!document.getElementById('status-donut-css')) {
+                        const _st = document.createElement('style');
+                        _st.id = 'status-donut-css';
+                        _st.textContent =
+                            '.status-donut{display:flex;flex-direction:column;width:100%;height:100%;}' +
+                            '.status-donut svg{flex:1 1 auto;min-height:0;width:100%;display:block;}' +
+                            '.status-donut .sd-slice{cursor:pointer;}' +
+                            '.status-donut .sd-gap{stroke:var(--hv-panel,var(--bg-card,#fff));stroke-width:3;}' +
+                            '.status-donut text{font-family:Inter,sans-serif;text-anchor:middle;dominant-baseline:middle;pointer-events:none;}' +
+                            '.status-donut .sd-pct{font-weight:700;font-size:36px;fill:#1b5e20;}' +
+                            '.status-donut .sd-lbl{font-size:17px;fill:#666;}' +
+                            '.status-donut .sd-sub{font-size:13px;fill:#8a948c;}' +
+                            'body.dark-mode .status-donut .sd-pct{fill:#66bb6a;}' +
+                            'body.dark-mode .status-donut .sd-lbl{fill:#c4c4c4;}' +
+                            'body.dark-mode .status-donut .sd-sub{fill:#9aa8a0;}' +
+                            '.status-donut .sd-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;padding:8px 0 0;font-size:12px;color:#666;}' +
+                            'body.dark-mode .status-donut .sd-legend{color:#b0b0b0;}' +
+                            '.status-donut .sd-leg{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}' +
+                            '.status-donut .sd-leg.off{opacity:.4;text-decoration:line-through;}' +
+                            '.status-donut .sd-dot{width:9px;height:9px;border-radius:50%;display:inline-block;}';
+                        document.head.appendChild(_st);
+                    }
+
+                    statusCtx.style.display = 'none';
+                    let host = statusCtx.parentNode.querySelector('.status-donut');
+                    if (!host) {
+                        host = document.createElement('div');
+                        host.className = 'status-donut';
+                        statusCtx.parentNode.appendChild(host);
+                    }
+                    const hidden = [false, false, false];
+                    const NS = 'http://www.w3.org/2000/svg';
+                    const CX = 150, CY = 150, R_OUT = 140, R_IN = 98; // cutout 70%
+                    const pt = (r, a) => [CX + r * Math.cos(a), CY + r * Math.sin(a)];
+                    const f = n => n.toFixed(3);
+
+                    function slicePath(a0, a1) {
+                        if (a1 - a0 >= Math.PI * 2 - 1e-6) {
+                            return 'M' + f(CX + R_OUT) + ' ' + f(CY) +
+                                'A' + R_OUT + ' ' + R_OUT + ' 0 1 1 ' + f(CX - R_OUT) + ' ' + f(CY) +
+                                'A' + R_OUT + ' ' + R_OUT + ' 0 1 1 ' + f(CX + R_OUT) + ' ' + f(CY) + 'Z' +
+                                'M' + f(CX + R_IN) + ' ' + f(CY) +
+                                'A' + R_IN + ' ' + R_IN + ' 0 1 0 ' + f(CX - R_IN) + ' ' + f(CY) +
+                                'A' + R_IN + ' ' + R_IN + ' 0 1 0 ' + f(CX + R_IN) + ' ' + f(CY) + 'Z';
                         }
-                    };
-                    
-                    state.charts.status = new Chart(statusCtx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['On-Going', 'Work Stoppage', 'Finished'],
-                            datasets: [{
-                                data: [statusCounts['on-going'], statusCounts['work-stoppage'], statusCounts['finished']],
-                                backgroundColor: _statusColors,
-                                // Same-width separators between slices (card background color), no angular spacing
-                                borderWidth: 2,
-                                borderColor: (getComputedStyle(document.body).getPropertyValue('--bg-card') || '').trim() || '#ffffff',
-                                borderRadius: 0,
-                                spacing: 0
-                            }]
-                        },
-                        options: { 
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            devicePixelRatio: Math.max(window.devicePixelRatio || 1, 2),
-                            cutout: '70%',
-                            // Hover shows the slice details in the center (no tooltip box overlapping the text)
-                            onHover: function(evt, active, chart) {
-                                const idx = active.length ? active[0].index : -1;
-                                if (chart._hoverIdx !== idx) { chart._hoverIdx = idx; chart.draw(); }
-                            },
-                            plugins: {
-                                legend: {
-                                    display: true,
-                                    position: 'bottom',
-                                    labels: {
-                                        padding: 15,
-                                        font: {
-                                            size: 12,
-                                            family: 'Inter, sans-serif'
-                                        },
-                                        usePointStyle: true,
-                                        pointStyle: 'circle',
-                                        boxWidth: 8,
-                                        boxHeight: 8,
-                                        generateLabels: function(chart) {
-                                            const ds = chart.data.datasets[0];
-                                            return chart.data.labels.map(function(label, i) {
-                                                return {
-                                                    text: label + ' \u00b7 ' + ds.data[i],
-                                                    fillStyle: ds.backgroundColor[i],
-                                                    strokeStyle: ds.backgroundColor[i],
-                                                    lineWidth: 0,
-                                                    pointStyle: 'circle',
-                                                    hidden: !chart.getDataVisibility(i),
-                                                    index: i
-                                                };
-                                            });
-                                        }
-                                    }
-                                },
-                                tooltip: {
-                                    enabled: false,
-                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                    padding: 12,
-                                    cornerRadius: 8,
-                                    titleFont: {
-                                        size: 14,
-                                        weight: 'bold'
-                                    },
-                                    bodyFont: {
-                                        size: 13
-                                    },
-                                    callbacks: {
-                                        label: function(context) {
-                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                            const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                            return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
-                                        }
-                                    }
-                                }
-                            },
-                            animation: {
-                                animateRotate: true,
-                                animateScale: true,
-                                duration: 1500,
-                                easing: 'easeInOutQuart'
+                        const large = (a1 - a0) > Math.PI ? 1 : 0;
+                        const o0 = pt(R_OUT, a0), o1 = pt(R_OUT, a1), i0 = pt(R_IN, a0), i1 = pt(R_IN, a1);
+                        return 'M' + f(o0[0]) + ' ' + f(o0[1]) +
+                            'A' + R_OUT + ' ' + R_OUT + ' 0 ' + large + ' 1 ' + f(o1[0]) + ' ' + f(o1[1]) +
+                            'L' + f(i1[0]) + ' ' + f(i1[1]) +
+                            'A' + R_IN + ' ' + R_IN + ' 0 ' + large + ' 0 ' + f(i0[0]) + ' ' + f(i0[1]) + 'Z';
+                    }
+
+                    function draw(hov) {
+                        const vis = _stData.map((v, i) => hidden[i] ? 0 : v);
+                        const visTotal = vis.reduce((a, b) => a + b, 0);
+                        let svg = '<svg viewBox="0 0 300 300" preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">';
+                        let ang = -Math.PI / 2, gaps = '';
+                        const nonZero = vis.filter(v => v > 0).length;
+                        vis.forEach((v, i) => {
+                            if (v <= 0) return;
+                            const sweep = visTotal > 0 ? (v / visTotal) * Math.PI * 2 : 0;
+                            svg += '<path class="sd-slice" data-i="' + i + '" fill="' + _stColors[i] + '" fill-rule="evenodd" d="' + slicePath(ang, ang + sweep) + '"/>';
+                            if (nonZero > 1) {
+                                const p0 = pt(R_OUT + 2, ang), q0 = pt(R_IN - 2, ang);
+                                gaps += '<line class="sd-gap" x1="' + f(p0[0]) + '" y1="' + f(p0[1]) + '" x2="' + f(q0[0]) + '" y2="' + f(q0[1]) + '"/>';
                             }
-                        },
-                        plugins: [centerTextPlugin]
-                    });
+                            ang += sweep;
+                        });
+                        svg += gaps;
+                        let pctText, lblText, subText = '', pctStyle = '';
+                        if (hov >= 0) {
+                            pctText = (_stTotal > 0 ? (_stData[hov] / _stTotal * 100).toFixed(1) : 0) + '%';
+                            lblText = _stLabels[hov] + ' \u00b7 ' + _stData[hov];
+                            pctStyle = ' style="fill:' + _stColors[hov] + '"';
+                        } else {
+                            pctText = (_stTotal > 0 ? Math.round(_stData[0] / _stTotal * 100) : 0) + '%';
+                            lblText = 'On-Going';
+                            subText = _stData[0] + ' of ' + _stTotal + ' projects';
+                        }
+                        svg += '<text class="sd-pct"' + pctStyle + ' x="150" y="127">' + pctText + '</text>' +
+                               '<text class="sd-lbl" x="150" y="157">' + lblText + '</text>' +
+                               (subText ? '<text class="sd-sub" x="150" y="184">' + subText + '</text>' : '') +
+                               '</svg>';
+                        let leg = '<div class="sd-legend">';
+                        _stLabels.forEach((l, i) => {
+                            leg += '<span class="sd-leg' + (hidden[i] ? ' off' : '') + '" data-i="' + i + '"><span class="sd-dot" style="background:' + _stColors[i] + '"></span>' + l + ' \u00b7 ' + _stData[i] + '</span>';
+                        });
+                        leg += '</div>';
+                        host.innerHTML = svg + leg;
+                        host.querySelectorAll('.sd-slice').forEach(el => {
+                            el.addEventListener('mouseenter', () => draw(+el.getAttribute('data-i')));
+                        });
+                        const sv = host.querySelector('svg');
+                        if (sv) sv.addEventListener('mouseleave', () => draw(-1));
+                        host.querySelectorAll('.sd-leg').forEach(el => {
+                            el.addEventListener('click', () => {
+                                const i = +el.getAttribute('data-i');
+                                hidden[i] = !hidden[i];
+                                draw(-1);
+                            });
+                        });
+                    }
+                    draw(-1);
+                    state.charts.status = null;
                 }
             }, 100);
         }
@@ -11398,8 +11435,8 @@ function renderTabulation() {
                     html += `<div class="nov-proj-row" onclick="window.openOshNovModal('${pnSafe}')">
                         <span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">${idx+1}</span>
                         <div style="flex:1;min-width:0;">
-                            <div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWS?'opacity:0.7;':''}">${p.name}${isWS?' <span style="background:#e53935;color:white;border-radius:8px;padding:0 6px;font-size:0.58rem;font-weight:700;">WORK STOPPAGE</span>':''}</div>
-                            <div style="font-size:0.62rem;color:#888;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${reg === 'CORPORATE' ? 'Main Office' : reg === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
+                            <div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWS?'opacity:0.7;':''}">${window._dispProjName(p.name)}${isWS?' <span style="background:#e53935;color:white;border-radius:8px;padding:0 6px;font-size:0.58rem;font-weight:700;">WORK STOPPAGE</span>':''}</div>
+                            <div style="font-size:0.62rem;color:#888;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${reg === 'CORPORATE' ? 'SCIC Head Office' : reg === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
                         </div>
                         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
                             <span style="background:${scoreBg};color:${scoreFg};border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">${scoreLabel}</span>
@@ -11733,7 +11770,7 @@ function renderTabulation() {
                             }
                         },
                         scales: {
-                            y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
+                            y: { beginAtZero: true, max: 100, grid: { color: function () { return document.body.classList.contains('dark-mode') ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'; } } },
                             x: { grid: { display: false }, ticks: { maxRotation: 0, minRotation: 0, autoSkip: false, font: { size: 12, weight: '600' } } }
                         }
                     },
@@ -12813,12 +12850,12 @@ function renderTabulation() {
                         </div>`}
                         <div class="project-info">
                             <div class="project-name" ${isWorkStopped ? 'style="color:#c62828;"' : ''}>
-                                ${p.name}
+                                ${window._dispProjName(p.name)}
                                 ${p.isRenewable ? '<span style="display: inline-flex; align-items: center; gap: 4px; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; margin-left: 8px;"><i class="fas fa-leaf" style="color: #4caf50;"></i> RE</span>' : ''}
 
                                 ${(p.workStoppageDate && p.workResumeDate) ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;padding:2px 8px;border-radius:12px;font-size:0.68rem;font-weight:700;margin-left:8px;"><i class="fas fa-play-circle" style="font-size:0.65rem;"></i> RESUMED — Counting from ${formatDateDMY(p.workResumeDate)}</span>` : ''}
                             </div>
-                            <div class="project-meta">${p.region === 'CORPORATE' ? 'Main Office' : p.region === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
+                            <div class="project-meta">${p.region === 'CORPORATE' ? 'SCIC Head Office' : p.region === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
                             ${_inlineNav ? `<div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ${_inlineNav.idx + 1} of ${_inlineNav.total}</div>` : ''}
                         </div>
                         ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="project-dates">
@@ -13194,8 +13231,8 @@ if (state.currentTab === 'audit') {
                             envHtml += `<div class="nov-proj-row" onclick="window.openEnvNovModal('${pnSafe}')">
                                 <span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">${idx+1}</span>
                                 <div style="flex:1;min-width:0;">
-                                    <div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWS?'opacity:0.7;':''}">${p.name}${isWS?' <span style="background:#e53935;color:white;border-radius:8px;padding:0 6px;font-size:0.58rem;font-weight:700;">WORK STOPPAGE</span>':''}</div>
-                                    <div style="font-size:0.62rem;color:#888;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${reg === 'CORPORATE' ? 'Main Office' : reg === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
+                                    <div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWS?'opacity:0.7;':''}">${window._dispProjName(p.name)}${isWS?' <span style="background:#e53935;color:white;border-radius:8px;padding:0 6px;font-size:0.58rem;font-weight:700;">WORK STOPPAGE</span>':''}</div>
+                                    <div style="font-size:0.62rem;color:#888;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${reg === 'CORPORATE' ? 'SCIC Head Office' : reg === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
                                 </div>
                                 <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
                                     <span style="background:${scoreBg};color:${scoreFg};border-radius:10px;padding:3px 10px;font-size:0.68rem;font-weight:800;">${scoreLabel}</span>
@@ -21110,7 +21147,8 @@ function renderSafetyAlertsPage() {
             const inner = items.length
                 ? '<div class="sa-list">' + items.map(function(a) { return safetyAlertCardHtml(a, canManage); }).join('') + '</div>'
                 : '<div style="padding:18px;text-align:center;color:var(--text-secondary);font-size:0.76rem;font-style:italic;">No safety alerts for this region.</div>';
-            const collapsed = (id in window._rsCollapsed) ? window._rsCollapsed[id] : items.length === 0;
+            // Default: all regions closed; keeps whatever the user toggled open/closed
+            const collapsed = (id in window._rsCollapsed) ? window._rsCollapsed[id] : true;
             return window.regionSection({ id: id, reg: reg, badges: badges, body: inner, collapsed: collapsed, editable: canManage });
         }).join('');
     }
@@ -22121,7 +22159,7 @@ function _doUpdateTrendChart(tabType) {
                 y: {
                     beginAtZero: true,
                     grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
+                        color: function () { return document.body.classList.contains('dark-mode') ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'; }
                     },
                     ticks: {
                         font: {
@@ -23481,6 +23519,19 @@ async function firebaseLogout() {
     }
 }
 
+// Hides the loading screen once the data is ready.
+// Waits until the loading screen has been showing for at least 2s, so the shield animation is seen. Does not block the app startup.
+const LOADING_SCREEN_MIN_MS = 2000;
+function hideLoadingScreen() {
+    const lo = document.getElementById('firebase-loading-overlay');
+    if (!lo || lo.style.display === 'none') return;
+    const wait = Math.max(0, LOADING_SCREEN_MIN_MS - (performance.now() - (window._loaderShownAt || 0)));
+    setTimeout(() => {
+        lo.classList.add('fl-hide');
+        setTimeout(() => { lo.style.display = 'none'; }, 400);
+    }, wait);
+}
+
 function setupAuthObserver() {
     if (!window.firebase || !window.firebaseAuth) {
         const loadingOverlay = document.getElementById('firebase-loading-overlay');
@@ -23493,10 +23544,19 @@ function setupAuthObserver() {
 
     window.firebase.onAuthStateChanged(window.firebaseAuth, async (user) => {
         const loadingOverlay = document.getElementById('firebase-loading-overlay');
-        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        // Not signed in: show the login screen right away.
+        // Signed in: keep the loading screen until the data is loaded (see hideLoadingScreen below).
+        if (!user && loadingOverlay) loadingOverlay.style.display = 'none';
 
         if (user) {
-            
+            // Signed in from the login form: show the loading screen again while the data loads.
+            // (On a page refresh it is still showing, so nothing to do.)
+            if (loadingOverlay && loadingOverlay.style.display === 'none') {
+                loadingOverlay.classList.remove('fl-hide');
+                loadingOverlay.style.display = ''; // animations restart when it is shown again
+                window._loaderShownAt = performance.now();
+            }
+
             // Start the slow lookups together instead of one after another
             const _rolePromise = window.firebase.getDoc(window.firebase.doc(window.firebaseDb, 'roles', user.uid)).catch(() => null);
             const _fpPromise   = state.deviceFingerprint ? null : DeviceFingerprint.generate().catch(() => null);
@@ -23589,7 +23649,11 @@ function setupAuthObserver() {
             initializeYears(); // Initialize year selector
 
             window._appInitializing = true;
-            await loadAllProjectsAndFilter();
+            try {
+                await loadAllProjectsAndFilter();
+            } finally {
+                hideLoadingScreen(); // runs even if the load fails, so the user is never stuck
+            }
             // Hold _appInitializing for 3.5s so the initial RowSaveManager snapshot
             // doesn't trigger auto-saves immediately after login.
             setTimeout(() => { window._appInitializing = false; }, 3500);
@@ -23978,6 +24042,7 @@ setTimeout(function() {
     const lo = document.getElementById('firebase-loading-overlay');
     if (lo && lo.style.display !== 'none') {
         lo.style.display = 'none';
+        if (typeof state !== 'undefined' && state.isLoggedIn) return; // signed in but data is slow: just show the dashboard
         const loginOverlay = document.getElementById('login-overlay');
         if (loginOverlay && loginOverlay.style.display !== 'none') {
             loginOverlay.style.display = 'flex';
@@ -31357,6 +31422,12 @@ function toggleChatPanel(e) {
     _chatPanelOpen = !_chatPanelOpen;
     panel.style.display = _chatPanelOpen ? 'flex' : 'none';
     if (_chatPanelOpen) {
+        // This handler stops the click from reaching the document, so the "click outside" closers of the
+        // other header dropdowns never run. Close them here so they do not overlap the chat panel.
+        ['users-dropdown', 'year-dropdown', 'notification-dropdown', 'settings-dropdown-menu'].forEach(function(id) {
+            const dd = document.getElementById(id);
+            if (dd) dd.classList.add('hidden');
+        });
         chatEnsureRoomAllowed();
         chatMarkRoomSeen(_chatRoom);
         const _sub = document.getElementById('chat-panel-sub');
@@ -32950,7 +33021,7 @@ function osOpenModal(projectName) {
     const statusLabel = project.status === 'finished' ? 'Finished'
         : project.status === 'work-stoppage' ? 'Work Stoppage' : 'On-Going';
 
-    document.getElementById('os-modal-title').textContent = project.name;
+    document.getElementById('os-modal-title').textContent = window._dispProjName(project.name);
     document.getElementById('os-modal-region').textContent = project.region || '';
     const addrDiv = document.getElementById('os-modal-address');
     const addrText = document.getElementById('os-modal-address-text');
@@ -32961,12 +33032,15 @@ function osOpenModal(projectName) {
         addrDiv.style.display = 'none';
     }
     document.getElementById('os-modal-status').textContent = statusLabel;
+    // Corporate & Plant Operations: no On-Going / Compliant badges (they don't apply)
+    const _isCorpModal = project.region === 'CORPORATE' || project.region === 'PLANT OPERATIONS';
+    document.getElementById('os-modal-status').style.display = _isCorpModal ? 'none' : '';
     document.getElementById('os-modal-year-label').textContent = `Full Year Summary — ${year}`;
 
     // Compliance %
     const complianceBadge = document.getElementById('os-modal-compliance');
     const perc = typeof getPerc === 'function' ? getPerc(project, true) : null; // include finished projects' historical score, not a dash
-    if (perc !== null) {
+    if (perc !== null && !_isCorpModal) {
         const percColor = perc >= 90 ? '#e3efe5' : perc >= 75 ? '#fdf1e1' : '#fdecea';
         complianceBadge.textContent = `✔ ${perc}% Compliant`;
         complianceBadge.style.background = percColor;
