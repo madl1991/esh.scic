@@ -4800,7 +4800,7 @@ function applyNumFmtToInputs() {
         window.NAV_CONFIG = [
             { label: 'Dashboard & Analytics', icon: 'fa-chart-bar', items: [
                 { tab: 'headlines', icon: 'fa-house', label: 'Home', title: 'HOME' },
-                { tab: 'overall', icon: 'fa-gauge-high', label: 'Overall Dashboard', title: 'OVERALL SUMMARY', active: true },
+                { tab: 'overall', icon: 'fa-gauge-high', label: 'Overall Summary', title: 'OVERALL SUMMARY', active: true },
                 { tab: 'rates', icon: 'fa-chart-line', label: 'Statistics Rate', title: 'STATISTICS RATE' }
             ]},
             { label: 'Monitoring', icon: 'fa-eye', items: [
@@ -4810,8 +4810,7 @@ function applyNumFmtToInputs() {
                 { tab: 'activities', icon: 'fa-clipboard-check', label: 'ESH Activities & Programs', title: 'ESH ACTIVITIES AND PROGRAMS' }
             ]},
             { label: 'Reportorial', icon: 'fa-file-alt', items: [
-                { tab: 'corporate-kpm', icon: 'fa-chart-bar', label: 'Corporate KPM Report', title: 'CORPORATE KPM MONTHLY REPORT', hidden: true, accent: 'green',
-                  lock: { id: 'corp-kpm-nav-lock', title: 'WDA Admin only', cls: 'green' } },
+                { tab: 'corporate-kpm', icon: 'fa-chart-bar', label: 'Corporate KPM Report', title: 'CORPORATE KPM MONTHLY REPORT', hidden: true },
                 { tab: 'kpm', icon: 'fa-file-lines', label: 'KPM', title: 'KEY PERFORMANCE MEASURES REPORT' },
                 { tab: 'got-monitoring', icon: 'fa-bullseye', label: 'GOT Monitoring', title: 'GOALS, OBJECTIVES & TARGETS (GOT) MONITORING' },
                 { tab: 'dole', icon: 'fa-file-contract', label: 'DOLE Reportorial', title: 'DOLE REPORTORIAL' },
@@ -8479,6 +8478,35 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         window.ltaEffectiveInjuryType = ltaEffectiveInjuryType;
         window.ltaEffectiveScheduledItem = ltaEffectiveScheduledItem;
 
+        // -- Injured persons of one entry -------------------------------------
+        // Person 1 = the entry's own fields (so old entries need no change).
+        // Persons 2..N = entry.additionalPersons.
+        // The date of accident is shared by the whole incident.
+        // If the injured person is "N/A", the entry is counted once by its own classification.
+        function ltaEntryHasInjured(entry) {
+            return !!entry && String(entry.injuredPersonName == null ? '' : entry.injuredPersonName).trim().toUpperCase() !== 'N/A';
+        }
+        function ltaEntryPersons(entry) {
+            if (!entry) return [];
+            const pick = (s, cls) => ({
+                injuredPersonName: s.injuredPersonName, occupation: s.occupation,
+                natureOfInjury: s.natureOfInjury, bodyPartsAffected: s.bodyPartsAffected,
+                causeOfInjury: s.causeOfInjury, causeOfInjuryOther: s.causeOfInjuryOther,
+                agentOfInjury: s.agentOfInjury, agentOfInjuryOther: s.agentOfInjuryOther,
+                incidentClassification: cls,
+                injuryType: s.injuryType, scheduledChargeItem: s.scheduledChargeItem,
+                dateOfAccident: entry.dateOfAccident, dateReported: entry.dateReported,
+                dateRTW: s.dateRTW
+            });
+            const list = [pick(entry, entry.incidentClassification)];
+            if (ltaEntryHasInjured(entry) && Array.isArray(entry.additionalPersons)) {
+                entry.additionalPersons.forEach(x => {
+                    if (x) list.push(pick(x, x.incidentClassification || entry.incidentClassification));
+                });
+            }
+            return list;
+        }
+
         function computeDaysCharged(entry) {
             const injuryType = ltaEffectiveInjuryType(entry);
 
@@ -8545,6 +8573,28 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             return monthTotals;
         }
 
+        // Days charged of a whole entry = sum of every injured person (same formula per person).
+        function computeEntryDaysCharged(entry) {
+            const per = ltaEntryPersons(entry).map(pp => computeDaysCharged(pp));
+            const total = per.reduce((s, r) => s + (r.daysCharged || 0), 0);
+            const method = per.some(r => r.method === 'scheduled') ? 'scheduled'
+                : (per.some(r => r.method === 'actual') ? 'actual' : 'na');
+            return { daysCharged: total, method: method, perPerson: per };
+        }
+        // "No. of Days w/o LTA" is per incident: it resets if any injured person is LTA.
+        function ltaEntryHasLta(entry) {
+            return ltaEntryPersons(entry).some(pp => (pp.incidentClassification || 'LTA') === 'LTA');
+        }
+        // Distinct classifications of an entry for display, e.g. "LTA / First Aid".
+        function ltaEntryClassLabel(entry) {
+            const seen = [];
+            ltaEntryPersons(entry).forEach(pp => {
+                const c = Array.isArray(pp.incidentClassification) ? pp.incidentClassification.join(', ') : String(pp.incidentClassification || '').trim();
+                if (c && seen.indexOf(c) === -1) seen.push(c);
+            });
+            return seen.join(' / ');
+        }
+
         // Expose to global scope so functions outside showUI() (e.g. computeAggregateTabulation)
         // can compute Days Lost/Charged directly from the Incident & Accident Registry —
         // same single source of truth used for the Medical Tab auto-sync.
@@ -8554,6 +8604,11 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         window.computeDaysCharged = computeDaysCharged;
         window.ltaEffectiveInjuryType = ltaEffectiveInjuryType;
         window.computeDaysChargedByMonth = computeDaysChargedByMonth;
+        window.ltaEntryHasInjured = ltaEntryHasInjured;
+        window.ltaEntryPersons = ltaEntryPersons;
+        window.computeEntryDaysCharged = computeEntryDaysCharged;
+        window.ltaEntryHasLta = ltaEntryHasLta;
+        window.ltaEntryClassLabel = ltaEntryClassLabel;
 
         
         function syncDaysLostFromLtaRegistry() {
@@ -8563,14 +8618,17 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 const monthTotals = new Array(14).fill(0);
                 let hasCurrentYearEntries = false;
                 entries.forEach(e => {
-                    if (ltaEffectiveInjuryType(e) === 'na') return;       // ← skip N/A entries (also First Aid, Medical Treatment, etc.)
-                    const byMonth = computeDaysChargedByMonth(e, selectedYear);
-                    for (let i = 1; i <= 12; i++) {
-                        if (byMonth[i] > 0) {
-                            monthTotals[i] += byMonth[i];
-                            hasCurrentYearEntries = true;
+                    // One computation per injured person (old entries = one person)
+                    ltaEntryPersons(e).forEach(pp => {
+                        if (ltaEffectiveInjuryType(pp) === 'na') return; // skip N/A (also First Aid, Medical Treatment, etc.)
+                        const byMonth = computeDaysChargedByMonth(pp, selectedYear);
+                        for (let i = 1; i <= 12; i++) {
+                            if (byMonth[i] > 0) {
+                                monthTotals[i] += byMonth[i];
+                                hasCurrentYearEntries = true;
+                            }
                         }
-                    }
+                    });
                 });
                 if (hasCurrentYearEntries) {
                     if (!p.vals['medical_Days Lost/Charged']) {
@@ -8595,7 +8653,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             const monthLtaDays = {}; // month -> [day-of-month, ...] of each LTA that month
             entries.forEach(e => {
                 if (!e.dateOfAccident) return;
-                if ((e.incidentClassification || 'LTA') !== 'LTA') return; // only LTA resets the streak
+                if (!ltaEntryHasLta(e)) return; // only LTA resets the streak (any injured person)
                 const d = new Date(e.dateOfAccident);
                 if (isNaN(d.getTime()) || d.getFullYear() !== year) return;
                 const m = d.getMonth() + 1;
@@ -8650,7 +8708,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             const _isFutureMo = m => selectedYear > _nowD.getFullYear() || (selectedYear === _nowD.getFullYear() && m > _nowD.getMonth() + 1);
             state.projects.forEach(p => {
                 const entries = p.vals['lta-registry_entries'] || [];
-                const hasAnyLtaEntry = entries.some(e => (e.incidentClassification || 'LTA') === 'LTA' && e.dateOfAccident);
+                const hasAnyLtaEntry = entries.some(e => ltaEntryHasLta(e) && e.dateOfAccident);
                 if (!hasAnyLtaEntry) return; // no LTA registry data — leave manually-encoded values untouched
                 const byMonth = computeDaysWithoutLtaByMonth(p, selectedYear);
                 if (!p.vals['exposures_No. of Days w/o LTA']) {
@@ -8690,9 +8748,12 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     if (accYear !== _syncYear) return; // ← skip other years
                     const month = new Date(dateStr).getMonth() + 1; // 1–12
                     if (month < 1 || month > 12) return;
-                    const medKey = classMap[e.incidentClassification];
-                    if (!medKey) return;
-                    counts[medKey][month]++;
+                    // One count per injured person. If the injured person is N/A, the entry is counted once.
+                    ltaEntryPersons(e).forEach(pp => {
+                        const medKey = classMap[pp.incidentClassification];
+                        if (!medKey) return;
+                        counts[medKey][month]++;
+                    });
                 });
 
                 Object.keys(counts).forEach(medKey => {
@@ -8797,7 +8858,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 const badge = document.getElementById(`lta-dl-${pName.replace(/[^a-zA-Z0-9]/g,'_')}-${idx}`);
                 if (badge) {
                     const e = p.vals['lta-registry_entries'][idx];
-                    const { daysCharged, method } = computeDaysCharged(e);
+                    const { daysCharged, method } = computeEntryDaysCharged(e);
                     badge.textContent = daysCharged + (method === 'scheduled' ? ' (SC)' : '');
                     badge.style.background = daysCharged > 0 ? '#c62828' : '#e8f5e9';
                     badge.style.color = daysCharged > 0 ? 'white' : '#2e7d32';
@@ -8819,15 +8880,6 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             if (typeof markPendingSync === 'function') markPendingSync();
             if (window.RowSaveManager) window.RowSaveManager.markDirty(pName, `lta_${idx}_${field}`);
             if (typeof saveToFirebaseDebounced === 'function') saveToFirebaseDebounced();
-        }
-
-        function toggleLtaProject(id) {
-            const content = document.getElementById(id + '-content');
-            const icon    = document.getElementById(id + '-icon');
-            if (!content) return;
-            const isCollapsed = content.classList.contains('collapsed');
-            content.classList.toggle('collapsed', !isCollapsed);
-            if (icon) icon.style.transform = isCollapsed ? '' : 'rotate(-90deg)';
         }
 
         // ════════════════════════════════════════════════════════════════
@@ -9537,6 +9589,55 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         // saveLtaModal(pName, idx)           — saves dialog form to state
         // ══════════════════════════════════════════════════════════════════
 
+        // Splits the entry modal into tabs. It only MOVES the existing nodes into panes,
+        // so every id, name="ltamod-..." and inline handler stays the same (save/AIIR/DL code untouched).
+        window._ltaBuildTabs = function() {
+            const modal = document.getElementById('lta-entry-modal');
+            const body = modal && modal.querySelector('#lta-modal-body');
+            const grid = body && body.querySelector('.lta-grid');
+            if (!grid) return;
+            const TABS = [
+                { m: 'Incident Information', label: 'Incident Info', icon: 'fa-file-alt' },
+                { m: 'Contributing Factors', label: 'Contributing Factors', icon: 'fa-circle-exclamation' },
+                { m: 'Injured Person', label: 'Injured Person', icon: 'fa-user-injured' },
+                { m: 'Root Cause', label: 'Root Cause & Action', icon: 'fa-magnifying-glass' },
+                { m: 'Monitoring', label: 'Follow-Up', icon: 'fa-list-check' },
+                { m: 'Days Lost', label: 'Days Lost', icon: 'fa-calendar-xmark' },
+                { m: 'Closure', label: 'Closure', icon: 'fa-circle-check' }
+            ];
+            const panes = TABS.map(() => { const d = document.createElement('div'); d.className = 'lta-grid lta-tab-pane'; return d; });
+            let cur = 0;
+            Array.from(grid.children).forEach(ch => {
+                if (ch.classList.contains('lta-section-label')) {
+                    const i = TABS.findIndex(t => ch.textContent.indexOf(t.m) !== -1);
+                    if (i !== -1) { cur = i; if (!ch.querySelector('button')) ch.style.display = 'none'; }
+                }
+                panes[cur].appendChild(ch);
+            });
+            panes.forEach(p => body.insertBefore(p, grid));
+            grid.remove();
+            const bar = document.createElement('div');
+            bar.className = 'lta-tabs';
+            const naBtn = () => body.querySelector('[id^="ltamod-naBtn-"]');
+            const sync = () => { const n = naBtn(); btns[2].classList.toggle('na', !!n && n.dataset.isna === '1'); };
+            const show = i => {
+                panes.forEach((p, j) => { p.style.display = j === i ? '' : 'none'; btns[j].classList.toggle('on', j === i); });
+                body.scrollTop = 0; sync();
+            };
+            const btns = TABS.map((t, i) => {
+                const b = document.createElement('button');
+                b.type = 'button'; b.className = 'lta-tab';
+                b.innerHTML = '<i class="fas ' + t.icon + '"></i> ' + t.label;
+                b.onclick = () => show(i);
+                bar.appendChild(b);
+                return b;
+            });
+            body.style.minHeight = 'min(430px,70vh)';
+            body.parentNode.insertBefore(bar, body);
+            body.addEventListener('click', () => setTimeout(sync, 0));
+            show(0);
+        };
+
         window.openLtaModal = function(pName, idx, editMode) {
             const p = state.projects.find(x => x.name === pName);
             if (!p) return;
@@ -9560,6 +9661,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             const pId = pName.replace(/[^a-zA-Z0-9]/g,'_');
             const pnSafe = pName.replace(/'/g,"\\'");
             const entryNum = isNew ? (entries.length + 1) : (idx + 1);
+            window._ltaPersonSeq = Array.isArray(e.additionalPersons) ? e.additionalPersons.length : 0;
 
             const mkOpts = (arr, val) => {
                 // Support both single string (legacy) and array (multi-select)
@@ -9640,8 +9742,8 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             modal.id = 'lta-entry-modal';
             window.eshMountModal(modal, {
                 id: 'lta-entry-modal', icon: 'fa-file-circle-exclamation', width: 'min(1600px,99vw)',
-                title: `${isNew ? 'New incident / accident entry' : (canEdit ? 'Edit entry #' + entryNum : 'View entry #' + entryNum)}`,
-                sub: `${pName}`,
+                title: `${isNew ? 'New incident / accident entry' : (String(e.aiirNo || '').trim() ? String(e.aiirNo).trim().replace(/&/g, '&amp;').replace(/</g, '&lt;') : (canEdit ? 'Edit entry #' + entryNum : 'View entry #' + entryNum))}`,
+                sub: `${pName}${(!isNew && String(e.aiirNo || '').trim()) ? ' \u00b7 ' + (canEdit ? 'Edit' : 'View') : ''}`,
                 body: `
                 <div style="padding:18px 20px;max-height:70vh;overflow-y:auto;background:var(--bg-card);" id="lta-modal-body">
                     <div class="lta-grid">
@@ -9857,6 +9959,15 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                             <input type="text" name="ltamod-occupation" value="${e.occupation||''}" ${dis} placeholder="e.g. Mason/Carpenter">
                         </div>
 
+                        ${(canEdit || (Array.isArray(e.additionalPersons) && e.additionalPersons.length)) ? `<div class="lta-section-label ltamod-persons-head" style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;${e.injuredPersonName==='N/A' ? 'display:none;' : ''}">
+                            <span><i class="fas fa-users" style="margin-right:5px;"></i>Other injured persons in this incident <span style="font-size:0.6rem;font-weight:400;color:#888;">(Person 1 is the section above)</span></span>
+                            ${canEdit ? `<button type="button" class="lta-ca-add" onclick="window._ltaAddPerson('${pId}')"><i class="fas fa-plus"></i> Add person</button>` : ''}
+                        </div>` : ''}
+                        <div class="lta-field-full ltamod-persons-wrap" style="grid-column:1/-1;${e.injuredPersonName==='N/A' ? 'display:none;' : ''}">
+                            ${(Array.isArray(e.additionalPersons) ? e.additionalPersons : []).map((x, k) => window._ltaPersonCardHtml(pId, x, k, canEdit)).join('')}
+                        </div>
+                        <div class="lta-field-full ltamod-persons-total" style="grid-column:1/-1;"></div>
+
                         <div class="lta-section-label" style="grid-column:1/-1;"><i class="fas fa-magnifying-glass" style="margin-right:5px;"></i>Root Cause & Corrective Action</div>
 
                         <div class="lta-field lta-field-full">
@@ -9950,6 +10061,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     <button class="mdl-btn neutral" onclick="eshCloseModal('lta-entry-modal')">Cancel</button>` : ''
             });
             if (canEdit && e.injuredPersonName === 'N/A') window._ltaApplyNAState(pId, true, false);
+            window._ltaBuildTabs();
             if (window._ltaDLRefresh) window._ltaDLRefresh();
         };
 
@@ -10050,6 +10162,8 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 ? window.computeDaysCharged({ incidentClassification: cls, injuryType: userType, dateOfAccident: doa, dateRTW: rtw, scheduledChargeItem: item })
                 : { daysCharged: 0 };
             const n = r.daysCharged || 0;
+            card.dataset.dl = String(mode === 'na' ? 0 : n);
+            if (window._ltaPersonsRefreshAll) window._ltaPersonsRefreshAll();
             const num = card.querySelector('.ltadl-num'), lbl = card.querySelector('.ltadl-lbl'), sub = card.querySelector('.ltadl-sub');
             if (!num || !lbl || !sub) return;
             num.classList.toggle('has', mode !== 'na' && n > 0);
@@ -10094,6 +10208,219 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             window._ltaDLRefresh();
         };
 
+        // ---- Other injured persons (persons 2..N of one incident) ----
+        // Each card has its own classification, injury details and days lost method.
+        // Date of accident, root cause, corrective actions and follow-ups stay shared by the incident.
+        window._ltaPersonCardHtml = function(pId, x, k, canEdit) {
+            x = x || {};
+            const esc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+            const dis = canEdit ? '' : 'disabled';
+            const arr = v => Array.isArray(v) ? v : (v ? String(v).split(',').map(s => s.trim()).filter(Boolean) : []);
+            const types = (typeof LTA_INJURY_TYPES !== 'undefined') ? LTA_INJURY_TYPES : [];
+            const classes = (typeof LTA_INCIDENT_CLASSIFICATION !== 'undefined') ? LTA_INCIDENT_CLASSIFICATION : [];
+            const groups = (typeof SCHEDULED_CHARGES_GROUPS !== 'undefined') ? SCHEDULED_CHARGES_GROUPS : [];
+            const userType = x.injuryType || 'temporary';
+            const clsVal = Array.isArray(x.incidentClassification) ? (x.incidentClassification[0] || '') : (x.incidentClassification || '');
+            const scOpts = groups.map(g => '<optgroup label="' + esc(g.group) + '">' + g.items.map(item =>
+                '<option value="' + esc(item) + '"' + (x.scheduledChargeItem === item ? ' selected' : '') + '>' + esc(item) + ' - ' + (SCHEDULED_CHARGES[item] || 0).toLocaleString() + ' days</option>'
+            ).join('') + '</optgroup>').join('');
+            const dd = (key, label, list, vals, other) => {
+                const ddId = 'ltamod-p' + k + '-' + key + '-dd-' + pId;
+                const prvId = 'ltamod-p' + k + '-' + key + '-preview-' + pId;
+                const panId = 'ltamod-p' + k + '-' + key + '-panel-' + pId;
+                const hasOther = (key === 'ci' || key === 'ag');
+                if (!canEdit) {
+                    return '<div class="lta-field"><label>' + label + '</label>' + (vals.length
+                        ? '<div style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 0;">' + vals.map(s => '<span style="background:#eef3ee;border:1px solid #c8d8c8;border-radius:10px;padding:2px 8px;font-size:0.66rem;font-weight:600;">' + esc(window._ltaCbLabel(s, other)) + '</span>').join('') + '</div>'
+                        : '<span style="color:#bbb;font-size:0.72rem;font-style:italic;">-</span>') + '</div>';
+                }
+                return `<div class="lta-field"><label>${label}</label>
+                    <div class="lta-cb-dropdown" id="${ddId}">
+                        <button type="button" class="lta-cb-trigger" onclick="window._ltaToggleCbDd('${ddId}',event)">
+                            <span class="lta-cb-preview" id="${prvId}">${vals.length ? esc(vals.map(v => window._ltaCbLabel(v, other)).join(', ')) : '- Select -'}</span>
+                            <i class="fas fa-chevron-down" style="font-size:0.6rem;flex-shrink:0;"></i>
+                        </button>
+                        <div class="lta-cb-panel" id="${panId}" style="display:none;">
+                            <div class="lta-cb-search-wrap"><input type="text" class="lta-cb-search" placeholder="Search..." oninput="window._ltaFilterCb(this,'${panId}')"></div>
+                            <div class="lta-cb-list">
+                                ${list.map(o => `<label class="lta-cb-item"><input type="checkbox" value="${esc(o)}" ${vals.includes(o) ? 'checked' : ''} onchange="window._ltaUpdateCbPreview('${ddId}','${prvId}')"><span>${esc(o)}</span></label>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    ${hasOther ? `<input type="text" class="lta-cb-other" id="ltamod-p${k}-${key}-other-${pId}" value="${esc(other)}" placeholder="Please specify..." maxlength="200" style="display:${vals.some(v => /^others/i.test(v)) ? 'block' : 'none'};margin-top:6px;width:100%;box-sizing:border-box;" oninput="window._ltaUpdateCbPreview('${ddId}','${prvId}')">` : ''}
+                </div>`;
+            };
+            return `<div class="ltamod-person-card" data-k="${k}" data-canedit="${canEdit ? '1' : '0'}" data-user-type="${esc(userType)}" style="border:1.5px solid #c8e6c9;border-radius:8px;padding:10px 12px;margin:8px 0;background:var(--bg-card);">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                    <span class="ltamod-person-title" style="font-size:0.74rem;font-weight:800;color:#1b5e20;">Person</span>
+                    ${canEdit ? `<button type="button" class="lta-ca-del" title="Remove this person" onclick="window._ltaRemovePerson('${pId}',${k})"><i class="fas fa-times"></i></button>` : ''}
+                </div>
+                <div class="lta-grid">
+                    <div class="lta-field"><label>Injured Person Name / Age</label>
+                        <input type="text" data-pf="injuredPersonName" value="${esc(x.injuredPersonName)}" ${dis} placeholder="e.g. Juan dela Cruz, 35"></div>
+                    <div class="lta-field"><label>Occupation</label>
+                        <input type="text" data-pf="occupation" value="${esc(x.occupation)}" ${dis} placeholder="e.g. Mason/Carpenter"></div>
+                    <div class="lta-field"><label>Incident Classification</label>
+                        <select data-pf="incidentClassification" ${dis} onchange="window._ltaPersonsRefreshAll()">
+                            <option value="">- Select -</option>
+                            ${classes.map(o => '<option value="' + esc(o) + '"' + (clsVal === o ? ' selected' : '') + '>' + esc(o) + '</option>').join('')}
+                        </select></div>
+                    ${dd('ni', 'Nature of Injury', (typeof LTA_NATURE_OF_INJURY !== 'undefined' ? LTA_NATURE_OF_INJURY : []), arr(x.natureOfInjury), '')}
+                    ${dd('bp', 'Body Parts Affected', (typeof LTA_BODY_PARTS !== 'undefined' ? LTA_BODY_PARTS : []), arr(x.bodyPartsAffected), '')}
+                    ${dd('ci', 'Cause of Injury', (typeof LTA_CAUSE_OF_INJURY !== 'undefined' ? LTA_CAUSE_OF_INJURY : []), arr(x.causeOfInjury), x.causeOfInjuryOther)}
+                    ${dd('ag', 'Agent of Injury', (typeof LTA_AGENT_OF_INJURY !== 'undefined' ? LTA_AGENT_OF_INJURY : []), arr(x.agentOfInjury), x.agentOfInjuryOther)}
+                    <div class="lta-field"><label>Days lost method</label>
+                        <select data-pf="injuryType" ${dis} onchange="window._ltaPersonTypeChanged(this)">
+                            ${types.map(t => '<option value="' + esc(t.value) + '"' + (t.value === userType ? ' selected' : '') + '>' + esc(t.label) + '</option>').join('')}
+                        </select></div>
+                    <div class="lta-field" data-pwrap="rtw"><label>Date return to work (RTW)</label>
+                        <input type="date" data-pf="dateRTW" value="${esc(x.dateRTW)}" ${dis} oninput="window._ltaPersonsRefreshAll()" onchange="window._ltaPersonsRefreshAll()"></div>
+                    <div class="lta-field" data-pwrap="sc"><label>Scheduled charge item</label>
+                        <select data-pf="scheduledChargeItem" ${dis} onchange="window._ltaPersonsRefreshAll()">
+                            <option value="">- Select injury/condition -</option>${scOpts}
+                        </select></div>
+                    <div class="lta-field lta-field-full">
+                        <div class="ltamod-person-note" style="font-size:0.62rem;color:#888;"></div>
+                        <div class="ltamod-person-result" style="font-size:0.78rem;font-weight:800;color:#c62828;"></div>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        // The person picked a days lost method: remember it (the classification may force another one for now).
+        window._ltaPersonTypeChanged = function(sel) {
+            const card = sel.closest('.ltamod-person-card');
+            if (card) card.dataset.userType = sel.value;
+            window._ltaPersonsRefreshAll();
+        };
+
+        // Recompute one person card. Returns the days charged for that person.
+        window._ltaPersonRefresh = function(card) {
+            const q = f => card.querySelector('[data-pf="' + f + '"]');
+            const canEdit = card.dataset.canedit === '1';
+            const types = (typeof LTA_INJURY_TYPES !== 'undefined') ? LTA_INJURY_TYPES : [];
+            const clsEl = q('incidentClassification'), typeEl = q('injuryType'), scEl = q('scheduledChargeItem'), rtwEl = q('dateRTW');
+            if (!clsEl || !typeEl || !scEl || !rtwEl) return 0;
+            const cls = clsEl.value;
+            const rule = window.ltaClassDlRule(cls);
+            const eff = window.ltaEffectiveInjuryType({ incidentClassification: cls, injuryType: card.dataset.userType || typeEl.value });
+            typeEl.value = eff;
+            Array.from(typeEl.options).forEach(o => {
+                const d = types.find(t => t.value === o.value);
+                let off = false;
+                if (rule.lock === 'na' || rule.lock === 'fatality') off = o.value !== eff;
+                else if (rule.lock === 'rwc') off = (o.value !== 'na' && !!d && !d.useScheduled) || o.value === 'fatality';
+                else if (rule.lock === 'nona') off = o.value === 'na';
+                o.disabled = off;
+            });
+            typeEl.disabled = !canEdit || rule.lock === 'na' || rule.lock === 'fatality';
+            if (rule.lock === 'fatality') {
+                if (card.dataset.forcedSc !== '1') { card.dataset.userSc = scEl.value; card.dataset.forcedSc = '1'; }
+                scEl.value = 'Fatality';
+            } else if (card.dataset.forcedSc === '1') {
+                scEl.value = card.dataset.userSc || ''; card.dataset.forcedSc = '';
+            }
+            scEl.disabled = !canEdit || rule.lock === 'fatality';
+            const effDef = types.find(t => t.value === eff);
+            const useSc = !!(effDef && effDef.useScheduled);
+            const wRtw = card.querySelector('[data-pwrap="rtw"]'), wSc = card.querySelector('[data-pwrap="sc"]');
+            if (wRtw) wRtw.style.display = (eff !== 'na' && !useSc) ? '' : 'none';
+            if (wSc) wSc.style.display = useSc ? '' : 'none';
+            const doaEl = document.querySelector('#lta-entry-modal [name="ltamod-dateOfAccident"]');
+            const doa = doaEl ? doaEl.value : '';
+            const r = window.computeDaysCharged({ incidentClassification: cls, injuryType: eff, dateOfAccident: doa, dateRTW: rtwEl.value, scheduledChargeItem: scEl.value });
+            const n = (eff === 'na') ? 0 : (r.daysCharged || 0);
+            const out = card.querySelector('.ltamod-person-result');
+            if (out) {
+                if (eff === 'na') out.textContent = '0 days. Not added to Days Lost/Charged.';
+                else if (useSc) out.textContent = scEl.value ? n.toLocaleString() + ' days charged (Table 6)' : 'Pick the scheduled item';
+                else out.textContent = (doa && rtwEl.value) ? n + (n === 1 ? ' day lost' : ' days lost') : 'Fill in the date of accident above and the RTW date';
+            }
+            const note = card.querySelector('.ltamod-person-note');
+            if (note) note.textContent = rule.reason;
+            card.dataset.dl = String(n);
+            return n;
+        };
+
+        // Recompute every person card and the incident total (Person 1 + the other persons).
+        window._ltaPersonsRefreshAll = function() {
+            const modal = document.getElementById('lta-entry-modal');
+            const wrap = modal && modal.querySelector('.ltamod-persons-wrap');
+            if (!wrap) return;
+            const tot = modal.querySelector('.ltamod-persons-total');
+            const cards = Array.from(wrap.querySelectorAll('.ltamod-person-card'));
+            const main = document.getElementById('ltamod-dl-card');
+            let total = main ? (parseFloat(main.dataset.dl) || 0) : 0;
+            cards.forEach((c, i) => {
+                const t = c.querySelector('.ltamod-person-title');
+                if (t) t.textContent = 'Person ' + (i + 2);
+                total += window._ltaPersonRefresh(c);
+            });
+            if (tot) {
+                tot.innerHTML = cards.length
+                    ? '<div style="padding:8px 12px;border-radius:8px;background:#fff8e1;border:1px solid #ffe082;color:#e65100;font-size:0.75rem;font-weight:800;">Total for this incident (all persons): ' + total.toLocaleString() + ' days charged</div>'
+                    : '';
+            }
+        };
+
+        window._ltaAddPerson = function(pId) {
+            const modal = document.getElementById('lta-entry-modal');
+            const wrap = modal && modal.querySelector('.ltamod-persons-wrap');
+            if (!wrap) return;
+            const naBtn = document.getElementById('ltamod-naBtn-' + pId);
+            if (naBtn && naBtn.dataset.isna === '1') { showToast('Turn off N/A in the Injured Person section first.', 'error', 3500); return; }
+            window._ltaPersonSeq = (window._ltaPersonSeq || 0) + 1;
+            const clsEl = modal.querySelector('[name="ltamod-incidentClassification"]');
+            const x = { incidentClassification: clsEl ? clsEl.value : 'LTA', injuryType: 'temporary' };
+            wrap.insertAdjacentHTML('beforeend', window._ltaPersonCardHtml(pId, x, window._ltaPersonSeq, true));
+            window._ltaPersonsRefreshAll();
+            const last = wrap.lastElementChild;
+            const nameEl = last && last.querySelector('[data-pf="injuredPersonName"]');
+            if (nameEl) nameEl.focus();
+        };
+
+        window._ltaRemovePerson = function(pId, k) {
+            const modal = document.getElementById('lta-entry-modal');
+            const card = modal && modal.querySelector('.ltamod-person-card[data-k="' + k + '"]');
+            if (card) card.remove();
+            window._ltaPersonsRefreshAll();
+        };
+
+        // Read the person cards into plain objects (same rules as Person 1 on save).
+        window._ltaReadPersons = function(modal) {
+            const out = [];
+            modal.querySelectorAll('.ltamod-persons-wrap .ltamod-person-card').forEach(card => {
+                const k = card.dataset.k;
+                const q = f => card.querySelector('[data-pf="' + f + '"]');
+                const vals = key => {
+                    const d = card.querySelector('[id^="ltamod-p' + k + '-' + key + '-dd-"]');
+                    return d ? Array.from(d.querySelectorAll('input[type=checkbox]:checked')).map(c => c.value) : [];
+                };
+                const other = key => {
+                    const i = card.querySelector('[id^="ltamod-p' + k + '-' + key + '-other-"]');
+                    return i ? i.value.trim() : '';
+                };
+                const cls = q('incidentClassification').value;
+                const p = {
+                    injuredPersonName: q('injuredPersonName').value.trim(),
+                    occupation: q('occupation').value.trim(),
+                    incidentClassification: cls,
+                    natureOfInjury: vals('ni'),
+                    bodyPartsAffected: vals('bp'),
+                    causeOfInjury: vals('ci'),
+                    agentOfInjury: vals('ag'),
+                    dateRTW: q('dateRTW').value,
+                    scheduledChargeItem: q('scheduledChargeItem').value
+                };
+                p.causeOfInjuryOther = p.causeOfInjury.some(v => /^others/i.test(v)) ? other('ci') : '';
+                p.agentOfInjuryOther = p.agentOfInjury.some(v => /^others/i.test(v)) ? other('ag') : '';
+                p.injuryType = window.ltaEffectiveInjuryType({ incidentClassification: cls, injuryType: card.dataset.userType || q('injuryType').value });
+                if (window.ltaClassKind(cls) === 'fatality') p.scheduledChargeItem = 'Fatality';
+                out.push(p);
+            });
+            return out;
+        };
+
         // Apply / remove "Not Applicable" state for the whole Injured Person section
         window._ltaApplyNAState = function(pId, on, clear) {
             if (clear === undefined) clear = true;
@@ -10134,6 +10461,14 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             btn.style.borderColor = on ? '#2e7d32' : '#bbb';
             btn.style.background = on ? '#e8f5e9' : '#f9f9f9';
             btn.style.color = on ? '#2e7d32' : '#888';
+            // Other injured persons only make sense when there is an injured person
+            const _pw = modal.querySelector('.ltamod-persons-wrap');
+            const _ph = modal.querySelector('.ltamod-persons-head');
+            const _pt = modal.querySelector('.ltamod-persons-total');
+            if (_pw) { if (on && clear) _pw.innerHTML = ''; _pw.style.display = on ? 'none' : ''; }
+            if (_ph) _ph.style.display = on ? 'none' : 'flex';
+            if (_pt) _pt.style.display = on ? 'none' : '';
+            if (!on && window._ltaPersonsRefreshAll) window._ltaPersonsRefreshAll();
         };
 
         window._ltaModalToggleNA = function(pId) {
@@ -10254,6 +10589,16 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
             const _rbac = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p.region, 'medical');
             if (!_rbac.allowed) { showLockedMessage(_rbac.reason); return; }
 
+            // Added persons need a name. A card without a name would still be counted as a person.
+            {
+                const _naB = document.getElementById('ltamod-naBtn-' + pName.replace(/[^a-zA-Z0-9]/g,'_'));
+                if (!(_naB && _naB.dataset.isna === '1')) {
+                    const _bad = Array.from(modal.querySelectorAll('.ltamod-persons-wrap .ltamod-person-card'))
+                        .find(c => !(((c.querySelector('[data-pf="injuredPersonName"]') || {}).value) || '').trim());
+                    if (_bad) { showToast('Enter the name of each added person, or remove the card.', 'error', 4000); return; }
+                }
+            }
+
             if (!p.vals['lta-registry_entries']) p.vals['lta-registry_entries'] = [];
             const isNew = (idx === -1);
             if (isNew) {
@@ -10348,6 +10693,12 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
                 entry.causeOfInjuryOther = '';
                 entry.agentOfInjuryOther = '';
                 entry.occupation = '';
+            }
+
+            // Other injured persons (Person 2..N). Not kept when the injured person is N/A.
+            {
+                const _addl = injpersonIsNA ? [] : window._ltaReadPersons(modal);
+                if (_addl.length || Array.isArray(entry.additionalPersons)) entry.additionalPersons = _addl;
             }
 
             // Injury type from radio
@@ -10488,8 +10839,10 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
                 const allRegEntries = regProjs.flatMap(p => p.vals['lta-registry_entries']||[]);
                 const _classifCounts = {};
                 allRegEntries.forEach(e => {
-                    const c = e.incidentClassification || 'Unclassified';
-                    _classifCounts[c] = (_classifCounts[c] || 0) + 1;
+                    ltaEntryPersons(e).forEach(pp => {
+                        const c = pp.incidentClassification || 'Unclassified';
+                        _classifCounts[c] = (_classifCounts[c] || 0) + 1;
+                    });
                 });
                 // Badge config: label, background, text color — only shown if count > 0
                 const _classifBadgeConfig = {
@@ -10528,7 +10881,7 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
                             <span class="region-name">${reg}</span>
                         </div>
                         <div class="region-banner-right">
-                            <span class="rbadge rbadge-count">${regProjs.length} PROJ</span>
+                            <span class="rbadge rbadge-count rb-proj">${regProjs.length} PROJ</span>
                             ${_classifBadgesHtml}
                             <i class="fas fa-chevron-down region-toggle-icon"></i>
                         </div>
@@ -10550,13 +10903,13 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
                     const pnSafe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
                     const pId = p.name.replace(/\s/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
                     const entries = p.vals['lta-registry_entries'] || [];
-                    const totalDL = entries.reduce((s,e) => s + computeDaysCharged(e).daysCharged, 0);
+                    const totalDL = entries.reduce((s,e) => s + computeEntryDaysCharged(e).daysCharged, 0);
                     const canEdit = UserAccounts.canEdit(state.currentUser?.email, p.region) && UserAccounts.canEditTab(state.currentUser?.email, 'medical');
                     const dis = (state.isEditing && canEdit) ? '' : 'disabled';
 
                     const _ltaIsWS = isProjectOnStoppage(p);
                     html += `<div class="lta-project-card" style="${_ltaIsWS ? 'opacity:0.85;' : ''}">
-                        <div class="lta-project-header" onclick="toggleLtaProject('lta-proj-${pId}')" style="${_ltaIsWS ? 'background:#ffebee;border-left-color:#c62828;' : ''}${_ltaInlineNav ? 'display:grid;grid-template-columns:1fr auto 1fr;gap:10px;' : ''}">
+                        <div class="lta-project-header" style="cursor:default;${_ltaIsWS ? 'background:#ffebee;border-left-color:#c62828;' : ''}${_ltaInlineNav ? 'display:grid;grid-template-columns:1fr auto 1fr;gap:10px;' : ''}">
                             <div style="display:flex;align-items:center;gap:10px;min-width:0;${_ltaInlineNav ? 'justify-self:start;' : ''}">
                                 ${_ltaInlineNav ? _tabNavBtn('lta-registry', reg, -1, _ltaInlineNav.idx, _ltaInlineNav.total) : ''}
                                 ${_ltaInlineNav ? '' : `<div style="min-width:0;">
@@ -10569,10 +10922,7 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
                             </div>` : ''}
                             <div style="display:flex;align-items:center;gap:8px;${_ltaInlineNav ? 'justify-self:end;' : ''}">
                                 ${(state.isEditing && canEdit) ? `<button class="lta-add-btn" onclick="event.stopPropagation();window._importAiirViaFile('${pnSafe}')" title="Import from AIIR (Microsoft Word)"><i class="fas fa-file-import"></i> Import AIIR</button><button class="lta-add-btn" onclick="event.stopPropagation();window._addLtaEntryViaModal('${pnSafe}')"><i class="fas fa-plus"></i> Add Entry</button>` : ''}
-                                <span style="background:rgba(198,40,40,0.8);color:white;border-radius:10px;padding:2px 8px;font-size:0.62rem;font-weight:700;">${entries.length} entries</span>
-                                <span style="background:rgba(255,160,0,0.8);color:white;border-radius:10px;padding:2px 8px;font-size:0.62rem;font-weight:700;">${totalDL} days charged</span>
                                 ${_ltaInlineNav ? _tabNavBtn('lta-registry', reg, 1, _ltaInlineNav.idx, _ltaInlineNav.total) : ''}
-                                <i id="lta-proj-${pId}-icon" class="fas fa-chevron-down" style="color:#1b5e20;font-size:0.8rem;transition:transform 0.3s;"></i>
                             </div>
                         </div>
                         <div id="lta-proj-${pId}-content" class="lta-project-body">`;
@@ -10584,6 +10934,7 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
                         const ongoingCount = entries.filter(e => e.status === 'Ongoing').length;
                         const closedCount = entries.filter(e => e.status === 'Closed').length;
                         html += `<div class="lta-summary-bar" style="padding-top:10px;">
+                            <span class="lta-summary-pill" style="background:#e3f2fd;color:#1565c0;">${entries.length} ${entries.length === 1 ? 'Entry' : 'Entries'}</span>
                             <span class="lta-summary-pill" style="background:#ffebee;color:#c62828;">${openCount} Open</span>
                             <span class="lta-summary-pill" style="background:#fff3e0;color:#e65100;">${ongoingCount} Ongoing</span>
                             <span class="lta-summary-pill" style="background:#e8f5e9;color:#2e7d32;">${closedCount} Closed</span>
@@ -10602,13 +10953,13 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
                         sortedEntries.forEach((e, idx) => {
                             // Find original index for edit/delete operations
                             const origIdx = entries.indexOf(e);
-                            const { daysCharged: dl, method: dlMethod } = computeDaysCharged(e);
+                            const { daysCharged: dl, method: dlMethod } = computeEntryDaysCharged(e);
                             const dlLabel = dlMethod === 'na' ? 'N/A' : (dlMethod === 'scheduled' ? dl + ' (SC)' : dl + ' day' + (dl !== 1 ? 's' : ''));
                             const dlBg = dlMethod === 'na' ? '#e0e0e0' : (dl > 0 ? '#c62828' : '#e8f5e9');
                             const dlColor = dlMethod === 'na' ? '#888' : (dl > 0 ? 'white' : '#2e7d32');
                             const statusColor = e.status === 'Closed' ? '#2e7d32' : e.status === 'Ongoing' ? '#e65100' : '#c62828';
                             const statusBg   = e.status === 'Closed' ? '#e8f5e9' : e.status === 'Ongoing' ? '#fff3e0' : '#ffebee';
-                            const classifLabel = e.incidentClassification || '—';
+                            const classifLabel = ltaEntryClassLabel(e) || '—';
                             const personLabel  = e.injuredPersonName === 'N/A' ? '<em style="color:#aaa;">N/A</em>' : (e.injuredPersonName || '<em style="color:#aaa;">—</em>');
                             const accidentDate = e.dateOfAccident || (e.dateReported ? `${e.dateReported}` : '—');
                             const aiirLabel    = e.aiirNo || '<em style="color:#aaa;">No AIIR No.</em>';
@@ -10634,7 +10985,7 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
                                     </div>
                                     <div style="font-size:0.63rem;color:#888;margin-top:1px;
                                         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                                        ${personLabel} · ${classifLabel}
+                                        ${personLabel}${ltaEntryPersons(e).length > 1 ? ' +' + (ltaEntryPersons(e).length - 1) + ' more' : ''} · ${classifLabel}
                                     </div>
                                 </div>
 
@@ -10668,17 +11019,7 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
             }); // end REGIONS_LTA.forEach
 
             html += `</div>`; // end lta-view
-            // ── Preserve per-project collapsed cards across re-render ──
-            const _ltaCollapsedIds = [];
-            container.querySelectorAll('[id^="lta-proj-"][id$="-content"].collapsed').forEach(function(el) { _ltaCollapsedIds.push(el.id); });
             container.innerHTML = html;
-            _ltaCollapsedIds.forEach(function(id) {
-                const el = document.getElementById(id);
-                if (!el) return;
-                el.classList.add('collapsed');
-                const ic = document.getElementById(id.replace(/-content$/, '-icon'));
-                if (ic) ic.style.transform = 'rotate(-90deg)';
-            });
             if (_savedScroll > 0) {
                 requestAnimationFrame(() => { _mc.scrollTop = _savedScroll; });
             }
@@ -11558,7 +11899,7 @@ function renderTabulation() {
                                 <span class="region-name">${reg}</span>
                             </div>
                             <div class="region-banner-right">
-                                <span class="rbadge rbadge-count">${regProjs.length} PROJ</span>
+                                <span class="rbadge rbadge-count rb-proj">${regProjs.length} PROJ</span>
                                 ${regTotal>0?`<span class="rbadge rbadge-nov">${regTotal} NOV</span>`:''}
                                 ${regOpen>0?`<span class="rbadge rbadge-open">${regOpen} Open</span>`:''}
                                 ${regClosed>0?`<span class="rbadge rbadge-closed">${regClosed} Closed</span>`:''}
@@ -12933,7 +13274,7 @@ function renderTabulation() {
                             ${isPlantReg ? `` : ''}
                         </div>
                         <div class="region-banner-right">
-                            ${(!isCorporateReg || isCorporateDataTab) ? (isCorporateReg ? '' : isPlantReg ? `<span class="rbadge rbadge-count">${projs.length} PLANT${projs.length!==1?'S':''}</span>` : `<span class="rbadge rbadge-count">${projs.length} PROJECT${projs.length!==1?'S':''}</span>`) : ''}
+                            ${(!isCorporateReg || isCorporateDataTab) ? (isCorporateReg ? '' : isPlantReg ? `<span class="rbadge rbadge-count rb-proj">${projs.length} PLANT${projs.length!==1?'S':''}</span>` : `<span class="rbadge rbadge-count rb-proj">${projs.length} PROJECT${projs.length!==1?'S':''}</span>`) : ''}
                             ${!isCorporateReg && !isPlantReg && projs.length > 0 ? `<span class="rbadge rbadge-avg" title="Region compliance only: average of project compliance scores in this region"><span class="rb-dot ${rbAvgDotClass(regionAvg)}"></span>AVG ${regionAvg}%</span>` : ''}
                             ${state.currentTab === 'overall' && (!isCorporateReg || isCorporateDataTab) && !isPlantReg && state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary" title="Add new project to ${reg}" aria-label="Add new project to ${reg}" style="font-size:0.68rem;padding:3px 10px;line-height:1.4;">+ ADD</button>` : ''}
                             ${state.currentTab === 'overall' && (!isCorporateReg || isCorporateDataTab) && !isPlantReg && state.isEditing && !canEditRegion ? `<button disabled style="opacity:0.45;cursor:not-allowed;background:#888;font-size:0.68rem;padding:3px 10px;line-height:1.4;" class="btn btn-primary">LOCKED</button>` : ''}
@@ -13356,7 +13697,7 @@ if (state.currentTab === 'audit') {
                                         <span class="region-name">${reg}</span>
                                     </div>
                                     <div class="region-banner-right">
-                                        <span class="rbadge rbadge-count">${regProjs.length} PROJ</span>
+                                        <span class="rbadge rbadge-count rb-proj">${regProjs.length} PROJ</span>
                                         ${regTotal>0?`<span class="rbadge rbadge-nov">${regTotal} NOV</span>`:''}
                                         ${regOpen>0?`<span class="rbadge rbadge-open">${regOpen} Open</span>`:''}
                                         ${regClosed>0?`<span class="rbadge rbadge-closed">${regClosed} Closed</span>`:''}
@@ -14371,7 +14712,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             
                             + '</div>'
                             + '<div class="region-banner-right">'
-                            + '<span class="rbadge rbadge-count">' + projs.length + ' PROJ</span>'
+                            + '<span class="rbadge rbadge-count rb-proj">' + projs.length + ' PROJ</span>'
                             + '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">' + submittedCount + '/' + (dLastShownIdx+1) + ' complete</span>'
                             + window._rbStatusPills(_rgTot, _rgFill, _rgOvd.size, 'overdue')
                             + (canEditReg ? '<button class="lta-add-btn" onclick="event.stopPropagation();window.openDoleDialog(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',null,true)" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-plus"></i> Add Entry</button>' : '')
@@ -15032,7 +15373,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             +'<i class="fas '+(isPlantOps?'fa-industry':'fa-location-dot')+' region-icon"></i><span class="region-name">'+reg+'</span>'
                             +(isPlantOps?'':'')
                             +'</div><div class="region-banner-right">'
-                            +'<span class="rbadge rbadge-count">'+projs.length+(isPlantOps?' PLANT'+(projs.length!==1?'S':''):' PROJ')+'</span>'
+                            +'<span class="rbadge rbadge-count rb-proj">'+projs.length+(isPlantOps?' PLANT'+(projs.length!==1?'S':''):' PROJ')+'</span>'
                             +'<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">'+embComplete+'/'+embTotal2+' complete</span>'
                             +window._rbStatusPills(_rgTot,_rgFill,_rgTot-_rgFill,'missing')
                             +'<i class="fas fa-chevron-down region-toggle-icon"></i>'
@@ -15494,7 +15835,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             +'<div class="region-banner-inner"><div class="region-banner-left">'
                             +'<i class="fas fa-location-dot region-icon"></i><span class="region-name">'+reg+'</span>'
                             +'</div><div class="region-banner-right">'
-                            +'<span class="rbadge rbadge-count">'+regProjs.length+' PROJ</span>'
+                            +'<span class="rbadge rbadge-count rb-proj">'+regProjs.length+' PROJ</span>'
                             +'<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">'+doeComplete+'/'+doeCurQ+' complete</span>'
                             +'<i class="fas fa-chevron-down region-toggle-icon"></i>'
                             +'</div></div></div>'
@@ -15640,7 +15981,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             +'<div class="region-banner-inner"><div class="region-banner-left">'
                             +'<i class="fas fa-location-dot region-icon"></i><span class="region-name">'+reg+'</span>'
                             +'</div><div class="region-banner-right">'
-                            +'<span class="rbadge rbadge-count">'+projs.length+' PROJ</span>'
+                            +'<span class="rbadge rbadge-count rb-proj">'+projs.length+' PROJ</span>'
                             +'<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">'+emrComplete+'/'+(emrLastShownIdx+1)+' complete</span>'
                             +window._rbStatusPills(_rgTot,_rgFill,_rgTot-_rgFill,'overdue')
                             +(canEditReg?'<button class="lta-add-btn" onclick="event.stopPropagation();window.openEmrDialog(\''+regKey+'\',\''+reg.replace(/'/g,"\\'")+'\',\'M1\',true)" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-plus"></i> Add Entry</button>':'')
@@ -16297,7 +16638,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + (!state.isEditing ? '' : '')
                             + '</div>'
                             + '<div class="region-banner-right">'
-                            + '<span class="rbadge rbadge-count">' + projs.length + ' PROJ</span>'
+                            + '<span class="rbadge rbadge-count rb-proj">' + projs.length + ' PROJ</span>'
                             + '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">' + submittedCount + '/' + (curMoIdx+1) + ' submitted</span>'
                             + (canEditReg ? '<button class="lta-add-btn" onclick="event.stopPropagation();window.openKpmDialog(\'' + regKey + '\',\'' + reg + '\',null,true)" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-plus"></i> Add Entry</button>' : '')
                             + '<i class="fas fa-chevron-down region-toggle-icon"></i>'
@@ -16938,7 +17279,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 ${!canEditRegion && !isCorporateReg2 ? `` : ''}
                             </div>
                             <div class="region-banner-right">
-                                <span class="rbadge rbadge-count">${projs.length} PROJ</span>
+                                <span class="rbadge rbadge-count rb-proj">${projs.length} PROJ</span>
                                 <span class="rbadge rbadge-avg" title="Region compliance only: average of project compliance scores in this region"><span class="rb-dot ${rbAvgDotClass(regAvg)}"></span>AVG ${regAvg}%</span>
                                 ${state.currentTab === 'overall' && state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary" style="font-size:0.68rem;padding:3px 10px;line-height:1.4;">+ ADD</button>` : ''}
                                 ${state.currentTab === 'overall' && state.isEditing && !canEditRegion ? `<button disabled style="opacity:0.45;cursor:not-allowed;background:#888;font-size:0.68rem;padding:3px 10px;line-height:1.4;" class="btn btn-primary">LOCKED</button>` : ''}
@@ -17180,7 +17521,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     <span class="region-name">${reg}</span>
                                 </div>
                                 <div class="region-banner-right">
-                                    <span class="rbadge rbadge-count">${regProjects.length} PROJ</span>
+                                    <span class="rbadge rbadge-count rb-proj">${regProjects.length} PROJ</span>
                                     ${(function(){
                                         var _t = 0, _f = 0;
                                         regProjects.filter(function(p){ return !(p.vals && (p.vals['doe_client_provided'] === '1' || p.vals['doe-permit_client_provided'] === '1')); }).forEach(function(p){
@@ -17414,7 +17755,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     <span class="region-name">${reg}</span>
                                 </div>
                                 <div class="region-banner-right">
-                                    <span class="rbadge rbadge-count">${regProjects.length} PROJ</span>
+                                    <span class="rbadge rbadge-count rb-proj">${regProjects.length} PROJ</span>
                                     <i class="fas fa-chevron-down region-toggle-icon"></i>
                                 </div>
                             </div>
@@ -17612,7 +17953,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 <span class="region-name">${reg}</span>
                             </div>
                             <div class="region-banner-right">
-                                <span class="rbadge rbadge-count">${projs.length} PROJ</span>
+                                <span class="rbadge rbadge-count rb-proj">${projs.length} PROJ</span>
                                 <i class="fas fa-chevron-down region-toggle-icon"></i>
                             </div>
                         </div>
@@ -19959,7 +20300,7 @@ function renderPTable() {
                 </div>
                 <div class="region-banner-right">
                     <span class="rbadge rbadge-count">${regionCount} PERSONNEL</span>
-                    <span class="rbadge rbadge-count">${projectNames.length} PROJECT${projectNames.length!==1?'S':''}</span>
+                    <span class="rbadge rbadge-count rb-proj">${projectNames.length} PROJECT${projectNames.length!==1?'S':''}</span>
                     <i class="fas fa-chevron-down region-toggle-icon"></i>
                 </div>
             </div>
@@ -20357,7 +20698,7 @@ function computeAggregateTabulation() {
     const _selYear = state && state.selectedYear ? parseInt(state.selectedYear) : new Date().getFullYear();
     // YTD: Jan up to the last completed month (current year), or all 12 months for a past year.
     const _maxMonth = (new Date().getFullYear() === _selYear) ? Math.max(1, new Date().getMonth()) : 12; // current month is still ongoing, so YTD stops at the last completed month
-    const _hasDaysChargedFn = typeof window.computeDaysCharged === 'function';
+    const _hasDaysChargedFn = typeof window.computeDaysCharged === 'function' && typeof window.ltaEntryPersons === 'function';
 
     // Same project list as the Total Projects card (no CORPORATE, no PLANT OPERATIONS).
     const _projs = getReportingProjects();
@@ -20384,12 +20725,15 @@ function computeAggregateTabulation() {
         if (_hasDaysChargedFn) {
             const entries = p.vals['lta-registry_entries'] || [];
             entries.forEach(e => {
-                if (!e || e.injuryType === 'na') return;
+                if (!e) return;
                 const dateForYear = e.dateOfAccident || e.dateReported || ''; // fallback, same pattern used elsewhere in registry (e.g. sort/list rendering)
                 if (!dateForYear) return;
                 const accidentYear = new Date(dateForYear).getFullYear();
                 if (accidentYear !== _selYear) return;
-                lostDays += window.computeDaysCharged(e).daysCharged || 0;
+                window.ltaEntryPersons(e).forEach(pp => {
+                    if (pp.injuryType === 'na') return; // same N/A skip as before, now per person
+                    lostDays += window.computeDaysCharged(pp).daysCharged || 0;
+                });
             });
         } else {
             // Fallback (should not normally trigger — window.computeDaysCharged is
@@ -22893,12 +23237,15 @@ async function syncExecutiveSummary() {
                     if (!e) return;
                     const d = e.dateOfAccident || e.dateReported || '';
                     if (!d) return;
+                    const _ps = (typeof window.ltaEntryPersons === 'function') ? window.ltaEntryPersons(e) : [e];
+                    const _multi = _ps.length > 1;
+                    const _s = v => Array.isArray(v) ? v.join(', ') : (v || '');
                     recentIncidents.push({
                         project: p.name,
                         date: d,
-                        classification: e.incidentClassification || '',
-                        injuredPersonName: e.injuredPersonName || '',
-                        natureOfInjury: e.natureOfInjury || '',
+                        classification: _multi ? window.ltaEntryClassLabel(e) : (e.incidentClassification || ''),
+                        injuredPersonName: _multi ? _ps.map(pp => pp.injuredPersonName || '').filter(Boolean).join('; ') : (e.injuredPersonName || ''),
+                        natureOfInjury: _multi ? _ps.map(pp => _s(pp.natureOfInjury)).filter(Boolean).join(' | ') : (e.natureOfInjury || ''),
                         natureOfIncident: (e.natureOfIncident === 'Others' && e.natureOfIncidentOther) ? ('Others: ' + e.natureOfIncidentOther) : (e.natureOfIncident || ''),
                         location: e.locationOfIncident || '',
                         detailsFacts: e.detailsFacts || '',
@@ -25272,7 +25619,7 @@ function renderOsh2() {
                         <span class="region-name">${region}</span>
                     </div>
                     <div class="region-banner-right">
-                        <span class="rbadge rbadge-count">${projects.length} PROJECT${projects.length!==1?'S':''}</span>
+                        <span class="rbadge rbadge-count rb-proj">${projects.length} PROJECT${projects.length!==1?'S':''}</span>
                         <span class="rbadge" style="background:rgba(76,175,80,0.3);color:#a5d6a7;"><i class="fas fa-circle-check"></i> ${rCompliant} OK</span>
                         ${rDeficient > 0 ? `<span class="rbadge" style="background:rgba(255,82,82,0.3);color:#ff8a80;animation:osh-pulse 2s infinite;"><i class="fas fa-circle-half-stroke"></i> ${rDeficient} Deficient</span>` : ''}
                         ${rNoInput > 0 ? `<span class="rbadge" style="background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);"><i class="fas fa-clock"></i> ${rNoInput} No Input</span>` : ''}
@@ -26366,7 +26713,7 @@ document.addEventListener('DOMContentLoaded', function() {
                + '<span class="region-name">' + reg + '</span>'
                + '</div>'
                + '<div class="region-banner-right">'
-               + '<span class="rbadge rbadge-count">' + projs.length + ' PROJ</span>'
+               + '<span class="rbadge rbadge-count rb-proj">' + projs.length + ' PROJ</span>'
                + (monthInfos.length ? '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">' + _doneMonths + '/' + monthInfos.length + ' complete</span>' : '')
                + '<i class="fas fa-chevron-down region-toggle-icon"></i>'
                + '</div></div></div>'; // end banner
@@ -29971,7 +30318,7 @@ function renderEshCalendar(tabType) {
         html += `<div class="esh-no-projects">
             <i class="fas fa-folder-open" style="font-size:2rem;margin-bottom:10px;opacity:0.3;display:block;"></i>
             <strong>No projects found.</strong><br>
-            <span style="font-size:0.75rem;">Add projects via the Overall Dashboard to see them here.</span>
+            <span style="font-size:0.75rem;">Add projects via the Overall Summary to see them here.</span>
         </div>`;
     }
 
@@ -29997,7 +30344,7 @@ function renderEshCalendar(tabType) {
                         ${_eshAccessBadge}
                     </div>
                     <div class="region-banner-right">
-                        <span class="rbadge rbadge-count">${regProjects.length} PROJECT${regProjects.length!==1?'S':''}</span>
+                        <span class="rbadge rbadge-count rb-proj">${regProjects.length} PROJECT${regProjects.length!==1?'S':''}</span>
                         ${(function(){
                             const _ovd = (_ssRegionMap[region] || []).reduce(function(a, x){ return a + x.overdueCount; }, 0);
                             return _ovd > 0
@@ -34645,10 +34992,27 @@ async function exportCurrentTabToExcel() {
     // LTA REGISTRY
     // ════════════════════════════════════════════════════════════════════════
     if (tab === 'lta-registry') {
-        function getDl(e){
+        function getDlOne(e){
             let dl=e.daysLostComputed||'';
             if (!dl){if(e.injuryType==='na'){dl=0;}else if(e.scheduledChargeItem&&typeof SCHEDULED_CHARGES!=='undefined'&&SCHEDULED_CHARGES[e.scheduledChargeItem])dl=SCHEDULED_CHARGES[e.scheduledChargeItem];else if(e.dateOfAccident&&e.dateRTW&&typeof computeDaysLost==='function')dl=computeDaysLost(e.dateOfAccident,e.dateRTW);}
             return dl||'—';
+        }
+        // Days lost of an entry = sum of every injured person (same rule per person)
+        function getDl(e){
+            const ps=(typeof window.ltaEntryPersons==='function')?window.ltaEntryPersons(e):[e];
+            if (ps.length<2) return getDlOne(e);
+            let tot=0, known=false;
+            ps.forEach(function(pp){const v=getDlOne(pp); if (v!=='?'&&v!=='—'&&v!==''){tot+=Number(v)||0; known=true;}});
+            return known?tot:getDlOne(ps[0]);
+        }
+        // Classification count: one per injured person
+        function _cnt(list,name){
+            let n=0;
+            list.forEach(function(e){
+                const ps=(typeof window.ltaEntryPersons==='function')?window.ltaEntryPersons(e):[e];
+                ps.forEach(function(pp){if (pp.incidentClassification===name) n++;});
+            });
+            return n;
         }
         const wb=eshNewWorkbook('ESH');
         // Summary sheet
@@ -34661,7 +35025,7 @@ async function exportCurrentTabToExcel() {
             const rp=projs.filter(function(p){return (p.region||'').toUpperCase()===region;});
             if (!rp.length) return;
             const rE=rp.flatMap(function(p){return p.vals&&p.vals['lta-registry_entries']?p.vals['lta-registry_entries']:[];});
-            const dr=sumWs.addRow([region,rE.length,rE.filter(function(e){return e.incidentClassification==='LTA';}).length,rE.filter(function(e){return e.incidentClassification==='Medical Treatment';}).length,rE.filter(function(e){return e.incidentClassification==='First Aid';}).length,rE.filter(function(e){return e.incidentClassification==='Fatality';}).length,rE.filter(function(e){return e.incidentClassification==='High-Potential incident';}).length]);
+            const dr=sumWs.addRow([region,rE.length,_cnt(rE,'LTA'),_cnt(rE,'Medical Treatment'),_cnt(rE,'First Aid'),_cnt(rE,'Fatality'),_cnt(rE,'High-Potential incident')]);
             dr.height=16; dr.getCell(1).font={bold:true,size:9,name:'Calibri'}; dr.getCell(1).alignment={vertical:'middle'};
             for (let ci=2;ci<=7;ci++){_xData(dr.getCell(ci),'center');}
             const ltaCell=dr.getCell(3); const ltaV=parseInt(dr.getCell(3).value);
@@ -34686,19 +35050,23 @@ async function exportCurrentTabToExcel() {
             rp.forEach(function(proj){
                 const entries=(proj.vals&&proj.vals['lta-registry_entries'])||[];
                 entries.forEach(function(e,pIdx){
-                    const nat=Array.isArray(e.natureOfInjury)?e.natureOfInjury.join(', '):(e.natureOfInjury||'');
-                    const bpa=Array.isArray(e.bodyPartsAffected)?e.bodyPartsAffected.join(', '):(e.bodyPartsAffected||'');
-                    const cai=Array.isArray(e.causeOfInjury)?e.causeOfInjury.map(function(v){return window._ltaCbLabel?window._ltaCbLabel(v,e.causeOfInjuryOther):v;}).join(', '):(e.causeOfInjury||'');
-                    const agi=Array.isArray(e.agentOfInjury)?e.agentOfInjury.map(function(v){return window._ltaCbLabel?window._ltaCbLabel(v,e.agentOfInjuryOther):v;}).join(', '):(e.agentOfInjury||'');
-                    const cl=e.incidentClassification||'';
-                    const dr=ws.addRow([rowNum++,proj.name||'',e.aiirNo||'',e.dateOfAccident||'',cl,e.injuredPersonName||'',nat,bpa,cai,agi,getDl(e),(e.rootCause||'').substring(0,200)]);
+                    const _ps=(typeof window.ltaEntryPersons==='function')?window.ltaEntryPersons(e):[e];
+                    const _jn=function(f){return _ps.length<2?f(_ps[0]):_ps.map(function(pp,i){return (i+1)+') '+f(pp);}).join(' | ');};
+                    const nat=_jn(function(pp){return Array.isArray(pp.natureOfInjury)?pp.natureOfInjury.join(', '):(pp.natureOfInjury||'');});
+                    const bpa=_jn(function(pp){return Array.isArray(pp.bodyPartsAffected)?pp.bodyPartsAffected.join(', '):(pp.bodyPartsAffected||'');});
+                    const cai=_jn(function(pp){return Array.isArray(pp.causeOfInjury)?pp.causeOfInjury.map(function(v){return window._ltaCbLabel?window._ltaCbLabel(v,pp.causeOfInjuryOther):v;}).join(', '):(pp.causeOfInjury||'');});
+                    const agi=_jn(function(pp){return Array.isArray(pp.agentOfInjury)?pp.agentOfInjury.map(function(v){return window._ltaCbLabel?window._ltaCbLabel(v,pp.agentOfInjuryOther):v;}).join(', '):(pp.agentOfInjury||'');});
+                    const cl=_ps.length<2?(e.incidentClassification||''):_ps.map(function(pp,i){return (i+1)+') '+(pp.incidentClassification||'');}).join(' | ');
+                    const _isLta=_ps.some(function(pp){return pp.incidentClassification==='LTA';});
+                    const _isFat=_ps.some(function(pp){return pp.incidentClassification==='Fatality';});
+                    const dr=ws.addRow([rowNum++,proj.name||'',e.aiirNo||'',e.dateOfAccident||'',cl,_jn(function(pp){return pp.injuredPersonName||'';}),nat,bpa,cai,agi,getDl(e),(e.rootCause||'').substring(0,200)]);
                     dr.height=16;
                     dr.getCell(1).font={size:9,name:'Calibri'}; dr.getCell(1).alignment={vertical:'middle',horizontal:'center'};
                     dr.getCell(2).font={bold:true,size:9,name:'Calibri'}; dr.getCell(2).alignment={vertical:'middle'};
                     for (let ci=3;ci<=12;ci++){_xData(dr.getCell(ci),ci<=3||ci===11?'center':'left');}
                     const clCell=dr.getCell(5);
-                    if (cl==='LTA'){clCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFCDD2'}};clCell.font={bold:true,size:9,name:'Calibri',color:{argb:'FFB71C1C'}};}
-                    else if (cl==='Fatality'){clCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFB71C1C'}};clCell.font={bold:true,size:9,name:'Calibri',color:{argb:'FFFFFFFF'}};}
+                    if (_isLta){clCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFCDD2'}};clCell.font={bold:true,size:9,name:'Calibri',color:{argb:'FFB71C1C'}};}
+                    else if (_isFat){clCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFB71C1C'}};clCell.font={bold:true,size:9,name:'Calibri',color:{argb:'FFFFFFFF'}};}
                     if (pIdx%2===0) _xAlt(dr,cols);
                     ri++;
                 });
@@ -38613,11 +38981,11 @@ window.renderCorporateKpm = function() {
             +   '<div class="region-banner-left">'
             +     '<span class="region-name">' + esc(p.name) + '</span>'
             +   '</div>'
-            +   '<span class="ckpm-meta">' + esc(tpl.role) + ' · ' + periodLabel + ' · ' + submittedCount + '/' + periodMonths.length + ' submitted</span>'
             +   '<div class="region-banner-right">'
+            +     '<span class="rbadge rbadge-count">' + esc(tpl.role) + ' · ' + periodLabel + '</span>'
+            +     '<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">' + submittedCount + '/' + periodMonths.length + ' submitted</span>'
             +     (canEditNow ? '<button class="lta-add-btn" onclick="event.stopPropagation();window.openCorpKpmModal(' + mi + ',null,true)" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-plus"></i> Add Entry</button>' : '')
             +     (canEditNow ? '<button class="lta-add-btn" onclick="event.stopPropagation();window.corpKpmOpenPersonModal(' + mi + ')" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-pen"></i> Edit</button>' : '')
-            +     '<i class="fas fa-lock ckpm-lock"></i>'
             +     '<i class="fas fa-chevron-down region-toggle-icon"></i>'
             +   '</div>'
             + '</div></div>'
