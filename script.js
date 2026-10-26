@@ -30566,7 +30566,7 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
     html += `</tbody></table>`;
     if (isAdmin) {
         const _pn = projects[0] ? projects[0].name.replace(/'/g,"\\'") : '';
-        html += `<div style="padding:10px 14px;background:var(--bg-card);border-top:1px dashed var(--border-color);text-align:center;">
+        html += `<div style="position:sticky;left:0;box-sizing:border-box;padding:10px 14px;background:var(--bg-card);border-top:1px dashed var(--border-color);text-align:center;">
             <button onclick="eshAddRowModal('${tabType}','${_pn}')"
                 style="background:linear-gradient(135deg,#1b5e20,#388e3c);color:white;border:none;border-radius:7px;padding:7px 18px;font-size:0.74rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
                 <i class="fas fa-plus-circle"></i> ADD ROW
@@ -30622,16 +30622,16 @@ function buildDrillsSingleTable(projects, storage, col) {
 
             const rowStyle = isNaRow
                 ? 'background:#e8e8e8 !important;opacity:0.75;'
-                : `background:${fp.bg};`;
+                : '';
 
             const rowFreqClass = drill.freq === 'Quarterly' ? 'drill-row-quarterly' : drill.freq === 'Twice a year' ? 'drill-row-twice' : 'drill-row-once';
             html += `<tr class="${rowFreqClass}" style="${rowStyle}">
-            <td class="esh-td-name" style="background:${isNaRow ? '#e0e0e0' : fp.bg};">
+            <td class="esh-td-name" style="${isNaRow ? 'background:#e0e0e0;' : ''}">
                 ${isCustom ? '<span style="background:#e8f5e9;color:#1b5e20;border-radius:4px;font-size:0.55rem;font-weight:700;padding:1px 5px;margin-right:5px;vertical-align:middle;">CUSTOM</span>' : ''}
                 ${drill.name}
                 ${(isCustom && isAdmin) ? `<button onclick="eshDeleteCustomRow('esh-calendar-drills','${projects[0]?projects[0].name.replace(/'/g,"\\'"):''}',${customIdx})" title="Remove this row" style="float:right;background:none;border:none;color:#c62828;cursor:pointer;font-size:0.75rem;padding:0 3px;opacity:0.6;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="fas fa-trash"></i></button>` : ''}
             </td>
-            <td style="text-align:center;padding:4px 6px;background:${isNaRow ? '#e0e0e0' : fp.bg};">
+            <td style="text-align:center;padding:4px 6px;${isNaRow ? 'background:#e0e0e0;' : ''}">
                 <span class="esh-freq-badge" style="background:${isNaRow ? '#aaa' : fp.badge};color:white;">${isNaRow ? 'N/A' : fp.label}</span>
             </td>`;
 
@@ -30724,7 +30724,7 @@ function buildDrillsSingleTable(projects, storage, col) {
     html += `</tbody></table>`;
     if (isAdmin) {
         const _pn2 = projects[0] ? projects[0].name.replace(/'/g,"\\'") : '';
-        html += `<div style="padding:10px 14px;background:var(--bg-card);border-top:1px dashed var(--border-color);text-align:center;">
+        html += `<div style="position:sticky;left:0;box-sizing:border-box;padding:10px 14px;background:var(--bg-card);border-top:1px dashed var(--border-color);text-align:center;">
             <button onclick="eshAddRowModal('esh-calendar-drills','${_pn2}')"
                 style="background:linear-gradient(135deg,#1b5e20,#388e3c);color:white;border:none;border-radius:7px;padding:7px 18px;font-size:0.74rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
                 <i class="fas fa-plus-circle"></i> ADD ROW
