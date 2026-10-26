@@ -9492,10 +9492,14 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                         </div>
                         <div class="lta-field">
                             <label>Nature of Incident</label>
-                            <select name="ltamod-natureOfIncident" ${dis}>
+                            <select name="ltamod-natureOfIncident" ${dis}
+                                onchange="(function(sel){var i=document.getElementById('ltamod-noi-other-${pId}');if(i){var on=(sel.value==='Others');i.style.display=on?'block':'none';if(on)i.focus();else i.value='';}})(this)">
                                 <option value="">— Select —</option>
                                 ${typeof LTA_NATURE_OF_INCIDENT !== 'undefined' ? mkOpts(LTA_NATURE_OF_INCIDENT, e.natureOfIncident) : ''}
                             </select>
+                            <input type="text" name="ltamod-natureOfIncidentOther" id="ltamod-noi-other-${pId}" ${dis}
+                                value="${String(e.natureOfIncidentOther||'').replace(/"/g,'&quot;')}" placeholder="Please specify..." maxlength="200"
+                                style="display:${e.natureOfIncident==='Others'?'block':'none'};margin-top:6px;width:100%;box-sizing:border-box;">
                         </div>
                         <div class="lta-field">
                             <label>Incident Classification</label>
@@ -9621,12 +9625,12 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                                     : (e.causeOfInjury ? e.causeOfInjury.split(',').map(v=>v.trim()).filter(Boolean) : []);
                                 if (!canEdit) {
                                     return selArr.length
-                                        ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 0;">${selArr.map(s=>`<span style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:10px;padding:2px 8px;font-size:0.68rem;font-weight:600;">${s}</span>`).join('')}</div>`
+                                        ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 0;">${selArr.map(s=>`<span style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:10px;padding:2px 8px;font-size:0.68rem;font-weight:600;">${window._ltaCbLabel(s, e.causeOfInjuryOther)}</span>`).join('')}</div>`
                                         : `<span style="color:#bbb;font-size:0.72rem;font-style:italic;">—</span>`;
                                 }
                                 return `<div class="lta-cb-dropdown" id="ltamod-ci-dd-${pId}">
                                     <button type="button" class="lta-cb-trigger" onclick="window._ltaToggleCbDd('ltamod-ci-dd-${pId}',event)">
-                                        <span class="lta-cb-preview" id="ltamod-ci-preview-${pId}">${selArr.length ? selArr.join(', ') : '— Select —'}</span>
+                                        <span class="lta-cb-preview" id="ltamod-ci-preview-${pId}">${selArr.length ? selArr.map(v=>window._ltaCbLabel(v, e.causeOfInjuryOther)).join(', ') : '— Select —'}</span>
                                         <i class="fas fa-chevron-down" style="font-size:0.6rem;flex-shrink:0;"></i>
                                     </button>
                                     <div class="lta-cb-panel" id="ltamod-ci-panel-${pId}" style="display:none;">
@@ -9642,7 +9646,8 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                                             </label>`).join('')}
                                         </div>
                                     </div>
-                                </div>`;
+                                </div>
+                                <input type="text" class="lta-cb-other" id="ltamod-ci-other-${pId}" value="${String(e.causeOfInjuryOther||'').replace(/"/g,'&quot;')}" placeholder="Please specify..." maxlength="200" style="display:${selArr.some(v=>/^others/i.test(v))?'block':'none'};margin-top:6px;width:100%;box-sizing:border-box;" oninput="window._ltaUpdateCbPreview('ltamod-ci-dd-${pId}','ltamod-ci-preview-${pId}')">`;
                             })()}
                         </div>
                         <div class="lta-field">
@@ -9652,12 +9657,12 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                                     : (e.agentOfInjury ? e.agentOfInjury.split(',').map(v=>v.trim()).filter(Boolean) : []);
                                 if (!canEdit) {
                                     return selArr.length
-                                        ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 0;">${selArr.map(s=>`<span style="background:#f3e5f5;color:#6a1b9a;border:1px solid #ce93d8;border-radius:10px;padding:2px 8px;font-size:0.68rem;font-weight:600;">${s}</span>`).join('')}</div>`
+                                        ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 0;">${selArr.map(s=>`<span style="background:#f3e5f5;color:#6a1b9a;border:1px solid #ce93d8;border-radius:10px;padding:2px 8px;font-size:0.68rem;font-weight:600;">${window._ltaCbLabel(s, e.agentOfInjuryOther)}</span>`).join('')}</div>`
                                         : `<span style="color:#bbb;font-size:0.72rem;font-style:italic;">—</span>`;
                                 }
                                 return `<div class="lta-cb-dropdown" id="ltamod-ag-dd-${pId}">
                                     <button type="button" class="lta-cb-trigger" onclick="window._ltaToggleCbDd('ltamod-ag-dd-${pId}',event)">
-                                        <span class="lta-cb-preview" id="ltamod-ag-preview-${pId}">${selArr.length ? selArr.join(', ') : '— Select —'}</span>
+                                        <span class="lta-cb-preview" id="ltamod-ag-preview-${pId}">${selArr.length ? selArr.map(v=>window._ltaCbLabel(v, e.agentOfInjuryOther)).join(', ') : '— Select —'}</span>
                                         <i class="fas fa-chevron-down" style="font-size:0.6rem;flex-shrink:0;"></i>
                                     </button>
                                     <div class="lta-cb-panel" id="ltamod-ag-panel-${pId}" style="display:none;">
@@ -9673,7 +9678,8 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                                             </label>`).join('')}
                                         </div>
                                     </div>
-                                </div>`;
+                                </div>
+                                <input type="text" class="lta-cb-other" id="ltamod-ag-other-${pId}" value="${String(e.agentOfInjuryOther||'').replace(/"/g,'&quot;')}" placeholder="Please specify..." maxlength="200" style="display:${selArr.some(v=>/^others/i.test(v))?'block':'none'};margin-top:6px;width:100%;box-sizing:border-box;" oninput="window._ltaUpdateCbPreview('ltamod-ag-dd-${pId}','ltamod-ag-preview-${pId}')">`;
                             })()}
                         </div>
                         <div class="lta-field">
@@ -9941,6 +9947,8 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 const dd = document.getElementById(`ltamod-${k}-dd-${pId}`);
                 if (!dd) return;
                 if (on && clear) dd.querySelectorAll('input[type=checkbox]').forEach(c => { c.checked = false; });
+                const otherInp = document.getElementById(`ltamod-${k}-other-${pId}`);
+                if (otherInp && on) { if (clear) otherInp.value = ''; otherInp.style.display = 'none'; }
                 const trig = dd.querySelector('.lta-cb-trigger');
                 const pan = dd.querySelector('.lta-cb-panel');
                 const prv = dd.querySelector('.lta-cb-preview');
@@ -9990,12 +9998,25 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             if (panel.style.display === 'block') setTimeout(() => panel.querySelector('.lta-cb-search')?.focus(), 50);
         };
 
+        // "Others (Please Specify)" + typed text -> "Others: <text>"
+        window._ltaCbLabel = function(v, other) {
+            const t = String(other || '').trim();
+            return (/^others/i.test(v) && t) ? ('Others: ' + t) : v;
+        };
+
         window._ltaUpdateCbPreview = function(ddId, previewId) {
             const dd = document.getElementById(ddId);
             const preview = document.getElementById(previewId);
             if (!dd || !preview) return;
             const checked = Array.from(dd.querySelectorAll('input[type=checkbox]:checked')).map(c => c.value);
-            preview.textContent = checked.length ? checked.join(', ') : '— Select —';
+            // Inline "please specify" input (Cause / Agent of Injury)
+            const otherInp = document.getElementById(previewId.replace('-preview-', '-other-'));
+            const hasOther = checked.some(v => /^others/i.test(v));
+            if (otherInp) {
+                otherInp.style.display = hasOther ? 'block' : 'none';
+            }
+            const otherTxt = otherInp ? otherInp.value : '';
+            preview.textContent = checked.length ? checked.map(v => window._ltaCbLabel(v, otherTxt)).join(', ') : '— Select —';
         };
 
         window._ltaFilterCb = function(input, panelId) {
@@ -10077,7 +10098,7 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
             const injpersonIsNA = naBtn && naBtn.dataset.isna === '1';
 
             const fields = [
-                'aiirNo','dateReported','locationOfIncident','natureOfIncident',
+                'aiirNo','dateReported','locationOfIncident','natureOfIncident','natureOfIncidentOther',
                 'incidentClassification','detailsFacts','injuredPersonName',
                 'occupation',
                 'rootCause',
@@ -10092,6 +10113,8 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
                 const el = modal.querySelector(`[name="ltamod-${f}"]`);
                 if (el) entry[f] = el.value;
             });
+            if (entry.natureOfIncident !== 'Others') entry.natureOfIncidentOther = '';
+            else entry.natureOfIncidentOther = (entry.natureOfIncidentOther || '').trim();
             // Clear conditional follow-up fields that no longer apply to the chosen Result
             [1, 2, 3].forEach(n => {
                 const r = entry['followUp' + n + 'Result'] || '';
@@ -10111,10 +10134,14 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
             const ciDd = document.getElementById('ltamod-ci-dd-' + pId);
             if (ciDd) {
                 entry.causeOfInjury = Array.from(ciDd.querySelectorAll('input[type=checkbox]:checked')).map(c => c.value);
+                entry.causeOfInjuryOther = entry.causeOfInjury.some(v => /^others/i.test(v))
+                    ? (document.getElementById('ltamod-ci-other-' + pId)?.value || '').trim() : '';
             }
             const agDd = document.getElementById('ltamod-ag-dd-' + pId);
             if (agDd) {
                 entry.agentOfInjury = Array.from(agDd.querySelectorAll('input[type=checkbox]:checked')).map(c => c.value);
+                entry.agentOfInjuryOther = entry.agentOfInjury.some(v => /^others/i.test(v))
+                    ? (document.getElementById('ltamod-ag-other-' + pId)?.value || '').trim() : '';
             }
 
             // Read factor checkbox dropdowns (PEOPLE, EQUIPMENT, MATERIALS, ENVIRONMENT, ORGANIZATIONAL)
@@ -10148,6 +10175,8 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
                 entry.bodyPartsAffected = ['N/A'];
                 entry.causeOfInjury = [];
                 entry.agentOfInjury = [];
+                entry.causeOfInjuryOther = '';
+                entry.agentOfInjuryOther = '';
                 entry.occupation = '';
             }
 
@@ -22697,7 +22726,7 @@ async function syncExecutiveSummary() {
                         classification: e.incidentClassification || '',
                         injuredPersonName: e.injuredPersonName || '',
                         natureOfInjury: e.natureOfInjury || '',
-                        natureOfIncident: e.natureOfIncident || '',
+                        natureOfIncident: (e.natureOfIncident === 'Others' && e.natureOfIncidentOther) ? ('Others: ' + e.natureOfIncidentOther) : (e.natureOfIncident || ''),
                         location: e.locationOfIncident || '',
                         detailsFacts: e.detailsFacts || '',
                         status: e.status || '',
@@ -34409,8 +34438,8 @@ async function exportCurrentTabToExcel() {
                 entries.forEach(function(e,pIdx){
                     const nat=Array.isArray(e.natureOfInjury)?e.natureOfInjury.join(', '):(e.natureOfInjury||'');
                     const bpa=Array.isArray(e.bodyPartsAffected)?e.bodyPartsAffected.join(', '):(e.bodyPartsAffected||'');
-                    const cai=Array.isArray(e.causeOfInjury)?e.causeOfInjury.join(', '):(e.causeOfInjury||'');
-                    const agi=Array.isArray(e.agentOfInjury)?e.agentOfInjury.join(', '):(e.agentOfInjury||'');
+                    const cai=Array.isArray(e.causeOfInjury)?e.causeOfInjury.map(function(v){return window._ltaCbLabel?window._ltaCbLabel(v,e.causeOfInjuryOther):v;}).join(', '):(e.causeOfInjury||'');
+                    const agi=Array.isArray(e.agentOfInjury)?e.agentOfInjury.map(function(v){return window._ltaCbLabel?window._ltaCbLabel(v,e.agentOfInjuryOther):v;}).join(', '):(e.agentOfInjury||'');
                     const cl=e.incidentClassification||'';
                     const dr=ws.addRow([rowNum++,proj.name||'',e.aiirNo||'',e.dateOfAccident||'',cl,e.injuredPersonName||'',nat,bpa,cai,agi,getDl(e),(e.rootCause||'').substring(0,200)]);
                     dr.height=16;
