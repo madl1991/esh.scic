@@ -1179,9 +1179,9 @@ async function revokeUserAccess(email) {
        const SCHEMA = {
     'exposures': ["Total Manpower", "Total Exposed Manhour", "Total Exposed Man-hour to date", "No. of Days w/o LTA"],
     'rates': ["LTIR","TRIR","SEVERITY RATE"],
-    'medical': ["Medical Treatment","First Aid","LTA","Fatality","High-Potential incident", "Dangerous Occurrences", "No. of Identified Near-Miss", "Days Lost/Charged"],
+    'medical': ["Medical Treatment","First Aid","LTA","Fatality","High-Potential incident", "Dangerous Occurrences", "Days Lost/Charged"],
     'nov': ["OSH Internal Issues", "OSH External Issues"],
-    'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "Drills Conducted", "Training Conducted"],
+    'activities': ["No. of ESH Committee Conducted", "No. of ESH inspection", "No. of Identified Near-Miss", "Drills Conducted", "Training Conducted"],
     'kpm': ["KPM&I"],
     'audit': ["Score Implementation", "Documentation and Compliance"],
     'dole': ["WAIR","RSO", "MOM", "AEDR", "AMR"],
@@ -7605,9 +7605,9 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         const _SCHEMA = {
             exposures:          ['Total Manpower','Total Exposed Manhour','Total Exposed Man-hour to date','No. of Days w/o LTA'],
             rates:              ['LTIR','TRIR','SEVERITY RATE'],
-            medical:            ['Medical Treatment','First Aid','LTA','Fatality','High-Potential incident','Dangerous Occurrences','No. of Identified Near-Miss','Days Lost/Charged'],
+            medical:            ['Medical Treatment','First Aid','LTA','Fatality','High-Potential incident','Dangerous Occurrences','Days Lost/Charged'],
             nov:                ['OSH Internal Issues','OSH External Issues'],
-            activities:         ['No. of ESH Committee Conducted','No. of ESH inspection','Drills Conducted','Training Conducted'],
+            activities:         ['No. of ESH Committee Conducted','No. of ESH inspection','No. of Identified Near-Miss','Drills Conducted','Training Conducted'],
             dole:               ['WAIR','RSO','MOM','AEDR','AMR'],
             emb:                ['SMR (Quarterly) - Submission Date','SMR (Quarterly) - Reference No.','CMR (Semi-Annual) - Submission Date','CMR (Semi-Annual) - Reference No.'],
             permits:            ['ECC','Company Registration System (CRS)','CNC','Certificate of Accreditation (DENR-EMB)','Certificate of Accreditation (LLDA)','LLDA Clearance','Permit to Transport (PTT)','Permit to Operate (PTO)','Discharge Permit (DP)',"Hazardous Waste Generator's ID",'Permit to Transport (Haz Waste)','Permit to Transport (Logs)','Tree Cutting Permit (STCP or S/PLTP)','Permit to Cut Coconut Tree','NWRB Water Permit'],
@@ -7618,6 +7618,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         };
 
         function _v(proj, key, idx) {
+            if (key === 'activities_No. of Identified Near-Miss') key = 'medical_No. of Identified Near-Miss';
             const arr = proj && proj.vals && proj.vals[key];
             if (!Array.isArray(arr)) return '';
             const v = arr[idx];
@@ -10386,15 +10387,18 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
 
                     const _ltaIsWS = isProjectOnStoppage(p);
                     html += `<div class="lta-project-card" style="${_ltaIsWS ? 'opacity:0.85;' : ''}">
-                        <div class="lta-project-header" onclick="toggleLtaProject('lta-proj-${pId}')" style="${_ltaIsWS ? 'background:#ffebee;border-left-color:#c62828;' : ''}">
-                            <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                        <div class="lta-project-header" onclick="toggleLtaProject('lta-proj-${pId}')" style="${_ltaIsWS ? 'background:#ffebee;border-left-color:#c62828;' : ''}${_ltaInlineNav ? 'display:grid;grid-template-columns:1fr auto 1fr;gap:10px;' : ''}">
+                            <div style="display:flex;align-items:center;gap:10px;min-width:0;${_ltaInlineNav ? 'justify-self:start;' : ''}">
                                 ${_ltaInlineNav ? _tabNavBtn('lta-registry', reg, -1, _ltaInlineNav.idx, _ltaInlineNav.total) : ''}
-                                <div style="min-width:0;">
+                                ${_ltaInlineNav ? '' : `<div style="min-width:0;">
                                     <div class="lta-project-name">${p.name}</div>
-                                    ${_ltaInlineNav ? `<div class="lta-proj-sub">Project ${_ltaInlineNav.idx + 1} of ${_ltaInlineNav.total}</div>` : ''}
-                                </div>
+                                </div>`}
                             </div>
-                            <div style="display:flex;align-items:center;gap:8px;">
+                            ${_ltaInlineNav ? `<div style="min-width:0;text-align:center;justify-self:center;">
+                                <div class="lta-project-name">${p.name}</div>
+                                <div class="lta-proj-sub">Project ${_ltaInlineNav.idx + 1} of ${_ltaInlineNav.total}</div>
+                            </div>` : ''}
+                            <div style="display:flex;align-items:center;gap:8px;${_ltaInlineNav ? 'justify-self:end;' : ''}">
                                 ${(state.isEditing && canEdit) ? `<button class="lta-add-btn" onclick="event.stopPropagation();window._importAiirViaFile('${pnSafe}')" title="Import from AIIR (Microsoft Word)"><i class="fas fa-file-import"></i> Import AIIR</button><button class="lta-add-btn" onclick="event.stopPropagation();window._addLtaEntryViaModal('${pnSafe}')"><i class="fas fa-plus"></i> Add Entry</button>` : ''}
                                 <span style="background:rgba(198,40,40,0.8);color:white;border-radius:10px;padding:2px 8px;font-size:0.62rem;font-weight:700;">${entries.length} entries</span>
                                 <span style="background:rgba(255,160,0,0.8);color:white;border-radius:10px;padding:2px 8px;font-size:0.62rem;font-weight:700;">${totalDL} days charged</span>
@@ -12362,6 +12366,7 @@ function renderTabulation() {
 
             const displayProjects = state.filteredProjects;
 
+            if (state.currentTab === 'activities' && typeof syncIncidentClassificationsFromRegistry === 'function') syncIncidentClassificationsFromRegistry();
             if (state.currentTab === 'medical') {
                 if (typeof syncIncidentClassificationsFromRegistry === 'function') syncIncidentClassificationsFromRegistry();
                 if (typeof syncDaysLostFromLtaRegistry === 'function') syncDaysLostFromLtaRegistry();
@@ -12413,7 +12418,7 @@ function renderTabulation() {
                 html += _rptSum ? `</tr></thead><tbody>` : `</tr>`;
                 
                 SCHEMA[state.currentTab].forEach((row, rowIdx) => {
-                    const key = `${state.currentTab}_${row}`;
+                    const key = (row === 'No. of Identified Near-Miss') ? 'medical_' + row : `${state.currentTab}_${row}`;
                     const _lblShort = (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') ? 'Exp. Man-hour to date' : row;
                     const _lblTip = String(row).replace(/"/g, '&quot;');
                     html += `<tr><td title="${_lblTip}" style="text-align:left; font-weight:700; background:#e8f5e9; color:#1b5e20; position: sticky; left: 0; z-index: 5;${state.currentTab === 'exposures' ? ' white-space:nowrap;' : ''}">${_lblShort}</td>`;
@@ -12506,7 +12511,7 @@ function renderTabulation() {
                             const _osNow = new Date(); const _osCY = _osNow.getFullYear(); const _osCM = _osNow.getMonth() + 1;
                             const _osSY = state.selectedYear || _osCY;
                             const _osMedAutoRows = ['LTA','Medical Treatment','First Aid','Fatality','High-Potential incident','Dangerous Occurrences','No. of Identified Near-Miss','Days Lost/Charged'];
-                            const _osIsMedAuto = state.currentTab === 'medical' && _osMedAutoRows.includes(row);
+                            const _osIsMedAuto = (state.currentTab === 'medical' || (state.currentTab === 'activities' && row === 'No. of Identified Near-Miss')) && _osMedAutoRows.includes(row);
                             const _osIsPast = _osSY < _osCY || (_osSY === _osCY && i < _osCM);
                             const _osIsCurr = _osSY === _osCY && i === _osCM;
                             const _osShowZero = _osIsMedAuto && _osIsPast && monthTotal === 0; // current month is ongoing -> dash, not 0
@@ -12710,10 +12715,10 @@ function renderTabulation() {
                             ${state.currentTab === 'rates' ? `
                             <div class="rates-standard-toggle" title="Switch between PH (OSHS) and US (OSHA) standard">
                                 <span class="rst-opt ${(state.ratesStandard||'oshs')==='oshs'?'active':''}"
-                                    onclick="setRatesStandard('oshs');">🇵🇭 OSHS</span>
+                                    onclick="setRatesStandard('oshs');"><svg class="rst-flag" viewBox="0 0 24 16" width="18" height="12" aria-hidden="true"><rect width="24" height="8" fill="#0038a8"/><rect y="8" width="24" height="8" fill="#ce1126"/><path d="M0 0L13 8L0 16Z" fill="#fff"/><circle cx="4" cy="8" r="2" fill="#fcd116"/></svg> OSHS</span>
                                 <span class="rst-divider"></span>
                                 <span class="rst-opt ${state.ratesStandard==='osha'?'active':''}"
-                                    onclick="setRatesStandard('osha');">🇺🇸 OSHA</span>
+                                    onclick="setRatesStandard('osha');"><svg class="rst-flag" viewBox="0 0 24 16" width="18" height="12" aria-hidden="true"><rect width="24" height="16" fill="#fff"/><g fill="#b22234"><rect width="24" height="1.23"/><rect y="2.46" width="24" height="1.23"/><rect y="4.92" width="24" height="1.23"/><rect y="7.38" width="24" height="1.23"/><rect y="9.85" width="24" height="1.23"/><rect y="12.31" width="24" height="1.23"/><rect y="14.77" width="24" height="1.23"/></g><rect width="10" height="8.6" fill="#3c3b6e"/></svg> OSHA</span>
                             </div>` : ''}
                         </div>
                     </div>`;
@@ -12760,7 +12765,7 @@ function renderTabulation() {
                         </div>
                         <div class="region-banner-right">
                             ${(!isCorporateReg || isCorporateDataTab) ? (isCorporateReg ? '' : isPlantReg ? `<span class="rbadge rbadge-count">${projs.length} PLANT${projs.length!==1?'S':''}</span>` : `<span class="rbadge rbadge-count">${projs.length} PROJECT${projs.length!==1?'S':''}</span>`) : ''}
-                            ${!isCorporateReg && !isPlantReg && projs.length > 0 ? `<span class="rbadge rbadge-avg"><span class="rb-dot ${rbAvgDotClass(regionAvg)}"></span>AVG ${regionAvg}%</span>` : ''}
+                            ${!isCorporateReg && !isPlantReg && projs.length > 0 ? `<span class="rbadge rbadge-avg" title="Region compliance only: average of project compliance scores in this region"><span class="rb-dot ${rbAvgDotClass(regionAvg)}"></span>AVG ${regionAvg}%</span>` : ''}
                             ${state.currentTab === 'overall' && (!isCorporateReg || isCorporateDataTab) && !isPlantReg && state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary" title="Add new project to ${reg}" aria-label="Add new project to ${reg}" style="font-size:0.68rem;padding:3px 10px;line-height:1.4;">+ ADD</button>` : ''}
                             ${state.currentTab === 'overall' && (!isCorporateReg || isCorporateDataTab) && !isPlantReg && state.isEditing && !canEditRegion ? `<button disabled style="opacity:0.45;cursor:not-allowed;background:#888;font-size:0.68rem;padding:3px 10px;line-height:1.4;" class="btn btn-primary">LOCKED</button>` : ''}
                             <i class="fas fa-chevron-down region-toggle-icon"></i>
@@ -12816,13 +12821,13 @@ function renderTabulation() {
                     const canDelete = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p.region, state.currentTab).allowed;
                     const isDeleteLocked = !canDelete;
 
-                    html += `<div class="project-row ${isLocked ? 'project-locked' : ''}" data-pname="${(p.name||'').replace(/"/g,'&quot;')}" data-region="${(p.region||'').replace(/"/g,'&quot;')}" data-status="${_derivedStatus}" style="${isWorkStopped ? 'opacity:0.7;' : ''}${state.currentTab === 'overall' ? 'cursor:pointer;' : ''}" ${state.currentTab === 'overall' ? `onclick="osOpenModal('${p.name.replace(/'/g, "\\'")}')"`  : ''}>\n                        
-                        ${_inlineNav ? _tabNavBtn(_inlineNav.tab, _inlineNav.reg, -1, _inlineNav.idx, _inlineNav.total) : ''}
-                        ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="circular-progress" title="Project Compliance" style="--percentage: ${percDeg}deg;${isWorkStopped ? 'opacity:0.45;' : ''}">
+                    html += `<div class="project-row ${isLocked ? 'project-locked' : ''}" data-pname="${(p.name||'').replace(/"/g,'&quot;')}" data-region="${(p.region||'').replace(/"/g,'&quot;')}" data-status="${_derivedStatus}" style="${isWorkStopped ? 'opacity:0.7;' : ''}${state.currentTab === 'overall' ? 'cursor:pointer;' : ''}${(state.currentTab !== 'overall' && _inlineNav) ? 'display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;' : ''}" ${state.currentTab === 'overall' ? `onclick="osOpenModal('${p.name.replace(/'/g, "\\'")}')"`  : ''}>\n                        
+                        ${_inlineNav ? (state.currentTab !== 'overall' ? `<div style="justify-self:start;">${_tabNavBtn(_inlineNav.tab, _inlineNav.reg, -1, _inlineNav.idx, _inlineNav.total)}</div>` : _tabNavBtn(_inlineNav.tab, _inlineNav.reg, -1, _inlineNav.idx, _inlineNav.total)) : ''}
+                        ${(state.currentTab !== 'overall' || p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="circular-progress" title="Project Compliance" style="--percentage: ${percDeg}deg;${isWorkStopped ? 'opacity:0.45;' : ''}">
                             <div class="circular-progress-inner" style="${isWorkStopped ? 'font-size:0.62rem;color:#bf360c;' : ''}">${percDisplay}${percDisplay !== '—' ? '%' : ''}</div>
                         </div>`}
-                        <div class="project-info">
-                            <div class="project-name">
+                        <div class="project-info" style="${state.currentTab !== 'overall' ? 'align-items:center;text-align:center;' : ''}">
+                            <div class="project-name" style="${state.currentTab !== 'overall' ? 'justify-content:center;' : ''}">
                                 ${window._dispProjName(p.name)}
                                 ${p.isRenewable ? '<i class="fas fa-leaf" title="Renewable Energy" style="color: #4caf50; font-size: 0.9rem; margin-left: 8px;"></i>' : ''}
 
@@ -12830,14 +12835,14 @@ function renderTabulation() {
                             <div class="project-meta">${p.region === 'CORPORATE' ? 'SCIC Head Office' : p.region === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
                             ${_inlineNav ? `<div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ${_inlineNav.idx + 1} of ${_inlineNav.total}</div>` : ''}
                         </div>
-                        ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="project-dates">
+                        ${(state.currentTab !== 'overall' || p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="project-dates">
                             <div><span class="date-label">Started:</span> ${p.dateStarted ? formatDateDMY(p.dateStarted) : 'Not set'}</div>
                             ${p.dateFinished ? `<div><span class="date-label">Finished:</span> ${formatDateDMY(p.dateFinished)}</div>` : ''}
                             ${p.workStoppageDate ? `<div style="color:#757575;font-size:0.7rem;"><span class="date-label" style="color:#757575;">Stoppage:</span> ${formatDateDMY(p.workStoppageDate)}</div>` : ''}
                             ${p.workResumeDate ? `<div style="color:#2e7d32;font-size:0.7rem;"><span class="date-label" style="color:#2e7d32;">Resume:</span> ${formatDateDMY(p.workResumeDate)}</div>` : ''}
                         </div>`}
-                        ${(p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<span class="status-badge ${statusClass}" onclick="event.stopPropagation(); ${isLocked ? 'showLockedMessage()' : `changeProjectStatus('${p.name}', event)`}"><i class="fa-solid ${statusIcon}"></i>${statusLabel}</span>`}
-                        ${_inlineNav ? _tabNavBtn(_inlineNav.tab, _inlineNav.reg, 1, _inlineNav.idx, _inlineNav.total) : ''}
+                        ${(state.currentTab !== 'overall' || p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<span class="status-badge ${statusClass}" onclick="event.stopPropagation(); ${isLocked ? 'showLockedMessage()' : `changeProjectStatus('${p.name}', event)`}"><i class="fa-solid ${statusIcon}"></i>${statusLabel}</span>`}
+                        ${_inlineNav ? (state.currentTab !== 'overall' ? `<div style="justify-self:end;">${_tabNavBtn(_inlineNav.tab, _inlineNav.reg, 1, _inlineNav.idx, _inlineNav.total)}</div>` : _tabNavBtn(_inlineNav.tab, _inlineNav.reg, 1, _inlineNav.idx, _inlineNav.total)) : ''}
                         ${(state.isEditing && state.currentTab === 'overall') ? `
                             <button ${isLocked ? 'disabled' : ''} onclick="event.stopPropagation(); ${isLocked ? 'showLockedMessage()' : `openEditProjectModal('${p.name.replace(/'/g, "\\'")}', '${p.region}')`}" style="background:none;border:none;cursor:pointer;color:#555;font-size:1rem;padding:4px 6px;margin-right:2px;opacity:${isLocked ? '0.5' : '1'};" title="${isLocked ? 'View Only - Contact admin to edit' : 'Edit Project Details'}">
                                 <i class="fas fa-pen"></i>
@@ -13390,7 +13395,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
     }
 
     SCHEMA[state.currentTab].forEach((row, rowIdx) => {
-        const key = `${state.currentTab}_${row}`;
+        const key = (row === 'No. of Identified Near-Miss') ? 'medical_' + row : `${state.currentTab}_${row}`;
         const _keySafe = key.replace(/'/g, "\\'");
         
         const isPermitNA = !!(p.vals && p.vals[`${key}__na`] === '1');
@@ -13431,7 +13436,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                <i class="fas fa-sync-alt"></i> Auto-sync from Incident &amp; Accident Registry ↗
                            </div>`
                         : ''}
-                    ${(state.currentTab === 'medical' && ['LTA','Medical Treatment','First Aid','Fatality','High-Potential incident','Dangerous Occurrences','No. of Identified Near-Miss'].includes(row))
+                    ${((state.currentTab === 'medical' || state.currentTab === 'activities') && ['LTA','Medical Treatment','First Aid','Fatality','High-Potential incident','Dangerous Occurrences','No. of Identified Near-Miss'].includes(row))
                         ? `<div style="font-size:0.58rem;font-weight:600;color:#2e7d32;margin-top:3px;line-height:1.3;cursor:pointer;" onclick="changeTab('lta-registry')">
                                <i class="fas fa-sync-alt"></i> Auto-synced from Registry ↗
                            </div>`
@@ -13809,7 +13814,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     }
                 } else {
                     const _medAutoRows = ['LTA', 'Medical Treatment', 'First Aid', 'Fatality', 'High-Potential incident', 'Dangerous Occurrences', 'No. of Identified Near-Miss', 'Days Lost/Charged'];
-                    if (state.currentTab === 'medical' && _medAutoRows.includes(row)) {
+                    if ((state.currentTab === 'medical' || state.currentTab === 'activities') && _medAutoRows.includes(row)) {
                         const _medNow = new Date();
                         const _medCurYear = _medNow.getFullYear();
                         const _medCurMonth = _medNow.getMonth() + 1; // 1-based
@@ -16765,7 +16770,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             </div>
                             <div class="region-banner-right">
                                 <span class="rbadge rbadge-count">${projs.length} PROJ</span>
-                                <span class="rbadge rbadge-avg"><span class="rb-dot ${rbAvgDotClass(regAvg)}"></span>AVG ${regAvg}%</span>
+                                <span class="rbadge rbadge-avg" title="Region compliance only: average of project compliance scores in this region"><span class="rb-dot ${rbAvgDotClass(regAvg)}"></span>AVG ${regAvg}%</span>
                                 ${state.currentTab === 'overall' && state.isEditing && canEditRegion ? `<button onclick="event.stopPropagation(); openAddProjectModal('${reg}')" class="btn btn-primary" style="font-size:0.68rem;padding:3px 10px;line-height:1.4;">+ ADD</button>` : ''}
                                 ${state.currentTab === 'overall' && state.isEditing && !canEditRegion ? `<button disabled style="opacity:0.45;cursor:not-allowed;background:#888;font-size:0.68rem;padding:3px 10px;line-height:1.4;" class="btn btn-primary">LOCKED</button>` : ''}
                                 <i class="fas fa-chevron-down region-toggle-icon"></i>
@@ -19443,7 +19448,7 @@ function P_CORP_TABLE_THEAD() {
 function _pHeaderNavBtn(region, dir, off) {
     const isPrev = dir < 0;
     const r = String(region).replace(/'/g, "\\'");
-    return `<button onclick="event.stopPropagation();_pNavProject('${r}', ${dir})" ${off ? 'disabled' : ''} style="flex-shrink:0;white-space:nowrap;background:${off ? '#e0e0e0' : '#1b5e20'};color:${off ? '#9e9e9e' : '#ffffff'};border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${off ? 'not-allowed' : 'pointer'};opacity:${off ? '0.6' : '1'};">${isPrev ? '<i class="fas fa-chevron-left"></i> Prev' : 'Next <i class="fas fa-chevron-right"></i>'}</button>`;
+    return `<button onclick="event.stopPropagation();_pNavProject('${r}', ${dir})" ${off ? 'disabled' : ''} style="flex-shrink:0;white-space:nowrap;background:${off ? '#e0e0e0' : '#f9a825'};color:${off ? '#9e9e9e' : '#3e2c00'};border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${off ? 'not-allowed' : 'pointer'};opacity:${off ? '0.6' : '1'};">${isPrev ? '<i class="fas fa-chevron-left"></i> Prev' : 'Next <i class="fas fa-chevron-right"></i>'}</button>`;
 }
 
 function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isCorporateCard, navInfo) {
@@ -19763,14 +19768,14 @@ function renderPTable() {
         const _visibleProjName = projectNames[_pNavIdx];
         const _navBarHtml = _showNavBar ? `
             <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:2px solid #c8e6c9;">
-                <button onclick="_pNavProject('${region.replace(/'/g,"\\'")}', -1)" ${_pNavIdx===0?'disabled':''} style="background:${_pNavIdx===0?'#ccc':'#1b5e20'};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${_pNavIdx===0?'not-allowed':'pointer'};opacity:${_pNavIdx===0?'0.4':'1'};">
+                <button onclick="_pNavProject('${region.replace(/'/g,"\\'")}', -1)" ${_pNavIdx===0?'disabled':''} style="background:${_pNavIdx===0?'#ccc':'#f9a825'};color:#3e2c00;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${_pNavIdx===0?'not-allowed':'pointer'};opacity:${_pNavIdx===0?'0.4':'1'};">
                     <i class="fas fa-chevron-left"></i> Prev
                 </button>
                 <div style="text-align:center;">
                     <div style="font-size:0.72rem;font-weight:800;color:#1b5e20;"><i class="fas fa-building" style="margin-right:5px;"></i>${_visibleProjName}</div>
                     <div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ${_pNavIdx+1} of ${projectNames.length}</div>
                 </div>
-                <button onclick="_pNavProject('${region.replace(/'/g,"\\'")}', 1)" ${_pNavIdx===projectNames.length-1?'disabled':''} style="background:${_pNavIdx===projectNames.length-1?'#ccc':'#1b5e20'};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${_pNavIdx===projectNames.length-1?'not-allowed':'pointer'};opacity:${_pNavIdx===projectNames.length-1?'0.4':'1'};">
+                <button onclick="_pNavProject('${region.replace(/'/g,"\\'")}', 1)" ${_pNavIdx===projectNames.length-1?'disabled':''} style="background:${_pNavIdx===projectNames.length-1?'#ccc':'#f9a825'};color:#3e2c00;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${_pNavIdx===projectNames.length-1?'not-allowed':'pointer'};opacity:${_pNavIdx===projectNames.length-1?'0.4':'1'};">
                     Next <i class="fas fa-chevron-right"></i>
                 </button>
             </div>` : '';
@@ -29436,7 +29441,7 @@ function _tabNavBar(tabType, region, projIdx, regProjsLen) {
     const proj = allP.filter(p => p.region === region)[projIdx];
     const projName = proj ? proj.name : '';
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:2px solid #c8e6c9;border-radius:0 0 0 0;">
-        <button onclick="tabNavProject('${tabType.replace(/'/g,"\\'")}','${region.replace(/'/g,"\\'")}', -1)" ${projIdx===0?'disabled':''} style="background:${projIdx===0?'#ccc':'#1b5e20'};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${projIdx===0?'not-allowed':'pointer'};opacity:${projIdx===0?'0.4':'1'};">
+        <button onclick="tabNavProject('${tabType.replace(/'/g,"\\'")}','${region.replace(/'/g,"\\'")}', -1)" ${projIdx===0?'disabled':''} style="background:${projIdx===0?'#ccc':'#f9a825'};color:#3e2c00;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${projIdx===0?'not-allowed':'pointer'};opacity:${projIdx===0?'0.4':'1'};">
             <i class="fas fa-chevron-left"></i> Prev
         </button>
         <div style="text-align:center;">
@@ -29445,7 +29450,7 @@ function _tabNavBar(tabType, region, projIdx, regProjsLen) {
             </div>
             <div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ${projIdx+1} of ${regProjsLen}</div>
         </div>
-        <button onclick="tabNavProject('${tabType.replace(/'/g,"\\'")}','${region.replace(/'/g,"\\'")}', 1)" ${projIdx===regProjsLen-1?'disabled':''} style="background:${projIdx===regProjsLen-1?'#ccc':'#1b5e20'};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${projIdx===regProjsLen-1?'not-allowed':'pointer'};opacity:${projIdx===regProjsLen-1?'0.4':'1'};">
+        <button onclick="tabNavProject('${tabType.replace(/'/g,"\\'")}','${region.replace(/'/g,"\\'")}', 1)" ${projIdx===regProjsLen-1?'disabled':''} style="background:${projIdx===regProjsLen-1?'#ccc':'#f9a825'};color:#3e2c00;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${projIdx===regProjsLen-1?'not-allowed':'pointer'};opacity:${projIdx===regProjsLen-1?'0.4':'1'};">
             Next <i class="fas fa-chevron-right"></i>
         </button>
     </div>`;
@@ -29458,7 +29463,7 @@ function _tabNavBtn(tabType, region, dir, projIdx, regProjsLen) {
     const off = isPrev ? projIdx === 0 : projIdx === regProjsLen - 1;
     const t = tabType.replace(/'/g, "\\'");
     const r = region.replace(/'/g, "\\'");
-    return `<button onclick="event.stopPropagation();${tabType === 'appliances' ? `appliancesNavProject('${r}', ${dir})` : `tabNavProject('${t}','${r}', ${dir})`}" ${off ? 'disabled' : ''} style="flex-shrink:0;white-space:nowrap;background:${off ? '#ccc' : '#1b5e20'};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${off ? 'not-allowed' : 'pointer'};opacity:${off ? '0.4' : '1'};">${isPrev ? '<i class="fas fa-chevron-left"></i> Prev' : 'Next <i class="fas fa-chevron-right"></i>'}</button>`;
+    return `<button onclick="event.stopPropagation();${tabType === 'appliances' ? `appliancesNavProject('${r}', ${dir})` : `tabNavProject('${t}','${r}', ${dir})`}" ${off ? 'disabled' : ''} style="flex-shrink:0;white-space:nowrap;background:${off ? '#ccc' : '#f9a825'};color:#3e2c00;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${off ? 'not-allowed' : 'pointer'};opacity:${off ? '0.4' : '1'};">${isPrev ? '<i class="fas fa-chevron-left"></i> Prev' : 'Next <i class="fas fa-chevron-right"></i>'}</button>`;
 }
 window._tabNavBtn = _tabNavBtn;
 
@@ -29517,7 +29522,7 @@ function eshRenderRegionTable(tabType, region, regProjects, projIdx) {
 
     const navHtml = `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:1px solid #c8e6c9;">
-            <button onclick="eshNavigateProject('${tabType}','${region}',-1)" ${projIdx===0?'disabled':''} style="background:${projIdx===0?'#ccc':'#1b5e20'};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;opacity:${projIdx===0?'0.4':'1'};">
+            <button onclick="eshNavigateProject('${tabType}','${region}',-1)" ${projIdx===0?'disabled':''} style="background:${projIdx===0?'#ccc':'#f9a825'};color:#3e2c00;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;opacity:${projIdx===0?'0.4':'1'};">
                 <i class="fas fa-chevron-left"></i> Prev
             </button>
             <div style="text-align:center;">
@@ -29529,7 +29534,7 @@ function eshRenderRegionTable(tabType, region, regProjects, projIdx) {
                     return _po > 0 ? ' <span style="background:#fdecec;color:#c62828;padding:1px 8px;border-radius:9px;font-weight:800;margin-left:6px;">' + _po + ' overdue</span>' : '';
                 })()}</div>
             </div>
-            <button onclick="eshNavigateProject('${tabType}','${region}',1)" ${projIdx===regProjects.length-1?'disabled':''} style="background:${projIdx===regProjects.length-1?'#ccc':'#1b5e20'};color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;opacity:${projIdx===regProjects.length-1?'0.4':'1'};">
+            <button onclick="eshNavigateProject('${tabType}','${region}',1)" ${projIdx===regProjects.length-1?'disabled':''} style="background:${projIdx===regProjects.length-1?'#ccc':'#f9a825'};color:#3e2c00;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;opacity:${projIdx===regProjects.length-1?'0.4':'1'};">
                 Next <i class="fas fa-chevron-right"></i>
             </button>
         </div>`;
@@ -33231,14 +33236,15 @@ async function exportCurrentTabToExcel() {
     const _SCHEMA_LOCAL = {
         exposures:          ['Total Manpower','Total Exposed Manhour','Total Exposed Man-hour to date','No. of Days w/o LTA'],
         rates:              ['LTIR','TRIR','SEVERITY RATE'],
-        medical:            ['Medical Treatment','First Aid','LTA','Fatality','High-Potential incident','Dangerous Occurrences','No. of Identified Near-Miss','Days Lost/Charged'],
+        medical:            ['Medical Treatment','First Aid','LTA','Fatality','High-Potential incident','Dangerous Occurrences','Days Lost/Charged'],
         nov:                ['OSH Internal Issues','OSH External Issues'],
-        activities:         ['No. of ESH Committee Conducted','No. of ESH inspection','Drills Conducted','Training Conducted'],
+        activities:         ['No. of ESH Committee Conducted','No. of ESH inspection','No. of Identified Near-Miss','Drills Conducted','Training Conducted'],
         dole:               ['WAIR','RSO','MOM','AEDR','AMR'],
         'env-monthly-report':['Environmental Monthly Report (EMR)'],
     };
 
     function _v(proj, key, idx) {
+            if (key === 'activities_No. of Identified Near-Miss') key = 'medical_No. of Identified Near-Miss';
         const arr = proj && proj.vals && proj.vals[key];
         if (!Array.isArray(arr)) return '';
         const v = arr[idx];
