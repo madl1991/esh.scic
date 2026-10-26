@@ -6619,6 +6619,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             let smrF = 0, smrT = 0;
             for (let q = 1; q <= 4; q++) {
                 if (q * 3 > _cutM) continue; // quarter not due yet
+                if (typeof getDoeStartQuarterForYear === 'function' && q < getDoeStartQuarterForYear(proj, selectedYear)) continue; // quarter before the project existed — not required (same rule as DOE)
                 if (isQuarterAfterProjectFinish(proj, q, selectedYear)) continue; // after project finished
                 const _coc  = vals[_smrCocKey] && vals[_smrCocKey][q];
                 const _isCoC = _coc === true || _coc === 'true' || _coc === '1' || _coc === 1;
@@ -6639,6 +6640,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             let cmrF = 0, cmrT = 0;
             for (let p2 = 1; p2 <= 2; p2++) {
                 if (p2 * 6 > _cutM) continue; // period not due yet
+                if (typeof getDoeStartQuarterForYear === 'function' && p2 < Math.ceil(getDoeStartQuarterForYear(proj, selectedYear) / 2)) continue; // half before the project existed — not required
                 if (isPeriodAfterProjectFinish(proj, p2, selectedYear)) continue; // after project finished
                 const _coc  = vals[_cmrCocKey] && vals[_cmrCocKey][p2];
                 const _isCoC = _coc === true || _coc === 'true' || _coc === '1' || _coc === 1;
@@ -6676,6 +6678,171 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 ? Math.round(areaScores.reduce((a, b) => a + b, 0) / areaScores.length * 100)
                 : 0;
         }
+
+        // ── COMPLIANCE GAP BREAKDOWN (click the circular rate) ──────────────────────────────────
+        // Mirrors getPerc() area by area, but records WHAT is missing and whether it is OVERDUE
+        // (month already ended) or NOT YET DUE (current / future month). Does not change any score.
+        function getComplianceBreakdown(proj) {
+            if (!proj) return null;
+            if (proj.workStoppageDate && !proj.workResumeDate) return { stopped: true };
+            const selectedYear = (state && state.selectedYear) || new Date().getFullYear();
+            const _now = new Date(); const _curY = _now.getFullYear();
+            const dueMo = selectedYear < _curY ? 12 : (selectedYear > _curY ? 0 : _now.getMonth()); // months already ended
+            const MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const KPM_MO = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            const vals = proj.vals || {};
+            const blk = m => isMonthBlacklistedForProject(proj, m, selectedYear);
+            const stor = (typeof getEshStorage === 'function') ? getEshStorage() : {};
+            const TR = (typeof ESH_TRAININGS !== 'undefined') ? ESH_TRAININGS : {};
+            const DR = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
+            const areas = [];
+            const newArea = (name) => { const a = { name, T: 0, F: 0, O: 0, U: 0, od: [], up: [], subs: null }; areas.push(a); return a; };
+            const unit = (a, filled, what, when, isDue) => {
+                a.T++; a.F += filled;
+                const miss = 1 - filled;
+                if (miss > 0.0001) {
+                    if (isDue) { a.O += miss; a.od.push({ what, when }); }
+                    else       { a.U += miss; a.up.push({ what, when }); }
+                }
+            };
+            const has = v => v !== undefined && v !== null && v.toString().trim() !== '';
+            const notes = [];
+
+            // KPM
+            if (vals['kpm_na'] === '1') { notes.push('KPM is marked N/A'); }
+            else {
+                const a = newArea('KPM');
+                const reg = (proj.region || '').toUpperCase();
+                const peers = (state.projects || []).filter(p => !(p.vals && p.vals['kpm_na'] === '1') && (p.region || '').toUpperCase() === reg);
+                KPM_MO.forEach((mo, idx) => {
+                    const m = idx + 1;
+                    if (blk(m)) return;
+                    const submitted = peers.some(p => has(p.vals && p.vals['kpm_v3_' + mo + '_dateSubmitted']));
+                    let frac = 0;
+                    if (submitted && window.kpmProjectFillStatus) { const st = window.kpmProjectFillStatus(proj, mo); frac = st.total ? st.filled / st.total : 0; }
+                    unit(a, frac, submitted ? 'KPM report (incomplete)' : 'KPM report', MO[idx], m <= dueMo);
+                });
+            }
+            // DOLE
+            { const a = newArea('DOLE Reports');
+              [['dole_WAIR','WAIR'],['dole_RSO','RSO'],['dole_MOM','MOM']].forEach(([k, lbl]) => {
+                for (let m = 1; m <= 12; m++) {
+                    if (blk(m)) continue;
+                    const v = vals[k] && vals[k][m];
+                    unit(a, (v !== undefined && v !== null && v !== '' && v !== '0') ? 1 : 0, lbl, MO[m-1], m <= dueMo);
+                }
+              });
+            }
+            // GOT
+            if (typeof window.gotGetCell === 'function') {
+                const a = newArea('GOT Monitoring');
+                ['E1','E2','E3','S1','S2','S3'].forEach(g => {
+                    for (let m = 1; m <= 12; m++) {
+                        if (blk(m)) continue;
+                        const r = window.gotGetCell(proj, g, 0, m).r;
+                        unit(a, has(r) ? 1 : 0, 'GOT ' + g, MO[m-1], m <= dueMo);
+                    }
+                });
+            }
+            // ESH Calendar (3 sub-areas, equal weight)
+            { const a = newArea('ESH Calendar'); a.subs = [];
+              [['esh-calendar-env','Environment'],['esh-calendar-safety','Safety'],['esh-calendar-health','Health']].forEach(([tt, tl]) => {
+                const sub = { name: tl, T: 0, F: 0, O: 0, U: 0, od: [], up: [] };
+                (TR[tt] || []).forEach((title, ti) => {
+                    const naFrom = stor[`${selectedYear}|${tt}|${proj.name}|${ti}|na_row`] !== undefined ? parseInt(stor[`${selectedYear}|${tt}|${proj.name}|${ti}|na_row`]) : -1;
+                    for (let mi = 0; mi < 12; mi++) {
+                        if (blk(mi + 1)) continue;
+                        if (naFrom >= 0 && mi >= naFrom) continue;
+                        if (!stor[`${selectedYear}|${tt}|GLOBAL_PLAN|${ti}|${mi}|plan`]) continue;
+                        const done = has(stor[`${selectedYear}|${tt}|${proj.name}|${ti}|${mi}|actual`]);
+                        unit(sub, done ? 1 : 0, title, MO[mi], (mi + 1) <= dueMo);
+                    }
+                });
+                a.subs.push(sub);
+              });
+              a.subs.forEach(s => { s.od.forEach(x => a.od.push({ what: x.what, when: x.when })); s.up.forEach(x => a.up.push({ what: x.what, when: x.when })); });
+            }
+            // Emergency Drills
+            { const a = newArea('Emergency Drills');
+              DR.forEach((drill, di) => {
+                const si = (typeof getDrillStorageIdx === 'function') ? getDrillStorageIdx(drill, di) : (drill.id !== undefined ? drill.id : di);
+                for (let mi = 0; mi < 12; mi++) {
+                    if (blk(mi + 1)) continue;
+                    const pl = stor[`${selectedYear}|esh-calendar-drills|GLOBAL_PLAN|${si}|${mi}|plan`];
+                    if (!pl || pl === '__DELETED__') continue;
+                    if (stor[`${selectedYear}|esh-calendar-drills|${proj.name}|${si}|${mi}|na`]) continue;
+                    const act = stor[`${selectedYear}|esh-calendar-drills|${proj.name}|${si}|${mi}|actual`];
+                    unit(a, (has(act) && act !== '__DELETED__') ? 1 : 0, drill.name + ' drill', MO[mi], (mi + 1) <= dueMo);
+                }
+              });
+            }
+            // EMR
+            { const a = newArea('Environmental Monthly Report (EMR)');
+              const k = 'env-monthly-report_Environmental Monthly Report (EMR)';
+              for (let m = 1; m <= 12; m++) { if (blk(m)) continue; unit(a, has(vals[k] && vals[k][m]) ? 1 : 0, 'EMR', MO[m-1], m <= dueMo); }
+            }
+            // SMR / CMR
+            const flag = v => v === true || v === 'true' || v === '1' || v === 1;
+            { const a = newArea('SMR (Quarterly)');
+              for (let q = 1; q <= 4; q++) {
+                if (q < getDoeStartQuarterForYear(proj, selectedYear)) continue; // quarter before the project existed
+                if (typeof isQuarterAfterProjectFinish === 'function' && isQuarterAfterProjectFinish(proj, q, selectedYear)) continue;
+                if (flag(vals['emb_SMR (Quarterly) - Care of Client'] && vals['emb_SMR (Quarterly) - Care of Client'][q])) continue;
+                if (flag(vals['emb_SMR (Quarterly) - N/A'] && vals['emb_SMR (Quarterly) - N/A'][q])) continue;
+                unit(a, has(vals['emb_SMR (Quarterly) - Submission Date'] && vals['emb_SMR (Quarterly) - Submission Date'][q]) ? 1 : 0, 'SMR', 'Q' + q, q * 3 <= dueMo);
+              }
+            }
+            { const a = newArea('CMR (Semi-Annual)');
+              for (let h = 1; h <= 2; h++) {
+                if (h < Math.ceil(getDoeStartQuarterForYear(proj, selectedYear) / 2)) continue; // half before the project existed
+                if (typeof isPeriodAfterProjectFinish === 'function' && isPeriodAfterProjectFinish(proj, h, selectedYear)) continue;
+                if (flag(vals['emb_CMR (Semi-Annual) - Care of Client'] && vals['emb_CMR (Semi-Annual) - Care of Client'][h])) continue;
+                if (flag(vals['emb_CMR (Semi-Annual) - N/A'] && vals['emb_CMR (Semi-Annual) - N/A'][h])) continue;
+                unit(a, has(vals['emb_CMR (Semi-Annual) - Submission Date'] && vals['emb_CMR (Semi-Annual) - Submission Date'][h]) ? 1 : 0, 'CMR', 'H' + h, h * 6 <= dueMo);
+              }
+            }
+            // DOE (renewable projects only)
+            if (proj.isRenewable === true) {
+                if (vals['doe_client_provided'] === '1' || vals['doe-permit_client_provided'] === '1') { notes.push('DOE report is Client-Provided'); }
+                else {
+                    const a = newArea('DOE Quarterly Report');
+                    const startQ = (typeof getDoeStartQuarterForYear === 'function') ? getDoeStartQuarterForYear(proj, selectedYear) : 1;
+                    for (let q = 1; q <= 4; q++) {
+                        if (q < startQ) continue;
+                        if (typeof isQuarterAfterProjectFinish === 'function' && isQuarterAfterProjectFinish(proj, q, selectedYear)) continue;
+                        unit(a, has(vals['doe_DOE Quarterly Report Submission Date'] && vals['doe_DOE Quarterly Report Submission Date'][q]) ? 1 : 0, 'DOE report', 'Q' + q, q * 3 <= dueMo);
+                    }
+                }
+            }
+
+            const subScore = (s, clear) => s.T > 0 ? (s.F + (clear ? s.O : 0)) / s.T : 1;
+            const areaScore = (a, clear) => a.subs ? a.subs.reduce((t, s) => t + subScore(s, clear), 0) / a.subs.length : (a.F + (clear ? a.O : 0)) / a.T;
+            const active = areas.filter(a => a.subs || a.T > 0);
+            const avg = clear => active.length ? Math.round(active.reduce((t, a) => t + areaScore(a, clear), 0) / active.length * 100) : 0;
+
+            // Months not counted
+            const before = [], other = [];
+            for (let m = 1; m <= 12; m++) {
+                if (!blk(m)) continue;
+                if (typeof isMonthBeforeProjectStart === 'function' && isMonthBeforeProjectStart(proj, m, selectedYear)) before.push(m); else other.push(m);
+            }
+            const range = arr => { const out = []; let s = null, p = null; arr.forEach(m => { if (s === null) { s = p = m; } else if (m === p + 1) { p = m; } else { out.push([s, p]); s = p = m; } }); if (s !== null) out.push([s, p]); return out.map(([a, b]) => a === b ? MO[a-1] : MO[a-1] + '–' + MO[b-1]).join(', '); };
+            if (before.length) notes.unshift(range(before) + ': project had not started yet');
+            if (other.length) notes.push(range(other) + ': project finished or on work stoppage');
+
+            return {
+                stopped: false, year: selectedYear,
+                now: avg(false), ifCleared: avg(true),
+                areas: active.map(a => ({ name: a.name, score: Math.round(areaScore(a, false) * 100), od: a.od, up: a.up })),
+                overdueCount: active.reduce((t, a) => t + a.od.length, 0),
+                upcomingCount: active.reduce((t, a) => t + a.up.length, 0),
+                notes
+            };
+        }
+        window.getComplianceBreakdown = getComplianceBreakdown;
+
+        function openComplianceGap(projName) { osOpenModal(projName, 'gap'); } // reuses the standard project modal
+        window.openComplianceGap = openComplianceGap;
 
         // ── MONTHLY COMPLIANCE: computes compliance rate for a specific month (1-based)
         // Each area has EQUAL weight (1/7 each): Drills+Training, KPM, DOLE, GOT, ESH Calendar, Emergency Drills, EMR
@@ -7135,6 +7302,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     const _smrNaKey  = 'emb_SMR (Quarterly) - N/A';
                     for (let q = 1; q <= 4; q++) {
                         if (q * 3 > _cutM) continue; // quarter not due yet
+                        if (typeof getDoeStartQuarterForYear === 'function' && q < getDoeStartQuarterForYear(proj, selectedYear)) continue; // quarter before the project existed — not required (same rule as DOE)
                         const _coc = vals[_smrCocKey] && vals[_smrCocKey][q];
                         if (_coc === true || _coc === 'true' || _coc === '1' || _coc === 1) continue;
                         const _na = vals[_smrNaKey] && vals[_smrNaKey][q];
@@ -7149,6 +7317,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                     const _cmrNaKey  = 'emb_CMR (Semi-Annual) - N/A';
                     for (let p2 = 1; p2 <= 2; p2++) {
                         if (p2 * 6 > _cutM) continue; // period not due yet
+                        if (typeof getDoeStartQuarterForYear === 'function' && p2 < Math.ceil(getDoeStartQuarterForYear(proj, selectedYear) / 2)) continue; // half before the project existed — not required
                         const _coc = vals[_cmrCocKey] && vals[_cmrCocKey][p2];
                         if (_coc === true || _coc === 'true' || _coc === '1' || _coc === 1) continue;
                         const _na = vals[_cmrNaKey] && vals[_cmrNaKey][p2];
@@ -12823,7 +12992,7 @@ function renderTabulation() {
 
                     html += `<div class="project-row ${isLocked ? 'project-locked' : ''}" data-pname="${(p.name||'').replace(/"/g,'&quot;')}" data-region="${(p.region||'').replace(/"/g,'&quot;')}" data-status="${_derivedStatus}" style="${isWorkStopped ? 'opacity:0.7;' : ''}${state.currentTab === 'overall' ? 'cursor:pointer;' : ''}${(state.currentTab !== 'overall' && _inlineNav) ? 'display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;' : ''}" ${state.currentTab === 'overall' ? `onclick="osOpenModal('${p.name.replace(/'/g, "\\'")}')"`  : ''}>\n                        
                         ${_inlineNav ? (state.currentTab !== 'overall' ? `<div style="justify-self:start;">${_tabNavBtn(_inlineNav.tab, _inlineNav.reg, -1, _inlineNav.idx, _inlineNav.total)}</div>` : _tabNavBtn(_inlineNav.tab, _inlineNav.reg, -1, _inlineNav.idx, _inlineNav.total)) : ''}
-                        ${(state.currentTab !== 'overall' || p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="circular-progress" title="Project Compliance" style="--percentage: ${percDeg}deg;${isWorkStopped ? 'opacity:0.45;' : ''}">
+                        ${(state.currentTab !== 'overall' || p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="circular-progress" title="Click to see what is missing" onclick="event.stopPropagation();openComplianceGap('${p.name.replace(/'/g, "\\'")}')" style="--percentage: ${percDeg}deg;cursor:pointer;${isWorkStopped ? 'opacity:0.45;' : ''}">
                             <div class="circular-progress-inner" style="${isWorkStopped ? 'font-size:0.62rem;color:#bf360c;' : ''}">${percDisplay}${percDisplay !== '—' ? '%' : ''}</div>
                         </div>`}
                         <div class="project-info" style="${state.currentTab !== 'overall' ? 'align-items:center;text-align:center;' : ''}">
@@ -19520,10 +19689,9 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
                 </div>
                 <div style="flex:0 1 auto;min-width:0;text-align:center;">
                     <div>${projName}</div>
-                    ${navInfo ? `<div style="font-size:0.6rem;font-weight:600;opacity:0.75;margin-top:2px;">Project ${navInfo.idx + 1} of ${navInfo.total}</div>` : ''}
+                    <div style="font-size:0.6rem;font-weight:600;opacity:0.75;margin-top:2px;">${navInfo ? `Project ${navInfo.idx + 1} of ${navInfo.total} · ` : ''}${count} personnel</div>
                 </div>
                 <div style="flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:flex-end;gap:8px;">
-                    <span style="background:${badgeBg};color:#b26a00;padding:2px 9px;border-radius:10px;font-size:0.6rem;font-weight:800;border:1px solid rgba(251,192,45,0.6);">${count}</span>
                     ${navInfo ? _pHeaderNavBtn(navInfo.region, 1, navInfo.idx === navInfo.total - 1) : ''}
                 </div>
             </div>
@@ -32952,7 +33120,81 @@ window.addEventListener('scroll', function() {
 
 // ── OVERALL SUMMARY PROJECT DETAILS MODAL ────────────────────────────────────
 
-function osOpenModal(projectName) {
+// Compliance-gap view: reuses the standard project modal (#os-project-modal) — same header, same tile design.
+function _osRenderGapView(project, year) {
+    const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const b = typeof window.getComplianceBreakdown === 'function' ? window.getComplianceBreakdown(project) : null;
+    const perc = typeof getPerc === 'function' ? getPerc(project, true) : null;
+    if (b && !b.stopped && perc !== null && b.now !== perc) console.warn('[compliance gap] breakdown score', b.now, 'differs from getPerc', perc, project.name);
+    document.getElementById('os-modal-year-label').textContent = `Compliance Gap — what is still missing (${year})`;
+    document.getElementById('os-modal-personnel').style.display = 'none';
+    const box = document.getElementById('os-modal-stats');
+
+    const tile = (icon, val, label, color) => `
+        <div style="background:#f7f9f8; border:1px solid #eceeec; border-radius:8px; padding:10px 12px; display:flex; align-items:center; gap:10px;">
+            <div style="width:32px; height:32px; border-radius:8px; background:#eef1ef; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <i class="fas ${icon}" style="color:#4a5750; font-size:0.85rem;"></i>
+            </div>
+            <div>
+                <div style="font-size:1rem; font-weight:800; color:${color}; line-height:1;">${val}</div>
+                <div style="font-size:0.6rem; color:#888; font-weight:600; margin-top:2px;">${label}</div>
+            </div>
+        </div>`;
+    const panel = (dot, title, inner) => `
+        <div style="grid-column:1/-1; background:#f7f9f8; border:1px solid #eceeec; border-radius:8px; padding:8px 12px;">
+            <div style="font-size:0.58rem; font-weight:700; color:#6b7770; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+                <span style="width:7px; height:7px; border-radius:50%; background:${dot}; display:inline-block;"></span>${title}
+            </div>${inner}
+        </div>`;
+    const line = (a, t) => `<div style="font-size:0.72rem; padding:2px 0; line-height:1.35;"><b style="color:#1f2d23;">${esc(a)}</b>${t ? ` <span style="color:#55635a;">— ${esc(t)}</span>` : ''}</div>`;
+
+    if (!b || b.stopped) {
+        box.innerHTML = `<div style="grid-column:1/-1; text-align:center; font-size:0.78rem; color:#55635a; padding:14px 0;">This project is on work stoppage, so it is not scored right now.</div>`;
+        return;
+    }
+    const SEQ = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Q1','Q2','Q3','Q4','H1','H2'];
+    const sortW = arr => arr.slice().sort((x, y) => SEQ.indexOf(x) - SEQ.indexOf(y));
+    const fmt = arr => {            // Oct, Nov, Dec -> Oct–Dec (runs of 3+ months)
+        const u = sortW([...new Set(arr)]); const out = []; let i = 0;
+        while (i < u.length) {
+            let j = i; const si = SEQ.indexOf(u[i]);
+            while (j + 1 < u.length && si < 12 && SEQ.indexOf(u[j + 1]) === SEQ.indexOf(u[j]) + 1 && SEQ.indexOf(u[j + 1]) < 12) j++;
+            out.push(j - i >= 2 ? u[i] + '–' + u[j] : u.slice(i, j + 1).join(', '));
+            i = j + 1;
+        }
+        return out.join(', ');
+    };
+    const group = list => { const m = new Map(); list.forEach(x => { if (!m.has(x.what)) m.set(x.what, []); m.get(x.what).push(x.when); }); return [...m.entries()]; };
+    const BARE = ['SMR','CMR','EMR','KPM report','DOE report'];
+    const lineText = list => {
+        const g = group(list);
+        if (g.length === 1) return BARE.includes(g[0][0]) ? fmt(g[0][1]) : `${g[0][0]}: ${fmt(g[0][1])}`;
+        if (g.length === 2) return g.map(([w, ws]) => `${w}: ${fmt(ws)}`).join(' · ');
+        return `${list.length} items — ${fmt(list.map(x => x.when))}`;
+    };
+
+    const nOd = b.overdueCount, nUp = b.upcomingCount;
+    let sum;
+    if (nOd === 0 && nUp === 0) sum = 'All required reports are complete.';
+    else if (nOd === 0) sum = `No overdue reports. The score reaches 100% once the remaining ${nUp} report${nUp === 1 ? ' is' : 's are'} submitted.`;
+    else sum = `${nOd} report${nOd === 1 ? ' is' : 's are'} overdue` + (nUp ? ` and ${nUp} ${nUp === 1 ? 'is' : 'are'} not yet due.` : '.');
+
+    let html = `<div style="grid-column:1/-1; text-align:center; font-size:0.78rem; font-weight:700; color:#1f2d23; margin-bottom:2px;">${esc(sum)}</div>`;
+    html += tile('fa-circle-exclamation', nOd, 'Overdue Reports', nOd > 0 ? '#c62828' : '#2e7d32');
+    html += tile('fa-hourglass-half', nUp, 'Not Yet Due', '#1f2d23');
+    html += tile('fa-arrow-trend-up', nOd > 0 ? b.ifCleared + '%' : '—', 'If Overdue Are Submitted', '#1b5e20');
+    html += tile('fa-flag-checkered', '100%', 'When Whole Year Is Complete', '#1b5e20');
+
+    const od = b.areas.filter(a => a.od.length);
+    if (od.length) html += panel('#c62828', 'Overdue — needs follow-up', od.map(a => line(a.name, lineText(a.od))).join(''));
+    const up = b.areas.filter(a => a.up.length);
+    if (up.length) html += panel('#f9a825', 'Not yet due — just wait',
+        `<div style="display:grid; grid-template-columns:1fr 1fr; column-gap:16px;">${up.map(a => line(a.name, fmt(a.up.map(x => x.when)))).join('')}</div>`);
+    if (b.notes.length) html += panel('#9e9e9e', 'Not counted', b.notes.map(n => line(n, '')).join(''));
+    box.innerHTML = html;
+}
+
+function osOpenModal(projectName, view) {
     const project = (state.projects || []).find(p => p.name === projectName);
     if (!project) return;
 
@@ -33104,6 +33346,8 @@ function osOpenModal(projectName) {
             </div>
         </div>
     `).join('');
+
+    if (view === 'gap') _osRenderGapView(project, year);
 
     // Show modal
     const modal = document.getElementById('os-project-modal');
