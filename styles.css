@@ -9476,3 +9476,6 @@ body.dark-mode select:focus, body.dark-mode select:focus-visible,
 body.dark-mode textarea:focus, body.dark-mode textarea:focus-visible {
     border-color: #81c784;
 }
+
+.rates-standard-toggle .rst-opt { display:inline-flex; align-items:center; gap:5px; }
+.rates-standard-toggle .rst-flag { border-radius:2px; box-shadow:0 0 0 1px rgba(0,0,0,0.15); flex-shrink:0; }
