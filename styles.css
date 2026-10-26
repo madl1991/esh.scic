@@ -3734,9 +3734,6 @@ body.dark-mode .chat-pmsg.mine .chat-pbubble { background:#293d2b; border-color:
     vertical-align: middle; border: 1.5px solid #bbb !important;
 }
 
-.esh-table tr.drill-row-quarterly td:not(.esh-td-plan):not(.esh-td-actual):not(.esh-td-na) { background: #e6faea; }
-.esh-table tr.drill-row-twice    td:not(.esh-td-plan):not(.esh-td-actual):not(.esh-td-na) { background: #fffde0; }
-.esh-table tr.drill-row-once     td:not(.esh-td-plan):not(.esh-td-actual):not(.esh-td-na) { background: #ddeeff; }
 
 .corp-drills-table-header-bar {
     background: #e8f5e9; padding: 10px 14px; border-bottom: 1px solid #c8e6c9;
@@ -4515,9 +4512,6 @@ body.dark-mode .esh-td-plan:not(.esh-plan-locked):hover {background:#6a6323}
 body.dark-mode .esh-td-plan.esh-plan-locked:hover {background:#534d1c}
 body.dark-mode .esh-td-actual.esh-not-planned {background:#343434 !important}
 body.dark-mode .esh-td-na {background:#4c4c4c !important;border:1.5px solid #585858 !important}
-body.dark-mode .esh-table tr.drill-row-quarterly td:not(.esh-td-plan):not(.esh-td-actual):not(.esh-td-na) {background:#214227}
-body.dark-mode .esh-table tr.drill-row-twice td:not(.esh-td-plan):not(.esh-td-actual):not(.esh-td-na) {background:#4a4719}
-body.dark-mode .esh-table tr.drill-row-once td:not(.esh-td-plan):not(.esh-td-actual):not(.esh-td-na) {background:#19324b}
 body.dark-mode .corp-drills-table-header-bar {background:#293d2b;border-bottom:1px solid #3f5c40;color:#88dd8e}
 body.dark-mode .corp-drills-table-outer {border:1px solid #3f5c40}
 body.dark-mode .region-banner.region-plant-operations .region-name::after,
@@ -7349,7 +7343,6 @@ body.dark-mode :is(.esh-tbl, .rpt-sum .rpt-table, .exp-proj, .env-sum-kpm table)
 /* ── Nav + header (config-driven, no inline styles) ─────────────────────── */
 #main-nav { flex-grow: 1; padding-top: 10px; padding-bottom: 130px; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none; }
 .nav-group-header > span > i { margin-right: 6px; }
-.nav-item.nav-accent-yellow { border-left: 3px solid #fbc02d !important; padding-left: 13px !important; }
 .nav-lock { font-size: 0.65rem; margin-left: 4px; color: #fb8c00; }
 .hamburger-btn { background: none; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 5px; padding: 6px; border-radius: 6px; transition: background 0.2s; }
 .hamburger-btn:hover { background: rgba(27, 94, 32, 0.08); }
@@ -9505,3 +9498,41 @@ body.dark-mode .lta-tab.na::after { background:#1a2e1a; color:#66bb6a; }
     overflow-y: auto;
     padding-right: 6px;
 }
+
+/* ══ ESH Calendar & Drills (Environment → Corporate Drills) — calmer dark mode ══
+   Fixes: Plan columns were all olive (planned vs not planned looked the same),
+   bright green / red Actual cells, bright inline-grey cells, harsh green borders. */
+body.dark-mode .esh-table { border: 1px solid #3f5c40; }
+body.dark-mode .esh-table th { background: #2c3a2d; color: #9bd39f; border: 1px solid #3a4a3b; }
+body.dark-mode .esh-table th.esh-th-name { background: #2c3a2d; border-right: 2px solid #46604a; }
+body.dark-mode .esh-table th.esh-th-freq { background: #2c3a2d; }
+body.dark-mode .esh-table th.esh-th-plan { background: #2c3a2d; color: #d9b45a; border-left: 2px solid #46604a !important; }
+body.dark-mode .esh-table th.esh-th-actual { background: #2c3a2d; color: #9bd39f; }
+body.dark-mode .esh-table td { border: 1px solid #33383a; }
+body.dark-mode .esh-table td.esh-td-name { border-right: 2px solid #46604a; }
+
+/* Plan column: neutral when not scheduled, amber when scheduled */
+body.dark-mode .esh-table td.esh-td-plan { background: #2b2b28; border-left: 2px solid #46604a !important; }
+body.dark-mode .esh-table td.esh-td-plan:not(.esh-plan-locked):hover { background: #3a3a32; }
+body.dark-mode .esh-table td.esh-td-plan.esh-plan-locked:hover { background: #2b2b28; }
+body.dark-mode .esh-table td.esh-td-plan.esh-planned,
+body.dark-mode .esh-table td.esh-td-plan.esh-planned:hover,
+body.dark-mode .esh-table td.esh-td-plan.esh-planned.esh-plan-locked { background: #f9a825; opacity: 1; }
+body.dark-mode .esh-table td.esh-td-plan.esh-planned { filter: saturate(.75) brightness(.8); }
+
+/* Actual column */
+body.dark-mode .esh-table td.esh-td-actual.esh-not-planned { background: #232323 !important; }
+body.dark-mode .esh-table td.esh-td-actual.esh-done { background: #2f6b3a !important; }
+body.dark-mode .esh-table td.esh-td-actual.esh-overdue { background: #7a2c2f !important; }
+body.dark-mode .esh-td-actual.esh-done input[type="date"] { color: #e8f5e9; }
+body.dark-mode .esh-td-actual.esh-overdue input[type="date"] { color: #ffd9d9; }
+body.dark-mode .esh-td-actual:not(.esh-done):not(.esh-overdue) input[type="date"] { color-scheme: dark; }
+
+/* Inline-styled cells that stay bright in dark mode (work stoppage, 8-Hr OSH N/A) */
+body.dark-mode .esh-table td[style*="#e0e0e0"] { background: #262626 !important; }
+body.dark-mode .esh-table td[style*="#d4edda"] { background: #24402a !important; }
+body.dark-mode .esh-table td[style*="#d4edda"] div { color: #a9b8ab !important; }
+body.dark-mode .esh-table td[style*="#e0e0e0"] span { color: #777 !important; }
+body.dark-mode .esh-table td button[style*="#bdbdbd"],
+body.dark-mode .esh-table td button[style*="#e0e0e0"] { background: #444 !important; color: #ccc !important; }
+body.dark-mode .esh-td-name span[style*="#e8f5e9"] { background: #294a2c !important; color: #a5d6a7 !important; }
