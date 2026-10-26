@@ -2118,7 +2118,7 @@
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
             outline: none; 
             border-color: #2e7d32; 
-            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+            box-shadow: none;
         }
         .form-group textarea {
             resize: vertical;
@@ -3232,8 +3232,7 @@ body.dark-mode .ux-warn   { --ux-c: #ffb74d; }
 input[type="date"]:focus,
 input[type="text"]:focus,
 input[type="number"]:focus {
-    transform: scale(1.01);
-    transition: all 0.2s ease;
+    transform: none;
 }
 
 .tooltip-content {
@@ -3518,7 +3517,7 @@ body.dark-mode .chat-pmsg.mine .chat-pbubble { background:#293d2b; border-color:
 .chat-msg.mine { align-self:flex-end; flex-direction:row-reverse; }
 .chat-msg.theirs { align-self:flex-start; }
 .chat-input { flex:1; padding:9px 14px; border-radius:22px; border:1px solid var(--border-color); background:var(--input-bg,#fafafa); color:var(--text-primary); font-size:0.8rem; resize:none; max-height:100px; min-height:38px; line-height:1.4; outline:none; font-family:inherit; }
-.chat-input:focus { border-color:#2e7d32; box-shadow:0 0 0 2px rgba(46,125,50,0.15); }
+.chat-input:focus { border-color:#2e7d32; box-shadow:none; }
 .chat-empty { text-align:center; margin:auto; color:var(--text-secondary); opacity:0.5; }
 .chat-empty i { font-size:2.5rem; display:block; margin-bottom:8px; }
 @keyframes chatMsgIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
@@ -3787,16 +3786,13 @@ body.dark-mode .got-tbl tbody tr:hover td:not(.got-td-future) {
 
 /* ── 4. ACCESSIBILITY — focus rings (keyboard navigation) ──────────────────── */
 button:focus-visible,
-input:focus-visible,
-select:focus-visible,
 [tabindex]:focus-visible {
     outline: 2px solid #4caf50 !important;
     outline-offset: 2px !important;
     box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.2) !important;
 }
 body.dark-mode button:focus-visible,
-body.dark-mode input:focus-visible,
-body.dark-mode select:focus-visible {
+body.dark-mode [tabindex]:focus-visible {
     outline-color: #81c784 !important;
     box-shadow: 0 0 0 4px rgba(129, 199, 132, 0.25) !important;
 }
@@ -4276,7 +4272,7 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover { background: rgba(76,175,80,0.55
     }
     .settings-input:focus {
       outline: none; border-color: #2e7d32;
-      box-shadow: 0 0 0 3px rgba(46,125,50,0.15);
+      box-shadow: none;
     }
     .settings-input:disabled { opacity: 0.65; cursor: not-allowed; background: var(--border-color); }
     .settings-input-icon { position: relative; }
@@ -6387,7 +6383,7 @@ body.dark-mode .nov-kpm-rate b { color: #a5d6a7; }
     outline: none;
     border-color: #2e7d32;
     background: #ffffff;
-    box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+    box-shadow: none;
 }
 
 .audit-table input:disabled {
@@ -7064,7 +7060,7 @@ body.dark-mode .ckpm-ck, body.dark-mode .ckpm-st.ok { color: #81c784; }
 .env-tbl.doe-clean td.doe-x { color: #8a948d; font-style: italic; font-size: 12.5px; }
 .doe-x i { margin-right: 6px; font-style: normal; }
 .doe-clean input[type="date"].doe-in { width: 140px; padding: 5px 8px; border: 1px solid #c8d2cb; border-radius: 6px; background: var(--bg-card); color: var(--text-primary); font: inherit; font-size: 12.5px; text-align: center; }
-.doe-clean input[type="date"].doe-in:focus { outline: none; border-color: #2e7d32; box-shadow: 0 0 0 3px rgba(46,125,50,.12); }
+.doe-clean input[type="date"].doe-in:focus { outline: none; border-color: #2e7d32; box-shadow: none; }
 body.dark-mode .env-tbl.doe-clean th { border-bottom-color: #2f4034; }
 body.dark-mode .env-tbl.doe-clean td { border-bottom-color: #2a3a2f; }
 body.dark-mode .env-tbl.doe-clean tbody tr:nth-child(odd), body.dark-mode .env-tbl.doe-clean tbody tr:nth-child(even) { background: var(--bg-card); }
@@ -7083,7 +7079,7 @@ body.dark-mode .doe-clean input[type="date"].doe-in { border-color: #3a4d3f; }
 .pl-modal .modal-subtitle { text-align: left; font-size: 0.72rem; margin: 3px 0 0; }
 .pl-modal .modal-close { flex: none; }
 .pl-search { width: 100%; box-sizing: border-box; padding: 9px 12px; margin-bottom: 12px; flex: none; border: 1px solid #a5d6a7; border-radius: 8px; background: var(--bg-card); color: var(--text-primary); font-size: 0.78rem; outline: none; }
-.pl-search:focus { border-color: #2e7d32; box-shadow: 0 0 0 2px rgba(46,125,50,.12); }
+.pl-search:focus { border-color: #2e7d32; box-shadow: none; }
 .pl-table-wrap { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; background: #fff; border: 1px solid #e3e9e4; border-radius: 10px; }
 .pl-modal table.pl-table { width: 100%; min-width: 0; table-layout: fixed; border-collapse: collapse; font-size: .72rem; }
 .pl-modal .pl-table th,
@@ -7566,10 +7562,10 @@ header { padding: 4px 15px; }
     outline: none;
     border-color: #2e7d32 !important;
     background-color: #fff !important;
-    box-shadow: 0 0 0 3px rgba(46,125,50,.15);
+    box-shadow: none !important;
 }
 body.dark-mode #search-input { border-color: #444 !important; background-color: #3a3a3a !important; }
-body.dark-mode #search-input:focus { border-color: #66bb6a !important; box-shadow: 0 0 0 3px rgba(102,187,106,.2); }
+body.dark-mode #search-input:focus { border-color: #66bb6a !important; box-shadow: none !important; }
 /* Overall Summary search dropdown rows */
 .os-sr-row { padding: 8px 14px; cursor: pointer; border-bottom: 1px solid #f3f4f6; }
 .os-sr-row:last-child { border-bottom: 0; }
@@ -7581,8 +7577,8 @@ body.dark-mode #search-input:focus { border-color: #66bb6a !important; box-shado
 /* Single focus ring only: cancel the global focus-visible outline/ring and the scale(1.01) on focus */
 #search-input:focus,
 #search-input:focus-visible { outline: none !important; transform: none; }
-#search-input:focus-visible { box-shadow: 0 0 0 3px rgba(46,125,50,.15) !important; }
-body.dark-mode #search-input:focus-visible { box-shadow: 0 0 0 3px rgba(102,187,106,.2) !important; }
+#search-input:focus-visible { box-shadow: none !important; }
+body.dark-mode #search-input:focus-visible { box-shadow: none !important; }
 
 /* ===== PERSONNEL TAB — CORPORATE BANNER: single line, walang duplicate ===== */
 #p-grp-banner-CORP_OFFICE .region-name::after { display: none; }
@@ -9463,3 +9459,20 @@ body.dark-mode #login-overlay .login-float input:focus + label { color: #e0e0e0;
 #login-overlay .login-footer strong { color: #374151 !important; }
 body.dark-mode #login-overlay .login-footer { color: #ccc; border-top-color: #414141; }
 body.dark-mode #login-overlay .login-footer strong { color: #aaa !important; }
+
+/* ── PLAIN FIELD FOCUS (same as login inputs): green border only — no glow, no outline ring, no scale ── */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus-visible,
+select:focus, select:focus-visible,
+textarea:focus, textarea:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+    border-color: #2e7d32;
+}
+body.dark-mode input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus,
+body.dark-mode input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus-visible,
+body.dark-mode select:focus, body.dark-mode select:focus-visible,
+body.dark-mode textarea:focus, body.dark-mode textarea:focus-visible {
+    border-color: #81c784;
+}
