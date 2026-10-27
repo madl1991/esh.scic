@@ -9608,3 +9608,64 @@ body.dark-mode [id^="p-grp-body-"] .p-row-num { background: none !important; col
 /* ── Personnel Corporate banner follows the Overall Summary banner (subtitle black, same as overall-rb) ── */
 #p-grp-banner-CORP_OFFICE.overall-rb .region-name::after { color: #000 !important; opacity: 1 !important; }
 body.dark-mode #p-grp-banner-CORP_OFFICE.overall-rb .region-name::after { color: #fff !important; }
+
+/* LOGIN — "Compliance" word: bold, vertical gold gradient, tight letter spacing */
+#login-overlay .login-left-title { font-weight: 900; letter-spacing: -0.02em; }
+#login-overlay .login-left-title .c-gold {
+    background: linear-gradient(180deg, #ffc533 0%, #f5a800 50%, #d98200 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+}
+
+/* ═══ No outlines: dialog boxes, toasts, pills ═══
+   border-color is made transparent (not removed) so sizes do not shift by 1-2px.
+   To undo: delete this block and the one below it. */
+.ux-dialog,
+body.dark-mode .ux-dialog,
+.confirm-modal-content,
+.success-modal-content,
+body.dark-mode .confirm-modal-content,
+body.dark-mode .success-modal-content,
+.toast,
+body.dark-mode .toast,
+#sync-status-pill,
+body.dark-mode #sync-status-pill,
+.tab-info-bar .tib-pill,
+.tab-info-bar .tib-pill-green,
+.tab-info-bar .tib-pill-yellow,
+body.dark-mode .tab-info-bar .tib-pill-green,
+body.dark-mode .tab-info-bar .tib-pill-yellow,
+.chat-room-pill,
+.chat-room-pill.active,
+.chat-room-pill:hover:not(.active),
+body.dark-mode .chat-room-pill:hover:not(.active),
+.ltadl-pill span,
+.ltadl-pill input:checked + span,
+.ltadl[data-mode="scheduled"] .ltadl-pill input:checked + span,
+.cga-pill,
+.sum-total-pill,
+.lta-summary-pill,
+.rpt-pill,
+.rpt-pill.gold,
+.rpt-pill.view,
+body.dark-mode .rpt-pill,
+body.dark-mode .rpt-pill.gold,
+body.dark-mode .rpt-pill.view {
+    border-color: transparent !important;
+}
+
+/* ═══ No outlines: buttons and badges ═══ */
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+[role="button"],
+[class*="btn"],
+.ux-btn,
+body.dark-mode .ux-btn,
+[class*="badge"],
+.status-badge,
+.rbadge,
+.badge {
+    border-color: transparent !important;
+}
