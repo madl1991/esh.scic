@@ -9,7 +9,7 @@
     <!-- OPTIMIZED: consolidated font load — only weights actually used, preconnect for speed -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
     // ── GLOBAL REGION COLOR SOURCE OF TRUTH ──────────────────────────────────
@@ -1909,10 +1909,9 @@
                 var d = banner = document.createElement('div');
                 d.id = 'esh-update-banner';
                 d.setAttribute('role', 'status');
-                d.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:999999;background:#1b5e20;color:#fff;padding:10px 16px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.35);font-weight:600;font-size:0.8rem;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 24px);';
-                d.innerHTML = '<span><i class="fas fa-rotate"></i> A new update is available.</span>'
-                    + '<button type="button" data-act="reload" style="background:#fff;color:#1b5e20;border:0;border-radius:6px;padding:4px 10px;font-weight:700;font-size:0.8rem;cursor:pointer;">Reload</button>'
-                    + '<button type="button" data-act="dismiss" title="Dismiss" aria-label="Dismiss" style="background:transparent;color:#fff;border:0;font-size:1rem;cursor:pointer;line-height:1;">&times;</button>';
+                d.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:999999;background:var(--bg-card,#fff);color:var(--text-primary,#1d2b20);padding:6px 8px 6px 14px;border-radius:999px;box-shadow:0 3px 14px rgba(0,0,0,0.18);font-weight:500;font-size:0.78rem;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 24px);';
+                d.innerHTML = '<span>New update</span>'
+                    + '<button type="button" data-act="reload" style="background:var(--safety-yellow,#fbc02d);color:#3b2f00;border:0;border-radius:999px;padding:5px 13px;font-weight:600;font-size:0.78rem;cursor:pointer;font-family:inherit;">Reload</button>';
                 d.addEventListener('click', function(e) {
                     var act = e.target.getAttribute && e.target.getAttribute('data-act');
                     if (act === 'reload') reload(e.target);
