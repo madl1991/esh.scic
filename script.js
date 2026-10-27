@@ -2081,25 +2081,88 @@ function applyNumFmtToInputs() {
             usersPresenceRef: null,
             activityTimeout: null,
             lastActivityTime: Date.now(),
-            
+            _serverOffset: 0,        // difference between Firebase server clock and this device clock
+            _unsubs: [],             // Firebase listeners to detach on logout / re-login
+            _heartbeatInterval: null,
+            _staleCleanupInterval: null,
+            _activityBound: false,
+            _needsRegister: false,
+            _firstOnlineResolve: null,
+            _baseData: null,
+            _currentStatus: 'online',
+
+            // Server-based time. Device clocks can differ, so lastSeen must not rely on Date.now() alone.
+            _now() {
+                return Date.now() + (this._serverOffset || 0);
+            },
+
+            _fullData() {
+                const now = this._now();
+                return Object.assign({}, this._baseData, {
+                    status: this._currentStatus || 'online',
+                    currentActivity: {
+                        action: 'viewing',
+                        tab: state.currentTab,
+                        project: null,
+                        cell: null,
+                        timestamp: now
+                    },
+                    lastSeen: now,
+                    lastActive: now - (Date.now() - this.lastActivityTime)
+                });
+            },
+
+            // Register "remove me if I disconnect" FIRST, then write presence.
+            // Runs on first login AND on every reconnect (wifi drop, sleep, etc.)
+            async _goOnline() {
+                if (!this.myPresenceRef || !this._baseData) return;
+                try {
+                    await window.firebase.onDisconnect(this.myPresenceRef).remove();
+                } catch (e) { }
+                const presenceData = this._fullData();
+                try {
+                    await window.firebase.set(this.myPresenceRef, presenceData);
+                } catch (e) {
+                    if (e.code === 'PERMISSION_DENIED' || (e.message && e.message.includes('permission_denied'))) {
+                        try {
+                            const cu = window.firebaseAuth?.currentUser;
+                            if (cu) await cu.getIdToken(true);
+                            await new Promise(r => setTimeout(r, 500));
+                            await window.firebase.set(this.myPresenceRef, this._fullData());
+                        } catch (e2) { }
+                    }
+                }
+                this._needsRegister = false;
+            },
+
+            _teardown() {
+                if (this._heartbeatInterval) { clearInterval(this._heartbeatInterval); this._heartbeatInterval = null; }
+                if (this._staleCleanupInterval) { clearInterval(this._staleCleanupInterval); this._staleCleanupInterval = null; }
+                (this._unsubs || []).forEach(fn => { try { if (typeof fn === 'function') fn(); } catch (e) { } });
+                this._unsubs = [];
+            },
+
             async initialize(userId, userEmail) {
                 if (!window.firebaseRealtimeDb) {
                     return;
                 }
-                
+
+                // Clear anything left from a previous login in the same page
+                this._teardown();
+
                 const userInfo = UserAccounts.getUserInfo(userEmail);
                 const deviceInfo = DeviceFingerprint.getPlatformInfo();
-                
+
                 this.myPresenceRef = window.firebase.dbRef(
                     window.firebaseRealtimeDb,
                     `presence/${userId}`
                 );
-                
+
                 this.usersPresenceRef = window.firebase.dbRef(
                     window.firebaseRealtimeDb,
                     'presence'
                 );
-                
+
                 const resolvedDisplayName = userInfo.displayName && userInfo.displayName !== 'Administrator'
                     ? userInfo.displayName
                     : (state.currentUser?.displayName
@@ -2107,55 +2170,60 @@ function applyNumFmtToInputs() {
                         || (userInfo.role === 'admin' ? 'ESH Admin' : userEmail.split('@')[0]));
 
                 this._userEmail = userEmail;
+                this._currentStatus = 'online';
+                this.lastActivityTime = Date.now();
 
-                const presenceData = {
-                    status: 'online',
+                // Fields that never change during a session. Re-sent on every heartbeat
+                // so the entry always heals itself if it was removed.
+                this._baseData = {
                     displayName: resolvedDisplayName,
                     email: userEmail,
                     role: userInfo.role,
                     region: userInfo.region,
                     color: userInfo.color,
-                    currentActivity: {
-                        action: 'viewing',
-                        tab: state.currentTab,
-                        project: null,
-                        cell: null,
-                        timestamp: Date.now()
-                    },
-                    lastSeen: Date.now(),
-                    deviceId: state.deviceFingerprint,
-                    platform: deviceInfo.platform,
-                    browser: deviceInfo.browser
+                    deviceId: state.deviceFingerprint || null,
+                    platform: deviceInfo.platform || null,
+                    browser: deviceInfo.browser || null
                 };
-                
+
+                // Server clock offset (fixes wrong "stale" results when device clocks differ)
                 try {
-                    await window.firebase.set(this.myPresenceRef, presenceData);
-                } catch(e) {
-                    if (e.code === 'PERMISSION_DENIED' || (e.message && e.message.includes('permission_denied'))) {
-                        try {
-                            const cu = window.firebaseAuth?.currentUser;
-                            if (cu) await cu.getIdToken(true);
-                            await new Promise(r => setTimeout(r, 500));
-                            await window.firebase.set(this.myPresenceRef, presenceData);
-                        } catch(e2) {
+                    const offRef = window.firebase.dbRef(window.firebaseRealtimeDb, '.info/serverTimeOffset');
+                    const u1 = window.firebase.onValue(offRef, (snap) => {
+                        this._serverOffset = Number(snap.val()) || 0;
+                    });
+                    this._unsubs.push(u1);
+                } catch (e) { }
+
+                // Connection listener: fires now and again after every reconnect
+                const firstOnline = new Promise(res => { this._firstOnlineResolve = res; });
+                try {
+                    const connRef = window.firebase.dbRef(window.firebaseRealtimeDb, '.info/connected');
+                    const u2 = window.firebase.onValue(connRef, (snap) => {
+                        if (snap.val() === true) {
+                            this._goOnline().finally(() => {
+                                if (this._firstOnlineResolve) {
+                                    this._firstOnlineResolve();
+                                    this._firstOnlineResolve = null;
+                                }
+                            });
                         }
-                    } else {
-                    }
+                    });
+                    this._unsubs.push(u2);
+                } catch (e) {
+                    await this._goOnline();
                 }
-                
-                const disconnectRef = window.firebase.onDisconnect(this.myPresenceRef);
-                disconnectRef.remove();
-                
+                await Promise.race([firstOnline, new Promise(r => setTimeout(r, 5000))]);
+
                 if (userInfo.role === 'admin') {
                     this.startPresenceListener();
                 }
-                
+
                 this.setupActivityTracking();
-                
             },
-            
+
             startPresenceListener() {
-                window.firebase.onValue(this.usersPresenceRef, (snapshot) => {
+                const u = window.firebase.onValue(this.usersPresenceRef, (snapshot) => {
                     const presenceData = snapshot.val() || {};
                     state.activeUsers = presenceData;
 
@@ -2163,7 +2231,8 @@ function applyNumFmtToInputs() {
                         this.updateActiveUsersUI();
                         if (typeof renderForceLogoutList === 'function') renderForceLogoutList();
                     }
-                });
+                }, () => { });
+                this._unsubs.push(u);
 
                 if (this._staleCleanupInterval) clearInterval(this._staleCleanupInterval);
                 this._staleCleanupInterval = setInterval(() => {
@@ -2174,7 +2243,7 @@ function applyNumFmtToInputs() {
             },
 
             async _autoCleanupStale(presenceData) {
-                const now = Date.now();
+                const now = this._now();
                 const STALE_MS = 10 * 60 * 1000;
                 const SAFE_MS  = 5 * 60 * 1000;
                 for (const [uid, data] of Object.entries(presenceData)) {
@@ -2191,86 +2260,119 @@ function applyNumFmtToInputs() {
                 }
             },
 
+            async _heartbeat() {
+                if (!this.myPresenceRef || !this._baseData) return;
+                const idleTime = Date.now() - this.lastActivityTime;
+                const newStatus = idleTime > 5 * 60 * 1000 ? 'idle' : 'online';
+                this._currentStatus = newStatus;
+
+                try {
+                    if (this._needsRegister) {
+                        // Entry was removed (e.g. "Leave site?" dialog was cancelled): put it back in full
+                        await this._goOnline();
+                    } else {
+                        // Full identity fields every time, so a removed entry never comes back as "Unknown User"
+                        await window.firebase.update(this.myPresenceRef, Object.assign({}, this._baseData, {
+                            status: newStatus,
+                            lastSeen: this._now(),
+                            lastActive: this._now() - (Date.now() - this.lastActivityTime),
+                            'currentActivity/tab': state.currentTab
+                        }));
+                    }
+                } catch(e) {  }
+
+                if (state.isAdmin && state.isLoggedIn) {
+                    this.updateActiveUsersUI();
+                }
+            },
+
             setupActivityTracking() {
-                const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
-                
-                events.forEach(event => {
-                    document.addEventListener(event, () => {
-                        this.lastActivityTime = Date.now();
-                        if (this._currentStatus !== 'online') {
-                            this._currentStatus = 'online';
-                            this.updateStatus('online');
+                if (!this._activityBound) {
+                    this._activityBound = true;
+                    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+
+                    events.forEach(event => {
+                        document.addEventListener(event, () => {
+                            this.lastActivityTime = Date.now();
+                            if (this.myPresenceRef && this._currentStatus !== 'online') {
+                                this._currentStatus = 'online';
+                                this.updateStatus('online').catch(() => { });
+                            }
+                        });
+                    });
+
+                    // Browsers slow down timers in background tabs. When the user comes back, update right away.
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible' && this.myPresenceRef) {
+                            this.lastActivityTime = Date.now();
+                            this._heartbeat();
                         }
                     });
-                });
+                }
 
-                this._heartbeatInterval = setInterval(async () => {
-                    const idleTime = Date.now() - this.lastActivityTime;
-                    const newStatus = idleTime > 5 * 60 * 1000 ? 'idle' : 'online';
-
-                    if (this.myPresenceRef) {
-                        try {
-                            await window.firebase.update(this.myPresenceRef, {
-                                status: newStatus,
-                                lastSeen: Date.now()
-                            });
-                            this._currentStatus = newStatus;
-                        } catch(e) {  }
-                    }
-
-                    if (state.isAdmin && state.isLoggedIn) {
-                        this.updateActiveUsersUI();
-                    }
-                }, 15000);
+                if (this._heartbeatInterval) clearInterval(this._heartbeatInterval);
+                this._heartbeatInterval = setInterval(() => this._heartbeat(), 15000);
             },
-            
+
             async updateStatus(status) {
                 if (!this.myPresenceRef) return;
-                
+
                 await window.firebase.update(this.myPresenceRef, {
                     status: status,
-                    lastSeen: Date.now()
+                    lastSeen: this._now()
                 });
             },
-            
+
             async updateActivity(action, details = {}) {
                 if (!this.myPresenceRef) return;
-                
-                await window.firebase.update(this.myPresenceRef, {
-                    'currentActivity/action': action,
-                    'currentActivity/tab': details.tab || state.currentTab,
-                    'currentActivity/project': details.project || null,
-                    'currentActivity/cell': details.cell || null,
-                    'currentActivity/timestamp': Date.now(),
-                    lastSeen: Date.now()
-                });
+                try {
+                    await window.firebase.update(this.myPresenceRef, {
+                        'currentActivity/action': action,
+                        'currentActivity/tab': details.tab || state.currentTab,
+                        'currentActivity/project': details.project || null,
+                        'currentActivity/cell': details.cell || null,
+                        'currentActivity/timestamp': this._now(),
+                        lastSeen: this._now()
+                    });
+                } catch (e) { }
             },
-            
+
+            // Project opened / closed (shown in the active users list)
+            setProject(name, editing) {
+                return this.updateActivity(editing ? 'editing' : 'viewing', { tab: state.currentTab, project: name });
+            },
+            clearProject() {
+                return this.updateActivity('viewing', { tab: state.currentTab });
+            },
+
             updateActiveUsersUI() {
                 if (!state.isAdmin) return;
-                
+
                 const usersList = document.getElementById('users-list');
                 const usersBadge = document.getElementById('users-count-badge');
                 const container = document.getElementById('active-users-container');
-                
+
                 if (!usersList || !usersBadge || !container) {
                     return;
                 }
-                
+
                 container.style.display = 'inline-block';
-                
-                const users = Object.entries(state.activeUsers || {});
-                const now = Date.now();
-                const STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes — entries are auto-cleaned after this
-                
-                const onlineCount = users.filter(([, data]) => {
-                    if (data.status !== 'online') return false;
-                    if (data.lastSeen && (now - data.lastSeen) > STALE_THRESHOLD) return false;
+
+                const now = this._now();
+                const STALE_THRESHOLD = 2 * 60 * 1000; // no heartbeat for 2 minutes = not online anymore
+
+                // Same rule for the list and the badge, so they always match
+                const users = Object.entries(state.activeUsers || {}).filter(([, data]) => {
+                    if (!data || !data.status || data.status === 'offline') return false;
+                    if (!data.email && !data.displayName) return false;
+                    if (!data.lastSeen || (now - data.lastSeen) > STALE_THRESHOLD) return false;
                     return true;
-                }).length;
-                
+                });
+
+                const onlineCount = users.filter(([, data]) => data.status === 'online').length;
+
                 usersBadge.textContent = onlineCount;
-                
+
                 if (users.length === 0) {
                     usersList.innerHTML = `
                         <div class="dropdown-empty">
@@ -2280,98 +2382,145 @@ function applyNumFmtToInputs() {
                     `;
                     return;
                 }
-                
+
                 users.sort((a, b) => {
                     if (a[1].status !== b[1].status) {
                         const statusOrder = { online: 0, idle: 1, offline: 2 };
-                        return statusOrder[a[1].status] - statusOrder[b[1].status];
+                        return (statusOrder[a[1].status] ?? 3) - (statusOrder[b[1].status] ?? 3);
                     }
                     return (a[1].displayName || '').localeCompare(b[1].displayName || '');
                 });
-                
-                usersList.innerHTML = users.map(([userId, data]) => {
-                    const initials = (data.displayName || data.email || 'U').substring(0, 2).toUpperCase();
-                    const activityText = this.getActivityText(data.currentActivity);
-                    const statusClass = `status-${data.status}`;
-                    const statusText = data.status.charAt(0).toUpperCase() + data.status.slice(1);
-                    
+
+
+                const rows = users.map(([userId, data]) => {
+                    const isIdle = data.status === 'idle';
+                    const icon = isIdle ? 'moon' : (data.currentActivity?.action === 'editing' ? 'edit' : 'eye');
                     return `
-                        <div class="dropdown-item">
-                            <div class="user-info">
-                                <div class="user-avatar" style="background: ${data.color || '#2e7d32'}">
-                                    ${initials}
-                                </div>
-                                <div class="user-details">
-                                    <div class="user-name">${data.displayName || 'Unknown User'}</div>
-                                    <div class="user-activity">
-                                        <i class="fas fa-${this.getActivityIcon(data.currentActivity?.action)}"></i>
-                                        ${activityText}
-                                    </div>
-                                    <span class="user-status ${statusClass}">
-                                        <span class="status-indicator"></span>
-                                        ${statusText}
-                                    </span>
-                                </div>
+                        <div class="au-row">
+                            <div class="au-av" title="${this._esc(this._positionOf(data))}" style="background: ${this._esc(data.color || '#2e7d32')}">
+                                ${this._avatarHtml(data)}<i class="au-dot ${isIdle ? 'idle' : ''}"></i>
                             </div>
+                            <div class="au-who">
+                                <div class="au-act" title="${this._esc(this._activityLine(data.currentActivity, data.status))}"><i class="fas fa-${icon}"></i><span>${this._esc(this._activityLine(data.currentActivity, data.status))}</span></div>
+                            </div>
+                            <div class="au-when ${isIdle ? 'idle' : ''}">${this._whenText(data, now)}</div>
                         </div>
                     `;
                 }).join('');
+
+                usersList.innerHTML = `
+                    <div class="au-wrap">
+                        ${rows}
+                        <div class="au-foot">Updates live. Idle after 5 minutes.</div>
+                    </div>
+                `;
             },
-            
-            getTimeSince(timestamp) {
-                if (!timestamp) return 'Unknown';
-                
-                const seconds = Math.floor((Date.now() - timestamp) / 1000);
-                
-                if (seconds < 10) return 'Just now';
-                if (seconds < 60) return `${seconds}s ago`;
-                if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-                if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-                return `${Math.floor(seconds / 86400)}d ago`;
+
+            // Avatar label per account email (falls back to 2 initials)
+            _AVATAR_LABELS: {
+                'esh@tgm.com.ph': 'TGM',
+                'esh@mab.com.ph': 'MAB',
+                'esh@wda.com.ph': 'WDA',
+                'esh@lmp.com.ph': 'LMP',
+                'esh@corpdc.com.ph': 'DC',
+                'esh@cbmganda.com.ph': 'CBM',
+                'esh@health.com.ph': 'HEALTH',
+                'esh@visminpco.com.ph': 'PCO VISMIN',
+                'esh@northpco.com.ph': 'PCO NORTH',
+                'esh@southpco.com.ph': 'PCO SOUTH',
+                'esh@ncrpco.com.ph': 'PCO NCR',
+                'esh@scic.com.ph': 'ADMIN',
+                'esh@ncr.com.ph': 'AMA',
+                'esh@north.com.ph': 'RST',
+                'esh@south.com.ph': 'MDL',
+                'esh@vismin.com.ph': 'GGM'
             },
-            
-            getActivityText(activity) {
-                if (!activity) return 'Idle';
-                
-                const action = activity.action || 'viewing';
-                const tab = activity.tab || 'dashboard';
-                const project = activity.project;
-                
-                if (action === 'editing' && project) {
-                    return `Editing ${tab.toUpperCase()} - ${project}`;
-                }
-                if (action === 'viewing' && project) {
-                    return `Viewing ${project}`;
-                }
-                return `${action.charAt(0).toUpperCase() + action.slice(1)} ${tab}`;
+
+            // Position shown as tooltip on each row
+            _POSITIONS: {
+                'esh@scic.com.ph': 'Dashboard Author',
+                'esh@ncr.com.ph': 'NCR Superintendent',
+                'esh@north.com.ph': 'North Superintendent',
+                'esh@south.com.ph': 'South Superintendent',
+                'esh@vismin.com.ph': 'VisMin Superintendent',
+                'esh@tgm.com.ph': 'QESH GM (Group Manager)',
+                'esh@mab.com.ph': 'QESH Deputy GM',
+                'esh@wda.com.ph': 'ESH Manager for Regulation & Compliance',
+                'esh@lmp.com.ph': 'ESH Manager for Project Implementation',
+                'esh@corpdc.com.ph': 'QESH Corporate DC',
+                'esh@cbmganda.com.ph': 'Environmental and Sustainability Head',
+                'esh@health.com.ph': 'Corporate Nurse',
+                'esh@visminpco.com.ph': 'PCO VisMin',
+                'esh@northpco.com.ph': 'PCO North',
+                'esh@southpco.com.ph': 'PCO South',
+                'esh@ncrpco.com.ph': 'PCO NCR'
             },
-            
-            getActivityIcon(action) {
-                const icons = {
-                    editing: 'edit',
-                    viewing: 'eye',
-                    idle: 'moon'
-                };
-                return icons[action] || 'circle';
+
+            _positionOf(data) {
+                const email = String(data.email || '').trim().toLowerCase();
+                return this._POSITIONS[email] || data.displayName || data.email || 'Unknown User';
             },
-            
+
+            _esc(s) {
+                return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+            },
+
+            _avatarHtml(data) {
+                const email = String(data.email || '').trim().toLowerCase();
+                const label = this._AVATAR_LABELS[email]
+                    || (data.displayName || data.email || 'U').substring(0, 2).toUpperCase();
+                const parts = label.split(' ');
+                const longest = Math.max.apply(null, parts.map(p => p.length));
+                const size = longest <= 3 ? 9.5 : (longest <= 5 ? 7.5 : 6.5);
+                return '<span class="au-av-t" style="font-size:' + size + 'px">' + parts.map(p => this._esc(p)).join('<br>') + '</span>';
+            },
+
+            _activityLine(activity, status) {
+                const a = activity || {};
+                let tabLabel = a.tab || 'dashboard';
+                try { if (typeof navTitle === 'function') tabLabel = navTitle(a.tab || 'dashboard'); } catch (e) { }
+                const base = a.project ? tabLabel + ' - ' + a.project : tabLabel;
+                if (status === 'idle') return 'Last on ' + base;
+                return (a.action === 'editing' ? 'Editing ' : '') + base;
+            },
+
+            _whenText(data, now) {
+                if (data.status !== 'idle') return 'Now';
+                if (!data.lastActive) return 'Idle';
+                const m = Math.max(1, Math.floor((now - data.lastActive) / 60000));
+                return m < 60 ? 'Idle ' + m + 'm' : 'Idle ' + Math.floor(m / 60) + 'h';
+            },
+
             async refreshDisplayName(displayName) {
                 if (!this.myPresenceRef || !displayName) return;
+                if (this._baseData) this._baseData.displayName = displayName;
                 try {
                     await window.firebase.update(this.myPresenceRef, { displayName });
                 } catch(e) {
                 }
             },
 
-            async cleanup() {
-                if (this.myPresenceRef) {
-                    try {
-                        await window.firebase.remove(this.myPresenceRef);
-                    } catch(e) {
-                    }
+            // opts.soft = true: only used on page unload. Removes my entry but keeps timers and listeners,
+            // so if the user cancels the "Leave site?" dialog the heartbeat puts the entry back.
+            async cleanup(opts) {
+                const ref = this.myPresenceRef;
+                if (opts && opts.soft) {
+                    this._needsRegister = true;
+                    if (ref) { try { await window.firebase.remove(ref); } catch (e) { } }
+                    return;
                 }
+                this._teardown();
+                if (ref) {
+                    try { await window.firebase.onDisconnect(ref).cancel(); } catch (e) { }
+                    try { await window.firebase.remove(ref); } catch (e) { }
+                }
+                this.myPresenceRef = null;
+                this.usersPresenceRef = null;
+                this._baseData = null;
+                state.activeUsers = {};
             }
         };
+        window.PresenceTracker = PresenceTracker;
         
         LoginLogbook.loadFromStorage();
         
@@ -2855,6 +3004,7 @@ function applyNumFmtToInputs() {
             dropdown.classList.toggle('hidden');
             
             if (!dropdown.classList.contains('hidden')) {
+                if (window.PresenceTracker) PresenceTracker.updateActiveUsersUI();
                 setTimeout(() => {
                     document.addEventListener('click', closeUsersDropdownOnClickOutside);
                 }, 0);
@@ -3618,7 +3768,9 @@ function applyNumFmtToInputs() {
 
                 sortedProjectNames.forEach(projectName => {
                     const tabs = projectOverdues[projectName];
-                    html += `<div class="notification-group"><i class="fas fa-building"></i><span>${projectName}</span><b>${tabs.length}</b></div>`;
+                    window._notifOpen = window._notifOpen || new Set();
+                    const _grpOpen = window._notifOpen.has(projectName);
+                    html += `<div class="notification-group${_grpOpen ? ' open' : ''}" data-pn="${encodeURIComponent(projectName)}" onclick="toggleNotifGroup(this)"><i class="fas fa-chevron-right notif-chev"></i><i class="fas fa-building"></i><span>${projectName}</span><b>${tabs.length}</b></div><div class="notif-group-body${_grpOpen ? ' open' : ''}">`;
                     tabs.forEach(tabInfo => {
                         const isOsh      = tabInfo.isOsh === true;
                         const isExpired  = tabInfo.isExpired === true;
@@ -3645,11 +3797,24 @@ function applyNumFmtToInputs() {
                             </div>
                         `;
                     });
+                    html += '</div>';
                 });
 
                 notificationList.innerHTML = html;
             }
         }
+
+        // Collapse / expand one project in the overdue reports list (collapsed by default, open state is remembered)
+        window.toggleNotifGroup = function (head) {
+            const body = head.nextElementSibling;
+            if (!body) return;
+            const name = decodeURIComponent(head.getAttribute('data-pn') || '');
+            const open = !body.classList.contains('open');
+            body.classList.toggle('open', open);
+            head.classList.toggle('open', open);
+            window._notifOpen = window._notifOpen || new Set();
+            if (open) window._notifOpen.add(name); else window._notifOpen.delete(name);
+        };
 
         function redirectToProjectTable(projectName, tabName) {
             document.getElementById('notification-dropdown').classList.add('hidden');
@@ -5107,6 +5272,7 @@ function applyNumFmtToInputs() {
             }
             state.currentTab = t;
             localStorage.setItem('esh_last_tab', t);
+            if (window.PresenceTracker) PresenceTracker.updateActivity('viewing', { tab: t });
             document.querySelectorAll('.nav-item').forEach(n => {
                 const isActive = n.dataset.tab === t;
                 n.classList.toggle('active', isActive);
@@ -9641,6 +9807,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         window.openLtaModal = function(pName, idx, editMode) {
             const p = state.projects.find(x => x.name === pName);
             if (!p) return;
+            if (window.PresenceTracker) PresenceTracker.setProject(pName, !!editMode);
             const entries = p.vals['lta-registry_entries'] || [];
             const isNew = (idx === -1);
             const e = isNew ? {
@@ -20011,11 +20178,11 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
         <tr id="p-row-${origIdx}" style="${rowBg}">
             <td style="text-align:left;position:sticky;left:0;z-index:5;${stickyBg}padding:5px 10px 5px 12px;white-space:nowrap;">
                 <span class="p-row-num">${di}</span>
-                <span class="p-view-text" onclick="pcViewPersonnel(${origIdx})" style="display:inline-block;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;cursor:pointer;text-decoration:none;${hasToUpdate?'color:#c62828;font-weight:800;':'color:#1b5e20;font-weight:700;'}">${(p.name||'').toUpperCase()}</span>
+                <span class="p-view-text" onclick="pcViewPersonnel(${origIdx})" style="display:inline-block;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;cursor:pointer;text-decoration:none;${hasToUpdate?'color:#c62828;font-weight:800;':'color:var(--text-primary);font-weight:400;'}">${(p.name||'').toUpperCase()}</span>
                 ${hasToUpdate ? `<i class="fas fa-circle-exclamation" title="TO UPDATE" style="font-size:0.75rem;color:#ef5350;margin-left:5px;vertical-align:middle;"></i>` : ''}
             </td>
             <td style="text-align:center;padding:5px 8px;white-space:nowrap;">${posDisplay}</td>
-            <td style="text-align:center;padding:5px 14px;white-space:nowrap;font-size:0.72rem;color:#555;font-weight:600;">${p.id||'—'}</td>
+            <td style="text-align:center;padding:5px 14px;white-space:nowrap;font-size:0.72rem;color:var(--text-primary);font-weight:400;">${p.id||'—'}</td>
             ${_certCell}
             ${state.isEditing ? `<td style="text-align:center;padding:5px 12px;white-space:nowrap;">${personnelEditBtn(origIdx, (window._pRegionMap||{})[p.current] || 'OTHER')}</td>` : ''}
         </tr>`;
@@ -20220,25 +20387,22 @@ function renderPTable() {
             <tr id="p-row-${origIdx}" style="${_rowBg}">
                 <td style="text-align:left;position:sticky;left:0;z-index:5;${_stickyBg}padding:5px 10px 5px 12px;white-space:nowrap;">
                     <span class="p-row-num">${di}</span>
-                    <span class="p-view-text" onclick="pcViewPersonnel(${origIdx})" style="display:inline-block;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;cursor:pointer;text-decoration:none;${_hasToUpdate?'color:#c62828;font-weight:800;':'color:#1b5e20;font-weight:700;'}">${(p.name||'').toUpperCase()}</span>
+                    <span class="p-view-text" onclick="pcViewPersonnel(${origIdx})" style="display:inline-block;vertical-align:middle;font-size:0.72rem;text-transform:uppercase;cursor:pointer;text-decoration:none;${_hasToUpdate?'color:#c62828;font-weight:800;':'color:var(--text-primary);font-weight:400;'}">${(p.name||'').toUpperCase()}</span>
                     ${_hasToUpdate ? `<i class="fas fa-circle-exclamation" title="TO UPDATE" style="font-size:0.75rem;color:#ef5350;margin-left:5px;vertical-align:middle;"></i>` : ''}
                 </td>
                 <td style="text-align:center;padding:5px 8px;white-space:nowrap;">${posDisplay}</td>
-                <td style="text-align:center;padding:5px 14px;white-space:nowrap;font-size:0.72rem;color:#555;font-weight:600;">${p.id||'—'}</td>
+                <td style="text-align:center;padding:5px 14px;white-space:nowrap;font-size:0.72rem;color:var(--text-primary);font-weight:400;">${p.id||'—'}</td>
                 ${state.isEditing ? `<td style="text-align:center;padding:5px 12px;white-space:nowrap;">${personnelEditBtn(origIdx, 'CORPORATE')}</td>` : ''}
             </tr>`;
         });
         const _corpCollapsed = _pCollapsedGroups.has(grpSafe);
         const _corpCanEdit = UserAccounts.canEdit(state.currentUser?.email, 'CORPORATE');
         html += `
-        <div id="p-grp-banner-${grpSafe}" class="region-banner region-corporate${_corpCollapsed?' collapsed':''}${_corpCanEdit?' rb-editable':''}" onclick="pToggleGroup('CORP_OFFICE')" style="margin-bottom:${_corpCollapsed?'6px':'0'};">
+        <div id="p-grp-banner-${grpSafe}" class="region-banner region-corporate overall-rb${_corpCollapsed?' collapsed':''}${_corpCanEdit?' rb-editable':''}" onclick="pToggleGroup('CORP_OFFICE')" style="margin-bottom:${_corpCollapsed?'6px':'0'};">
             <div class="region-banner-inner">
                 <div class="region-banner-left">
                     <i class="fas fa-building-columns region-icon"></i>
-                    <div style="display:flex;flex-direction:column;gap:1px;">
-                        <span class="region-name">CORPORATE</span>
-                        <span style="font-size:0.58rem;font-weight:600;opacity:0.75;letter-spacing:0.3px;">Corporate Office</span>
-                    </div>
+                    <span class="region-name">CORPORATE</span>
                 </div>
                 <div class="region-banner-right">
                     <span class="rbadge rbadge-count">${corpPersonnel.length} PERSONNEL</span>
@@ -21210,6 +21374,7 @@ window.eshCloseModal = function(id) {
     if (!el) return;
     if (el._mdlOnClose) { try { el._mdlOnClose(); } catch (e) {  } }
     el.remove();
+    if (id === 'lta-entry-modal' && window.PresenceTracker) PresenceTracker.clearProject();
 };
 
 // ── Shared NOV section (used by OSH NOV and ENVI NOV modals) ─────────────────
@@ -24433,7 +24598,7 @@ function setupInactivityTimer() {
 
 window.addEventListener('beforeunload', () => {
     if (state.currentUser && state.currentUser.uid) {
-        PresenceTracker.cleanup(); // fire-and-forget is fine here — onDisconnect is the real safety net
+        PresenceTracker.cleanup({ soft: true }); // fire-and-forget is fine here — onDisconnect is the real safety net
     }
     // Save current scroll position per tab
     if (state.currentTab) {
@@ -30411,7 +30576,7 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
     ];
 
     const OSH_8HR_LABEL = '8-Hr Mandatory OSH Training';
-    let html = `<table class="esh-table">
+    let html = `<table class="esh-table esh-plain">
         <thead>
             <tr>
                 <th class="esh-th-name" rowspan="2">Training / Awareness</th>`;
@@ -30595,7 +30760,7 @@ function buildDrillsSingleTable(projects, storage, col) {
         ...customDrillRows.map((r, i) => ({ name: r.name||r, freq: r.freq||'Once a year', _custom: true, _customIdx: i }))
     ];
 
-    let html = `<table class="esh-table">
+    let html = `<table class="esh-table esh-plain">
         <thead>
             <tr>
                 <th class="esh-th-name" rowspan="2">Emergency Drill Type</th>
@@ -30605,7 +30770,7 @@ function buildDrillsSingleTable(projects, storage, col) {
     });
     html += `</tr><tr>`;
     ESH_MONTHS.forEach(() => {
-        html += `<th class="esh-th-plan">Plan</th><th class="esh-th-actual">Actual</th><th style="background:#b0bec5;color:#1b5e20;font-size:0.58rem;font-weight:700;min-width:34px;">N/A</th>`;
+        html += `<th class="esh-th-plan">Plan</th><th class="esh-th-actual">Actual</th><th class="esh-th-na">N/A</th>`;
     });
     html += `</tr></thead><tbody>`;
 
@@ -30631,8 +30796,8 @@ function buildDrillsSingleTable(projects, storage, col) {
                 ${drill.name}
                 ${(isCustom && isAdmin) ? `<button onclick="eshDeleteCustomRow('esh-calendar-drills','${projects[0]?projects[0].name.replace(/'/g,"\\'"):''}',${customIdx})" title="Remove this row" style="float:right;background:none;border:none;color:#c62828;cursor:pointer;font-size:0.75rem;padding:0 3px;opacity:0.6;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="fas fa-trash"></i></button>` : ''}
             </td>
-            <td style="text-align:center;padding:4px 6px;${isNaRow ? 'background:#e0e0e0;' : ''}">
-                <span class="esh-freq-badge" style="background:${isNaRow ? '#aaa' : fp.badge};color:white;">${isNaRow ? 'N/A' : fp.label}</span>
+            <td class="esh-td-freq">
+                <span class="esh-freq"><i style="background:${isNaRow ? '#aaa' : fp.badge};"></i>${isNaRow ? 'N/A' : fp.label}</span>
             </td>`;
 
             ESH_MONTHS.forEach((m, mi) => {
@@ -30670,14 +30835,8 @@ function buildDrillsSingleTable(projects, storage, col) {
                     : `onclick="event.stopPropagation();eshSetPlan('${tabType}','${proj.name}',${storageIdx},${mi},null,this)"`;
                 const planTitle = isNaCell ? 'N/A – not applicable' : (!isAdmin ? 'Admin only' : isPlanned ? 'Click to unschedule' : 'Click to schedule');
 
-                const planFreqColor = {
-                    'Quarterly':    '#43a047',
-                    'Twice a year': '#fdd835',
-                    'Once a year':  '#42a5f5',
-                }[drill.freq] || '#fff9c4';
-                const plannedBg = isPlanned ? planFreqColor : '';
                 html += `<td class="${planClass}" data-tabtype="${tabType}" data-ti="${storageIdx}" data-mi="${mi}" data-freq="${drill.freq}" data-projname="${proj.name.replace(/"/g,'&quot;')}"
-                    ${planOnClick} title="${planTitle}" style="${planCellStyle}${isPlanned && !isNaCell ? 'background:'+planFreqColor+' !important;' : ''}"></td>`;
+                    ${planOnClick} title="${planTitle}" style="${planCellStyle}"></td>`;
 
                 let actualClass = 'esh-td-actual';
                 let actualStyle = '';
@@ -30704,7 +30863,7 @@ function buildDrillsSingleTable(projects, storage, col) {
                 // N/A cell — only show and allow interaction when the month has a plan set
                 if (!isPlanned && !isNaCell) {
                     // No plan set and not N/A — show empty, non-interactive placeholder
-                    html += `<td style="background:#ebebeb;text-align:center;vertical-align:middle;border:1.5px solid #ccc;min-width:34px;padding:2px;" title="Set a Plan first to enable N/A"></td>`;
+                    html += `<td class="esh-td-nacol esh-na-off" title="Set a Plan first to enable N/A"></td>`;
                 } else {
                     const naToggleTitle = isNaCell
                         ? (_canSetNA ? 'Click to remove N/A — restore this drill cell' : 'N/A — This month is excluded from compliance tracking.')
@@ -30712,8 +30871,8 @@ function buildDrillsSingleTable(projects, storage, col) {
                     const naOnClick = (_canSetNA && (isPlanned || isNaCell))
                         ? `onclick="eshToggleDrillNA(event,'${tabType}','${proj.name}',${storageIdx},${mi})"`
                         : '';
-                    html += `<td ${naOnClick} title="${naToggleTitle}" style="background:${isNaCell?'#a0a0a0':'#e0e0e0'};text-align:center;cursor:${(_canSetNA&&(isPlanned||isNaCell))?'pointer':'not-allowed'};vertical-align:middle;border:1.5px solid #bbb;min-width:34px;padding:2px;">
-                        <span style="font-size:0.6rem;font-weight:700;color:${isNaCell?'#fff':'#888'};">${isNaCell?'✓N/A':'N/A'}</span>
+                    html += `<td ${naOnClick} title="${naToggleTitle}" class="esh-td-nacol ${isNaCell?'esh-na-on':'esh-na-off'}" style="cursor:${(_canSetNA&&(isPlanned||isNaCell))?'pointer':'not-allowed'};">
+                        <span class="esh-na-label">${isNaCell?'✓N/A':'N/A'}</span>
                     </td>`;
                 }
             });
@@ -30912,23 +31071,12 @@ window.eshSetPlan = async function(tabType, projName, ti, mi, _unused, tdEl) {
     const nowPlanned = !wasPlanned;
     if (!(await _eshConfirmPlanChange(tabType, ti, mi, nowPlanned))) return;
 
-    const _drillColors = { 'Quarterly': '#43a047', 'Twice a year': '#fdd835', 'Once a year': '#42a5f5' };
-    const planBg = tabType === 'esh-calendar-drills'
-        ? (_drillColors[tdEl?.dataset?.freq || ''] || '#43a047')
-        : '#f9a825';
-
     // ── Update DOM immediately (optimistic UI) ────────────────────────────────
     document.querySelectorAll(
         `.esh-td-plan[data-tabtype="${tabType}"][data-ti="${ti}"][data-mi="${mi}"][data-projname="${projName.replace(/"/g,'&quot;')}"]`
     ).forEach(function(cell) {
         cell.classList.toggle('esh-planned', nowPlanned);
         cell.title = nowPlanned ? 'Click to unschedule' : 'Click to schedule';
-        if (tabType === 'esh-calendar-drills') {
-            const freq = cell.dataset.freq || '';
-            cell.style.background = nowPlanned ? (_drillColors[freq] || '#43a047') : '';
-        } else {
-            cell.style.background = nowPlanned ? '#f9a825' : '';
-        }
         const actualSib = cell.nextElementSibling;
         if (!actualSib || !actualSib.classList.contains('esh-td-actual')) return;
         if (nowPlanned) {
@@ -30982,7 +31130,6 @@ window.eshSetPlan = async function(tabType, projName, ti, mi, _unused, tdEl) {
                 `.esh-td-plan[data-tabtype="${tabType}"][data-ti="${ti}"][data-mi="${mi}"][data-projname="${projName.replace(/"/g,'&quot;')}"]`
             ).forEach(function(cell) {
                 cell.classList.toggle('esh-planned', !nowPlanned);
-                cell.style.background = !nowPlanned ? planBg : '';
             });
         });
 };
@@ -31016,7 +31163,7 @@ window.eshCorpSetPlan = async function(tabType, projName, ti, mi, _unused, tdEl,
     if (tdEl) {
         tdEl.classList.toggle('esh-planned', nowPlanned);
         tdEl.title = planTitle;
-        tdEl.style.background = nowPlanned ? cellColor : '';
+        tdEl.style.setProperty('--dc', cellColor);
         const actualSib = tdEl.nextElementSibling;
         if (actualSib && actualSib.classList.contains('esh-td-actual')) {
             const inp = actualSib.querySelector('input[type="date"]');
@@ -31033,7 +31180,7 @@ window.eshCorpSetPlan = async function(tabType, projName, ti, mi, _unused, tdEl,
         if (cell === tdEl) return;
         cell.classList.toggle('esh-planned', nowPlanned);
         cell.title = planTitle;
-        cell.style.background = nowPlanned ? (drillColor || cell.dataset.drillcolor || '#43a047') : '';
+        cell.style.setProperty('--dc', drillColor || cell.dataset.drillcolor || '#43a047');
     });
 
     // ── Update localStorage optimistically ────────────────────────────────────
@@ -31052,7 +31199,7 @@ window.eshCorpSetPlan = async function(tabType, projName, ti, mi, _unused, tdEl,
             // Rollback
             if (nowPlanned) { delete _s[key]; } else { _s[key] = true; }
             _eshSaveLocal(key, nowPlanned ? null : true);
-            if (tdEl) { tdEl.classList.toggle('esh-planned', !nowPlanned); tdEl.style.background = !nowPlanned ? cellColor : ''; }
+            if (tdEl) { tdEl.classList.toggle('esh-planned', !nowPlanned); }
         });
 };
 
@@ -31286,7 +31433,7 @@ function renderCorpDrillsTab() {
                 <strong>CORPORATE Drills &amp; Activities</strong> — For the Corporate Office only.
                 ${canEdit ? 'Click <strong>Plan</strong> cell to schedule. Enter <strong>Actual</strong> date upon completion.' : ('' + window.icon("lock") + ' View only — Admin can edit.')}
             </div>
-            <div style="overflow-x:auto;"><table class="esh-table">
+            <div style="overflow-x:auto;"><table class="esh-table esh-plain">
                 <thead><tr>
                     <th class="esh-th-name" rowspan="2" style="min-width:260px;">Drill / Training / Activity</th>
                     <th class="esh-th-freq" rowspan="2" style="text-align:center;min-width:90px;">Frequency</th>`;
@@ -31304,12 +31451,12 @@ function renderCorpDrillsTab() {
         const storageIdx = isCustom ? (1000 + customIdx) : di;
 
         html += `<tr>
-            <td class="esh-td-name" style="min-width:260px;border-left:4px solid ${drillColor};">
+            <td class="esh-td-name" style="min-width:260px;">
                 ${isCustom ? '<span style="background:#e8f5e9;color:#1b5e20;border-radius:4px;font-size:0.55rem;font-weight:700;padding:1px 5px;margin-right:5px;vertical-align:middle;">CUSTOM</span>' : ''}
                 ${drill.name}
                 ${(isCustom && canEdit) ? `<button onclick="eshCorpDrillDeleteRow(${customIdx})" title="Remove this row" style="float:right;background:none;border:none;color:#c62828;cursor:pointer;font-size:0.75rem;padding:0 3px;opacity:0.6;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"><i class="fas fa-trash"></i></button>` : ''}
             </td>
-            <td style="text-align:center;padding:4px 6px;"><span class="esh-freq-badge" style="background:${drillColor};color:white;">${drill.freq}</span></td>`;
+            <td class="esh-td-freq"><span class="esh-freq"><i style="background:${drillColor};"></i>${drill.freq}</span></td>`;
 
         ESH_MONTHS.forEach((m, mi) => {
             const planKey = getEshKey(tabType, projName, storageIdx, mi, 'plan');
@@ -31324,7 +31471,7 @@ function renderCorpDrillsTab() {
             if (done) actualClass += ' esh-done';
             else if (overdue) actualClass += ' esh-overdue';
 
-            const planBgStyle = isPlanned ? `background:${drillColor} !important;` : '';
+            const planBgStyle = `--dc:${drillColor};`;
 
             html += `<td class="esh-td-plan${isPlanned?' esh-planned':''}${!canEdit?' esh-plan-locked':''}"
                 style="${planBgStyle}"
@@ -31353,6 +31500,39 @@ function renderCorpDrillsTab() {
     container.innerHTML = html;
 }
 window.renderCorpDrillsTab = renderCorpDrillsTab;
+
+// ── ESH plain tables: dynamic frozen-column offset ───────────────────────────
+// The Frequency column sticks right after the Drill-name column. The name column
+// width depends on its content, so it is measured (and re-measured on resize)
+// and exposed to CSS as --ep-name-w on each table.esh-plain.
+(function () {
+    if (window.__eshPlainSync) return;
+    window.__eshPlainSync = true;
+    const ro = (typeof ResizeObserver !== 'undefined')
+        ? new ResizeObserver(entries => {
+            entries.forEach(en => {
+                const th = en.target, tbl = th.closest('table.esh-plain');
+                if (tbl) tbl.style.setProperty('--ep-name-w', Math.round(th.getBoundingClientRect().width) + 'px');
+            });
+        })
+        : null;
+    function sync() {
+        document.querySelectorAll('table.esh-plain:not([data-ep-sync])').forEach(tbl => {
+            const th = tbl.querySelector('th.esh-th-name');
+            if (!th) return;
+            tbl.setAttribute('data-ep-sync', '1');
+            tbl.style.setProperty('--ep-name-w', Math.round(th.getBoundingClientRect().width) + 'px');
+            if (ro) ro.observe(th);
+        });
+    }
+    let queued = false;
+    new MutationObserver(() => {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(() => { queued = false; sync(); });
+    }).observe(document.body, { childList: true, subtree: true });
+    sync();
+})();
 
 function _eshCustomRowsKey(tabType, projName) {
     return 'esh_custom_rows_' + tabType + '|' + (projName || '');
@@ -33700,11 +33880,13 @@ function osOpenModal(projectName, view) {
     const modal = document.getElementById('os-project-modal');
     eshModalShow(modal);
     setTimeout(() => modal.style.opacity = '1', 10);
+    if (window.PresenceTracker) PresenceTracker.setProject(projectName, false);
 }
 
 function osCloseModal() {
     const modal = document.getElementById('os-project-modal');
     eshModalHide(modal);
+    if (window.PresenceTracker) PresenceTracker.clearProject();
 }
 
 // os-project-modal backdrop click disabled — use × button to close
