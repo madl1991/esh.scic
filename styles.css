@@ -1058,6 +1058,23 @@
 
         .users-dropdown { min-width: 300px; max-width: 380px; }
 
+        /* Active users list (rows are built in PresenceTracker.updateActiveUsersUI) */
+        .au-wrap { --au-text:#1f2a24; --au-muted:#6b7a72; --au-line:#e3e9e5; --au-hover:#f4f8f5; --au-green:#2e7d32; --au-amber:#e56020; --au-ring:#fff; color:var(--au-text); }
+        body.dark-mode .au-wrap { --au-text:#e6ece8; --au-muted:#92a39a; --au-line:#2a353a; --au-hover:#222c31; --au-green:#7ed957; --au-amber:#f08a55; --au-ring:#1b2226; }
+        .au-row { display:flex; align-items:center; gap:10px; padding:7px 14px; }
+        .au-row:hover { background:var(--au-hover); }
+        .au-av { position:relative; width:30px; height:30px; border-radius:50%; color:#fff; font-weight:600; display:flex; align-items:center; justify-content:center; flex:none; }
+        .au-av-t { text-align:center; line-height:1.05; letter-spacing:-.2px; }
+        .au-dot { position:absolute; right:-1px; bottom:-1px; width:9px; height:9px; border-radius:50%; border:1.5px solid var(--au-ring); background:var(--au-green); }
+        .au-dot.idle { background:var(--au-amber); }
+        .au-who { min-width:0; flex:1; }
+        .au-act { display:flex; align-items:center; gap:6px; color:var(--au-text); font-size:12px; min-width:0; }
+        .au-act i { font-size:10px; flex:none; color:var(--au-muted); }
+        .au-act span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .au-when { color:var(--au-muted); font-size:11px; white-space:nowrap; }
+        .au-when.idle { color:var(--au-amber); }
+        .au-foot { padding:7px 14px; border-top:1px solid var(--au-line); color:var(--au-muted); font-size:11px; }
+
         .dropdown-list {
             max-height: 350px;
             overflow-y: auto;
@@ -1065,76 +1082,10 @@
         }
 
         
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 9px 10px;
-            border-radius: 7px;
-            margin: 2px 0;
-            transition: background 0.15s;
-        }
-
         .device-icon { font-size: 0.82rem; color: #2e7d32; }
         body.dark-mode .device-icon { color: #66bb6a; }
 
         
-        .user-info { display: flex; align-items: center; gap: 10px; flex: 1; }
-
-        .user-avatar {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.72rem;
-            color: white;
-            flex-shrink: 0;
-        }
-
-        .user-details { flex: 1; }
-        .user-name     { font-weight: 500; font-size: 0.78rem; color: var(--text-primary); margin-bottom: 1px; }
-        .user-activity { font-size: 0.68rem; color: var(--text-secondary); margin-bottom: 3px; }
-
-        .user-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 0.65rem;
-            padding: 2px 7px;
-            border-radius: 10px;
-            font-weight: 500;
-        }
-
-        .status-online  { background: #e8f5e9; color: #2e7d32; }
-        .status-idle    { background: #fff8e1; color: #f57c00; }
-        .status-offline { background: #fce4ec; color: #c62828; }
-
-        body.dark-mode .status-online  { background: rgba(76,175,80,0.2);  color: #81c784; }
-        body.dark-mode .status-idle    { background: rgba(255,152,0,0.2);   color: #ffb74d; }
-        body.dark-mode .status-offline { background: rgba(244,67,54,0.2);   color: #e57373; }
-
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        .status-online .status-indicator {
-            background: #2e7d32;
-        }
-
-        .status-idle .status-indicator {
-            background: #f57c00;
-        }
-
-        .status-offline .status-indicator {
-            background: #c62828;
-        }
-
         .dropdown-empty {
             text-align: center;
             padding: 30px 20px;
@@ -1264,38 +1215,6 @@
             border-radius: 12px;
             font-size: 0.75rem;
             font-weight: 600;
-        }
-
-        .status-online {
-            background: #4caf50;
-            box-shadow: 0 0 6px #4caf50;
-        }
-
-        .status-idle {
-            background: #ff9800;
-        }
-
-        .status-offline {
-            background: #9e9e9e;
-        }
-
-        /* Active Users badge: a later generic .status-* rule was painting the whole badge solid orange/green,
-           so the "Idle" text was orange on orange. Keep the soft badge colors for the badge only. */
-        .user-status.status-online  { background: #e8f5e9; color: #2e7d32; box-shadow: none; }
-        .user-status.status-idle    { background: #fff8e1; color: #f57c00; }
-        .user-status.status-offline { background: #fce4ec; color: #c62828; }
-
-        .user-activity {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin-top: 4px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .user-activity-icon {
-            font-size: 0.7rem;
         }
 
         
@@ -5492,6 +5411,11 @@ body.dark-mode .chart-box {
 [id^="p-grp-body-"] tbody tr:not(:last-child) td { border-bottom: 1px solid #eef3ee; }
 .p-project-card thead th,
 [id^="p-grp-body-"] thead th { background: #e8f5e9 !important; color: #1b5e20 !important; border-bottom: 2px solid #a5d6a7 !important; }
+/* Row hover: the sticky Full Name cell has its own inline background, so it did not take the row hover color. Same color as tbody tr:hover. */
+[id^="p-grp-body-"] tbody tr:hover td:first-child { background: #e8f5e9 !important; }
+body.dark-mode [id^="p-grp-body-"] tbody tr:hover td:first-child { background: #1b3a1f !important; }
+/* Personnel tables: position is plain text, same as name and ID No. */
+[id^="p-grp-body-"] .p-pos-badge { background: none !important; color: inherit !important; padding: 0 !important; border-radius: 0 !important; font-size: 0.72rem !important; font-weight: 400 !important; }
 
 /* ── ESH NOV Monitoring: banner + table = one continuous card ── */
 .region-content.nov-mon-rc { padding: 0; overflow: hidden; }
@@ -7482,6 +7406,12 @@ body.dark-mode .smi-switch::after { transform:translateX(13px); }
 .notification-group i { color:#2e7d32; font-size:0.68rem; }
 .notification-group span { flex:1; min-width:0; }
 .notification-group b { font-size:0.62rem; font-weight:600; color:var(--text-secondary); }
+/* Collapsible project groups in Overdue Reports */
+.notification-group { cursor:pointer; user-select:none; }
+.notification-group .notif-chev { font-size:0.55rem; width:8px; transition:transform .15s; }
+.notification-group.open .notif-chev { transform:rotate(90deg); }
+.notif-group-body { display:none; }
+.notif-group-body.open { display:block; }
 .notification-item { align-items:center; padding:8px 10px; border-bottom:none; }
 .notification-item:hover { background:#e8f5e9; }
 body.dark-mode .notification-item:hover { background:#293d2b; }
@@ -7561,8 +7491,6 @@ body.dark-mode #search-input:focus { border-color: #66bb6a !important; box-shado
 body.dark-mode #search-input:focus-visible { box-shadow: none !important; }
 
 /* ===== PERSONNEL TAB — CORPORATE BANNER: single line, walang duplicate ===== */
-#p-grp-banner-CORP_OFFICE .region-name::after { display: none; }
-#p-grp-banner-CORP_OFFICE .region-banner-left > div > span:not(.region-name) { display: none; }
 
 /* ===== CORPORATE BANNER (lahat ng tabs): tanggal ang duplicate subtitle ===== */
 .region-banner.region-corporate .region-name::after { display: none; }
@@ -9126,18 +9054,18 @@ body.dark-mode .region-banner.overall-rb[id*="PLANT"] .region-name::after {
 }
 
 /* ── Corporate banner subtitle: show "Corporate Office" again (same look as Plant Operations) ── */
-.region-banner.region-corporate:not(#p-grp-banner-CORP_OFFICE) .region-name::after,
-body.dark-mode .region-banner.region-corporate:not(#p-grp-banner-CORP_OFFICE) .region-name::after {
+.region-banner.region-corporate:not(#_x) .region-name::after,
+body.dark-mode .region-banner.region-corporate:not(#_x) .region-name::after {
     content: "Company-wide" !important;
     display: block !important;
     visibility: visible !important;
     color: #000 !important;
     opacity: 1 !important;
 }
-body.dark-mode .region-banner.region-corporate:not(#p-grp-banner-CORP_OFFICE) .region-name::after {
+body.dark-mode .region-banner.region-corporate:not(#_x) .region-name::after {
     color: #fff !important;
 }
-.region-banner.region-corporate:not(#p-grp-banner-CORP_OFFICE) .region-name { justify-content: flex-start; }
+.region-banner.region-corporate:not(#_x) .region-name { justify-content: flex-start; }
 
 
 /* ═══ NO-OUTLINE CONTAINERS — same clean look as OVERALL SUMMARY ═══════════
@@ -9536,3 +9464,147 @@ body.dark-mode .esh-table td[style*="#e0e0e0"] span { color: #777 !important; }
 body.dark-mode .esh-table td button[style*="#bdbdbd"],
 body.dark-mode .esh-table td button[style*="#e0e0e0"] { background: #444 !important; color: #ccc !important; }
 body.dark-mode .esh-td-name span[style*="#e8f5e9"] { background: #294a2c !important; color: #a5d6a7 !important; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ESH PLAIN TABLE  (class: esh-plain)
+   Used by: Environment Trainings, Safety Trainings, Health Awareness,
+            Emergency Drills and Corporate Drills.
+   Layout:  white background, gray divider lines, colored column headers,
+            small colored square for Plan, black date text for Actual.
+   Colors come from the variables below — change them here only.
+   P = "html body .esh-table.esh-plain" (long selector beats the older rules)
+   ══════════════════════════════════════════════════════════════════════════ */
+html body .esh-table.esh-plain {
+    --ep-tx: #000;            /* all text */
+    --ep-line: #bdbdbd;       /* divider lines */
+    --ep-h-main: #b7ddb5;     /* header: name / frequency / month */
+    --ep-h-plan: #fff9c4;     /* header: Plan */
+    --ep-h-actual: #c5e8c3;   /* header: Actual */
+    --ep-over: #c62828;       /* overdue date */
+    --ep-name-w: 260px;       /* set by script.js (measured width of the name column) */
+    --ep-cell-bg: transparent;        /* cell background (changes on row hover) */
+    --ep-sticky-bg: var(--bg-card);   /* frozen columns need a solid background */
+    border: none !important; background: var(--bg-card);
+    width: max-content; min-width: 100%;
+}
+html body.dark-mode .esh-table.esh-plain {
+    --ep-tx: #f2f2f2; --ep-line: #4a5f4e;
+    --ep-h-main: #2c3a2d; --ep-h-plan: #4a4420; --ep-h-actual: #2f4a31; --ep-over: #ef5350;
+}
+
+/* ── header cells ───────────────────────────────────────────────────────── */
+html body .esh-table.esh-plain th {
+    background: var(--ep-h-main) !important; color: var(--ep-tx) !important;
+    border: none !important; border-bottom: 1px solid var(--ep-line) !important;
+    box-shadow: none !important; letter-spacing: 0.3px;
+}
+html body .esh-table.esh-plain th.esh-th-plan   { background: var(--ep-h-plan) !important;   font-weight: 400; font-size: 0.58rem; letter-spacing: 0; }
+html body .esh-table.esh-plain th.esh-th-actual { background: var(--ep-h-actual) !important; font-weight: 400; }
+html body .esh-table.esh-plain th.esh-th-na     { min-width: 34px; font-weight: 400; font-size: 0.58rem; }
+
+/* ── body cells: horizontal lines only, no zebra, no green hover ────────── */
+html body .esh-table.esh-plain tbody tr,
+html body .esh-table.esh-plain tbody tr:nth-child(even),
+html body .esh-table.esh-plain tbody tr:hover { background: transparent !important; }
+/* row hover uses the central --row-hover color; cells read it through these variables */
+html body .esh-table.esh-plain tbody tr:hover { --ep-cell-bg: var(--row-hover); --ep-sticky-bg: var(--row-hover); }
+html body .esh-table.esh-plain td,
+html body .esh-table.esh-plain td.esh-td-plan,
+html body .esh-table.esh-plain td.esh-td-actual {
+    background: var(--ep-cell-bg) !important; color: var(--ep-tx);
+    border: none !important; border-bottom: 1px solid var(--ep-line) !important; box-shadow: none !important;
+}
+html body .esh-table.esh-plain td.esh-td-actual:is(.esh-done, .esh-overdue, .esh-not-planned) { background: var(--ep-cell-bg) !important; }
+
+/* ── vertical dividers: after the frozen columns and at the start of each month ── */
+html body .esh-table.esh-plain thead tr:first-child th:not(.esh-th-name):not(.esh-th-freq),
+html body .esh-table.esh-plain th.esh-th-plan,
+html body .esh-table.esh-plain td.esh-td-plan { border-left: 1px solid var(--ep-line) !important; }
+
+/* ── frozen columns: Drill name (left:0) and Frequency (right after it) ──── */
+html body .esh-table.esh-plain th.esh-th-name,
+html body .esh-table.esh-plain td.esh-td-name {
+    background: var(--ep-sticky-bg) !important; color: var(--ep-tx) !important;
+    position: sticky; left: 0; box-shadow: inset -1px 0 0 var(--ep-line) !important;
+}
+html body .esh-table.esh-plain th.esh-th-name { background: var(--ep-h-main) !important; }
+html body .esh-table.esh-plain th.esh-th-freq,
+html body .esh-table.esh-plain td.esh-td-freq {
+    min-width: 140px; padding-left: 16px; text-align: left !important;
+    position: sticky; left: var(--ep-name-w);
+    box-shadow: inset -1px 0 0 var(--ep-line) !important;
+}
+html body .esh-table.esh-plain td.esh-td-freq { background: var(--ep-sticky-bg) !important; z-index: 3; }
+html body .esh-table.esh-plain th.esh-th-freq { z-index: 4; }
+
+/* frequency: dot + text */
+.esh-freq { display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; white-space: nowrap; color: inherit; }
+.esh-freq i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+/* ── Plan: narrow column with a small colored square ────────────────────── */
+html body .esh-table.esh-plain th.esh-th-plan,
+html body .esh-table.esh-plain td.esh-td-plan {
+    width: 40px; min-width: 40px; max-width: 40px; box-sizing: border-box; padding-left: 0; padding-right: 0;
+}
+html body .esh-table.esh-plain td.esh-td-plan { --dc: #f9a825; text-align: center; filter: none !important; opacity: 1; }
+html body .esh-table.esh-plain tr.drill-row-quarterly td.esh-td-plan { --dc: #43a047; }
+html body .esh-table.esh-plain tr.drill-row-twice     td.esh-td-plan { --dc: #fdd835; }
+html body .esh-table.esh-plain tr.drill-row-once      td.esh-td-plan { --dc: #42a5f5; }
+html body .esh-table.esh-plain td.esh-td-plan.esh-planned { background: var(--ep-cell-bg) !important; }
+html body .esh-table.esh-plain td.esh-td-plan.esh-planned::after {
+    content: ""; display: inline-block; width: 12px; height: 12px;
+    border-radius: 2px; background: var(--dc); vertical-align: middle;
+}
+
+/* ── Actual: plain date text ─────────────────────────────────────────────── */
+html body .esh-table.esh-plain td.esh-td-actual input[type="date"] {
+    background: transparent; color: var(--ep-tx); font-family: inherit;
+    font-size: 0.72rem; font-weight: 400; text-align: center;
+}
+html body .esh-table.esh-plain td.esh-td-actual input[type="date"]:disabled { opacity: 1; color: var(--ep-tx); }  /* not faded outside edit mode */
+html body .esh-table.esh-plain td.esh-td-actual.esh-done input[type="date"] { font-weight: 700; }
+html body .esh-table.esh-plain td.esh-td-actual.esh-overdue input[type="date"],
+html body .esh-table.esh-plain td.esh-td-actual.esh-overdue input[type="date"]:disabled { color: var(--ep-over); font-weight: 700; }
+/* hide "mm/dd/yyyy" on empty cells (visible on hover / focus, and when overdue) */
+html body .esh-table.esh-plain td.esh-td-actual:not(.esh-done):not(.esh-overdue) input[type="date"]:not(:focus)::-webkit-datetime-edit { opacity: 0; }
+html body .esh-table.esh-plain td.esh-td-actual:not(.esh-done):not(.esh-overdue):not(:hover) input[type="date"]:not(:focus)::-webkit-calendar-picker-indicator { opacity: 0; }
+
+/* ── Emergency Drills: N/A column ────────────────────────────────────────── */
+html body .esh-table.esh-plain td.esh-td-nacol { text-align: center; min-width: 34px; padding: 2px; }
+html body .esh-table.esh-plain td.esh-td-nacol.esh-na-on  { background: #a0a0a0 !important; }
+html body .esh-table.esh-plain td.esh-td-nacol.esh-na-off { background: var(--ep-cell-bg) !important; }
+.esh-na-label { font-size: 0.6rem; font-weight: 700; color: #888; }
+.esh-na-on .esh-na-label { color: #fff; }
+
+/* ── Corporate Drills: header bar above the table ────────────────────────── */
+html body .corp-drills-table-outer { background: var(--bg-card); }
+html body .corp-drills-table-outer .corp-drills-table-header-bar {
+    background: transparent; color: #000; border-radius: 0; border-bottom: 1px solid #bdbdbd;
+}
+html body.dark-mode .corp-drills-table-outer .corp-drills-table-header-bar { color: #f2f2f2; border-bottom-color: #4a5f4e; }
+
+/* ── Personnel tables: row number is plain text (same as other columns), all text bold ── */
+[id^="p-grp-body-"] .p-row-num {
+    display: inline-block !important;
+    width: 20px !important;
+    height: auto !important;
+    margin-right: 6px !important;
+    border-radius: 0 !important;
+    background: none !important;
+    color: var(--text-primary) !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+body.dark-mode [id^="p-grp-body-"] .p-row-num { background: none !important; color: var(--text-primary) !important; }
+[id^="p-grp-body-"] tbody td,
+[id^="p-grp-body-"] tbody .p-pos-badge,
+[id^="p-grp-body-"] tbody .p-view-text:not([style*="font-weight:800"]) { font-weight: 700 !important; }
+
+/* ── Personnel tables: Full Name cell uses the same hover fade as the other columns (row: background 0.15s) ── */
+[id^="p-grp-body-"] tbody td:first-child { transition: background 0.15s; }
+
+/* ── Personnel Corporate banner follows the Overall Summary banner (subtitle black, same as overall-rb) ── */
+#p-grp-banner-CORP_OFFICE.overall-rb .region-name::after { color: #000 !important; opacity: 1 !important; }
+body.dark-mode #p-grp-banner-CORP_OFFICE.overall-rb .region-name::after { color: #fff !important; }
