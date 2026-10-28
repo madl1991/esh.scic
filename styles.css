@@ -2502,14 +2502,14 @@ body.dark-mode .backup-item {
         }
 
         
-        tbody tr:hover td input,
-        tbody tr:hover td select,
-        tbody tr:hover td textarea {
+        tbody tr:hover td input:not(:disabled),
+        tbody tr:hover td select:not(:disabled),
+        tbody tr:hover td textarea:not(:disabled) {
             background: #f1f8e9;
         }
-        body.dark-mode tbody tr:hover td input,
-        body.dark-mode tbody tr:hover td select,
-        body.dark-mode tbody tr:hover td textarea {
+        body.dark-mode tbody tr:hover td input:not(:disabled),
+        body.dark-mode tbody tr:hover td select:not(:disabled),
+        body.dark-mode tbody tr:hover td textarea:not(:disabled) {
             background: #243a26;
         }
 
@@ -6311,10 +6311,10 @@ body.dark-mode .nov-kpm-rate b { color: #a5d6a7; }
 }
 
 .audit-table input:disabled {
-    background: #f1f8e9;
+    background: transparent;
     color: #388e3c;
     cursor: not-allowed;
-    border-color: #c8e6c9;
+    border-color: transparent;
 }
 
 .audit-table p { 
@@ -9761,3 +9761,50 @@ table.tbl-plain input.exp-expired { color: #b91c1c; -webkit-text-fill-color: #b9
 table.tbl-plain input.exp-soon    { color: #b45309; -webkit-text-fill-color: #b45309; font-weight: 600; }
 body.dark-mode table.tbl-plain input.exp-expired { color: #f87171; -webkit-text-fill-color: #f87171; }
 body.dark-mode table.tbl-plain input.exp-soon    { color: #fbbf24; -webkit-text-fill-color: #fbbf24; }
+
+/* ECC row: black text for permit no. and "Until Project Completion" (light mode only) */
+body:not(.dark-mode) .until-completion-text { color: #000; }
+body:not(.dark-mode) table input.ecc-permit-input,
+body:not(.dark-mode) table input.ecc-permit-input:disabled {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+}
+body:not(.dark-mode) table input.ecc-permit-input::placeholder,
+body:not(.dark-mode) table input.ecc-permit-input:disabled::placeholder {
+    color: #000 !important;
+    -webkit-text-fill-color: #000 !important;
+    opacity: 1 !important;
+}
+
+/* Audit, CSHP, DOLE Registration, DOE Permit: project cell follows the row hover highlight */
+body .hl-tbl.got-tbl tbody tr:hover td.got-td-proj { background: var(--row-hover) !important; }
+
+/* ESH NOV Monitoring: no box on locked inputs in dark mode; row highlight on hover like Total Exposures */
+body.dark-mode .nov-monitoring-table.nov-kpm input:disabled { background: transparent; border-color: transparent; }
+.nov-monitoring-table.nov-kpm tbody tr:not(.regional-total):not(.overall-total):hover td:not(.c-prev):not(.c-open):not(.c-pend):not(.c-closed):not(.c-total) { background: var(--row-hover) !important; }
+
+/* DOE Safety Officer Permit, VALID UNTIL: bold colored text, no fill */
+.doe-vu-expired { color: #c62828 !important; -webkit-text-fill-color: #c62828 !important; font-weight: 700 !important; }
+.doe-vu-soon    { color: #e65100 !important; -webkit-text-fill-color: #e65100 !important; font-weight: 700 !important; }
+.doe-vu-valid   { color: #2e7d32 !important; -webkit-text-fill-color: #2e7d32 !important; font-weight: 700 !important; }
+body.dark-mode .doe-vu-expired { color: #f87171 !important; -webkit-text-fill-color: #f87171 !important; }
+body.dark-mode .doe-vu-soon    { color: #ffb74d !important; -webkit-text-fill-color: #ffb74d !important; }
+body.dark-mode .doe-vu-valid   { color: #81c784 !important; -webkit-text-fill-color: #81c784 !important; }
+
+/* CSHP, DOLE Registration, DOE Permit: no box behind the PDF View / Replace buttons */
+body .hl-tbl .pdf-file-info { background: transparent; padding: 0; border-radius: 0; }
+
+/* ── Personnel tables, dark mode: ease eye strain ──
+   Was: every cell bold 700 in near-white, with hard row lines.
+   Now: semibold, softer off-white, faint row separators. Light mode untouched.
+   To undo: delete this block. */
+body.dark-mode [id^="p-grp-body-"] tbody td,
+body.dark-mode [id^="p-grp-body-"] tbody .p-pos-badge,
+body.dark-mode [id^="p-grp-body-"] tbody .p-view-text:not([style*="font-weight:800"]),
+body.dark-mode [id^="p-grp-body-"] .p-row-num { font-weight: 600 !important; }
+body.dark-mode [id^="p-grp-body-"] tbody td,
+body.dark-mode [id^="p-grp-body-"] tbody .p-pos-badge,
+body.dark-mode [id^="p-grp-body-"] tbody .p-view-text:not([style*="color:#c62828"]),
+body.dark-mode [id^="p-grp-body-"] .p-row-num { color: #c5d0c8 !important; }
+/* Corporate table had row lines; project tables (.p-project-card) already have none. Match them. */
+[id^="p-grp-body-"] tbody tr td { border-bottom: none !important; }
