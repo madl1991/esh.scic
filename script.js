@@ -31972,10 +31972,103 @@ function chatAllowedRooms() {
     const role   = (typeof state !== 'undefined' && state?.userRole)   || '';
     const region = (typeof state !== 'undefined' && state?.userRegion) || '';
     const seeAll = role === 'admin' || region === 'ALL' || region === 'CORPORATE';
-    return CHAT_ROOMS.filter(r => r.id === 'general' || seeAll || r.id === CHAT_REGION_ROOM[region]);
+    return CHAT_ROOMS.filter(r => !CHAT_LEGACY_ROOMS[r.id] && (r.id === 'general' || seeAll || r.id === CHAT_REGION_ROOM[region]));
+}
+
+// ── 1-on-1 chats: every user in the list below gets a private chat with every other user ──
+// Same list as the Firebase rules for teamChat/general.
+const CHAT_DM_EMAILS = [
+    'esh@scic.com.ph', 'esh@wda.com.ph', 'esh@corpdc.com.ph',
+    'esh@tgm.com.ph', 'esh@mab.com.ph', 'esh@lmp.com.ph', 'esh@health.com.ph',
+    'esh@ncr.com.ph', 'esh@ncrpco.com.ph', 'esh@north.com.ph', 'esh@northpco.com.ph',
+    'esh@south.com.ph', 'esh@southpco.com.ph', 'esh@vismin.com.ph', 'esh@visminpco.com.ph',
+    'esh@cbmganda.com.ph'
+];
+// The old regional rooms were really a chat between the region's accounts and WDA. They are no longer
+// shown as groups; their old messages now appear inside the 1-on-1 chat with WDA.
+const CHAT_WDA = 'esh@wda.com.ph';
+const CHAT_LEGACY_ROOMS = {
+    'ncr':         ['esh@ncr.com.ph',    'esh@ncrpco.com.ph'],
+    'north-luzon': ['esh@north.com.ph',  'esh@northpco.com.ph'],
+    'south-luzon': ['esh@south.com.ph',  'esh@southpco.com.ph'],
+    'vismin':      ['esh@vismin.com.ph', 'esh@visminpco.com.ph']
+};
+let _chatLegacyListener = null;
+const _chatWatchMsgs = {};     // roomId -> messages from the room's own node
+const _chatLegacyWatch = {};   // legacy room -> its messages
+
+// Which old regional room belongs to the chat between me and other (only region account <-> WDA)
+function chatLegacyRoomFor(me, other) {
+    me = String(me || '').toLowerCase(); other = String(other || '').toLowerCase();
+    const rooms = Object.keys(CHAT_LEGACY_ROOMS);
+    for (let i = 0; i < rooms.length; i++) {
+        const acc = CHAT_LEGACY_ROOMS[rooms[i]];
+        if ((acc.indexOf(me) >= 0 && other === CHAT_WDA) || (me === CHAT_WDA && acc.indexOf(other) >= 0)) return rooms[i];
+    }
+    return null;
+}
+function _chatByKey(a, b) { return a.key < b.key ? -1 : (a.key > b.key ? 1 : 0); }
+function chatDmCombinedMsgs(roomId) {
+    const me = _chatMe(), other = _chatDmOther(roomId);
+    let msgs = (_chatWatchMsgs[roomId] || []).slice();
+    const R = chatLegacyRoomFor(me, other);
+    if (R) {
+        msgs = msgs.concat((_chatLegacyWatch[R] || []).filter(function(m) {
+            const e = String(m.email || '').toLowerCase();
+            return e === me || e === other;
+        }));
+    }
+    msgs.sort(_chatByKey);
+    return msgs;
+}
+
+let _chatView = 'list';              // 'list' = list of chats, 'conv' = one open chat
+const _chatRoomLastMsg = {};         // roomId -> { text, ts, email }
+
+function _chatMe() { return String(window.firebaseAuth?.currentUser?.email || '').trim().toLowerCase(); }
+function _chatIsDm(roomId) { return typeof roomId === 'string' && roomId.indexOf('dm:') === 0; }
+function _chatDmOther(roomId) { return roomId.slice(3); }
+// Firebase keys cannot contain ".", so dots become commas. The two emails are sorted so both users get the same key.
+function chatDmPairKey(a, b) {
+    const k = [a, b].map(function(e) { return String(e).trim().toLowerCase().replace(/\./g, ','); }).sort();
+    return k[0] + '__' + k[1];
+}
+function chatRoomPath(roomId) {
+    return _chatIsDm(roomId) ? 'dmChat/' + chatDmPairKey(_chatMe(), _chatDmOther(roomId)) : 'teamChat/' + roomId;
+}
+function chatDmUsers() {
+    const me = _chatMe();
+    return CHAT_DM_EMAILS.filter(function(e) { return e !== me; });
+}
+function chatWatchRoomIds() {
+    return chatAllowedRooms().map(function(r) { return r.id; })
+        .concat(chatDmUsers().map(function(e) { return 'dm:' + e; }));
+}
+// Names shown in the chat only (the rest of the dashboard keeps the account names)
+const CHAT_NAME_OVERRIDES = {
+    'esh@wda.com.ph':       'WDA Manager',
+    'esh@scic.com.ph':      'Dashboard Admin',
+    'esh@corpdc.com.ph':    'QESH DC',
+    'esh@cbmganda.com.ph':  'Environmental Head',
+    'esh@visminpco.com.ph': 'VisMin PCO',
+    'esh@vismin.com.ph':    'VisMin Superintendent'
+};
+function chatUserName(email) {
+    const ov = CHAT_NAME_OVERRIDES[String(email || '').trim().toLowerCase()];
+    if (ov) return ov;
+    try {
+        const i = UserAccounts.getUserInfo(email);
+        if (i && i.displayName && i.displayName !== 'Unknown') return i.displayName;
+    } catch (e) { }
+    return String(email || '').split('@')[0];
+}
+function chatRoomLabel(roomId) {
+    if (_chatIsDm(roomId)) return chatUserName(_chatDmOther(roomId));
+    return CHAT_ROOMS.find(function(r) { return r.id === roomId; })?.label || 'General';
 }
 
 function chatRoomAllowed(roomId) {
+    if (_chatIsDm(roomId)) return chatDmUsers().indexOf(_chatDmOther(roomId)) >= 0;
     return chatAllowedRooms().some(r => r.id === roomId);
 }
 
@@ -32004,7 +32097,7 @@ function _chatSaveSeen(map) {
 function chatUpdateBadge() {
     let total = 0;
     Object.keys(_chatRoomUnread).forEach(function(r) {
-        if (_chatPanelOpen && r === _chatRoom) return; // the room being read does not count
+        if (_chatPanelOpen && _chatView === 'conv' && r === _chatRoom) return; // the chat being read does not count
         total += _chatRoomUnread[r] || 0;
     });
     _chatUnread = total;
@@ -32041,7 +32134,82 @@ function chatStopUnreadWatch() {
     _chatWatchUnsubs = [];
     Object.keys(_chatRoomUnread).forEach(function(k) { delete _chatRoomUnread[k]; });
     Object.keys(_chatRoomLatest).forEach(function(k) { delete _chatRoomLatest[k]; });
+    _chatSoundLastKey = {};
+    Object.keys(_chatWatchMsgs).forEach(function(k) { delete _chatWatchMsgs[k]; });
+    Object.keys(_chatLegacyWatch).forEach(function(k) { delete _chatLegacyWatch[k]; });
+    Object.keys(_chatRoomLastMsg).forEach(function(k) { delete _chatRoomLastMsg[k]; });
     chatUpdateBadge();
+}
+
+// ── New message sound (generated with Web Audio, no audio file needed) ──
+let _chatAudioCtx = null;
+let _chatSoundLastKey = {};   // roomId -> latest message key already seen (baseline)
+let _chatSoundLastPlay = 0;
+
+function _chatUnlockAudio() {
+    try {
+        if (!_chatAudioCtx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return;
+            _chatAudioCtx = new AC();
+        }
+        if (_chatAudioCtx.state === 'suspended') _chatAudioCtx.resume();
+    } catch (e) { }
+}
+// Browsers only allow sound after the user has clicked or pressed a key once
+['click', 'keydown', 'touchstart'].forEach(function(ev) {
+    document.addEventListener(ev, _chatUnlockAudio, { passive: true });
+});
+
+function chatPlayMessageSound() {
+    try {
+        const now = Date.now();
+        if (now - _chatSoundLastPlay < 1000) return;
+        _chatSoundLastPlay = now;
+        if (!_chatAudioCtx || _chatAudioCtx.state !== 'running') return;
+        const ctx = _chatAudioCtx;
+        const t0 = ctx.currentTime;
+        [[880, 0], [1318.5, 0.12]].forEach(function(n) {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = n[0];
+            gain.gain.setValueAtTime(0.0001, t0 + n[1]);
+            gain.gain.exponentialRampToValueAtTime(0.18, t0 + n[1] + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t0 + n[1] + 0.35);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(t0 + n[1]);
+            osc.stop(t0 + n[1] + 0.4);
+        });
+    } catch (e) { }
+}
+
+// Works out unread count, last message, badge and sound for one chat from all the messages that belong to it
+function chatProcessRoom(roomId) {
+    const me = window.firebaseAuth?.currentUser?.email || '';
+    const msgs = _chatIsDm(roomId) ? chatDmCombinedMsgs(roomId) : (_chatWatchMsgs[roomId] || []);
+    const latest = msgs.length ? msgs[msgs.length - 1].key : '';
+    _chatRoomLatest[roomId] = latest;
+    _chatRoomLastMsg[roomId] = msgs.length ? msgs[msgs.length - 1] : null;
+
+    // Sound: only for a newer message from someone else; first load only sets the baseline
+    const _prevKey = _chatSoundLastKey[roomId];
+    _chatSoundLastKey[roomId] = latest;
+    if (_prevKey !== undefined && latest > _prevKey && msgs.length && msgs[msgs.length - 1].email !== me) {
+        chatPlayMessageSound();
+    }
+
+    const seenMap = _chatLoadSeen();
+    if (seenMap[roomId] === undefined) { // first run on this device: what is already there counts as read
+        seenMap[roomId] = latest;
+        _chatSaveSeen(seenMap);
+    }
+    if (_chatPanelOpen && _chatView === 'conv' && roomId === _chatRoom) { chatMarkRoomSeen(roomId); chatRenderListIfOpen(); return; }
+
+    const seen = seenMap[roomId] || '';
+    _chatRoomUnread[roomId] = msgs.filter(function(m) { return m.key > seen && m.email !== me; }).length;
+    chatUpdateBadge();
+    chatRenderListIfOpen();
 }
 
 function chatStartUnreadWatch() {
@@ -32049,31 +32217,19 @@ function chatStartUnreadWatch() {
     const rtdb = window.firebaseRealtimeDb;
     const auth = window.firebaseAuth;
     if (!rtdb || !auth?.currentUser || !window.firebase?.onValue) return;
+    const me = _chatMe();
 
-    chatAllowedRooms().forEach(function(room) {
-        const roomId = room.id;
+    chatWatchRoomIds().forEach(function(roomId) {
         try {
-            const ref = window.firebase.dbRef(rtdb, 'teamChat/' + roomId);
+            const ref = window.firebase.dbRef(rtdb, chatRoomPath(roomId));
             const unsub = window.firebase.onValue(ref, function(snap) {
-                const me = window.firebaseAuth?.currentUser?.email || '';
                 const msgs = [];
                 snap.forEach(function(child) {
                     const v = child.val() || {};
-                    msgs.push({ key: child.key, email: v.email });
+                    msgs.push({ key: child.key, email: v.email, text: v.text, ts: v.ts });
                 });
-                const latest = msgs.length ? msgs[msgs.length - 1].key : '';
-                _chatRoomLatest[roomId] = latest;
-
-                const seenMap = _chatLoadSeen();
-                if (seenMap[roomId] === undefined) { // first run on this device: what is already there counts as read
-                    seenMap[roomId] = latest;
-                    _chatSaveSeen(seenMap);
-                }
-                if (_chatPanelOpen && roomId === _chatRoom) { chatMarkRoomSeen(roomId); return; }
-
-                const seen = seenMap[roomId] || '';
-                _chatRoomUnread[roomId] = msgs.filter(function(m) { return m.key > seen && m.email !== me; }).length;
-                chatUpdateBadge();
+                _chatWatchMsgs[roomId] = msgs;
+                chatProcessRoom(roomId);
             }, function(err) {
                 console.warn('Chat unread watch error (' + roomId + '):', err && err.code);
             });
@@ -32081,6 +32237,28 @@ function chatStartUnreadWatch() {
         } catch(e) {
             console.warn('Chat unread watch failed (' + roomId + '):', e);
         }
+    });
+
+    // Old regional rooms: WDA watches all of them, a region account only its own
+    Object.keys(CHAT_LEGACY_ROOMS).forEach(function(R) {
+        const acc = CHAT_LEGACY_ROOMS[R];
+        const isWda = me === CHAT_WDA;
+        if (!isWda && acc.indexOf(me) < 0) return;
+        try {
+            const ref = window.firebase.dbRef(rtdb, 'teamChat/' + R);
+            const unsub = window.firebase.onValue(ref, function(snap) {
+                const msgs = [];
+                snap.forEach(function(child) {
+                    const v = child.val() || {};
+                    msgs.push({ key: child.key, email: v.email, text: v.text, ts: v.ts });
+                });
+                _chatLegacyWatch[R] = msgs;
+                (isWda ? acc : [CHAT_WDA]).forEach(function(e) { chatProcessRoom('dm:' + e); });
+            }, function(err) {
+                console.warn('Chat legacy watch error (' + R + '):', err && err.code);
+            });
+            _chatWatchUnsubs.push(unsub);
+        } catch(e) { }
     });
 }
 window.chatStartUnreadWatch = chatStartUnreadWatch;
@@ -32100,25 +32278,13 @@ function toggleChatPanel(e) {
             if (dd) dd.classList.add('hidden');
         });
         chatEnsureRoomAllowed();
-        chatMarkRoomSeen(_chatRoom);
-        const _sub = document.getElementById('chat-panel-sub');
-        if (_sub) _sub.textContent = CHAT_ROOMS.find(r => r.id === _chatRoom)?.label || 'General';
-        const bar = document.getElementById('chat-rooms-bar');
-        if (bar) {
-            bar.innerHTML = '';
-            chatAllowedRooms().forEach(r => {
-                const btn = document.createElement('button');
-                btn.className = 'chat-room-pill' + (r.id === _chatRoom ? ' active' : '');
-                btn.textContent = r.label;
-                btn.onclick = () => chatSwitchRoom(r.id);
-                btn.dataset.roomId = r.id;
-                bar.appendChild(btn);
-            });
-        }
-        chatListenRoom(_chatRoom);
-        setTimeout(() => { const inp = document.getElementById('chat-panel-input'); if(inp) inp.focus(); }, 100);
+        chatStartPresence();
+        _chatView = 'list';          // always open on the list of chats
+        chatApplyView();
+        chatRenderList();
     } else {
         chatClearTyping();
+        chatStopPresence();
     }
 }
 
@@ -32133,16 +32299,48 @@ document.addEventListener('click', function(e) {
     }
 });
 
-function chatSwitchRoom(roomId) {
+function chatApplyView() {
+    const panel = document.getElementById('chat-panel');
+    if (!panel) return;
+    const conv = _chatView === 'conv';
+    panel.classList.toggle('view-conv', conv);
+    panel.classList.toggle('view-list', !conv);
+    const back = document.getElementById('chat-panel-back');
+    if (back) back.style.display = conv ? 'inline-flex' : 'none';
+    const icon = document.getElementById('chat-panel-icon');
+    if (icon) icon.style.display = conv ? 'none' : '';
+    const title = document.getElementById('chat-panel-title');
+    const sub = document.getElementById('chat-panel-sub');
+    if (conv) {
+        if (title) title.textContent = chatRoomLabel(_chatRoom);
+        if (sub) sub.textContent = _chatIsDm(_chatRoom) ? 'Private chat' : 'Group chat';
+    } else {
+        if (title) title.textContent = 'ESH Team Chat';
+        if (sub) sub.textContent = 'Messages';
+    }
+}
+
+function chatOpenRoom(roomId) {
     if (!chatRoomAllowed(roomId)) return;
     _chatRoom = roomId;
+    _chatView = 'conv';
+    chatApplyView();
     chatMarkRoomSeen(roomId);
-    document.querySelectorAll('.chat-room-pill').forEach(b => {
-        b.classList.toggle('active', b.dataset.roomId === roomId);
-    });
-    const sub = document.getElementById('chat-panel-sub');
-    if (sub) sub.textContent = CHAT_ROOMS.find(r=>r.id===roomId)?.label || 'General';
     chatListenRoom(roomId);
+    setTimeout(function() { const inp = document.getElementById('chat-panel-input'); if (inp) inp.focus(); }, 100);
+}
+function chatSwitchRoom(roomId) { chatOpenRoom(roomId); }
+
+function chatShowList(e) {
+    if (e) e.stopPropagation();
+    chatClearTyping();
+    if (_chatListener && typeof _chatListener._unsub === 'function') { _chatListener._unsub(); _chatListener = null; }
+    if (_chatLegacyListener && typeof _chatLegacyListener._unsub === 'function') { _chatLegacyListener._unsub(); _chatLegacyListener = null; }
+    if (_chatTypingListener && typeof _chatTypingListener._unsub === 'function') { _chatTypingListener._unsub(); _chatTypingListener = null; }
+    _chatView = 'list';
+    chatApplyView();
+    chatRenderList();
+    chatUpdateBadge();
 }
 
 async function chatListenRoom(roomId) {
@@ -32154,6 +32352,10 @@ async function chatListenRoom(roomId) {
     if (_chatListener && typeof _chatListener._unsub === 'function') {
         _chatListener._unsub();
         _chatListener = null;
+    }
+    if (_chatLegacyListener && typeof _chatLegacyListener._unsub === 'function') {
+        _chatLegacyListener._unsub();
+        _chatLegacyListener = null;
     }
     if (_chatTypingListener && typeof _chatTypingListener._unsub === 'function') {
         _chatTypingListener._unsub();
@@ -32169,11 +32371,20 @@ async function chatListenRoom(roomId) {
     }
 
     try {
-        const msgRef = window.firebase.dbRef(rtdb, 'teamChat/' + roomId);
+        const msgRef = window.firebase.dbRef(rtdb, chatRoomPath(roomId));
+        const _meE = _chatMe();
+        const _otherE = _chatIsDm(roomId) ? _chatDmOther(roomId) : '';
+        const _legacyR = _chatIsDm(roomId) ? chatLegacyRoomFor(_meE, _otherE) : null;
+        let _mainMsgs = [], _legMsgs = [];
+        const _draw = function() {
+            const all = _mainMsgs.concat(_legMsgs);
+            all.sort(function(a, b) { return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0); });
+            chatRenderMessages(all);
+        };
         const unsub = window.firebase.onValue(msgRef, snap => {
-            const msgs = [];
-            snap.forEach(child => { msgs.push({ id: child.key, ...child.val() }); });
-            chatRenderMessages(msgs);
+            _mainMsgs = [];
+            snap.forEach(child => { _mainMsgs.push({ id: child.key, ...child.val() }); });
+            _draw();
         }, err => {
             console.error('Chat listen error:', err.code, err.message);
             const el2 = document.getElementById('chat-messages-panel');
@@ -32181,6 +32392,20 @@ async function chatListenRoom(roomId) {
         });
         _chatListener = { _unsub: unsub };
 
+        if (_legacyR) {
+            const legUnsub = window.firebase.onValue(window.firebase.dbRef(rtdb, 'teamChat/' + _legacyR), snap => {
+                _legMsgs = [];
+                snap.forEach(child => {
+                    const v = child.val() || {};
+                    const em = String(v.email || '').toLowerCase();
+                    if (em === _meE || em === _otherE) _legMsgs.push({ id: child.key, ...v });
+                });
+                _draw();
+            }, () => { });
+            _chatLegacyListener = { _unsub: legUnsub };
+        }
+
+        if (_chatIsDm(roomId)) { const tb = document.getElementById('chat-typing-bar'); if (tb) tb.textContent = ''; return; } // no typing indicator in 1-on-1
         const typRef = window.firebase.dbRef(rtdb, 'chatTyping/' + roomId);
         const typUnsub = window.firebase.onValue(typRef, snap => {
             const bar = document.getElementById('chat-typing-bar');
@@ -32205,6 +32430,141 @@ async function chatListenRoom(roomId) {
     } catch(e) {
         console.error('Chat listen error:', e);
     }
+}
+
+// ── Chat presence dots (green = online, orange = idle, grey = offline) ──
+let _chatPresence = null;          // null = presence data not available to this user
+let _chatPresenceUnsub = null;
+let _chatPresenceTimer = null;
+
+function chatPresenceStatus(email) {
+    if (_chatPresence === null) return null;
+    const em = String(email || '').trim().toLowerCase();
+    if (!em) return null;
+    const now = (window.PresenceTracker && PresenceTracker._now) ? PresenceTracker._now() : Date.now();
+    let best = 'offline';
+    Object.values(_chatPresence || {}).forEach(function(d) {
+        if (!d || String(d.email || '').trim().toLowerCase() !== em) return;
+        if (!d.status || d.status === 'offline') return;
+        if (!d.lastSeen || (now - d.lastSeen) > 120000) return;
+        if (d.status === 'online') best = 'online';
+        else if (best !== 'online') best = 'idle';
+    });
+    return best;
+}
+
+function chatPresenceDotHtml(email) {
+    const s = chatPresenceStatus(email);
+    if (!s) return '';
+    const label = s === 'online' ? 'Online' : (s === 'idle' ? 'Idle' : 'Offline');
+    return '<i class="au-dot chat-dot ' + (s === 'idle' ? 'idle' : (s === 'offline' ? 'off' : '')) + '" title="' + label + '"></i>';
+}
+
+function chatRefreshPresenceDots() {
+    document.querySelectorAll('#chat-panel .au-wrap[data-email]').forEach(function(av) {
+        const html = chatPresenceDotHtml(av.getAttribute('data-email'));
+        const old = av.querySelector('.chat-dot');
+        const oldKey = old ? old.className + '|' + old.title : '';
+        let nk = '';
+        if (html) { const t = document.createElement('div'); t.innerHTML = html; const n = t.firstChild; nk = n.className + '|' + n.title; }
+        if (oldKey === nk) return;
+        if (old) old.remove();
+        if (html) av.insertAdjacentHTML('beforeend', html);
+    });
+}
+
+function chatStartPresence() {
+    chatStopPresence();
+    try {
+        if (!window.firebaseRealtimeDb || !window.firebase?.onValue) return;
+        const ref = window.firebase.dbRef(window.firebaseRealtimeDb, 'presence');
+        _chatPresenceUnsub = window.firebase.onValue(ref, function(snap) {
+            _chatPresence = snap.val() || {};
+            chatRefreshPresenceDots();
+        }, function(err) {
+            // No read access to presence for this account: show no dots
+            _chatPresence = null;
+            chatRefreshPresenceDots();
+            console.warn('Chat presence not available:', err && err.code);
+        });
+        _chatPresenceTimer = setInterval(chatRefreshPresenceDots, 30000);
+    } catch (e) { _chatPresence = null; }
+}
+
+function chatStopPresence() {
+    try { if (typeof _chatPresenceUnsub === 'function') _chatPresenceUnsub(); } catch (e) { }
+    _chatPresenceUnsub = null;
+    if (_chatPresenceTimer) { clearInterval(_chatPresenceTimer); _chatPresenceTimer = null; }
+}
+
+// ── List of chats (groups first, then every user) ──
+function _chatEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+function chatListTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts), n = new Date();
+    const diff = n - d;
+    if (diff < 60000) return 'now';
+    if (diff < 3600000) return Math.floor(diff / 60000) + 'm';
+    if (d.toDateString() === n.toDateString()) return d.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' });
+    if (diff < 7 * 86400000) return d.toLocaleDateString('en-PH', { weekday: 'short' });
+    return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+}
+
+function _chatListRow(roomId, avatarHtml, name) {
+    const last = _chatRoomLastMsg[roomId];
+    const unread = _chatRoomUnread[roomId] || 0;
+    let preview = 'No messages yet';
+    if (last && last.text) preview = (last.email === _chatMe() ? 'You: ' : '') + String(last.text).replace(/\s+/g, ' ');
+    const time = last ? chatListTime(last.ts) : '';
+    return '<div class="chat-li' + (unread ? ' unread' : '') + '" data-room="' + _chatEsc(roomId) + '">' +
+        avatarHtml +
+        '<div class="chat-li-body"><div class="chat-li-name">' + _chatEsc(name) + '</div>' +
+        '<div class="chat-li-last"><span class="chat-li-text">' + _chatEsc(preview) + '</span>' + (time ? '<span class="chat-li-time"> · ' + time + '</span>' : '') + '</div></div>' +
+        (unread ? '<span class="chat-li-count">' + (unread > 9 ? '9+' : unread) + '</span>' : '') +
+        '</div>';
+}
+
+function chatRenderList() {
+    const el = document.getElementById('chat-list-view');
+    if (!el) return;
+    let html = '<div class="chat-li-head">Groups</div>';
+    chatAllowedRooms().forEach(function(r) {
+        html += _chatListRow(r.id, '<div class="chat-li-av chat-li-room"><i class="fas fa-users"></i></div>', r.label);
+    });
+
+    const people = chatDmUsers().map(function(email) {
+        const last = _chatRoomLastMsg['dm:' + email];
+        return { email: email, name: chatUserName(email), key: last ? (last.key || '') : '' };
+    }).sort(function(a, b) {
+        // newest chat first; users with no messages go last, A to Z
+        if (a.key !== b.key) return a.key < b.key ? 1 : -1;
+        return a.name.localeCompare(b.name);
+    });
+
+    html += '<div class="chat-li-head">People</div>';
+    people.forEach(function(u) {
+        let color = '#999', inner = '';
+        try {
+            const info = UserAccounts.getUserInfo(u.email);
+            if (info && info.color) color = info.color;
+            inner = (window.PresenceTracker && PresenceTracker._avatarHtml) ? PresenceTracker._avatarHtml({ email: u.email, displayName: u.name }) : _chatEsc(u.name.substring(0, 2).toUpperCase());
+        } catch (e) { inner = _chatEsc(u.name.substring(0, 2).toUpperCase()); }
+        const av = '<div class="au-wrap chat-li-av" data-email="' + _chatEsc(u.email) + '" style="background:' + color + ';">' + inner + chatPresenceDotHtml(u.email) + '</div>';
+        html += _chatListRow('dm:' + u.email, av, u.name);
+    });
+
+    const top = el.scrollTop;
+    el.innerHTML = html;
+    el.scrollTop = top;
+    el.onclick = function(e) {
+        const row = e.target.closest ? e.target.closest('.chat-li') : null;
+        if (row && row.dataset.room) chatOpenRoom(row.dataset.room);
+    };
+}
+
+function chatRenderListIfOpen() {
+    if (_chatPanelOpen && _chatView === 'list') chatRenderList();
 }
 
 function chatRenderMessages(msgs) {
@@ -32240,9 +32600,20 @@ function chatRenderMessages(msgs) {
         const rolePill = msg.role ? '<span style="font-size:0.5rem;background:rgba(46,125,50,0.12);color:#2e7d32;border:1px solid rgba(46,125,50,0.25);padding:1px 4px;border-radius:6px;margin-left:3px;font-weight:700;text-transform:uppercase;">' + msg.role + '</span>' : '';
 
         html += '<div class="chat-pmsg ' + (isMine?'mine':'theirs') + '">';
-        if (!isMine) html += '<div class="chat-pavatar" style="background:' + color + ';">' + initials + '</div>';
+        if (!isMine) {
+            // Same avatar as Active Users: user color, label (e.g. ADMIN, WDA), status dot
+            let _avColor = color, _avInner = initials;
+            try {
+                const _ui = (typeof UserAccounts !== 'undefined' && UserAccounts.getUserInfo) ? UserAccounts.getUserInfo(msg.email) : null;
+                if (_ui && _ui.color) _avColor = _ui.color;
+                if (window.PresenceTracker && PresenceTracker._avatarHtml) {
+                    _avInner = PresenceTracker._avatarHtml({ email: msg.email, displayName: msg.name });
+                }
+            } catch (e) { }
+            html += '<div class="au-wrap chat-pavatar chat-pavatar-au" data-email="' + String(msg.email || '').replace(/"/g, '') + '" style="background:' + _avColor + ';">' + _avInner + chatPresenceDotHtml(msg.email) + '</div>';
+        }
         html += '<div class="chat-pbubble-wrap">';
-        if (!isMine) html += '<div class="chat-psender">' + (msg.name||msg.email) + rolePill + '</div>';
+        if (!isMine && !_chatIsDm(_chatRoom)) html += '<div class="chat-psender">' + (msg.name||msg.email) + rolePill + '</div>';
         html += '<div class="chat-pbubble">' + safeText + '</div>';
         html += '<div class="chat-ptime">' + timeStr + (isMine ? ' <i class="fas fa-check" style="font-size:0.45rem;opacity:0.7;"></i>' : '') + '</div>';
         html += '</div></div>';
@@ -32264,7 +32635,7 @@ function chatSendMessage() {
     chatEnsureRoomAllowed();
 
     try {
-        const msgRef = window.firebase.dbRef(rtdb, 'teamChat/' + _chatRoom);
+        const msgRef = window.firebase.dbRef(rtdb, chatRoomPath(_chatRoom));
         window.firebase.push(msgRef, {
             text,
             email: auth.currentUser.email,
@@ -32291,6 +32662,7 @@ function chatInputResize(el) {
 }
 
 function chatSendTyping() {
+    if (_chatIsDm(_chatRoom)) return;
     const rtdb = window.firebaseRealtimeDb;
     const auth = window.firebaseAuth;
     if (!rtdb || !auth?.currentUser) return;
@@ -32307,6 +32679,7 @@ function chatClearTyping() {
     const rtdb = window.firebaseRealtimeDb;
     const auth = window.firebaseAuth;
     clearTimeout(_chatTypingTimeout);
+    if (_chatIsDm(_chatRoom)) return;
     if (!rtdb || !auth?.currentUser) return;
     try {
         const uid = auth.currentUser.uid;
