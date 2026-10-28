@@ -32715,7 +32715,10 @@ function chatInputKeydown(e) {
 
 function chatInputResize(el) {
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+    const border = el.offsetHeight - el.clientHeight; // border-box: scrollHeight does not include the border
+    const full = el.scrollHeight + border;
+    el.style.height = Math.min(full, 80) + 'px'; // 80 = max-height of .chat-panel-input
+    el.style.overflowY = full > 80 ? 'auto' : 'hidden';
 }
 
 function chatSendTyping() {
