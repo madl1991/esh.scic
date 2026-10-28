@@ -1011,18 +1011,19 @@
                       <span class="na-dot chat-msg-badge" id="chat-msg-badge" style="display:none;">0</span>
                     </span>
                     
-                    <div class="chat-panel" id="chat-panel" style="display:none;">
+                    <div class="chat-panel view-list" id="chat-panel" style="display:none;">
                         <div class="chat-panel-header">
                             <div class="chat-panel-head-l">
-                                <div class="ud-header-icon"><i class="fas fa-comments"></i></div>
+                                <button class="chat-panel-back" id="chat-panel-back" onclick="chatShowList(event)" title="Back" style="display:none;"><i class="fas fa-arrow-left"></i></button>
+                                <div class="ud-header-icon" id="chat-panel-icon"><i class="fas fa-comments"></i></div>
                                 <div>
-                                    <div class="ud-header-text">ESH Team Chat</div>
-                                    <div class="chat-panel-sub" id="chat-panel-sub">General</div>
+                                    <div class="ud-header-text" id="chat-panel-title">ESH Team Chat</div>
+                                    <div class="chat-panel-sub" id="chat-panel-sub">Messages</div>
                                 </div>
                             </div>
                             <button class="chat-panel-close" onclick="toggleChatPanel(event)"><i class="fas fa-times"></i></button>
                         </div>
-                        <div class="chat-rooms-bar" id="chat-rooms-bar"></div>
+                        <div class="chat-list-view" id="chat-list-view"></div>
                         <div class="chat-messages-panel" id="chat-messages-panel">
                             <div class="chat-empty-panel"><i class="fas fa-comment-dots"></i><div>No messages yet</div></div>
                         </div>
@@ -1870,6 +1871,8 @@
         // was there when this page loaded. The banner only appears after a change is CONFIRMED
         // by two checks a few seconds apart, so deploys-in-progress, failed requests and
         // CDN edge differences no longer cause false "new update" alerts.
+        // Versions seen are remembered (localStorage), so an OLDER version served for a few minutes by a slow
+        // CDN edge after a deploy is ignored instead of showing the banner again after every reload.
         (function() {
             var FILES = ['index.html', 'styles.css', 'script.js'];
             var CONFIRM_MS = 15000;   // a change must still be there this long after first seen
@@ -1879,6 +1882,29 @@
             var banner = null, busy = false;
 
             function norm(v) { return (v || '').replace(/^W\//, '').replace(/"/g, ''); }
+
+            // History of versions seen on this browser: latest one, and older ones with the time they were replaced
+            var HKEY = 'esh_update_hist_v1', STALE_MS = 30 * 60 * 1000;
+            function loadHist() {
+                try { var h = JSON.parse(localStorage.getItem(HKEY) || 'null'); if (h && h.old) return h; } catch (e) { }
+                return { latest: null, old: {} };
+            }
+            function saveHist(h) { try { localStorage.setItem(HKEY, JSON.stringify(h)); } catch (e) { } }
+            function noteSig(s) {
+                var h = loadHist(), now = Date.now();
+                if (h.latest !== s) {
+                    if (h.latest) h.old[h.latest] = now;
+                    delete h.old[s];
+                    h.latest = s;
+                }
+                Object.keys(h.old).forEach(function(k) { if (now - h.old[k] > 24 * 3600 * 1000) delete h.old[k]; });
+                saveHist(h);
+            }
+            // true when s is an older version that was replaced recently (a slow edge still serving it)
+            function isStale(s) {
+                var t = loadHist().old[s];
+                return !!t && (Date.now() - t) < STALE_MS;
+            }
 
             // Resolves to a signature string, or null when the check isn't reliable
             // (network error, any non-2xx response, or the server sends no validators).
@@ -1927,7 +1953,8 @@
                 sig().then(function(s) {
                     busy = false;
                     if (s === null) return;                      // unreliable result: ignore it
-                    if (base === null) { base = s; return; }     // first good reading = what we loaded
+                    if (isStale(s)) return;                      // older version from a slow edge: ignore it
+                    if (base === null) { base = s; noteSig(s); return; }     // first good reading = what we loaded
                     if (s === base) { pending = null; return; }  // back to normal (transient blip)
                     if (s === dismissed) return;                 // user already waved this one off
                     if (s !== pending) {                         // first sighting: wait and re-check
@@ -1935,7 +1962,7 @@
                         setTimeout(check, CONFIRM_MS + 500);
                         return;
                     }
-                    if (Date.now() - pendingAt >= CONFIRM_MS) show(s);   // confirmed and stable
+                    if (Date.now() - pendingAt >= CONFIRM_MS) { noteSig(s); show(s); }   // confirmed and stable
                 });
             }
 
