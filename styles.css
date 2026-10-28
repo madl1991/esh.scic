@@ -341,7 +341,6 @@
             from { opacity: 0; transform: translateX(-50px); }
             to   { opacity: 1; transform: translateX(0); }
         }
-        body.dark-mode .login-card { }
         
         .e-leaf {
             position: absolute;
@@ -422,10 +421,6 @@
         .login-remember-label { font-size: 0.62rem; color: #666; cursor: pointer; user-select: none; }
         .login-forgot { margin-left: auto; font-size: 0.62rem; color: #2e7d32; text-decoration: none; }
         .login-forgot:hover { text-decoration: underline; }
-        body.dark-mode .login-remember-label { color: #bbb; }
-        body.dark-mode .login-forgot { color: #88dd8e; }
-        body.dark-mode .login-caps-warn { color: #ffb74d; }
-        body.dark-mode .login-right-panel .login-input-group .login-eye i { color: #aaa !important; }
 
         .login-form { margin-top: 26px; max-width: 400px; margin-left: auto; margin-right: auto; }
 
@@ -1753,35 +1748,31 @@
             border: 1px solid #9aa8a0; color: #66766a;
             font-size: 0.58rem; font-weight: 700; cursor: help;
         }
-        .tab-info-bar.tib-oneline .rates-standard-toggle { border-width: 1.5px; box-shadow: none; font-size: 0.64rem; }
-        .tab-info-bar.tib-oneline .rates-standard-toggle .rst-opt { padding: 3px 11px; }
+        .tab-info-bar.tib-oneline .rates-standard-toggle { font-size: 0.64rem; }
+        .tab-info-bar.tib-oneline .rates-standard-toggle .rst-opt { padding: 3px 2px 5px; }
         body.dark-mode .tab-info-bar.tib-oneline { border-color: #3f5c40; }
         body.dark-mode .tab-info-bar .tib-info { border-color: #6f8574; color: #9fb0a4; }
         
         .rates-standard-toggle {
-            display: inline-flex; align-items: center; gap: 0;
-            border-radius: 20px; overflow: hidden;
-            border: 2px solid #2e7d32; background: #f1f8e9;
+            display: inline-flex; align-items: center; gap: 20px;
+            background: none; border: none; box-shadow: none; border-radius: 0;
             font-size: 0.7rem; font-weight: 700; cursor: pointer;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
             user-select: none;
         }
         .rates-standard-toggle .rst-opt {
-            padding: 5px 14px; transition: all 0.2s;
-            color: #2e7d32; letter-spacing: 0.5px;
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 2px 6px; letter-spacing: 0.5px;
+            color: #8a948c; border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-color 0.2s;
         }
-        .rates-standard-toggle .rst-opt.active {
-            background: #2e7d32; color: #fff;
-        }
-        .rates-standard-toggle .rst-divider {
-            width: 1px; background: #a5d6a7; height: 100%; align-self: stretch;
-        }
-        body.dark-mode .rates-standard-toggle {
-            border-color: #4caf50; background: #1a2e1a;
-        }
-        body.dark-mode .rates-standard-toggle .rst-opt { color: #81c784; }
-        body.dark-mode .rates-standard-toggle .rst-opt.active { background: #2e7d32; color: #fff; }
-        body.dark-mode .rates-standard-toggle .rst-divider { background: #388e3c; }
+        .rates-standard-toggle .rst-opt:hover { color: #f57f17; }
+        .rates-standard-toggle .rst-opt.active { color: #f57f17; border-bottom-color: #f57f17; }
+        .rates-standard-toggle .rst-opt:not(.active) .rst-flag { opacity: 0.55; }
+        .rates-standard-toggle .rst-divider { display: none; }
+        body.dark-mode .rates-standard-toggle .rst-opt { color: #92a39a; }
+        body.dark-mode .rates-standard-toggle .rst-opt:hover,
+        body.dark-mode .rates-standard-toggle .rst-opt.active { color: #ffb74d; }
+        body.dark-mode .rates-standard-toggle .rst-opt.active { border-bottom-color: #ffb74d; }
 
         .badge { background: var(--safety-yellow); color: #1b5e20; padding: 4px 12px;
             border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
@@ -4358,19 +4349,7 @@ body.dark-mode .got-r100 {background:#334b34 !important}
 body.dark-mode .got-r075 {background:#3d4b2d !important}
 body.dark-mode .got-r050 {background:#534d1c !important}
 body.dark-mode .got-r025 {background:#501b20 !important}
-body.dark-mode #login-overlay {background:#2f362f}
-body.dark-mode .login-right-panel {background:#2b2b2b}
-body.dark-mode .login-greeting {color:#eaeaea}
-body.dark-mode .login-greeting .accent {color:#88dd8e}
-body.dark-mode .login-right-panel .login-input-group-label {color:#c4c4c4}
-body.dark-mode .login-right-panel input {background:#2e2e2e !important;border:1.5px solid #444444 !important;color:#e4e4e4 !important}
-body.dark-mode .login-right-panel input:focus {background:#2b2b2b !important}
-body.dark-mode .login-notice {color:#b5b5b5}
-body.dark-mode .login-notice strong {color:#d8d8d8 !important}
-body.dark-mode .login-footer {border-top:1px solid #414141}
 body.dark-mode .e-leaf {color:#8dce90}
-body.dark-mode .login-input-group-label {color:rgba(141,206,144,0.65)}
-body.dark-mode .login-input-group i {color:rgba(141,206,144,0.5)}
 @media (prefers-contrast: high) {body.dark-mode {background:#2b2b2b;color:#ffffff}}
 body.dark-mode .loading-spinner {border-top-color:#3d3d3d}
 body.dark-mode .nav-item.active {border-left:3px solid #3d3d3d}
@@ -9019,11 +8998,6 @@ body.dark-mode .region-banner.region-corporate .region-name::after { content: no
 /* Login — error/success message colors, card shadow in dark mode */
 #login-error { color: #c62828; }
 #login-error.ok { color: #2e7d32; }
-body.dark-mode #login-error { color: #ef5350; }
-body.dark-mode #login-error.ok { color: #81c784; }
-body.dark-mode .login-card {
-    box-shadow: 0 10px 44px rgba(0,0,0,0.55);
-}
 
 /* Login — smooth rounded corners (the image panel was clipped by the card only, which showed jagged edges) */
 .login-card {
@@ -9325,15 +9299,7 @@ body.dark-mode .status-badge.status-stoppage  { background: #d84343; color: #fff
 #login-overlay .login-right-panel .login-btn:hover { background: #f9a825 !important; }
 #login-overlay .login-right-panel .login-forgot { display: block; margin: 16px 0 0; text-align: center; font-size: 0.8rem; color: #1a1a1a; text-decoration: none; }
 #login-overlay .login-right-panel .login-forgot:hover { text-decoration: underline; }
-body.dark-mode #login-overlay .login-right-panel .login-forgot { color: #e0e0e0; }
 #login-overlay .login-right-panel .login-btn i { display: none; }
-
-body.dark-mode #login-overlay .login-right-panel .login-float input { background: #2e2e2e !important; border-color: #555 !important; }
-body.dark-mode #login-overlay .login-right-panel .login-float input:focus,
-body.dark-mode #login-overlay .login-right-panel .login-float input:focus-visible { border-color: #e0e0e0 !important; box-shadow: none !important; outline: none !important; }
-body.dark-mode #login-overlay .login-float input:-webkit-autofill { -webkit-box-shadow: 0 0 0 100px #2e2e2e inset !important; -webkit-text-fill-color: #e4e4e4 !important; }
-body.dark-mode #login-overlay .login-float label { color: #aaa; }
-body.dark-mode #login-overlay .login-float input:focus + label { color: #e0e0e0; }
 
 @media screen and (max-width: 640px) {
     #login-overlay .login-card { flex-direction: column; overflow-y: auto; }
@@ -9360,8 +9326,6 @@ body.dark-mode #login-overlay .login-float input:focus + label { color: #e0e0e0;
 /* LOGIN — footer text visible in light mode */
 #login-overlay .login-footer { color: #6b7280; border-top-color: #e5e7eb; }
 #login-overlay .login-footer strong { color: #374151 !important; }
-body.dark-mode #login-overlay .login-footer { color: #ccc; border-top-color: #414141; }
-body.dark-mode #login-overlay .login-footer strong { color: #aaa !important; }
 
 /* ── PLAIN FIELD FOCUS (same as login inputs): green border only — no glow, no outline ring, no scale ── */
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus,
