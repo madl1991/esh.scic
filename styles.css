@@ -9738,3 +9738,26 @@ body.dark-mode .chat-li-room { background:#334155; color:#cbd5e1; }
 .chat-li.unread .chat-li-name, .chat-li.unread .chat-li-text, .chat-li.unread .chat-li-time { color:var(--text-primary); font-weight:700; }
 .chat-li-count { flex:none; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:#0f766e; color:#fff; font-size:0.62rem; font-weight:700; display:flex; align-items:center; justify-content:center; }
 body.dark-mode .chat-li-count { background:#2dd4bf; color:#042f2e; }
+
+/* ── Plain table (shared) ─────────────────────────────────────────────────────────────
+   Add class "tbl-plain" next to a table's own class. Colors/borders/inputs only; layout and logic untouched.
+   White rows, hairline row lines, no zebra, no vertical lines, plain header. Read-only cells look like text;
+   inputs/checkboxes only look like inputs in edit mode. Uses the existing --tbl-* tokens (light + dark). */
+table.tbl-plain th { background: transparent !important; color: var(--tbl-head-fg) !important; font-weight: 600; border: none !important; border-bottom: 1.5px solid var(--tbl-line) !important; }
+table.tbl-plain td { background: transparent !important; color: var(--tbl-body-fg); border: none !important; border-bottom: 1px solid var(--tbl-line) !important; }
+table.tbl-plain td:first-child { color: var(--tbl-first-fg) !important; font-weight: 600; }
+table.tbl-plain tbody tr:hover td { background: var(--row-hover, rgba(0, 0, 0, 0.035)) !important; }
+
+table.tbl-plain input:not([type=checkbox]) { background: transparent !important; border: none !important; border-bottom: 1px solid transparent !important; border-radius: 0; box-shadow: none; padding-left: 2px; color: var(--tbl-body-fg); -webkit-text-fill-color: var(--tbl-body-fg); opacity: 1; }
+table.tbl-plain input:not([type=checkbox]):not(:disabled) { border-bottom-color: var(--tbl-line) !important; }
+table.tbl-plain input:not([type=checkbox]):not(:disabled):focus { outline: none; border-bottom-color: var(--text-accent, #1565c0) !important; }
+table.tbl-plain input:disabled::placeholder { color: var(--tbl-mute); -webkit-text-fill-color: var(--tbl-mute); opacity: 1; }
+table.tbl-plain input[type=date]:disabled::-webkit-calendar-picker-indicator { display: none; }
+table.tbl-plain input[type=date][value=""]:disabled { color: transparent; -webkit-text-fill-color: transparent; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Cpath d='M1 6h10' stroke='%239ca3af' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat 2px center !important; }
+table.tbl-plain input[type=checkbox]:disabled:not(:checked) { visibility: hidden; }
+
+/* expiry status (class set by window.expiryAttrs): colour only when it means something */
+table.tbl-plain input.exp-expired { color: #b91c1c; -webkit-text-fill-color: #b91c1c; font-weight: 600; }
+table.tbl-plain input.exp-soon    { color: #b45309; -webkit-text-fill-color: #b45309; font-weight: 600; }
+body.dark-mode table.tbl-plain input.exp-expired { color: #f87171; -webkit-text-fill-color: #f87171; }
+body.dark-mode table.tbl-plain input.exp-soon    { color: #fbbf24; -webkit-text-fill-color: #fbbf24; }
