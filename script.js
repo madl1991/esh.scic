@@ -1916,6 +1916,12 @@ function applyNumFmtToInputs() {
                 'got-monitoring', 'nov-monitoring', 'exposures', 'lta-registry', 'medical'
             ],
 
+            // Sidebar tabs a PCO may see (Envi Head is a separate role and sees everything). Edit this list only.
+            PCO_NAV_TABS: [
+                'headlines', 'overall', 'safety-alerts', 'nov-monitoring',
+                'emb', 'env-monthly-report', 'nov-env', 'permits', 'env-monitoring', 'settings'
+            ],
+
             getUserInfo(email) {
                 if (!email) return { role: 'guest', region: null, displayName: 'Guest', color: '#999' };
                 if (this.superintendents[email]) return this.superintendents[email];
@@ -2074,6 +2080,46 @@ function applyNumFmtToInputs() {
             }
         };
         window.UserAccounts = UserAccounts;
+
+        // ── Region banner visibility (ONE place) ─────────────────────────────────────────────
+        // Superintendent & PCO see only their own region's banner. Other roles see all.
+        // Only banners (and their body) are hidden; summary tables/totals are never touched.
+        // Covers every tab automatically: any `.region-banner.region-<slug>` or `[data-region-card]` card.
+        (function initRegionBannerHider() {
+            const norm = r => String(r || '').trim().toUpperCase();
+            function ownRegion() {
+                try {
+                    const info = UserAccounts.getUserInfo(state.currentUser && state.currentUser.email);
+                    return (info.role === 'superintendent' || info.role === 'pco') ? norm(info.region) : null;
+                } catch (e) { return null; }
+            }
+            function regionOf(el) {
+                if (el.dataset.regionCard) return el.dataset.regionCard;
+                const slugs = Object.keys(window.REGION_COLORS || {});
+                return slugs.find(r => el.classList.contains('region-' + window.regionSlug(r))) || null;
+            }
+            function hide(el) {
+                const next = el.nextElementSibling, parent = el.parentElement;
+                // banner sitting alone in its own card with its body -> hide the whole card
+                if (!el.dataset.regionCard && parent && parent.children.length <= 2 && parent !== document.body) { parent.style.display = 'none'; return; }
+                el.style.display = 'none';
+                if (!el.dataset.regionCard && next && (next.classList.contains('region-content') || /content|body/.test(next.id || ''))) next.style.display = 'none';
+            }
+            function apply() {
+                const mine = ownRegion();
+                if (!mine) return;
+                document.querySelectorAll('.region-banner:not([data-rv]), [data-region-card]:not([data-rv])').forEach(el => {
+                    el.setAttribute('data-rv', '1');
+                    const reg = regionOf(el);
+                    if (reg && norm(reg) !== mine) hide(el);
+                });
+            }
+            function start() {
+                apply();
+                new MutationObserver(apply).observe(document.documentElement, { childList: true, subtree: true });
+            }
+            if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+        })();
 
         
         const PresenceTracker = {
@@ -5265,6 +5311,7 @@ function applyNumFmtToInputs() {
         };
 
         function changeTab(t) {
+            if (state.userRole === 'pco' && !UserAccounts.PCO_NAV_TABS.includes(t)) t = 'overall'; // PCO can't open tabs hidden from the sidebar
             // Save scroll of current tab before switching
             const _mc = document.getElementById('main-content');
             if (_mc && state.currentTab) {
@@ -5497,8 +5544,13 @@ function updateAuditData(pName, qtr, field, val) {
         // Total Exposures: a month's figures stay hidden and locked until that month is over
         // (the current month and later months show nothing). Display only: stored values and
         // the auto-computations are not touched.
-        function isExposureMonthHidden(i) {
-            if (state.currentTab !== 'exposures') return false;
+        // Tabs that use this rule. To apply it to another tab, add the tab name here.
+        const UNFINISHED_MONTH_LOCK_TABS = ['exposures', 'activities'];
+        // Rows that are auto-generated and may show current-month data in advance (ESH Activities).
+        const UNFINISHED_MONTH_EXEMPT_ROWS = ['No. of Identified Near-Miss', 'Drills Conducted', 'Training Conducted'];
+        function isExposureMonthHidden(i, row) {
+            if (!UNFINISHED_MONTH_LOCK_TABS.includes(state.currentTab)) return false;
+            if (state.currentTab === 'activities' && UNFINISHED_MONTH_EXEMPT_ROWS.includes(row)) return false;
             const _n = new Date(); const _cy = _n.getFullYear(); const _cm = _n.getMonth() + 1;
             const _sy = parseInt(state.selectedYear) || _cy;
             return _sy > _cy || (_sy === _cy && i >= _cm);
@@ -7601,11 +7653,11 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
         }
         window.showComplianceGapModal = showComplianceGapModal;
 
-        function calculateYTD(vals, rowIndex) {
+        function calculateYTD(vals, rowIndex, row) {
             if (!vals) return 0;
             let sum = 0;
             for (let i = 1; i <= 12; i++) {
-                if (window.isExposureMonthHidden && window.isExposureMonthHidden(i)) continue; // Total Exposures: unfinished months are not counted
+                if (window.isExposureMonthHidden && window.isExposureMonthHidden(i, row)) continue; // Total Exposures: unfinished months are not counted
                 const val = parseFloat(vals[i]) || 0;
                 if (val > 0) sum += val;
             }
@@ -8022,6 +8074,21 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 _corpKpmNav.style.display = _canSeeCorporateKpm ? '' : 'none';
             }
 
+            // PCO (not Envi Head): hide every sidebar tab outside UserAccounts.PCO_NAV_TABS, and any group left empty.
+            // Items hidden here are marked so the next login (any role) restores them.
+            document.querySelectorAll('[data-role-hidden]').forEach(el => { el.style.display = ''; el.removeAttribute('data-role-hidden'); });
+            if (isPCO) {
+                document.querySelectorAll('.nav-item[data-tab]').forEach(el => {
+                    if (el.style.display !== 'none' && !UserAccounts.PCO_NAV_TABS.includes(el.dataset.tab)) {
+                        el.style.display = 'none'; el.setAttribute('data-role-hidden', '1');
+                    }
+                });
+                document.querySelectorAll('.nav-group').forEach(g => {
+                    const items = [...g.querySelectorAll('.nav-item')];
+                    if (items.length && items.every(i => i.style.display === 'none')) { g.style.display = 'none'; g.setAttribute('data-role-hidden', '1'); }
+                });
+            }
+
             const pcoNonEnvTabs = ['rates','exposures','activities','kpm','dole','doe','doe-permit',
                                    'medical','nov','nov-monitoring','cshp','reg']; // 'audit' excluded — uses #audit-nav-lock instead
             pcoNonEnvTabs.forEach(tab => {
@@ -8084,7 +8151,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             const _validTabs = NAV_ITEMS.filter(i => i.tab !== 'settings').map(i => i.tab);
             const _storedTab = localStorage.getItem('esh_last_tab') || 'overall';
             let lastTab = _validTabs.includes(_storedTab) ? _storedTab : 'overall';
-            if (state.userRole === 'pco' && !UserAccounts.PCO_EDITABLE_TABS.includes(lastTab) && !UserAccounts.PCO_VIEW_TABS.includes(lastTab)) {
+            if (state.userRole === 'pco' && !UserAccounts.PCO_NAV_TABS.includes(lastTab)) {
                 lastTab = 'overall';
             }
             if (state.userRole === 'pco' && (lastTab === 'personnel' || lastTab === 'osh-requirement')) {
@@ -13184,7 +13251,7 @@ function renderTabulation() {
                                 const val = p.vals[key] ? (p.vals[key][i] ?? "") : "";
                                 if (val !== "" && !isNaN(val)) monthTotal += parseFloat(val);
                             });
-                            if (isExposureMonthHidden(i)) monthTotal = 0;
+                            if (isExposureMonthHidden(i, row)) monthTotal = 0;
                             const _osNow = new Date(); const _osCY = _osNow.getFullYear(); const _osCM = _osNow.getMonth() + 1;
                             const _osSY = state.selectedYear || _osCY;
                             const _osMedAutoRows = ['LTA','Medical Treatment','First Aid','Fatality','High-Potential incident','Dangerous Occurrences','No. of Identified Near-Miss','Days Lost/Charged'];
@@ -13284,7 +13351,7 @@ function renderTabulation() {
                             html += `<td class="ytd-cell" style="font-weight:800;font-size:0.7rem;">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
                         } else {
                             displayProjects.forEach(p => {
-                                const ytd = calculateYTD(p.vals[key], rowIdx);
+                                const ytd = calculateYTD(p.vals[key], rowIdx, row);
                                 if (ytd > 0) ytdTotal += ytd;
                             });
                             html += `<td class="ytd-cell" style="font-weight: 800; font-size: 0.7rem;">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
@@ -13364,19 +13431,9 @@ function renderTabulation() {
                         // Walang banner sa Total Exposures tab
                         window._pendingTableHeader = null;
                     } else if (_mergedTabs.includes(state.currentTab)) {
-                        window._pendingTableHeader = `
-                            <div style="margin: 0 20px 4px;">
-                                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#2e7d32;border-radius:6px 6px 0 0;position:sticky;top:0;z-index:20;">
-                                    <div>
-                                        <div style="font-size:0.85rem;font-weight:800;color:white;letter-spacing:0.05em;">${b.title}</div>
-                                        <div style="font-size:0.68rem;color:rgba(255,255,255,0.8);margin-top:1px;">${b.sub1}</div>
-                                    </div>
-                                    <div style="display:flex;gap:6px;">
-                                        <span style="background:rgba(255,255,255,0.18);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:20px;padding:2px 10px;font-size:0.62rem;font-weight:800;">${getProjectCountLabel(displayProjects)}</span>
-                                        <span style="background:rgba(255,255,255,0.18);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:20px;padding:2px 10px;font-size:0.62rem;font-weight:800;">ALL REGIONS</span>
-                                    </div>
-                                </div>
-                            </div>`;
+                        // Plain report bar (same as OVERALL SUMMARY): white card, green title, light pills
+                        window.rptSumInjectCss();
+                        window._pendingTableHeader = `<div class="rpt-wrap" style="margin:0 16px 4px;position:sticky;top:0;z-index:20;">${window.rptBar({ title: b.title, sub: b.sub1, pills: [getProjectCountLabel(displayProjects), 'ALL REGIONS'] })}</div>`;
                     } else {
                         window._pendingTableHeader = null;
                         html += `
@@ -14655,7 +14712,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         ${ytdMh > 0 ? window.formatRate(row, ytdRate) : ''}
                     </td>`;
                 } else {
-                    ytdValue = calculateYTD(p.vals[key], rowIdx);
+                    ytdValue = calculateYTD(p.vals[key], rowIdx, row);
                     html += `<td class="ytd-cell">${fmtNum(ytdValue)}</td>`;
                 }
             }
@@ -28479,7 +28536,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             }
 
-            html += _tabRegionBanner({ key:'env', toggle:'envToggleRegion', region, rk, rc, icon:'bolt', projCount:projs.length, open:isOpen, editable:canEditRegionEnv, viewOnly:!canEditRegionEnv,
+            html += _tabRegionBanner({ key:'env', toggle:'envToggleRegion', region, rk, rc, icon:'bolt', projCount:projs.length, open:isOpen, editable:canEditRegionEnv, viewOnly:(!canEditRegionEnv && state.isEditing),
                 chips:[ rKwh>0 && { text:`${rKwh.toLocaleString()} kWh`, kind:'a' }, rAmt>0 && { text:`Php ${rAmt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`, kind:'a' }, rGhg>0 && { text:`${rGhg.toFixed(4)} tCO2`, kind:'b' } ],
                 body: projTablesHtml });
         });
@@ -30063,7 +30120,7 @@ function _tabRegionBanner(o) {
     const strip = o.viewOnly
         ? `<div style="padding:9px 14px;background:${rc.light};border-bottom:none;display:flex;align-items:center;gap:7px;font-size:0.71rem;color:${rc.bg};font-weight:600;">${window.icon('lock')} This region is <strong>view-only</strong> for your account.</div>`
         : '';
-    const head = `<div style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:14px;">
+    const head = `<div data-region-card="${o.region}" style="background:var(--bg-card);border-radius:10px;overflow:hidden;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:14px;">
         <div class="${o.editable ? 'rb-editable' : ''}" onclick="${o.toggle}('${o.region}')" style="${w ? 'background:#ffffff;border-bottom:none;box-shadow:0 2px 8px rgba(0,0,0,0.10);' : 'background:linear-gradient(90deg,' + rc.bg + ' 0%,' + rc.bg + 'dd 100%);'}padding:10px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
             <div style="display:flex;align-items:center;gap:8px;">
                 <span style="color:${w ? '#1b5e20' : 'rgba(255,255,255,0.8)'};font-size:0.8rem;">${window.icon(o.icon)}</span>
