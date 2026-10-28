@@ -5079,7 +5079,7 @@ function applyNumFmtToInputs() {
             const nav = document.getElementById('main-nav');
             if (!nav) return;
             nav.innerHTML = NAV_CONFIG.map(g => g.items
-                ? '<div class="nav-group"><div class="nav-group-header collapsed" onclick="toggleNavGroup(this)" data-tip="' + _navEsc(g.label) + '">'
+                ? '<div class="nav-group"><div class="nav-group-header collapsed" onclick="toggleNavGroup(this)">'
                   + '<span><i class="fas ' + g.icon + '"></i> ' + _navEsc(g.label) + '</span><i class="fas fa-chevron-down chevron"></i></div>'
                   + '<div class="nav-group-items collapsed">' + g.items.map(_navItemHtml).join('') + '</div></div>'
                 : _navItemHtml(g)).join('');
@@ -11730,9 +11730,10 @@ function renderTabulation() {
     const _tkZeroCur = (y) => (y === _tkNow.getFullYear()) ? _tkNow.getMonth() - 1 : _tkCur(y);
     const _tkMonthTh = (m, mi, cur) => `<th${mi === cur ? ' class="now"' : ''}>${m}</th>`;
     // month cell: value > 0 → bold, 0 → muted 0, month not yet arrived → dash
-    const _tkVal = (v, mi, cur, red) => {
+    const _tkTip = (t) => t ? ` title="${String(t).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}" style="cursor:help" data-tip-nowrap` : '';
+    const _tkVal = (v, mi, cur, red, tip) => {
         if (v === null || v === undefined) return `<td class="z">—</td>`;
-        if (v) return `<td${red ? ' class="red"' : ''}>${v}</td>`;
+        if (v) return `<td${red ? ' class="red"' : ''}${_tkTip(tip)}>${v}</td>`;
         return `<td class="z">${mi > cur ? '—' : '0'}</td>`;
     };
 
@@ -11760,12 +11761,13 @@ function renderTabulation() {
             const accum = hasAccum ? row[row.length - 1] : null;
             const isTot = name === 'Total';
             const red = /^(fatality|lta)$/i.test(String(name).trim());
+            const tp = data.tips && data.tips[String(name).trim()];
             html += `<tr${isTot ? ' class="tot"' : ''}>
                 <td class="c1"${name.startsWith('  ') ? ' style="padding-left:26px"' : ''}>${name.trim()}</td>
-                <td class="prev${prev ? '' : ' z'}">${prev ?? '—'}</td>
-                ${vals.map((v, mi) => _tkVal(v, mi, _tkZeroCur(year), red)).join('')}
-                <td class="tt${total ? '' : ' z'}">${total ?? '—'}</td>
-                ${hasAccum ? `<td class="tt${accum ? '' : ' z'}">${accum ?? '—'}</td>` : ''}
+                <td class="prev${prev ? '' : ' z'}"${prev ? _tkTip(tp && tp.prev) : ''}>${prev ?? '—'}</td>
+                ${vals.map((v, mi) => _tkVal(v, mi, _tkZeroCur(year), red, tp && tp.months[mi])).join('')}
+                <td class="tt${total ? '' : ' z'}"${total ? _tkTip(tp && tp.total) : ''}>${total ?? '—'}</td>
+                ${hasAccum ? `<td class="tt${accum ? '' : ' z'}"${accum ? _tkTip(tp && tp.accum) : ''}>${accum ?? '—'}</td>` : ''}
             </tr>`;
         });
 
@@ -11891,6 +11893,20 @@ function renderTabulation() {
         const projects = getReportProjects();
         const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+        // Year-aware slot for an NOV: earlier year -> 0 (Previous), same year -> month 1-12, later year -> skipped
+        function novSlot(dateStr, yr) {
+            if (!dateStr) return null;
+            const parts = (dateStr + '').split('-');
+            const y = parseInt(parts[0]);
+            const m = parseInt(parts[1]);
+            if (isNaN(m) || m < 1 || m > 12) return null;
+            if (!isNaN(y)) {
+                if (y < yr) return 0;
+                if (y > yr) return null;
+            }
+            return m;
+        }
+
         function novMonth(dateStr) {
             if (!dateStr) return null;
             const m = parseInt((dateStr + '').split('-')[1]);
@@ -11908,6 +11924,21 @@ function renderTabulation() {
             envNov:             new Array(14).fill(0),
         };
 
+        // Tooltip sources: which project contributed to each cell (for tracing)
+        const _srcMap = {};
+        function addSrc(key, col, proj, n, note) {
+            const k = key + '|' + col;
+            (_srcMap[k] = _srcMap[k] || []).push({ proj: proj, n: n, note: note || '' });
+        }
+        function novNote(nov) {
+            return 'issued ' + (nov.dateIssued || 'no date') + (nov.refNo && String(nov.refNo).toLowerCase() !== 'none' ? ', ref ' + nov.refNo : '');
+        }
+        const _srcFields = [
+            ['fatality', 'medical_Fatality'], ['lta', 'medical_LTA'], ['firstAid', 'medical_First Aid'],
+            ['medical', 'medical_Medical Treatment'], ['highPotential', 'medical_High-Potential incident'],
+            ['dangerousOccurrence', 'medical_Dangerous Occurrences']
+        ];
+
         projects.forEach(p => {
             if (!p.vals) return;
 
@@ -11918,6 +11949,10 @@ function renderTabulation() {
                 rows.medical[i]             += parseFloat(p.vals['medical_Medical Treatment']?.[i]) || 0;
                 rows.highPotential[i]       += parseFloat(p.vals['medical_High-Potential incident']?.[i]) || 0;
                 rows.dangerousOccurrence[i] += parseFloat(p.vals['medical_Dangerous Occurrences']?.[i]) || 0;
+                _srcFields.forEach(function (f) {
+                    const n = parseFloat(p.vals[f[1]]?.[i]) || 0;
+                    if (n) addSrc(f[0], i, p.name, n);
+                });
             }
 
             const oshNovs = [
@@ -11925,8 +11960,8 @@ function renderTabulation() {
                 ...(p.vals['osh-nov_external_novs'] || []),
             ];
             oshNovs.forEach(nov => {
-                const m = novMonth(nov.dateIssued);
-                if (m) rows.oshNov[m]++;
+                const m = novSlot(nov.dateIssued, year);
+                if (m !== null) { rows.oshNov[m]++; addSrc('oshNov', m, p.name, 1, novNote(nov)); }
             });
 
             const envNovs = [
@@ -11934,8 +11969,8 @@ function renderTabulation() {
                 ...(p.vals['nov-env_external_novs'] || []),
             ];
             envNovs.forEach(nov => {
-                const m = novMonth(nov.dateIssued);
-                if (m) rows.envNov[m]++;
+                const m = novSlot(nov.dateIssued, year);
+                if (m !== null) { rows.envNov[m]++; addSrc('envNov', m, p.name, 1, novNote(nov)); }
             });
         });
 
@@ -11965,6 +12000,41 @@ function renderTabulation() {
             buildRow('ENVI Regulatory Issued NOV', rows.envNov),
         ];
 
+        // Tooltip text per cell: list of projects (and NOV issue dates) behind each number
+        const _MONTHS_LONG = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        function _tipFor(label, key, cols, title) {
+            const byProj = {};
+            cols.forEach(function (c) {
+                (_srcMap[key + '|' + c] || []).forEach(function (s) {
+                    const e = byProj[s.proj] = byProj[s.proj] || { n: 0, notes: [] };
+                    e.n += s.n;
+                    if (s.note) e.notes.push(s.note);
+                });
+            });
+            const names = Object.keys(byProj);
+            if (!names.length) return '';
+            const lines = names.map(function (nm) {
+                const e = byProj[nm];
+                return nm + ': ' + e.n + (e.notes.length ? ' (' + e.notes.join('; ') + ')' : '');
+            });
+            return lines.join('\n');
+        }
+        const _tipKeys = [
+            ['Fatality', 'fatality'], ['LTA', 'lta'], ['First Aid', 'firstAid'], ['Medical Treatment', 'medical'],
+            ['High-Potential Incident', 'highPotential'], ['Dangerous Occurrences', 'dangerousOccurrence'],
+            ['OSH Regulatory Issued NOV', 'oshNov'], ['ENVI Regulatory Issued NOV', 'envNov']
+        ];
+        const summaryTips = {};
+        _tipKeys.forEach(function (k) {
+            const m12 = [1,2,3,4,5,6,7,8,9,10,11,12];
+            summaryTips[k[0]] = {
+                prev:   _tipFor(k[0], k[1], [0], 'Previous'),
+                months: m12.map(function (m) { return _tipFor(k[0], k[1], [m], _MONTHS_LONG[m - 1] + ' ' + year); }),
+                total:  _tipFor(k[0], k[1], m12, 'Total ' + year),
+                accum:  _tipFor(k[0], k[1], [0].concat(m12), 'Accumulated')
+            };
+        });
+
         // totalRow layout (after slice(1) consumed by renderer):
         // [0]=prev, [1..12]=Jan-Dec months, [13]=Total, [14]=Accumulated
         // We build it as a 16-element array (index 0 unused) matching summaryRow layout,
@@ -11991,6 +12061,7 @@ function renderTabulation() {
             summary: {
                 headers: ['Incident / Accident', 'Previous', ...MONTHS_SHORT, 'Total', 'Accumulated'],
                 rows: summaryRows,
+                tips: summaryTips,
                 total: totalRow, // index 0 unused (renderer reads from index 1 like summaryRows)
             },
             mechanism: computeMechanismFromLta(projects),
@@ -13161,6 +13232,14 @@ function renderTabulation() {
                 
                 html += _rptSum ? `</tr></thead><tbody>` : `</tr>`;
                 
+                // Accident/Incident Record only: hover on a summary cell lists the projects behind the number (one line per project)
+                const _osTipAttr = (list) => {
+                    if (state.currentTab !== 'medical') return '';
+                    const _esc = (t) => String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                    const lines = list.filter(e => e.v > 0).map(e => _esc(e.n) + ': ' + fmtNum(e.v));
+                    return lines.length ? ' title="' + lines.join('&#10;') + '" data-tip-nowrap' : '';
+                };
+
                 SCHEMA[state.currentTab].forEach((row, rowIdx) => {
                     const key = (row === 'No. of Identified Near-Miss') ? 'medical_' + row : `${state.currentTab}_${row}`;
                     const _lblShort = (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') ? 'Exp. Man-hour to date' : row;
@@ -13168,11 +13247,12 @@ function renderTabulation() {
                     html += `<tr><td title="${_lblTip}" style="text-align:left; font-weight:700; background:#e8f5e9; color:#1b5e20; position: sticky; left: 0; z-index: 5;${state.currentTab === 'exposures' ? ' white-space:nowrap;' : ''}">${_lblShort}</td>`;
                     
                     let prevTotal = 0;
+                    const _prevList = [];
                     displayProjects.forEach(p => {
                         const val = p.vals[key] ? (p.vals[key][0] ?? "") : "";
-                        if (val !== "" && !isNaN(val)) prevTotal += parseFloat(val);
+                        if (val !== "" && !isNaN(val)) { prevTotal += parseFloat(val); _prevList.push({ n: p.name, v: parseFloat(val) }); }
                     });
-                    html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}" style="font-weight: 700; font-size: 0.7rem;" ${state.currentTab === 'exposures' ? `data-expsummary-key="${key.replace(/"/g,'&quot;')}" data-expsummary-col="0"` : ''}>${prevTotal > 0 ? fmtNum(prevTotal) : ''}</td>`;
+                    html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}" style="font-weight: 700; font-size: 0.7rem;" ${state.currentTab === 'exposures' ? `data-expsummary-key="${key.replace(/"/g,'&quot;')}" data-expsummary-col="0"` : ''}${prevTotal > 0 ? _osTipAttr(_prevList) : ''}>${prevTotal > 0 ? fmtNum(prevTotal) : ''}</td>`;
                     
                     for (let i = 1; i <= 12; i++) {
                         let monthTotal = 0;
@@ -13247,9 +13327,10 @@ function renderTabulation() {
                             if (isExposureMonthHidden(i)) monthTotal = 0;
                             html += `<td class="monthly-data${(typeof isExposureMonthHidden === 'function' && isExposureMonthHidden(i)) ? ' future' : ''}" style="font-weight:700;text-align:center;">${monthTotal > 0 ? fmtNum(monthTotal) : ''}</td>`;
                         } else {
+                            const _mList = [];
                             displayProjects.forEach(p => {
                                 const val = p.vals[key] ? (p.vals[key][i] ?? "") : "";
-                                if (val !== "" && !isNaN(val)) monthTotal += parseFloat(val);
+                                if (val !== "" && !isNaN(val)) { monthTotal += parseFloat(val); _mList.push({ n: p.name, v: parseFloat(val) }); }
                             });
                             if (isExposureMonthHidden(i, row)) monthTotal = 0;
                             const _osNow = new Date(); const _osCY = _osNow.getFullYear(); const _osCM = _osNow.getMonth() + 1;
@@ -13260,7 +13341,7 @@ function renderTabulation() {
                             const _osIsCurr = _osSY === _osCY && i === _osCM;
                             const _osShowZero = _osIsMedAuto && _osIsPast && monthTotal === 0; // current month is ongoing -> dash, not 0
                             const _osDisp = monthTotal > 0 ? fmtNum(monthTotal) : (_osShowZero ? '0' : '');
-                            html += `<td class="${isNov ? 'nov-narrow-td' : 'monthly-data'}${(state.currentTab === 'exposures' && typeof isExposureMonthHidden === 'function' && isExposureMonthHidden(i)) ? ' future' : ''}" style="font-weight: 600; background: ${monthTotal > 0 ? '#f1f8e9' : ''}; color: ${_osShowZero ? '#bbb' : ''};" ${state.currentTab === 'exposures' ? `data-expsummary-key="${key.replace(/"/g,'&quot;')}" data-expsummary-col="${i}"` : ''}>${_osDisp}</td>`;
+                            html += `<td class="${isNov ? 'nov-narrow-td' : 'monthly-data'}${(state.currentTab === 'exposures' && typeof isExposureMonthHidden === 'function' && isExposureMonthHidden(i)) ? ' future' : ''}" style="font-weight: 600; background: ${monthTotal > 0 ? '#f1f8e9' : ''}; color: ${_osShowZero ? '#bbb' : ''};" ${state.currentTab === 'exposures' ? `data-expsummary-key="${key.replace(/"/g,'&quot;')}" data-expsummary-col="${i}"` : ''}${monthTotal > 0 ? _osTipAttr(_mList) : ''}>${_osDisp}</td>`;
                         }
                     }
                     
@@ -13350,11 +13431,12 @@ function renderTabulation() {
                             });
                             html += `<td class="ytd-cell" style="font-weight:800;font-size:0.7rem;">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
                         } else {
+                            const _yList = [];
                             displayProjects.forEach(p => {
                                 const ytd = calculateYTD(p.vals[key], rowIdx, row);
-                                if (ytd > 0) ytdTotal += ytd;
+                                if (ytd > 0) { ytdTotal += ytd; _yList.push({ n: p.name, v: ytd }); }
                             });
-                            html += `<td class="ytd-cell" style="font-weight: 800; font-size: 0.7rem;">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
+                            html += `<td class="ytd-cell" style="font-weight: 800; font-size: 0.7rem;"${ytdTotal > 0 ? _osTipAttr(_yList) : ''}>${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
                         }
                     }
                     
@@ -14164,16 +14246,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         : ''}
                     ${(state.currentTab === 'medical' && row === 'Days Lost/Charged')
                         ? `<div style="font-size:0.6rem;font-weight:400;color:#1565c0;margin-top:3px;line-height:1.3;">
-                               <i class="fas fa-info-circle"></i> Used for Severity Rate computation
-                           </div>
-                           <div style="font-size:0.58rem;font-weight:600;color:#e65100;margin-top:2px;line-height:1.3;cursor:pointer;" onclick="changeTab('lta-registry')">
-                               <i class="fas fa-sync-alt"></i> Auto-sync from Incident &amp; Accident Registry ↗
+                               <i class="fas fa-info-circle"></i> Used for Severity Rate computation <i class="fas fa-sync-alt" title="Auto-sync from Incident &amp; Accident Registry ↗" onclick="changeTab('lta-registry')" style="margin-left:6px;font-size:0.62rem;color:#e65100;cursor:pointer;vertical-align:middle;"></i>
                            </div>`
                         : ''}
                     ${((state.currentTab === 'medical' || state.currentTab === 'activities') && ['LTA','Medical Treatment','First Aid','Fatality','High-Potential incident','Dangerous Occurrences','No. of Identified Near-Miss'].includes(row))
-                        ? `<div style="font-size:0.58rem;font-weight:600;color:#2e7d32;margin-top:3px;line-height:1.3;cursor:pointer;" onclick="changeTab('lta-registry')">
-                               <i class="fas fa-sync-alt"></i> Auto-synced from Registry ↗
-                           </div>`
+                        ? `<i class="fas fa-sync-alt" title="Auto-synced from Registry ↗" onclick="changeTab('lta-registry')" style="margin-left:6px;font-size:0.62rem;color:#2e7d32;cursor:pointer;vertical-align:middle;"></i>`
                         : ''}
                 </span>
                 ${naBtn}
@@ -14295,11 +14372,11 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             <td style="background:${isPermitClientProvided?'#dceefb':isPermitNA?'#eeeeee':''}" ></td>
                             <td style="background:${isPermitClientProvided?'#dceefb':isPermitNA?'#eeeeee':''}" ></td>`;
                         }
-                        html += `<td style="min-width:200px;padding:8px 12px;"><input type="text" placeholder="Permit/Accreditation #" value="${entry.permitNo ?? ''}" ${naDisabled} oninput="updateEccEntry('${p.name}',${idx},'permitNo',this.value)" style="width:100%;"></td>`;
+                        html += `<td style="min-width:200px;padding:8px 12px;"><input type="text" class="ecc-permit-input" placeholder="Permit/Accreditation #" value="${entry.permitNo ?? ''}" ${naDisabled} oninput="updateEccEntry('${p.name}',${idx},'permitNo',this.value)" style="width:100%;"></td>`;
                         html += `<td style="min-width:140px;padding:8px 12px;"><input type="date" value="${entry.dateIssued ?? ''}" ${naDisabled} oninput="updateEccEntry('${p.name}',${idx},'dateIssued',this.value)" style="width:100%;"></td>`;
                         html += `<td style="min-width:140px;padding:8px 12px;position:relative;">
                             <div style="display:flex;align-items:center;justify-content:center;height:100%;padding:4px 0;">
-                                <span style="font-size:0.78rem;white-space:nowrap;">Until Project Completion</span>
+                                <span class="until-completion-text" style="font-size:0.7rem;font-weight:500;white-space:nowrap;">Until Project Completion</span>
                             </div>
                             ${isFirst && inputsEditable ? `<button onclick="addEccEntry('${p.name}')" class="permit-add-btn" data-tooltip="Add ECC entry"><i class="fas fa-plus"></i></button>` : ''}
                         </td>`;
@@ -14340,7 +14417,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         html += '<td style="min-width:140px;padding:8px 12px;"><input type="date" value="' + _mpIss + '" ' + naDisabled + ' oninput="updateMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ',\'dateIssued\',this.value)" style="width:100%;"></td>';
                         var _mpNoExpiry = (window.NO_EXPIRY_PERMITS || []).includes(row);
                         if (_mpNoExpiry) {
-                            html += '<td style="min-width:140px;padding:8px 12px;position:relative;text-align:center;vertical-align:middle;"><span style="font-size:0.78rem;white-space:nowrap;">Until Project Completion</span>';
+                            html += '<td style="min-width:140px;padding:8px 12px;position:relative;text-align:center;vertical-align:middle;"><span class="until-completion-text" style="font-size:0.7rem;font-weight:500;white-space:nowrap;">Until Project Completion</span>';
                         } else {
                             html += '<td style="min-width:140px;padding:8px 12px;position:relative;"><input type="date" value="' + _mpExp + '" data-allow-future ' + naDisabled + ' oninput="updateMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ',\'expiryDate\',this.value)" style="width:100%;">';
                         }
@@ -14358,7 +14435,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         html += `<td style="min-width: 200px; padding: 8px 12px;"><input type="text" placeholder="Permit/Accreditation #" value="${permitNo}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${_safeKey}',1,this.value)" style="width: 100%;"></td>`;
                         html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${dateIssued}" ${naDisabled} oninput="updateVal('${p.name}','${_safeKey}',2,this.value)" style="width: 100%;"></td>`;
                         if (_isNoExpiry) {
-                            html += `<td style="min-width: 140px; padding: 8px 12px; text-align:center; vertical-align:middle;"><span style="font-size:0.78rem;white-space:nowrap;">Until Project Completion</span></td>`;
+                            html += `<td style="min-width: 140px; padding: 8px 12px; text-align:center; vertical-align:middle;"><span class="until-completion-text" style="font-size:0.7rem;font-weight:500;white-space:nowrap;">Until Project Completion</span></td>`;
                         } else {
                             html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${expiryDate}" data-allow-future ${naDisabled} oninput="updateVal('${p.name}','${_safeKey}',3,this.value)" style="width: 100%;"></td>`;
                         }
@@ -14562,7 +14639,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             const _medColor = v > 0 ? '#1b5e20' : (_medShowZero ? '#bbb' : '#ddd');
                             const _medWeight = v > 0 ? '800' : '600';
                             const _medBg = v > 0 ? 'rgba(27,94,32,0.07)' : '';
-                            html += `<td class="monthly-data" style="text-align:center;background:${_medBg};cursor:default;" title="Auto-computed from Incident &amp; Accident Registry — cannot be edited manually">
+                            // Tooltip: one line per incident (AIIR title + date of incident); falls back to the old note when there is nothing to list
+                            const _medTipTxt = (v > 0 && typeof window.eshMedCellTip === 'function') ? window.eshMedCellTip(p, row, i, _medSelYear) : '';
+                            const _medTitleAttr = _medTipTxt
+                                ? ` title="${_medTipTxt.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g,'&#10;')}" data-tip-nowrap`
+                                : ` title="Auto-computed from Incident &amp; Accident Registry — cannot be edited manually"`;
+                            html += `<td class="monthly-data" style="text-align:center;background:${_medBg};cursor:default;"${_medTitleAttr}>
                                 <span style="font-weight:${_medWeight};color:${_medColor};font-size:0.72rem;">
                                     ${_medDisp}${v > 0 ? '<i class="fas fa-lock" style="font-size:0.5rem;margin-left:3px;opacity:0.5;vertical-align:middle;"></i>' : ''}
                                 </span>
@@ -17519,7 +17601,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         const schemaRow  = SCHEMA[state.currentTab][0];
                         const key        = `${state.currentTab}_${schemaRow}`;
 
-                        html += `<div class="table-container"><table class="got-tbl" style="width:auto;min-width:100%;">
+                        html += `<div class="table-container"><table class="got-tbl hl-tbl" style="width:auto;min-width:100%;">
                             <thead><tr>
                                 <th class="got-th-left got-th-dark" style="min-width:250px;text-align:left;padding-left:10px;">PROJECT</th>
                                 <th>${headerText}</th>
@@ -17599,7 +17681,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         var tr=btn.closest('tr'); if(tr){tr.style.background='#ffebee'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background='#ffcdd2';}
                                         btn.style.display='none';
                                     })(this)"><i class='fas fa-times-circle'></i></button>
-                                    ` : (v ? `<span style="display:inline-block;background:#dcedc8;color:#33691e;font-weight:600;padding:5px 18px;border-radius:6px;letter-spacing:0.03em;">${_vDisplay}</span>` : `<span style="display:inline-block;background:#ffcdd2;color:#c62828;font-weight:600;padding:5px 18px;border-radius:6px;letter-spacing:0.03em;">mm/dd/yyyy</span>`)}
+                                    ` : (v ? `<span style="display:inline-block;color:#33691e;font-weight:600;letter-spacing:0.03em;">${_vDisplay}</span>` : `<span style="display:inline-block;color:#c62828;font-weight:600;letter-spacing:0.03em;">mm/dd/yyyy</span>`)}
                                 </td>
                                 <td style="${!v ? 'background:#ffebee;' : ''}">${pdfCell}</td>
                             </tr>`;
@@ -17613,7 +17695,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         const _auQ = [['Q1','Q1 (JAN-MAR)'],['Q2','Q2 (APR-JUN)'],['Q3','Q3 (JUL-SEP)'],['Q4','Q4 (OCT-DEC)']];
                         const _auSub = 'font-size:0.64rem!important;padding:6px 3px!important;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help;text-align:center;vertical-align:middle;';
                         html += `<div class="table-container">
-                            <table class="got-tbl" style="width:100%;min-width:0;table-layout:fixed;">
+                            <table class="got-tbl hl-tbl" style="width:100%;min-width:0;table-layout:fixed;">
                                 <colgroup>
                                     <col style="width:17%">
                                     ${_auQ.map(() => '<col><col><col>').join('')}
@@ -17643,9 +17725,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 const audit = p.auditData?.[q] || { scoreImpl: 0, docuComp: 0 };
                                 const qAvg  = (audit.scoreImpl + audit.docuComp) / 2;
                                 totalYearAvg += qAvg;
-                                const _auInp = (field, val) => `<td style="background:#e8f5e9;text-align:center;padding:4px 5px;"><input type="number" min="0" max="100" value="${val}" ${_auEdit ? '' : 'disabled'}
+                                const _auInp = (field, val) => `<td style="text-align:center;padding:4px 5px;"><input type="number" min="0" max="100" value="${val}" ${_auEdit ? '' : 'disabled'}
                                         oninput="updateAuditData('${p.name}','${q}','${field}',this.value)" placeholder="0"
-                                        style="border:1.5px solid #a5d6a7;border-radius:4px;padding:3px 4px;background:#f1fff1;color:#2e7d32;width:100%;max-width:70px;min-width:0;box-sizing:border-box;font-size:0.75rem;text-align:center;"></td>`;
+                                        style="${_auEdit ? 'border:1.5px solid #a5d6a7;background:#f1fff1;color:#2e7d32;' : 'border:1.5px solid transparent;background:transparent;color:inherit;font-weight:500;'}border-radius:4px;padding:3px 4px;width:100%;max-width:70px;min-width:0;box-sizing:border-box;font-size:0.75rem;text-align:center;"></td>`;
                                 html += _auInp('scoreImpl', audit.scoreImpl) + _auInp('docuComp', audit.docuComp)
                                     + `<td style="background:#c8e6c9;color:#1b5e20;font-weight:700;text-align:center;border-right:2px solid #a5d6a7;">${qAvg.toFixed(2)}</td>`;
                             });
@@ -17989,7 +18071,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         
                         html += `
                         <div class="table-container">
-                            <table class="got-tbl" style="width:auto;min-width:100%;">
+                            <table class="got-tbl hl-tbl" style="width:auto;min-width:100%;">
                                 <tr>
                                     <th class="got-th-left got-th-dark" style="min-width:280px;text-align:left;padding-left:10px;">PROJECT</th>
                                     <th style="white-space:nowrap;">Client-Provided</th>
@@ -20217,13 +20299,13 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
             if (_NOEXP[_ckey]) {
                 const _up = !!(_cdata && _cdata.pdfUrl);
                 return _up
-                    ? '<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div style="font-size:0.56rem;font-weight:800;color:#2e7d32;background:#f1f8e9;padding:1px 6px;border-radius:8px;display:inline-block;">UPLOADED</div></td>'
-                    : '<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div style="font-size:0.56rem;font-weight:800;color:#c62828;background:#ffebee;padding:1px 6px;border-radius:8px;display:inline-block;">NOT UPLOADED</div></td>';
+                    ? '<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div title="Certificate uploaded" style="font-size:0.68rem;font-weight:700;color:#2e7d32;display:inline-block;cursor:default;">UPLOADED</div></td>'
+                    : '<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div title="Certificate not uploaded" style="font-size:0.68rem;font-weight:700;color:#c62828;display:inline-block;cursor:default;">NOT UPLOADED</div></td>';
             }
-            if (!_cdata) return '<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div style="font-size:0.56rem;font-weight:800;color:#c62828;background:#ffebee;padding:1px 6px;border-radius:8px;display:inline-block;">NOT UPLOADED</div></td>';
+            if (!_cdata) return '<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div title="Certificate not uploaded" style="font-size:0.68rem;font-weight:700;color:#c62828;display:inline-block;cursor:default;">NOT UPLOADED</div></td>';
             if (p.certToFollow === _ckey) return ('<td style="text-align:center;padding:5px 14px;font-size:0.65rem;color:#e65100;font-weight:700;">' + window.icon("wait") + ' To Follow</td>');
             const _exp = _cdata.expiry;
-            if (!_exp) return '<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div title="Certificate is on file but expiry date is not set. Edit the personnel to add it." style="font-size:0.56rem;font-weight:800;color:#e65100;background:#fff3e0;padding:1px 6px;border-radius:8px;display:inline-block;">SET EXPIRY</div></td>';
+            if (!_exp) return '<td style="text-align:center;padding:5px 14px;white-space:nowrap;"><div title="Certificate is on file but expiry date is not set. Edit the personnel to add it." style="font-size:0.68rem;font-weight:700;color:#e65100;display:inline-block;cursor:default;">SET EXPIRY</div></td>';
             const _now = new Date(); _now.setHours(0,0,0,0);
             const _ed  = new Date(_exp); _ed.setHours(0,0,0,0);
             const _d   = Math.round((_ed - _now) / 86400000);
@@ -25037,37 +25119,28 @@ function updateReportorialColors() {
                         
                         if (dateInput) {
                             const validUntilValue = dateInput.value.trim();
-                            
+                            // No fill: bold colored text + tooltip. Classes are styled in styles.css.
+                            validUntilCell.style.backgroundColor = '';
+                            dateInput.style.backgroundColor = '';
+                            dateInput.style.color = '';
+                            dateInput.style.fontWeight = '';
+                            ['doe-vu-expired', 'doe-vu-soon', 'doe-vu-valid'].forEach(function(c) { dateInput.classList.remove(c); });
+                            validUntilCell.removeAttribute('title');
+                            dateInput.removeAttribute('title');
+
                             if (validUntilValue !== '') {
                                 const expiryDate = new Date(validUntilValue);
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
                                 expiryDate.setHours(0, 0, 0, 0);
-                                
-                                if (expiryDate < today) {
-                                    validUntilCell.style.backgroundColor = '#ffcdd2';
-                                    dateInput.style.backgroundColor = '#ffcdd2';
-                                    dateInput.style.color = '#c62828';
-                                    dateInput.style.fontWeight = '700';
-                                } 
-                                else {
-                                    const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
-                                    
-                                    if (daysUntilExpiry <= 30) {
-                                        validUntilCell.style.backgroundColor = '#fff9c4';
-                                        dateInput.style.backgroundColor = '#fff9c4';
-                                        dateInput.style.color = '#f57c00';
-                                        dateInput.style.fontWeight = '600';
-                                    } else {
-                                        validUntilCell.style.backgroundColor = '#c8e6c9';
-                                        dateInput.style.backgroundColor = '#c8e6c9';
-                                        dateInput.style.color = '#2e7d32';
-                                    }
-                                }
-                            } else {
-                                validUntilCell.style.backgroundColor = '';
-                                dateInput.style.backgroundColor = '';
-                                dateInput.style.color = '';
+                                const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+                                let vuClass, vuTip;
+                                if (expiryDate < today) { vuClass = 'doe-vu-expired'; vuTip = 'Expired'; }
+                                else if (daysUntilExpiry <= 30) { vuClass = 'doe-vu-soon'; vuTip = 'Valid - expires in ' + daysUntilExpiry + ' day' + (daysUntilExpiry === 1 ? '' : 's'); }
+                                else { vuClass = 'doe-vu-valid'; vuTip = 'Valid'; }
+                                dateInput.classList.add(vuClass);
+                                dateInput.title = vuTip;
+                                validUntilCell.title = vuTip;
                             }
                         }
                     }
@@ -31817,7 +31890,7 @@ window.pcViewPersonnel = function(idx) {
     const isCorpPos  = CORP_POS_LOCAL.includes(pos);
     const certCfg    = CERT_MAP_LOCAL[pos];
     const certSection = document.getElementById('pc-cert-section');
-    const certExempt  = document.getElementById('pc-cert-exempt');
+    const certExempt  = document.getElementById('pc-cert-exempt') || { style: {} };
     const certList    = document.getElementById('pc-cert-list');
 
     if (isCorpPos) {
@@ -35699,6 +35772,14 @@ async function exportCurrentTabToExcel() {
     // ════════════════════════════════════════════════════════════════════════
     if (tab === 'tabulation') {
         const tRows={fatality:new Array(14).fill(0),lta:new Array(14).fill(0),firstAid:new Array(14).fill(0),medical:new Array(14).fill(0),highPotential:new Array(14).fill(0),dangerousOccurrence:new Array(14).fill(0),oshNov:new Array(14).fill(0),envNov:new Array(14).fill(0)};
+        const _tYear = state.selectedYear || new Date().getFullYear();
+        function _tNovSlot(d){
+            if(!d) return null;
+            const parts=(d+'').split('-'); const y=parseInt(parts[0]); const m=parseInt(parts[1]);
+            if(isNaN(m)||m<1||m>12) return null;
+            if(!isNaN(y)){ if(y<_tYear) return 0; if(y>_tYear) return null; }
+            return m;
+        }
         projs.forEach(function(p){
             if (!p.vals) return;
             for (let i=0;i<=13;i++){
@@ -35710,9 +35791,9 @@ async function exportCurrentTabToExcel() {
                 tRows.dangerousOccurrence[i] +=parseFloat(p.vals['medical_Dangerous Occurrences']?.[i])||0;
             }
             const oshNovs=[...(p.vals['osh-nov_internal_novs']||[]),...(p.vals['osh-nov_external_novs']||[])];
-            oshNovs.forEach(function(n){const m=n.dateIssued?parseInt((n.dateIssued+'').split('-')[1]):null;if(m>=1&&m<=12)tRows.oshNov[m]++;});
+            oshNovs.forEach(function(n){const m=_tNovSlot(n.dateIssued);if(m!==null)tRows.oshNov[m]++;});
             const envNovs=[...(p.vals['nov-env_internal_novs']||[]),...(p.vals['nov-env_external_novs']||[])];
-            envNovs.forEach(function(n){const m=n.dateIssued?parseInt((n.dateIssued+'').split('-')[1]):null;if(m>=1&&m<=12)tRows.envNov[m]++;});
+            envNovs.forEach(function(n){const m=_tNovSlot(n.dateIssued);if(m!==null)tRows.envNov[m]++;});
         });
         function buildRow(label,arr){const prev=Math.round(arr[0]);const months=[];let total=0;for(let i=1;i<=12;i++){const v=Math.round(arr[i]);months.push(v);total+=v;}return[label,prev,...months,total,prev+total];}
         const summaryRows=[buildRow('Fatality',tRows.fatality),buildRow('LTA',tRows.lta),buildRow('First Aid',tRows.firstAid),buildRow('Medical Treatment',tRows.medical),buildRow('High-Potential Incident',tRows.highPotential),buildRow('Dangerous Occurrences',tRows.dangerousOccurrence),buildRow('OSH Regulatory Issued NOV',tRows.oshNov),buildRow('ENVI Regulatory Issued NOV',tRows.envNov)];
@@ -41177,6 +41258,11 @@ async function exportKpmExcel() {
         var t = ensureTip();
         anchor = el;
         t.textContent = text;
+        // Cells marked data-tip-nowrap (e.g. Incident Tabulation): one line per row, no wrapping
+        var nw = el.hasAttribute('data-tip-nowrap');
+        t.style.whiteSpace = nw ? 'pre' : '';
+        t.style.maxWidth   = nw ? 'none' : '';
+        t.style.width      = nw ? 'max-content' : '';
         t.classList.remove('on');
         t.style.left = '0px';
         t.style.top = '0px';
@@ -41247,3 +41333,48 @@ async function exportKpmExcel() {
         window.addEventListener(ev, hide, true);
     });
 })();
+
+// ═══ Accident/Incident Record — per-project cell tooltip ═══
+// Lists the registry entries behind one monthly number: "AIIR title — date of incident", one line each.
+// Uses the same rules as syncIncidentClassificationsFromRegistry / syncDaysLostFromLtaRegistry.
+window.eshMedCellTip = function (p, row, month, year) {
+    try {
+        const CLS = {
+            'LTA': 'LTA', 'Medical Treatment': 'Medical Treatment', 'First Aid': 'First Aid', 'Fatality': 'Fatality',
+            'High-Potential incident': 'High-Potential Incident', 'Dangerous Occurrences': 'Dangerous Occurrence',
+            'No. of Identified Near-Miss': 'Near Miss'
+        };
+        const entries = (p && p.vals && p.vals['lta-registry_entries']) || [];
+        const persons = (typeof window.ltaEntryPersons === 'function') ? window.ltaEntryPersons : function (e) { return [e]; };
+        const lines = [];
+        entries.forEach(function (e) {
+            if (!e) return;
+            const dateStr = e.dateOfAccident || e.dateReported;
+            if (!dateStr) return;
+            const label = String(e.aiirNo || '').trim() || String(e.natureOfIncident || '').trim() || 'No AIIR title';
+            if (row === 'Days Lost/Charged') {
+                // days are split across calendar months, so the accident can be in an earlier month
+                let days = 0;
+                persons(e).forEach(function (pp) {
+                    if (typeof window.ltaEffectiveInjuryType === 'function' && window.ltaEffectiveInjuryType(pp) === 'na') return;
+                    if (typeof window.computeDaysChargedByMonth === 'function') days += (window.computeDaysChargedByMonth(pp, year) || [])[month] || 0;
+                });
+                if (days > 0) lines.push(label + ' \u2014 ' + dateStr + ' (' + days + ' day' + (days === 1 ? '' : 's') + ')');
+                return;
+            }
+            const want = CLS[row];
+            if (!want) return;
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime()) || d.getFullYear() !== year || d.getMonth() + 1 !== month) return;
+            let n = 0;
+            persons(e).forEach(function (pp) {
+                const c = pp.incidentClassification;
+                if (Array.isArray(c) ? c.indexOf(want) !== -1 : c === want) n++;
+            });
+            if (n > 0) lines.push(label + ' \u2014 ' + dateStr + (n > 1 ? ' (x' + n + ')' : ''));
+        });
+        return lines.join('\n');
+    } catch (err) {
+        return '';
+    }
+};
