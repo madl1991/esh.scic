@@ -4090,6 +4090,7 @@ function applyNumFmtToInputs() {
                 state.isLoggedIn = true;
                 window._isNewLogin = true; // flag: actual login (not page reload)
                 rememberEmailSave(user.email);
+                clearLoginPassword();
             } catch (error) {
                 console.error('❌ Firebase login error:', error);
                 let msg = 'Invalid email or password';
@@ -4100,6 +4101,20 @@ function applyNumFmtToInputs() {
                 loginBtn.disabled = false;
                 loginBtn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Log in';
             }
+        }
+
+        // Clears the password field (and resets the show/hide eye + Caps Lock warning). Email stays.
+        function clearLoginPassword() {
+            const input = document.getElementById('login-pass');
+            if (input) { input.value = ''; input.type = 'password'; }
+            const eye = document.getElementById('login-eye');
+            if (eye) {
+                const ic = eye.querySelector('i');
+                if (ic) ic.className = 'fas fa-eye';
+                eye.setAttribute('aria-label', 'Show password');
+            }
+            const warn = document.getElementById('login-caps-warn');
+            if (warn) warn.style.display = 'none';
         }
 
         function toggleLoginPass() {
@@ -21082,6 +21097,30 @@ function computeAggregateTabulation() {
     };
 }
 
+// Tooltip (native title): computation lang ng LTIR / TRIR / Severity Rate, gamit ang numbers ng Incident Tabulation card.
+function rateTipHTML(kind, std, d) {
+    const isOsha = std === 'osha';
+    const base = isOsha ? 200000 : 1000000;
+    const cfg = {
+        ltir: { name: 'LTIR', n: d.ltaCases, nl: 'LTA cases', val: isOsha ? d.ltirOsha : d.ltirOshs },
+        trir: { name: 'TRIR', n: d.recordableCases, nl: 'Recordable cases', val: isOsha ? d.trirOsha : d.trirOshs },
+        sr:   { name: 'Severity Rate', n: d.lostDays, nl: 'Lost days', val: isOsha ? d.srOsha : d.srOshs }
+    }[kind];
+    const f = v => Number(v).toLocaleString('en-US');
+    const mh = d.totalHours;
+    const L = [
+        cfg.name + ' · ' + (isOsha ? 'OSHA' : 'OSHS'),
+        cfg.nl + ' × ' + f(base) + ' ÷ man-hours'
+    ];
+    if (mh > 0) {
+        L.push(f(cfg.n) + ' × ' + f(base) + ' ÷ ' + f(mh));
+        L.push('= ' + cfg.val);
+    } else {
+        L.push('No man-hours yet');
+    }
+    return L.map(x => String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;')).join('&#10;');
+}
+
 function buildIncidentTabulationHTML() {
     const d = computeAggregateTabulation();
     // Flat status style (same look as Corporate KPM legend): colored number + small dot + text
@@ -21163,8 +21202,8 @@ function buildIncidentTabulationHTML() {
                   <div style="font-weight:700;font-size:0.78rem;">LTIR — Lost Time Incident Rate</div>
                   <div style="font-size:0.61rem;color:var(--text-secondary);margin-top:2px;">LTA cases × base ÷ man-hours</div>
                 </td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);">${_stNum(d.ltirOsha, parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir)}${_stDot(parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir)}</td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);">${_stNum(d.ltirOshs, parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir)}${_stDot(parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir)}</td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('ltir','osha',d)}" style="cursor:help;">${_stNum(d.ltirOsha, parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir)}${_stDot(parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir)}</div></td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('ltir','oshs',d)}" style="cursor:help;">${_stNum(d.ltirOshs, parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir)}${_stDot(parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir)}</div></td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);border-left:2px solid #dfe7e0;">${_stNum(window.STATS_TARGETS.ltir.toFixed(2), true, true)}</td>
               </tr>
               <tr>
@@ -21172,8 +21211,8 @@ function buildIncidentTabulationHTML() {
                   <div style="font-weight:700;font-size:0.78rem;">TRIR — Total Recordable Incident Rate</div>
                   <div style="font-size:0.61rem;color:var(--text-secondary);margin-top:2px;">Recordable cases × base ÷ man-hours</div>
                 </td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);">${_stNum(d.trirOsha, parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir)}${_stDot(parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir)}</td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);">${_stNum(d.trirOshs, parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir)}${_stDot(parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir)}</td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('trir','osha',d)}" style="cursor:help;">${_stNum(d.trirOsha, parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir)}${_stDot(parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir)}</div></td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('trir','oshs',d)}" style="cursor:help;">${_stNum(d.trirOshs, parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir)}${_stDot(parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir)}</div></td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);border-left:2px solid #dfe7e0;">${_stNum(window.STATS_TARGETS.trir.toFixed(2), true, true)}</td>
               </tr>
               <tr>
@@ -21181,8 +21220,8 @@ function buildIncidentTabulationHTML() {
                   <div style="font-weight:700;font-size:0.78rem;">SR — Severity Rate</div>
                   <div style="font-size:0.61rem;color:var(--text-secondary);margin-top:2px;">Total days lost × base ÷ man-hours</div>
                 </td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;">${_stNum(d.srOsha, true, true)}</td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;">${_stNum(d.srOshs, true, true)}</td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;"><div title="${rateTipHTML('sr','osha',d)}" style="cursor:help;">${_stNum(d.srOsha, true, true)}</div></td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;"><div title="${rateTipHTML('sr','oshs',d)}" style="cursor:help;">${_stNum(d.srOshs, true, true)}</div></td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-left:2px solid #dfe7e0;"><div style="font-size:1.1rem;font-weight:700;color:#9e9e9e;">—</div></td>
               </tr>
             </tbody>
@@ -24338,6 +24377,7 @@ function setupAuthObserver() {
     }
 
     window.firebase.onAuthStateChanged(window.firebaseAuth, async (user) => {
+        if (!window._eshStaticNodes) window._eshStaticNodes = new Set(document.body.children);
         const loadingOverlay = document.getElementById('firebase-loading-overlay');
         // Not signed in: show the login screen right away.
         // Signed in: keep the loading screen until the data is loaded (see hideLoadingScreen below).
@@ -24564,6 +24604,29 @@ function setupAuthObserver() {
             state.userRegion = null;
             state.isAdmin = false;
 
+            // Fresh start on next login: close any modal/overlay left open (auto-logout, force-logout,
+            // session expiry) and forget the last tab so the next login starts clean.
+            // Generic: any full-screen fixed layer directly under <body> is a modal/overlay.
+            // Created after page load -> remove. Part of the original HTML -> just hide (it is reused).
+            try {
+                const _keep = ['login-overlay', 'firebase-loading-overlay', 'main-content'];
+                Array.from(document.body.children).forEach(el => {
+                    if (_keep.includes(el.id)) return;
+                    const cs = getComputedStyle(el);
+                    if (cs.display === 'none' || cs.position !== 'fixed') return;
+                    const r = el.getBoundingClientRect();
+                    if (r.width < innerWidth * 0.9 || r.height < innerHeight * 0.9) return;
+                    if (window._eshStaticNodes && window._eshStaticNodes.has(el)) {
+                        el.classList.remove('show', 'active', 'open');
+                        el.style.display = 'none';
+                    } else {
+                        el.remove();
+                    }
+                });
+                localStorage.removeItem('esh_last_tab');
+            } catch (e) {}
+
+            if (typeof clearLoginPassword === 'function') clearLoginPassword(); // never keep the old password after logout / auto-logout / session expiry
             const loginOverlay = document.getElementById('login-overlay');
             if (loginOverlay) {
                 loginOverlay.style.display = 'flex';
