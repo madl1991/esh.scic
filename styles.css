@@ -6296,6 +6296,10 @@ body.dark-mode .nov-kpm-rate b { color: #a5d6a7; }
     border-color: transparent;
 }
 
+/* Internal ESH Audit Report: not-allowed cursor on score cells that cannot be edited (class is set in script.js) */
+.audit-locked,
+.audit-locked * { cursor: not-allowed !important; }
+
 .audit-table p { 
     margin: 0; 
     padding: 0; 
