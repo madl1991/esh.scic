@@ -135,7 +135,7 @@ window.envSummaryTable = function(o) {
     var note = o.note ? '<div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--tbl-line,#e3e9e4);text-align:left;font-weight:400;text-transform:none;letter-spacing:0;">'
         + '<span style="color:#2e7d32;font-size:1.2rem;">' + window.icon(o.icon || 'seedling') + '</span>'
         + '<div style="font-size:0.74rem;line-height:1.6;flex:1;color:var(--text-primary);">' + o.note + '</div></div>' : '';
-    var cap = window.rptBar({ title: o.title, sub: 'Consolidated data from all projects across all regions', pills: [{ text: o.pill, id: o.pillId }] })
+    var cap = window.rptBar({ title: o.title, sub: o.sub || 'Consolidated data from all projects across all regions', pills: [{ text: o.pill, id: o.pillId }] })
         .replace('class="rpt-bar"', 'class="rpt-bar" style="margin:0;border:0;border-bottom:1px solid var(--tbl-line,#e3e9e4);border-radius:0;"');
     var head1 = '<th>Region</th><th>Projects</th>' + o.groups.map(function(g) { return '<th colspan="' + (g.span || 1) + '">' + g.label + '</th>'; }).join('');
     var head2 = o.cols.some(function(c) { return c.label; })
@@ -143,7 +143,7 @@ window.envSummaryTable = function(o) {
     var body = o.rows.map(function(r) {
         return '<tr><td>' + r.region + '</td><td>' + r.projs + '</td>' + o.cols.map(function(c, i) { return cell(r.values[i], c, r.values); }).join('') + '</tr>';
     }).join('');
-    var foot = '<tr><td colspan="2"><span style="margin-right:5px;">' + window.icon('globe') + '</span>GRAND TOTAL</td>'
+    var foot = '<tr><td colspan="2">GRAND TOTAL</td>'
         + o.cols.map(function(c, i) { return cell(o.totals[i], c, o.totals); }).join('') + '</tr>';
     var empty = o.hasData ? '' : '<div style="padding:24px;text-align:center;color:var(--text-secondary);font-size:0.78rem;font-style:italic;"><span style="opacity:0.2;font-size:1.8rem;display:block;margin-bottom:8px;">'
         + window.icon(o.icon || 'seedling') + '</span>' + (o.emptyText || 'No data entered yet.') + '</div>';
@@ -14211,7 +14211,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
     const _isPermitsTbl = state.currentTab === 'permits';
     const _isExpTbl = state.currentTab === 'exposures' || state.currentTab === 'medical' || state.currentTab === 'rates' || state.currentTab === 'activities'; // same KPM-style per-project table
     if (_isExpTbl && window.expProjInjectCss) window.expProjInjectCss();
-    html += `<div class="table-container"><table class="${_isPermitsTbl ? 'got-tbl' : (_isExpTbl ? 'env-tbl exp-proj' : 'env-tbl')}"${_isPermitsTbl ? ' style="width:auto;min-width:100%;"' : ''}>`;
+    html += `<div class="table-container${_isPermitsTbl ? ' permits-wrap' : ''}"><table class="${_isPermitsTbl ? 'got-tbl permits-tbl' : (_isExpTbl ? 'env-tbl exp-proj' : 'env-tbl')}"${_isPermitsTbl ? ' style="width:auto;min-width:100%;"' : ''}>`;
     html += `<tr><th class="${_isPermitsTbl ? 'got-th-left got-th-dark' : 'env-th-left env-th-sticky env-th-dark'}" style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; white-space: normal; padding: 10px 12px; line-height: 1.3; vertical-align: middle;">TYPE</th>`;
 
     if (isCshp) {
@@ -17744,9 +17744,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         // Table style follows DOE Reportorial (got-tbl)
                         const _auEdit = (state.isEditing && canEditRegion);
                         const _auQ = [['Q1','Q1 (JAN-MAR)'],['Q2','Q2 (APR-JUN)'],['Q3','Q3 (JUL-SEP)'],['Q4','Q4 (OCT-DEC)']];
-                        const _auSub = 'font-size:0.64rem!important;padding:6px 3px!important;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help;text-align:center;vertical-align:middle;';
-                        html += `<div class="table-container">
-                            <table class="got-tbl hl-tbl" style="width:100%;min-width:0;table-layout:fixed;">
+                        const _auSub = 'font-size:0.64rem!important;padding:4px 3px!important;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help;text-align:center;vertical-align:middle;';
+                        html += `<div class="table-container audit-sum-wrap">
+                            <table class="got-tbl hl-tbl audit-sum-tbl" style="width:100%;min-width:0;table-layout:fixed;">
                                 <colgroup>
                                     <col style="width:17%">
                                     ${_auQ.map(() => '<col><col><col>').join('')}
@@ -28205,7 +28205,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } } ],
             rows: regionRows.map(r => ({ region: r.region, projs: r.projs, values: [r.diesel, r.gas, r.diesel + r.gas, r.ghg] })),
             totals: [grandDiesel, grandGas, grandDiesel + grandGas, grandGhg],
-            hasData: hasAnyData, icon: 'fuel', note: 'Log <strong>Fuel Consumption</strong> per region \u2014 Diesel (Liters) and Gasoline (Liters) per project per month. Auto-calculates <strong>Total GHG Emissions</strong> (t CO\u2082e). <span style="font-size:0.68rem;color:#2e7d32;font-style:italic;">Data to be collected from Warehouse Department.</span>', emptyText: 'No fuel data entered yet.'
+            hasData: hasAnyData, icon: 'fuel', sub: 'Consolidated data from all projects across all regions \u00b7 Data to be collected from Warehouse Department.', note: 'Log <strong>Fuel Consumption</strong> per region \u2014 Diesel (Liters) and Gasoline (Liters) per project per month. Auto-calculates <strong>Total GHG Emissions</strong> (t CO\u2082e). <span style="font-size:0.68rem;color:#2e7d32;font-style:italic;">Data to be collected from Warehouse Department.</span>', emptyText: 'No fuel data entered yet.'
         });
     }
     window.fuelUpdateSummary = fuelUpdateSummary;
@@ -28444,7 +28444,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             ${applSectionRows('A',  previewKey, canEditRg)}
                             ${applSectionRows('A1', previewKey, canEditRg)}
                             ${applSectionRows('B',  previewKey, canEditRg)}
-                            ${applSectionRows('C',  previewKey, canEditRgey, canEditRg)}
+                            ${applSectionRows('C',  previewKey, canEditRg)}
                         </div>
                     </div>`;
                 }
