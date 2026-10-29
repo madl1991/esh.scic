@@ -37,6 +37,7 @@
         }
         .got-tbl td.got-td-proj {
             text-align: left;
+            color: var(--tbl-first-fg);
             font-weight: 600;
             font-size: 0.67rem;
             white-space: nowrap;
@@ -7157,7 +7158,7 @@ body.dark-mode thead > tr[style*="background:#e3eee5"] > th:not([style*="backgro
    Replaces the JS injectors rpt-sum-css, exp-proj-css, env-sum-kpm-css.
    Tables covered: .esh-tbl, .rpt-sum .rpt-table, .exp-proj, .env-sum-kpm table
    ═══════════════════════════════════════════════════════════════════════════ */
-:root { --row-hover: #e8f5e9; --tbl-line: #d1d5db; --tbl-head-bg: #e3f1e6; --tbl-head-fg: #1f6b35; --tbl-first-bg: #eef6f0; --tbl-first-fg: #1f6b35; --tbl-body-fg: #1f2937; --tbl-body-bg: #fff; --tbl-mute: #9ca3af; --tbl-now-bg: #fff4ec; --tbl-now-fg: #c2410c; --tbl-ytd-head-bg: #fdf3c8; --tbl-ytd-head-fg: #7a5b00; --tbl-ytd-cell: #f3f8f4; }
+:root { --row-hover: #e8f5e9; --tbl-line: #d1d5db; --tbl-head-bg: #e3f1e6; --tbl-head-fg: #1f6b35; --tbl-first-bg: #eef6f0; --tbl-first-fg: #000; --tbl-body-fg: #1f2937; --tbl-body-bg: #fff; --tbl-mute: #9ca3af; --tbl-now-bg: #fff4ec; --tbl-now-fg: #c2410c; --tbl-ytd-head-bg: #fdf3c8; --tbl-ytd-head-fg: #7a5b00; --tbl-ytd-cell: #f3f8f4; }
 body.dark-mode { --row-hover: #2f4a37; --tbl-line: #2f4034; --tbl-head-bg: #2e5a34; --tbl-head-fg: #e8f5e9; --tbl-first-bg: #1c3324; --tbl-first-fg: #e8f5e9; --tbl-body-fg: #c8e6c9; --tbl-body-bg: var(--bg-card, #1e2a22); --tbl-mute: #6b7f70; --tbl-now-bg: #2a1e16; --tbl-now-fg: #fb923c; --tbl-ytd-head-bg: #3a3216; --tbl-ytd-head-fg: #f5d76e; --tbl-ytd-cell: #16241b; }
 .hv-row:hover { background: var(--row-hover) !important; }
 
@@ -9776,3 +9777,67 @@ body.dark-mode [id^="p-grp-body-"] tbody .p-view-text:not([style*="color:#c62828
 body.dark-mode [id^="p-grp-body-"] .p-row-num { color: #c5d0c8 !important; }
 /* Corporate table had row lines; project tables (.p-project-card) already have none. Match them. */
 [id^="p-grp-body-"] tbody tr td { border-bottom: none !important; }
+
+/* ═══ Brighter text colors for the summary tables (light mode only) ═══════════════════════════════
+   Header, data cells, PREVIOUS column, RUNNING YTD, and the project title/address above the table.
+   Dark mode is not touched (body.dark-mode keeps its own values). To undo: delete this block.       */
+:root {
+    --tbl-head-fg: #0b4a1f;
+    --tbl-body-fg: #0f172a;
+    --tbl-first-fg: #000;
+    --tbl-mute: #6b7280;
+    --tbl-now-fg: #b91c1c;
+    --tbl-ytd-head-fg: #4a3500;
+}
+:is(.esh-tbl, .rpt-sum .rpt-table, .exp-proj, .env-sum-kpm table) th { font-weight: 800 !important; }
+:is(.esh-tbl, .rpt-sum .rpt-table, .exp-proj, .env-sum-kpm table) td.monthly-data { font-weight: 600 !important; }
+:is(.esh-tbl, .rpt-sum .rpt-table, .exp-proj) td.prev-year { color: #c2410c !important; font-weight: 700 !important; }
+:is(.esh-tbl, .rpt-sum .rpt-table, .exp-proj) td:is(.ytd-cell, .average-cell) { color: #0b1f12 !important; font-weight: 800 !important; }
+:is(.esh-tbl, .rpt-sum .rpt-table, .exp-proj) td:is(.monthly-data, .ytd-cell, .prev-year):empty::before { color: #7b857e; }
+:is(.tab-kpm, .got-tbl, .rpt-card .rpt-table) th { font-weight: 800 !important; }
+.project-row .project-name { color: #0b4a1f; font-weight: 800; }
+.project-row .project-meta { color: #374151; font-weight: 500; }
+body.dark-mode .project-row .project-name { color: #a5d6a7; }
+body.dark-mode .project-row .project-meta { color: #b6c9bb; }
+
+/* ═══ CSHP / DOLE Certificate: project names in black ═══════════════════════════════════════════
+   script.js colors the name green (date filled) or red (date missing) with inline style.
+   The green / red cell background still shows the status, so only the text turns black.
+   Light mode only. To undo: delete this block.                                                   */
+body:not(.dark-mode) .got-tbl td.got-td-proj { color: #000 !important; font-weight: 700 !important; }
+
+/* Project bar inside every region card (all regions, current and future): darker gray so it stands out from the banner above it. Light mode only. */
+:root { --proj-bar-bg: #d5dadf; }
+body:not(.dark-mode) .region-content > .project-row,
+body:not(.dark-mode) [id*="region-content-"] > .project-row {
+    background: var(--proj-bar-bg);
+}
+
+/* Project bar text: darker project name, black details. Light mode only. */
+body:not(.dark-mode) .project-row .project-name { color: #052e12; }
+body:not(.dark-mode) .project-row .project-meta { color: #000; }
+
+/* EMB period rows: fixed columns so status / title / dates line up across rows */
+.ckpm-fl.ckpm-grid { flex-wrap: nowrap; column-gap: 10px; }
+.ckpm-grid .ckpm-stw { width: 118px; flex: none; }
+.ckpm-grid .ckpm-c-lbl { width: 240px; flex: none; white-space: nowrap; }
+.ckpm-grid .ckpm-c-up { width: 66px; flex: none; }
+.ckpm-grid .ckpm-sub { display: flex; flex: none; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ckpm-grid .ckpm-c-sd { width: 150px; }
+.ckpm-grid .ckpm-c-rn { width: 90px; }
+@media (max-width: 900px) { .ckpm-fl.ckpm-grid { flex-wrap: wrap; } .ckpm-grid .ckpm-c-lbl { width: auto; } }
+
+/* DOE Safety Officer Permit: one even red fill for a row with a missing permit no. or valid-until date */
+.got-tbl tr.dp-gap td, .got-tbl tr.dp-gap td.got-td-proj { background: #ffcdd2 !important; }
+.got-tbl tr.dp-gap td input { background: transparent !important; }
+body.dark-mode .got-tbl tr.dp-gap td, body.dark-mode .got-tbl tr.dp-gap td.got-td-proj { background: #501b20 !important; }
+
+/* LOGIN — company logo in the footer (replaces the company name text) */
+#login-overlay .login-footer .login-company-logo {
+    display: block; width: 150px; max-width: 60%; height: auto; margin: 8px auto 0;
+    background: #fff; border-radius: 8px;
+}
+
+/* LOGIN — error message sits right above the Log in button; no gap when empty */
+#login-error:empty { display: none; }
+#login-overlay #login-error:not(:empty) { margin-bottom: 4px !important; }
