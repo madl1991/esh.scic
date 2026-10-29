@@ -5359,7 +5359,19 @@ function applyNumFmtToInputs() {
                     }
                 }
             });
-            document.querySelector('.header-title').innerText = navTitle(t);
+            (function(){
+                var _ht = document.querySelector('.header-title');
+                var _logoByTab = { 'cshp': 'DOLE_LOGO', 'reg': 'DOLE_LOGO', 'dole': 'DOLE_LOGO', 'permits': 'EMB_LOGO', 'emb': 'EMB_LOGO', 'doe': 'DOE_LOGO', 'doe-permit': 'DOE_LOGO' };
+                var _lg = _logoByTab[t] ? window[_logoByTab[t]] : '';
+                _ht.textContent = '';
+                if (_lg) {
+                    var _im = document.createElement('img');
+                    _im.src = _lg; _im.alt = '';
+                    _im.style.cssText = 'height:26px;width:auto;vertical-align:middle;margin-right:10px;border-radius:3px;';
+                    _ht.appendChild(_im);
+                }
+                _ht.appendChild(document.createTextNode(navTitle(t)));
+            })();
             document.getElementById('settings-view').classList.toggle('hidden', t !== 'settings');
             document.getElementById('personnel-view').classList.toggle('hidden', t !== 'personnel');
                         document.getElementById('osh-requirement-view').classList.toggle('hidden', t !== 'osh-requirement');
@@ -7070,7 +7082,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             return {
                 stopped: false, year: selectedYear,
                 now: avg(false), ifCleared: avg(true),
-                areas: active.map(a => ({ name: a.name, score: Math.round(areaScore(a, false) * 100), nowPct: Math.round(areaScore(a, false) * 1000) / 10, clrPct: Math.round(areaScore(a, true) * 1000) / 10, od: a.od, up: a.up })),
+                areas: active.map(a => ({ name: a.name, score: Math.round(areaScore(a, false) * 100), od: a.od, up: a.up })),
                 overdueCount: active.reduce((t, a) => t + a.od.length, 0),
                 upcomingCount: active.reduce((t, a) => t + a.up.length, 0),
                 notes
@@ -11500,71 +11512,7 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
 
 const TABULATION_DATA = {}; // kept as empty object for any legacy references
 
-// Tooltip data for the Mechanism / Contributing Factors / Agent of Injury tabs:
-// src[rowKey][month] = { projectName: count }  ->  one line per project, same as Incident Summary
-function _buildTabTips(src) {
-    const tips = {};
-    const fmt = (o) => Object.keys(o).map(n => n + ': ' + o[n]).join('\n');
-    Object.keys(src).forEach(k => {
-        const a = src[k];
-        const tot = {};
-        for (let m = 1; m <= 12; m++) Object.keys(a[m]).forEach(n => { tot[n] = (tot[n] || 0) + a[m][n]; });
-        tips[k] = { months: Array.from({length: 12}, (_, i) => fmt(a[i + 1])), total: fmt(tot) };
-    });
-    return tips;
-}
-function _tabSrcAdder(src) {
-    return function (key, month, proj) {
-        const a = src[key] = src[key] || Array.from({length: 13}, () => ({}));
-        a[month][proj] = (a[month][proj] || 0) + 1;
-    };
-}
-
-// Year and month of an LTA accident date. Reads YYYY-MM-DD text directly (no timezone shift).
-function _ltaYM(d) {
-    if (!d) return { y: null, m: null };
-    const mt = /^(\d{4})-(\d{1,2})/.exec(String(d));
-    if (mt) return { y: +mt[1], m: (+mt[2] >= 1 && +mt[2] <= 12) ? +mt[2] : null };
-    const dt = new Date(d);
-    return isNaN(dt) ? { y: null, m: null } : { y: dt.getFullYear(), m: dt.getMonth() + 1 };
-}
-
-// One shared tally for Incident Mechanism, Contributing Factors and Agent of Injury.
-// They all read the LTA registry entries, filter by year, and count per row per month.
-//   rowKeys : row names (order of the table)
-//   keysOf  : (entry) -> row names that this entry counts under
-//   opts.noDateKey : row where an entry with no accident date is counted (Jan), if any
-// Returns { monthly: [12 numbers per row, same order as rowKeys], total: [12], tips }
-function _computeLtaGroup(projects, year, rowKeys, keysOf, opts) {
-    opts = opts || {};
-    const counts = {};
-    rowKeys.forEach(k => { counts[k] = new Array(13).fill(0); }); // 0 unused, 1-12
-    const _src = {}; const addSrc = _tabSrcAdder(_src);
-    const hit = (k, m, proj) => { counts[k][m]++; addSrc(k, m, proj); };
-
-    (projects || []).forEach(p => {
-        const entries = p.vals?.['lta-registry_entries'] || [];
-        entries.forEach(e => {
-            const ym = _ltaYM(e.dateOfAccident);
-            if (year && ym.y && ym.y !== year) return; // only the selected year
-            const keys = keysOf(e).filter(k => counts[k] !== undefined);
-            if (!keys.length) return;
-            if (!ym.m) {
-                if (opts.noDateKey && counts[opts.noDateKey]) hit(opts.noDateKey, 1, p.name);
-                return;
-            }
-            keys.forEach(k => hit(k, ym.m, p.name));
-        });
-    });
-
-    return {
-        monthly: rowKeys.map(k => Array.from({length: 12}, (_, i) => counts[k][i + 1])),
-        total: Array.from({length: 12}, (_, i) => rowKeys.reduce((s, k) => s + counts[k][i + 1], 0)),
-        tips: _buildTabTips(_src)
-    };
-}
-
-function computeMechanismFromLta(projects, year) {
+function computeMechanismFromLta(projects) {
     const MECHANISMS = [
         'Struck-By','Struck Against','Caught-In','Caught-On','Electric Shock',
         'Contact With','Caught in Between','Caught By','Fall to Surface','Fall to Below',
@@ -11574,16 +11522,32 @@ function computeMechanismFromLta(projects, year) {
         'Health Concern','Animal/Insect Bite','Environmental Accident','Others'
     ];
     const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const g = _computeLtaGroup(projects, year, MECHANISMS, e => [e.natureOfIncident], { noDateKey: 'Others' });
+
+    const mechCounts = {};
+    MECHANISMS.forEach(m => { mechCounts[m] = new Array(13).fill(0); }); // 0 unused, 1-12
+
+    (projects || []).forEach(p => {
+        const entries = p.vals?.['lta-registry_entries'] || [];
+        entries.forEach(e => {
+            const mech = e.natureOfIncident;
+            if (!mech || !mechCounts[mech]) return;
+            const month = e.dateOfAccident ? new Date(e.dateOfAccident).getMonth() + 1 : null;
+            if (month >= 1 && month <= 12) mechCounts[mech][month]++;
+            else if (!month) mechCounts['Others'][1]++; // fallback if no date
+        });
+    });
+
+    const rows = MECHANISMS.map(m => [m, ...Array.from({length:12}, (_,i) => mechCounts[m][i+1])]);
+    const total = Array.from({length:12}, (_,i) => MECHANISMS.reduce((s,m) => s + mechCounts[m][i+1], 0));
+
     return {
         headers: ['Mechanism', ...MONTHS_SHORT],
-        rows: MECHANISMS.map((m, i) => [m, ...g.monthly[i]]),
-        total: g.total,
-        tips: g.tips
+        rows,
+        total
     };
 }
 
-function computeFactorsFromLta(projects, year) {
+function computeFactorsFromLta(projects) {
     const FACTOR_STRUCTURE = [
         ['PEOPLE',        'Lack of Awareness or Training'],
         ['',              'Fatigue and Stress'],
@@ -11620,41 +11584,76 @@ function computeFactorsFromLta(projects, year) {
     ];
     const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const FACTOR_CATS  = ['PEOPLE','EQUIPMENT','MATERIALS','ENVIRONMENT','ORGANIZATIONAL'];
-    const subs = FACTOR_STRUCTURE.map(([, sub]) => sub);
-    const g = _computeLtaGroup(projects, year, subs, e => {
-        const list = [];
-        // factor_CATEGORY arrays (current multi-select UI)
-        FACTOR_CATS.forEach(cat => { if (Array.isArray(e['factor_' + cat])) e['factor_' + cat].forEach(sub => { if (sub) list.push(sub); }); });
-        // legacy single factorSubItem field
-        if (e.factorSubItem) list.push(e.factorSubItem);
-        return list;
+
+    const subCounts = {};
+    FACTOR_STRUCTURE.forEach(([,sub]) => { subCounts[sub] = new Array(13).fill(0); });
+
+    (projects || []).forEach(p => {
+        const entries = p.vals?.['lta-registry_entries'] || [];
+        entries.forEach(e => {
+            const month = e.dateOfAccident ? new Date(e.dateOfAccident).getMonth() + 1 : null;
+            if (!month || month < 1 || month > 12) return;
+
+            // Read from factor_CATEGORY arrays (current multi-select UI)
+            FACTOR_CATS.forEach(cat => {
+                const arr = e['factor_' + cat];
+                if (Array.isArray(arr)) {
+                    arr.forEach(sub => {
+                        if (sub && subCounts[sub] !== undefined) subCounts[sub][month]++;
+                    });
+                }
+            });
+
+            // Fallback: legacy single factorSubItem field
+            if (e.factorSubItem && subCounts[e.factorSubItem] !== undefined) {
+                subCounts[e.factorSubItem][month]++;
+            }
+        });
     });
+
+    const rows = FACTOR_STRUCTURE.map(([cat, sub]) => [cat, sub, ...Array.from({length:12}, (_,i) => subCounts[sub][i+1])]);
+    const total = Array.from({length:12}, (_,i) => FACTOR_STRUCTURE.reduce((s,[,sub]) => s + subCounts[sub][i+1], 0));
+
     return {
         headers: ['Factor', 'Sub-Factor', ...MONTHS_SHORT],
-        rows: FACTOR_STRUCTURE.map(([cat, sub], i) => [cat, sub, ...g.monthly[i]]),
-        total: g.total,
-        tips: g.tips
+        rows,
+        total
     };
 }
 
-function computeAgentOfInjuryFromLta(projects, year) {
+function computeAgentOfInjuryFromLta(projects) {
     const AGENTS = (Array.isArray(window.LTA_AGENT_OF_INJURY) && window.LTA_AGENT_OF_INJURY.length)
         ? window.LTA_AGENT_OF_INJURY.slice()
         : ['Building / Structures','Prime Movers','Distribution Systems','Hand Tools','Machines / Equipment',
            'Conveying / Transport / Packaging Equipment or Vehicles','Materials / Object','Chemical Substances',
            'Humans / Animals / Plants','Others (Please Specify)'];
     const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const g = _computeLtaGroup(projects, year, AGENTS, e => {
-        const raw = e.agentOfInjury;
-        const sel = Array.isArray(raw) ? raw
-            : (raw ? String(raw).split(',').map(v => v.trim()).filter(Boolean) : []);
-        return Array.from(new Set(sel)); // count each agent once per incident
+
+    const counts = {};
+    AGENTS.forEach(a => { counts[a] = new Array(13).fill(0); }); // 0 unused, 1-12
+
+    (projects || []).forEach(p => {
+        const entries = p.vals?.['lta-registry_entries'] || [];
+        entries.forEach(e => {
+            const month = e.dateOfAccident ? new Date(e.dateOfAccident).getMonth() + 1 : null;
+            if (!month || month < 1 || month > 12) return;
+            const raw = e.agentOfInjury;
+            const sel = Array.isArray(raw) ? raw
+                : (raw ? String(raw).split(',').map(v => v.trim()).filter(Boolean) : []);
+            // count each agent once per incident
+            Array.from(new Set(sel)).forEach(a => {
+                if (counts[a] !== undefined) counts[a][month]++;
+            });
+        });
     });
+
+    const rows = AGENTS.map(a => [a, ...Array.from({length:12}, (_,i) => counts[a][i+1])]);
+    const total = Array.from({length:12}, (_,i) => AGENTS.reduce((s,a) => s + counts[a][i+1], 0));
+
     return {
         headers: ['Agent of Injury', ...MONTHS_SHORT],
-        rows: AGENTS.map((a, i) => [a, ...g.monthly[i]]),
-        total: g.total,
-        tips: g.tips
+        rows,
+        total
     };
 }
 
@@ -11824,55 +11823,97 @@ function renderTabulation() {
         return html;
     }
 
-    // One table builder for Incident Mechanism, Contributing Factors and Agent of Injury.
-    //   cfg.heads    : label column headers (1 column, or 2 = category + item)
-    //   cfg.cols     : label column widths (px)
-    //   cfg.minWidth : table min-width (px)
-    //   cfg.catColor : (category) -> color for the first column (2-column tables only)
-    function renderLtaGroupTable(data, year, cfg) {
+    function renderMechanismTable(data, year) {
         const cur = _tkCur(year);
-        const lc = cfg.heads.length;
-        const nCols = ((data.rows[0] || data.total || []).length - lc) || 12;
-        const months = data.headers.slice(lc, lc + nCols);
-        let currentColor = cfg.catColor ? cfg.catColor() : null;
-        let html = `<table class="tab-kpm${lc === 2 ? ' two' : ''}" style="min-width:${cfg.minWidth}px;">
-            <colgroup>${cfg.cols.map(w => `<col style="width:${w}px">`).join('')}${months.map(() => '<col>').join('')}<col></colgroup>
+        const nCols = ((data.rows[0] || data.total || []).length - 1) || 12;
+        const months = data.headers.slice(1, 1 + nCols);
+        let html = `<table class="tab-kpm" style="min-width:960px;">
+            <colgroup><col style="width:220px">${months.map(() => '<col>').join('')}<col></colgroup>
             <thead><tr>
-                ${cfg.heads.map((h, i) => `<th class="c${i + 1}">${h}</th>`).join('')}
+                <th class="c1">Incident Mechanism</th>
                 ${months.map((m, mi) => _tkMonthTh(m, mi, cur)).join('')}
                 <th class="h-tt">Total</th>
             </tr></thead><tbody>`;
-        data.rows.forEach((row, i) => {
-            const vals = row.slice(lc);
+        data.rows.forEach(row => {
+            const vals = row.slice(1);
             const total = vals.reduce((a, b) => a + (b || 0), 0);
-            const tp = data.tips && data.tips[row[lc - 1]];
-            const cat = lc === 2 ? row[0] : '';
-            if (cat && cfg.catColor) currentColor = cfg.catColor(cat);
-            html += `<tr${cat && i > 0 ? ' class="grp"' : ''}>
-                <td class="c1"${cat ? ` style="color:${currentColor};"` : ''}>${row[0] || ''}</td>
-                ${lc === 2 ? `<td class="c2">${row[1]}</td>` : ''}
-                ${vals.map((v, mi) => _tkVal(v, mi, _tkZeroCur(year), false, tp && tp.months[mi])).join('')}
-                <td class="tt${total > 0 ? '' : ' z'}"${total > 0 ? _tkTip(tp && tp.total) : ''}>${total}</td>
+            html += `<tr>
+                <td class="c1">${row[0]}</td>
+                ${vals.map((v, mi) => _tkVal(v, mi, _tkZeroCur(year), false)).join('')}
+                <td class="tt${total > 0 ? '' : ' z'}">${total}</td>
             </tr>`;
         });
         html += `<tr class="tot">
             <td class="c1">TOTAL</td>
-            ${lc === 2 ? '<td class="c2"></td>' : ''}
             ${data.total.map((v, mi) => `<td>${(v || mi <= _tkZeroCur(year)) ? (v ?? 0) : '—'}</td>`).join('')}
             <td class="tt">${data.total.reduce((a, b) => a + (b || 0), 0)}</td>
         </tr></tbody></table>`;
         return html;
     }
 
-    const renderMechanismTable = (data, year) => renderLtaGroupTable(data, year, { heads: ['Incident Mechanism'], cols: [220], minWidth: 960 });
-    const renderAgentTable = (data, year) => renderLtaGroupTable(data, year, { heads: ['Agent of Injury'], cols: [320], minWidth: 960 });
-    const renderFactorsTable = (data, year) => {
-        const factorColors = { 'PEOPLE': C.factorPeople, 'EQUIPMENT': C.factorEquip, 'MATERIALS': C.factorMat, 'ENVIRONMENT': C.factorEnv, 'ORGANIZATIONAL': C.factorOrg };
-        return renderLtaGroupTable(data, year, {
-            heads: ['Category', 'Contributing Factor'], cols: [130, 270], minWidth: 1000,
-            catColor: (cat) => factorColors[cat] || C.factorPeople
+    function renderAgentTable(data, year) {
+        const cur = _tkCur(year);
+        const nCols = ((data.rows[0] || data.total || []).length - 1) || 12;
+        const months = data.headers.slice(1, 1 + nCols);
+        let html = `<table class="tab-kpm" style="min-width:960px;">
+            <colgroup><col style="width:320px">${months.map(() => '<col>').join('')}<col></colgroup>
+            <thead><tr>
+                <th class="c1">Agent of Injury</th>
+                ${months.map((m, mi) => _tkMonthTh(m, mi, cur)).join('')}
+                <th class="h-tt">Total</th>
+            </tr></thead><tbody>`;
+        data.rows.forEach(row => {
+            const vals = row.slice(1);
+            const total = vals.reduce((a, b) => a + (b || 0), 0);
+            html += `<tr>
+                <td class="c1">${row[0]}</td>
+                ${vals.map((v, mi) => _tkVal(v, mi, _tkZeroCur(year), false)).join('')}
+                <td class="tt${total > 0 ? '' : ' z'}">${total}</td>
+            </tr>`;
         });
-    };
+        html += `<tr class="tot">
+            <td class="c1">TOTAL</td>
+            ${data.total.map((v, mi) => `<td>${(v || mi <= _tkZeroCur(year)) ? (v ?? 0) : '—'}</td>`).join('')}
+            <td class="tt">${data.total.reduce((a, b) => a + (b || 0), 0)}</td>
+        </tr></tbody></table>`;
+        return html;
+    }
+
+    function renderFactorsTable(data, year) {
+        const cur = _tkCur(year);
+        const factorColors = { 'PEOPLE': C.factorPeople, 'EQUIPMENT': C.factorEquip, 'MATERIALS': C.factorMat, 'ENVIRONMENT': C.factorEnv, 'ORGANIZATIONAL': C.factorOrg };
+        const nCols = ((data.rows[0] || data.total || []).length - 2) || 12;
+        const months = data.headers.slice(2, 2 + nCols);
+        let currentColor = C.factorPeople;
+        let html = `<table class="tab-kpm two" style="min-width:1000px;">
+            <colgroup><col style="width:130px"><col style="width:270px">${months.map(() => '<col>').join('')}<col></colgroup>
+            <thead><tr>
+                <th class="c1">Category</th>
+                <th class="c2">Contributing Factor</th>
+                ${months.map((m, mi) => _tkMonthTh(m, mi, cur)).join('')}
+                <th class="h-tt">Total</th>
+            </tr></thead><tbody>`;
+        data.rows.forEach((row, i) => {
+            const factor = row[0];
+            const subfactor = row[1];
+            const vals = row.slice(2);
+            const total = vals.reduce((a, b) => a + (b || 0), 0);
+            if (factor) currentColor = factorColors[factor] || C.factorPeople;
+            html += `<tr${factor && i > 0 ? ' class="grp"' : ''}>
+                <td class="c1"${factor ? ` style="color:${currentColor};"` : ''}>${factor || ''}</td>
+                <td class="c2">${subfactor}</td>
+                ${vals.map((v, mi) => _tkVal(v, mi, _tkZeroCur(year), false)).join('')}
+                <td class="tt${total > 0 ? '' : ' z'}">${total}</td>
+            </tr>`;
+        });
+        html += `<tr class="tot">
+            <td class="c1">TOTAL</td>
+            <td class="c2"></td>
+            ${data.total.map((v, mi) => `<td>${(v || mi <= _tkZeroCur(year)) ? (v ?? 0) : '—'}</td>`).join('')}
+            <td class="tt">${data.total.reduce((a, b) => a + (b || 0), 0)}</td>
+        </tr></tbody></table>`;
+        return html;
+    }
 
     const year = state.selectedYear || 2026;
     const availableYears = (function(){ const _yr=[]; for(let y=(typeof YEAR_RANGE!=='undefined'?YEAR_RANGE.min:2026); y<=Math.max(new Date().getFullYear(),(typeof YEAR_RANGE!=='undefined'?YEAR_RANGE.max:2030)); y++) _yr.push(y); return _yr; })();
@@ -12055,9 +12096,9 @@ function renderTabulation() {
                 tips: summaryTips,
                 total: totalRow, // index 0 unused (renderer reads from index 1 like summaryRows)
             },
-            mechanism: computeMechanismFromLta(projects, year),
-            factors:   computeFactorsFromLta(projects, year),
-            agent:     computeAgentOfInjuryFromLta(projects, year),
+            mechanism: computeMechanismFromLta(projects),
+            factors:   computeFactorsFromLta(projects),
+            agent:     computeAgentOfInjuryFromLta(projects),
             yearlyTotal: yearlyTotal,
             isAutoComputed: true,
         };
@@ -13235,7 +13276,7 @@ function renderTabulation() {
                     const key = (row === 'No. of Identified Near-Miss') ? 'medical_' + row : `${state.currentTab}_${row}`;
                     const _lblShort = (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') ? 'Exp. Man-hour to date' : row;
                     const _lblTip = String(row).replace(/"/g, '&quot;');
-                    html += `<tr><td title="${_lblTip}" style="text-align:left; font-weight:700; background:#e8f5e9; color:#1b5e20; position: sticky; left: 0; z-index: 5;${state.currentTab === 'exposures' ? ' white-space:nowrap;' : ''}">${_lblShort}</td>`;
+                    html += `<tr><td title="${_lblTip}" style="text-align:left; font-weight:700; background:#e8f5e9; position: sticky; left: 0; z-index: 5;${state.currentTab === 'exposures' ? ' white-space:nowrap;' : ''}">${_lblShort}</td>`;
                     
                     let prevTotal = 0;
                     const _prevList = [];
@@ -13353,18 +13394,7 @@ function renderTabulation() {
                                 if (hasData) { monthSumTotal += monthSum; monthsWithData++; }
                             }
                             ytdTotal = monthsWithData > 0 ? Math.round(monthSumTotal / monthsWithData) : 0;
-                            let _mpTip = '';
-                            if (monthsWithData > 0) {
-                                const _mpL = [
-                                    'Total Manpower \u00b7 YTD (Average)',
-                                    'Sum of monthly totals \u00f7 months with data',
-                                    'Months with no data or unfinished are not counted',
-                                    fmtNum(monthSumTotal) + ' \u00f7 ' + monthsWithData,
-                                    '= ' + fmtNum(ytdTotal)
-                                ];
-                                _mpTip = ' title="' + _mpL.map(x => String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')).join('&#10;') + '" data-tip-nowrap';
-                            }
-                            html += `<td class="average-cell" style="font-weight: 800; font-size: 0.7rem;${monthsWithData>0?'cursor:help;':''}"${_mpTip}>${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
+                            html += `<td class="average-cell" style="font-weight: 800; font-size: 0.7rem;">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
                         } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
                             const eshStor = getEshStorage();
                             const _eshYear2 = state.selectedYear || new Date().getFullYear();
@@ -13425,21 +13455,7 @@ function renderTabulation() {
                                 if (_r !== null) yval = window.formatRate(row, _r);
                             }
                             const ycolor = row === 'LTIR' ? '#1b5e20' : row === 'TRIR' ? '#1565c0' : '#b71c1c';
-                            let _ytdTip = '';
-                            if (ymh > 0) {
-                                const _rb = window.RATE_BASES[row];
-                                const _rn = row === 'LTIR' ? _cs.lta[12] : row === 'TRIR' ? _cs.rec[12] : _cs.dl[12];
-                                const _rl = row === 'LTIR' ? 'LTA cases' : row === 'TRIR' ? 'Recordable cases' : 'Lost days';
-                                const _fx = v => Number(v).toLocaleString('en-US');
-                                const _tl = [
-                                    row + ' YTD \u00b7 ' + (_rb === 200000 ? 'OSHA' : 'OSHS'),
-                                    _rl + ' \u00d7 ' + _fx(_rb) + ' \u00f7 man-hours',
-                                    _fx(_rn) + ' \u00d7 ' + _fx(_rb) + ' \u00f7 ' + _fx(ymh),
-                                    '= ' + yval
-                                ];
-                                _ytdTip = ' title="' + _tl.map(x => String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')).join('&#10;') + '" data-tip-nowrap';
-                            }
-                            html += `<td class="ytd-cell" style="font-weight:800;color:${ymh>0?ycolor:''};${ymh>0?'cursor:help;':''}"${_ytdTip}>${yval}</td>`;
+                            html += `<td class="ytd-cell" style="font-weight:800;color:${ymh>0?ycolor:''};">${yval}</td>`;
                         } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
                             displayProjects.forEach(p => {
                                 const _series = computeExposureToDateSeries(p);
@@ -13665,7 +13681,7 @@ function renderTabulation() {
 
                             </div>
                             <div class="project-meta">${p.region === 'CORPORATE' ? 'SCIC Head Office' : p.region === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
-                            ${_inlineNav ? `<div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ${_inlineNav.idx + 1} of ${_inlineNav.total}</div>` : ''}
+                            ${_inlineNav ? `<div style="font-size:0.62rem;color:#000;margin-top:2px;">Project ${_inlineNav.idx + 1} of ${_inlineNav.total}</div>` : ''}
                         </div>
                         ${(state.currentTab !== 'overall' || p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="project-dates">
                             <div><span class="date-label">Started:</span> ${p.dateStarted ? formatDateDMY(p.dateStarted) : 'Not set'}</div>
@@ -13746,16 +13762,9 @@ if (state.currentTab === 'audit') {
     
     // Only the WDA System Admin can edit the Internal ESH Audit Report (see UserAccounts.checkPermission).
     // Everyone else: not-allowed cursor on the score cells, with the reason as tooltip.
-    // Not-allowed cursor on the score cells whenever they cannot be edited:
+    // Score cells that cannot be edited get the class 'audit-locked' (cursor: not-allowed, defined in styles.css):
     //   - denied by the audit permission, or no edit access to this project's region / tab  -> tooltip gives the reason
     //   - not in edit mode (inputs are disabled)                                             -> no tooltip
-    // A CSS class with !important is used so styles.css / disabled-input defaults cannot override the cursor.
-    if (!document.getElementById('audit-locked-css')) {
-        const _st = document.createElement('style');
-        _st.id = 'audit-locked-css';
-        _st.textContent = '.audit-locked, .audit-locked * { cursor: not-allowed !important; }';
-        document.head.appendChild(_st);
-    }
     const _auditPerm = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p.region, 'audit');
     const _auditDenied = !_auditPerm.allowed || !canEdit;
     const _auditLocked = _auditDenied || !inputsEditable;
@@ -14272,7 +14281,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
         const _isExpTab = state.currentTab === 'exposures';
         const _rowShort = (_isExpTab && row === 'Total Exposed Man-hour to date') ? 'Exp. Man-hour to date' : row;
         const _rowTip = String(row).replace(/"/g, '&quot;');
-        html += `<tr style="${rowStyle}"><td ${_isExpTab ? `title="${_rowTip}"` : ''} style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; text-align:left; font-weight:700; background:#e8f5e9; color:#1b5e20; position: sticky; left: 0; z-index: 5; white-space: ${_isExpTab ? 'nowrap' : 'normal'}; padding: 10px 12px; line-height: 1.3; vertical-align: middle;">
+        html += `<tr style="${rowStyle}"><td ${_isExpTab ? `title="${_rowTip}"` : ''} style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; text-align:left; font-weight:700; background:#e8f5e9; position: sticky; left: 0; z-index: 5; white-space: ${_isExpTab ? 'nowrap' : 'normal'}; padding: 10px 12px; line-height: 1.3; vertical-align: middle;">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
                 <span style="flex:1;${_isExpTab ? 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;' : ''}">
                     ${_rowShort}
@@ -14400,7 +14409,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     entries.forEach((entry, idx) => {
                         const isFirst = idx === 0;
                         if (!isFirst) {
-                            html += `</tr><tr style="${rowStyle}"><td style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; text-align:left; font-weight:700; background:#e8f5e9; color:#1b5e20; position: sticky; left: 0; z-index: 5; white-space: normal; padding: 8px 12px; line-height: 1.3; vertical-align: middle;">
+                            html += `</tr><tr style="${rowStyle}"><td style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; text-align:left; font-weight:700; background:#e8f5e9; position: sticky; left: 0; z-index: 5; white-space: normal; padding: 8px 12px; line-height: 1.3; vertical-align: middle;">
                                 <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
                                     <span style="flex:1; font-size:0.78rem; color:#555;">ECC #${idx + 1}</span>
                                     ${inputsEditable ? `<span onclick="removeEccEntry('${p.name}',${idx})" title="Remove this entry" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;border:1.5px solid #ef5350;color:#ef5350;background:transparent;user-select:none;white-space:nowrap;">✕ Remove</span>` : ''}
@@ -14439,7 +14448,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var _mpPn = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
                         var _mpRn = row.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
                         if (!_mpIsFirst) {
-                            html += '<tr style="' + rowStyle + '"><td style="width:' + typeColumnWidth + ';min-width:' + typeColumnWidth + ';max-width:' + typeColumnWidth + ';text-align:left;font-weight:700;background:#e8f5e9;color:#1b5e20;position:sticky;left:0;z-index:5;white-space:normal;padding:8px 12px;line-height:1.3;vertical-align:middle;">';
+                            html += '<tr style="' + rowStyle + '"><td style="width:' + typeColumnWidth + ';min-width:' + typeColumnWidth + ';max-width:' + typeColumnWidth + ';text-align:left;font-weight:700;background:#e8f5e9;position:sticky;left:0;z-index:5;white-space:normal;padding:8px 12px;line-height:1.3;vertical-align:middle;">';
                             html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">';
                             html += '<span style="flex:1;font-size:0.78rem;color:#555;">' + _mpShort + ' #' + (_mpIdx+1) + '</span>';
                             if (inputsEditable) html += '<span onclick="removeMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ')" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;border:1.5px solid #ef5350;color:#ef5350;background:transparent;user-select:none;">&#10005; Remove</span>';
@@ -14769,26 +14778,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 let ytdValue = 0;
                 if (row === "Total Manpower") {
                     ytdValue = calculateAverage(p.vals[key], rowIdx);
-                    let _avSum = 0, _avCnt = 0;
-                    if (p.vals[key]) {
-                        for (let _ai = 1; _ai <= 12; _ai++) {
-                            if (window.isExposureMonthHidden && window.isExposureMonthHidden(_ai)) continue;
-                            const _av = parseFloat(p.vals[key][_ai]) || 0;
-                            if (_av > 0) { _avSum += _av; _avCnt++; }
-                        }
-                    }
-                    let _avTip = '';
-                    if (_avCnt > 0) {
-                        const _avL = [
-                            'Total Manpower \u00b7 YTD (Average)',
-                            'Sum of monthly values \u00f7 months with data',
-                            'Months with no data or unfinished are not counted',
-                            fmtNum(_avSum) + ' \u00f7 ' + _avCnt,
-                            '= ' + fmtNum(ytdValue)
-                        ];
-                        _avTip = ' title="' + _avL.map(x => String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')).join('&#10;') + '" data-tip-nowrap';
-                    }
-                    html += `<td class="average-cell"${_avCnt>0?' style="cursor:help;"':''}${_avTip}>${fmtNum(ytdValue)}</td>`;
+                    html += `<td class="average-cell">${fmtNum(ytdValue)}</td>`;
                 } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
                     // ── CORPORATE Training Conducted: YTD = sum of manually entered monthly vals ──
                     if (row === 'Training Conducted' && p.region === 'CORPORATE') {
@@ -14881,7 +14871,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                <i class="fas fa-times"></i>
                            </button>`
                         : '';
-                    const _tdTypeStyle = `width:${_typeW}; min-width:${_typeW}; max-width:${_typeW}; text-align:left; font-weight:700; background:#e8f5e9; color:#1b5e20; position: sticky; left: 0; z-index: 5; white-space: normal; padding: 10px 12px; line-height: 1.3; vertical-align: middle; border-left: 3px solid #81c784;`;
+                    const _tdTypeStyle = `width:${_typeW}; min-width:${_typeW}; max-width:${_typeW}; text-align:left; font-weight:700; background:#e8f5e9; position: sticky; left: 0; z-index: 5; white-space: normal; padding: 10px 12px; line-height: 1.3; vertical-align: middle; border-left: 3px solid #81c784;`;
 
                     html += `<tr>
                         <td style="${_tdTypeStyle}">
@@ -15110,7 +15100,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             else { _deadlinePassed2 = (dNowY > _dlYr2) || (dNowY === _dlYr2 && dNowM > _dlMo2) || (dNowY === _dlYr2 && dNowM === _dlMo2 && dNowD > 20); }
 
                             var _dKind, _dTxt;
-                            if (allComplete) { _dKind = 'ok'; _dTxt = 'Complete'; }
+                            if (allComplete) { _dKind = 'ok'; _dTxt = 'Completed'; }
                             else if (isCurMo && noneFilledMo) { _dKind = 'prog'; _dTxt = 'In progress'; }
                             else if (!_deadlinePassed2) { _dKind = 'wait'; _dTxt = 'Pending (due ' + DOLE_MONTHS[_dlMo2 - 1].substring(0,3) + ' 20)'; }
                             else if (noneFilledMo) { _dKind = 'none'; _dTxt = 'Not submitted'; }
@@ -15126,7 +15116,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                             html += '<div class="ckpm-rw" onclick="window.openDoleDialog(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + mo + '\',false)">'
                                 + '<span class="ckpm-mo">' + mo.substring(0,3) + '</span>'
-                                + '<div class="ckpm-fl">' + window._rowStatus(_dKind, _dTxt) + (isCurMo ? curBadge : '') + '<span class="ckpm-sub">' + rowSummary + '</span></div>'
+                                + '<div class="ckpm-fl">' + window._rowStatus(_dKind, _dTxt, '', true) + (isCurMo ? curBadge : '') + '<span class="ckpm-sub">' + rowSummary + '</span></div>'
                                 + (canEditReg ? '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;"><button onclick="event.stopPropagation();window.openDoleDialog(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + mo + '\',true)" title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen"></i></button></div>' : '')
                                 + '</div>';
                         }
@@ -15212,11 +15202,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         modal.setAttribute('data-canedit', canEdit ? '1' : '0');
 
                         // Build table: rows = WAIR/RSO/MOM, cols = projects
+                        var _T = window.ESH_RPT_MODAL_TBL;
                         var projHeaderCols = regProjs.map(function(p){
                             var isStopped = isProjectOnStoppage(p);
                             var isFinished = !!p.dateFinished;
-                            var hdrStyle = 'padding:5px 8px;border:1px solid #c8e6c9;font-size:0.67rem;font-weight:700;text-align:center;min-width:160px;white-space:normal;word-break:break-word;'
-                                + ((isStopped||isFinished) ? 'background:#f5f5f5;color:#9e9e9e;opacity:0.7;' : 'background:#b7ddb5;color:#1b5e20;');
+                            var hdrStyle = 'padding:5px 8px;border:1px solid ' + _T.bd + ';font-size:0.67rem;font-weight:700;text-align:center;min-width:160px;white-space:normal;word-break:break-word;'
+                                + ((isStopped||isFinished) ? 'background:#f5f5f5;color:#9e9e9e;opacity:0.7;' : 'background:' + _T.proj + ';color:' + _T.txt + ';');
                             return '<th style="' + hdrStyle + '">' + p.name
                                 + (isFinished ? ' <span title="Finished — read only"><i class="fas fa-lock"></i></span>' : '')
                                 + '</th>';
@@ -15293,10 +15284,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                                :                    '#e0e0e0';
                                 var cellColor  = isStopped        ? '#9e9e9e'
                                                : isStoppageExempt ? '#9e9e9e'
-                                               : v                ? '#2e7d32'
-                                               : _modalIsOverdue  ? '#c62828'
-                                               :                    '#9e9e9e';
-                                var inputStyle = 'width:100%;border:1px solid ' + cellBorder + ';border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:700;background:' + cellBg + ';color:' + cellColor + ';' + ((isStopped || isStoppageExempt) ? 'cursor:not-allowed;' : '');
+                                               : v                ? '#14501a'
+                                               : _modalIsOverdue  ? '#b71c1c'
+                                               :                    '#616161';
+                                var inputStyle = 'width:100%;border:none;outline:none;border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:700;background:transparent;color:' + cellColor + ';' + ((isStopped || isStoppageExempt) ? 'cursor:not-allowed;' : '');
                                 var _tdExtraStyle = (isStopped || isStoppageExempt) ? 'background:#fafafa;opacity:' + (isStoppageExempt ? '0.8' : '0.65') + ';' : '';
                                 return '<td style="padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;' + _tdExtraStyle + '" title="' + ((isStoppageExempt || _isFinishedMonth) ? _tooltipText.replace(/"/g,'&quot;') : '') + '">'
                                     + ((isStopped && !_isFinishedMonth)
@@ -15306,13 +15297,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                             : '<input type="date" value="' + v + '" ' + cellDis
                                                 + ' name="dolemod-' + row + '-' + p.name.replace(/[^a-zA-Z0-9]/g,'_') + '"'
                                                 + ' data-pname="' + pnSafe + '" data-row="' + row + '" data-moIdx="' + (moIdx+1) + '" data-overdue="' + (_modalIsOverdue ? '1' : '0') + '"'
-                                                + ' oninput="updateVal(\'' + pnSafe + '\',\'dole_' + row + '\',' + (moIdx+1) + ',this.value);_refreshDateCell(this)"'
+                                                + ' oninput="updateVal(\'' + pnSafe + '\',\'dole_' + row + '\',' + (moIdx+1) + ',this.value);_refreshDateCell(this);this.style.background=\'transparent\';this.style.color=this.value?\'#14501a\':\'#b71c1c\'"'
                                                 + ' style="' + inputStyle + '">')
                                     + '</td>';
                             }).join('');
                             var rowDesc = doleFullName(row);
-                            return '<tr style="background:#f9fdf9;border-bottom:1px solid #c8e6c9;">'
-                                + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-weight:800;color:#1b5e20;background:#e8f5e9;width:1%;white-space:nowrap;">' + doleFullName(row) + '</td>'
+                            return '<tr style="background:' + _T.rowBg + ';border-bottom:1px solid ' + _T.bd + ';">'
+                                + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-weight:800;color:#1b5e20;background:#e8f5e9;position:sticky;left:0;z-index:3;width:320px;min-width:320px;max-width:320px;white-space:normal;box-shadow:inset -1px 0 0 #c8e6c9;">' + doleFullName(row) + '</td>'
                                 + projCells + '</tr>';
                         }).join('');
 
@@ -15367,10 +15358,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 var overdue = !v && passed && !_annExempt && !_annNotReq && !_annNA;
                                 var bg  = stopped ? '#f5f5f5' : _annExempt ? '#f0f0f0' : v ? '#c8e6c9' : overdue ? '#ffcdd2' : '#f5f5f5';
                                 var bdr = stopped ? '#e0e0e0' : _annExempt ? '#d0d0d0' : v ? '#a5d6a7' : overdue ? '#ef9a9a' : '#e0e0e0';
-                                var clr = stopped ? '#9e9e9e' : _annExempt ? '#9e9e9e' : v ? '#2e7d32' : overdue ? '#c62828' : '#9e9e9e';
+                                var clr = stopped ? '#9e9e9e' : _annExempt ? '#9e9e9e' : v ? '#14501a' : overdue ? '#b71c1c' : '#616161';
                                 var pnEsc = proj.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
                                 var tdStyle = 'padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;' + ((stopped || _annExempt || _annNotReq) ? 'background:#fafafa;opacity:' + ((_annExempt || _annNotReq) ? '0.8' : '0.65') + ';' : '');
-                                var inStyle = 'width:100%;border:1px solid ' + bdr + ';border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:700;background:' + bg + ';color:' + clr + ';';
+                                var inStyle = 'width:100%;border:none;outline:none;border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:700;background:transparent;color:' + clr + ';';
                                 var cell;
                                 if (stopped) {
                                     cell = '<div style="font-size:0.62rem;color:#9e9e9e;text-align:center;padding:4px;font-style:italic;"><i class="fas fa-ban"></i> Stopped</div>';
@@ -15386,7 +15377,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         + ' name="dolemod-' + rd.row + '-' + safeName + '"'
                                         + ' data-pname="' + pnEsc + '" data-row="' + rd.row + '" data-moIdx="1"'
                                         + ' style="' + inStyle + '"'
-                                        + ' oninput="updateVal(\'' + pnEsc + '\',\'dole_' + rd.row + '\',1,this.value);_refreshDateCell(this)">';
+                                        + ' oninput="updateVal(\'' + pnEsc + '\',\'dole_' + rd.row + '\',1,this.value);_refreshDateCell(this);this.style.background=\'transparent\';this.style.color=this.value?\'#14501a\':\'#b71c1c\'">';
                                     var _naChk = '<label style="display:block;width:auto!important;margin:0!important;padding:0!important;text-align:center;font-size:0.6rem;font-weight:600;line-height:1.3;color:#757575;cursor:' + (dis ? 'not-allowed' : 'pointer') + ';" title="' + (_annNA ? 'Undo N/A' : 'Mark as N/A (not applicable)') + '">'
                                         + '<input type="checkbox" style="display:inline-block!important;vertical-align:middle;width:13px!important;min-width:13px!important;height:13px!important;margin:0 4px 0 0!important;padding:0!important;" ' + (_annNA ? 'checked ' : '') + (dis ? 'disabled ' : '')
                                         + 'onchange="window.toggleDoleAnnualNA(\'' + pnEsc + '\',\'' + rd.row + '\',this.checked)"><span style="vertical-align:middle;">N/A</span></label>';
@@ -15397,18 +15388,18 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             }).join('');
 
                             return '<tr style="background:#fff8e1;border-bottom:1px solid #ffe0b2;">'
-                                + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-weight:800;color:#e65100;background:#fff3e0;width:1%;white-space:nowrap;">'
+                                + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-weight:800;color:#e65100;background:#fff3e0;position:sticky;left:0;z-index:3;width:320px;min-width:320px;max-width:320px;white-space:normal;box-shadow:inset -1px 0 0 #c8e6c9;">'
                                 + doleFullName(rd.row) + '<br><span style="font-size:0.55rem;font-weight:600;color:#bf360c;">' + dlLabel + '</span></td>'
                                 + cells + '</tr>';
                         }).join('');
 
                         var tableHtml = '<table style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
                             + '<thead>'
-                            + '<tr style="background:#9ecf9b;color:#1b5e20;font-size:0.67rem;font-weight:800;text-align:center;">'
-                            + '<th rowspan="2" style="padding:6px 8px;border:1px solid #c8e6c9;vertical-align:middle;width:1%;white-space:nowrap;">REPORT</th>'
-                            + '<th colspan="' + regProjs.length + '" style="padding:6px 8px;border:1px solid #c8e6c9;background:#1b5e20;color:#fff;">DATE SUBMITTED PER PROJECT</th>'
+                            + '<tr style="background:' + _T.grp + ';color:' + _T.txt + ';font-size:0.67rem;font-weight:800;text-align:center;">'
+                            + '<th rowspan="2" style="padding:6px 8px;border:1px solid ' + _T.bd + ';vertical-align:middle;background:' + _T.grp + ';color:' + _T.txt + ';position:sticky;left:0;z-index:5;width:320px;min-width:320px;max-width:320px;box-shadow:inset -1px 0 0 ' + _T.bd + ';">REPORT</th>'
+                            + '<th colspan="' + regProjs.length + '" style="padding:6px 8px;border:1px solid ' + _T.bd + ';background:' + _T.grp + ';color:' + _T.txt + ';"><span style="display:inline-block;position:sticky;left:340px;">DATE SUBMITTED PER PROJECT</span></th>'
                             + '</tr>'
-                            + '<tr style="background:#b7ddb5;">' + projHeaderCols + '</tr>'
+                            + '<tr style="background:' + _T.proj + ';">' + projHeaderCols + '</tr>'
                             + '</thead>'
                             + '<tbody>'
                             + tableRows
@@ -15416,7 +15407,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '</tbody></table>';
 
                         window.eshMountModal(modal, {
-                            id: 'dole-month-modal', icon: 'fa-file-lines', width: 'min(1600px,99vw)', bodyFlex: true,
+                            id: 'dole-month-modal', icon: 'fa-file-lines', iconImg: window.DOLE_LOGO, width: 'min(1600px,99vw)', bodyFlex: true,
                             title: (isNew ? 'New DOLE entry' : (canEdit ? 'Edit DOLE' : 'View DOLE')) + ' — <span style="color:#2e7d32;">' + activeMo + ' ' + selYear + '</span>',
                             sub: '<i class="fas fa-location-dot" style="margin-right:4px;"></i>' + reg + ' · ' + regProjs.length + ' project' + (regProjs.length!==1?'s':''),
                             body: ''
@@ -15480,7 +15471,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 function _buildModalOverlay(id, header, infoBar, tableHtml, footerHtml) {
                     // Frame comes from the shared modal (eshOpenModal). Table and inputs are unchanged.
                     return window.eshOpenModal({
-                        id: id, icon: 'fa-leaf',
+                        id: id, icon: 'fa-leaf', iconImg: header.iconImg,
                         title: header.title, sub: header.sub,
                         width: 'min(1600px,99vw)',
                         body: infoBar + '<div style="overflow-x:auto;">' + tableHtml + '</div>',
@@ -15603,7 +15594,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var noneF = p2.filledCount === 0;
                         var isCur = !!p2.isCurrent;
                         var _pKind, _pTxt;
-                        if (allComplete) { _pKind = 'ok'; _pTxt = 'Complete'; }
+                        if (allComplete) { _pKind = 'ok'; _pTxt = 'Completed'; }
                         else if (noneF && isCur) { _pKind = 'prog'; _pTxt = 'In progress'; }
                         else if (noneF) { _pKind = 'none'; _pTxt = 'Not submitted'; }
                         else { _pKind = 'part'; _pTxt = 'Incomplete'; }
@@ -15612,8 +15603,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var _sl = _mOnly ? (String(p2.shortLabel).charAt(0) + String(p2.shortLabel).slice(1).toLowerCase()) : p2.shortLabel;
                         html2 += '<div class="ckpm-rw" onclick="' + openFn + '(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + p2.periodKey.replace(/'/g,"\\'") + '\',false)">'
                             + '<span class="ckpm-mo">' + _sl + '</span>'
-                            + '<div class="ckpm-fl">' + window._rowStatus(_pKind, _pTxt)
-                            + (_mOnly ? '' : '<span class="ckpm-lbl">' + p2.label + '</span>') + (isCur ? curBadge : '')
+                            + '<div class="ckpm-fl' + (p2.oneLine ? ' ckpm-grid' : '') + '">' + window._rowStatus(_pKind, _pTxt, '', true)
+                            + (_mOnly ? '' : '<span class="ckpm-lbl' + (p2.oneLine ? ' ckpm-c-lbl' : '') + '">' + p2.label + '</span>') + (p2.oneLine ? '<span class="ckpm-c-up">' + (p2.badge || '') + '</span>' : '') + (isCur ? curBadge : '')
                             + '<span class="ckpm-sub">' + p2.sub + '</span></div>'
                             + (canEditReg ? '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;"><button onclick="event.stopPropagation();' + openFn + '(\'' + regKey + '\',\'' + reg.replace(/'/g,"\\'") + '\',\'' + p2.periodKey.replace(/'/g,"\\'") + '\',true)" title="Edit" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:5px;padding:3px 8px;font-size:0.62rem;font-weight:700;cursor:pointer;"><i class="fas fa-pen"></i></button></div>' : '')
                             + '</div>';
@@ -15750,12 +15741,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var isUpcomingQ = (embSelYear === _embNowY && q2 > embActualCurQ) || embSelYear > _embNowY;
                             var upcomingBadgeQ = isUpcomingQ ? ' &nbsp;<span style="font-size:0.58rem;background:#e3f2fd;color:#1565c0;border-radius:10px;padding:1px 6px;font-weight:700;vertical-align:middle;">Upcoming</span>' : '';
                             periods2.push({
-                                label: 'SMR — ' + SMR_LABELS[q2-1] + ' &nbsp;<span style="font-size:0.6rem;color:#888;">'+SMR_DUE[q2-1]+'</span>' + upcomingBadgeQ,
+                                label: 'SMR — ' + SMR_LABELS[q2-1] + ' &nbsp;<span style="font-size:0.6rem;color:#888;">'+SMR_DUE[q2-1]+'</span>',
+                                badge: upcomingBadgeQ,
                                 shortLabel: 'Q'+q2,
                                 noNumber: true, oneLine: true,
                                 filledCount: sdFill+rnFill, totalSlots: activeProjs.length*2,
-                                sub: 'Submission Date: <span style="color:'+(sdFill===activeProjs.length?'#2e7d32':sdFill>0?'#e65100':'#c62828')+';font-weight:700;">'+sdFill+'/'+activeProjs.length+'</span>'
-                                    +' &nbsp;·&nbsp; Ref No: <span style="color:'+(rnFill===activeProjs.length?'#2e7d32':rnFill>0?'#e65100':'#c62828')+';font-weight:700;">'+rnFill+'/'+activeProjs.length+'</span>',
+                                sub: '<span class="ckpm-c-sd">Submission Date: <span style="color:'+(sdFill===activeProjs.length?'#2e7d32':sdFill>0?'#e65100':'#c62828')+';font-weight:700;">'+sdFill+'/'+activeProjs.length+'</span></span>'
+                                    +'<span class="ckpm-c-rn">Ref No: <span style="color:'+(rnFill===activeProjs.length?'#2e7d32':rnFill>0?'#e65100':'#c62828')+';font-weight:700;">'+rnFill+'/'+activeProjs.length+'</span></span>',
                                 periodKey: 'SMR_Q'+q2
                             });
                         }
@@ -15766,12 +15758,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             var isUpcomingH = (embSelYear === _embNowY && h2 > embActualCurH) || embSelYear > _embNowY;
                             var upcomingBadgeH = isUpcomingH ? ' &nbsp;<span style="font-size:0.58rem;background:#e3f2fd;color:#1565c0;border-radius:10px;padding:1px 6px;font-weight:700;vertical-align:middle;">Upcoming</span>' : '';
                             periods2.push({
-                                label: 'CMR — ' + CMR_LABELS[h2-1] + ' &nbsp;<span style="font-size:0.6rem;color:#888;">'+CMR_DUE[h2-1]+'</span>' + upcomingBadgeH,
+                                label: 'CMR — ' + CMR_LABELS[h2-1] + ' &nbsp;<span style="font-size:0.6rem;color:#888;">'+CMR_DUE[h2-1]+'</span>',
+                                badge: upcomingBadgeH,
                                 shortLabel: 'H'+h2,
                                 noNumber: true, oneLine: true,
                                 filledCount: csdFill+crnFill, totalSlots: activeProjs.length*2,
-                                sub: 'Submission Date: <span style="color:'+(csdFill===activeProjs.length?'#2e7d32':csdFill>0?'#e65100':'#c62828')+';font-weight:700;">'+csdFill+'/'+activeProjs.length+'</span>'
-                                    +' &nbsp;·&nbsp; Ref No: <span style="color:'+(crnFill===activeProjs.length?'#2e7d32':crnFill>0?'#e65100':'#c62828')+';font-weight:700;">'+crnFill+'/'+activeProjs.length+'</span>',
+                                sub: '<span class="ckpm-c-sd">Submission Date: <span style="color:'+(csdFill===activeProjs.length?'#2e7d32':csdFill>0?'#e65100':'#c62828')+';font-weight:700;">'+csdFill+'/'+activeProjs.length+'</span></span>'
+                                    +'<span class="ckpm-c-rn">Ref No: <span style="color:'+(crnFill===activeProjs.length?'#2e7d32':crnFill>0?'#e65100':'#c62828')+';font-weight:700;">'+crnFill+'/'+activeProjs.length+'</span></span>',
                                 periodKey: 'CMR_H'+h2
                             });
                         }
@@ -16013,12 +16006,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         }
 
                         // Build the table — header row (project names) + one combined row (all entries per project)
+                        var _T = window.ESH_RPT_MODAL_TBL;
                         var projNameHtml = regProjs.map(function(p){
                             var _stopped = isProjectOnStoppage(p) && !p.dateFinished;
                             var _stopBadge = _stopped
                                 ? ' <span title="Work Stoppage — entries still editable" style="background:#fff8e1;color:#f57f17;border:1px solid #ffe082;border-radius:3px;padding:1px 5px;font-size:0.55rem;cursor:help;white-space:nowrap;"><i class=\'fas fa-pause-circle\'></i> On Stoppage</span>'
                                 : '';
-                            return '<th style="padding:8px 10px;border:1px solid #c8e6c9;width:220px;min-width:220px;max-width:220px;text-align:center;background:#b7ddb5;color:#1b5e20;font-size:0.67rem;font-weight:800;white-space:normal;word-break:break-word;">'
+                            return '<th style="padding:8px 10px;border:1px solid ' + _T.bd + ';width:220px;min-width:220px;max-width:220px;text-align:center;background:' + _T.proj + ';color:' + _T.txt + ';font-size:0.67rem;font-weight:800;white-space:normal;word-break:break-word;">'
                                 + p.name + _stopBadge
                                 + '</th>';
                         }).join('');
@@ -16026,9 +16020,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var projColsHtml = regProjs.map(function(p, i){ return _buildEmbProjectCol(p, i); }).join('');
 
                         var tableHtml = '<table id="emb-modal-table" style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
-                            + '<thead><tr style="background:#9ecf9b;color:#1b5e20;font-size:0.67rem;font-weight:800;">'
+                            + '<thead><tr style="background:' + _T.grp + ';color:' + _T.txt + ';font-size:0.67rem;font-weight:800;">'
                             + projNameHtml + '</tr></thead>'
-                            + '<tbody><tr style="background:var(--bg-card);">'
+                            + '<tbody><tr style="background:' + _T.rowBg + ';">'
                             + projColsHtml
                             + '</tr></tbody></table>';
 
@@ -16036,6 +16030,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             (canEdit?('' + window.icon("edit") + ' Edit'):('' + window.icon("search") + ' View'))+' EMB — <span style="color:#fbc02d;">'+(isSmr?'SMR':'CMR')+' '+periodLabel+'</span>',
                             '<i class="fas fa-location-dot" style="margin-right:4px;"></i>'+reg+' · '+regProjs.length+' project'+(regProjs.length!==1?'s':'')+' &nbsp;·&nbsp; '+selYear,
                             'emb-modal');
+                        header.iconImg = window.EMB_LOGO;
                         var infoBar = _modalInfoBar((isSmr?'SMR Quarterly':'CMR Semi-Annual')+' — '+periodLabel+' '+selYear+' &nbsp;<span style="font-size:0.6rem;color:#888;">'+periodDue+'</span>'
                             + (canEdit ? ('<br><small style="margin-top:6px;display:inline-block;color:#1565c0;">' + window.icon("idea") + ' Click <strong>+ Add Entry</strong> inside a project column to add multiple submissions.</small>') : ''));
                         var footer = _modalFooter(
@@ -16227,7 +16222,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             html += '<tr>';
 
                             // Project name
-                            html += '<td class="got-td-proj" style="text-align:left;background:#e8f5e9;color:#1b5e20;position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;">'
+                            html += '<td class="got-td-proj" style="text-align:left;background:#e8f5e9;position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;">'
                                 + '<i class="fas fa-leaf" style="color:#4caf50;margin-right:5px;"></i>'
                                 + p.name
                                 + (_stopped?' <span style="background:#e0e0e0;color:#757575;border-radius:3px;padding:1px 4px;font-size:0.58rem;margin-left:3px;"><i class="fas fa-pause-circle"></i></span>':'')
@@ -17706,7 +17701,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             const _cshpDateId = `cshp-date-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}`;
                             // Format date value as MM/DD/YYYY for display badge
                             const _vDisplay = v ? (function(d){ var p=d.split('-'); return p.length===3?p[1]+'/'+p[2]+'/'+p[0]:d; })(v) : '';
-                            html += `<tr style="${!v ? 'background:#ffebee;' : ''}">
+                            html += `<tr style="${!v ? 'background:#ffcdd2;' : ''}">
                                 <td class="got-td-proj" style="text-align:left;background:${v ? '#e8f5e9' : '#ffcdd2'};color:${v ? '#2e7d32' : '#c62828'};position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;">
                                     ${p.isRenewable ? '<i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;" title="Renewable Energy"></i>' : ''}
                                     ${p.name}
@@ -17720,13 +17715,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         oninput="(function(el){
                                             updateVal('${p.name}','${key}',1,el.value);
                                             var td=el.closest('td'); if(td) td.style.background='';
-                                            var tr=el.closest('tr'); if(tr){tr.style.background=el.value?'':'#ffebee'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background=el.value?'#e8f5e9':'#ffcdd2';}
+                                            var tr=el.closest('tr'); if(tr){tr.style.background=el.value?'':'#ffcdd2'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background=el.value?'#e8f5e9':'#ffcdd2';}
                                             var clrBtn=document.getElementById('cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}'); if(clrBtn) clrBtn.style.display=el.value?'inline':'none';
                                         })(this)"
                                         onchange="(function(el){
                                             updateVal('${p.name}','${key}',1,el.value);
                                             var td=el.closest('td'); if(td) td.style.background='';
-                                            var tr=el.closest('tr'); if(tr){tr.style.background=el.value?'':'#ffebee'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background=el.value?'#e8f5e9':'#ffcdd2';}
+                                            var tr=el.closest('tr'); if(tr){tr.style.background=el.value?'':'#ffcdd2'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background=el.value?'#e8f5e9':'#ffcdd2';}
                                             var clrBtn=document.getElementById('cshp-clr-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}'); if(clrBtn) clrBtn.style.display=el.value?'inline':'none';
                                         })(this)"
                                         style="border:1px solid ${v ? '#a5d6a7' : '#ef9a9a'};border-radius:4px;padding:3px 6px;font-family:inherit;font-size:inherit;${v ? 'background:#c8e6c9;' : 'background:#fff5f5;'}">
@@ -17734,12 +17729,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         var inp=document.getElementById('cshp-date-${p.name.replace(/[^a-zA-Z0-9]/g,'_')}');
                                         if(inp){inp.value='';updateVal('${p.name}','${key}',1,'');}
                                         var td=btn.closest('td'); if(td) td.style.background='';
-                                        var tr=btn.closest('tr'); if(tr){tr.style.background='#ffebee'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background='#ffcdd2';}
+                                        var tr=btn.closest('tr'); if(tr){tr.style.background='#ffcdd2'; var stickyTd=tr.querySelector('td[style*=\\'sticky\\']'); if(stickyTd) stickyTd.style.background='#ffcdd2';}
                                         btn.style.display='none';
                                     })(this)"><i class='fas fa-times-circle'></i></button>
                                     ` : (v ? `<span style="display:inline-block;color:#33691e;font-weight:600;letter-spacing:0.03em;">${_vDisplay}</span>` : `<span style="display:inline-block;color:#c62828;font-weight:600;letter-spacing:0.03em;">mm/dd/yyyy</span>`)}
                                 </td>
-                                <td style="${!v ? 'background:#ffebee;' : ''}">${pdfCell}</td>
+                                <td style="${!v ? 'background:#ffcdd2;' : ''}">${pdfCell}</td>
                             </tr>`;
                         });
 
@@ -17774,14 +17769,14 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         projs.forEach(p => {
                             let totalYearAvg = 0;
-                            html += `<tr><td class="got-td-proj" title="${String(p.name||'').replace(/"/g,'&quot;')}" style="text-align:left;background:#e8f5e9;color:#1b5e20;position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            html += `<tr><td class="got-td-proj" title="${String(p.name||'').replace(/"/g,'&quot;')}" style="text-align:left;background:#e8f5e9;position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                 ${p.isRenewable ? '<i class="fas fa-leaf" style="color:#4caf50;margin-right:5px;" title="Renewable Energy"></i>' : ''}${p.name}
                             </td>`;
                             ['Q1','Q2','Q3','Q4'].forEach(q => {
                                 const audit = p.auditData?.[q] || { scoreImpl: 0, docuComp: 0 };
                                 const qAvg  = (audit.scoreImpl + audit.docuComp) / 2;
                                 totalYearAvg += qAvg;
-                                const _auInp = (field, val) => `<td class="${_auEdit ? '' : 'audit-locked'}" style="text-align:center;padding:4px 5px;"><input type="number" min="0" max="100" value="${val}" ${_auEdit ? '' : 'disabled class="audit-locked"'}
+                                const _auInp = (field, val) => `<td style="text-align:center;padding:4px 5px;"><input type="number" min="0" max="100" value="${val}" ${_auEdit ? '' : 'disabled'}
                                         oninput="updateAuditData('${p.name}','${q}','${field}',this.value)" placeholder="0"
                                         style="${_auEdit ? 'border:1.5px solid #a5d6a7;background:#f1fff1;color:#2e7d32;' : 'border:1.5px solid transparent;background:transparent;color:inherit;font-weight:500;'}border-radius:4px;padding:3px 4px;width:100%;max-width:70px;min-width:0;box-sizing:border-box;font-size:0.75rem;text-align:center;"></td>`;
                                 html += _auInp('scoreImpl', audit.scoreImpl) + _auInp('docuComp', audit.docuComp)
@@ -18047,16 +18042,16 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 } else {
                     html += `<div style="margin: 0 16px;">`;
                     html += `
-                        <div style="background:#1b5e20;border-radius:10px 10px 0 0;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                        <div style="background:var(--bg-card);box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:10px 10px 0 0;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
                             <div style="display:flex;align-items:center;gap:10px;">
-                                <i class="fas fa-id-card" style="color:rgba(255,255,255,0.85);font-size:1rem;"></i>
+                                
                                 <div>
-                                    <div style="font-size:0.72rem;font-weight:600;color:rgba(255,255,255,0.9);">Dept. Circular DC2012-11-0009 — RE Safety, Health and Environment Rules</div>
+                                    <div style="font-size:0.72rem;font-weight:600;color:var(--text-primary);">Dept. Circular DC2012-11-0009 — RE Safety, Health and Environment Rules</div>
                                 </div>
                             </div>
                             <div style="display:flex;gap:6px;">
-                                <span style="background:rgba(255,255,255,0.18);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:20px;padding:2px 10px;font-size:0.62rem;font-weight:800;">${renewableProjects.length} PROJECTS</span>
-                                <span style="background:rgba(255,255,255,0.18);color:white;border:1px solid rgba(255,255,255,0.35);border-radius:20px;padding:2px 10px;font-size:0.62rem;font-weight:800;">RENEWABLE</span>
+                                <span style="background:#eef0f2;color:#374151;border:1px solid #d1d5db;border-radius:20px;padding:2px 10px;font-size:0.62rem;font-weight:800;">${renewableProjects.length} PROJECTS</span>
+                                <span style="background:#eef0f2;color:#374151;border:1px solid #d1d5db;border-radius:20px;padding:2px 10px;font-size:0.62rem;font-weight:800;">RENEWABLE</span>
                             </div>
                         </div>
                     `;
@@ -18196,8 +18191,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 }
                             }
 
-                            html += `<tr>
-                                <td class="got-td-proj" style="text-align:left;background:#e8f5e9;color:#1b5e20;position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;">
+                            const _dpGap = !_dpClient && (!String(permitNumber).trim() || !validUntil);
+                            html += `<tr class="dp-row${_dpGap ? ' dp-gap' : ''}">
+                                <td class="got-td-proj" style="text-align:left;position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;">
                                     <i class="fas fa-leaf" style="color: #4caf50; margin-right: 5px;"></i>
                                     ${p.name}
                                 </td>
@@ -18210,8 +18206,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 </td>
                                 ${_dpClient ? `
                                 <td colspan="3" style="text-align:center;color:var(--text-secondary);font-size:0.78rem;font-style:italic;">Care of Client</td>` : `
-                                <td><input type="text" placeholder="e.g., HOEMD-2025-486" value="${permitNumber}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'} oninput="updateVal('${_dpPnSafe}','${key}',1,this.value)" style="width: 100%;"></td>
-                                <td><input type="date" value="${validUntil}" data-allow-future ${(state.isEditing && canEditRegion) ? '' : 'disabled'} onchange="updateVal('${_dpPnSafe}','${key}',2,this.value)" style="width: 100%;"></td>
+                                <td><input type="text" placeholder="e.g., HOEMD-2025-486" value="${permitNumber}" ${(state.isEditing && canEditRegion) ? '' : 'disabled'} oninput="updateVal('${_dpPnSafe}','${key}',1,this.value);window._dpRowFill(this)" style="width: 100%;"></td>
+                                <td><input type="date" value="${validUntil}" data-allow-future ${(state.isEditing && canEditRegion) ? '' : 'disabled'} onchange="updateVal('${_dpPnSafe}','${key}',2,this.value);window._dpRowFill(this)" style="width: 100%;"></td>
                                 <td style="text-align: center;">${pdfCell}</td>`}
                             </tr>`;
                         });
@@ -20636,14 +20632,14 @@ function renderPTable() {
         const _visibleProjName = projectNames[_pNavIdx];
         const _navBarHtml = _showNavBar ? `
             <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:2px solid #c8e6c9;">
-                <button onclick="_pNavProject('${region.replace(/'/g,"\\'")}', -1)" ${_pNavIdx===0?'disabled':''} style="background:${_pNavIdx===0?'#ccc':'#f9a825'};color:#3e2c00;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${_pNavIdx===0?'not-allowed':'pointer'};opacity:${_pNavIdx===0?'0.4':'1'};">
+                <button onclick="_pNavProject('${region.replace(/'/g,"\\'")}', -1)" ${_pNavIdx===0?'disabled':''} style="background:${_pNavIdx===0?'#ccc':'#f9a825'};color:#000;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${_pNavIdx===0?'not-allowed':'pointer'};opacity:${_pNavIdx===0?'0.4':'1'};">
                     <i class="fas fa-chevron-left"></i> Prev
                 </button>
                 <div style="text-align:center;">
                     <div style="font-size:0.72rem;font-weight:800;color:#1b5e20;"><i class="fas fa-building" style="margin-right:5px;"></i>${_visibleProjName}</div>
                     <div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ${_pNavIdx+1} of ${projectNames.length}</div>
                 </div>
-                <button onclick="_pNavProject('${region.replace(/'/g,"\\'")}', 1)" ${_pNavIdx===projectNames.length-1?'disabled':''} style="background:${_pNavIdx===projectNames.length-1?'#ccc':'#f9a825'};color:#3e2c00;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${_pNavIdx===projectNames.length-1?'not-allowed':'pointer'};opacity:${_pNavIdx===projectNames.length-1?'0.4':'1'};">
+                <button onclick="_pNavProject('${region.replace(/'/g,"\\'")}', 1)" ${_pNavIdx===projectNames.length-1?'disabled':''} style="background:${_pNavIdx===projectNames.length-1?'#ccc':'#f9a825'};color:#000;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${_pNavIdx===projectNames.length-1?'not-allowed':'pointer'};opacity:${_pNavIdx===projectNames.length-1?'0.4':'1'};">
                     Next <i class="fas fa-chevron-right"></i>
                 </button>
             </div>` : '';
@@ -21547,6 +21543,9 @@ window.safetyOpenLightbox = safetyOpenLightbox;
 
 
 // ── View full detail (opened by clicking a photo) ───────────────────────────
+window.DOE_LOGO = 'data:image/png;base64,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';
+window.EMB_LOGO = 'data:image/png;base64,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';
+window.DOLE_LOGO = 'data:image/png;base64,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';
 function _mdlHtml(o) {
     // Shared modal frame. Content (o.body) is passed as-is.
     // o: { id, icon, title, sub, chips[], width, closeJs, body, foot }
@@ -21561,7 +21560,7 @@ function _mdlHtml(o) {
         : '<span class="mdl-title">' + o.title + '</span>';
     var foot = (o.foot == null ? '' : String(o.foot)).trim();
     return '<div class="mdl" style="max-width:' + w + ';">'
-        + '<div class="mdl-head' + (hasExtra ? ' top' : '') + '"><i class="fas ' + (o.icon || 'fa-circle-info') + ' mdl-ic"></i>' + titleBlock
+        + '<div class="mdl-head' + (hasExtra ? ' top' : '') + '">' + (o.iconImg ? '<img src="' + o.iconImg + '" alt="" style="width:30px;height:auto;max-height:30px;object-fit:contain;flex-shrink:0;margin-right:10px;">' : '<i class="fas ' + (o.icon || 'fa-circle-info') + ' mdl-ic"></i>') + titleBlock
         + '<button class="mdl-x" onclick="' + closeJs + '" title="Close" aria-label="Close">&times;</button></div>'
         + '<div class="mdl-body' + (o.bodyFlex ? ' flex' : '') + '">' + o.body + '</div>'
         + (foot ? '<div class="mdl-foot">' + foot + '</div>' : '<div class="mdl-gap"></div>')
@@ -21573,6 +21572,13 @@ window._mdlHtml = _mdlHtml;
 // eshMountModal(el, o, z): fills an overlay element (already created, may carry data-* attributes) and adds it to the page.
 // eshOpenModal(o): creates the element (replacing an old one with the same id) and mounts it.
 // o: _mdlHtml options + { z, onClose }
+// Shared table colors for reportorial modals (EMB, DOLE). Edit here to change all of them.
+window._dpRowFill = function(el) {
+    var tr = el.closest('tr'); if (!tr) return;
+    var t = tr.querySelector('input[type="text"]'), d = tr.querySelector('input[type="date"]');
+    tr.classList.toggle('dp-gap', !!(t && d && (!t.value.trim() || !d.value)));
+};
+window.ESH_RPT_MODAL_TBL = { grp: '#9ecf9b', proj: '#b7ddb5', txt: '#000', bd: '#c8e6c9', rowBg: 'var(--bg-card)' };
 window.eshMountModal = function(el, o, z) {
     el.className = 'mdl-overlay';
     if (z || o.z) el.style.zIndex = z || o.z;
@@ -27956,30 +27962,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // ══════════════════════════════════════════════════════════════════════
     const FUEL_DIESEL_FACTOR  = 0.00268; // t CO₂e per Liter
     const FUEL_GAS_FACTOR     = 0.00231; // t CO₂e per Liter
-    // Formula tooltips for GHG cells (same look as the region-summary tips)
-    const _ghgTipAttr = lines => ' title="' + lines.map(x => String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')).join('&#10;') + '" data-tip-nowrap';
-    const _fuelGhgTip = (d, g, shown) => {
-        d = Number(d) || 0; g = Number(g) || 0;
-        const fn = n => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
-        const calc = (d * FUEL_DIESEL_FACTOR + g * FUEL_GAS_FACTOR).toFixed(4);
-        const L = [
-            'GHG (t CO\u2082e) \u00b7 Fuel',
-            'Diesel L \u00d7 ' + FUEL_DIESEL_FACTOR + ' + Gasoline L \u00d7 ' + FUEL_GAS_FACTOR,
-            fn(d) + ' \u00d7 ' + FUEL_DIESEL_FACTOR + ' + ' + fn(g) + ' \u00d7 ' + FUEL_GAS_FACTOR,
-            '= ' + calc
-        ];
-        if (shown !== undefined && calc !== Number(shown).toFixed(4)) L.push('Sum of monthly values (each rounded to 4 decimals) = ' + Number(shown).toFixed(4));
-        return _ghgTipAttr(L);
-    };
-    const _elecGhgTip = kwh => {
-        kwh = Number(kwh) || 0;
-        return _ghgTipAttr([
-            'GHG (tCO2) \u00b7 Electricity',
-            'kWh \u00d7 ' + GHG_FACTOR + ' (DOE grid emission factor)',
-            kwh.toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' \u00d7 ' + GHG_FACTOR,
-            '= ' + (kwh * GHG_FACTOR).toFixed(4)
-        ]);
-    };
 
     function fuelRegionKey(r) { return 'fl_' + r.replace(/[^a-z0-9]/gi,'_'); }
 
@@ -28053,11 +28035,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const mRows = grouped[month];
             if (!mRows.length) return;
             mRows.forEach((row, idx) => {
-                html += `<tr>
-                    <td style="padding:6px 10px;border:1px solid #c8e6c9;vertical-align:middle;font-weight:600;color:#1b5e20;">${idx===0?month:''}</td>
+                html += `<tr style="color:#000;font-weight:600;">
+                    <td style="padding:6px 10px;border:1px solid #c8e6c9;vertical-align:middle;font-weight:800;color:#0b3d12;">${idx===0?month:''}</td>
                     <td style="padding:6px 10px;border:1px solid #c8e6c9;text-align:right;">${row.dieselLit.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
                     <td style="padding:6px 10px;border:1px solid #c8e6c9;text-align:right;">${row.gasLit.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-                    <td style="padding:6px 10px;border:1px solid #c8e6c9;text-align:right;font-weight:700;color:#2e7d32;cursor:help;"${_fuelGhgTip(row.dieselLit, row.gasLit, row.ghg)}>${row.ghg.toFixed(4)}</td>
+                    <td style="padding:6px 10px;border:1px solid #c8e6c9;text-align:right;font-weight:800;color:#0b3d12;">${row.ghg.toFixed(4)}</td>
                     ${canEdit?`<td style="padding:4px 8px;border:1px solid #c8e6c9;text-align:center;">
                         <button onclick="fuelDeleteRow(${row.id})" style="background:none;border:none;cursor:pointer;color:#ef5350;font-size:0.75rem;" title="Delete">${window.icon('trash')}</button>
                     </td>`:''}
@@ -28087,9 +28069,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const rGas    = regionRows.reduce((s,r)=>s+r.gasLit,0);
             const rGhg    = regionRows.reduce((s,r)=>s+r.ghg,0);
 
-            const thBase  = `padding:7px 11px;text-align:center;font-weight:700;border:1px solid #c8e6c9;font-size:0.63rem;`;
-            const thLight = `background:#b7ddb5;color:#1b5e20;`;
-            const thMid   = `background:#9ecf9b;color:#1b5e20;`;
+            const thBase  = `padding:7px 11px;text-align:center;font-weight:800;border:1px solid #c8e6c9;font-size:0.63rem;`;
+            const thLight = `background:#b7ddb5;color:#0b3d12;`;
+            const thMid   = `background:#9ecf9b;color:#0b3d12;`;
 
             let projTablesHtml = '';
             if (projs.length === 0) {
@@ -28144,8 +28126,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <thead>
                                     <tr>
                                         <th style="${thBase}${thLight}">Month</th>
-                                        <th style="${thBase}${thMid}">Total Fuel Consumption<br><span style="color:#1b5e20;font-weight:700;">Diesel</span>, Liters</th>
-                                        <th style="${thBase}${thMid}">Total Fuel Consumption<br><span style="color:#1b5e20;font-weight:700;">Gasoline</span>, Liters</th>
+                                        <th style="${thBase}${thMid}">Total Fuel Consumption<br><span style="color:#0b3d12;font-weight:800;">Diesel</span>, Liters</th>
+                                        <th style="${thBase}${thMid}">Total Fuel Consumption<br><span style="color:#0b3d12;font-weight:800;">Gasoline</span>, Liters</th>
                                         <th style="${thBase}${thLight}">Total GHG Emissions<br>(t CO₂e)</th>
                                         ${canEditReg?`<th style="${thBase}${thLight}"></th>`:''}
                                     </tr>
@@ -28156,12 +28138,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 ${projRows.length > 0 ? `
                                 <tfoot>
                                     <tr style="background:#e8f5e9;">
-                                        <td style="padding:7px 11px;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.67rem;">
+                                        <td style="padding:7px 11px;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;font-size:0.67rem;">
                                             ${window.icon('calc', '', `style="font-size:0.6rem;"`)} TOTAL — ${proj.name}
                                         </td>
-                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pDiesel.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pGas.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#2e7d32;border:1px solid #c8e6c9;cursor:help;"${_fuelGhgTip(pDiesel, pGas, pGhg)}>${pGhg.toFixed(4)}</td>
+                                        <td style="padding:7px 11px;text-align:right;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;">${pDiesel.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
+                                        <td style="padding:7px 11px;text-align:right;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;">${pGas.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
+                                        <td style="padding:7px 11px;text-align:right;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;">${pGhg.toFixed(4)}</td>
                                         ${canEditReg?`<td style="border:1px solid #c8e6c9;"></td>`:''}
                                     </tr>
                                 </tfoot>` : ''}
@@ -28301,10 +28283,10 @@ document.addEventListener('DOMContentLoaded', function() {
     ];
 
     const APPL_SECTION_META = {
-        'A':  { label:'A — Electrical Equipment (Qty in Units)', icon:'bolt',      bg:'#1b5e20' },
-        'A1': { label:'A1 — Aircon Units (Qty + Watts)',         icon:'snowflake',  bg:'#2e7d32' },
-        'B':  { label:'B — Other Electrical Equipment (Units)',  icon:'desktop',    bg:'#388e3c' },
-        'C':  { label:'C — Lighting Fixtures (No. of Pieces)',   icon:'idea',  bg:'#43a047' },
+        'A':  { label:'A — Electrical Equipment (Qty in Units)', icon:'bolt',      bg:'#9ecf9b' },
+        'A1': { label:'A1 — Aircon Units (Qty + Watts)',         icon:'snowflake',  bg:'#9ecf9b' },
+        'B':  { label:'B — Other Electrical Equipment (Units)',  icon:'desktop',    bg:'#9ecf9b' },
+        'C':  { label:'C — Lighting Fixtures (No. of Pieces)',   icon:'idea',  bg:'#9ecf9b' },
     };
 
     // Total units entered for one region (same key matching as appliancesUpdateSummary)
@@ -28355,13 +28337,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 ['ac_cass_qty','ac_cass_w','Cassette Type'],
                 ['ac_wall_qty','ac_wall_w','Wall Mounted'],
             ];
-            let hdr    = pairs.map(p=>`<th colspan="2" style="background:#1b5e2022;color:#1b5e20;padding:5px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.63rem;font-weight:700;">${p[2]}</th>`).join('');
-            let subhdr = pairs.map(()=>`<th style="background:#e8f5e9;color:#1b5e20;padding:4px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.62rem;font-weight:600;white-space:nowrap;">Qty</th><th style="background:#e8f5e9;color:#1b5e20;padding:4px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.62rem;font-weight:600;white-space:nowrap;">Watts</th>`).join('');
+            let hdr    = pairs.map(p=>`<th colspan="2" style="background:#b7ddb5;color:#0b3d12;padding:5px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.63rem;font-weight:800;">${p[2]}</th>`).join('');
+            let subhdr = pairs.map(()=>`<th style="background:#c5e8c3;color:#0b3d12;padding:4px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.62rem;font-weight:800;white-space:nowrap;">Qty</th><th style="background:#c5e8c3;color:#0b3d12;padding:4px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.62rem;font-weight:800;white-space:nowrap;">Watts</th>`).join('');
             let cells  = pairs.map(p=>`
-                <td style="padding:5px 7px;text-align:center;border:1px solid #e8f5e9;">${canEdit
+                <td style="padding:5px 7px;text-align:center;border:1px solid #c8e6c9;color:#000;font-weight:600;">${canEdit
                     ? `<input type="number" min="0" data-appl-key="${key}" data-appl-field="${p[0]}" onchange="appliancesSetField('${key}','${p[0]}',this.value)" value="${data[p[0]]||''}" placeholder="0" style="width:50px;padding:3px 4px;border:1px solid #a5d6a7;border-radius:4px;text-align:center;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);">`
                     : (data[p[0]] || '—')}</td>
-                <td style="padding:5px 7px;text-align:center;border:1px solid #e8f5e9;">${canEdit
+                <td style="padding:5px 7px;text-align:center;border:1px solid #c8e6c9;color:#000;font-weight:600;">${canEdit
                     ? `<input type="number" min="0" data-appl-key="${key}" data-appl-field="${p[1]}" onchange="appliancesSetField('${key}','${p[1]}',this.value)" value="${data[p[1]]||''}" placeholder="W" style="width:55px;padding:3px 4px;border:1px solid #a5d6a7;border-radius:4px;text-align:center;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);">`
                     : (data[p[1]] || '—')}</td>`).join('');
             fieldsHtml = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.7rem;min-width:600px;">
@@ -28369,9 +28351,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 <tbody><tr>${cells}</tr></tbody>
             </table></div>`;
         } else {
-            let ths = fields.map(f=>`<th style="background:#f5f5f5;color:#444;padding:5px 8px;text-align:center;border:1px solid #e0e0e0;font-size:0.62rem;font-weight:700;white-space:nowrap;">${f.label}</th>`).join('');
-            let tds = fields.map(f=>`<td style="padding:5px 7px;text-align:center;border:1px solid #f0f0f0;">${canEdit
-                ? `<input type="number" min="0" data-appl-key="${key}" data-appl-field="${f.id}" onchange="appliancesSetField('${key}','${f.id}',this.value)" value="${data[f.id]||''}" placeholder="0" style="width:48px;padding:3px 4px;border:1px solid #bdbdbd;border-radius:4px;text-align:center;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);">`
+            let ths = fields.map(f=>`<th style="background:#c5e8c3;color:#0b3d12;padding:5px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.62rem;font-weight:800;white-space:nowrap;">${f.label}</th>`).join('');
+            let tds = fields.map(f=>`<td style="padding:5px 7px;text-align:center;border:1px solid #c8e6c9;color:#000;font-weight:600;">${canEdit
+                ? `<input type="number" min="0" data-appl-key="${key}" data-appl-field="${f.id}" onchange="appliancesSetField('${key}','${f.id}',this.value)" value="${data[f.id]||''}" placeholder="0" style="width:48px;padding:3px 4px;border:1px solid #a5d6a7;border-radius:4px;text-align:center;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);">`
                 : (data[f.id] || '—')}</td>`).join('');
             fieldsHtml = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.7rem;">
                 <thead><tr>${ths}</tr></thead>
@@ -28381,7 +28363,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         return `
         <div style="border-top:2px solid ${meta.bg}33;">
-            <div style="background:${meta.bg};color:white;padding:6px 12px;font-size:0.68rem;font-weight:700;letter-spacing:0.3px;display:flex;align-items:center;gap:6px;">
+            <div style="background:${meta.bg};color:#0b3d12;padding:6px 12px;font-size:0.68rem;font-weight:800;letter-spacing:0.3px;display:flex;align-items:center;gap:6px;">
                 ${window.icon(meta.icon, '', 'style="opacity:0.8;font-size:0.7rem;"')}${meta.label}
             </div>
             ${fieldsHtml}
@@ -28462,7 +28444,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             ${applSectionRows('A',  previewKey, canEditRg)}
                             ${applSectionRows('A1', previewKey, canEditRg)}
                             ${applSectionRows('B',  previewKey, canEditRg)}
-                            ${applSectionRows('C',  previewKey, canEditRg)}
+                            ${applSectionRows('C',  previewKey, canEditRgey, canEditRg)}
                         </div>
                     </div>`;
                 }
@@ -28716,15 +28698,15 @@ document.addEventListener('DOMContentLoaded', function() {
                                 ${envColgroup(canEditRegionEnv)}
                                 <thead>
                                     <tr>
-                                        <th rowspan="2" style="padding:7px 11px;text-align:left;background:#b7ddb5;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;vertical-align:middle;white-space:nowrap;font-size:0.65rem;">Month</th>
-                                        <th rowspan="2" style="padding:7px 11px;text-align:left;background:#b7ddb5;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;vertical-align:middle;font-size:0.65rem;">Office/Building<br>Floor Area</th>
-                                        <th colspan="3" style="padding:6px 11px;text-align:center;background:#9ecf9b;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">Electricity Consumption</th>
-                                        ${canEditRegionEnv ? `<th rowspan="2" style="padding:7px 7px;text-align:center;background:#b7ddb5;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;"></th>` : ''}
+                                        <th rowspan="2" style="padding:7px 11px;text-align:left;background:#b7ddb5;color:#0b3d12;font-weight:800;border:1px solid #c8e6c9;vertical-align:middle;white-space:nowrap;font-size:0.65rem;">Month</th>
+                                        <th rowspan="2" style="padding:7px 11px;text-align:left;background:#b7ddb5;color:#0b3d12;font-weight:800;border:1px solid #c8e6c9;vertical-align:middle;font-size:0.65rem;">Office/Building<br>Floor Area</th>
+                                        <th colspan="3" style="padding:6px 11px;text-align:center;background:#9ecf9b;color:#0b3d12;font-weight:800;border:1px solid #c8e6c9;font-size:0.65rem;">Electricity Consumption</th>
+                                        ${canEditRegionEnv ? `<th rowspan="2" style="padding:7px 7px;text-align:center;background:#b7ddb5;color:#0b3d12;font-weight:800;border:1px solid #c8e6c9;font-size:0.65rem;"></th>` : ''}
                                     </tr>
                                     <tr>
-                                        <th style="padding:6px 11px;text-align:left;background:#c5e8c3;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">kWh</th>
-                                        <th style="padding:6px 11px;text-align:center;background:#c5e8c3;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">Amount, Php</th>
-                                        <th style="padding:6px 11px;text-align:center;background:#c5e8c3;color:#1b5e20;font-weight:700;border:1px solid #c8e6c9;font-size:0.65rem;">Eq. GHG Emission<br>(tCO2)</th>
+                                        <th style="padding:6px 11px;text-align:left;background:#c5e8c3;color:#0b3d12;font-weight:800;border:1px solid #c8e6c9;font-size:0.65rem;">kWh</th>
+                                        <th style="padding:6px 11px;text-align:center;background:#c5e8c3;color:#0b3d12;font-weight:800;border:1px solid #c8e6c9;font-size:0.65rem;">Amount, Php</th>
+                                        <th style="padding:6px 11px;text-align:center;background:#c5e8c3;color:#0b3d12;font-weight:800;border:1px solid #c8e6c9;font-size:0.65rem;">Eq. GHG Emission<br>(tCO2)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -28733,12 +28715,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 ${projRows.length ? `
                                 <tfoot>
                                     <tr style="background:#e8f5e9;">
-                                        <td colspan="2" style="padding:7px 11px;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.67rem;">
+                                        <td colspan="2" style="padding:7px 11px;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;font-size:0.67rem;">
                                             ${window.icon('calc', '', `style="font-size:0.6rem;"`)} TOTAL
                                         </td>
-                                        <td style="padding:7px 11px;text-align:left;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pKwh.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pAmt.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;cursor:help;"${_elecGhgTip(pKwh)}>${pGhg.toFixed(4)}</td>
+                                        <td style="padding:7px 11px;text-align:left;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;">${pKwh.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
+                                        <td style="padding:7px 11px;text-align:right;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;">${pAmt.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
+                                        <td style="padding:7px 11px;text-align:right;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;">${pGhg.toFixed(4)}</td>
                                         ${canEditRegionEnv ? `<td style="border:1px solid #c8e6c9;"></td>` : ''}
                                     </tr>
                                 </tfoot>` : ''}
@@ -28926,11 +28908,11 @@ document.addEventListener('DOMContentLoaded', function() {
             mRows.forEach((r, i) => {
                 const pct = maxKwh > 0 ? Math.max(2, Math.round((Number(r.kwh) || 0) / maxKwh * 100)) : 0;
                 html += `<tr style="background:${i%2===0?'var(--bg-card)':'var(--input-bg)'};">
-                    ${i===0 ? `<td rowspan="${mRows.length}" title="${month}" style="padding:6px 11px;text-align:left;font-weight:700;color:#1b5e20;border:1px solid #e8f5e9;vertical-align:middle;white-space:nowrap;">${month.slice(0,3)}</td>` : ''}
-                    <td style="padding:6px 11px;border:1px solid #e8f5e9;color:var(--text-primary);text-align:left;vertical-align:middle;overflow-wrap:anywhere;">${r.location}</td>
-                    <td style="padding:6px 11px;text-align:left;border:1px solid #e8f5e9;color:var(--text-primary);">${r.kwh.toLocaleString()}<span style="display:block;height:4px;border-radius:2px;background:#66bb6a;margin-top:3px;width:${pct}%;"></span></td>
-                    <td style="padding:6px 11px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);">${r.amount.toLocaleString()}</td>
-                    <td style="padding:6px 11px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);cursor:help;"${_elecGhgTip(r.kwh)}>${r.ghg.toFixed(4)}</td>
+                    ${i===0 ? `<td rowspan="${mRows.length}" title="${month}" style="padding:6px 11px;text-align:left;font-weight:800;color:#0b3d12;border:1px solid #e8f5e9;vertical-align:middle;white-space:nowrap;">${month.slice(0,3)}</td>` : ''}
+                    <td style="padding:6px 11px;border:1px solid #e8f5e9;color:#000;font-weight:600;text-align:left;vertical-align:middle;overflow-wrap:anywhere;">${r.location}</td>
+                    <td style="padding:6px 11px;text-align:left;border:1px solid #e8f5e9;color:#000;font-weight:600;">${r.kwh.toLocaleString()}<span style="display:block;height:4px;border-radius:2px;background:#66bb6a;margin-top:3px;width:${pct}%;"></span></td>
+                    <td style="padding:6px 11px;text-align:right;border:1px solid #e8f5e9;color:#000;font-weight:600;">${r.amount.toLocaleString()}</td>
+                    <td style="padding:6px 11px;text-align:right;border:1px solid #e8f5e9;color:#000;font-weight:600;">${r.ghg.toFixed(4)}</td>
                     ${canEdit ? `<td style="padding:5px 7px;text-align:center;border:1px solid #e8f5e9;">
                         <button onclick="envDeleteRow(${r.id})" style="padding:2px 7px;background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;font-size:0.6rem;cursor:pointer;">${window.icon('times')}</button>
                     </td>` : ''}
@@ -29056,10 +29038,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     const pn       = proj.name.replace(/'/g,"\'");
 
                     // Green table styling — uniform with electricity
-                    const thBase  = `padding:7px 11px;text-align:center;font-weight:700;border:1px solid #c8e6c9;font-size:0.63rem;`;
-                    const thLight = `background:#b7ddb5;color:#1b5e20;`;
-                    const thMid   = `background:#9ecf9b;color:#1b5e20;`;
-                    const thSub   = `background:#c5e8c3;color:#1b5e20;`;
+                    const thBase  = `padding:7px 11px;text-align:center;font-weight:800;border:1px solid #c8e6c9;font-size:0.63rem;`;
+                    const thLight = `background:#b7ddb5;color:#0b3d12;`;
+                    const thMid   = `background:#9ecf9b;color:#0b3d12;`;
+                    const thSub   = `background:#c5e8c3;color:#0b3d12;`;
 
                     projTablesHtml += `
                     <div style="${_tabProjCardStyle()}">
@@ -29107,9 +29089,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <thead>
                                     <tr>
                                         <th rowspan="2" style="${thBase}${thLight}vertical-align:middle;">Month</th>
-                                        <th colspan="2" style="${thBase}${thMid}">Water Consumption, <span style="color:#c62828;">Domestic Use</span></th>
-                                        <th colspan="2" style="${thBase}${thMid}">Water Consumption, <span style="color:#c62828;">Potable Use</span></th>
-                                        <th colspan="2" style="${thBase}${thMid}">Water Consumption, <span style="color:#c62828;">Industrial Use</span></th>
+                                        <th colspan="2" style="${thBase}${thMid}">Water Consumption, <span style="color:#c62828;font-weight:800;">Domestic Use</span></th>
+                                        <th colspan="2" style="${thBase}${thMid}">Water Consumption, <span style="color:#c62828;font-weight:800;">Potable Use</span></th>
+                                        <th colspan="2" style="${thBase}${thMid}">Water Consumption, <span style="color:#c62828;font-weight:800;">Industrial Use</span></th>
                                         ${canEditReg ? `<th rowspan="2" style="${thBase}${thLight}vertical-align:middle;"></th>` : ''}
                                     </tr>
                                     <tr>
@@ -29127,15 +29109,15 @@ document.addEventListener('DOMContentLoaded', function() {
                                 ${projRows.length ? `
                                 <tfoot>
                                     <tr style="background:#e8f5e9;">
-                                        <td style="padding:7px 11px;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;font-size:0.67rem;">
+                                        <td style="padding:7px 11px;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;font-size:0.67rem;">
                                             ${window.icon('calc', '', `style="font-size:0.6rem;"`)} TOTAL — ${proj.name}
                                         </td>
-                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pDomM3.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pDomAmt.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pPotLit.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pPotAmt.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pIndM3.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pIndAmt.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
+                                        <td style="padding:7px 11px;text-align:right;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;">${pDomM3.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
+                                        <td style="padding:7px 11px;text-align:right;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;">${pDomAmt.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
+                                        <td style="padding:7px 11px;text-align:right;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;">${pPotLit.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
+                                        <td style="padding:7px 11px;text-align:right;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;">${pPotAmt.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
+                                        <td style="padding:7px 11px;text-align:right;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;">${pIndM3.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
+                                        <td style="padding:7px 11px;text-align:right;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;">${pIndAmt.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
                                         ${canEditReg ? `<td style="border:1px solid #c8e6c9;"></td>` : ''}
                                     </tr>
                                 </tfoot>` : ''}
@@ -29168,8 +29150,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const mRows = grouped[month];
             if (!mRows.length) return;
             mRows.forEach((r, i) => {
-                html += `<tr style="background:${i%2===0?'var(--bg-card)':'var(--input-bg)'};">
-                    ${i===0 ? `<td rowspan="${mRows.length}" style="padding:6px 11px;text-align:center;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;vertical-align:middle;white-space:nowrap;">${month}</td>` : ''}
+                html += `<tr style="background:${i%2===0?'var(--bg-card)':'var(--input-bg)'};color:#000;font-weight:600;">
+                    ${i===0 ? `<td rowspan="${mRows.length}" style="padding:6px 11px;text-align:center;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;vertical-align:middle;white-space:nowrap;">${month}</td>` : ''}
                     <td style="padding:6px 11px;text-align:right;border:1px solid #c8e6c9;">${r.domM3.toLocaleString()}</td>
                     <td style="padding:6px 11px;text-align:right;border:1px solid #c8e6c9;">${r.domAmt.toLocaleString()}</td>
                     <td style="padding:6px 11px;text-align:right;border:1px solid #c8e6c9;">${r.potLit.toLocaleString()}</td>
@@ -29345,38 +29327,38 @@ document.addEventListener('DOMContentLoaded', function() {
             <col style="width:${canEdit?'7%':'8%'}">
             ${canEdit ? '<col style="width:3%">' : ''}
         </colgroup>`;
-        const thS = 'padding:5px 4px;text-align:center;border:1px solid #ddd;white-space:nowrap;overflow:hidden;';
+        const thS = 'padding:5px 4px;text-align:center;border:1px solid #c8e6c9;white-space:nowrap;overflow:hidden;font-weight:800;';
         let t = `<div style="width:100%;"><table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:0.68rem;">
             ${colgroup}
             <thead>
                 <tr>
-                    <th style="background:${colors.bg};color:white;${thS}">Month</th>
-                    <th style="background:${colors.bg};color:white;${thS}text-align:left;padding-left:8px;">Location</th>
-                    <th style="background:#2e7d32;color:white;${thS}" colspan="3">Biodegradable (MT)</th>
-                    <th style="background:#1565c0;color:white;${thS}" colspan="3">Non-Biodeg. (MT)</th>
-                    <th style="background:#e65100;color:white;${thS}" colspan="3">Recyclable (MT)</th>
-                    <th style="background:#b71c1c;color:white;${thS}" colspan="2">Hazardous (MT)</th>
-                    <th style="background:#2e7d32;color:white;${thS}white-space:normal;line-height:1.2;">Septage (m³)</th>
-                    <th style="background:#546e7a;color:white;${thS}">Remarks</th>
-                    ${canEdit ? '<th style="background:#546e7a;color:white;'+thS+'"></th>' : ''}
+                    <th style="background:#b7ddb5;color:#0b3d12;${thS}">Month</th>
+                    <th style="background:#b7ddb5;color:#0b3d12;${thS}text-align:left;padding-left:8px;">Location</th>
+                    <th style="background:#9ecf9b;color:#0b3d12;${thS}" colspan="3">Biodegradable (MT)</th>
+                    <th style="background:#9ecf9b;color:#0b3d12;${thS}" colspan="3">Non-Biodeg. (MT)</th>
+                    <th style="background:#9ecf9b;color:#0b3d12;${thS}" colspan="3">Recyclable (MT)</th>
+                    <th style="background:#9ecf9b;color:#0b3d12;${thS}" colspan="2">Hazardous (MT)</th>
+                    <th style="background:#b7ddb5;color:#0b3d12;${thS}white-space:normal;line-height:1.2;">Septage (m³)</th>
+                    <th style="background:#b7ddb5;color:#0b3d12;${thS}">Remarks</th>
+                    ${canEdit ? '<th style="background:#b7ddb5;color:#0b3d12;'+thS+'"></th>' : ''}
                 </tr>
                 <tr>
-                    <th style="background:#388e3c;color:white;${thS}"></th>
-                    <th style="background:#388e3c;color:white;${thS}"></th>
-                    <th style="background:#388e3c;color:#c8e6c9;${thS}font-size:0.6rem;">Gen</th>
-                    <th style="background:#388e3c;color:#c8e6c9;${thS}font-size:0.6rem;">Disp</th>
-                    <th style="background:#388e3c;color:#c8e6c9;${thS}font-size:0.6rem;">Div</th>
-                    <th style="background:#1976d2;color:#bbdefb;${thS}font-size:0.6rem;">Gen</th>
-                    <th style="background:#1976d2;color:#bbdefb;${thS}font-size:0.6rem;">Disp</th>
-                    <th style="background:#1976d2;color:#bbdefb;${thS}font-size:0.6rem;">Div</th>
-                    <th style="background:#f57c00;color:#ffe0b2;${thS}font-size:0.6rem;">Gen</th>
-                    <th style="background:#f57c00;color:#ffe0b2;${thS}font-size:0.6rem;">Disp</th>
-                    <th style="background:#f57c00;color:#ffe0b2;${thS}font-size:0.6rem;">Div</th>
-                    <th style="background:#c62828;color:#ffcdd2;${thS}font-size:0.6rem;">Gen</th>
-                    <th style="background:#c62828;color:#ffcdd2;${thS}font-size:0.6rem;">Disp</th>
-                    <th style="background:#388e3c;color:#c8e6c9;${thS}font-size:0.6rem;"></th>
-                    <th style="background:#607d8b;color:white;${thS}font-size:0.6rem;"></th>
-                    ${canEdit ? '<th style="background:#607d8b;color:white;'+thS+'"></th>' : ''}
+                    <th style="background:#b7ddb5;color:#0b3d12;${thS}"></th>
+                    <th style="background:#b7ddb5;color:#0b3d12;${thS}"></th>
+                    <th style="background:#c5e8c3;color:#0b3d12;${thS}font-size:0.6rem;">Gen</th>
+                    <th style="background:#c5e8c3;color:#0b3d12;${thS}font-size:0.6rem;">Disp</th>
+                    <th style="background:#c5e8c3;color:#0b3d12;${thS}font-size:0.6rem;">Div</th>
+                    <th style="background:#c5e8c3;color:#0b3d12;${thS}font-size:0.6rem;">Gen</th>
+                    <th style="background:#c5e8c3;color:#0b3d12;${thS}font-size:0.6rem;">Disp</th>
+                    <th style="background:#c5e8c3;color:#0b3d12;${thS}font-size:0.6rem;">Div</th>
+                    <th style="background:#c5e8c3;color:#0b3d12;${thS}font-size:0.6rem;">Gen</th>
+                    <th style="background:#c5e8c3;color:#0b3d12;${thS}font-size:0.6rem;">Disp</th>
+                    <th style="background:#c5e8c3;color:#0b3d12;${thS}font-size:0.6rem;">Div</th>
+                    <th style="background:#c5e8c3;color:#0b3d12;${thS}font-size:0.6rem;">Gen</th>
+                    <th style="background:#c5e8c3;color:#0b3d12;${thS}font-size:0.6rem;">Disp</th>
+                    <th style="background:#b7ddb5;color:#0b3d12;${thS}font-size:0.6rem;"></th>
+                    <th style="background:#b7ddb5;color:#0b3d12;${thS}font-size:0.6rem;"></th>
+                    ${canEdit ? '<th style="background:#b7ddb5;color:#0b3d12;'+thS+'"></th>' : ''}
                 </tr>
             </thead>
             <tbody>`;
@@ -29391,10 +29373,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const mRows = grouped[month];
                 if (!mRows.length) return;
                 mRows.forEach((r, i) => {
-                    const tdN = 'padding:5px 3px;text-align:right;border:1px solid #e0e0e0;font-size:0.67rem;overflow:hidden;';
-                    const tdL = 'padding:5px 5px;border:1px solid #e0e0e0;font-size:0.67rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-                    t += `<tr style="background:${i%2===0?'var(--bg-card)':'var(--input-bg)'};">
-                        ${i===0 ? `<td rowspan="${mRows.length}" style="padding:5px 3px;text-align:center;font-weight:700;color:${colors.bg};border:1px solid #e0e0e0;vertical-align:middle;font-size:0.67rem;">${month}</td>` : ''}
+                    const tdN = 'padding:5px 3px;text-align:right;border:1px solid #c8e6c9;font-size:0.67rem;overflow:hidden;';
+                    const tdL = 'padding:5px 5px;border:1px solid #c8e6c9;font-size:0.67rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+                    t += `<tr style="background:${i%2===0?'var(--bg-card)':'var(--input-bg)'};color:#000;font-weight:600;">
+                        ${i===0 ? `<td rowspan="${mRows.length}" style="padding:5px 3px;text-align:center;font-weight:800;color:#0b3d12;border:1px solid #c8e6c9;vertical-align:middle;font-size:0.67rem;">${month}</td>` : ''}
                         <td style="${tdL}">${r.location}</td>
                         <td style="${tdN}">${r.bioGen||''}</td>
                         <td style="${tdN}">${r.bioDisp||''}</td>
@@ -29409,7 +29391,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td style="${tdN}">${r.hazDisp||''}</td>
                         <td style="${tdN}">${r.septage||''}</td>
                         <td style="${tdL}">${r.remarks||''}</td>
-                        ${canEdit ? `<td style="padding:3px 3px;text-align:center;border:1px solid #e0e0e0;">
+                        ${canEdit ? `<td style="padding:3px 3px;text-align:center;border:1px solid #c8e6c9;">
                             <button onclick="wasteDeleteRow(${r.id})" style="padding:2px 5px;background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;font-size:0.58rem;cursor:pointer;">${window.icon('times')}</button>
                         </td>` : ''}
                     </tr>`;
@@ -30347,7 +30329,7 @@ function _tabRegionBanner(o) {
             <div style="display:flex;align-items:center;gap:8px;">
                 <span style="color:${w ? '#1b5e20' : 'rgba(255,255,255,0.8)'};font-size:0.8rem;">${window.icon(o.icon)}</span>
                 <span style="font-weight:800;color:${w ? '#1b5e20' : 'white'};font-size:0.85rem;letter-spacing:0.5px;">${o.region}</span>
-                <span style="background:${w ? '#e8f5e9' : 'rgba(255,255,255,0.18)'};color:${w ? '#1b5e20' : 'white'};border:none;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${n} project${n !== 1 ? 's' : ''}</span>
+                ${(o.region === 'CORPORATE' || o.region === 'PLANT OPERATIONS') ? '' : `<span style="background:${w ? '#e8f5e9' : 'rgba(255,255,255,0.18)'};color:${w ? '#1b5e20' : 'white'};border:none;padding:2px 10px;border-radius:12px;font-size:0.65rem;font-weight:700;">${n} project${n !== 1 ? 's' : ''}</span>`}
             </div>
             <div style="display:flex;gap:6px;align-items:center;">
                 ${(o.chips || []).filter(Boolean).map(chip).join('')}
@@ -30400,7 +30382,7 @@ function _tabNavBar(tabType, region, projIdx, regProjsLen) {
     const proj = allP.filter(p => p.region === region)[projIdx];
     const projName = proj ? proj.name : '';
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:2px solid #c8e6c9;border-radius:0 0 0 0;">
-        <button onclick="tabNavProject('${tabType.replace(/'/g,"\\'")}','${region.replace(/'/g,"\\'")}', -1)" ${projIdx===0?'disabled':''} style="background:${projIdx===0?'#ccc':'#f9a825'};color:#3e2c00;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${projIdx===0?'not-allowed':'pointer'};opacity:${projIdx===0?'0.4':'1'};">
+        <button onclick="tabNavProject('${tabType.replace(/'/g,"\\'")}','${region.replace(/'/g,"\\'")}', -1)" ${projIdx===0?'disabled':''} style="background:${projIdx===0?'#ccc':'#f9a825'};color:#000;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${projIdx===0?'not-allowed':'pointer'};opacity:${projIdx===0?'0.4':'1'};">
             <i class="fas fa-chevron-left"></i> Prev
         </button>
         <div style="text-align:center;">
@@ -30409,7 +30391,7 @@ function _tabNavBar(tabType, region, projIdx, regProjsLen) {
             </div>
             <div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ${projIdx+1} of ${regProjsLen}</div>
         </div>
-        <button onclick="tabNavProject('${tabType.replace(/'/g,"\\'")}','${region.replace(/'/g,"\\'")}', 1)" ${projIdx===regProjsLen-1?'disabled':''} style="background:${projIdx===regProjsLen-1?'#ccc':'#f9a825'};color:#3e2c00;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${projIdx===regProjsLen-1?'not-allowed':'pointer'};opacity:${projIdx===regProjsLen-1?'0.4':'1'};">
+        <button onclick="tabNavProject('${tabType.replace(/'/g,"\\'")}','${region.replace(/'/g,"\\'")}', 1)" ${projIdx===regProjsLen-1?'disabled':''} style="background:${projIdx===regProjsLen-1?'#ccc':'#f9a825'};color:#000;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${projIdx===regProjsLen-1?'not-allowed':'pointer'};opacity:${projIdx===regProjsLen-1?'0.4':'1'};">
             Next <i class="fas fa-chevron-right"></i>
         </button>
     </div>`;
@@ -30422,7 +30404,7 @@ function _tabNavBtn(tabType, region, dir, projIdx, regProjsLen) {
     const off = isPrev ? projIdx === 0 : projIdx === regProjsLen - 1;
     const t = tabType.replace(/'/g, "\\'");
     const r = region.replace(/'/g, "\\'");
-    return `<button onclick="event.stopPropagation();${tabType === 'appliances' ? `appliancesNavProject('${r}', ${dir})` : `tabNavProject('${t}','${r}', ${dir})`}" ${off ? 'disabled' : ''} style="flex-shrink:0;white-space:nowrap;background:${off ? '#ccc' : '#f9a825'};color:#3e2c00;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${off ? 'not-allowed' : 'pointer'};opacity:${off ? '0.4' : '1'};">${isPrev ? '<i class="fas fa-chevron-left"></i> Prev' : 'Next <i class="fas fa-chevron-right"></i>'}</button>`;
+    return `<button onclick="event.stopPropagation();${tabType === 'appliances' ? `appliancesNavProject('${r}', ${dir})` : `tabNavProject('${t}','${r}', ${dir})`}" ${off ? 'disabled' : ''} style="flex-shrink:0;white-space:nowrap;background:${off ? '#ccc' : '#f9a825'};color:#000;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${off ? 'not-allowed' : 'pointer'};opacity:${off ? '0.4' : '1'};">${isPrev ? '<i class="fas fa-chevron-left"></i> Prev' : 'Next <i class="fas fa-chevron-right"></i>'}</button>`;
 }
 window._tabNavBtn = _tabNavBtn;
 
@@ -30481,7 +30463,7 @@ function eshRenderRegionTable(tabType, region, regProjects, projIdx) {
 
     const navHtml = `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:1px solid #c8e6c9;">
-            <button onclick="eshNavigateProject('${tabType}','${region}',-1)" ${projIdx===0?'disabled':''} style="background:${projIdx===0?'#ccc':'#f9a825'};color:#3e2c00;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;opacity:${projIdx===0?'0.4':'1'};">
+            <button onclick="eshNavigateProject('${tabType}','${region}',-1)" ${projIdx===0?'disabled':''} style="background:${projIdx===0?'#ccc':'#f9a825'};color:#000;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;opacity:${projIdx===0?'0.4':'1'};">
                 <i class="fas fa-chevron-left"></i> Prev
             </button>
             <div style="text-align:center;">
@@ -30493,7 +30475,7 @@ function eshRenderRegionTable(tabType, region, regProjects, projIdx) {
                     return _po > 0 ? ' <span style="background:#fdecec;color:#c62828;padding:1px 8px;border-radius:9px;font-weight:800;margin-left:6px;">' + _po + ' overdue</span>' : '';
                 })()}</div>
             </div>
-            <button onclick="eshNavigateProject('${tabType}','${region}',1)" ${projIdx===regProjects.length-1?'disabled':''} style="background:${projIdx===regProjects.length-1?'#ccc':'#f9a825'};color:#3e2c00;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;opacity:${projIdx===regProjects.length-1?'0.4':'1'};">
+            <button onclick="eshNavigateProject('${tabType}','${region}',1)" ${projIdx===regProjects.length-1?'disabled':''} style="background:${projIdx===regProjects.length-1?'#ccc':'#f9a825'};color:#000;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;opacity:${projIdx===regProjects.length-1?'0.4':'1'};">
                 Next <i class="fas fa-chevron-right"></i>
             </button>
         </div>`;
@@ -34312,8 +34294,8 @@ function _osRenderGapView(project, year) {
     document.getElementById('os-modal-personnel').style.display = 'none';
     const box = document.getElementById('os-modal-stats');
 
-    const tile = (icon, val, label, color, tip) => `
-        <div${tip ? ' title="' + tip.map(x => esc(x)).join('&#10;') + '" data-tip-nowrap' : ''} style="background:#f7f9f8; border:1px solid #eceeec; border-radius:8px; padding:10px 12px; display:flex; align-items:center; gap:10px;${tip ? ' cursor:help;' : ''}">
+    const tile = (icon, val, label, color) => `
+        <div style="background:#f7f9f8; border:1px solid #eceeec; border-radius:8px; padding:10px 12px; display:flex; align-items:center; gap:10px;">
             <div style="width:32px; height:32px; border-radius:8px; background:#eef1ef; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                 <i class="fas ${icon}" style="color:#4a5750; font-size:0.85rem;"></i>
             </div>
@@ -34364,22 +34346,7 @@ function _osRenderGapView(project, year) {
     let html = `<div style="grid-column:1/-1; text-align:center; font-size:0.78rem; font-weight:700; color:#1f2d23; margin-bottom:2px;">${esc(sum)}</div>`;
     html += tile('fa-circle-exclamation', nOd, 'Overdue Reports', nOd > 0 ? '#c62828' : '#2e7d32');
     html += tile('fa-hourglass-half', nUp, 'Not Yet Due', '#1f2d23');
-    let _clrTip = null;
-    if (nOd > 0 && b.areas.length) {
-        const _f1 = v => Number(v).toFixed(1);
-        const _sumClr = b.areas.reduce((t, a) => t + a.clrPct, 0);
-        _clrTip = [
-            'If Overdue Are Submitted',
-            'Average of each area\u2019s score, with overdue counted as submitted',
-            'Area score = (Submitted + Overdue) \u00f7 Required',
-            'Now \u2192 If overdue submitted:'
-        ].concat(b.areas.map(a => a.name + ': ' + _f1(a.nowPct) + '% \u2192 ' + _f1(a.clrPct) + '%'))
-         .concat([
-            _f1(_sumClr) + ' \u00f7 ' + b.areas.length + ' areas',
-            '= ' + b.ifCleared + '% (rounded)'
-        ]);
-    }
-    html += tile('fa-arrow-trend-up', nOd > 0 ? b.ifCleared + '%' : '\u2014', 'If Overdue Are Submitted', '#1b5e20', _clrTip);
+    html += tile('fa-arrow-trend-up', nOd > 0 ? b.ifCleared + '%' : '—', 'If Overdue Are Submitted', '#1b5e20');
     html += tile('fa-flag-checkered', '100%', 'When Whole Year Is Complete', '#1b5e20');
 
     const od = b.areas.filter(a => a.od.length);
@@ -35989,7 +35956,7 @@ async function exportCurrentTabToExcel() {
         ws.views=[{state:'frozen',ySplit:2,activeCell:'A3'}];
 
         // ── Sheet 2: Incident Mechanism ──────────────────────────────────────
-        const mechData = computeMechanismFromLta(projs, year);
+        const mechData = computeMechanismFromLta(projs);
         const mechWs   = wb.addWorksheet('Incident Mechanism');
         const mechCols = 14; // Mechanism + 12 months + Total
         _xTitle(mechWs, 'INCIDENT MECHANISM — ' + year, mechCols);
@@ -36030,7 +35997,7 @@ async function exportCurrentTabToExcel() {
         mechWs.views = [{ state: 'frozen', ySplit: 2, activeCell: 'A3' }];
 
         // ── Sheet 3: Contributing Factors ────────────────────────────────────
-        const factData  = computeFactorsFromLta(projs, year);
+        const factData  = computeFactorsFromLta(projs);
         const factWs    = wb.addWorksheet('Contributing Factors');
         const factCols  = 15; // Category + Sub-Factor + 12 months + Total
         _xTitle(factWs, 'CONTRIBUTING FACTORS — ' + year, factCols);
@@ -36084,7 +36051,7 @@ async function exportCurrentTabToExcel() {
         factWs.views = [{ state: 'frozen', ySplit: 2, activeCell: 'A3' }];
 
         // ── Sheet 4: Agent of Injury ─────────────────────────────────────────
-        const agData  = computeAgentOfInjuryFromLta(projs, year);
+        const agData  = computeAgentOfInjuryFromLta(projs);
         const agWs    = wb.addWorksheet('Agent of Injury');
         const agCols  = 14; // Agent + 12 months + Total
         _xTitle(agWs, 'AGENT OF INJURY — ' + year, agCols);
