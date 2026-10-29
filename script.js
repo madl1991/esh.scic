@@ -123,9 +123,14 @@ window.envFmtNum = function(v, dec) {
 };
 window.envSummaryTable = function(o) {
     window.envKpmInjectCss();
-    var cell = function(v, c) {
+    var cell = function(v, c, vals) {
         v = Number(v) || 0;
-        return '<td>' + (c.fixed != null ? (v > 0 ? v.toFixed(c.fixed) : '\u2014') : window.envFmtNum(v, c.dec)) + '</td>';
+        var tipAttr = '';
+        if (c.tip && v > 0) {
+            var lines = c.tip(vals, v);
+            if (lines && lines.length) tipAttr = ' title="' + lines.map(function(x) { return String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }).join('&#10;') + '" data-tip-nowrap';
+        }
+        return '<td' + tipAttr + '>' + (c.fixed != null ? (v > 0 ? v.toFixed(c.fixed) : '\u2014') : window.envFmtNum(v, c.dec)) + '</td>';
     };
     var note = o.note ? '<div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--tbl-line,#e3e9e4);text-align:left;font-weight:400;text-transform:none;letter-spacing:0;">'
         + '<span style="color:#2e7d32;font-size:1.2rem;">' + window.icon(o.icon || 'seedling') + '</span>'
@@ -136,10 +141,10 @@ window.envSummaryTable = function(o) {
     var head2 = o.cols.some(function(c) { return c.label; })
         ? '<tr><th></th><th></th>' + o.cols.map(function(c) { return '<th>' + (c.label || '') + '</th>'; }).join('') + '</tr>' : '';
     var body = o.rows.map(function(r) {
-        return '<tr><td>' + r.region + '</td><td>' + r.projs + '</td>' + o.cols.map(function(c, i) { return cell(r.values[i], c); }).join('') + '</tr>';
+        return '<tr><td>' + r.region + '</td><td>' + r.projs + '</td>' + o.cols.map(function(c, i) { return cell(r.values[i], c, r.values); }).join('') + '</tr>';
     }).join('');
     var foot = '<tr><td colspan="2"><span style="margin-right:5px;">' + window.icon('globe') + '</span>GRAND TOTAL</td>'
-        + o.cols.map(function(c, i) { return cell(o.totals[i], c); }).join('') + '</tr>';
+        + o.cols.map(function(c, i) { return cell(o.totals[i], c, o.totals); }).join('') + '</tr>';
     var empty = o.hasData ? '' : '<div style="padding:24px;text-align:center;color:var(--text-secondary);font-size:0.78rem;font-style:italic;"><span style="opacity:0.2;font-size:1.8rem;display:block;margin-bottom:8px;">'
         + window.icon(o.icon || 'seedling') + '</span>' + (o.emptyText || 'No data entered yet.') + '</div>';
     return '<div class="rpt-wrap env-sum-kpm"><div class="rpt-card"><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.68rem;">'
@@ -7065,7 +7070,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             return {
                 stopped: false, year: selectedYear,
                 now: avg(false), ifCleared: avg(true),
-                areas: active.map(a => ({ name: a.name, score: Math.round(areaScore(a, false) * 100), od: a.od, up: a.up })),
+                areas: active.map(a => ({ name: a.name, score: Math.round(areaScore(a, false) * 100), nowPct: Math.round(areaScore(a, false) * 1000) / 10, clrPct: Math.round(areaScore(a, true) * 1000) / 10, od: a.od, up: a.up })),
                 overdueCount: active.reduce((t, a) => t + a.od.length, 0),
                 upcomingCount: active.reduce((t, a) => t + a.up.length, 0),
                 notes
@@ -11495,7 +11500,71 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
 
 const TABULATION_DATA = {}; // kept as empty object for any legacy references
 
-function computeMechanismFromLta(projects) {
+// Tooltip data for the Mechanism / Contributing Factors / Agent of Injury tabs:
+// src[rowKey][month] = { projectName: count }  ->  one line per project, same as Incident Summary
+function _buildTabTips(src) {
+    const tips = {};
+    const fmt = (o) => Object.keys(o).map(n => n + ': ' + o[n]).join('\n');
+    Object.keys(src).forEach(k => {
+        const a = src[k];
+        const tot = {};
+        for (let m = 1; m <= 12; m++) Object.keys(a[m]).forEach(n => { tot[n] = (tot[n] || 0) + a[m][n]; });
+        tips[k] = { months: Array.from({length: 12}, (_, i) => fmt(a[i + 1])), total: fmt(tot) };
+    });
+    return tips;
+}
+function _tabSrcAdder(src) {
+    return function (key, month, proj) {
+        const a = src[key] = src[key] || Array.from({length: 13}, () => ({}));
+        a[month][proj] = (a[month][proj] || 0) + 1;
+    };
+}
+
+// Year and month of an LTA accident date. Reads YYYY-MM-DD text directly (no timezone shift).
+function _ltaYM(d) {
+    if (!d) return { y: null, m: null };
+    const mt = /^(\d{4})-(\d{1,2})/.exec(String(d));
+    if (mt) return { y: +mt[1], m: (+mt[2] >= 1 && +mt[2] <= 12) ? +mt[2] : null };
+    const dt = new Date(d);
+    return isNaN(dt) ? { y: null, m: null } : { y: dt.getFullYear(), m: dt.getMonth() + 1 };
+}
+
+// One shared tally for Incident Mechanism, Contributing Factors and Agent of Injury.
+// They all read the LTA registry entries, filter by year, and count per row per month.
+//   rowKeys : row names (order of the table)
+//   keysOf  : (entry) -> row names that this entry counts under
+//   opts.noDateKey : row where an entry with no accident date is counted (Jan), if any
+// Returns { monthly: [12 numbers per row, same order as rowKeys], total: [12], tips }
+function _computeLtaGroup(projects, year, rowKeys, keysOf, opts) {
+    opts = opts || {};
+    const counts = {};
+    rowKeys.forEach(k => { counts[k] = new Array(13).fill(0); }); // 0 unused, 1-12
+    const _src = {}; const addSrc = _tabSrcAdder(_src);
+    const hit = (k, m, proj) => { counts[k][m]++; addSrc(k, m, proj); };
+
+    (projects || []).forEach(p => {
+        const entries = p.vals?.['lta-registry_entries'] || [];
+        entries.forEach(e => {
+            const ym = _ltaYM(e.dateOfAccident);
+            if (year && ym.y && ym.y !== year) return; // only the selected year
+            const keys = keysOf(e).filter(k => counts[k] !== undefined);
+            if (!keys.length) return;
+            if (!ym.m) {
+                if (opts.noDateKey && counts[opts.noDateKey]) hit(opts.noDateKey, 1, p.name);
+                return;
+            }
+            keys.forEach(k => hit(k, ym.m, p.name));
+        });
+    });
+
+    return {
+        monthly: rowKeys.map(k => Array.from({length: 12}, (_, i) => counts[k][i + 1])),
+        total: Array.from({length: 12}, (_, i) => rowKeys.reduce((s, k) => s + counts[k][i + 1], 0)),
+        tips: _buildTabTips(_src)
+    };
+}
+
+function computeMechanismFromLta(projects, year) {
     const MECHANISMS = [
         'Struck-By','Struck Against','Caught-In','Caught-On','Electric Shock',
         'Contact With','Caught in Between','Caught By','Fall to Surface','Fall to Below',
@@ -11505,32 +11574,16 @@ function computeMechanismFromLta(projects) {
         'Health Concern','Animal/Insect Bite','Environmental Accident','Others'
     ];
     const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-    const mechCounts = {};
-    MECHANISMS.forEach(m => { mechCounts[m] = new Array(13).fill(0); }); // 0 unused, 1-12
-
-    (projects || []).forEach(p => {
-        const entries = p.vals?.['lta-registry_entries'] || [];
-        entries.forEach(e => {
-            const mech = e.natureOfIncident;
-            if (!mech || !mechCounts[mech]) return;
-            const month = e.dateOfAccident ? new Date(e.dateOfAccident).getMonth() + 1 : null;
-            if (month >= 1 && month <= 12) mechCounts[mech][month]++;
-            else if (!month) mechCounts['Others'][1]++; // fallback if no date
-        });
-    });
-
-    const rows = MECHANISMS.map(m => [m, ...Array.from({length:12}, (_,i) => mechCounts[m][i+1])]);
-    const total = Array.from({length:12}, (_,i) => MECHANISMS.reduce((s,m) => s + mechCounts[m][i+1], 0));
-
+    const g = _computeLtaGroup(projects, year, MECHANISMS, e => [e.natureOfIncident], { noDateKey: 'Others' });
     return {
         headers: ['Mechanism', ...MONTHS_SHORT],
-        rows,
-        total
+        rows: MECHANISMS.map((m, i) => [m, ...g.monthly[i]]),
+        total: g.total,
+        tips: g.tips
     };
 }
 
-function computeFactorsFromLta(projects) {
+function computeFactorsFromLta(projects, year) {
     const FACTOR_STRUCTURE = [
         ['PEOPLE',        'Lack of Awareness or Training'],
         ['',              'Fatigue and Stress'],
@@ -11567,76 +11620,41 @@ function computeFactorsFromLta(projects) {
     ];
     const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const FACTOR_CATS  = ['PEOPLE','EQUIPMENT','MATERIALS','ENVIRONMENT','ORGANIZATIONAL'];
-
-    const subCounts = {};
-    FACTOR_STRUCTURE.forEach(([,sub]) => { subCounts[sub] = new Array(13).fill(0); });
-
-    (projects || []).forEach(p => {
-        const entries = p.vals?.['lta-registry_entries'] || [];
-        entries.forEach(e => {
-            const month = e.dateOfAccident ? new Date(e.dateOfAccident).getMonth() + 1 : null;
-            if (!month || month < 1 || month > 12) return;
-
-            // Read from factor_CATEGORY arrays (current multi-select UI)
-            FACTOR_CATS.forEach(cat => {
-                const arr = e['factor_' + cat];
-                if (Array.isArray(arr)) {
-                    arr.forEach(sub => {
-                        if (sub && subCounts[sub] !== undefined) subCounts[sub][month]++;
-                    });
-                }
-            });
-
-            // Fallback: legacy single factorSubItem field
-            if (e.factorSubItem && subCounts[e.factorSubItem] !== undefined) {
-                subCounts[e.factorSubItem][month]++;
-            }
-        });
+    const subs = FACTOR_STRUCTURE.map(([, sub]) => sub);
+    const g = _computeLtaGroup(projects, year, subs, e => {
+        const list = [];
+        // factor_CATEGORY arrays (current multi-select UI)
+        FACTOR_CATS.forEach(cat => { if (Array.isArray(e['factor_' + cat])) e['factor_' + cat].forEach(sub => { if (sub) list.push(sub); }); });
+        // legacy single factorSubItem field
+        if (e.factorSubItem) list.push(e.factorSubItem);
+        return list;
     });
-
-    const rows = FACTOR_STRUCTURE.map(([cat, sub]) => [cat, sub, ...Array.from({length:12}, (_,i) => subCounts[sub][i+1])]);
-    const total = Array.from({length:12}, (_,i) => FACTOR_STRUCTURE.reduce((s,[,sub]) => s + subCounts[sub][i+1], 0));
-
     return {
         headers: ['Factor', 'Sub-Factor', ...MONTHS_SHORT],
-        rows,
-        total
+        rows: FACTOR_STRUCTURE.map(([cat, sub], i) => [cat, sub, ...g.monthly[i]]),
+        total: g.total,
+        tips: g.tips
     };
 }
 
-function computeAgentOfInjuryFromLta(projects) {
+function computeAgentOfInjuryFromLta(projects, year) {
     const AGENTS = (Array.isArray(window.LTA_AGENT_OF_INJURY) && window.LTA_AGENT_OF_INJURY.length)
         ? window.LTA_AGENT_OF_INJURY.slice()
         : ['Building / Structures','Prime Movers','Distribution Systems','Hand Tools','Machines / Equipment',
            'Conveying / Transport / Packaging Equipment or Vehicles','Materials / Object','Chemical Substances',
            'Humans / Animals / Plants','Others (Please Specify)'];
     const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-    const counts = {};
-    AGENTS.forEach(a => { counts[a] = new Array(13).fill(0); }); // 0 unused, 1-12
-
-    (projects || []).forEach(p => {
-        const entries = p.vals?.['lta-registry_entries'] || [];
-        entries.forEach(e => {
-            const month = e.dateOfAccident ? new Date(e.dateOfAccident).getMonth() + 1 : null;
-            if (!month || month < 1 || month > 12) return;
-            const raw = e.agentOfInjury;
-            const sel = Array.isArray(raw) ? raw
-                : (raw ? String(raw).split(',').map(v => v.trim()).filter(Boolean) : []);
-            // count each agent once per incident
-            Array.from(new Set(sel)).forEach(a => {
-                if (counts[a] !== undefined) counts[a][month]++;
-            });
-        });
+    const g = _computeLtaGroup(projects, year, AGENTS, e => {
+        const raw = e.agentOfInjury;
+        const sel = Array.isArray(raw) ? raw
+            : (raw ? String(raw).split(',').map(v => v.trim()).filter(Boolean) : []);
+        return Array.from(new Set(sel)); // count each agent once per incident
     });
-
-    const rows = AGENTS.map(a => [a, ...Array.from({length:12}, (_,i) => counts[a][i+1])]);
-    const total = Array.from({length:12}, (_,i) => AGENTS.reduce((s,a) => s + counts[a][i+1], 0));
-
     return {
         headers: ['Agent of Injury', ...MONTHS_SHORT],
-        rows,
-        total
+        rows: AGENTS.map((a, i) => [a, ...g.monthly[i]]),
+        total: g.total,
+        tips: g.tips
     };
 }
 
@@ -11806,97 +11824,55 @@ function renderTabulation() {
         return html;
     }
 
-    function renderMechanismTable(data, year) {
+    // One table builder for Incident Mechanism, Contributing Factors and Agent of Injury.
+    //   cfg.heads    : label column headers (1 column, or 2 = category + item)
+    //   cfg.cols     : label column widths (px)
+    //   cfg.minWidth : table min-width (px)
+    //   cfg.catColor : (category) -> color for the first column (2-column tables only)
+    function renderLtaGroupTable(data, year, cfg) {
         const cur = _tkCur(year);
-        const nCols = ((data.rows[0] || data.total || []).length - 1) || 12;
-        const months = data.headers.slice(1, 1 + nCols);
-        let html = `<table class="tab-kpm" style="min-width:960px;">
-            <colgroup><col style="width:220px">${months.map(() => '<col>').join('')}<col></colgroup>
+        const lc = cfg.heads.length;
+        const nCols = ((data.rows[0] || data.total || []).length - lc) || 12;
+        const months = data.headers.slice(lc, lc + nCols);
+        let currentColor = cfg.catColor ? cfg.catColor() : null;
+        let html = `<table class="tab-kpm${lc === 2 ? ' two' : ''}" style="min-width:${cfg.minWidth}px;">
+            <colgroup>${cfg.cols.map(w => `<col style="width:${w}px">`).join('')}${months.map(() => '<col>').join('')}<col></colgroup>
             <thead><tr>
-                <th class="c1">Incident Mechanism</th>
-                ${months.map((m, mi) => _tkMonthTh(m, mi, cur)).join('')}
-                <th class="h-tt">Total</th>
-            </tr></thead><tbody>`;
-        data.rows.forEach(row => {
-            const vals = row.slice(1);
-            const total = vals.reduce((a, b) => a + (b || 0), 0);
-            html += `<tr>
-                <td class="c1">${row[0]}</td>
-                ${vals.map((v, mi) => _tkVal(v, mi, _tkZeroCur(year), false)).join('')}
-                <td class="tt${total > 0 ? '' : ' z'}">${total}</td>
-            </tr>`;
-        });
-        html += `<tr class="tot">
-            <td class="c1">TOTAL</td>
-            ${data.total.map((v, mi) => `<td>${(v || mi <= _tkZeroCur(year)) ? (v ?? 0) : '—'}</td>`).join('')}
-            <td class="tt">${data.total.reduce((a, b) => a + (b || 0), 0)}</td>
-        </tr></tbody></table>`;
-        return html;
-    }
-
-    function renderAgentTable(data, year) {
-        const cur = _tkCur(year);
-        const nCols = ((data.rows[0] || data.total || []).length - 1) || 12;
-        const months = data.headers.slice(1, 1 + nCols);
-        let html = `<table class="tab-kpm" style="min-width:960px;">
-            <colgroup><col style="width:320px">${months.map(() => '<col>').join('')}<col></colgroup>
-            <thead><tr>
-                <th class="c1">Agent of Injury</th>
-                ${months.map((m, mi) => _tkMonthTh(m, mi, cur)).join('')}
-                <th class="h-tt">Total</th>
-            </tr></thead><tbody>`;
-        data.rows.forEach(row => {
-            const vals = row.slice(1);
-            const total = vals.reduce((a, b) => a + (b || 0), 0);
-            html += `<tr>
-                <td class="c1">${row[0]}</td>
-                ${vals.map((v, mi) => _tkVal(v, mi, _tkZeroCur(year), false)).join('')}
-                <td class="tt${total > 0 ? '' : ' z'}">${total}</td>
-            </tr>`;
-        });
-        html += `<tr class="tot">
-            <td class="c1">TOTAL</td>
-            ${data.total.map((v, mi) => `<td>${(v || mi <= _tkZeroCur(year)) ? (v ?? 0) : '—'}</td>`).join('')}
-            <td class="tt">${data.total.reduce((a, b) => a + (b || 0), 0)}</td>
-        </tr></tbody></table>`;
-        return html;
-    }
-
-    function renderFactorsTable(data, year) {
-        const cur = _tkCur(year);
-        const factorColors = { 'PEOPLE': C.factorPeople, 'EQUIPMENT': C.factorEquip, 'MATERIALS': C.factorMat, 'ENVIRONMENT': C.factorEnv, 'ORGANIZATIONAL': C.factorOrg };
-        const nCols = ((data.rows[0] || data.total || []).length - 2) || 12;
-        const months = data.headers.slice(2, 2 + nCols);
-        let currentColor = C.factorPeople;
-        let html = `<table class="tab-kpm two" style="min-width:1000px;">
-            <colgroup><col style="width:130px"><col style="width:270px">${months.map(() => '<col>').join('')}<col></colgroup>
-            <thead><tr>
-                <th class="c1">Category</th>
-                <th class="c2">Contributing Factor</th>
+                ${cfg.heads.map((h, i) => `<th class="c${i + 1}">${h}</th>`).join('')}
                 ${months.map((m, mi) => _tkMonthTh(m, mi, cur)).join('')}
                 <th class="h-tt">Total</th>
             </tr></thead><tbody>`;
         data.rows.forEach((row, i) => {
-            const factor = row[0];
-            const subfactor = row[1];
-            const vals = row.slice(2);
+            const vals = row.slice(lc);
             const total = vals.reduce((a, b) => a + (b || 0), 0);
-            if (factor) currentColor = factorColors[factor] || C.factorPeople;
-            html += `<tr${factor && i > 0 ? ' class="grp"' : ''}>
-                <td class="c1"${factor ? ` style="color:${currentColor};"` : ''}>${factor || ''}</td>
-                <td class="c2">${subfactor}</td>
-                ${vals.map((v, mi) => _tkVal(v, mi, _tkZeroCur(year), false)).join('')}
-                <td class="tt${total > 0 ? '' : ' z'}">${total}</td>
+            const tp = data.tips && data.tips[row[lc - 1]];
+            const cat = lc === 2 ? row[0] : '';
+            if (cat && cfg.catColor) currentColor = cfg.catColor(cat);
+            html += `<tr${cat && i > 0 ? ' class="grp"' : ''}>
+                <td class="c1"${cat ? ` style="color:${currentColor};"` : ''}>${row[0] || ''}</td>
+                ${lc === 2 ? `<td class="c2">${row[1]}</td>` : ''}
+                ${vals.map((v, mi) => _tkVal(v, mi, _tkZeroCur(year), false, tp && tp.months[mi])).join('')}
+                <td class="tt${total > 0 ? '' : ' z'}"${total > 0 ? _tkTip(tp && tp.total) : ''}>${total}</td>
             </tr>`;
         });
         html += `<tr class="tot">
             <td class="c1">TOTAL</td>
-            <td class="c2"></td>
+            ${lc === 2 ? '<td class="c2"></td>' : ''}
             ${data.total.map((v, mi) => `<td>${(v || mi <= _tkZeroCur(year)) ? (v ?? 0) : '—'}</td>`).join('')}
             <td class="tt">${data.total.reduce((a, b) => a + (b || 0), 0)}</td>
         </tr></tbody></table>`;
         return html;
     }
+
+    const renderMechanismTable = (data, year) => renderLtaGroupTable(data, year, { heads: ['Incident Mechanism'], cols: [220], minWidth: 960 });
+    const renderAgentTable = (data, year) => renderLtaGroupTable(data, year, { heads: ['Agent of Injury'], cols: [320], minWidth: 960 });
+    const renderFactorsTable = (data, year) => {
+        const factorColors = { 'PEOPLE': C.factorPeople, 'EQUIPMENT': C.factorEquip, 'MATERIALS': C.factorMat, 'ENVIRONMENT': C.factorEnv, 'ORGANIZATIONAL': C.factorOrg };
+        return renderLtaGroupTable(data, year, {
+            heads: ['Category', 'Contributing Factor'], cols: [130, 270], minWidth: 1000,
+            catColor: (cat) => factorColors[cat] || C.factorPeople
+        });
+    };
 
     const year = state.selectedYear || 2026;
     const availableYears = (function(){ const _yr=[]; for(let y=(typeof YEAR_RANGE!=='undefined'?YEAR_RANGE.min:2026); y<=Math.max(new Date().getFullYear(),(typeof YEAR_RANGE!=='undefined'?YEAR_RANGE.max:2030)); y++) _yr.push(y); return _yr; })();
@@ -12079,9 +12055,9 @@ function renderTabulation() {
                 tips: summaryTips,
                 total: totalRow, // index 0 unused (renderer reads from index 1 like summaryRows)
             },
-            mechanism: computeMechanismFromLta(projects),
-            factors:   computeFactorsFromLta(projects),
-            agent:     computeAgentOfInjuryFromLta(projects),
+            mechanism: computeMechanismFromLta(projects, year),
+            factors:   computeFactorsFromLta(projects, year),
+            agent:     computeAgentOfInjuryFromLta(projects, year),
             yearlyTotal: yearlyTotal,
             isAutoComputed: true,
         };
@@ -13377,7 +13353,18 @@ function renderTabulation() {
                                 if (hasData) { monthSumTotal += monthSum; monthsWithData++; }
                             }
                             ytdTotal = monthsWithData > 0 ? Math.round(monthSumTotal / monthsWithData) : 0;
-                            html += `<td class="average-cell" style="font-weight: 800; font-size: 0.7rem;">${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
+                            let _mpTip = '';
+                            if (monthsWithData > 0) {
+                                const _mpL = [
+                                    'Total Manpower \u00b7 YTD (Average)',
+                                    'Sum of monthly totals \u00f7 months with data',
+                                    'Months with no data or unfinished are not counted',
+                                    fmtNum(monthSumTotal) + ' \u00f7 ' + monthsWithData,
+                                    '= ' + fmtNum(ytdTotal)
+                                ];
+                                _mpTip = ' title="' + _mpL.map(x => String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')).join('&#10;') + '" data-tip-nowrap';
+                            }
+                            html += `<td class="average-cell" style="font-weight: 800; font-size: 0.7rem;${monthsWithData>0?'cursor:help;':''}"${_mpTip}>${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
                         } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
                             const eshStor = getEshStorage();
                             const _eshYear2 = state.selectedYear || new Date().getFullYear();
@@ -13438,7 +13425,21 @@ function renderTabulation() {
                                 if (_r !== null) yval = window.formatRate(row, _r);
                             }
                             const ycolor = row === 'LTIR' ? '#1b5e20' : row === 'TRIR' ? '#1565c0' : '#b71c1c';
-                            html += `<td class="ytd-cell" style="font-weight:800;color:${ymh>0?ycolor:''};">${yval}</td>`;
+                            let _ytdTip = '';
+                            if (ymh > 0) {
+                                const _rb = window.RATE_BASES[row];
+                                const _rn = row === 'LTIR' ? _cs.lta[12] : row === 'TRIR' ? _cs.rec[12] : _cs.dl[12];
+                                const _rl = row === 'LTIR' ? 'LTA cases' : row === 'TRIR' ? 'Recordable cases' : 'Lost days';
+                                const _fx = v => Number(v).toLocaleString('en-US');
+                                const _tl = [
+                                    row + ' YTD \u00b7 ' + (_rb === 200000 ? 'OSHA' : 'OSHS'),
+                                    _rl + ' \u00d7 ' + _fx(_rb) + ' \u00f7 man-hours',
+                                    _fx(_rn) + ' \u00d7 ' + _fx(_rb) + ' \u00f7 ' + _fx(ymh),
+                                    '= ' + yval
+                                ];
+                                _ytdTip = ' title="' + _tl.map(x => String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')).join('&#10;') + '" data-tip-nowrap';
+                            }
+                            html += `<td class="ytd-cell" style="font-weight:800;color:${ymh>0?ycolor:''};${ymh>0?'cursor:help;':''}"${_ytdTip}>${yval}</td>`;
                         } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
                             displayProjects.forEach(p => {
                                 const _series = computeExposureToDateSeries(p);
@@ -13743,14 +13744,35 @@ if (state.currentTab === 'audit') {
     const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
     let totalYearAvg = 0;
     
+    // Only the WDA System Admin can edit the Internal ESH Audit Report (see UserAccounts.checkPermission).
+    // Everyone else: not-allowed cursor on the score cells, with the reason as tooltip.
+    // Not-allowed cursor on the score cells whenever they cannot be edited:
+    //   - denied by the audit permission, or no edit access to this project's region / tab  -> tooltip gives the reason
+    //   - not in edit mode (inputs are disabled)                                             -> no tooltip
+    // A CSS class with !important is used so styles.css / disabled-input defaults cannot override the cursor.
+    if (!document.getElementById('audit-locked-css')) {
+        const _st = document.createElement('style');
+        _st.id = 'audit-locked-css';
+        _st.textContent = '.audit-locked, .audit-locked * { cursor: not-allowed !important; }';
+        document.head.appendChild(_st);
+    }
+    const _auditPerm = UserAccounts.checkPermission(state.currentUser?.email, 'edit', p.region, 'audit');
+    const _auditDenied = !_auditPerm.allowed || !canEdit;
+    const _auditLocked = _auditDenied || !inputsEditable;
+    const _auditReason = !_auditPerm.allowed
+        ? (_auditPerm.reason || 'View only')
+        : 'View only: you do not have edit access to this project.';
+    const _auditTdCls = _auditLocked ? ' audit-locked' : '';
+    const _auditTd  = _auditDenied ? ' title="' + String(_auditReason).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"' : '';
+    const _auditInp = _auditLocked ? ' class="audit-locked"' : '';
     quarters.forEach(q => {
         const audit = p.auditData?.[q] || { scoreImpl: 0, docuComp: 0 };
         const qAvg = (audit.scoreImpl + audit.docuComp) / 2;
         totalYearAvg += qAvg;
 
         html += `
-            <td class="cell-white"><input type="number" min="0" max="100" value="${audit.scoreImpl}" ${inputsEditable ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)" placeholder="0"></td>
-            <td class="cell-white"><input type="number" min="0" max="100" value="${audit.docuComp}" ${inputsEditable ? '' : 'disabled'} oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)" placeholder="0"></td>
+            <td class="cell-white${_auditTdCls}"${_auditTd}><input type="number" min="0" max="100" value="${audit.scoreImpl}" ${inputsEditable ? '' : 'disabled'}${_auditInp} oninput="updateAuditData('${p.name}','${q}','scoreImpl',this.value)" placeholder="0"></td>
+            <td class="cell-white${_auditTdCls}"${_auditTd}><input type="number" min="0" max="100" value="${audit.docuComp}" ${inputsEditable ? '' : 'disabled'}${_auditInp} oninput="updateAuditData('${p.name}','${q}','docuComp',this.value)" placeholder="0"></td>
             <td class="cell-avg-gray" style="border-right: 2px solid #e0e0e0;">${qAvg.toFixed(2)}</td>`;
     });
 
@@ -14747,7 +14769,26 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                 let ytdValue = 0;
                 if (row === "Total Manpower") {
                     ytdValue = calculateAverage(p.vals[key], rowIdx);
-                    html += `<td class="average-cell">${fmtNum(ytdValue)}</td>`;
+                    let _avSum = 0, _avCnt = 0;
+                    if (p.vals[key]) {
+                        for (let _ai = 1; _ai <= 12; _ai++) {
+                            if (window.isExposureMonthHidden && window.isExposureMonthHidden(_ai)) continue;
+                            const _av = parseFloat(p.vals[key][_ai]) || 0;
+                            if (_av > 0) { _avSum += _av; _avCnt++; }
+                        }
+                    }
+                    let _avTip = '';
+                    if (_avCnt > 0) {
+                        const _avL = [
+                            'Total Manpower \u00b7 YTD (Average)',
+                            'Sum of monthly values \u00f7 months with data',
+                            'Months with no data or unfinished are not counted',
+                            fmtNum(_avSum) + ' \u00f7 ' + _avCnt,
+                            '= ' + fmtNum(ytdValue)
+                        ];
+                        _avTip = ' title="' + _avL.map(x => String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')).join('&#10;') + '" data-tip-nowrap';
+                    }
+                    html += `<td class="average-cell"${_avCnt>0?' style="cursor:help;"':''}${_avTip}>${fmtNum(ytdValue)}</td>`;
                 } else if (state.currentTab === 'activities' && (row === 'Drills Conducted' || row === 'Training Conducted')) {
                     // ── CORPORATE Training Conducted: YTD = sum of manually entered monthly vals ──
                     if (row === 'Training Conducted' && p.region === 'CORPORATE') {
@@ -17740,7 +17781,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 const audit = p.auditData?.[q] || { scoreImpl: 0, docuComp: 0 };
                                 const qAvg  = (audit.scoreImpl + audit.docuComp) / 2;
                                 totalYearAvg += qAvg;
-                                const _auInp = (field, val) => `<td style="text-align:center;padding:4px 5px;"><input type="number" min="0" max="100" value="${val}" ${_auEdit ? '' : 'disabled'}
+                                const _auInp = (field, val) => `<td class="${_auEdit ? '' : 'audit-locked'}" style="text-align:center;padding:4px 5px;"><input type="number" min="0" max="100" value="${val}" ${_auEdit ? '' : 'disabled class="audit-locked"'}
                                         oninput="updateAuditData('${p.name}','${q}','${field}',this.value)" placeholder="0"
                                         style="${_auEdit ? 'border:1.5px solid #a5d6a7;background:#f1fff1;color:#2e7d32;' : 'border:1.5px solid transparent;background:transparent;color:inherit;font-weight:500;'}border-radius:4px;padding:3px 4px;width:100%;max-width:70px;min-width:0;box-sizing:border-box;font-size:0.75rem;text-align:center;"></td>`;
                                 html += _auInp('scoreImpl', audit.scoreImpl) + _auInp('docuComp', audit.docuComp)
@@ -21202,8 +21243,8 @@ function buildIncidentTabulationHTML() {
                   <div style="font-weight:700;font-size:0.78rem;">LTIR — Lost Time Incident Rate</div>
                   <div style="font-size:0.61rem;color:var(--text-secondary);margin-top:2px;">LTA cases × base ÷ man-hours</div>
                 </td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('ltir','osha',d)}" style="cursor:help;">${_stNum(d.ltirOsha, parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir)}${_stDot(parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir)}</div></td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('ltir','oshs',d)}" style="cursor:help;">${_stNum(d.ltirOshs, parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir)}${_stDot(parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir)}</div></td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('ltir','osha',d)}" data-tip-nowrap style="cursor:help;">${_stNum(d.ltirOsha, parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir)}${_stDot(parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir)}</div></td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('ltir','oshs',d)}" data-tip-nowrap style="cursor:help;">${_stNum(d.ltirOshs, parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir)}${_stDot(parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir)}</div></td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);border-left:2px solid #dfe7e0;">${_stNum(window.STATS_TARGETS.ltir.toFixed(2), true, true)}</td>
               </tr>
               <tr>
@@ -21211,8 +21252,8 @@ function buildIncidentTabulationHTML() {
                   <div style="font-weight:700;font-size:0.78rem;">TRIR — Total Recordable Incident Rate</div>
                   <div style="font-size:0.61rem;color:var(--text-secondary);margin-top:2px;">Recordable cases × base ÷ man-hours</div>
                 </td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('trir','osha',d)}" style="cursor:help;">${_stNum(d.trirOsha, parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir)}${_stDot(parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir)}</div></td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('trir','oshs',d)}" style="cursor:help;">${_stNum(d.trirOshs, parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir)}${_stDot(parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir)}</div></td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('trir','osha',d)}" data-tip-nowrap style="cursor:help;">${_stNum(d.trirOsha, parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir)}${_stDot(parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir)}</div></td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('trir','oshs',d)}" data-tip-nowrap style="cursor:help;">${_stNum(d.trirOshs, parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir)}${_stDot(parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir)}</div></td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);border-left:2px solid #dfe7e0;">${_stNum(window.STATS_TARGETS.trir.toFixed(2), true, true)}</td>
               </tr>
               <tr>
@@ -21220,8 +21261,8 @@ function buildIncidentTabulationHTML() {
                   <div style="font-weight:700;font-size:0.78rem;">SR — Severity Rate</div>
                   <div style="font-size:0.61rem;color:var(--text-secondary);margin-top:2px;">Total days lost × base ÷ man-hours</div>
                 </td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;"><div title="${rateTipHTML('sr','osha',d)}" style="cursor:help;">${_stNum(d.srOsha, true, true)}</div></td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;"><div title="${rateTipHTML('sr','oshs',d)}" style="cursor:help;">${_stNum(d.srOshs, true, true)}</div></td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;"><div title="${rateTipHTML('sr','osha',d)}" data-tip-nowrap style="cursor:help;">${_stNum(d.srOsha, true, true)}</div></td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;"><div title="${rateTipHTML('sr','oshs',d)}" data-tip-nowrap style="cursor:help;">${_stNum(d.srOshs, true, true)}</div></td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-left:2px solid #dfe7e0;"><div style="font-size:1.1rem;font-weight:700;color:#9e9e9e;">—</div></td>
               </tr>
             </tbody>
@@ -27915,6 +27956,30 @@ document.addEventListener('DOMContentLoaded', function() {
     // ══════════════════════════════════════════════════════════════════════
     const FUEL_DIESEL_FACTOR  = 0.00268; // t CO₂e per Liter
     const FUEL_GAS_FACTOR     = 0.00231; // t CO₂e per Liter
+    // Formula tooltips for GHG cells (same look as the region-summary tips)
+    const _ghgTipAttr = lines => ' title="' + lines.map(x => String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')).join('&#10;') + '" data-tip-nowrap';
+    const _fuelGhgTip = (d, g, shown) => {
+        d = Number(d) || 0; g = Number(g) || 0;
+        const fn = n => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+        const calc = (d * FUEL_DIESEL_FACTOR + g * FUEL_GAS_FACTOR).toFixed(4);
+        const L = [
+            'GHG (t CO\u2082e) \u00b7 Fuel',
+            'Diesel L \u00d7 ' + FUEL_DIESEL_FACTOR + ' + Gasoline L \u00d7 ' + FUEL_GAS_FACTOR,
+            fn(d) + ' \u00d7 ' + FUEL_DIESEL_FACTOR + ' + ' + fn(g) + ' \u00d7 ' + FUEL_GAS_FACTOR,
+            '= ' + calc
+        ];
+        if (shown !== undefined && calc !== Number(shown).toFixed(4)) L.push('Sum of monthly values (each rounded to 4 decimals) = ' + Number(shown).toFixed(4));
+        return _ghgTipAttr(L);
+    };
+    const _elecGhgTip = kwh => {
+        kwh = Number(kwh) || 0;
+        return _ghgTipAttr([
+            'GHG (tCO2) \u00b7 Electricity',
+            'kWh \u00d7 ' + GHG_FACTOR + ' (DOE grid emission factor)',
+            kwh.toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' \u00d7 ' + GHG_FACTOR,
+            '= ' + (kwh * GHG_FACTOR).toFixed(4)
+        ]);
+    };
 
     function fuelRegionKey(r) { return 'fl_' + r.replace(/[^a-z0-9]/gi,'_'); }
 
@@ -27992,7 +28057,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td style="padding:6px 10px;border:1px solid #c8e6c9;vertical-align:middle;font-weight:600;color:#1b5e20;">${idx===0?month:''}</td>
                     <td style="padding:6px 10px;border:1px solid #c8e6c9;text-align:right;">${row.dieselLit.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
                     <td style="padding:6px 10px;border:1px solid #c8e6c9;text-align:right;">${row.gasLit.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-                    <td style="padding:6px 10px;border:1px solid #c8e6c9;text-align:right;font-weight:700;color:#2e7d32;">${row.ghg.toFixed(4)}</td>
+                    <td style="padding:6px 10px;border:1px solid #c8e6c9;text-align:right;font-weight:700;color:#2e7d32;cursor:help;"${_fuelGhgTip(row.dieselLit, row.gasLit, row.ghg)}>${row.ghg.toFixed(4)}</td>
                     ${canEdit?`<td style="padding:4px 8px;border:1px solid #c8e6c9;text-align:center;">
                         <button onclick="fuelDeleteRow(${row.id})" style="background:none;border:none;cursor:pointer;color:#ef5350;font-size:0.75rem;" title="Delete">${window.icon('trash')}</button>
                     </td>`:''}
@@ -28096,7 +28161,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         </td>
                                         <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pDiesel.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
                                         <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pGas.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#2e7d32;border:1px solid #c8e6c9;">${pGhg.toFixed(4)}</td>
+                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#2e7d32;border:1px solid #c8e6c9;cursor:help;"${_fuelGhgTip(pDiesel, pGas, pGhg)}>${pGhg.toFixed(4)}</td>
                                         ${canEditReg?`<td style="border:1px solid #c8e6c9;"></td>`:''}
                                     </tr>
                                 </tfoot>` : ''}
@@ -28143,7 +28208,19 @@ document.addEventListener('DOMContentLoaded', function() {
             title: 'OVERALL SUMMARY \u2014 FUEL CONSUMPTION',
             pill: `${fmt(grandDiesel+grandGas)} Total Liters`,
             groups: [ { label: `${window.icon("fuel")} FUEL CONSUMPTION (Liters)`, span: 3 }, { label: 'GHG Emissions' } ],
-            cols: [ { label: 'Diesel' }, { label: 'Gasoline' }, { label: 'Combined' }, { label: 't CO\u2082e', fixed: 4 } ],
+            cols: [ { label: 'Diesel' }, { label: 'Gasoline' }, { label: 'Combined' }, { label: 't CO\u2082e', fixed: 4, tip: function(vals, v) {
+                const d = vals[0] || 0, g = vals[1] || 0;
+                const fn = n => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+                const calc = (d * FUEL_DIESEL_FACTOR + g * FUEL_GAS_FACTOR).toFixed(4);
+                const L = [
+                    'GHG (t CO\u2082e) · Fuel',
+                    'Diesel L × ' + FUEL_DIESEL_FACTOR + ' + Gasoline L × ' + FUEL_GAS_FACTOR,
+                    fn(d) + ' × ' + FUEL_DIESEL_FACTOR + ' + ' + fn(g) + ' × ' + FUEL_GAS_FACTOR,
+                    '= ' + calc
+                ];
+                if (calc !== v.toFixed(4)) L.push('Sum of monthly values (each rounded to 4 decimals) = ' + v.toFixed(4));
+                return L;
+            } } ],
             rows: regionRows.map(r => ({ region: r.region, projs: r.projs, values: [r.diesel, r.gas, r.diesel + r.gas, r.ghg] })),
             totals: [grandDiesel, grandGas, grandDiesel + grandGas, grandGhg],
             hasData: hasAnyData, icon: 'fuel', note: 'Log <strong>Fuel Consumption</strong> per region \u2014 Diesel (Liters) and Gasoline (Liters) per project per month. Auto-calculates <strong>Total GHG Emissions</strong> (t CO\u2082e). <span style="font-size:0.68rem;color:#2e7d32;font-style:italic;">Data to be collected from Warehouse Department.</span>', emptyText: 'No fuel data entered yet.'
@@ -28661,7 +28738,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         </td>
                                         <td style="padding:7px 11px;text-align:left;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pKwh.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
                                         <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pAmt.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
-                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;">${pGhg.toFixed(4)}</td>
+                                        <td style="padding:7px 11px;text-align:right;font-weight:700;color:#1b5e20;border:1px solid #c8e6c9;cursor:help;"${_elecGhgTip(pKwh)}>${pGhg.toFixed(4)}</td>
                                         ${canEditRegionEnv ? `<td style="border:1px solid #c8e6c9;"></td>` : ''}
                                     </tr>
                                 </tfoot>` : ''}
@@ -28695,7 +28772,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: 'OVERALL SUMMARY \u2014 ELECTRICITY CONSUMPTION',
                 pill: `${window.envFmtNum(grandKwh, 2)} Total kWh`, pillId: 'env-inline-badge-total-projects',
                 groups: [ { label: `${window.icon('bolt')} ELECTRICITY CONSUMPTION`, span: 3 } ],
-                cols: [ { label: 'kWh', dec: 2 }, { label: 'Amount (\u20b1)', dec: 2 }, { label: 'GHG (tCO2)', fixed: 4 } ],
+                cols: [ { label: 'kWh', dec: 2 }, { label: 'Amount (\u20b1)', dec: 2 }, { label: 'GHG (tCO2)', fixed: 4, tip: function(vals) {
+                    const kwh = vals[0] || 0;
+                    const fn = n => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+                    return [
+                        'GHG (tCO2) · Electricity',
+                        'kWh × ' + GHG_FACTOR + ' (DOE grid emission factor)',
+                        fn(kwh) + ' × ' + GHG_FACTOR,
+                        '= ' + (kwh * GHG_FACTOR).toFixed(4)
+                    ];
+                } } ],
                 rows: overallSummary.map(s => ({ region: s.region, projs: s.projCount, values: [s.kwh, s.amount, s.ghg] })),
                 totals: [grandKwh, grandAmt, grandGhg],
                 hasData: hasElecData, icon: 'bolt', note: 'Log <strong>Electricity Consumption</strong> per region \u2014 kWh usage and billing amount in Php. Auto-calculates <strong>GHG emissions</strong> (tCO2).', emptyText: 'No electricity data entered yet.'
@@ -28844,7 +28930,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td style="padding:6px 11px;border:1px solid #e8f5e9;color:var(--text-primary);text-align:left;vertical-align:middle;overflow-wrap:anywhere;">${r.location}</td>
                     <td style="padding:6px 11px;text-align:left;border:1px solid #e8f5e9;color:var(--text-primary);">${r.kwh.toLocaleString()}<span style="display:block;height:4px;border-radius:2px;background:#66bb6a;margin-top:3px;width:${pct}%;"></span></td>
                     <td style="padding:6px 11px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);">${r.amount.toLocaleString()}</td>
-                    <td style="padding:6px 11px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);">${r.ghg.toFixed(4)}</td>
+                    <td style="padding:6px 11px;text-align:right;border:1px solid #e8f5e9;color:var(--text-primary);cursor:help;"${_elecGhgTip(r.kwh)}>${r.ghg.toFixed(4)}</td>
                     ${canEdit ? `<td style="padding:5px 7px;text-align:center;border:1px solid #e8f5e9;">
                         <button onclick="envDeleteRow(${r.id})" style="padding:2px 7px;background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:4px;font-size:0.6rem;cursor:pointer;">${window.icon('times')}</button>
                     </td>` : ''}
@@ -34226,8 +34312,8 @@ function _osRenderGapView(project, year) {
     document.getElementById('os-modal-personnel').style.display = 'none';
     const box = document.getElementById('os-modal-stats');
 
-    const tile = (icon, val, label, color) => `
-        <div style="background:#f7f9f8; border:1px solid #eceeec; border-radius:8px; padding:10px 12px; display:flex; align-items:center; gap:10px;">
+    const tile = (icon, val, label, color, tip) => `
+        <div${tip ? ' title="' + tip.map(x => esc(x)).join('&#10;') + '" data-tip-nowrap' : ''} style="background:#f7f9f8; border:1px solid #eceeec; border-radius:8px; padding:10px 12px; display:flex; align-items:center; gap:10px;${tip ? ' cursor:help;' : ''}">
             <div style="width:32px; height:32px; border-radius:8px; background:#eef1ef; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                 <i class="fas ${icon}" style="color:#4a5750; font-size:0.85rem;"></i>
             </div>
@@ -34278,7 +34364,22 @@ function _osRenderGapView(project, year) {
     let html = `<div style="grid-column:1/-1; text-align:center; font-size:0.78rem; font-weight:700; color:#1f2d23; margin-bottom:2px;">${esc(sum)}</div>`;
     html += tile('fa-circle-exclamation', nOd, 'Overdue Reports', nOd > 0 ? '#c62828' : '#2e7d32');
     html += tile('fa-hourglass-half', nUp, 'Not Yet Due', '#1f2d23');
-    html += tile('fa-arrow-trend-up', nOd > 0 ? b.ifCleared + '%' : '—', 'If Overdue Are Submitted', '#1b5e20');
+    let _clrTip = null;
+    if (nOd > 0 && b.areas.length) {
+        const _f1 = v => Number(v).toFixed(1);
+        const _sumClr = b.areas.reduce((t, a) => t + a.clrPct, 0);
+        _clrTip = [
+            'If Overdue Are Submitted',
+            'Average of each area\u2019s score, with overdue counted as submitted',
+            'Area score = (Submitted + Overdue) \u00f7 Required',
+            'Now \u2192 If overdue submitted:'
+        ].concat(b.areas.map(a => a.name + ': ' + _f1(a.nowPct) + '% \u2192 ' + _f1(a.clrPct) + '%'))
+         .concat([
+            _f1(_sumClr) + ' \u00f7 ' + b.areas.length + ' areas',
+            '= ' + b.ifCleared + '% (rounded)'
+        ]);
+    }
+    html += tile('fa-arrow-trend-up', nOd > 0 ? b.ifCleared + '%' : '\u2014', 'If Overdue Are Submitted', '#1b5e20', _clrTip);
     html += tile('fa-flag-checkered', '100%', 'When Whole Year Is Complete', '#1b5e20');
 
     const od = b.areas.filter(a => a.od.length);
@@ -35888,7 +35989,7 @@ async function exportCurrentTabToExcel() {
         ws.views=[{state:'frozen',ySplit:2,activeCell:'A3'}];
 
         // ── Sheet 2: Incident Mechanism ──────────────────────────────────────
-        const mechData = computeMechanismFromLta(projs);
+        const mechData = computeMechanismFromLta(projs, year);
         const mechWs   = wb.addWorksheet('Incident Mechanism');
         const mechCols = 14; // Mechanism + 12 months + Total
         _xTitle(mechWs, 'INCIDENT MECHANISM — ' + year, mechCols);
@@ -35929,7 +36030,7 @@ async function exportCurrentTabToExcel() {
         mechWs.views = [{ state: 'frozen', ySplit: 2, activeCell: 'A3' }];
 
         // ── Sheet 3: Contributing Factors ────────────────────────────────────
-        const factData  = computeFactorsFromLta(projs);
+        const factData  = computeFactorsFromLta(projs, year);
         const factWs    = wb.addWorksheet('Contributing Factors');
         const factCols  = 15; // Category + Sub-Factor + 12 months + Total
         _xTitle(factWs, 'CONTRIBUTING FACTORS — ' + year, factCols);
@@ -35983,7 +36084,7 @@ async function exportCurrentTabToExcel() {
         factWs.views = [{ state: 'frozen', ySplit: 2, activeCell: 'A3' }];
 
         // ── Sheet 4: Agent of Injury ─────────────────────────────────────────
-        const agData  = computeAgentOfInjuryFromLta(projs);
+        const agData  = computeAgentOfInjuryFromLta(projs, year);
         const agWs    = wb.addWorksheet('Agent of Injury');
         const agCols  = 14; // Agent + 12 months + Total
         _xTitle(agWs, 'AGENT OF INJURY — ' + year, agCols);
@@ -41376,6 +41477,31 @@ async function exportKpmExcel() {
             el.removeAttribute('title');
         }
         if (!el.getAttribute('data-tip')) return;
+
+        // Cursor by situation (only touches elements that have a tooltip):
+        //   disabled / view-only  -> not-allowed
+        //   clickable             -> pointer
+        //   text input / select   -> keep (text, etc.)
+        //   custom cursor (move, grab, resize, zoom, wait ...) -> keep
+        //   info only             -> help
+        if (el.getAttribute('data-cur-auto')) { el.style.removeProperty('cursor'); el.removeAttribute('data-cur-auto'); }
+        var _cs  = getComputedStyle(el).cursor;
+        var _tag = el.tagName;
+        var _cur = null;
+        if (el.disabled || el.getAttribute('aria-disabled') === 'true' || el.classList.contains('disabled') ||
+            /^view only/i.test(el.getAttribute('data-tip') || '')) {
+            _cur = 'not-allowed';
+        } else if (_tag === 'INPUT' || _tag === 'TEXTAREA' || _tag === 'SELECT' || el.isContentEditable) {
+            _cur = null;                                   // keep the browser cursor (text, etc.)
+        } else if (_cs !== 'auto' && _cs !== 'default' && _cs !== 'pointer' && _cs !== 'help') {
+            _cur = null;                                   // custom cursor set on purpose
+        } else if (_tag === 'BUTTON' || _tag === 'SUMMARY' || (_tag === 'A' && el.hasAttribute('href')) ||
+                   el.getAttribute('role') === 'button' || el.hasAttribute('onclick') || _cs === 'pointer') {
+            _cur = 'pointer';
+        } else {
+            _cur = 'help';
+        }
+        if (_cur && _cur !== _cs) { el.style.setProperty('cursor', _cur, 'important'); el.setAttribute('data-cur-auto', '1'); }
 
         var cx = e.clientX, cy = e.clientY;
         timer = setTimeout(function () { show(el, cx, cy); }, 250);
