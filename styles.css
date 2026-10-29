@@ -7210,9 +7210,12 @@ body.dark-mode { --row-hover: #2f4a37; --tbl-line: #2f4034; --tbl-head-bg: #2e5a
 .env-sum-kpm { margin: 0 0 14px; }
 .env-sum-kpm table { border-collapse: collapse; }
 .env-sum-kpm tbody td:first-child span[style*="border-radius:2px"] { display: none !important; }
-.env-sum-kpm tfoot td { background: #1b5e20 !important; color: #fff !important; font-size: .72rem !important; font-weight: 800 !important; text-align: center !important; padding: 9px 7px !important; white-space: nowrap; border: 0 !important; border-right: 1px solid #2c6f31 !important; }
-.env-sum-kpm tfoot td:first-child { text-align: left !important; padding-left: 14px !important; }
-.env-sum-kpm tfoot td i { color: #fff !important; }
+/* GRAND TOTAL row: bright green bold FONT; background stays like the regular rows (white / light green first cell).
+   Long selector on purpose: it must beat the generic ":is(.esh-tbl, ... .env-sum-kpm table) td" rules above. */
+.rpt-wrap.env-sum-kpm table tfoot td { background: #fff !important; color: #0e4010 !important; font-weight: 800 !important; text-align: center !important; padding: 9px 7px !important; white-space: nowrap; border: 0 !important; border-top: 2px solid #0e4010 !important; border-right: 1px solid var(--tbl-line) !important; font-variant-numeric: tabular-nums; }
+.rpt-wrap.env-sum-kpm table tfoot td:first-child { background: var(--tbl-first-bg) !important; color: #0e4010 !important; text-align: right !important; padding: 9px 16px 9px 14px !important; letter-spacing: .5px; }
+body.dark-mode .rpt-wrap.env-sum-kpm table tfoot td { background: var(--bg-card, #1e2a22) !important; color: #66bb6a !important; }
+body.dark-mode .rpt-wrap.env-sum-kpm table tfoot td:first-child { background: var(--tbl-first-bg) !important; color: #66bb6a !important; }
 .env-sum-kpm :is(.esk-cards > div > div, .esk-cards-flat > div) { background: #fff !important; border: 1px solid #e3e9e4 !important; box-shadow: none !important; }
 /* outer border of the summary card, same gray as the cell lines */
 .rpt-sum .rpt-card { border-color: var(--tbl-line) !important; }
@@ -9841,3 +9844,31 @@ body.dark-mode .got-tbl tr.dp-gap td, body.dark-mode .got-tbl tr.dp-gap td.got-t
 /* LOGIN — error message sits right above the Log in button; no gap when empty */
 #login-error:empty { display: none; }
 #login-overlay #login-error:not(:empty) { margin-bottom: 4px !important; }
+
+/* ESH: compact Overall Summary tables (Electricity, Water, Waste, Appliances, Fuel) */
+.rpt-wrap.env-sum-kpm table th { padding-block: 4px !important; font-size: .6rem !important; line-height: 1.2 !important; }
+.rpt-wrap.env-sum-kpm table td { padding-block: 3px !important; line-height: 1.2 !important; font-size: .68rem !important; }
+.rpt-wrap.env-sum-kpm table tfoot td { padding-block: 4px !important; font-size: .68rem !important; }
+.rpt-wrap.env-sum-kpm caption .rpt-bar { padding: 4px 14px !important; }
+/* note row hidden: it repeated the title (restore by deleting this line) */
+.rpt-wrap.env-sum-kpm caption > div:not(.rpt-bar) { display: none !important; }
+
+/* ESH: compact green header (title + Electricity/Water/Waste/Appliances/Fuel tabs) */
+.env-one .ix-5315203 { padding: 7px 18px !important; gap: 8px !important; }
+.env-one .ix-95bdc07 > i { font-size: 1.05rem !important; }
+.env-one .ix-db884ea button { padding: 3px 12px !important; }
+
+/* Permits tab: compact rows, own scroll area, sticky header (scoped to .permits-tbl / .permits-wrap only) */
+.table-container.permits-wrap { max-height: calc(100vh - 250px); min-height: 280px; overflow: auto; }
+table.got-tbl.permits-tbl th { padding: 5px 8px !important; position: sticky; top: 0; z-index: 6; box-shadow: 0 1px 0 var(--tbl-line); }
+table.got-tbl.permits-tbl th:first-child { left: 0; z-index: 7; }
+table.got-tbl.permits-tbl td { padding: 3px 10px !important; line-height: 1.25; }
+table.got-tbl.permits-tbl td input:not([type=checkbox]) { height: 26px; padding-top: 2px !important; padding-bottom: 2px !important; box-sizing: border-box; }
+
+/* Internal ESH Audit Report (regional table): compact rows, scroll area, sticky header, scores centered (scoped to .audit-sum-tbl / .audit-sum-wrap only) */
+.table-container.audit-sum-wrap { max-height: calc(100vh - 250px); min-height: 280px; overflow: auto; }
+table.got-tbl.audit-sum-tbl thead { position: sticky; top: 0; z-index: 6; }
+table.got-tbl.audit-sum-tbl thead tr:last-child th { box-shadow: 0 1px 0 var(--tbl-line); }
+table.got-tbl.audit-sum-tbl th { padding: 4px 6px !important; }
+table.got-tbl.audit-sum-tbl td { padding: 3px 5px !important; vertical-align: middle; line-height: 1.25; }
+table.got-tbl.audit-sum-tbl td input { display: block; margin: 0 auto; height: 24px; padding: 0 4px !important; line-height: 1; text-align: center; box-sizing: border-box; }
