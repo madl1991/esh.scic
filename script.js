@@ -7082,7 +7082,9 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             return {
                 stopped: false, year: selectedYear,
                 now: avg(false), ifCleared: avg(true),
-                areas: active.map(a => ({ name: a.name, score: Math.round(areaScore(a, false) * 100), od: a.od, up: a.up })),
+                areas: active.map(a => ({ name: a.name, score: Math.round(areaScore(a, false) * 100), od: a.od, up: a.up,
+                    clear: Math.round(areaScore(a, true) * 100), got: a.F + a.O, of: a.T,
+                    parts: a.subs ? a.subs.map(s => ({ name: s.name, got: s.F + s.O, of: s.T })) : null })),
                 overdueCount: active.reduce((t, a) => t + a.od.length, 0),
                 upcomingCount: active.reduce((t, a) => t + a.up.length, 0),
                 notes
@@ -11175,7 +11177,7 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
 
                     const _ltaIsWS = isProjectOnStoppage(p);
                     html += `<div class="lta-project-card" style="${_ltaIsWS ? 'opacity:0.85;' : ''}">
-                        <div class="lta-project-header" style="cursor:default;${_ltaIsWS ? 'background:#ffebee;border-left-color:#c62828;' : ''}${_ltaInlineNav ? 'display:grid;grid-template-columns:1fr auto 1fr;gap:10px;' : ''}">
+                        <div class="lta-project-header${(_ltaInlineNav && !_ltaIsWS) ? ' proj-nav-bar' : ''}" style="cursor:default;${_ltaIsWS ? 'background:#ffebee;border-left-color:#c62828;' : ''}${_ltaInlineNav ? 'display:grid;grid-template-columns:1fr auto 1fr;gap:10px;' : ''}">
                             <div style="display:flex;align-items:center;gap:10px;min-width:0;${_ltaInlineNav ? 'justify-self:start;' : ''}">
                                 ${_ltaInlineNav ? _tabNavBtn('lta-registry', reg, -1, _ltaInlineNav.idx, _ltaInlineNav.total) : ''}
                                 ${_ltaInlineNav ? '' : `<div style="min-width:0;">
@@ -13349,8 +13351,8 @@ function renderTabulation() {
                                 const _r = window.calcCumRate(row, _cs.lta[i], _cs.rec[i], _cs.dl[i], smh);
                                 if (_r !== null) sval = window.formatRate(row, _r);
                             }
-                            const scolor = row === 'LTIR' ? '#1b5e20' : row === 'TRIR' ? '#1565c0' : '#b71c1c';
-                            html += `<td class="monthly-data" style="font-weight:800;background:${smh>0?'rgba(27,94,32,0.06)':''};text-align:center;color:${smh>0?scolor:''}">${sval}</td>`;
+                            const scolor = '#1b5e20';
+                            html += `<td class="monthly-data" style="font-weight:800;background:${smh>0?'rgba(27,94,32,0.06)':''};text-align:center;cursor:not-allowed;color:${smh>0?scolor:''}" title="Cannot be edited. Auto-computed.">${sval}</td>`;
                         } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
                             displayProjects.forEach(p => {
                                 const _series = computeExposureToDateSeries(p);
@@ -13454,8 +13456,8 @@ function renderTabulation() {
                                 const _r = window.calcCumRate(row, _cs.lta[12], _cs.rec[12], _cs.dl[12], ymh);
                                 if (_r !== null) yval = window.formatRate(row, _r);
                             }
-                            const ycolor = row === 'LTIR' ? '#1b5e20' : row === 'TRIR' ? '#1565c0' : '#b71c1c';
-                            html += `<td class="ytd-cell" style="font-weight:800;color:${ymh>0?ycolor:''};">${yval}</td>`;
+                            const ycolor = '#1b5e20';
+                            html += `<td class="ytd-cell" style="font-weight:800;cursor:not-allowed;color:${ymh>0?ycolor:''};" title="Cannot be edited. Auto-computed.">${yval}</td>`;
                         } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
                             displayProjects.forEach(p => {
                                 const _series = computeExposureToDateSeries(p);
@@ -13669,19 +13671,18 @@ function renderTabulation() {
                     const canDelete = UserAccounts.checkPermission(state.currentUser?.email, 'delete', p.region, state.currentTab).allowed;
                     const isDeleteLocked = !canDelete;
 
-                    html += `<div class="project-row ${isLocked ? 'project-locked' : ''}" data-pname="${(p.name||'').replace(/"/g,'&quot;')}" data-region="${(p.region||'').replace(/"/g,'&quot;')}" data-status="${_derivedStatus}" style="${isWorkStopped ? 'opacity:0.7;' : ''}${state.currentTab === 'overall' ? 'cursor:pointer;' : ''}${(state.currentTab !== 'overall' && _inlineNav) ? 'display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;' : ''}" ${state.currentTab === 'overall' ? `onclick="osOpenModal('${p.name.replace(/'/g, "\\'")}')"`  : ''}>\n                        
+                    html += `<div class="project-row ${isLocked ? 'project-locked' : ''}" data-pname="${(p.name||'').replace(/"/g,'&quot;')}" data-region="${(p.region||'').replace(/"/g,'&quot;')}" data-status="${_derivedStatus}" style="${isWorkStopped ? 'opacity:0.7;' : ''}${state.currentTab === 'overall' ? 'cursor:pointer;' : ''}${(state.currentTab !== 'overall' && _inlineNav) ? 'display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:5px 14px;' : ''}" ${state.currentTab === 'overall' ? `onclick="osOpenModal('${p.name.replace(/'/g, "\\'")}')"`  : ''}>\n                        
                         ${_inlineNav ? (state.currentTab !== 'overall' ? `<div style="justify-self:start;">${_tabNavBtn(_inlineNav.tab, _inlineNav.reg, -1, _inlineNav.idx, _inlineNav.total)}</div>` : _tabNavBtn(_inlineNav.tab, _inlineNav.reg, -1, _inlineNav.idx, _inlineNav.total)) : ''}
                         ${(state.currentTab !== 'overall' || p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="circular-progress" title="Click to see what is missing" onclick="event.stopPropagation();openComplianceGap('${p.name.replace(/'/g, "\\'")}')" style="--percentage: ${percDeg}deg;cursor:pointer;${isWorkStopped ? 'opacity:0.45;' : ''}">
                             <div class="circular-progress-inner" style="${isWorkStopped ? 'font-size:0.62rem;color:#bf360c;' : ''}">${percDisplay}${percDisplay !== '—' ? '%' : ''}</div>
                         </div>`}
-                        <div class="project-info" style="${state.currentTab !== 'overall' ? 'align-items:center;text-align:center;' : ''}">
+                        <div class="project-info" style="${state.currentTab !== 'overall' ? 'align-items:center;text-align:center;gap:1px;min-width:0;' : ''}">
                             <div class="project-name" style="${state.currentTab !== 'overall' ? 'justify-content:center;' : ''}">
                                 ${window._dispProjName(p.name)}
                                 ${p.isRenewable ? '<i class="fas fa-leaf" title="Renewable Energy" style="color: #4caf50; font-size: 0.9rem; margin-left: 8px;"></i>' : ''}
 
                             </div>
-                            <div class="project-meta">${p.region === 'CORPORATE' ? 'SCIC Head Office' : p.region === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
-                            ${_inlineNav ? `<div style="font-size:0.62rem;color:#000;margin-top:2px;">Project ${_inlineNav.idx + 1} of ${_inlineNav.total}</div>` : ''}
+                            <div class="project-meta" style="${_inlineNav ? 'justify-content:center;' : ''}">${_inlineNav ? `Project ${_inlineNav.idx + 1} of ${_inlineNav.total}` : (p.region === 'CORPORATE' ? 'SCIC Head Office' : p.region === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address'))}</div>
                         </div>
                         ${(state.currentTab !== 'overall' || p.region === 'CORPORATE' || p.region === 'PLANT OPERATIONS') ? '' : `<div class="project-dates">
                             <div><span class="date-label">Started:</span> ${p.dateStarted ? formatDateDMY(p.dateStarted) : 'Not set'}</div>
@@ -14281,15 +14282,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
         const _isExpTab = state.currentTab === 'exposures';
         const _rowShort = (_isExpTab && row === 'Total Exposed Man-hour to date') ? 'Exp. Man-hour to date' : row;
         const _rowTip = String(row).replace(/"/g, '&quot;');
-        html += `<tr style="${rowStyle}"><td ${_isExpTab ? `title="${_rowTip}"` : ''} style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; text-align:left; font-weight:700; background:#e8f5e9; position: sticky; left: 0; z-index: 5; white-space: ${_isExpTab ? 'nowrap' : 'normal'}; padding: 10px 12px; line-height: 1.3; vertical-align: middle;">
+        const _ratesTip = (state.currentTab === 'rates' && ['LTIR','TRIR','SEVERITY RATE'].includes(row))
+            ? 'Auto-computed from the Incident &amp; Accident Registry and man-hours. Cumulative from January to the month shown. ' + row + ' = ' + (row === 'LTIR' ? 'LTA cases' : row === 'TRIR' ? 'Recordable cases' : 'Total days lost') + ' × ' + (state.ratesStandard === 'osha' ? '200,000 (OSHA base)' : '1,000,000 (OSHS base)') + ' ÷ man-hours.'
+            : '';
+        html += `<tr style="${rowStyle}"><td ${_isExpTab ? `title="${_rowTip}"` : (_ratesTip ? `title="${_ratesTip}"` : '')} style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; text-align:left; font-weight:700; background:#e8f5e9; position: sticky; left: 0; z-index: 5; white-space: ${_isExpTab ? 'nowrap' : 'normal'}; padding: 10px 12px; line-height: 1.3; vertical-align: middle;">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
                 <span style="flex:1;${_isExpTab ? 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;' : ''}">
                     ${_rowShort}
-                    ${(state.currentTab === 'rates' && ['LTIR','TRIR','SEVERITY RATE'].includes(row))
-                        ? `<span style="display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:1px 6px;border-radius:10px;background:#e8f5e9;border:1px solid #a5d6a7;font-size:0.58rem;font-weight:700;color:#2e7d32;vertical-align:middle;">
-                               <i class="fas fa-lock" style="font-size:0.5rem;"></i> AUTO
-                           </span>`
-                        : ''}
                     ${(state.currentTab === 'medical' && row === 'Days Lost/Charged')
                         ? `<div style="font-size:0.6rem;font-weight:400;color:#1565c0;margin-top:3px;line-height:1.3;">
                                <i class="fas fa-info-circle"></i> Used for Severity Rate computation <i class="fas fa-sync-alt" title="Auto-sync from Incident &amp; Accident Registry ↗" onclick="changeTab('lta-registry')" style="margin-left:6px;font-size:0.62rem;color:#e65100;cursor:pointer;vertical-align:middle;"></i>
@@ -14353,17 +14352,16 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     let prevColor = '#1b5e20';
                     if (prevMh > 0) {
                         if      (row === 'LTIR')          { prevVal = (prevLta * _rateBase) / prevMh; prevColor = '#1b5e20'; }
-                        else if (row === 'TRIR')          { prevVal = (prevRec * _rateBase) / prevMh; prevColor = '#1565c0'; }
-                        else if (row === 'SEVERITY RATE') { prevVal = (prevDL  * _rateBase) / prevMh; prevColor = '#b71c1c'; }
+                        else if (row === 'TRIR')          { prevVal = (prevRec * _rateBase) / prevMh; prevColor = '#1b5e20'; }
+                        else if (row === 'SEVERITY RATE') { prevVal = (prevDL  * _rateBase) / prevMh; prevColor = '#1b5e20'; }
                     }
                     if (prevVal !== null) {
                         if (!p.vals[key]) p.vals[key] = new Array(14).fill('');
                         p.vals[key][0] = window.formatRate(row, prevVal);
                     }
                     const prevDisp = prevVal !== null ? window.formatRate(row, prevVal) : '—';
-                    html += `<td class="prev-year" style="text-align:center;cursor:default;" title="Auto-computed from PREVIOUS year medical &amp; exposures data (${(state.ratesStandard==='osha')?'OSHA 200K':'OSHS 1M'} base) — read only">
+                    html += `<td class="prev-year" style="text-align:center;cursor:not-allowed;" title="Cannot be edited. Auto-computed from previous year medical &amp; exposures data (${(state.ratesStandard==='osha')?'OSHA 200K':'OSHS 1M'} base).">
                         <div style="font-size:0.72rem;font-weight:800;color:${prevVal !== null ? prevColor : '#bbb'};">${prevDisp}</div>
-                        <div style="font-size:0.5rem;color:#aaa;margin-top:1px;display:flex;align-items:center;justify-content:center;gap:2px;"><i class="fas fa-lock" style="font-size:0.43rem;"></i> auto</div>
                     </td>`;
                 } else if (_isDrillTraining) {
                     html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}">
@@ -14654,17 +14652,16 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const _cs = window.buildCumulativeSeries([p], 12);
                     for (let i = 1; i <= 12; i++) {
                         let val = null;
-                        const color = row === 'LTIR' ? '#1b5e20' : row === 'TRIR' ? '#1565c0' : '#b71c1c';
+                        const color = '#1b5e20';
                         if (i <= _cs.last) val = window.calcCumRate(row, _cs.lta[i], _cs.rec[i], _cs.dl[i], _cs.mh[i]);
                         if (val !== null) {
                             if (!p.vals[key]) p.vals[key] = new Array(14).fill('');
                             p.vals[key][i] = window.formatRate(row, val);
                         }
                         const disp = val !== null ? window.formatRate(row, val) : '';
-                        html += `<td class="monthly-data" style="text-align:center;background:${val !== null && val > 0 ? 'rgba(27,94,32,0.04)' : ''};cursor:default;" title="Auto-computed (${_rateStdLabel} base) — read only">
+                        html += `<td class="monthly-data" style="text-align:center;background:${val !== null && val > 0 ? 'rgba(27,94,32,0.04)' : ''};cursor:not-allowed;" title="Cannot be edited. Auto-computed (${_rateStdLabel} base).">
                             ${val !== null
-                                ? `<div style="font-size:0.75rem;font-weight:800;color:${color};">${disp}</div>
-                                   <div style="font-size:0.52rem;color:#aaa;margin-top:1px;display:flex;align-items:center;justify-content:center;gap:2px;"><i class="fas fa-lock" style="font-size:0.45rem;"></i> auto</div>`
+                                ? `<div style="font-size:0.75rem;font-weight:800;color:${color};">${disp}</div>`
                                 : `<div style="font-size:0.62rem;color:#ccc;font-style:italic;">—</div>`
                             }
                         </td>`;
@@ -14835,7 +14832,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const ytdMh = _cs.mh[12];
                     let ytdRate = 0;
                     if (ytdMh > 0) ytdRate = window.calcCumRate(row, _cs.lta[12], _cs.rec[12], _cs.dl[12], ytdMh) || 0;
-                    const ytdColor = row === 'LTIR' ? '#1b5e20' : row === 'TRIR' ? '#1565c0' : '#b71c1c';
+                    const ytdColor = '#1b5e20';
                     html += `<td class="ytd-cell" style="color:${ytdMh > 0 ? ytdColor : ''};font-weight:800;">
                         ${ytdMh > 0 ? window.formatRate(row, ytdRate) : ''}
                     </td>`;
@@ -20381,7 +20378,7 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
 
     return `
     <div class="p-project-card" style="margin-bottom:2px;">
-        <div class="p-proj-header" data-proj-key="${safeKey}" style="${headerBg}">
+        <div class="p-proj-header${navInfo ? ' proj-nav-bar' : ''}" data-proj-key="${safeKey}" style="${headerBg}">
             <div style="display:flex;align-items:center;gap:8px;padding:7px 16px 7px 18px;color:#1b5e20;font-weight:700;font-size:0.71rem;letter-spacing:0.4px;">
                 <div style="flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:flex-start;">
                     ${navInfo ? _pHeaderNavBtn(navInfo.region, -1, navInfo.idx === 0) : ''}
@@ -20631,7 +20628,7 @@ function renderPTable() {
         const _showNavBar = projectNames.length > 1;
         const _visibleProjName = projectNames[_pNavIdx];
         const _navBarHtml = _showNavBar ? `
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:2px solid #c8e6c9;">
+            <div class="proj-nav-bar" style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:2px solid #c8e6c9;">
                 <button onclick="_pNavProject('${region.replace(/'/g,"\\'")}', -1)" ${_pNavIdx===0?'disabled':''} style="background:${_pNavIdx===0?'#ccc':'#f9a825'};color:#000;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${_pNavIdx===0?'not-allowed':'pointer'};opacity:${_pNavIdx===0?'0.4':'1'};">
                     <i class="fas fa-chevron-left"></i> Prev
                 </button>
@@ -21211,7 +21208,7 @@ function buildIncidentTabulationHTML() {
 
         
         <div style="overflow-x: auto;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
+          <table class="inj-rate-tbl" style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
             <thead>
               <tr>
                 <th style="background:#b7ddb5;color:#1b5e20;padding:8px 12px;text-align:left;border:none;width:40%;font-weight:700;letter-spacing:0.4px;">INJURY / ILLNESS</th>
@@ -25837,26 +25834,28 @@ function renderOsh2() {
         st.id = 'osh2-card-css';
         st.textContent = [
             '.osh2-list{padding:8px;display:flex;flex-direction:column;gap:6px}',
-            '.osh2-card{background:var(--bg-card);border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:10px;padding:7px 12px}',
-            '.osh2-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}',
-            '.osh2-title{flex:1;min-width:200px;font-weight:600;font-size:.78rem;line-height:1.2}',
+            '.osh2-card{background:var(--bg-card);border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:10px;padding:5px 12px;display:flex;align-items:center;gap:14px}',
+            '.osh2-top{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;flex:0 0 32%;min-width:380px;max-width:500px}',
+            '.osh2-title{flex:1;min-width:0;font-weight:600;font-size:.78rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
             '.osh2-idx{color:var(--text-secondary);font-size:.62rem;margin-right:5px}',
             '.osh2-sub{font-size:.58rem;color:var(--text-secondary);font-weight:400}',
             '.osh2-mp{display:flex;align-items:center;gap:6px;font-size:.58rem;color:var(--text-secondary)}.osh2-mp input,.osh2-mp>div{width:56px!important;padding:3px 5px!important;font-size:.7rem!important}',
-            '.osh2-chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin-top:6px}',
-            '.osh2-chip{border-radius:6px;padding:3px 8px;border:1px solid transparent;display:flex;flex-direction:column;gap:0;line-height:1.2}',
-            '.osh2-cl{font-size:.56rem;font-weight:600;opacity:.85}',
+            '.osh2-chips{flex:1;min-width:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:0}',
+            '.osh2-chip{border-radius:6px;padding:3px 8px;border:none;display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:6px;align-items:center;line-height:1.2}',
+            '.osh2-cl{grid-column:1 / -1;font-size:.56rem;font-weight:600;opacity:.85}',
             '.osh2-cv{font-size:.74rem;font-weight:800;display:flex;align-items:center;gap:5px}.osh2-cv i{font-size:.7rem}',
-            '.osh2-cs{font-size:.54rem;font-weight:600}.osh2-cs:empty{display:none}',
-            '.osh2-chip.ok{background:#e8f5e9;border-color:#a5d6a7;color:#2e7d32}',
-            '.osh2-chip.part{background:#fff3e0;border-color:#ffcc80;color:#e65100}',
-            '.osh2-chip.none{background:#ffebee;border-color:#ef9a9a;color:#c62828}',
-            '.osh2-chip.nr{background:var(--input-bg);color:#9e9e9e}',
+            '.osh2-cs{font-size:.54rem;font-weight:600;min-width:0}.osh2-cs:empty{display:none}',
+            '.osh2-chip.ok{background:#e8f5e9;color:#2e7d32}',
+            '.osh2-chip.part{background:#fff3e0;color:#e65100}',
+            '.osh2-chip.none{background:#ffebee;color:#c62828}',
+            '.osh2-chip.nr{background:#eef1ef;color:#9e9e9e}',
+            'body.dark-mode .osh2-chip.nr{background:var(--input-bg)}',
             '.osh2-chip.nr .osh2-cv{font-size:.68rem;font-weight:600;opacity:.6}',
             '.osh2-people{margin-top:5px;padding-top:4px;border-top:1px solid var(--border-color);display:flex;flex-wrap:wrap;gap:2px 14px}',
-            'body.dark-mode .osh2-chip.ok{background:rgba(76,175,80,.15);border-color:rgba(76,175,80,.4);color:#a5d6a7}',
-            'body.dark-mode .osh2-chip.part{background:rgba(255,152,0,.15);border-color:rgba(255,152,0,.4);color:#ffb74d}',
-            'body.dark-mode .osh2-chip.none{background:rgba(244,67,54,.15);border-color:rgba(244,67,54,.4);color:#ef9a9a}'
+            'body.dark-mode .osh2-chip.ok{background:rgba(76,175,80,.15);color:#a5d6a7}',
+            'body.dark-mode .osh2-chip.part{background:rgba(255,152,0,.15);color:#ffb74d}',
+            'body.dark-mode .osh2-chip.none{background:rgba(244,67,54,.15);color:#ef9a9a}',
+            '@media (max-width:1280px){.osh2-card{display:block}.osh2-top{flex-wrap:wrap;min-width:0;max-width:none}.osh2-title{min-width:200px}.osh2-chips{grid-template-columns:repeat(auto-fit,minmax(110px,1fr));margin-top:6px}}'
         ].join('');
         document.head.appendChild(st);
     }
@@ -25985,10 +25984,7 @@ function renderOsh2() {
 
             regionRows += `<div class="osh2-card">
                 <div class="osh2-top">
-                    <div class="osh2-title">
-                        <span class="osh2-idx">${idx+1}</span>${proj.name}
-                        <div class="osh2-sub">${proj.status||'on-going'}</div>
-                    </div>
+                    <div class="osh2-title" title="${String(proj.name||'').replace(/"/g,'&quot;')}">${proj.name}</div>
                     <div class="osh2-mp"><span>Manpower</span>${mpHtml}</div>
                     <div>${statusBadge}</div>
                 </div>
@@ -26747,7 +26743,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var projAvg     = gotGoalProjectAvg2(proj);
         var pSafe       = escQ(proj.name);
 
-        var h = '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:1px solid #c8e6c9;">';
+        var h = '<div class="proj-nav-bar" style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:1px solid #c8e6c9;">';
         h += '<button onclick="gotNavigateProject(\'' + escQ(reg) + '\',-1)" ' + (projIdx === 0 ? 'disabled' : '') + ' style="background:' + (projIdx === 0 ? '#ccc' : '#1b5e20') + ';color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:' + (projIdx === 0 ? 'not-allowed' : 'pointer') + ';opacity:' + (projIdx === 0 ? '0.4' : '1') + ';">';
         h += '<i class="fas fa-chevron-left"></i> Prev</button>';
         h += '<div style="text-align:center;">';
@@ -28842,7 +28838,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const topItemsRow = '<tr><td>TOP ITEMS (ALL REGIONS)</td><td></td>' + SECTION_KEYS.map(function(sk) {
             const sec = sections[sk];
             const top = sec ? sec.fields.filter(f => f.total > 0).sort((x, y) => y.total - x.total).slice(0, 3) : [];
-            return '<td>' + (top.length ? top.map(f => f.label + ': ' + f.total.toLocaleString()).join('<br>') : '\u2014') + '</td>';
+            return '<td style="text-align:left!important;padding-left:14px!important;">' + (top.length ? top.map(f => f.label + ': ' + f.total.toLocaleString()).join('<br>') : '\u2014') + '</td>';
         }).join('') + '<td></td></tr>';
 
         // ── Per-region totals ─────────────────────────────────────────────────
@@ -30381,7 +30377,7 @@ function _tabNavBar(tabType, region, projIdx, regProjsLen) {
     const allP = (state && (state.filteredProjects || state.projects)) ? (state.filteredProjects || state.projects) : [];
     const proj = allP.filter(p => p.region === region)[projIdx];
     const projName = proj ? proj.name : '';
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:2px solid #c8e6c9;border-radius:0 0 0 0;">
+    return `<div class="proj-nav-bar" style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:2px solid #c8e6c9;border-radius:0 0 0 0;">
         <button onclick="tabNavProject('${tabType.replace(/'/g,"\\'")}','${region.replace(/'/g,"\\'")}', -1)" ${projIdx===0?'disabled':''} style="background:${projIdx===0?'#ccc':'#f9a825'};color:#000;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:${projIdx===0?'not-allowed':'pointer'};opacity:${projIdx===0?'0.4':'1'};">
             <i class="fas fa-chevron-left"></i> Prev
         </button>
@@ -30462,7 +30458,7 @@ function eshRenderRegionTable(tabType, region, regProjects, projIdx) {
     if (!container || !proj) return;
 
     const navHtml = `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:1px solid #c8e6c9;">
+        <div class="proj-nav-bar" style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#e8f5e9;border-bottom:1px solid #c8e6c9;">
             <button onclick="eshNavigateProject('${tabType}','${region}',-1)" ${projIdx===0?'disabled':''} style="background:${projIdx===0?'#ccc':'#f9a825'};color:#000;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;opacity:${projIdx===0?'0.4':'1'};">
                 <i class="fas fa-chevron-left"></i> Prev
             </button>
@@ -34294,8 +34290,9 @@ function _osRenderGapView(project, year) {
     document.getElementById('os-modal-personnel').style.display = 'none';
     const box = document.getElementById('os-modal-stats');
 
-    const tile = (icon, val, label, color) => `
-        <div style="background:#f7f9f8; border:1px solid #eceeec; border-radius:8px; padding:10px 12px; display:flex; align-items:center; gap:10px;">
+    const attr = t => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '&#10;');
+    const tile = (icon, val, label, color, tip) => `
+        <div${tip ? ` title="${attr(tip)}" data-tip-nowrap` : ''} style="${tip ? 'cursor:help; ' : ''}background:#f7f9f8; border:1px solid #eceeec; border-radius:8px; padding:10px 12px; display:flex; align-items:center; gap:10px;">
             <div style="width:32px; height:32px; border-radius:8px; background:#eef1ef; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                 <i class="fas ${icon}" style="color:#4a5750; font-size:0.85rem;"></i>
             </div>
@@ -34346,8 +34343,19 @@ function _osRenderGapView(project, year) {
     let html = `<div style="grid-column:1/-1; text-align:center; font-size:0.78rem; font-weight:700; color:#1f2d23; margin-bottom:2px;">${esc(sum)}</div>`;
     html += tile('fa-circle-exclamation', nOd, 'Overdue Reports', nOd > 0 ? '#c62828' : '#2e7d32');
     html += tile('fa-hourglass-half', nUp, 'Not Yet Due', '#1f2d23');
-    html += tile('fa-arrow-trend-up', nOd > 0 ? b.ifCleared + '%' : '—', 'If Overdue Are Submitted', '#1b5e20');
-    html += tile('fa-flag-checkered', '100%', 'When Whole Year Is Complete', '#1b5e20');
+    const _calc = b.areas.flatMap(a => a.parts
+        ? [`${a.name}: average of ${a.parts.length} parts = ${a.clear}%`,
+           ...a.parts.map(q => `   • ${q.name}: ${q.of ? q.got + ' of ' + q.of + ' = ' + Math.round(q.got / q.of * 100) + '%' : 'none required = 100%'}`)]
+        : [`${a.name}: ${a.got} of ${a.of} = ${a.clear}%`]);
+    const _tipClear = ['How this % is computed',
+        'Overdue reports count as submitted.',
+        'Reports not yet due count as not done.',
+        'Each area = (submitted + overdue) ÷ required.',
+        ..._calc,
+        `Average of ${b.areas.length} area${b.areas.length === 1 ? '' : 's'} = ${b.ifCleared}%`].join('\n');
+    const _tipFull = 'The score reaches 100% when every required report of the year is submitted.';
+    html += tile('fa-arrow-trend-up', nOd > 0 ? b.ifCleared + '%' : '—', 'If Overdue Are Submitted', '#1b5e20', nOd > 0 ? _tipClear : '');
+    html += tile('fa-flag-checkered', '100%', 'When Whole Year Is Complete', '#1b5e20', _tipFull);
 
     const od = b.areas.filter(a => a.od.length);
     if (od.length) html += panel('#c62828', 'Overdue — needs follow-up', od.map(a => line(a.name, lineText(a.od))).join(''));
