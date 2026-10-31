@@ -1896,37 +1896,6 @@
         body.dark-mode .date-label {
             color: #66bb6a;
         }
-        .status-badge {
-            padding: 6px 10px; 
-            border-radius: 6px; 
-            color: white; 
-            font-weight: 600; 
-            font-size: 0.58rem;
-            cursor: pointer; 
-            text-transform: uppercase; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            letter-spacing: 0.2px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-            border: none;
-            white-space: nowrap;
-            min-width: 115px;
-            text-align: center;
-        }
-        
-        
-        .status-ongoing { 
-            background: linear-gradient(135deg, #1565c0 0%, #1976D2 100%);
-        }
-        
-        .status-stoppage { 
-            background: linear-gradient(135deg, #c62828 0%, #d32f2f 100%);
-        }
-        
-        .status-finished { 
-            background: linear-gradient(135deg, #424242 0%, #616161 100%);
-        }
-
-        
         .modal {
             display: none; 
             position: fixed; 
@@ -2484,13 +2453,11 @@ body.dark-mode .backup-item {
         
         tbody tr:hover {
             background: #e8f5e9 !important;
-            box-shadow: inset 3px 0 0 #2e7d32;
             cursor: default;
         }
 
         body.dark-mode tbody tr:hover {
             background: #1b3a1f !important;
-            box-shadow: inset 3px 0 0 #66bb6a;
         }
 
         
@@ -2508,11 +2475,9 @@ body.dark-mode .backup-item {
         
         .hr-field-row:hover {
             background: #e8f5e9 !important;
-            box-shadow: inset 3px 0 0 #2e7d32;
         }
         body.dark-mode .hr-field-row:hover {
             background: #1b3a1f !important;
-            box-shadow: inset 3px 0 0 #66bb6a;
         }
 
         td { 
@@ -2899,7 +2864,7 @@ table input[type="date"]:not(:focus)[value=""] {
     position: fixed;
     bottom: 24px;
     right: 24px;
-    z-index: 99999;
+    z-index: 2147482000; /* above modals (.mdl-overlay is 99999) */
     display: flex;
     flex-direction: column-reverse;
     gap: 10px;
@@ -3192,7 +3157,7 @@ body.dark-mode .tooltip-content::after {
 }
 #osh-req-body tr td { padding: 8px 10px; vertical-align: middle; font-size: 0.72rem; border-bottom: 1px solid var(--border-color); color: var(--text-primary); }
 #osh-req-body tr:last-child td { border-bottom: none; }
-#osh-req-body tr:hover td { background: #e8f5e9 !important; box-shadow: inset 3px 0 0 #2e7d32; }
+#osh-req-body tr:hover td { background: #e8f5e9 !important; }
 @keyframes osh-pulse { 0%,100%{opacity:1;} 50%{opacity:0.7;} }
 
 .nov-narrow-th {
@@ -3275,7 +3240,7 @@ body.dark-mode .tooltip-content::after {
 .p-project-card tbody tr:nth-child(even) { background: rgba(0,0,0,0.018); }
 body.dark-mode .p-project-card tbody tr:nth-child(even) { background: rgba(255,255,255,0.03); }
 
-.p-project-card tr.p-editing { background: #f1f8e9 !important; box-shadow: inset 3px 0 0 #2e7d32; }
+.p-project-card tr.p-editing { background: #f1f8e9 !important; }
 body.dark-mode .p-project-card tr.p-editing { background: rgba(27,94,32,0.25) !important; }
 .p-project-card tr.p-editing td:first-child { background: #f1f8e9 !important; }
 body.dark-mode .p-project-card tr.p-editing td:first-child { background: rgba(27,94,32,0.25) !important; }
@@ -5772,7 +5737,7 @@ body.dark-mode .ltadl[data-mode="scheduled"] .ltadl-pill input:checked+span{back
     transition:background 0.12s;
 }
 .lta-cb-item:hover { background:#e8f5e9; }
-.lta-cb-item input[type=checkbox] { width:13px; height:13px; accent-color:#2e7d32; flex-shrink:0; }
+.lta-cb-item input[type=checkbox] { flex-shrink:0; }
 .lta-cb-item.hidden { display:none !important; }
 
 /* ── kpm-marquee-style  (was: marquee CSS in script.js) ── */
@@ -6946,22 +6911,24 @@ body.dark-mode .ckpm-ck, body.dark-mode .ckpm-st.ok { color: #81c784; }
 .env-tbl.doe-clean tbody tr:hover td { background: var(--hover-bg, #fafcfa); }
 .env-tbl.doe-clean td.doe-nm { text-align: left; padding-left: 16px; font-weight: 500; color: var(--text-primary); position: sticky; left: 0; z-index: 5; white-space: nowrap; }
 .doe-nm i.fa-leaf { color: #a9b5ad; font-size: 12px; margin-right: 8px; }
-.doe-tag { margin-left: 8px; font-size: 9px; font-weight: 700; letter-spacing: .04em; color: #c62828; border: 1px solid #efb7b7; border-radius: 10px; padding: 1px 7px; vertical-align: middle; }
-.doe-ok { color: var(--text-primary); }
+.doe-ok { color: var(--text-primary); font-size: 13px; font-weight: 500; }
 .doe-ok i { color: #2e7d32; margin-right: 6px; font-size: 13px; }
-.doe-late { color: #c62828; font-size: 12px; font-weight: 600; }
+.doe-late { color: #c62828; font-size: 13px; font-weight: 500; }
 .doe-late i { margin-right: 5px; }
-.doe-soon { color: #8a948d; font-size: 12px; }
-.env-tbl.doe-clean td.doe-x { color: #8a948d; font-style: italic; font-size: 12.5px; }
+.doe-soon { color: #8a948d; font-size: 13px; font-weight: 500; }
+.env-tbl.doe-clean td.doe-x { color: #8a948d; font-style: italic; font-size: 13px; font-weight: 500; }
 .doe-x i { margin-right: 6px; font-style: normal; }
+.doe-x .status-badge { font-style: normal; }
 .doe-clean input[type="date"].doe-in { width: 140px; padding: 5px 8px; border: 1px solid #c8d2cb; border-radius: 6px; background: var(--bg-card); color: var(--text-primary); font: inherit; font-size: 12.5px; text-align: center; }
 .doe-clean input[type="date"].doe-in:focus { outline: none; border-color: #2e7d32; box-shadow: none; }
 body.dark-mode .env-tbl.doe-clean th { border-bottom-color: #2f4034; }
 body.dark-mode .env-tbl.doe-clean td { border-bottom-color: #2a3a2f; }
 body.dark-mode .env-tbl.doe-clean tbody tr:nth-child(odd), body.dark-mode .env-tbl.doe-clean tbody tr:nth-child(even) { background: var(--bg-card); }
+/* Zebra striping */
+.env-tbl.doe-clean tr:nth-child(odd) td { background: #f4f8f4; }
+body.dark-mode .env-tbl.doe-clean tr:nth-child(odd) td { background: #212d25; }
 body.dark-mode .doe-ok i { color: #81c784; }
 body.dark-mode .doe-late { color: #ef9a9a; }
-body.dark-mode .doe-tag { color: #ef9a9a; border-color: #6b3a3a; }
 body.dark-mode .doe-clean input[type="date"].doe-in { border-color: #3a4d3f; }
 
 
@@ -9155,9 +9122,9 @@ body.dark-mode .env-sum-kpm :is(.esk-cards > div > div, .esk-cards-flat > div) {
 
 /* ═══ Score tables (KPM, GOT, Corporate KPM): uniform cells, only the NUMBER is colored ═══════════
    ok = green · mid = amber · bad = red. Same colors are used by the YTD Summary percentages.      */
-.rpt-wrap.rpt-score { --sc-cell: #ffffff; --sc-ok: #2e7d32; --sc-mid: #b26a00; --sc-bad: #c62828; --sc-none: #9aa59c; }
+.rpt-wrap.rpt-score { --sc-cell: #ffffff; --sc-lbl: #1f2d23; --sc-ok: #2e7d32; --sc-mid: #b26a00; --sc-bad: #c62828; --sc-none: #9aa59c; }
 body.dark-mode .rpt-wrap.rpt-score,
-body.dark-mode .rpt-pct { --sc-cell: var(--bg-card, #1e2a22); --sc-ok: #66bb6a; --sc-mid: #ffca28; --sc-bad: #ef5350; --sc-none: #6b7f70; }
+body.dark-mode .rpt-pct { --sc-cell: var(--bg-card, #1e2a22); --sc-lbl: #e8f5e9; --sc-ok: #66bb6a; --sc-mid: #ffca28; --sc-bad: #ef5350; --sc-none: #6b7f70; }
 
 .rpt-wrap.rpt-score .rpt-card .rpt-table tbody tr td:not(.off) {
     background: var(--sc-cell) !important;
@@ -9168,8 +9135,16 @@ body.dark-mode .rpt-pct { --sc-cell: var(--bg-card, #1e2a22); --sc-ok: #66bb6a; 
 .rpt-wrap.rpt-score .rpt-card .rpt-table tbody tr td.bad:not(.off)  { color: var(--sc-bad)  !important; font-weight: 700 !important; }
 .rpt-wrap.rpt-score .rpt-card .rpt-table tbody tr td.none:not(.off),
 .rpt-wrap.rpt-score .rpt-card .rpt-table tbody tr td.future:not(.off) { color: var(--sc-none) !important; font-weight: 400 !important; }
-/* OVERALL AVG row: same uniform cells, slightly heavier numbers; the label cell stays green */
+/* OVERALL AVG row: same uniform cells, slightly heavier numbers; the label cell has no fill and is aligned right */
 .rpt-wrap.rpt-score .rpt-card .rpt-table tbody tr.total td:not(.off) { font-weight: 800 !important; }
+.rpt-wrap.rpt-score .rpt-card .rpt-table tbody tr.total th {
+    background: var(--sc-cell) !important;
+    color: var(--sc-lbl) !important;
+    text-align: right !important;
+    padding-right: 14px !important;
+    font-weight: 800 !important;
+    border-color: var(--tbl-line, #e3e9e4) !important;
+}
 
 /* YTD Summary percentages */
 .rpt-pct { font-weight: 800; }
@@ -9246,15 +9221,17 @@ body.dark-mode .project-dates { background: none; }
 }
 body.dark-mode .project-dates .date-label { color: var(--text-secondary); }
 
-/* Status badge: On-Going and Finished are quiet (icon + text), Work Stoppage is the only solid one so it stands out. */
-.status-badge { display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-shadow: none; border-radius: 6px; font-weight: 600; min-width: 118px; padding: 6px 10px; font-size: 0.72rem; text-transform: none; letter-spacing: 0; }
-.status-badge i { font-size: 0.8rem; }
-.status-badge.status-ongoing   { background: transparent; color: #1565c0; }
-.status-badge.status-finished  { background: transparent; color: #607d8b; }
-.status-badge.status-stoppage  { background: #c62828; color: #fff; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.64rem; }
-body.dark-mode .status-badge.status-ongoing   { background: transparent; color: #90caf9; }
-body.dark-mode .status-badge.status-finished  { background: transparent; color: #b0bec5; }
-body.dark-mode .status-badge.status-stoppage  { background: #d84343; color: #fff; }
+/* Status badge: one look everywhere (On-Going, Work Stoppage, Finished). Only the color changes. */
+.status-badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 0.68rem; font-weight: 600; line-height: 1.4; white-space: nowrap; text-align: center; text-transform: none; letter-spacing: 0; box-shadow: none; vertical-align: middle; font-style: normal; }
+.status-badge.clickable { cursor: pointer; }
+.status-badge.clickable:hover { filter: brightness(0.95); }
+.project-locked .status-badge.clickable { cursor: not-allowed; }
+.status-badge.status-ongoing  { background: #e3f2fd; color: #1565c0; }
+.status-badge.status-stoppage { background: #ffebee; color: #c62828; }
+.status-badge.status-finished { background: #eceff1; color: #546e7a; }
+body.dark-mode .status-badge.status-ongoing  { background: #1a2a3d; color: #90caf9; }
+body.dark-mode .status-badge.status-stoppage { background: #47181f; color: #ef9a9a; }
+body.dark-mode .status-badge.status-finished { background: #2b3438; color: #b0bec5; }
 
 /* ═══════════════════════════════════════════════════════════════
    LOGIN — fullscreen layout + Facebook-style floating-label fields
@@ -9370,15 +9347,15 @@ body.dark-mode textarea:focus, body.dark-mode textarea:focus-visible {
 
 /* ── LTA entry modal tabs ── */
 .lta-tabs { display:flex; gap:2px; padding:0 20px; border-bottom:2px solid #e8f5e9; background:var(--bg-card); overflow-x:auto; }
-.lta-tab { padding:9px 13px; border:0; border-bottom:3px solid transparent; margin-bottom:-2px; background:none; color:#666; font-size:0.72rem; font-weight:700; cursor:pointer; white-space:nowrap; }
-.lta-tab i { margin-right:4px; }
-.lta-tab:hover { color:#2e7d32; }
-.lta-tab.on { color:#2e7d32; border-bottom-color:#2e7d32; }
-.lta-tab.na::after { content:'N/A'; margin-left:6px; padding:0 6px; border-radius:8px; background:#e8f5e9; color:#2e7d32; font-size:0.6rem; }
+.lta-tab { padding:6px 10px; border:0; border-bottom:3px solid transparent; margin-bottom:-2px; background:none; color:#666; font-size:0.85rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+.lta-tab i { margin-right:5px; }
+.lta-tab:hover { color:#1b5e20; }
+.lta-tab.on { background:#1b5e20; color:#fff; border-bottom-color:#1b5e20; border-radius:6px 6px 0 0; }
+.lta-tab.on i { color:#7ed957; }
+.lta-tab.on:hover { color:#fff; }
 body.dark-mode .lta-tabs { border-bottom-color:#3a4a3a; }
 body.dark-mode .lta-tab { color:#aaa; }
-body.dark-mode .lta-tab.on { color:#66bb6a; border-bottom-color:#66bb6a; }
-body.dark-mode .lta-tab.na::after { background:#1a2e1a; color:#66bb6a; }
+body.dark-mode .lta-tab.on { background:#2e7d32; color:#fff; border-bottom-color:#2e7d32; }
 
 /* ── Incident & Accident Registry modal: fixed (max) size, same on every tab ── */
 #lta-entry-modal .mdl {
@@ -9879,14 +9856,15 @@ body.dark-mode .got-tbl tr.dp-gap td, body.dark-mode .got-tbl tr.dp-gap td.got-t
 .env-one .ix-db884ea button { padding: 3px 12px !important; }
 
 /* Permits tab: compact rows, own scroll area, sticky header (scoped to .permits-tbl / .permits-wrap only) */
-.table-container.permits-wrap { max-height: calc(100vh - 250px); min-height: 280px; overflow: auto; }
+.table-container.permits-wrap { max-height: calc(100vh - 250px); min-height: 280px; overflow: auto; padding: 0 !important; scroll-padding: 0; } /* no padding: rows would scroll through that strip above the sticky header */
 table.got-tbl.permits-tbl th { padding: 5px 8px !important; position: sticky; top: 0; z-index: 6; box-shadow: 0 1px 0 var(--tbl-line); }
 table.got-tbl.permits-tbl th:first-child { left: 0; z-index: 7; }
 table.got-tbl.permits-tbl td { padding: 3px 10px !important; line-height: 1.25; }
+table.got-tbl.permits-tbl td:first-child { font-size: 0.68rem !important; }  /* permit name column: a bit smaller so it matches the other cells */
 table.got-tbl.permits-tbl td input:not([type=checkbox]) { height: 26px; padding-top: 2px !important; padding-bottom: 2px !important; box-sizing: border-box; }
 
 /* Internal ESH Audit Report (regional table): compact rows, scroll area, sticky header, scores centered (scoped to .audit-sum-tbl / .audit-sum-wrap only) */
-.table-container.audit-sum-wrap { max-height: calc(100vh - 250px); min-height: 280px; overflow: auto; }
+.table-container.audit-sum-wrap { max-height: calc(100vh - 250px); min-height: 280px; overflow: auto; padding: 0 !important; scroll-padding: 0; }
 table.got-tbl.audit-sum-tbl thead { position: sticky; top: 0; z-index: 6; }
 table.got-tbl.audit-sum-tbl thead tr:last-child th { box-shadow: 0 1px 0 var(--tbl-line); }
 table.got-tbl.audit-sum-tbl th { padding: 4px 6px !important; }
@@ -9896,3 +9874,294 @@ table.got-tbl.audit-sum-tbl td input { display: block; margin: 0 auto; height: 2
 /* Injury / Illness rate table (Fatality, LTIR, TRIR, SR): zebra striping */
 .inj-rate-tbl tbody tr:nth-child(even) td { background: #eef5ef !important; }
 body.dark-mode .inj-rate-tbl tbody tr:nth-child(even) td { background: #1f2e22 !important; }
+
+
+/* ── EMB modal: one project at a time (Prev/Next) + facility toggles, fixed modal size ── */
+#emb-modal .mdl { height: auto; max-height: 90vh; }
+#emb-modal .emb-sticky { position: sticky; top: 0; z-index: 3; background: #fff; border-bottom: 1px solid #e0efe1; }
+#emb-modal .emb-nav { display: flex; align-items: center; gap: 10px; padding: 8px 12px; }
+#emb-modal .emb-nav-btn { flex: 0 0 auto; min-width: 84px; padding: 5px 14px; border-radius: 999px; border: none; background: #f9a825; color: #3e2c00; font-size: 0.72rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+#emb-modal .emb-nav-btn:hover:not(:disabled) { background: #f57f17; color: #fff; }
+#emb-modal .emb-nav-btn:disabled { background: #e0e0e0; color: #9e9e9e; opacity: 0.6; cursor: not-allowed; }
+#emb-modal .emb-nav-mid { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; }
+#emb-modal .emb-nav-title { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+#emb-modal .emb-nav-name { font-size: 0.78rem; font-weight: 800; color: #1b5e20; word-break: break-word; }
+#emb-modal .emb-nav-count { font-size: 0.64rem; color: #6b7770; font-weight: 600; background: #f1f8e9; border: 1px solid #c8e6c9; border-radius: 20px; padding: 1px 8px; white-space: nowrap; }
+#emb-modal .emb-badge { background: #fff8e1; color: #f57f17; border: 1px solid #ffe082; border-radius: 3px; padding: 1px 5px; font-size: 0.55rem; white-space: nowrap; font-weight: 600; }
+#emb-modal .emb-fac-bar { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 8px; }
+#emb-modal .emb-fac-btn { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; border: 1px solid #c8e6c9; background: #f5f5f5; color: #555; font-size: 0.66rem; font-weight: 600; cursor: pointer; }
+#emb-modal .emb-fac-btn:hover { background: #e8f5e9; }
+#emb-modal .emb-fac-btn.on { background: #c8e6c9; border-color: #81c784; color: #1b5e20; font-weight: 800; }
+#emb-modal .emb-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; background: #f9a825; }
+#emb-modal .emb-dot.done   { background: #43a047; }
+#emb-modal .emb-dot.exempt { background: #9e9e9e; }
+#emb-modal .emb-dot.miss   { background: #f9a825; }
+#emb-modal .emb-dot.late   { background: #e53935; }
+#emb-modal .emb-body { padding: 10px 12px 12px; }
+/* Black text for Facility / Submission Date / Reference No. values (light mode). N/A (exempt) entries stay grey. */
+body:not(.dark-mode) #emb-modal #emb-modal-table td:not(:has(input[data-exempt]:checked)) .emb-entry-block input[type="text"],
+body:not(.dark-mode) #emb-modal #emb-modal-table td:not(:has(input[data-exempt]:checked)) .emb-entry-block input[type="date"] { color: #000 !important; -webkit-text-fill-color: #000 !important; }
+/* No outlines inside the EMB entry: block, inputs, Care of Client / N/A boxes, project cell. */
+#emb-modal #emb-modal-table tbody > tr > td,
+#emb-modal .emb-entry-block,
+#emb-modal .emb-entry-block input[type="text"],
+#emb-modal .emb-entry-block input[type="date"],
+#emb-modal .emb-ex-row > div { border: none !important; }
+/* Easier to read: bigger text, lighter weight inside the EMB entry. */
+#emb-modal .emb-entry-block input[type="text"],
+#emb-modal .emb-entry-block input[type="date"] { font-size: 0.78rem !important; font-weight: 500 !important; padding: 5px 8px !important; }
+#emb-modal .emb-entry-block > div > div[style*="font-size:0.6rem"] { font-size: 0.68rem !important; font-weight: 500 !important; margin-bottom: 4px !important; }
+/* Spacing inside the EMB entry. */
+#emb-modal .emb-entry-block { padding: 14px 16px !important; }
+#emb-modal .emb-entry-block > div[style*="margin-bottom:6px"] { margin-bottom: 12px !important; }
+#emb-modal .emb-ex-row { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 2px 0 12px; }
+/* The table is still built the same way; only the active project column is shown. */
+#emb-modal #emb-modal-table { width: 100% !important; min-width: 0 !important; border-collapse: collapse; }
+#emb-modal #emb-modal-table thead { display: none; }
+#emb-modal #emb-modal-table tbody > tr > td { display: none; width: auto !important; min-width: 0 !important; max-width: none !important; }
+#emb-modal #emb-modal-table tbody > tr > td.emb-active { display: table-cell; }
+#emb-modal #emb-modal-table .emb-entry-block { display: none; }
+#emb-modal #emb-modal-table .emb-entry-block.emb-fac-active { display: block; }
+
+/* ── One checkbox look for the whole dashboard (size + color). Change it here only.
+      :where() keeps the specificity at zero, so any component rule (toggle switches, compact forms) still wins. ── */
+:root { --esh-cb-size: 16px; --esh-cb-color: #2e7d32; }
+:where(input[type="checkbox"]) { width: var(--esh-cb-size); height: var(--esh-cb-size); accent-color: var(--esh-cb-color); }
+
+/* Compliance modal (GOT): color only the value pill, not the whole project cell. "Not yet filled" cells stay fully pink. */
+.got-tbl-pill td.got-r100, .got-tbl-pill td.got-r075, .got-tbl-pill td.got-r050, .got-tbl-pill td.got-r025 { background: transparent !important; }
+.got-tbl-pill td.got-td-month { vertical-align: middle; text-align: center; padding: 8px 4px; }
+/* Score: only the font color changes, the cell and the select have no fill. */
+.got-tbl-pill td.got-td-month .got-sel, .got-tbl-pill td.got-td-month .got-sel:disabled { background-color: transparent; font-weight: 700; }
+.got-tbl-pill td.got-td-month .got-sel:disabled { opacity: 1; cursor: default; border-color: transparent; -webkit-appearance: none; appearance: none; background-image: none; text-align: center; text-align-last: center; }
+.got-tbl-pill td.got-r100 .got-sel { color: #2e7d32; }
+.got-tbl-pill td.got-r075 .got-sel { color: #558b2f; }
+.got-tbl-pill td.got-r050 .got-sel { color: #e65100; }
+.got-tbl-pill td.got-r025 .got-sel { color: #c62828; }
+body.dark-mode .got-tbl-pill td.got-r100 .got-sel { color: #88dd8e; }
+body.dark-mode .got-tbl-pill td.got-r075 .got-sel { color: #aed581; }
+body.dark-mode .got-tbl-pill td.got-r050 .got-sel { color: #ffb74d; }
+body.dark-mode .got-tbl-pill td.got-r025 .got-sel { color: #ef9a9a; }
+/* Compliance modal: smaller text and tighter rows so the table is shorter. */
+.got-tbl-pill td { font-size: 0.7rem; line-height: 1.3; }
+.got-tbl-pill td.got-td-month { padding: 4px; }
+.got-tbl-pill td.got-td-avg { font-size: 0.74rem; }
+/* Compliance modal: no tinted cells. Only the header titles (and the category band) have color. */
+.got-tbl-pill tbody tr, .got-tbl-pill tbody tr:nth-child(odd), .got-tbl-pill tbody tr:nth-child(even) { background: var(--bg-card) !important; }
+.got-tbl-pill td.got-td-avg { background: transparent !important; }
+
+/* KPM modal (region) — Improvement Plan fields: no outline, resize grip, or chevron when read-only (view mode).
+   Edit mode is untouched because these fields are only :disabled in view mode. */
+#kpm-month-modal :is(textarea, input[type="date"], select)[name^="kpmmod-imp-"]:disabled {
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    resize: none !important;
+    opacity: 1;
+}
+#kpm-month-modal input[type="date"][name^="kpmmod-imp-"]:disabled::-webkit-calendar-picker-indicator { display: none; }
+
+
+/* ── Shared modal info bar + value pills (built by eshInfoBar / eshInfoField / eshPill in script.js) ──
+      Used by the Compliance and KPM modals. Change the look here only. */
+.mdl-info { background:#f1f8e9; border-bottom:1px solid #c8e6c9; padding:6px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.mdl-info-lbl { font-size:0.64rem; color:#2e7d32; font-weight:600; white-space:nowrap; }
+.mdl-info-lbl i { margin-right:5px; }
+.mdl-info-field { display:flex; align-items:center; gap:5px; white-space:nowrap; font-size:0.67rem; color:#555; margin-left:4px; }
+.mdl-info-field > i { color:#2e7d32; font-size:0.7rem; }
+.mdl-info-key { font-weight:700; font-size:0.64rem; color:#444; }
+.mdl-scroll-hint { font-size:0.6rem; color:#888; margin-left:auto; white-space:nowrap; }
+.mdl-scroll-hint[hidden] { display:none; }
+.mdl-scroll-hint i { color:#2e7d32; margin-right:4px; }
+.mdl-pill { border:1px solid; border-radius:4px; padding:3px 7px; font-size:0.67rem; font-weight:700; font-variant-numeric:tabular-nums; }
+.mdl-pill.t-ok   { color:#1b5e20; background:#c8e6c9; border-color:#a5d6a7; }
+.mdl-pill.t-good { color:#2e7d32; background:#dcedc8; border-color:#c5e1a5; }
+.mdl-pill.t-warn { color:#e65100; background:#ffe0b2; border-color:#ffcc80; }
+.mdl-pill.t-bad  { color:#c62828; background:#ffcdd2; border-color:#ef9a9a; }
+.mdl-pill.t-none { color:#757575; background:#eeeeee; border-color:#e0e0e0; }
+body.dark-mode .mdl-info { background:#333f25; border-bottom-color:#3f5c40; }
+body.dark-mode .mdl-info-lbl, body.dark-mode .mdl-info-field > i, body.dark-mode .mdl-scroll-hint i { color:#88dd8e; }
+body.dark-mode .mdl-info-field, body.dark-mode .mdl-info-key { color:#c5d3ca; }
+body.dark-mode .mdl-scroll-hint { color:#9fb0a5; }
+body.dark-mode .mdl-pill.t-ok   { color:#88dd8e; background:#334b34; border-color:#3f5c40; }
+body.dark-mode .mdl-pill.t-good { color:#aed581; background:#3d4b2d; border-color:#4a5c36; }
+body.dark-mode .mdl-pill.t-warn { color:#ffb74d; background:#534d1c; border-color:#6b6325; }
+body.dark-mode .mdl-pill.t-bad  { color:#ef9a9a; background:#501b20; border-color:#6b2a30; }
+body.dark-mode .mdl-pill.t-none { color:#aaa; background:#313131; border-color:#444; }
+
+/* Details / Facts of Incident: mas malaking font at spacing para madaling basahin */
+#lta-entry-modal textarea[name="ltamod-detailsFacts"] {
+    padding: 8px 10px;
+    text-align: justify;
+}
+
+/* LTA view mode: plain bullet list, uniform black text (walang pill) */
+.lta-plain-list { margin: 2px 0; padding-left: 16px; list-style: disc; }
+.lta-plain-list li, .lta-plain-empty { font-size: 0.8rem; font-weight: 400; font-style: normal; color: #000; line-height: 1.5; }
+body.dark-mode .lta-plain-list li, body.dark-mode .lta-plain-empty { color: var(--text-primary, #e8e8e8); }
+
+/* LTA entry modal: uniform field font (same size/style as the bullet lists) */
+#lta-entry-modal .lta-field :is(input[type="text"], input[type="date"], select, textarea) {
+    font-size: 0.8rem; font-weight: 400; font-style: normal; line-height: 1.5;
+}
+#lta-entry-modal .lta-field textarea { line-height: 1.6; }
+/* View mode (disabled fields): black text, not gray, so managers can read it */
+#lta-entry-modal .lta-field :is(input, select, textarea):disabled {
+    cursor: default; opacity: 1;
+}
+body:not(.dark-mode) #lta-entry-modal .lta-field :is(input, select, textarea):disabled {
+    color: #000; -webkit-text-fill-color: #000;
+}
+body.dark-mode #lta-entry-modal .lta-field :is(input, select, textarea):disabled {
+    color: #f2f2f2; -webkit-text-fill-color: #f2f2f2;
+}
+#lta-entry-modal .lta-field :is(input, select, textarea):disabled::placeholder { color: transparent; }
+
+/* ══ LTA entry modal: iisang laki ng font sa lahat ng text (size lang; icons at kulay hindi ginagalaw) ══
+   Palitan lang ang --lta-fs para baguhin ang laki ng lahat ng text sa modal. */
+#lta-entry-modal { --lta-fs: 0.8rem; }
+#lta-entry-modal,
+#lta-entry-modal *:not(i):not(.fas):not(.far):not(.fab):not(.ltadl-result):not(.ltadl-result *) {
+    font-size: var(--lta-fs) !important;
+}
+
+/* ══ LTA entry modal: mas maluwag na spacing (hindi dikit-dikit) ══ */
+#lta-entry-modal .lta-tab-pane { padding-top: 8px; }
+#lta-entry-modal .lta-grid { gap: 16px 20px; }
+#lta-entry-modal .lta-field { gap: 6px; }
+#lta-entry-modal .lta-field :is(input[type="text"], input[type="date"], select, textarea) { padding: 8px 10px; }
+#lta-entry-modal .lta-section-label { margin: 20px 0 6px; padding: 7px 10px; }
+#lta-entry-modal .lta-tab-pane > .lta-section-label:first-child { margin-top: 4px; }
+#lta-entry-modal .lta-plain-list { margin: 4px 0; padding-left: 20px; }
+#lta-entry-modal .lta-plain-list li { margin-bottom: 4px; }
+#lta-entry-modal .lta-cb-item { padding: 8px 12px; }
+#lta-entry-modal .lta-ca-list { gap: 16px; }
+#lta-entry-modal .lta-ca-row { gap: 14px; }
+#lta-entry-modal .ltadl { gap: 16px; }
+#lta-entry-modal .ltadl-modes { gap: 10px; }
+#lta-entry-modal .ltadl-types { gap: 10px; }
+#lta-entry-modal .ltadl-fields { gap: 16px; }
+#lta-entry-modal .ltadl-mode { padding: 10px 14px; gap: 4px; }
+#lta-entry-modal .ltadl-note { padding: 10px 14px; }
+#lta-entry-modal .lta-field > span[style*="margin:6px 0 2px"] { margin: 12px 0 4px !important; }
+
+/* ══ LTA modal: plain section headers + one column header for Corrective / Preventive Action ══ */
+#lta-entry-modal .lta-section-label {
+    background: none !important; border-left: 0; border-radius: 0;
+    border-bottom: 1px solid #ddd; color: #000;
+    padding: 0 0 6px; margin: 22px 0 6px;
+    font-weight: 700; text-transform: none; letter-spacing: 0;
+}
+body.dark-mode #lta-entry-modal .lta-section-label { color: #f2f2f2; border-bottom-color: #3a4a3a; }
+.lta-ca-head {
+    display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1.3fr) minmax(0, 1fr) auto;
+    gap: 14px; position: sticky; top: 0; z-index: 1;
+    background: var(--bg-card, #fff); padding-bottom: 6px;
+    font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.lta-ca-head.ro { grid-template-columns: minmax(0, 3fr) minmax(0, 1.3fr) minmax(0, 1fr); }
+.lta-ca-head-sp { width: 28px; }
+body.dark-mode .lta-ca-head { color: #aaa; }
+@media (min-width: 701px) {
+    #lta-entry-modal .lta-ca-row .lta-field > label { display: none; }
+}
+@media (max-width: 700px) {
+    .lta-ca-head { display: none; }
+}
+
+/* ══ LTA modal view mode: gray box, walang outline ══ */
+#lta-entry-modal { --fld-gray: #f3f4f6; }
+body.dark-mode #lta-entry-modal { --fld-gray: #2b2f2c; }
+#lta-entry-modal .lta-field :is(input, select, textarea):disabled {
+    background: var(--fld-gray) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 8px 10px !important;
+    resize: none !important;
+}
+#lta-entry-modal .lta-field select:disabled {
+    -webkit-appearance: none; appearance: none; background-image: none !important;
+}
+/* Walang laman na date / dropdown: huwag magpakita ng "mm/dd/yyyy" o "Select" */
+#lta-entry-modal .lta-field input[type="date"]:disabled[value=""] {
+    color: transparent !important; -webkit-text-fill-color: transparent !important;
+}
+#lta-entry-modal .lta-field select:disabled:has(option:checked[value=""]) {
+    color: transparent !important; -webkit-text-fill-color: transparent !important;
+}
+/* Status: Open = pula, Closed = berde */
+#lta-entry-modal .lta-field select[name="ltamod-status"][data-st="Open"] {
+    color: #c62828 !important; -webkit-text-fill-color: #c62828 !important; font-weight: 600 !important;
+}
+#lta-entry-modal .lta-field select[name="ltamod-status"][data-st="Closed"] {
+    color: #2e7d32 !important; -webkit-text-fill-color: #2e7d32 !important; font-weight: 600 !important;
+}
+body.dark-mode #lta-entry-modal .lta-field select[name="ltamod-status"][data-st="Open"] {
+    color: #ef5350 !important; -webkit-text-fill-color: #ef5350 !important;
+}
+body.dark-mode #lta-entry-modal .lta-field select[name="ltamod-status"][data-st="Closed"] {
+    color: #66bb6a !important; -webkit-text-fill-color: #66bb6a !important;
+}
+
+/* ══ LTA modal: section headers = same style as field labels (ROOT CAUSE, ACTION, etc.) ══ */
+#lta-entry-modal .lta-section-label {
+    border-bottom: 0;
+    padding: 0;
+    margin: 22px 0 4px;
+    color: #666;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+body.dark-mode #lta-entry-modal .lta-section-label { color: #aaa; }
+#lta-entry-modal .lta-section-label > span > i { display: none; }
+
+/* ══ LTA modal: view-mode dates ══ */
+#lta-entry-modal .lta-date-view { display: block; padding: 8px 10px; border-radius: 5px; background: var(--fld-gray); line-height: 1.5; color: #000; }
+body.dark-mode #lta-entry-modal .lta-date-view { color: #f2f2f2; }
+#lta-entry-modal .lta-field select[name="ltamod-status"][data-st="Ongoing"] {
+    color: #b45309 !important; -webkit-text-fill-color: #b45309 !important; font-weight: 600 !important;
+}
+body.dark-mode #lta-entry-modal .lta-field select[name="ltamod-status"][data-st="Ongoing"] {
+    color: #ffb74d !important; -webkit-text-fill-color: #ffb74d !important;
+}
+
+/* ══ LTA modal: Corrective / Preventive Action table, same look as the Environmental Monitoring tables ══ */
+#lta-entry-modal { --ca-ln: #c8e6c9; --ca-head: #9ecf9b; --ca-head-t: #0b3d12; --ca-row: #fff; }
+body.dark-mode #lta-entry-modal { --ca-ln: rgba(46, 125, 50, 0.45); --ca-head: #1f4020; --ca-head-t: #a5d6a7; --ca-row: var(--bg-card); }
+#lta-entry-modal .lta-ca-list { gap: 0; padding-right: 0; border: 1px solid var(--ca-ln); border-radius: 8px; }
+#lta-entry-modal .lta-ca-head { gap: 0; padding: 0; background: var(--ca-head); color: var(--ca-head-t); font-weight: 800; text-transform: none; letter-spacing: 0; text-align: center; border-bottom: 1px solid var(--ca-ln); }
+#lta-entry-modal .lta-ca-head > span { padding: 8px 11px; border-right: 1px solid var(--ca-ln); }
+#lta-entry-modal .lta-ca-head > .lta-ca-head-sp { padding: 0; border-right: 0; }
+#lta-entry-modal .lta-ca-head.ro > span:last-child { border-right: 0; }
+#lta-entry-modal .lta-ca-row { gap: 0; align-items: stretch; background: var(--ca-row); border-bottom: 1px solid var(--ca-ln); }
+#lta-entry-modal .lta-ca-row:last-child { border-bottom: 0; }
+#lta-entry-modal .lta-ca-row > .lta-field { padding: 8px 10px; border-right: 1px solid var(--ca-ln); }
+#lta-entry-modal .lta-ca-row.ro > .lta-field:last-child { border-right: 0; }
+#lta-entry-modal .lta-ca-row > .lta-ca-del { align-self: center; margin: 0 6px; }
+@media (max-width: 700px) {
+    #lta-entry-modal .lta-ca-row > .lta-field { border-right: 0; }
+}
+
+/* Corrective / Preventive Action table: no outline on the text areas, placeholders stay visible */
+#lta-entry-modal .lta-ca-row textarea { border: 0; outline: 0; box-shadow: none; background: var(--fld-gray); resize: vertical; }
+#lta-entry-modal .lta-ca-row textarea:focus { background: rgba(126, 217, 87, 0.18); }
+#lta-entry-modal .lta-ca-row textarea:not(:disabled)::placeholder { color: #9ca3af; opacity: 1; }
+
+/* LTA modal: Remarks box is not full width */
+#lta-entry-modal .lta-field:has(> [name="ltamod-remarks"]) { grid-column: 1 / -1; max-width: 640px; }
+/* LTA modal: factor dropdown options (People, Equipment, Materials, Environment, Organizational) are not bold */
+#lta-entry-modal .lta-cb-item { font-weight: 400; }
+/* only the options inside the list are smaller (the selected value in the text box stays the same) */
+#lta-entry-modal#lta-entry-modal .lta-cb-panel .lta-cb-item,
+#lta-entry-modal#lta-entry-modal .lta-cb-panel .lta-cb-item *:not(i) { font-size: 0.7rem !important; }
+#lta-entry-modal .lta-cb-item { --esh-cb-size: 14px; }
+
+/* LTA modal: Days Lost - Scheduled charge item and the result bar are not full width */
+#lta-entry-modal .ltadl-sc, #lta-entry-modal .ltadl-result { max-width: 640px; }
+
+/* LTA modal: Days Lost note is plain text (no box), font color stays the same */
+#lta-entry-modal .ltadl-note { background: none; border: 0; border-radius: 0; padding: 0; }
