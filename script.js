@@ -9176,7 +9176,6 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                             let key = '', resVal = '';
                             if (/date of follow-?up/i.test(label)) key = 'date';
                             else if (/follow-?up by/i.test(label)) key = 'by';
-                            else if (/report close-?out date/i.test(label)) key = 'closeout';
                             else if (/ineffective/i.test(label)) { key = 'result'; resVal = LTA_FOLLOWUP_RESULTS[2]; }
                             else if (/continuous monitoring/i.test(label)) { key = 'result'; resVal = LTA_FOLLOWUP_RESULTS[1]; }
                             else if (/effective corrective action|for close-?out/i.test(label)) { key = 'result'; resVal = LTA_FOLLOWUP_RESULTS[0]; }
@@ -9346,7 +9345,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             if (sch.item) set('scheduledChargeItem', sch.item);
             if (sch.note) notes.push(sch.note);
 
-            const FUK = { result: 'Result', date: 'Date', by: 'By', closeout: 'Closeout' };
+            const FUK = { result: 'Result', date: 'Date', by: 'By' };
             fuCols.forEach((o, i) => Object.keys(o).forEach(k => set('followUp' + (i + 1) + FUK[k], o[k])));
             if (fuMeta.reason || fuMeta.car) {
                 let fi = fuCols.findIndex(o => o.result === LTA_FOLLOWUP_RESULTS[2]);
@@ -9580,13 +9579,12 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                 found.push('correctiveActions');
             }
 
-            const FUK = { result: 'Result', date: 'Date', by: 'By', closeout: 'Closeout' };
+            const FUK = { result: 'Result', date: 'Date', by: 'By' };
             (Array.isArray(a.followUps) ? a.followUps : []).forEach(f => {
                 const n = f.n; if (![1, 2, 3].includes(n)) return;
                 set(`followUp${n}Result`, one(LTA_FOLLOWUP_RESULTS, f.result));
                 set(`followUp${n}Date`, date(f.date));
                 set(`followUp${n}By`, str(f.by));
-                set(`followUp${n}Closeout`, date(f.closeout));
             });
             if (a.followUpReason || a.carNo) {
                 let fi = [1, 2, 3].find(n => r[`followUp${n}Result`] === LTA_FOLLOWUP_RESULTS[2]) || 3;
@@ -10189,7 +10187,6 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                                     <label>${ORD[n]} Follow-up</label>
                                     <select name="ltamod-${k}Result" ${dis}
                                         onchange="(function(s){var p=s.closest('.lta-field');
-                                            p.querySelector('.fu-co').style.display = s.value==='${RES[0]}' ? 'block' : 'none';
                                             p.querySelector('.fu-in').style.display = s.value==='${RES[2]}' ? 'block' : 'none';})(this)">
                                         <option value="">— Select Result —</option>
                                         ${RES.map(o => `<option value="${esc(o)}" ${res === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}
@@ -10198,10 +10195,6 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                                     <input type="date" name="ltamod-${k}Date" value="${esc(e[k + 'Date'])}" ${dis}>
                                     <span style="${sub}">Follow-up By (PM / DM / ESH Officer)</span>
                                     <input type="text" name="ltamod-${k}By" value="${esc(e[k + 'By'])}" ${dis}>
-                                    <div class="fu-co" style="display:${res === RES[0] ? 'block' : 'none'};">
-                                        <span style="${sub}">Report Close-out Date</span>
-                                        <input type="date" name="ltamod-${k}Closeout" value="${esc(e[k + 'Closeout'])}" ${dis}>
-                                    </div>
                                     <div class="fu-in" style="display:${res === RES[2] ? 'block' : 'none'};">
                                         <span style="${sub}">Reason for Ineffectiveness</span>
                                         <input type="text" name="ltamod-${k}Reason" value="${esc(e[k + 'Reason'])}" ${dis}>
@@ -10833,9 +10826,9 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
                 'occupation',
                 'rootCause',
                 'followUp1','followUp2','followUp3',
-                'followUp1Result','followUp1Date','followUp1By','followUp1Closeout','followUp1Reason','followUp1CarNo',
-                'followUp2Result','followUp2Date','followUp2By','followUp2Closeout','followUp2Reason','followUp2CarNo',
-                'followUp3Result','followUp3Date','followUp3By','followUp3Closeout','followUp3Reason','followUp3CarNo',
+                'followUp1Result','followUp1Date','followUp1By','followUp1Reason','followUp1CarNo',
+                'followUp2Result','followUp2Date','followUp2By','followUp2Reason','followUp2CarNo',
+                'followUp3Result','followUp3Date','followUp3By','followUp3Reason','followUp3CarNo',
                 'dateOfAccident','dateRTW','scheduledChargeItem',
                 'dateClosed','status','remarks'
             ];
@@ -10848,7 +10841,6 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
             // Clear conditional follow-up fields that no longer apply to the chosen Result
             [1, 2, 3].forEach(n => {
                 const r = entry['followUp' + n + 'Result'] || '';
-                if (r !== LTA_FOLLOWUP_RESULTS[0]) entry['followUp' + n + 'Closeout'] = '';
                 if (r !== LTA_FOLLOWUP_RESULTS[2]) { entry['followUp' + n + 'Reason'] = ''; entry['followUp' + n + 'CarNo'] = ''; }
             });
 
