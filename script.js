@@ -6868,7 +6868,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                         if (_calStor[actualKey] && _calStor[actualKey] !== '') cF++;
                     }
                 });
-                calSubScores.push(cT > 0 ? cF / cT : 1); // no planned rows this year = fully exempt
+                if (cT > 0) calSubScores.push(cF / cT); // nothing required here = exempt (not counted as 100%)
             });
             if (calSubScores.length > 0) {
                 areaScores.push(calSubScores.reduce((a, b) => a + b, 0) / calSubScores.length);
@@ -7226,7 +7226,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                         const actualKey = `${_calYear}|${tt}|${proj.name}|${ti}|${mi}|actual`;
                         if (_calStor[actualKey] && _calStor[actualKey] !== '') cF++;
                     });
-                    calSubScores.push(cT > 0 ? cF / cT : 1); // no planned rows this month = exempt
+                    if (cT > 0) calSubScores.push(cF / cT); // nothing required here = exempt (not counted as 100%)
                 });
                 if (calSubScores.length > 0) {
                     areaScores.push(calSubScores.reduce((a, b) => a + b, 0) / calSubScores.length);
@@ -7349,7 +7349,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                         const actualKey = `${_calYear}|${tt}|${proj.name}|${ti}|${mi}|actual`;
                         if (_calStor[actualKey] && _calStor[actualKey] !== '') cF++;
                     });
-                    calSubScores.push(cT > 0 ? cF / cT : 1);
+                    if (cT > 0) calSubScores.push(cF / cT); // nothing required here = exempt (not counted as 100%)
                 });
                 if (calSubScores.length > 0) {
                     areaScores.push(calSubScores.reduce((a, b) => a + b, 0) / calSubScores.length);
