@@ -9155,43 +9155,63 @@ body.dark-mode .rpt-pct.ok  { color: #66bb6a; }
 body.dark-mode .rpt-pct.mid { color: #ffca28; }
 body.dark-mode .rpt-pct.bad { color: #ef5350; }
 
-/* ═══ Tooltips — dark rounded box, arrow, no border ═══════════════════════════════════════════════ */
+/* ═══ Tooltips — option D: white card in light mode, charcoal card in dark mode, thin border, arrow ═══
+   Colors: light  bg #ffffff / text #1f2a22 / border #c9d5cc
+           dark   bg #2b312d / text #eef2ef / border #4a524c
+   The arrow is a rotated square so it can carry the same border as the box.                         */
 #esh-tip {
+    --tip-bg: #ffffff; --tip-fg: #1f2a22; --tip-bd: #c9d5cc;
     position: fixed; left: 0; top: 0; z-index: 2147483000;
-    max-width: 280px; padding: 7px 13px;
-    background: #0f0f0f; color: #fff;
-    font-family: inherit; font-size: 0.76rem; font-weight: 600; line-height: 1.35;
+    max-width: 280px; padding: 7px 12px;
+    background: var(--tip-bg); color: var(--tip-fg);
+    font-family: inherit; font-size: 0.76rem; font-weight: 500; line-height: 1.5;
     white-space: pre-line; overflow-wrap: anywhere;
-    border: none; border-radius: 10px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+    border: 1px solid var(--tip-bd); border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
     pointer-events: none;
     opacity: 0; visibility: hidden; transition: opacity 0.12s ease;
 }
+body.dark-mode #esh-tip { --tip-bg: #2b312d; --tip-fg: #eef2ef; --tip-bd: #4a524c; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6); }
 #esh-tip.on { opacity: 1; visibility: visible; }
-#esh-tip::after { content: ''; position: absolute; width: 0; height: 0; border: 6px solid transparent; }
-#esh-tip[data-side="right"]::after  { left: -6px;  top: var(--ao, 50%);  margin-top: -6px;  border-left-width: 0;  border-right-color: #0f0f0f; }
-#esh-tip[data-side="left"]::after   { right: -6px; top: var(--ao, 50%);  margin-top: -6px;  border-right-width: 0; border-left-color: #0f0f0f; }
-#esh-tip[data-side="top"]::after    { bottom: -6px; left: var(--ao, 50%); margin-left: -6px; border-bottom-width: 0; border-top-color: #0f0f0f; }
-#esh-tip[data-side="bottom"]::after { top: -6px;   left: var(--ao, 50%); margin-left: -6px; border-top-width: 0;    border-bottom-color: #0f0f0f; }
-body.dark-mode #esh-tip { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6); }
+#esh-tip::after { content: ''; position: absolute; box-sizing: border-box; width: 9px; height: 9px; background: var(--tip-bg); border: 0 solid var(--tip-bd); transform: rotate(45deg); }
+#esh-tip[data-side="right"]::after  { left: -5px;  top: var(--ao, 50%);  margin-top: -4.5px;  border-left-width: 1px;  border-bottom-width: 1px; }
+#esh-tip[data-side="left"]::after   { right: -5px; top: var(--ao, 50%);  margin-top: -4.5px;  border-top-width: 1px;   border-right-width: 1px; }
+#esh-tip[data-side="top"]::after    { bottom: -5px; left: var(--ao, 50%); margin-left: -4.5px; border-bottom-width: 1px; border-right-width: 1px; }
+#esh-tip[data-side="bottom"]::after { top: -5px;   left: var(--ao, 50%); margin-left: -4.5px; border-top-width: 1px;    border-left-width: 1px; }
 
 /* Existing CSS tooltips — same look */
-.floating-edit-btn .edit-tooltip { background: #0f0f0f; border-radius: 10px; padding: 7px 14px; font-weight: 600; }
-.floating-edit-btn .edit-tooltip::after { border-left-color: #0f0f0f; }
-body.is-editing .floating-edit-btn .edit-tooltip::after { border-left-color: transparent; border-top-color: #0f0f0f; }
+.floating-edit-btn .edit-tooltip { background: #ffffff; color: #1f2a22; border: 1px solid #c9d5cc; border-radius: 8px; padding: 7px 14px; font-weight: 500; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14); }
+.floating-edit-btn .edit-tooltip::after {
+    box-sizing: border-box; width: 9px; height: 9px; right: -5px; top: 50%; margin-top: -4.5px;
+    transform: rotate(45deg); background: inherit; border: 0 solid #c9d5cc; border-top-width: 1px; border-right-width: 1px;
+}
+body.is-editing .floating-edit-btn .edit-tooltip::after {
+    right: 24px; top: 100%; margin-top: -4px; transform: rotate(45deg);
+    border: 0 solid #c9d5cc; border-bottom-width: 1px; border-right-width: 1px;
+}
+body.dark-mode .floating-edit-btn .edit-tooltip { background: #2b312d; color: #eef2ef; border-color: #4a524c; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6); }
+body.dark-mode .floating-edit-btn .edit-tooltip::after { border-color: #4a524c; }
+body.dark-mode.is-editing .floating-edit-btn .edit-tooltip::after { border-color: #4a524c; }
 
-.permit-add-btn::after { background: #0f0f0f; border-radius: 10px; padding: 6px 12px; font-size: 0.7rem; font-weight: 600; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28); }
+.permit-add-btn::after { background: #ffffff; color: #1f2a22; border: 1px solid #c9d5cc; border-radius: 8px; padding: 6px 12px; font-size: 0.7rem; font-weight: 500; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14); }
 .permit-add-btn::before {
-    content: ''; position: absolute; bottom: 100%; right: 8px; margin-bottom: 1px;
-    border: 6px solid transparent; border-bottom-width: 0; border-top-color: #0f0f0f;
+    content: ''; position: absolute; bottom: 100%; right: 10px; margin-bottom: 3px; z-index: 1;
+    box-sizing: border-box; width: 9px; height: 9px; background: #ffffff;
+    border: 0 solid #c9d5cc; border-bottom-width: 1px; border-right-width: 1px; transform: rotate(45deg);
     opacity: 0; pointer-events: none; transition: opacity 0.15s;
 }
 .permit-add-btn:hover::before { opacity: 1; }
+body.dark-mode .permit-add-btn::after { background: #2b312d; color: #eef2ef; border-color: #4a524c; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6); }
+body.dark-mode .permit-add-btn::before { background: #2b312d; border-color: #4a524c; }
 
-.tooltip-content { background: #0f0f0f; border-radius: 10px; font-weight: 600; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28); }
-.tooltip-content::after { border-top-color: #0f0f0f; }
-body.dark-mode .tooltip-content { background: #0f0f0f; border: none; }
-body.dark-mode .tooltip-content::after { border-top-color: #0f0f0f; }
+.tooltip-content { background: #ffffff; color: #1f2a22; border: 1px solid #c9d5cc; border-radius: 8px; font-weight: 500; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14); }
+.tooltip-content::after {
+    box-sizing: border-box; width: 9px; height: 9px; top: 100%; left: 50%; margin-top: -4px;
+    transform: translateX(-50%) rotate(45deg); background: inherit;
+    border: 0 solid #c9d5cc; border-bottom-width: 1px; border-right-width: 1px;
+}
+body.dark-mode .tooltip-content { background: #2b312d; color: #eef2ef; border-color: #4a524c; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6); }
+body.dark-mode .tooltip-content::after { border-color: #4a524c; }
 
 /* ═══ Total Exposures (.rpt-sum): TYPE and RUNNING YTD columns sized to their content ═══
    Narrower first/last columns give the month columns more room. Number size is unchanged.
@@ -9876,52 +9896,104 @@ table.got-tbl.audit-sum-tbl td input { display: block; margin: 0 auto; height: 2
 body.dark-mode .inj-rate-tbl tbody tr:nth-child(even) td { background: #1f2e22 !important; }
 
 
-/* ── EMB modal: one project at a time (Prev/Next) + facility toggles, fixed modal size ── */
-#emb-modal .mdl { height: auto; max-height: 90vh; }
-#emb-modal .emb-sticky { position: sticky; top: 0; z-index: 3; background: #fff; border-bottom: 1px solid #e0efe1; }
-#emb-modal .emb-nav { display: flex; align-items: center; gap: 10px; padding: 8px 12px; }
-#emb-modal .emb-nav-btn { flex: 0 0 auto; min-width: 84px; padding: 5px 14px; border-radius: 999px; border: none; background: #f9a825; color: #3e2c00; font-size: 0.72rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
-#emb-modal .emb-nav-btn:hover:not(:disabled) { background: #f57f17; color: #fff; }
-#emb-modal .emb-nav-btn:disabled { background: #e0e0e0; color: #9e9e9e; opacity: 0.6; cursor: not-allowed; }
-#emb-modal .emb-nav-mid { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-align: center; }
-#emb-modal .emb-nav-title { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
-#emb-modal .emb-nav-name { font-size: 0.78rem; font-weight: 800; color: #1b5e20; word-break: break-word; }
-#emb-modal .emb-nav-count { font-size: 0.64rem; color: #6b7770; font-weight: 600; background: #f1f8e9; border: 1px solid #c8e6c9; border-radius: 20px; padding: 1px 8px; white-space: nowrap; }
-#emb-modal .emb-badge { background: #fff8e1; color: #f57f17; border: 1px solid #ffe082; border-radius: 3px; padding: 1px 5px; font-size: 0.55rem; white-space: nowrap; font-weight: 600; }
-#emb-modal .emb-fac-bar { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 8px; }
-#emb-modal .emb-fac-btn { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; border: 1px solid #c8e6c9; background: #f5f5f5; color: #555; font-size: 0.66rem; font-weight: 600; cursor: pointer; }
-#emb-modal .emb-fac-btn:hover { background: #e8f5e9; }
-#emb-modal .emb-fac-btn.on { background: #c8e6c9; border-color: #81c784; color: #1b5e20; font-weight: 800; }
-#emb-modal .emb-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; background: #f9a825; }
-#emb-modal .emb-dot.done   { background: #43a047; }
-#emb-modal .emb-dot.exempt { background: #9e9e9e; }
-#emb-modal .emb-dot.miss   { background: #f9a825; }
-#emb-modal .emb-dot.late   { background: #e53935; }
-#emb-modal .emb-body { padding: 10px 12px 12px; }
-/* Black text for Facility / Submission Date / Reference No. values (light mode). N/A (exempt) entries stay grey. */
-body:not(.dark-mode) #emb-modal #emb-modal-table td:not(:has(input[data-exempt]:checked)) .emb-entry-block input[type="text"],
-body:not(.dark-mode) #emb-modal #emb-modal-table td:not(:has(input[data-exempt]:checked)) .emb-entry-block input[type="date"] { color: #000 !important; -webkit-text-fill-color: #000 !important; }
-/* No outlines inside the EMB entry: block, inputs, Care of Client / N/A boxes, project cell. */
-#emb-modal #emb-modal-table tbody > tr > td,
-#emb-modal .emb-entry-block,
-#emb-modal .emb-entry-block input[type="text"],
-#emb-modal .emb-entry-block input[type="date"],
-#emb-modal .emb-ex-row > div { border: none !important; }
-/* Easier to read: bigger text, lighter weight inside the EMB entry. */
-#emb-modal .emb-entry-block input[type="text"],
-#emb-modal .emb-entry-block input[type="date"] { font-size: 0.78rem !important; font-weight: 500 !important; padding: 5px 8px !important; }
-#emb-modal .emb-entry-block > div > div[style*="font-size:0.6rem"] { font-size: 0.68rem !important; font-weight: 500 !important; margin-bottom: 4px !important; }
-/* Spacing inside the EMB entry. */
-#emb-modal .emb-entry-block { padding: 14px 16px !important; }
-#emb-modal .emb-entry-block > div[style*="margin-bottom:6px"] { margin-bottom: 12px !important; }
-#emb-modal .emb-ex-row { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 2px 0 12px; }
+/* Class-based on purpose: the close animation clones the modal and strips every id, so #id selectors would not apply to the clone. */
+/* ── EMB modal (layout A): one project at a time (Prev/Next), facility tabs, label table ── */
+:is(.emb-modal, .dole-modal) .mdl { height: auto; max-height: 90vh; }
+:is(.emb-modal, .dole-modal) .emb-sticky { position: sticky; top: 0; z-index: 3; background: #fff; }
+:is(.emb-modal, .dole-modal) .emb-nav { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #e8ebe9; }
+:is(.emb-modal, .dole-modal) .emb-nav-btn { flex: 0 0 auto; min-width: 84px; padding: 5px 14px; border-radius: 999px; border: none; background: #f9a825; color: #3e2c00; font-size: 0.72rem; font-weight: 500; cursor: pointer; white-space: nowrap; }
+:is(.emb-modal, .dole-modal) .emb-nav-btn:hover:not(:disabled) { background: #f57f17; color: #fff; }
+:is(.emb-modal, .dole-modal) .emb-nav-btn:disabled { background: #e0e0e0; color: #9e9e9e; opacity: 0.6; cursor: not-allowed; }
+:is(.emb-modal, .dole-modal) .emb-nav-mid { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; }
+:is(.emb-modal, .dole-modal) .emb-nav-title { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+:is(.emb-modal, .dole-modal) .emb-nav-name { font-size: 0.8rem; font-weight: 500; color: #1b5e20; word-break: break-word; }
+:is(.emb-modal, .dole-modal) .emb-nav-count { font-size: 0.64rem; color: #6b7770; font-weight: 400; white-space: nowrap; }
+:is(.emb-modal, .dole-modal) .emb-badge { background: #fff8e1; color: #f57f17; border: 1px solid #ffe082; border-radius: 3px; padding: 1px 5px; font-size: 0.55rem; white-space: nowrap; font-weight: 600; }
+/* Facility tabs (underline style) */
+.emb-modal .emb-fac-bar { display: flex; flex-wrap: wrap; gap: 18px; padding: 0 14px; border-bottom: 1px solid #c8e6c9; }
+.emb-modal .emb-fac-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 0; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: #6b7770; font-size: 0.72rem; font-weight: 400; cursor: pointer; }
+.emb-modal .emb-fac-btn:hover { color: #1b5e20; background: none; }
+.emb-modal .emb-fac-btn.on { color: #1b5e20; border-bottom-color: #2e7d32; font-weight: 500; background: none; }
+:is(.emb-modal, .dole-modal) .emb-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: #f9a825; }
+:is(.emb-modal, .dole-modal) .emb-dot.done   { background: #43a047; }
+:is(.emb-modal, .dole-modal) .emb-dot.exempt { background: #9e9e9e; }
+:is(.emb-modal, .dole-modal) .emb-dot.miss   { background: #f9a825; }
+:is(.emb-modal, .dole-modal) .emb-dot.late   { background: #e53935; }
+.emb-modal .emb-body { padding: 0; }
+/* Black text for the values (light mode). N/A (exempt) entries stay grey. */
+body:not(.dark-mode) .emb-modal .emb-modal-table td:not(:has(input[data-exempt]:checked)) .emb-entry-block input[type="text"],
+body:not(.dark-mode) .emb-modal .emb-modal-table td:not(:has(input[data-exempt]:checked)) .emb-entry-block input[type="date"] { color: #000 !important; -webkit-text-fill-color: #000 !important; }
+/* Plain cell and plain entry block: no box inside a cell inside a table. */
+.emb-modal .emb-modal-table tbody > tr > td { border: none !important; background: transparent !important; padding: 0 !important; }
+.emb-modal .emb-entry-block { border: none !important; border-radius: 0 !important; background: transparent !important; padding: 0 !important; margin: 0 !important; }
+/* Care of Client / N/A row */
+.emb-modal .emb-ex-row { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0; padding: 10px 14px; border-bottom: 1px solid #e8ebe9; }
+.emb-modal .emb-ex-row > div { border: none !important; }
+/* Label table: label column (light green) + input column, same lines as .esh-tbl */
+.emb-modal .emb-entry-block > div[style*="margin-bottom:6px"]:not([style*="justify-content:flex-end"]) { display: grid; grid-template-columns: 135px 1fr; align-items: center; margin: 0 !important; border-bottom: 1px solid #c8e6c9; }
+.emb-modal .emb-entry-block > div[style*="margin-bottom:6px"]:not([style*="justify-content:flex-end"]):last-child { border-bottom: 0; }
+.emb-modal .emb-entry-block > div[style*="margin-bottom:6px"] > div[style*="font-size:0.6rem"] { align-self: stretch; display: flex; align-items: center; gap: 6px; margin: 0 !important; padding: 7px 12px; background: #e8f5e9; color: #1b5e20 !important; font-size: 0.72rem !important; font-weight: 500 !important; }
+.emb-modal .emb-entry-block > div[style*="justify-content:flex-end"] { margin: 0 !important; padding: 6px 14px 0; }
+/* Inputs: plain white, light green border. Red border only when empty and the period is overdue (class set in _embInitNav). */
+.emb-modal .emb-entry-block input[type="text"],
+.emb-modal .emb-entry-block input[type="date"] { width: calc(100% - 24px) !important; height: 28px; margin: 7px 12px !important; padding: 0 8px !important; box-sizing: border-box !important; font-size: 0.75rem !important; font-weight: 400 !important; border: 1px solid #c8e6c9 !important; border-radius: 4px !important; background: #fff !important; }
+.emb-modal .emb-entry-block input.emb-bad { border-color: #ef9a9a !important; }
+.emb-modal .emb-modal-table td:has(input[data-exempt]:checked) .emb-entry-block input[type="text"],
+.emb-modal .emb-modal-table td:has(input[data-exempt]:checked) .emb-entry-block input[type="date"] { background: #f5f5f5 !important; border-color: #e0e0e0 !important; color: #9e9e9e !important; -webkit-text-fill-color: #9e9e9e !important; }
+/* + Add Entry: plain green text row */
+.emb-modal .emb-modal-table td > button[onclick*="_addEmbExtraEntryInModal"] { width: 100% !important; justify-content: flex-start !important; padding: 10px 14px !important; background: transparent !important; border: 0 !important; border-top: 1px solid #c8e6c9 !important; border-radius: 0 !important; color: #2e7d32 !important; font-size: 0.75rem !important; font-weight: 500 !important; }
+.emb-modal .emb-modal-table td > button[onclick*="_addEmbExtraEntryInModal"]:hover { background: #f1f8e9 !important; }
 /* The table is still built the same way; only the active project column is shown. */
-#emb-modal #emb-modal-table { width: 100% !important; min-width: 0 !important; border-collapse: collapse; }
-#emb-modal #emb-modal-table thead { display: none; }
-#emb-modal #emb-modal-table tbody > tr > td { display: none; width: auto !important; min-width: 0 !important; max-width: none !important; }
-#emb-modal #emb-modal-table tbody > tr > td.emb-active { display: table-cell; }
-#emb-modal #emb-modal-table .emb-entry-block { display: none; }
-#emb-modal #emb-modal-table .emb-entry-block.emb-fac-active { display: block; }
+.emb-modal .emb-modal-table { width: 100% !important; min-width: 0 !important; border-collapse: collapse; }
+.emb-modal .emb-modal-table thead { display: none; }
+.emb-modal .emb-modal-table tbody > tr > td { display: none; width: auto !important; min-width: 0 !important; max-width: none !important; }
+.emb-modal .emb-modal-table tbody > tr > td.emb-active { display: table-cell; }
+.emb-modal .emb-modal-table .emb-entry-block { display: none; }
+.emb-modal .emb-modal-table .emb-entry-block.emb-fac-active { display: block; }
+/* EMB modal, dark mode */
+body.dark-mode :is(.emb-modal, .dole-modal) .emb-sticky { background: var(--bg-card); }
+body.dark-mode :is(.emb-modal, .dole-modal) .emb-nav,
+body.dark-mode .emb-modal .emb-ex-row,
+body.dark-mode .emb-modal .mdl-body > div[style*="border-bottom:1px solid #e8ebe9"] { border-color: #2f4034 !important; }
+body.dark-mode :is(.emb-modal, .dole-modal) .emb-nav-name { color: #81c784; }
+body.dark-mode :is(.emb-modal, .dole-modal) .emb-nav-count { color: #9fb0a5; }
+body.dark-mode .emb-modal .emb-fac-bar { border-bottom-color: #2f4034; }
+body.dark-mode .emb-modal .emb-fac-btn { color: #9fb0a5; }
+body.dark-mode .emb-modal .emb-fac-btn:hover,
+body.dark-mode .emb-modal .emb-fac-btn.on { color: #81c784; }
+body.dark-mode .emb-modal .emb-fac-btn.on { border-bottom-color: #4caf50; }
+body.dark-mode .emb-modal .emb-ex-row span { color: #e6efe8 !important; }
+body.dark-mode .emb-modal .emb-entry-block > div[style*="margin-bottom:6px"]:not([style*="justify-content:flex-end"]) { border-bottom-color: #2f4034; }
+body.dark-mode .emb-modal .emb-entry-block > div[style*="margin-bottom:6px"] > div[style*="font-size:0.6rem"] { background: #1f2d23; color: #81c784 !important; }
+body.dark-mode .emb-modal .emb-entry-block input[type="text"],
+body.dark-mode .emb-modal .emb-entry-block input[type="date"] { background: #17211a !important; border-color: #2f4034 !important; color: #e6efe8 !important; -webkit-text-fill-color: #e6efe8 !important; color-scheme: dark; }
+body.dark-mode .emb-modal .emb-entry-block input.emb-bad { border-color: #e57373 !important; }
+body.dark-mode .emb-modal .emb-modal-table td:has(input[data-exempt]:checked) .emb-entry-block input[type="text"],
+body.dark-mode .emb-modal .emb-modal-table td:has(input[data-exempt]:checked) .emb-entry-block input[type="date"] { background: #1c211e !important; color: #6f7a73 !important; -webkit-text-fill-color: #6f7a73 !important; }
+body.dark-mode .emb-modal .emb-modal-table td > button[onclick*="_addEmbExtraEntryInModal"] { color: #81c784 !important; border-top-color: #2f4034 !important; }
+body.dark-mode .emb-modal .emb-modal-table td > button[onclick*="_addEmbExtraEntryInModal"]:hover { background: #1f2d23 !important; }
+/* ── DOLE modal: one project at a time. Nav look comes from the EMB rules above (:is). Class-based, see note on EMB. ── */
+.dole-modal .dole-modal-table { width: 100% !important; min-width: 0 !important; border-collapse: collapse; }
+.dole-modal .dole-modal-table thead { display: none; }
+.dole-modal .dole-modal-table .dole-col-off { display: none !important; }
+.dole-modal .dole-modal-table tbody > tr { background: transparent !important; border: 0 !important; }
+.dole-modal .dole-modal-table td { border: 0 !important; border-bottom: 1px solid #c8e6c9 !important; padding: 7px 12px !important; min-width: 0 !important; vertical-align: middle; background: transparent !important; opacity: 1 !important; }
+.dole-modal .dole-modal-table tbody > tr:last-child > td { border-bottom: 0 !important; }
+.dole-modal .dole-modal-table td:first-child { position: static !important; box-shadow: none !important; width: 190px !important; min-width: 190px !important; max-width: 190px !important; background: #e8f5e9 !important; color: #1b5e20 !important; font-size: 0.72rem !important; font-weight: 500 !important; }
+.dole-modal .dole-modal-table input[type="date"] { width: 100% !important; height: 28px; padding: 0 8px !important; box-sizing: border-box !important; font-size: 0.75rem !important; font-weight: 400 !important; border: 1px solid #c8e6c9 !important; border-radius: 4px !important; background: #fff !important; color: #000 !important; -webkit-text-fill-color: #000 !important; }
+.dole-modal .dole-modal-table input[type="date"]:disabled { background: #f5f5f5 !important; }
+.dole-modal .dole-modal-table input[type="date"].dole-bad { border-color: #ef9a9a !important; }
+.dole-modal .dole-modal-table td > div[style*="text-align:center"],
+.dole-modal .dole-modal-table td label { text-align: left !important; }
+body.dark-mode .dole-modal .emb-sticky { background: var(--bg-card); }
+body.dark-mode .dole-modal .emb-nav,
+body.dark-mode .dole-modal .mdl-body > div[style*="border-bottom:1px solid #e8ebe9"] { border-color: #2f4034 !important; }
+body.dark-mode .dole-modal .dole-modal-table td { border-bottom-color: #2f4034 !important; }
+body.dark-mode .dole-modal .dole-modal-table td:first-child { background: #1f2d23 !important; color: #81c784 !important; }
+body.dark-mode .dole-modal .dole-modal-table input[type="date"] { background: #17211a !important; border-color: #2f4034 !important; color: #e6efe8 !important; -webkit-text-fill-color: #e6efe8 !important; color-scheme: dark; }
+body.dark-mode .dole-modal .dole-modal-table input[type="date"]:disabled { background: #1c211e !important; }
+body.dark-mode .dole-modal .dole-modal-table input[type="date"].dole-bad { border-color: #e57373 !important; }
+body.dark-mode .dole-modal .dole-modal-table td label { color: #e6efe8 !important; }
 
 /* ── One checkbox look for the whole dashboard (size + color). Change it here only.
       :where() keeps the specificity at zero, so any component rule (toggle switches, compact forms) still wins. ── */
@@ -9963,6 +10035,21 @@ body.dark-mode .got-tbl-pill td.got-r025 .got-sel { color: #ef9a9a; }
     opacity: 1;
 }
 #kpm-month-modal input[type="date"][name^="kpmmod-imp-"]:disabled::-webkit-calendar-picker-indicator { display: none; }
+
+/* Corporate KPM modal, view mode: same as the region KPM modal above. The EP dropdown and the Improvement Plan fields
+   lose the outline, resize grip and chevron when read-only. Edit mode is untouched (fields are only :disabled in view mode).
+   Selected by their handler attribute, not by id, so the close-animation clone (which has no ids) looks the same. */
+:is(select[onchange*="_ckpmEpChange"], :is(textarea, input[type="date"], select)[onchange*="_ckpmImpChange"]):disabled {
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    resize: none !important;
+    opacity: 1;
+}
+input[type="date"][onchange*="_ckpmImpChange"]:disabled::-webkit-calendar-picker-indicator { display: none; }
 
 
 /* ── Shared modal info bar + value pills (built by eshInfoBar / eshInfoField / eshPill in script.js) ──
@@ -10165,3 +10252,113 @@ body.dark-mode #lta-entry-modal { --ca-ln: rgba(46, 125, 50, 0.45); --ca-head: #
 
 /* LTA modal: Days Lost note is plain text (no box), font color stays the same */
 #lta-entry-modal .ltadl-note { background: none; border: 0; border-radius: 0; padding: 0; }
+
+
+/* ══ LTA modal VIEW mode: white, clean look on ALL tabs (light mode only; edit mode is not changed) ══ */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw { --lta-fs: 0.78rem; --fld-gray: transparent; --ca-ln: #e5e7eb; --ca-head: #f9fafb; --ca-head-t: #5f6672; }
+/* fixed size: same on every tab, content scrolls inside */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .mdl { height: min(640px, calc(100dvh - 32px)) !important; max-height: none !important; max-width: 1180px !important; background: #fff; border-radius: 14px; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .mdl-head { background: #fff; padding: 18px 32px 12px; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .mdl-title { font-size: 1.1rem !important; font-weight: 700; color: #111827; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .mdl-sub { font-size: 0.72rem !important; color: #5f6672; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .mdl-body { background: #fff; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw #lta-modal-body { background: #fff !important; padding: 20px 32px 26px !important; min-height: 0 !important; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-vw-badge { align-self: center; margin-right: 10px; padding: 3px 10px; border-radius: 6px; background: #f3f4f6; color: #374151; font-weight: 700; font-size: 0.7rem !important; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-vw-badge[data-cls="LTA"], body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-vw-badge[data-cls="Fatality"] { background: #fef2f2; color: #991b1b; }
+/* tabs: underline style */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tabs { background: #fff; padding: 0 32px; gap: 24px; border-bottom: 1px solid #e5e7eb; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab { padding: 10px 0; margin-bottom: -1px; background: none; border-radius: 0; border-bottom: 2px solid transparent; color: #5f6672; font-weight: 600; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab:hover { color: #14532d; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab.on, body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab.on:hover { background: none; border-radius: 0; color: #1f7a3e; border-bottom-color: #1f7a3e; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab i, body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab.on i { color: inherit; }
+/* section titles + field labels */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-section-label { font-size: 0.62rem !important; letter-spacing: 0.08em; color: #5f6672; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-field > label { font-size: 0.62rem !important; font-weight: 600; letter-spacing: 0.08em; color: #5f6672; }
+/* values: plain text, no gray boxes */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab-pane :is(input, select, textarea):disabled { background: transparent !important; padding: 0 !important; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab-pane textarea:disabled:not(.lta-ca-row *) { background: #fff !important; border: 1px solid #e5e7eb !important; border-radius: 10px; padding: 12px 14px !important; line-height: 1.7; text-align: left; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-date-view { background: transparent; padding: 0; }
+/* list values as tags (every tab) */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-plain-list { list-style: none; margin: 0; padding: 0 !important; display: flex; flex-wrap: wrap; gap: 6px; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-plain-list li { margin: 0 !important; padding: 3px 10px; border-radius: 8px; background: #eef6f0; color: #14532d; }
+/* Corrective / Preventive Action table: white */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-ca-list { border-radius: 10px; overflow: hidden; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-ca-head, body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-ca-head > span { font-size: 0.62rem !important; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; text-align: left; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-ca-row { background: #fff; }
+/* Days Lost card */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .ltadl-mode { border: 1px solid #e5e7eb; background: #fff; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .ltadl-mode[aria-pressed="true"] { border-color: #1f7a3e; background: #f0f9f3; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .ltadl-mode[data-mode="scheduled"][aria-pressed="true"] { border-color: #c62828; background: #fef2f2; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .ltadl-mode[data-mode="na"][aria-pressed="true"] { border-color: #9ca3af; background: #f9fafb; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .ltadl-pill span { border: 1px solid #e5e7eb; background: #fff; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .ltadl-result { background: #f9fafb; border-color: #e5e7eb; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .ltadl-num { font-size: 1.05rem; }
+
+
+/* ── LTA view mode: round 2 ── */
+/* tab 1: AIIR No. to Incident Classification in ONE row (6 columns, Location is 2 wide) */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw #lta-modal-body > .lta-tab-pane:first-child { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw #lta-modal-body > .lta-tab-pane:first-child > .lta-field:has([name="ltamod-locationOfIncident"]) { grid-column: span 2; }
+@media (max-width: 600px) {
+    body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw #lta-modal-body > .lta-tab-pane:first-child { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw #lta-modal-body > .lta-tab-pane:first-child > .lta-field:has([name="ltamod-locationOfIncident"]) { grid-column: auto; }
+}
+/* text boxes grow with their text: no scroll bar */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab-pane textarea:disabled { overflow: hidden !important; resize: none !important; min-height: 0 !important; }
+/* Details / Facts of Incident: justified */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab-pane textarea[name="ltamod-detailsFacts"]:disabled { text-align: justify !important; text-justify: inter-word; }
+/* Follow-Up tab: boxed fields with visible placeholders */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab-pane:has([name^="ltamod-followUp"]) :is(input, select):disabled { background: #fff !important; border: 1px solid #e5e7eb !important; border-radius: 8px; padding: 8px 10px !important; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab-pane:has([name^="ltamod-followUp"]) input:disabled::placeholder { color: #9ca3af !important; -webkit-text-fill-color: #9ca3af !important; opacity: 1; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab-pane:has([name^="ltamod-followUp"]) input[type="date"]:disabled[value=""], body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab-pane:has([name^="ltamod-followUp"]) select:disabled:has(option:checked[value=""]) { color: #9ca3af !important; -webkit-text-fill-color: #9ca3af !important; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab-pane:has([name^="ltamod-followUp"]) .lta-date-view { display: block; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 10px; }
+
+/* tab 1: both field rows stay on one line (labels do not wrap, tighter column gap) */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw #lta-modal-body > .lta-tab-pane:first-child { column-gap: 14px; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw #lta-modal-body > .lta-tab-pane:first-child > .lta-field > label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+
+/* ── LTA view mode: round 3 ── */
+/* Corrective / Preventive Action: scrolls, header stays on top */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-ca-list { max-height: min(300px, 40vh); overflow-x: hidden; overflow-y: auto; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-ca-head { position: sticky; top: 0; z-index: 1; background: var(--ca-head); }
+/* Contributing Factors: one row of 5 boxes */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw #lta-modal-body > .lta-tab-pane:nth-child(2) { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw #lta-modal-body > .lta-tab-pane:nth-child(2) > .lta-field { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 14px; }
+@media (max-width: 900px) {
+    body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw #lta-modal-body > .lta-tab-pane:nth-child(2) { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+}
+/* Closure + Days Lost: boxed fields */
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab-pane:has([name="ltamod-dateClosed"]) :is(input, select):disabled, body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab-pane:has(.ltadl) :is(input, select, textarea):disabled { background: #fff !important; border: 1px solid #e5e7eb !important; border-radius: 8px; padding: 8px 10px !important; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab-pane:has([name="ltamod-dateClosed"]) .lta-date-view, body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab-pane:has(.ltadl) .lta-date-view { display: block; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 10px; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab-pane:has([name="ltamod-dateClosed"]) input:disabled::placeholder { color: #9ca3af !important; -webkit-text-fill-color: #9ca3af !important; opacity: 1; }
+body:not(.dark-mode) #lta-entry-modal#lta-entry-modal.lta-vw .lta-tab-pane:has([name="ltamod-dateClosed"]) input[type="date"]:disabled[value=""] { color: #9ca3af !important; -webkit-text-fill-color: #9ca3af !important; }
+
+
+/* ══ UNIFIED TABLE PALETTE (basis: Total Exposures table) ══════════════════════════════════
+   One place to change colors: the --tbl-* variables (the STEP 1 block above + the two lines below).
+   Covers every <table> in the dashboard, modal tables included. To exclude one table: add class "no-tbl-theme".
+   Kept as they are: total rows, special columns (now / YTD / average / total), and cells or rows with their own inline background or color. */
+:root { --tbl-body-fg: #000; --tbl-zebra-bg: #f4faf4; }
+body.dark-mode { --tbl-zebra-bg: #243329; }
+/* header */
+html body table:not(#u1):not(#u2):not(.no-tbl-theme) th:not(.now,.avg,.ytd-header,.h-tt,.prev-year,[style*="#e65100"],[style*="#f9a825"],[style*="#fdf3c8"]) { background: var(--tbl-head-bg) !important; color: var(--tbl-head-fg) !important; border-color: var(--tbl-line) !important; }
+/* body rows: white / zebra */
+html body table:not(#u1):not(#u2):not(.no-tbl-theme) tbody tr:not(.tot,.total,.got-tr-overall,.overall-total,.regional-total,.otp-total,.otp-sec,[style*="background"]) td:not(.tt,.h-tt,.ytd-cell,.avg,.now,.prev,.summary-col,.cell-grand-total,.average-cell,.got-td-avg,.esh-td-actual,.esh-plan-locked,.future,.otp-none,[style*="background"]) { background: var(--tbl-body-bg) !important; }
+html body table:not(#u1):not(#u2):not(.no-tbl-theme) tbody tr:not(.tot,.total,.got-tr-overall,.overall-total,.regional-total,.otp-total,.otp-sec,[style*="background"]):nth-child(even) td:not(.tt,.h-tt,.ytd-cell,.avg,.now,.prev,.summary-col,.cell-grand-total,.average-cell,.got-td-avg,.esh-td-actual,.esh-plan-locked,.future,.otp-none,[style*="background"]) { background: var(--tbl-zebra-bg) !important; }
+/* body text: black (light mode) */
+html body table:not(#u1):not(#u2):not(.no-tbl-theme) tbody tr:not(.tot,.total,.got-tr-overall,.overall-total,.regional-total,.otp-total,.otp-sec,[style*="color"]) td:not(.tt,.h-tt,.ytd-cell,.avg,.now,.prev,.summary-col,.cell-grand-total,.average-cell,.got-td-avg,.esh-td-actual,.esh-plan-locked,.future,.otp-none,.red,.z,.viol,.prev-year,[style*="color"]) { color: var(--tbl-body-fg) !important; }
+/* first column of the Total Exposures family keeps its own tint */
+html body :is(.esh-tbl, .rpt-sum .rpt-table, .exp-proj, .env-sum-kpm table):not(#u1):not(#u2):not(#u3) tbody tr:not(.tot,.total,.got-tr-overall,.overall-total,.regional-total,.otp-total,.otp-sec,[style*="background"]) td:first-child:not(.tt,.h-tt,.ytd-cell,.avg,.now,.prev,.summary-col,.cell-grand-total,.average-cell,.got-td-avg,.esh-td-actual,.esh-plan-locked,.future,.otp-none) { background: var(--tbl-first-bg) !important; color: var(--tbl-first-fg) !important; }
+
+
+/* ── Modal project tables (EMR, EMB, etc.: FIELD / DESCRIPTION + one column per project) ──
+   FIELD and DESCRIPTION stay in place when you scroll sideways; the header row stays when you scroll down. */
+.mt-wrap { overflow: auto; max-height: 62vh; }
+.mt-wrap thead th { position: sticky; top: 0; z-index: 3; }
+@media (min-width: 700px) {
+    .mt-wrap .mt-c1, .mt-wrap .mt-c2 { position: sticky; z-index: 2; }
+    .mt-wrap .mt-c1 { left: 0; width: 130px; min-width: 130px; max-width: 130px; white-space: normal !important; }
+    .mt-wrap .mt-c2 { left: 130px; width: 210px; min-width: 210px; max-width: 210px; background: var(--bg-card); box-shadow: 2px 0 3px -2px rgba(0,0,0,.25); }
+    .mt-wrap thead .mt-c1, .mt-wrap thead .mt-c2 { z-index: 5; }
+}
