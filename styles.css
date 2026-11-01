@@ -10362,3 +10362,14 @@ html body :is(.esh-tbl, .rpt-sum .rpt-table, .exp-proj, .env-sum-kpm table):not(
     .mt-wrap .mt-c2 { left: 130px; width: 210px; min-width: 210px; max-width: 210px; background: var(--bg-card); box-shadow: 2px 0 3px -2px rgba(0,0,0,.25); }
     .mt-wrap thead .mt-c1, .mt-wrap thead .mt-c2 { z-index: 5; }
 }
+
+/* ═══ Cursor: one rule for the whole dashboard ═══
+   Anything clickable shows the pointing hand; anything disabled shows not-allowed.
+   Everything is inside :where() so the rule has zero specificity: a component's own cursor (help, grab, text...) still wins. */
+:where(button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"],
+       input[type="checkbox"], input[type="radio"], input[type="file"], select, summary, label[for], [onclick]):where(:not(:disabled):not([aria-disabled="true"])) {
+    cursor: pointer;
+}
+:where(button, input, select, textarea, [role="button"]):where(:disabled, [aria-disabled="true"]) {
+    cursor: not-allowed;
+}
