@@ -6393,6 +6393,33 @@ window.calcCumRate = function(rateKey, lta, rec, dl, mh) {
     const n = rateKey === 'LTIR' ? lta : rateKey === 'TRIR' ? rec : dl;
     return (n * window.RATE_BASES[rateKey]) / mh;
 };
+// Tooltip text (native title, lines joined with &#10;): shows the computation behind a rate cell.
+window.rateCompTip = function(rateKey, n, mh, periodLabel) {
+    // Same line layout as rateTipHTML (Incident Tabulation card): name · standard / formula / numbers / = result
+    const isOsha = window.RATE_BASES[rateKey] === 200000;
+    const base = window.RATE_BASES[rateKey];
+    const f = function(x) { return Number(x).toLocaleString('en-US'); };
+    const nLabel = rateKey === 'LTIR' ? 'LTA cases' : rateKey === 'TRIR' ? 'Recordable cases' : 'Lost days';
+    const name = rateKey === 'SEVERITY RATE' ? 'Severity Rate' : rateKey;
+    const L = [
+        name + ' · ' + (isOsha ? 'OSHA' : 'OSHS') + (periodLabel ? ' · ' + periodLabel : ''),
+        nLabel + ' × ' + f(base) + ' ÷ man-hours'
+    ];
+    if (mh > 0) {
+        L.push(f(n) + ' × ' + f(base) + ' ÷ ' + f(mh));
+        L.push('= ' + window.formatRate(rateKey, (n * base) / mh));
+    } else {
+        L.push('No man-hours yet');
+    }
+    return L.map(function(x) { return String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;'); }).join('&#10;');
+};
+// Same, for a cumulative series from buildCumulativeSeries (month i, 1-12; 12 = running YTD).
+window.rateCompTipCum = function(rateKey, cs, i) {
+    const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const end = Math.max(1, Math.min(i, cs.last || i));
+    const n = rateKey === 'LTIR' ? cs.lta[i] : rateKey === 'TRIR' ? cs.rec[i] : cs.dl[i];
+    return window.rateCompTip(rateKey, n, cs.mh[i], (end === 1 ? 'Jan' : 'Jan–' + mon[end - 1]));
+};
 // Display rounding. OSHS (PH, Rule 1056.03): LTIR 2 decimals, Severity Rate whole number.
 // TRIR is not in the OSH Standards, so it uses 2 decimals. OSHA: 2 decimals for all three.
 // Math stays at full precision; only the shown / stored text is rounded. 'std' is optional ('osha' | 'oshs').
@@ -9760,6 +9787,16 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
 
         // Splits the entry modal into tabs. It only MOVES the existing nodes into panes,
         // so every id, name="ltamod-..." and inline handler stays the same (save/AIIR/DL code untouched).
+        // View mode: make read-only text boxes as tall as their text (no inner scroll bar)
+        window._ltaAutoGrow = function(modal) {
+            if (!modal) return;
+            modal.querySelectorAll('textarea:disabled').forEach(t => {
+                if (t.offsetParent === null) return;
+                t.style.height = 'auto';
+                t.style.height = (t.scrollHeight + 2) + 'px';
+            });
+        };
+
         window._ltaBuildTabs = function() {
             const modal = document.getElementById('lta-entry-modal');
             const body = modal && modal.querySelector('#lta-modal-body');
@@ -9789,6 +9826,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             const show = i => {
                 panes.forEach((p, j) => { p.style.display = j === i ? '' : 'none'; btns[j].classList.toggle('on', j === i); });
                 body.scrollTop = 0;
+                if (modal.classList.contains('lta-vw') && window._ltaAutoGrow) window._ltaAutoGrow(modal);
             };
             const btns = TABS.map((t, i) => {
                 const b = document.createElement('button');
@@ -10194,12 +10232,12 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                                     <span style="${sub}">Date of Follow-up</span>
                                     <input type="date" name="ltamod-${k}Date" value="${esc(e[k + 'Date'])}" ${dis}>
                                     <span style="${sub}">Follow-up By (PM / DM / ESH Officer)</span>
-                                    <input type="text" name="ltamod-${k}By" value="${esc(e[k + 'By'])}" ${dis}>
+                                    <input type="text" name="ltamod-${k}By" value="${esc(e[k + 'By'])}" ${dis} placeholder="Name of PM / DM / ESH Officer">
                                     <div class="fu-in" style="display:${res === RES[2] ? 'block' : 'none'};">
                                         <span style="${sub}">Reason for Ineffectiveness</span>
-                                        <input type="text" name="ltamod-${k}Reason" value="${esc(e[k + 'Reason'])}" ${dis}>
+                                        <input type="text" name="ltamod-${k}Reason" value="${esc(e[k + 'Reason'])}" ${dis} placeholder="Reason for ineffectiveness">
                                         <span style="${sub}">CAR No.</span>
-                                        <input type="text" name="ltamod-${k}CarNo" value="${esc(e[k + 'CarNo'])}" ${dis}>
+                                        <input type="text" name="ltamod-${k}CarNo" value="${esc(e[k + 'CarNo'])}" ${dis} placeholder="CAR No.">
                                     </div>
                                     ${legacy ? `<span style="${sub}">Notes (previous free-text entry)</span>
                                     <textarea name="ltamod-${k}" ${dis} rows="3" style="min-height:60px;resize:vertical;">${esc(legacy)}</textarea>` : ''}
@@ -10226,7 +10264,7 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
                         </div>
                         <div class="lta-field lta-field-full">
                             <label>Remarks</label>
-                            <input type="text" name="ltamod-remarks" value="${e.remarks||''}" ${dis}>
+                            <input type="text" name="ltamod-remarks" value="${e.remarks||''}" ${dis} placeholder="No remarks">
                         </div>
 
                     </div>
@@ -10239,6 +10277,18 @@ function isQuarterBlacklistedForProject(p, quarterNum, selectedYear) {
             window._ltaBuildTabs();
             if (window._ltaDLRefresh) window._ltaDLRefresh();
             if (!canEdit) {
+                // View mode: white clean look (styles.css: .lta-vw) + classification badge in the header
+                modal.classList.add('lta-vw');
+                window._ltaAutoGrow(modal);
+                const _cls = Array.isArray(e.incidentClassification) ? e.incidentClassification[0] : e.incidentClassification;
+                const _xBtn = modal.querySelector('.mdl-x');
+                if (_cls && _xBtn) {
+                    const _bd = document.createElement('span');
+                    _bd.className = 'lta-vw-badge';
+                    _bd.dataset.cls = _cls;
+                    _bd.textContent = _cls;
+                    _xBtn.parentNode.insertBefore(_bd, _xBtn);
+                }
                 // View mode: show dates as "13 September 2026" (the date input stays hidden so other code can still read it)
                 modal.querySelectorAll('input[type="date"]').forEach(inp => {
                     const txt = window._ltaFmtDate(inp.value);
@@ -13265,7 +13315,7 @@ function renderTabulation() {
                                 if (_r !== null) sval = window.formatRate(row, _r);
                             }
                             const scolor = '#1b5e20';
-                            html += `<td class="monthly-data" style="font-weight:800;background:${smh>0?'rgba(27,94,32,0.06)':''};text-align:center;cursor:not-allowed;color:${smh>0?scolor:''}" title="Cannot be edited. Auto-computed.">${sval}</td>`;
+                            html += `<td class="monthly-data" style="font-weight:600;background:${smh>0?'#f1f8e9':''};text-align:center;cursor:help;" title="${smh>0 ? window.rateCompTipCum(row, _cs, i) : 'Cannot be edited. Auto-computed.'}"${smh>0 ? ' data-tip-nowrap' : ''}>${sval}</td>`;
                         } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
                             displayProjects.forEach(p => {
                                 const _series = computeExposureToDateSeries(p);
@@ -13369,7 +13419,7 @@ function renderTabulation() {
                                 if (_r !== null) yval = window.formatRate(row, _r);
                             }
                             const ycolor = '#1b5e20';
-                            html += `<td class="ytd-cell" style="font-weight:800;cursor:not-allowed;color:${ymh>0?ycolor:''};" title="Cannot be edited. Auto-computed.">${yval}</td>`;
+                            html += `<td class="ytd-cell" style="cursor:help;" title="${ymh>0 ? window.rateCompTipCum(row, _cs, 12) : 'Cannot be edited. Auto-computed.'}"${ymh>0 ? ' data-tip-nowrap' : ''}>${yval}</td>`;
                         } else if (state.currentTab === 'exposures' && row === 'Total Exposed Man-hour to date') {
                             displayProjects.forEach(p => {
                                 const _series = computeExposureToDateSeries(p);
@@ -14261,8 +14311,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         p.vals[key][0] = window.formatRate(row, prevVal);
                     }
                     const prevDisp = prevVal !== null ? window.formatRate(row, prevVal) : '—';
-                    html += `<td class="prev-year" style="text-align:center;cursor:not-allowed;" title="Cannot be edited. Auto-computed from previous year medical &amp; exposures data (${(state.ratesStandard==='osha')?'OSHA 200K':'OSHS 1M'} base).">
-                        <div style="font-size:0.72rem;font-weight:800;color:${prevVal !== null ? prevColor : '#bbb'};">${prevDisp}</div>
+                    html += `<td class="prev-year" style="text-align:center;cursor:help;" title="${prevVal !== null ? window.rateCompTip(row, row === 'LTIR' ? prevLta : row === 'TRIR' ? prevRec : prevDL, prevMh, 'Previous year') : 'Cannot be edited. Auto-computed from previous year medical &amp; exposures data (' + ((state.ratesStandard==='osha')?'OSHA 200K':'OSHS 1M') + ' base).'}"${prevVal !== null ? ' data-tip-nowrap' : ''}>
+                        <div style="font-size:0.72rem;${prevVal !== null ? '' : 'color:#bbb;'}">${prevDisp}</div>
                     </td>`;
                 } else if (_isDrillTraining) {
                     html += `<td class="prev-year${isNov ? ' nov-narrow-td' : ''}">
@@ -14559,9 +14609,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             p.vals[key][i] = window.formatRate(row, val);
                         }
                         const disp = val !== null ? window.formatRate(row, val) : '';
-                        html += `<td class="monthly-data" style="text-align:center;background:${val !== null && val > 0 ? 'rgba(27,94,32,0.04)' : ''};cursor:not-allowed;" title="Cannot be edited. Auto-computed (${_rateStdLabel} base).">
+                        const _cTip = val !== null ? window.rateCompTipCum(row, _cs, i) : 'Cannot be edited. Auto-computed (' + _rateStdLabel + ' base).';
+                        html += `<td class="monthly-data" style="text-align:center;background:${val !== null && val > 0 ? 'rgba(27,94,32,0.04)' : ''};cursor:help;" title="${_cTip}"${val !== null ? ' data-tip-nowrap' : ''}>
                             ${val !== null
-                                ? `<div style="font-size:0.75rem;font-weight:800;color:${color};">${disp}</div>`
+                                ? `<div style="font-size:0.72rem;">${disp}</div>`
                                 : `<div style="font-size:0.62rem;color:#ccc;font-style:italic;">—</div>`
                             }
                         </td>`;
@@ -14731,7 +14782,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     let ytdRate = 0;
                     if (ytdMh > 0) ytdRate = window.calcCumRate(row, _cs.lta[12], _cs.rec[12], _cs.dl[12], ytdMh) || 0;
                     const ytdColor = '#1b5e20';
-                    html += `<td class="ytd-cell" style="color:${ytdMh > 0 ? ytdColor : ''};font-weight:800;">
+                    html += `<td class="ytd-cell"${ytdMh > 0 ? ' style="cursor:help;" title="' + window.rateCompTipCum(row, _cs, 12) + '" data-tip-nowrap' : ''}>
                         ${ytdMh > 0 ? window.formatRate(row, ytdRate) : ''}
                     </td>`;
                 } else {
@@ -15027,6 +15078,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var p = state.projects.find(function(x){ return x.name === pName; });
                         var m = document.getElementById('dole-month-modal');
                         var reopen = function() {
+                            window._doleKeepNav = m ? (parseInt(m.getAttribute('data-active-proj')) || 0) : null;
                             if (m && typeof window.openDoleDialog === 'function') {
                                 window.openDoleDialog(m.getAttribute('data-regkey'), m.getAttribute('data-reg'), m.getAttribute('data-month'), m.getAttribute('data-canedit') === '1');
                             }
@@ -15256,18 +15308,19 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     cell = '<div style="font-size:0.62rem;color:#9e9e9e;text-align:center;padding:5px 4px;font-style:italic;display:flex;align-items:center;justify-content:center;gap:4px;" title="' + _annTooltip.replace(/"/g,'&quot;') + '"><i class="fas fa-pause-circle" style="font-size:0.75rem;"></i> Exempt (Stoppage)</div>';
                                 } else {
                                     var safeName = proj.name.replace(/[^a-zA-Z0-9]/g,'_');
-                                    // N/A control: stacked under the date box (checkbox) — same for AEDR & AMR, keeps cell alignment
-                                    var _naBox = '<div style="width:120px;max-width:100%;margin:0 auto;box-sizing:border-box;border:1px solid #bdbdbd;border-radius:4px;padding:3px 6px;font-size:0.72rem;font-weight:800;text-align:center;background:#eeeeee;color:#757575;">N/A</div>';
-                                    var dateInput = '<input type="date" value="' + v + '" ' + (dis ? 'disabled' : '')
+                                    // Date box centered like the monthly rows; N/A checkbox sits to its left (outside the flow, so it never shifts the date box). When N/A is checked the date field turns gray and is disabled (stored date is kept).
+                                    var _shownVal = _annNA ? (proj.vals[k] ? (proj.vals[k][1] || '') : '') : v;
+                                    var _grayStyle = _annNA ? 'background:rgba(128,128,128,0.25)!important;color:#9e9e9e!important;-webkit-text-fill-color:#9e9e9e!important;cursor:not-allowed;' : '';
+                                    var _inDis = (dis || _annNA) ? 'disabled' : '';
+                                    var dateInput = '<input type="date" value="' + _shownVal + '" ' + _inDis
                                         + ' name="dolemod-' + rd.row + '-' + safeName + '"'
-                                        + ' data-pname="' + pnEsc + '" data-row="' + rd.row + '" data-moIdx="1"'
-                                        + ' style="' + inStyle + '"'
+                                        + ' data-pname="' + pnEsc + '" data-row="' + rd.row + '" data-moIdx="1" data-overdue="' + (overdue ? '1' : '0') + '"'
+                                        + ' style="' + inStyle + 'width:150px!important;flex:0 0 150px;' + _grayStyle + '"'
                                         + ' oninput="updateVal(\'' + pnEsc + '\',\'dole_' + rd.row + '\',1,this.value);_refreshDateCell(this);this.style.background=\'transparent\';this.style.color=this.value?\'#14501a\':\'#b71c1c\'">';
-                                    var _naChk = '<label style="display:block;width:auto!important;margin:0!important;padding:0!important;text-align:center;font-size:0.6rem;font-weight:600;line-height:1.3;color:#757575;cursor:' + (dis ? 'not-allowed' : 'pointer') + ';" title="' + (_annNA ? 'Undo N/A' : 'Mark as N/A (not applicable)') + '">'
-                                        + '<input type="checkbox" style="display:inline-block!important;vertical-align:middle;width:var(--esh-cb-size)!important;min-width:var(--esh-cb-size)!important;height:var(--esh-cb-size)!important;margin:0 4px 0 0!important;padding:0!important;" ' + (_annNA ? 'checked ' : '') + (dis ? 'disabled ' : '')
-                                        + 'onchange="window.toggleDoleAnnualNA(\'' + pnEsc + '\',\'' + rd.row + '\',this.checked)"><span style="vertical-align:middle;">N/A</span></label>';
-                                    // Same date-input style as the monthly rows (same width), centered; N/A checkbox stacked below
-                                    cell = '<div style="text-align:center;"><div style="margin-bottom:3px;">' + (_annNA ? _naBox : dateInput) + '</div>' + _naChk + '</div>';
+                                    var _naChk = '<label style="display:inline-flex!important;align-items:center;gap:4px;width:auto!important;margin:0!important;padding:0!important;font-size:0.6rem;font-weight:600;line-height:1.3;white-space:nowrap;color:#757575;cursor:' + (dis ? 'not-allowed' : 'pointer') + ';" title="' + (_annNA ? 'Undo N/A' : 'Mark as N/A (not applicable)') + '">'
+                                        + '<input type="checkbox" style="display:inline-block!important;width:var(--esh-cb-size)!important;min-width:var(--esh-cb-size)!important;height:var(--esh-cb-size)!important;margin:0!important;padding:0!important;" ' + (_annNA ? 'checked ' : '') + (dis ? 'disabled ' : '')
+                                        + 'onchange="window.toggleDoleAnnualNA(\'' + pnEsc + '\',\'' + rd.row + '\',this.checked)"><span>N/A</span></label>';
+                                    cell = '<div style="position:relative;display:flex;align-items:center;justify-content:center;">' + dateInput + '<span style="position:absolute;top:50%;right:calc(50% + 75px + 8px);transform:translateY(-50%);">' + _naChk + '</span></div>';
                                 }
                                 return '<td style="' + tdStyle + '" title="' + ((_annExempt || _annNotReq) ? _annTooltip.replace(/"/g,'&quot;') : '') + '">' + cell + '</td>';
                             }).join('');
@@ -15278,7 +15331,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 + cells + '</tr>';
                         }).join('');
 
-                        var tableHtml = '<table style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
+                        var tableHtml = '<table class="dole-modal-table" style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
                             + '<thead>'
                             + '<tr style="background:' + _T.grp + ';color:' + _T.txt + ';font-size:0.67rem;font-weight:800;text-align:center;">'
                             + '<th rowspan="2" style="padding:6px 8px;border:1px solid ' + _T.bd + ';vertical-align:middle;background:' + _T.grp + ';color:' + _T.txt + ';position:sticky;left:0;z-index:5;width:320px;min-width:320px;max-width:320px;box-shadow:inset -1px 0 0 ' + _T.bd + ';">REPORT</th>'
@@ -15292,13 +15345,13 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '</tbody></table>';
 
                         window.eshMountModal(modal, {
-                            id: 'dole-month-modal', icon: 'fa-file-lines', iconImg: window.DOLE_LOGO, width: 'min(1600px,99vw)', bodyFlex: true,
+                            id: 'dole-month-modal', icon: 'fa-file-lines', iconImg: window.DOLE_LOGO, width: 'min(640px,96vw)', bodyFlex: true,
                             title: (isNew ? 'New DOLE entry' : (canEdit ? 'Edit DOLE' : 'View DOLE')) + ' — <span style="color:#2e7d32;">' + activeMo + ' ' + selYear + '</span>',
                             sub: '<i class="fas fa-location-dot" style="margin-right:4px;"></i>' + reg + ' · ' + regProjs.length + ' project' + (regProjs.length!==1?'s':''),
                             body: ''
                             // Info bar — includes month dropdown when Add Entry (isNew)
-                            + '<div style="background:#f1f8e9;border-bottom:1px solid #c8e6c9;padding:6px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
-                            + '<span style="font-size:0.64rem;color:#2e7d32;font-weight:600;"><i class="fas fa-table" style="margin-right:5px;"></i>All projects in region — ' + activeMo + ' ' + selYear + '</span>'
+                            + '<div style="border-bottom:1px solid #e8ebe9;padding:8px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+                            + '<span style="font-size:0.68rem;color:#6b7770;">Reports for ' + activeMo + ' ' + selYear + '</span>'
                             + (isNew ? (function(){
                                 var _rk = regKey.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
                                 var _rg = reg.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -15316,11 +15369,68 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     + ' style="border:1px solid #a5d6a7;border-radius:4px;padding:3px 7px;font-size:0.67rem;font-weight:700;background:#e8f5e9;color:#1b5e20;cursor:pointer;min-width:110px;">'
                                     + opts + '</select></label>';
                             })() : '')
-                            + '<span style="font-size:0.6rem;color:#888;margin-left:auto;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll horizontally if needed</span>'
                             + '</div>'
+                            // Project navigation (same as EMB)
+                            + '<div class="emb-sticky"><div class="emb-nav">'
+                            + '<button type="button" class="emb-nav-btn" data-dir="-1"><i class="fas fa-chevron-left"></i> Prev</button>'
+                            + '<div class="emb-nav-mid"><div class="emb-nav-title"><span class="emb-dot"></span><span class="emb-nav-name"></span></div><span class="emb-nav-count"></span></div>'
+                            + '<button type="button" class="emb-nav-btn" data-dir="1">Next <i class="fas fa-chevron-right"></i></button>'
+                            + '</div></div>'
                             // Table
                             + '<div style="overflow-x:auto;max-height:55vh;overflow-y:auto;background:var(--bg-card);">' + tableHtml + '</div>'
                             , foot: canEdit ? '<button onclick="window.saveDoleModal()" class="mdl-btn primary"><i class="fas fa-save" style="margin-right:6px;"></i>Save Changes</button>' : '' });
+                        modal.classList.add('dole-modal');   // class, not only the id: the close ghost clone has no ids
+                        window._doleInitNav(modal, regProjs.map(function(p){
+                            return { name: p.name, stopped: !!(isProjectOnStoppage(p) && !p.dateFinished), finished: !!p.dateFinished };
+                        }));
+                    };
+
+                    // DOLE modal navigation: one project at a time (Prev/Next), same look as the EMB modal.
+                    // Every project column stays in the DOM (only hidden), so saveDoleModal still reads every input.
+                    window._doleInitNav = function(modal, meta) {
+                        var rows = modal.querySelectorAll('.dole-modal-table tbody > tr');
+                        var prevBtn = modal.querySelector('.emb-nav-btn[data-dir="-1"]');
+                        var nextBtn = modal.querySelector('.emb-nav-btn[data-dir="1"]');
+                        var nameEl = modal.querySelector('.emb-nav-name');
+                        var countEl = modal.querySelector('.emb-nav-count');
+                        var dotEl = modal.querySelector('.emb-nav-mid .emb-dot');
+                        var bodyEl = modal.querySelector('.mdl-body');
+                        var cur = window._doleKeepNav; window._doleKeepNav = null;
+                        var p = (cur !== null && cur !== undefined && cur >= 0 && cur < meta.length) ? cur : 0;
+
+                        function projState(i) {
+                            var ins = [];
+                            rows.forEach(function(tr){ var c = tr.children[i + 1]; if (c) c.querySelectorAll('input[type="date"]').forEach(function(x){ ins.push(x); }); });
+                            if (!ins.length) return 'exempt';
+                            var empty = ins.filter(function(x){ return !x.value; });
+                            if (!empty.length) return 'done';
+                            return empty.some(function(x){ return x.getAttribute('data-overdue') === '1'; }) ? 'late' : 'miss';
+                        }
+                        function refresh() {
+                            rows.forEach(function(tr){
+                                for (var i = 0; i < meta.length; i++) { var c = tr.children[i + 1]; if (c) c.classList.toggle('dole-col-off', i !== p); }
+                            });
+                            nameEl.textContent = meta[p].name;
+                            if (meta[p].stopped || meta[p].finished) {
+                                var bd = document.createElement('span'); bd.className = 'emb-badge';
+                                bd.innerHTML = meta[p].finished ? '<i class="fas fa-lock"></i> Finished' : '<i class="fas fa-pause-circle"></i> On Stoppage';
+                                nameEl.appendChild(document.createTextNode(' ')); nameEl.appendChild(bd);
+                            }
+                            countEl.textContent = (p + 1) + ' of ' + meta.length;
+                            dotEl.className = 'emb-dot ' + projState(p);
+                            prevBtn.disabled = p <= 0;
+                            nextBtn.disabled = p >= meta.length - 1;
+                            // Red border only on empty fields that are already overdue
+                            modal.querySelectorAll('.dole-modal-table input[type="date"]').forEach(function(i){
+                                i.classList.toggle('dole-bad', i.getAttribute('data-overdue') === '1' && !i.value && !i.disabled);
+                            });
+                            modal.setAttribute('data-active-proj', p);
+                        }
+                        prevBtn.onclick = function(){ if (p > 0) { p--; refresh(); if (bodyEl) bodyEl.scrollTop = 0; } };
+                        nextBtn.onclick = function(){ if (p < meta.length - 1) { p++; refresh(); if (bodyEl) bodyEl.scrollTop = 0; } };
+                        modal.addEventListener('input', refresh);
+                        modal.addEventListener('change', refresh);
+                        refresh();
                     };
 
                     // ── Annual DOLE input handler (no escape-hell inline) ──────────────
@@ -15359,7 +15469,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         id: id, icon: 'fa-leaf', iconImg: header.iconImg,
                         title: header.title, sub: header.sub,
                         width: 'min(1600px,99vw)',
-                        body: infoBar + '<div style="overflow-x:auto;">' + tableHtml + '</div>',
+                        body: infoBar + '<div class="mt-wrap" style="overflow-x:auto;">' + tableHtml + '</div>',
                         foot: footerHtml
                     });
                 }
@@ -15372,16 +15482,16 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                 function _embInfoBar(text) {
                     // Same as _modalInfoBar but without the horizontal "Scroll if needed" hint (EMB modal shows one project at a time).
-                    return '<div style="background:#f1f8e9;border-bottom:1px solid #c8e6c9;padding:6px 16px;display:flex;align-items:center;gap:10px;">'
-                        + '<span style="font-size:0.64rem;color:#2e7d32;font-weight:600;"><i class="fas fa-table" style="margin-right:5px;"></i>' + text + '</span>'
+                    return '<div style="border-bottom:1px solid #e8ebe9;padding:8px 14px;">'
+                        + '<span style="font-size:0.68rem;color:#6b7770;">' + text + '</span>'
                         + '</div>';
                 }
 
                 function _modalTable(rowDefs, projCols, projNames) {
                     // rowDefs: [{label, desc, cells:[{pname,key,idx,val,inputType,stopped}]}]
                     var thead = '<tr style="background:#9ecf9b;color:#1b5e20;font-size:0.67rem;font-weight:800;">'
-                        + '<th style="padding:6px 8px;border:1px solid #c8e6c9;min-width:120px;white-space:nowrap;">FIELD</th>'
-                        + '<th style="padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;text-align:left;white-space:normal;">DESCRIPTION</th>'
+                        + '<th class="mt-c1" style="padding:6px 8px;border:1px solid #c8e6c9;min-width:120px;white-space:nowrap;">FIELD</th>'
+                        + '<th class="mt-c2" style="padding:6px 8px;border:1px solid #c8e6c9;min-width:160px;text-align:left;white-space:normal;">DESCRIPTION</th>'
                         + projNames.map(function(n){ return '<th style="padding:5px 8px;border:1px solid #c8e6c9;min-width:160px;white-space:normal;word-break:break-word;background:#b7ddb5;color:#1b5e20;text-align:center;">' + n + '</th>'; }).join('')
                         + '</tr>';
                     var tbody = rowDefs.map(function(rd){
@@ -15410,8 +15520,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                 + ' style="' + inputCss + '"></td>';
                         }).join('');
                         return '<tr style="background:var(--bg-card);border-bottom:1px solid #c8e6c9;">'
-                            + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-weight:800;color:#1b5e20;background:#e8f5e9;white-space:nowrap;">' + rd.label + '</td>'
-                            + '<td style="padding:8px 12px;border:1px solid #c8e6c9;font-size:0.67rem;color:#555;white-space:normal;">' + rd.desc + '</td>'
+                            + '<td class="mt-c1" style="padding:8px 12px;border:1px solid #c8e6c9;font-weight:800;color:#1b5e20;background:#e8f5e9;white-space:nowrap;">' + rd.label + '</td>'
+                            + '<td class="mt-c2" style="padding:8px 12px;border:1px solid #c8e6c9;font-size:0.67rem;color:#555;white-space:normal;">' + rd.desc + '</td>'
                             + cells + '</tr>';
                     }).join('');
                     return '<table style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
@@ -15765,9 +15875,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     + ' style="width:100%;border:1px solid ' + _facBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _facBg + ';color:' + _facC + ';box-sizing:border-box;text-align:left;display:block;"'
                                     + ' oninput="updateVal(this.dataset.pname,this.dataset.key,parseInt(this.dataset.idx),this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';this.setAttribute(\'data-tip\',this.value);"'
                                     + ' data-tip="' + (facVal||'').replace(/"/g,'&quot;') + '"'
-                                    + ' onmouseenter="if(this.value){var t=document.getElementById(\'emb-fac-tip\');if(!t){t=document.createElement(\'div\');t.id=\'emb-fac-tip\';t.style.cssText=\'position:fixed;z-index:2147483647;background:#263238;color:#fff;font-size:0.72rem;font-weight:700;padding:5px 10px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.5);pointer-events:none;max-width:280px;word-break:break-word;white-space:pre-wrap;\';document.body.appendChild(t);}t.textContent=this.value;t.style.display=\'block\';var r=this.getBoundingClientRect();var tx=Math.min(Math.max(r.left+r.width/2-t.offsetWidth/2,8),window.innerWidth-t.offsetWidth-8);var ty=r.bottom+6;if(ty+t.offsetHeight>window.innerHeight-8)ty=r.top-t.offsetHeight-6;t.style.left=tx+(\'px\');t.style.top=ty+(\'px\');}"'
-                                    + ' onmouseleave="var t=document.getElementById(\'emb-fac-tip\');if(t)t.style.display=\'none\';"'
-                                    + ' onmousemove="var t=document.getElementById(\'emb-fac-tip\');if(t&&t.style.display!==\'none\'){var r=this.getBoundingClientRect();var tx=Math.min(Math.max(r.left+r.width/2-t.offsetWidth/2,8),window.innerWidth-t.offsetWidth-8);var ty=r.bottom+6;if(ty+t.offsetHeight>window.innerHeight-8)ty=r.top-t.offsetHeight-6;t.style.left=tx+(\'px\');t.style.top=ty+(\'px\');}"'
                                     + '>';
                                 html += '</div>';
 
@@ -15841,9 +15948,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     + ' style="width:100%;border:1px solid ' + _eFacBd + ';border-radius:4px;padding:4px 6px;font-size:0.72rem;font-weight:700;background:' + _eFacBg + ';color:' + _eFacC + ';box-sizing:border-box;text-align:left;display:block;"'
                                     + ' oninput="updateEmbEntry(this.dataset.pname,\'' + eType + '\',' + eIdx + ',\'fac\',' + periodIdx + ',this.value);this.style.background=this.value?\'#c8e6c9\':\'#ffcdd2\';this.style.borderColor=this.value?\'#a5d6a7\':\'#ef9a9a\';this.style.color=this.value?\'#2e7d32\':\'#c62828\';this.setAttribute(\'data-tip\',this.value);"'
                                     + ' data-tip="' + (eFac||'').replace(/"/g,'&quot;') + '"'
-                                    + ' onmouseenter="if(this.value){var t=document.getElementById(\'emb-fac-tip\');if(!t){t=document.createElement(\'div\');t.id=\'emb-fac-tip\';t.style.cssText=\'position:fixed;z-index:2147483647;background:#263238;color:#fff;font-size:0.72rem;font-weight:700;padding:5px 10px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.5);pointer-events:none;max-width:280px;word-break:break-word;white-space:pre-wrap;\';document.body.appendChild(t);}t.textContent=this.value;t.style.display=\'block\';var r=this.getBoundingClientRect();var tx=Math.min(Math.max(r.left+r.width/2-t.offsetWidth/2,8),window.innerWidth-t.offsetWidth-8);var ty=r.bottom+6;if(ty+t.offsetHeight>window.innerHeight-8)ty=r.top-t.offsetHeight-6;t.style.left=tx+(\'px\');t.style.top=ty+(\'px\');}"'
-                                    + ' onmouseleave="var t=document.getElementById(\'emb-fac-tip\');if(t)t.style.display=\'none\';"'
-                                    + ' onmousemove="var t=document.getElementById(\'emb-fac-tip\');if(t&&t.style.display!==\'none\'){var r=this.getBoundingClientRect();var tx=Math.min(Math.max(r.left+r.width/2-t.offsetWidth/2,8),window.innerWidth-t.offsetWidth-8);var ty=r.bottom+6;if(ty+t.offsetHeight>window.innerHeight-8)ty=r.top-t.offsetHeight-6;t.style.left=tx+(\'px\');t.style.top=ty+(\'px\');}"'
                                     + '>';
                                 html += '</div>';
 
@@ -15896,7 +16000,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         var projColsHtml = regProjs.map(function(p, i){ return _buildEmbProjectCol(p, i); }).join('');
 
-                        var tableHtml = '<table id="emb-modal-table" style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
+                        var tableHtml = '<table id="emb-modal-table" class="emb-modal-table" style="border-collapse:collapse;font-size:0.68rem;width:max-content;min-width:100%;">'
                             + '<thead><tr style="background:' + _T.grp + ';color:' + _T.txt + ';font-size:0.67rem;font-weight:800;">'
                             + projNameHtml + '</tr></thead>'
                             + '<tbody><tr style="background:' + _T.rowBg + ';">'
@@ -15909,7 +16013,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             'emb-modal');
                         header.iconImg = window.EMB_LOGO;
                         var infoBar = _embInfoBar(periodDue
-                            + (canEdit ? ('<br><small style="margin-top:6px;display:inline-block;color:#1565c0;">' + window.icon("idea") + ' Click <strong>+ Add Entry</strong> inside a project column to add multiple submissions.</small>') : ''));
+                            + (canEdit ? ('<br><small style="margin-top:6px;display:inline-block;">' + window.icon("idea") + ' Click <strong>+ Add Entry</strong> inside a project column to add multiple submissions.</small>') : ''));
                         var footer = _modalFooter(
                             canEdit ? 'window._saveEmbModal()' : null,
                             canEdit ? null : 'window.openEmbDialog(\''+regKey.replace(/'/g,"\\'")+'\',\''+reg.replace(/'/g,"\\'")+'\',\''+periodKey+'\',true)',
@@ -15934,6 +16038,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         modal.setAttribute('data-reg', reg);
                         modal.setAttribute('data-period', periodKey);
                         modal.setAttribute('data-regkey', regKey);
+                        modal.classList.add('emb-modal');   // class, not only the id: the close ghost clone has no ids
                         window._embInitNav(modal, regProjs.map(function(p){
                             return { name: p.name, stopped: !!(isProjectOnStoppage(p) && !p.dateFinished) };
                         }), _isPeriodOverdue);
@@ -16002,6 +16107,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             }
                             modal.setAttribute('data-active-proj', cur.p);
                             modal.setAttribute('data-active-fac', cur.f);
+                            // Red border only on empty fields when the period is overdue
+                            modal.querySelectorAll('.emb-entry-block input[type="text"],.emb-entry-block input[type="date"]').forEach(function(i){ i.classList.toggle('emb-bad', !!overdue && !i.value && !i.disabled); });
                         }
                         prevBtn.onclick = function(){ if (cur.p > 0) { cur.p--; cur.f = 0; refresh(); if (bodyEl) bodyEl.scrollTop = 0; } };
                         nextBtn.onclick = function(){ if (cur.p < tds.length - 1) { cur.p++; cur.f = 0; refresh(); if (bodyEl) bodyEl.scrollTop = 0; } };
@@ -16277,6 +16384,21 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     var emrLastShownIdx = emrSelYear < new Date().getFullYear() ? 11 : (emrSelYear === new Date().getFullYear() ? emrCurMoIdx - 1 : -1);
                     var EMR_KEY = 'env-monthly-report_Environmental Monthly Report (EMR)';
                     var EMR_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                    // Inline EMR table: save the moment a date is entered (same updateVal the old modal used), then refresh the counts once typing stops
+                    window._emrChange = function(el) {
+                        updateVal(el.dataset.pname, el.dataset.key, parseInt(el.dataset.idx, 10), el.value);
+                        el.style.borderColor = el.value ? '#a5d6a7' : '#ef9a9a';
+                        el.style.background  = el.value ? '#c8e6c9' : '#fff5f5';
+                        clearTimeout(window._emrRenderT);
+                        var _wait = function() {
+                            var a = document.activeElement;
+                            if (a && a.classList && a.classList.contains('emr-in')) { window._emrRenderT = setTimeout(_wait, 1200); return; }
+                            render();
+                        };
+                        window._emrRenderT = setTimeout(_wait, 1200);
+                    };
+                    var _emrEsc = function(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); };
+                    var _emrFmt = function(v) { var q = String(v).split('-'); return q.length === 3 ? q[1] + '/' + q[2] + '/' + q[0] : v; };
 
                     var emrActProjs = displayProjects.filter(function(p){ return !isProjectOnStoppage(p) && p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS'; });
                     var emrTot=0, emrFill=0;
@@ -16324,107 +16446,63 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             +'<span class="rbadge rbadge-count rb-proj">'+projs.length+' PROJ</span>'
                             +'<span class="rbadge" style="background:rgba(255,255,255,0.18);color:#c8e6c9;">'+emrComplete+'/'+(emrLastShownIdx+1)+' complete</span>'
                             +window._rbStatusPills(_rgTot,_rgFill,_rgTot-_rgFill,'overdue')
-                            +(canEditReg?'<button class="lta-add-btn" onclick="event.stopPropagation();window.openEmrDialog(\''+regKey+'\',\''+reg.replace(/'/g,"\\'")+'\',\'M1\',true)" style="font-size:0.68rem;padding:4px 12px;"><i class="fas fa-plus"></i> Add Entry</button>':'')
                             +'<i class="fas fa-chevron-down region-toggle-icon"></i>'
                             +'</div></div></div>'
                             +'<div id="region-content-'+reg+'" class="region-content '+(isCollapsed?'collapsed':'')+'">';
 
-                        var emrPeriods = [];
-                        for(var m2=0;m2<=emrLastShownIdx;m2++){
-                            var mIdx2 = m2+1;
-                            var nonNaProjs2 = activeProjs.filter(function(p){ return !isProjectHiddenForMonth(p,mIdx2,emrSelYear); });
-                            var mFill = nonNaProjs2.filter(function(p){ return p.vals[EMR_KEY]&&p.vals[EMR_KEY][mIdx2]; }).length;
-                                var subLabel = 'Submitted: <span style=\"color:'+(mFill===nonNaProjs2.length&&nonNaProjs2.length>0?'#2e7d32':mFill>0?'#e65100':'#c62828')+';font-weight:700;\">'+mFill+'/'+nonNaProjs2.length+'</span>';
-                            emrPeriods.push({
-                                label: EMR_MONTHS[m2] + ' ' + emrSelYear,
-                                shortLabel: EMR_MONTHS[m2].substring(0,3).toUpperCase(),
-                                monthOnly: true,
-                                filledCount: mFill, totalSlots: nonNaProjs2.length,
-                                isCurrent: (emrSelYear === new Date().getFullYear() && m2 === emrCurMoIdx),
-                                sub: subLabel,
-                                periodKey: 'M'+(m2+1)
+                        // One table per region: rows = projects, columns = completed months. Date inputs save as soon as a date is entered.
+                        var emrMonths = [];
+                        for (var m2 = 1; m2 <= emrLastShownIdx + 1; m2++) emrMonths.push(m2);
+                        if (!emrMonths.length) {
+                            html += '<div style="padding:14px 16px;font-size:0.75rem;color:#888;">No completed months yet for ' + emrSelYear + '.</div>';
+                        } else {
+                            html += '<div class="table-container"><table class="got-tbl hl-tbl" style="width:auto;min-width:100%;"><thead><tr>'
+                                + '<th class="got-th-left got-th-dark" style="min-width:250px;text-align:left;padding-left:10px;position:sticky;left:0;z-index:6;">PROJECT</th>'
+                                + emrMonths.map(function(m){ return '<th style="min-width:130px;">' + EMR_MONTHS[m-1].substring(0,3).toUpperCase() + '</th>'; }).join('')
+                                + '</tr></thead><tbody>';
+                            projs.forEach(function(p) {
+                                var pnA = _emrEsc(p.name);
+                                html += '<tr><td class="got-td-proj" style="text-align:left;position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;">'
+                                    + (p.isRenewable ? '<i class="fas fa-leaf" style="color:#4caf50;margin-right:5px;" title="Renewable Energy"></i>' : '') + p.name + '</td>';
+                                emrMonths.forEach(function(m) {
+                                    if (isProjectHiddenForMonth(p, m, emrSelYear)) {
+                                        html += '<td style="color:#bbb;" title="Project not active this month">—</td>';
+                                        return;
+                                    }
+                                    var notStarted = isMonthBeforeProjectStart(p, m, emrSelYear);
+                                    var stopped = isProjectOnStoppage(p) || isMonthBlacklistedForProject(p, m, emrSelYear);
+                                    if (stopped) {
+                                        var finished = !!isProjectFinishedForMonth(p, m, emrSelYear) && !notStarted;
+                                        html += '<td style="color:#9e9e9e;font-style:italic;" title="' + (notStarted ? 'Project has not started this month yet — not required.' : (finished ? 'Project finished — this month and later months are not required.' : 'Work Stoppage period — this month is excluded from compliance.')) + '">'
+                                            + (notStarted ? 'Not yet started' : (finished ? 'Finished' : 'Work stoppage')) + '</td>';
+                                        return;
+                                    }
+                                    var v = p.vals[EMR_KEY] ? (p.vals[EMR_KEY][m] || '') : '';
+                                    if (canEditReg && !p.dateFinished) {
+                                        html += '<td><input type="date" class="emr-in" value="' + v + '" data-pname="' + pnA + '" data-key="' + EMR_KEY + '" data-idx="' + m + '"'
+                                            + ' onchange="window._emrChange(this)"'
+                                            + ' style="border:1px solid ' + (v ? '#a5d6a7' : '#ef9a9a') + ';border-radius:4px;padding:3px 6px;font-family:inherit;font-size:inherit;background:' + (v ? '#c8e6c9' : '#fff5f5') + ';"></td>';
+                                    } else {
+                                        html += v ? '<td>' + _emrFmt(v) + '</td>' : '<td style="color:#c62828;font-weight:700;">Missing</td>';
+                                    }
+                                });
+                                html += '</tr>';
                             });
+                            // Submitted count per month (replaces the old "Submitted: x/y" line of the month list)
+                            html += '<tr class="tot"><td style="text-align:left;position:sticky;left:0;z-index:5;background:var(--tbl-head-bg);color:var(--tbl-head-fg);font-weight:700;">SUBMITTED</td>'
+                                + emrMonths.map(function(m) {
+                                    var nonNa = activeProjs.filter(function(p){ return !isProjectHiddenForMonth(p, m, emrSelYear); });
+                                    var fill = nonNa.filter(function(p){ return p.vals[EMR_KEY] && p.vals[EMR_KEY][m]; }).length;
+                                    var col = (nonNa.length > 0 && fill === nonNa.length) ? '#2e7d32' : (fill > 0 ? '#e65100' : '#c62828');
+                                    return '<td style="background:var(--tbl-head-bg);color:' + col + ';font-weight:700;">' + fill + '/' + nonNa.length + '</td>';
+                                }).join('') + '</tr>';
+                            html += '</tbody></table></div>';
                         }
-                        html += _buildRegionMonthList(reg, regKey, emrPeriods, canEditReg, 'window.openEmrDialog');
                         html += '</div>';
                     });
 
                     container.innerHTML = html;
 
-                    window.openEmrDialog = function(regKey, reg, periodKey, editMode) {
-                        var selYear = state.selectedYear || new Date().getFullYear();
-                        var curMoIdx = new Date().getMonth();
-                        var regProjs = (state.filteredProjects||state.projects).filter(function(p){ return p.region===reg; }); // FIX: keep finished projects visible for past-month data
-                        if (!regProjs.length) return;
-
-                        var isNew = !periodKey;
-                        // Only COMPLETED months are open for entry (current month is still ongoing)
-                        var _emrLastShown = selYear < new Date().getFullYear() ? 11 : (selYear === new Date().getFullYear() ? curMoIdx - 1 : -1);
-
-                        // Which months already have ANY data in this region?
-                        var _filledEmrMos = {};
-                        EMR_MONTHS.forEach(function(mo, mi){
-                            _filledEmrMos['M'+(mi+1)] = regProjs.some(function(p){ return p.vals[EMR_KEY]&&p.vals[EMR_KEY][mi+1]; });
-                        });
-                        var _availEmrPeriods = EMR_MONTHS.map(function(mo,mi){ return 'M'+(mi+1); }).filter(function(pk, _pi){ return !_filledEmrMos[pk] && _pi <= _emrLastShown; });
-
-                        // Default to first unfilled month, or current month
-                        if (!periodKey) periodKey = _availEmrPeriods.length ? _availEmrPeriods[0] : ('M'+(Math.max(0, _emrLastShown)+1));
-
-                        var canEdit = !!editMode || isNew;
-                        var dis = canEdit?'':'disabled';
-                        if (canEdit) _activateEditMode();
-
-                        var mIdx = parseInt(periodKey.replace('M',''));
-                        var mLabel = EMR_MONTHS[mIdx-1] + ' ' + selYear;
-                        // Hide columns of projects not yet started / already finished for this month
-                        regProjs = regProjs.filter(function(p){ return !isProjectHiddenForMonth(p, mIdx, selYear); });
-
-                        // Build month dropdown for Add Entry
-                        var _rk = regKey.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-                        var _rg = reg.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-                        var _moDropHtml = isNew ? (function(){
-                            var opts = EMR_MONTHS.map(function(mo, mi){
-                                var pk = 'M'+(mi+1);
-                                var isFilled = _filledEmrMos[pk];
-                                var isSel = pk === periodKey;
-                                var _notYet = mi > _emrLastShown; // ongoing / upcoming month
-                                var _ongTag = (_notYet && selYear === new Date().getFullYear() && mi === curMoIdx) ? ' (ongoing)' : '';
-                                return '<option value="' + pk + '"' + (isSel?' selected':'') + ((isFilled||_notYet)?' disabled style="color:#bbb;"':'') + '>' + mo + (isFilled?' ✓':'') + _ongTag + '</option>';
-                            }).join('');
-                            return '<label style="display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:0.67rem;color:#555;">'
-                                + '<i class="fas fa-calendar-alt" style="color:#1b5e20;font-size:0.7rem;"></i>'
-                                + '<span style="font-weight:700;font-size:0.64rem;color:#444;">Month:</span>'
-                                + '<select onchange="(function(v){var m=document.getElementById(\'emr-modal\');if(m)m.remove();window.openEmrDialog(\'' + _rk + '\',\'' + _rg + '\',v,true);})(this.value)"'
-                                + ' style="border:1px solid #a5d6a7;border-radius:4px;padding:3px 7px;font-size:0.67rem;font-weight:700;background:#e8f5e9;color:#1b5e20;cursor:pointer;min-width:110px;">'
-                                + opts + '</select></label>';
-                        })() : '';
-
-                        var rowDefs = [
-                            { label: 'EMR Date', desc: 'Environmental Monthly Report submission date — '+mLabel,
-                              cells: regProjs.map(function(p){ var notStarted=isMonthBeforeProjectStart(p,mIdx,selYear); var stopped=isProjectOnStoppage(p)||isMonthBlacklistedForProject(p,mIdx,selYear); var isFinished=!!p.dateFinished; return {pname:p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'"),key:EMR_KEY,idx:mIdx,val:p.vals[EMR_KEY]?p.vals[EMR_KEY][mIdx]||'':'',dis:(stopped||isFinished||(!canEdit&&!state.isEditing))?'disabled':((!canEdit&&state.isEditing)?'disabled':dis),inputType:'date',stopped:stopped,notStarted:notStarted,finished:isProjectFinishedForMonth(p,mIdx,selYear)}; }) }
-                        ];
-
-                        var tableHtml = _modalTable(rowDefs, null, regProjs.map(function(p){ return p.name + (isProjectOnStoppage(p) ? ' ' + statusBadge('work-stoppage') : '') + (p.dateFinished ? ' ' + statusBadge('finished') : ''); }));
-                        var header = _modalHeader('linear-gradient(90deg,#0d3d0f,#1b5e20,#2e7d32)',
-                            (isNew ? ('' + window.icon("plus") + ' New EMR Entry') : canEdit?('' + window.icon("edit") + ' Edit'):('' + window.icon("search") + ' View'))+' EMR — <span style="color:#fbc02d;">'+mLabel+'</span>',
-                            '<i class="fas fa-location-dot" style="margin-right:4px;"></i>'+reg+' · '+regProjs.length+' project'+(regProjs.length!==1?'s':'')+' &nbsp;·&nbsp; '+selYear,
-                            'emr-modal');
-                        var infoBar = '<div style="background:#f1f8e9;border-bottom:1px solid #c8e6c9;padding:6px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
-                            + '<span style="font-size:0.64rem;color:#2e7d32;font-weight:600;"><i class="fas fa-table" style="margin-right:5px;"></i>All projects in region — '+mLabel+'</span>'
-                            + _moDropHtml
-                            + '<span style="font-size:0.6rem;color:#888;margin-left:auto;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll if needed</span>'
-                            + '</div>';
-                        var footer = _modalFooter(
-                            (canEdit || state.isEditing) ? 'window._saveEmrModal()' : null,
-                            (canEdit || state.isEditing) ? null : 'window.openEmrDialog(\''+_rk+'\',\''+_rg+'\',\''+periodKey+'\',true)',
-                            'emr-modal');
-
-                        var modal = _buildModalOverlay('emr-modal', header, infoBar, tableHtml, footer);
-                        modal.setAttribute('data-reg', reg);
-                        modal.setAttribute('data-period', periodKey);
-                    };
-                    window._saveEmrModal = function(){ _genericSaveModal('emr-modal','env-monthly-report'); };
 
                     return;
                 } // end env-monthly-report
@@ -21169,6 +21247,50 @@ window.safetyOpenLightbox = safetyOpenLightbox;
 window.DOE_LOGO = 'data:image/png;base64,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';
 window.EMB_LOGO = 'data:image/png;base64,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';
 window.DOLE_LOGO = 'data:image/png;base64,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';
+
+// Logos with transparent areas (the white leaf and wave gaps of EMB, the white centre of DOLE) lose those areas on the dark theme.
+// Once at startup, each logo gets a white fill behind it that follows its own outline (convex hull of its opaque pixels),
+// so it looks the same on light and dark. The logo variables are replaced and any logo already on screen is swapped.
+(function () {
+    function hull(pts) {
+        pts.sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+        function cross(o, a, b) { return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); }
+        var lo = [], up = [], i;
+        for (i = 0; i < pts.length; i++) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], pts[i]) <= 0) lo.pop(); lo.push(pts[i]); }
+        for (i = pts.length - 1; i >= 0; i--) { while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], pts[i]) <= 0) up.pop(); up.push(pts[i]); }
+        lo.pop(); up.pop();
+        return lo.concat(up);
+    }
+    function fill(name) {
+        var src = window[name];
+        if (typeof src !== 'string' || src.indexOf('data:image/') !== 0) return;
+        var im = new Image();
+        im.onload = function () {
+            try {
+                var w = im.naturalWidth, h = im.naturalHeight, c = document.createElement('canvas');
+                c.width = w; c.height = h;
+                var x = c.getContext('2d');
+                x.drawImage(im, 0, 0);
+                var d = x.getImageData(0, 0, w, h).data, pts = [], i, j;
+                for (j = 0; j < h; j++) for (i = 0; i < w; i++) if (d[(j * w + i) * 4 + 3] > 20) pts.push([i + 0.5, j + 0.5]);
+                if (pts.length < 3) return;
+                var hl = hull(pts);
+                x.clearRect(0, 0, w, h);
+                x.beginPath();
+                hl.forEach(function (p, k) { if (k) x.lineTo(p[0], p[1]); else x.moveTo(p[0], p[1]); });
+                x.closePath();
+                x.fillStyle = '#fff'; x.fill();
+                x.lineWidth = 1; x.lineJoin = 'round'; x.strokeStyle = '#fff'; x.stroke();
+                x.drawImage(im, 0, 0);
+                var out = c.toDataURL('image/png');
+                window[name] = out;
+                document.querySelectorAll('img').forEach(function (e) { if (e.getAttribute('src') === src) e.setAttribute('src', out); });
+            } catch (e) { /* keep the original logo */ }
+        };
+        im.src = src;
+    }
+    ['EMB_LOGO', 'DOLE_LOGO', 'DOE_LOGO'].forEach(fill);
+})();
 function _mdlHtml(o) {
     // Shared modal frame. Content (o.body) is passed as-is.
     // o: { id, icon, title, sub, chips[], width, closeJs, body, foot }
@@ -22370,7 +22492,7 @@ function _renderRatesMini(datasets) {
             options: {
                 maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.85)', padding: 10, cornerRadius: 8 } },
+                plugins: { legend: { display: false }, tooltip: window.eshChartTip() },
                 scales: {
                     x: { grid: { display: false }, border: { display: false }, ticks: { color: tickC, maxTicksLimit: 6, font: { size: 10 } } },
                     y: { beginAtZero: true, suggestedMax: d.target === null ? undefined : d.target * 1.2, border: { display: false }, grid: { color: gridC }, ticks: { color: tickC, maxTicksLimit: 4, font: { size: 10 } } }
@@ -22430,7 +22552,7 @@ function _renderIncidentSplit(datasets) {
                     interaction: { mode: 'index', intersect: false },
                     plugins: {
                         legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8, color: tickC, font: { size: 11 } } },
-                        tooltip: { backgroundColor: 'rgba(0,0,0,0.85)', padding: 10, cornerRadius: 8 }
+                        tooltip: window.eshChartTip()
                     },
                     scales: {
                         x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { color: tickC } },
@@ -22456,7 +22578,7 @@ function _renderIncidentSplit(datasets) {
                 options: {
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
-                    plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.85)', padding: 10, cornerRadius: 8 } },
+                    plugins: { legend: { display: false }, tooltip: window.eshChartTip() },
                     scales: {
                         x: { grid: { display: false }, border: { display: false }, ticks: { color: tickC, maxTicksLimit: 6 } },
                         y: { beginAtZero: true, grid: { color: gridC }, border: { display: false }, ticks: { color: tickC, precision: 0 } }
@@ -22709,19 +22831,13 @@ function _doUpdateTrendChart(tabType) {
                         color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || '#333'
                     }
                 },
-                tooltip: {
+                tooltip: window.eshChartTip({
                     mode: 'index',
                     intersect: false,
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     padding: 12,
-                    titleFont: {
-                        size: 13,
-                        weight: 'bold'
-                    },
-                    bodyFont: {
-                        size: 12
-                    }
-                }
+                    titleFont: { size: 13, weight: '500' },
+                    bodyFont: { size: 12, weight: '500' }
+                })
             },
             scales: {
                 y: {
@@ -39469,7 +39585,10 @@ window.renderCorporateKpm = function() {
         var GRADE_PERC_MODAL  = [0.75, 0.80, 0.85, 0.90, 0.95];
         var GRADE_SCALE_MODAL = [1, 2, 3, 4, 5];
         var tableRows = '';
-        rowsFor(mgrIdx).forEach(function(row) {
+        rowsFor(mgrIdx).forEach(function(row, _ri) {
+            // Merge # and Work Package cells across the deliverables they cover (same as the region KPM modal)
+            var _grpSpan = 0;
+            if (row.kpm) { var _allRows = rowsFor(mgrIdx); _grpSpan = 1; for (var _gi = _ri + 1; _gi < _allRows.length && !_allRows[_gi].kpm; _gi++) _grpSpan++; }
             var rawVal = ckGet(mgrIdx, activeMo, row.id + '_ep');
             var n = parseFloat(String(rawVal||'').replace('%',''));
             var ep = isNaN(n) ? null : n/100;
@@ -39503,8 +39622,8 @@ window.renderCorporateKpm = function() {
             var impSt  = ckGet(mgrIdx, activeMo, 'imp_st_'  + row.id);
 
             tableRows += '<tr style="background:' + (row.kpm?'#ffffff':'#f6faf6') + ';border-bottom:1px solid #d5e3d8;">'
-                + '<td style="text-align:center;font-weight:700;color:#1f4d2e;padding:3px 2px;border:1px solid #d5e3d8;font-size:0.73rem;width:28px;min-width:28px;max-width:28px;">' + (row.kpm||'') + '</td>'
-                + '<td style="padding:4px 7px;border:1px solid #d5e3d8;font-size:0.68rem;color:#1f4d2e;font-weight:' + (row.wp?'600':'400') + ';min-width:110px;white-space:normal;max-width:130px;">' + (row.wp||'') + '</td>'
+                + (_grpSpan ? '<td rowspan="' + _grpSpan + '" style="vertical-align:middle;text-align:center;font-weight:700;color:#1f4d2e;padding:3px 2px;border:1px solid #d5e3d8;font-size:0.73rem;width:28px;min-width:28px;max-width:28px;">' + row.kpm + '</td>' : '')
+                + (_grpSpan ? '<td rowspan="' + _grpSpan + '" style="vertical-align:middle;padding:4px 7px;border:1px solid #d5e3d8;font-size:0.68rem;color:#1f4d2e;font-weight:' + (row.wp?'600':'400') + ';min-width:110px;white-space:normal;max-width:130px;">' + row.wp + '</td>' : '')
                 + '<td style="padding:4px 7px;border:1px solid #d5e3d8;font-size:0.68rem;color:#2b3a2f;min-width:110px;white-space:normal;max-width:130px;">' + (row.del||'') + '</td>'
                 + '<td style="text-align:center;padding:4px 5px;border:1px solid #d5e3d8;font-size:0.72rem;font-weight:700;color:#1f4d2e;min-width:40px;">' + dwDisplay + '</td>'
                 + '<td style="padding:4px 7px;border:1px solid #d5e3d8;font-size:0.68rem;color:#2b3a2f;min-width:130px;white-space:normal;max-width:150px;">' + (row.measure||'') + '</td>'
@@ -40875,7 +40994,7 @@ async function exportKpmExcel() {
 
 
 // ═══ Custom tooltip — replaces the browser's native title tooltip everywhere ═══
-// Dark rounded box with an arrow, no border. Works for any element with a title attribute
+// Light card in light mode, charcoal card in dark mode, thin border and arrow (see styles.css). Works for any element with a title attribute
 // (including ones created later), because it listens on the document.
 (function () {
     if (window.__eshTipInit) return;
@@ -41005,6 +41124,24 @@ async function exportKpmExcel() {
         window.addEventListener(ev, hide, true);
     });
 })();
+
+// ═══ Chart.js tooltip — same look as the custom tooltip (light card / charcoal card) ═══
+// Colors are functions, so they follow dark mode even if the chart was drawn earlier.
+window.eshChartTip = function (extra) {
+    var dark = function () { return document.body.classList.contains('dark-mode'); };
+    return Object.assign({
+        backgroundColor: function () { return dark() ? '#2b312d' : '#ffffff'; },
+        titleColor: function () { return dark() ? '#eef2ef' : '#1f2a22'; },
+        bodyColor: function () { return dark() ? '#eef2ef' : '#1f2a22'; },
+        borderColor: function () { return dark() ? '#4a524c' : '#c9d5cc'; },
+        borderWidth: 1,
+        cornerRadius: 8,
+        padding: 10,
+        caretSize: 6,
+        titleFont: { weight: '500' },
+        bodyFont: { weight: '500' }
+    }, extra || {});
+};
 
 // ═══ Accident/Incident Record — per-project cell tooltip ═══
 // Lists the registry entries behind one monthly number: "AIIR title — date of incident", one line each.
