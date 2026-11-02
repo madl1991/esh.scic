@@ -441,6 +441,7 @@
                         } else {
                             const _mList = [];
                             displayProjects.forEach(p => {
+                                if (state.currentTab === 'exposures' && row === 'No. of Days w/o LTA' && isMonthAfterProjectFinish(p, i, state.selectedYear || new Date().getFullYear())) return; // finished project: stale Days w/o LTA after the finish month not counted
                                 const val = p.vals[key] ? (p.vals[key][i] ?? "") : "";
                                 if (val !== "" && !isNaN(val)) { monthTotal += parseFloat(val); _mList.push({ n: p.name, v: parseFloat(val) }); }
                             });
@@ -544,7 +545,7 @@
                         } else {
                             const _yList = [];
                             displayProjects.forEach(p => {
-                                const ytd = calculateYTD(p.vals[key], rowIdx, row);
+                                const ytd = calculateYTD(p.vals[key], rowIdx, row, p);
                                 if (ytd > 0) { ytdTotal += ytd; _yList.push({ n: p.name, v: ytd }); }
                             });
                             html += `<td class="ytd-cell" style="font-weight: 800; font-size: 0.7rem;"${ytdTotal > 0 ? _osTipAttr(_yList) : ''}>${ytdTotal > 0 ? fmtNum(ytdTotal) : ''}</td>`;
@@ -1683,7 +1684,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     const _toDateSeries = computeExposureToDateSeries(p);
                     for (let i = 1; i <= 12; i++) {
                         const cumulative = _toDateSeries[i];
-                        const displayVal = isExposureMonthHidden(i) ? '' : (cumulative > 0 ? fmtNum(cumulative) : (cumulative === 0 ? '0' : ''));
+                        const _finBlank = isMonthAfterProjectFinish(p, i, state.selectedYear || new Date().getFullYear()); // finished project: no autofill after the finish month
+                        const displayVal = (isExposureMonthHidden(i) || _finBlank) ? '' : (cumulative > 0 ? fmtNum(cumulative) : (cumulative === 0 ? '0' : ''));
                         html += `<td class="monthly-data" data-todate-proj="${p.name}" data-todate-month="${i}" style="text-align:center;" title="Auto-computed: Previous + sum of Total Exposed Manhour up to this month">
                             <span data-todate-proj="${p.name}" data-todate-month="${i}" style="font-size:0.7rem;color:var(--text-primary);font-weight:700;">${displayVal}</span>
                         </td>`;
@@ -1748,7 +1750,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             : isMonthBlacklistedForProject(p, monthIdx1Based, _blkYr);
                     }
                     for (let i = 1; i <= 12; i++) {
-                        const v = isExposureMonthHidden(i) ? "" : (p.vals[key] ? (p.vals[key][i] ?? "") : "");
+                        const _finStale = state.currentTab === 'exposures' && row === 'No. of Days w/o LTA' && isMonthAfterProjectFinish(p, i, state.selectedYear || new Date().getFullYear()); // finished project: hide stale Days w/o LTA after the finish month
+                        const v = (isExposureMonthHidden(i) || _finStale) ? "" : (p.vals[key] ? (p.vals[key][i] ?? "") : "");
                         const vFmt = (!isDateType && v !== '') ? fmtNum(v) : v;
                         const _isFutureMonth = i > _curMonth || isExposureMonthHidden(i);
                         const _isCurrentMonth = i === _curMonth;
@@ -1881,7 +1884,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         ${ytdMh > 0 ? window.formatRate(row, ytdRate) : ''}
                     </td>`;
                 } else {
-                    ytdValue = calculateYTD(p.vals[key], rowIdx, row);
+                    ytdValue = calculateYTD(p.vals[key], rowIdx, row, p);
                     html += `<td class="ytd-cell">${fmtNum(ytdValue)}</td>`;
                 }
             }
