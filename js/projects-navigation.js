@@ -1559,7 +1559,8 @@ function updateAuditData(pName, qtr, field, val) {
                 const cumulative = series[i];
                 const cell = document.querySelector(`[data-todate-proj="${CSS.escape(pName)}"][data-todate-month="${i}"]`);
                 if (cell) {
-                    cell.textContent = isExposureMonthHidden(i) ? '' : (cumulative > 0 ? fmtNum(cumulative) : (cumulative === 0 ? '0' : ''));
+                    const _finBlank = isMonthAfterProjectFinish(p, i, state.selectedYear || new Date().getFullYear()); // finished project: no autofill after the finish month
+                    cell.textContent = (isExposureMonthHidden(i) || _finBlank) ? '' : (cumulative > 0 ? fmtNum(cumulative) : (cumulative === 0 ? '0' : ''));
                     cell.style.color = '';
                     cell.style.fontWeight = '700';
                 }
@@ -2527,6 +2528,17 @@ function isProjectFinishedForMonth(p, monthIdx1Based, selectedYear) {
     return moAbs >= finAbs; // lock/exclude from the finish month onwards; earlier months stay active
 }
 
+// Returns true only for months AFTER the finish month (the finish month itself stays open).
+// Used by Total Exposures + ESH Activities: e.g. finished 15 Jun 2026 -> Jun is still open for input; Jul onwards is not.
+function isMonthAfterProjectFinish(p, monthIdx1Based, selectedYear) {
+    if (!p || !p.dateFinished) return false;
+    const selY   = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
+    const finD   = new Date(p.dateFinished);
+    if (isNaN(finD)) return false;
+    const finAbs = finD.getFullYear() * 12 + (finD.getMonth() + 1);
+    return (selY * 12 + monthIdx1Based) > finAbs;
+}
+
 // Auto-sync p.status from dates so stale Firestore data is always corrected at render time
 function syncProjectStatus(p) {
     if (p.dateFinished) {
@@ -2653,13 +2665,14 @@ function getQuarterExemptTip(p, quarterNum, selectedYear) {
     return 'Work Stoppage period — Q' + quarterNum + ' is excluded from compliance computation.';
 }
 
-function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear, openStartMonth) {
+function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear, openStartMonth, openFinishMonth) {
     // Months before the project's dateStarted are never required — the project
     // didn't exist yet, so this always takes priority over the stoppage checks below.
     if (isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear, openStartMonth)) return true;
     // The month the project was declared finished, and every month after it, is never required
     // (months before the finish month stay required — see isProjectFinishedForMonth).
-    if (isProjectFinishedForMonth(p, monthIdx1Based, selectedYear)) return true;
+    // openFinishMonth = true (Total Exposures + ESH Activities only): the finish month itself stays open; only later months are excluded.
+    if (openFinishMonth ? isMonthAfterProjectFinish(p, monthIdx1Based, selectedYear) : isProjectFinishedForMonth(p, monthIdx1Based, selectedYear)) return true;
     if (!p.workStoppageDate) return false;
     const selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
     const stopD  = new Date(p.workStoppageDate);
@@ -2683,7 +2696,7 @@ function isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear, openStart
 // frozen and the following month is the first required one.
 function isMonthLockedForExposure(p, monthIdx1Based, selectedYear) {
     // The start month is open for input here (e.g. started 19 Sep → Sep is enabled).
-    if (!isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear, true)) return false;
+    if (!isMonthBlacklistedForProject(p, monthIdx1Based, selectedYear, true, true)) return false;
     if (!p.workStoppageDate || !p.workResumeDate || p.dateFinished) return true;
     if (isMonthBeforeProjectStart(p, monthIdx1Based, selectedYear, true)) return true;
     const selY = selectedYear || (state && state.selectedYear) || new Date().getFullYear();
