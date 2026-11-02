@@ -985,11 +985,13 @@
         }
         window.showComplianceGapModal = showComplianceGapModal;
 
-        function calculateYTD(vals, rowIndex, row) {
+        // proj (optional 4th arg): when given, "No. of Days w/o LTA" skips the months after the finish month of a finished project.
+        function calculateYTD(vals, rowIndex, row, proj) {
             if (!vals) return 0;
             let sum = 0;
             for (let i = 1; i <= 12; i++) {
                 if (window.isExposureMonthHidden && window.isExposureMonthHidden(i, row)) continue; // Total Exposures: unfinished months are not counted
+                if (proj && row === 'No. of Days w/o LTA' && state.currentTab === 'exposures' && isMonthAfterProjectFinish(proj, i)) continue; // finished project: stale months after the finish month are not counted
                 const val = parseFloat(vals[i]) || 0;
                 if (val > 0) sum += val;
             }
