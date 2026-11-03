@@ -3538,7 +3538,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     + (p.isRenewable ? '<i class="fas fa-leaf" style="color:#4caf50;margin-right:5px;" title="Renewable Energy"></i>' : '') + p.name + '</td>';
                                 emrMonths.forEach(function(m) {
                                     if (isProjectHiddenForMonth(p, m, emrSelYear)) {
-                                        html += '<td style="color:#bbb;" title="Project not active this month">—</td>';
+                                        html += '<td style="color:#bbb;" title="' + String(getMonthExemptTip(p, m, emrSelYear) || 'Project not active this month').replace(/"/g, '&quot;') + '">—</td>';
                                         return;
                                     }
                                     var notStarted = isMonthBeforeProjectStart(p, m, emrSelYear);
