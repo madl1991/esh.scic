@@ -1405,6 +1405,7 @@ function closeTransferPersonnelModal() {
 
 function confirmTransferPersonnel() {
     if (!_transferSelectedProject) return;
+    const destProject = _transferSelectedProject; // kopya, kasi ginagawang null ng closeTransferPersonnelModal()
 
     const index = parseInt(document.getElementById('editPersonnelIndex').value);
     const person = state.personnelData[index];
@@ -1495,7 +1496,7 @@ function confirmTransferPersonnel() {
     }, 150);
 
     if (window.showToast) window.showToast(
-        `${person.name} transferred to ${_transferSelectedProject}`, 'success', 4000
+        `${person.name} transferred to ${destProject}`, 'success', 4000
     );
 
     if (window.showSyncPill) window.showSyncPill('syncing', 'Saving transfer...');
