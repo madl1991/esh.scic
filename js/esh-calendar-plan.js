@@ -1828,14 +1828,14 @@ window.eshSetPlan = async function(tabType, projName, ti, mi, _unused, tdEl) {
                 const canEdit = eshCanEdit(tabType, proj?.region);
                 const inp = document.createElement('input');
                 inp.type = 'date'; inp.value = (_s[actualKey] && _s[actualKey] !== '__DELETED__') ? _s[actualKey] : '';
-                if (inp.value) { actualSib.classList.add('esh-done'); inp.style.color = '#fff'; inp.style.fontWeight = '700'; }
+                if (inp.value) { actualSib.classList.add('esh-done'); }
                 if (!canEdit) { inp.disabled = true; inp.title = '🔒 Read-only for your role/region'; }
                 inp.onchange = function() { window.eshSetActual(tabType, projName, ti, mi, this.value, this.closest('td')); };
                 actualSib.appendChild(inp);
             } else if (tabType === 'esh-calendar-drills') {
                 const inp = actualSib.querySelector('input[type="date"]');
                 if (inp && eshCanEdit(tabType, proj?.region)) { inp.disabled = false; inp.title = ''; inp.style.opacity = ''; actualSib.classList.remove('esh-not-planned'); }
-                if (inp && _s[actualKey] && _s[actualKey] !== '__DELETED__') { inp.value = _s[actualKey]; actualSib.classList.add('esh-done'); inp.style.color = '#fff'; inp.style.fontWeight = '700'; }
+                if (inp && _s[actualKey] && _s[actualKey] !== '__DELETED__') { inp.value = _s[actualKey]; actualSib.classList.add('esh-done'); }
             }
         } else {
             if (tabType !== 'esh-calendar-drills') {
@@ -1913,7 +1913,7 @@ window.eshCorpSetPlan = async function(tabType, projName, ti, mi, _unused, tdEl,
             if (inp) {
                 if (nowPlanned) {
                     inp.disabled = false; inp.title = ''; inp.style.opacity = ''; actualSib.classList.remove('esh-not-planned');
-                    if (_s[actualKey] && _s[actualKey] !== '__DELETED__') { inp.value = _s[actualKey]; actualSib.classList.add('esh-done'); inp.style.color = '#fff'; inp.style.fontWeight = '700'; }
+                    if (_s[actualKey] && _s[actualKey] !== '__DELETED__') { inp.value = _s[actualKey]; actualSib.classList.add('esh-done'); }
                 }
                 else { inp.value = ''; inp.disabled = true; actualSib.classList.remove('esh-done','esh-overdue'); actualSib.classList.add('esh-not-planned'); }
             }
@@ -2013,10 +2013,9 @@ window.eshSetActual = async function(tabType, projName, ti, mi, value, tdEl) {
         if (inp) inp.value = value || '';
         if (value) {
             tdEl.classList.add('esh-done');
-            if (inp) { inp.style.color = '#fff'; inp.style.fontWeight = '700'; inp.disabled = false; inp.style.opacity = ''; inp.style.pointerEvents = ''; }
+            if (inp) { inp.disabled = false; inp.style.opacity = ''; inp.style.pointerEvents = ''; }
         } else {
-            if (isMonthOverdue(mi)) { tdEl.classList.add('esh-overdue'); if (inp) { inp.style.color = '#fff'; inp.style.fontWeight = '700'; } }
-            else { if (inp) { inp.style.color = ''; inp.style.fontWeight = ''; } }
+            if (isMonthOverdue(mi)) { tdEl.classList.add('esh-overdue'); }
         }
     }
 
