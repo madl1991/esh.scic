@@ -66,8 +66,6 @@ function renderTabulation() {
             '.tab-kpm tbody tr.grp td{border-top:1px solid #a5d6a7}',
             '.tab-kpm tbody tr.tot td{background:#1b5e20!important;color:#fff!important;border-color:#2c6f31;font-weight:800}',
             '.tab-kpm tbody tr.tot td.tt{background:#0d3d0f!important;color:#fbc02d!important;border-left-color:#0d3d0f}',
-            '.tab-kpm tbody tr:not(.tot):hover td{background:#e3f1e4}',
-            'body.dark-mode .tab-kpm tbody tr:not(.tot):hover td{background:#2f4a37}',
             'body.dark-mode .tab-kpm thead th{background:#2e5a34;color:#e8f5e9}',
             'body.dark-mode .tab-kpm thead th.now{background:#e65100;color:#fff}',
             'body.dark-mode .tab-kpm thead th.h-tt{background:#7a6a1f;color:#fff}',
