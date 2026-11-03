@@ -4565,7 +4565,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
                         projs.forEach(p => {
                             let totalYearAvg = 0;
-                            html += `<tr><td class="got-td-proj" title="${String(p.name||'').replace(/"/g,'&quot;')}" style="text-align:left;background:#e8f5e9;position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            html += `<tr style="height:46px;"><td class="got-td-proj" title="${String(p.name||'').replace(/"/g,'&quot;')}" style="text-align:left;background:#e8f5e9;position:sticky;left:0;z-index:5;border-right:2px solid #c8e6c9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                                 ${p.isRenewable ? '<i class="fas fa-leaf" style="color:#4caf50;margin-right:5px;" title="Renewable Energy"></i>' : ''}${p.name}
                             </td>`;
                             ['Q1','Q2','Q3','Q4'].forEach(q => {
@@ -4576,9 +4576,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                         oninput="updateAuditData('${p.name}','${q}','${field}',this.value)" placeholder="0"
                                         style="${_auEdit ? 'border:1.5px solid #a5d6a7;background:#f1fff1;color:#2e7d32;' : 'border:1.5px solid transparent;background:transparent;color:inherit;font-weight:500;'}border-radius:4px;padding:3px 4px;width:100%;max-width:70px;min-width:0;box-sizing:border-box;font-size:0.75rem;text-align:center;"></td>`;
                                 html += _auInp('scoreImpl', audit.scoreImpl) + _auInp('docuComp', audit.docuComp)
-                                    + `<td style="background:#c8e6c9;color:#1b5e20;font-weight:700;text-align:center;border-right:2px solid #a5d6a7;">${qAvg.toFixed(2)}</td>`;
+                                    + `<td style="color:#1b5e20;font-weight:700;text-align:center;border-right:2px solid #a5d6a7;">${qAvg.toFixed(2)}</td>`;
                             });
-                            html += `<td style="background:#fff8e1;color:#7a5c00;font-weight:800;text-align:center;border-left:3px solid #fbc02d;">${(totalYearAvg/4).toFixed(2)}</td></tr>`;
+                            html += `<td style="color:#7a5c00;font-weight:800;text-align:center;border-left:3px solid #fbc02d;">${(totalYearAvg/4).toFixed(2)}</td></tr>`;
                         });
 
                         html += `</tbody></table></div>`;
