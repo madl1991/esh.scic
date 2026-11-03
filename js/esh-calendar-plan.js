@@ -2411,3 +2411,16 @@ window.renderEshCalendar = function(tabType) {
 
 
 })();
+
+// ── Click anywhere on an ACTUAL date box → open the calendar picker ──
+// Chrome/Edge only open the picker from the tiny icon (hidden/clipped in these cells), so clicks on the text just focus a segment.
+(function () {
+    if (window.__eshDatePickerClick) return;
+    window.__eshDatePickerClick = true;
+    document.addEventListener('click', function (e) {
+        var inp = e.target;
+        if (!inp || !inp.matches || !inp.matches('.esh-td-actual input[type="date"]')) return;
+        if (inp.disabled || inp.readOnly) return;
+        try { if (typeof inp.showPicker === 'function') inp.showPicker(); } catch (_) {}
+    });
+})();
