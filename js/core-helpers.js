@@ -9,6 +9,64 @@ window.icon = function (name, extraClass, attrs) {   // attrs = extra attributes
     var cls = Array.isArray(d) ? d[0] : d, col = Array.isArray(d) ? d[1] : '';
     return '<i class="fa-solid ' + cls + (extraClass ? ' ' + extraClass : '') + '"' + (attrs ? ' ' + attrs : '') + (col ? ' style="color:' + col + '"' : '') + '></i>';
 };
+// ── HEADER ICONS: colored PNG files in the icons/ folder (next to index.html), same idea as the DOLE / DOE / EMB icons. Usage: hdrIcon('kpm') gives <img class="hdr-ico">.
+// To change an icon: replace the file in icons/ (same name) and raise HDR_ICON_VER so the browser does not show the old one. Size: .hdr-ico / .tib-icon-img in styles.css (36px). ──
+window.HDR_ICON_DIR = 'icons/';
+window.HDR_ICON_VER = 1;
+window.HDR_ICONS = {'trainings':'trainings.png','audit':'audit.png','violation':'violation.png','tabulation':'tabulation.png','registry':'registry.png','record':'record.png','alert':'alert.png','health':'health.png','envmon':'envmon.png','envrep':'envrep.png','got':'got.png','kpm':'kpm.png','activities':'activities.png','requirement':'requirement.png','personnel':'personnel.png','exposure':'exposure.png','rates':'rates.png','home':'home.png','dashboard':'dashboard.png'};
+window.hdrIcon = function (key) { var f = window.HDR_ICONS[key]; return f ? '<img class="hdr-ico" src="' + window.HDR_ICON_DIR + f + '?v=' + window.HDR_ICON_VER + '" alt="" aria-hidden="true" draggable="false">' : ''; };
+// ── TOP BAR TITLE ICON (the title next to the hamburger button) ──
+// The title text is set by other code, so this watches the <h2 class="header-title"> and adds the matching icon from HDR_ICONS by the title text.
+// Titles that match nothing get no icon. A title that already has its own icon (<i>, <img>, <svg>) is left alone. DOLE, DOE and EMB are never touched.
+// To fix a missing / wrong icon: edit the line for that title in HDR_TITLE_ICONS (pattern is matched against the UPPERCASE title text).
+window.HDR_TITLE_ICONS = [
+    [/^HOME\b|^HEADLINES/, 'home'],
+    [/^OVERALL SUMMARY/, 'dashboard'],
+    [/TOTAL EXPOSURE/, 'exposure'],
+    [/ACTIVITIES AND PROGRAMS|^ESH ACTIVITIES/, 'activities'],
+    [/STATISTICS? RATE/, 'rates'],
+    [/\bKPM\b|^MONTHLY REPORT|KEY PERFORMANCE MEASURES?/, 'kpm'],
+    [/TRAININGS? (AND|&) DRILLS|ESH CALENDAR/, 'trainings'],
+    [/INTERNAL ESH AUDIT|AUDIT REPORT/, 'audit'],
+    [/\bNOV\b|VIOLATION/, 'violation'],
+    [/INCIDENT.*TABULATION/, 'tabulation'],
+    [/REGISTRY/, 'registry'],
+    [/(ACCIDENT|INCIDENT).*RECORD/, 'record'],
+    [/SAFETY ALERT/, 'alert'],
+    [/HEALTH REPORT/, 'health'],
+    [/ENVIRONMENTAL MONITORING|ENVI MONITORING/, 'envmon'],
+    [/ENVIRONMENTAL (MONTHLY )?REPORT|ENVI REPORTORIAL/, 'envrep'],
+    [/\bGOT\)? MONITORING|GOALS,? OBJECTIVES/, 'got'],
+    [/PERSONNEL REQUIREMENT|OSH REQUIREMENT/, 'requirement'],
+    [/PERSONNEL MONITORING|ESH PERSONNEL/, 'personnel']
+];
+window.applyHeaderTitleIcon = function () {
+    var h = document.querySelector('header .header-title');
+    if (!h) return;
+    var cur = h.querySelector('img.hdr-ico');
+    if (!cur && h.querySelector('i, img, svg')) return;      // the title already has its own icon
+    var txt = (h.textContent || '').replace(/\s+/g, ' ').trim().toUpperCase(), key = null;
+    if (txt && !/\b(DOLE|DOE|EMB)\b/.test(txt)) {
+        for (var i = 0; i < window.HDR_TITLE_ICONS.length; i++) {
+            if (window.HDR_TITLE_ICONS[i][0].test(txt)) { key = window.HDR_TITLE_ICONS[i][1]; break; }
+        }
+    }
+    if (cur && key && cur.getAttribute('data-k') === key) return;
+    if (cur) cur.remove();
+    h.classList.toggle('has-hdr-ico', !!key);
+    if (key) h.insertAdjacentHTML('afterbegin', window.hdrIcon(key).replace('<img ', '<img data-k="' + key + '" '));
+};
+(function () {
+    function init() {
+        var hd = document.querySelector('header');
+        if (!hd || hd._hdrIcoObs) return;
+        var obs = new MutationObserver(function () { window.applyHeaderTitleIcon(); obs.takeRecords(); });
+        hd._hdrIcoObs = obs;
+        obs.observe(hd, { childList: true, subtree: true, characterData: true });
+        window.applyHeaderTitleIcon(); obs.takeRecords();
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
 // Expand/collapse chevron: swaps the two pack icons on an <i> made with icon('chevron-down' | 'chevron-right').
 window.eshChevron = function (el, open) {
     if (!el) return;
@@ -96,23 +154,23 @@ window.expProjInjectCss = function() {};  // table look: .esh-tbl block in style
 // ESH: KPM-report look for the Environmental Monitoring overall summaries (Electricity, Water, Waste, Appliances, Fuel). Scoped to .env-sum-kpm.
 window.envKpmInjectCss = function() { if (typeof window.rptInjectCss === 'function') window.rptInjectCss(); };  // table look: .esh-tbl block in styles.css
 // ── rptBar: the one header bar for every report (title + subtitle + pills) ──
-// o: { title, sub, pills: [ 'text' | { text, id, cls } ], html }   html = extra raw markup (kept as-is)
+// o: { title, sub, pills: [ 'text' | { text, id, cls } ], html, icon (key of HDR_ICONS, shown left of the title) }   html = extra raw markup (kept as-is)
 window.rptBar = function(o) {
     var pills = (o.pills || []).map(function(p) {
         if (typeof p === 'string') p = { text: p };
         return '<span class="rpt-pill' + (p.cls ? ' ' + p.cls : '') + '"' + (p.id ? ' id="' + p.id + '"' : '') + '>' + p.text + '</span>';
     }).join('');
-    return '<div class="rpt-bar">' + (o.title ? '<h2>' + o.title + '</h2>' : '')
+    return '<div class="rpt-bar">' + (o.title ? '<h2>' + (o.icon ? window.hdrIcon(o.icon) : '') + o.title + '</h2>' : '')
         + (o.sub != null ? '<div class="rpt-sub">' + o.sub + '</div>' : '') + pills + (o.html || '') + '</div>';
 };
 // ── novBanner: the one banner (title + subtitle + stat tiles) for NOV tabs ──
-// o: { icon, title, sub, stats: [ { label, value, sub, tone: 'ok'|'bad'|'viol', icon } ] }   styles: .esh-ban in styles.css
+// o: { icon, hdr (key of HDR_ICONS: colored icon instead of icon), title, sub, stats: [ { label, value, sub, tone: 'ok'|'bad'|'viol', icon } ] }   styles: .esh-ban in styles.css
 window.novBanner = function(o) {
     var stats = o.stats.map(function(s) {
         return '<div class="esh-stat ' + s.tone + '"><div class="esh-stat-l">' + window.icon(s.icon) + s.label + '</div>'
             + '<div class="esh-stat-n">' + s.value + '</div>' + (s.sub ? '<div class="esh-stat-s">' + s.sub + '</div>' : '') + '</div>';
     }).join('');
-    return '<div class="esh-ban"><div class="esh-ban-h">' + window.icon(o.icon) + '<div><div class="esh-ban-t">' + o.title
+    return '<div class="esh-ban"><div class="esh-ban-h">' + (o.hdr ? window.hdrIcon(o.hdr) : window.icon(o.icon)) + '<div><div class="esh-ban-t">' + o.title
         + '</div><div class="esh-ban-s">' + o.sub + '</div></div></div><div class="esh-ban-g">' + stats + '</div></div>';
 };
 // ── envSummaryTable: ONE builder for every Environmental Monitoring "Overall Summary" (Electricity, Water, Waste, Appliances, Fuel) ──
@@ -442,3 +500,39 @@ function getDrillStorageIdx(drill, arrayIdx) {
     return (drill.id !== undefined) ? drill.id : arrayIdx;
 }
 window.getDrillStorageIdx = getDrillStorageIdx;
+
+// ═══ OSH manpower — read from Total Exposures (Total Manpower), no manual input ═══
+// Value  = Total Manpower of the last completed month that has data, in the selected year
+//          (the current month is still ongoing, so it is skipped, same as the Total Exposures YTD).
+// Finished project: 0 once the reference month is after the finish month.
+//          (Reference month = current month for this year, December for past years, January for future years.)
+// Used by: OSH Personnel Requirement Monitoring, OSH deficiency notifications, project modal, Excel export.
+function getOshManpowerInfo(p) {
+    var MN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var info = { value: 0, month: 0, year: 0, finished: false, tip: '' };
+    if (!p) return info;
+    var now = new Date(), cy = now.getFullYear(), cm = now.getMonth() + 1;
+    var sy = (typeof state !== 'undefined' && state && parseInt(state.selectedYear)) || cy;
+    info.year = sy;
+    var refMonth = sy < cy ? 12 : (sy === cy ? cm : 1);
+    if (p.dateFinished && typeof isMonthAfterProjectFinish === 'function' && isMonthAfterProjectFinish(p, refMonth, sy)) {
+        info.finished = true;
+        info.tip = 'Finished project: manpower is 0';
+        return info;
+    }
+    var cutoff = sy > cy ? 0 : (sy === cy ? cm - 1 : 12);
+    var arr = p.vals && p.vals['exposures_Total Manpower'];
+    if (arr) {
+        for (var m = cutoff; m >= 1; m--) {
+            var v = parseFloat(arr[m]);
+            if (v > 0) { info.value = Math.round(v); info.month = m; break; }
+        }
+    }
+    info.tip = info.value > 0
+        ? 'From Total Exposures, Total Manpower: ' + MN[info.month - 1] + ' ' + sy
+        : 'No Total Manpower in Total Exposures yet';
+    return info;
+}
+function getOshManpower(p) { return getOshManpowerInfo(p).value; }
+window.getOshManpowerInfo = getOshManpowerInfo;
+window.getOshManpower = getOshManpower;
