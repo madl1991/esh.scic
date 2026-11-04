@@ -9243,6 +9243,7 @@ body.dark-mode .project-dates .date-label { color: var(--text-secondary); }
 body.dark-mode .status-badge.status-ongoing  { background: #1a2a3d; color: #90caf9; }
 body.dark-mode .status-badge.status-stoppage { background: #47181f; color: #ef9a9a; }
 body.dark-mode .status-badge.status-finished { background: #2b3438; color: #b0bec5; }
+.status-badge.sb-inline { margin-left: 8px; flex-shrink: 0; }
 
 /* ═══════════════════════════════════════════════════════════════
    LOGIN — fullscreen layout + Facebook-style floating-label fields
@@ -10521,3 +10522,14 @@ body .st-fe1c26.st-fe1c26 {
 :where(button:disabled, input[type="button"]:disabled, input[type="submit"]:disabled, input[type="reset"]:disabled) {
     cursor: not-allowed;
 }
+
+/* ── Header icons: colored PNG from HDR_ICONS (core-helpers.js). 36px = same box as the DOLE / DOE / EMB banner icon; no green background behind it ── */
+.hdr-ico { width: 36px; height: 36px; object-fit: contain; display: block; flex-shrink: 0; user-select: none; -webkit-user-drag: none; }
+.tab-info-bar .tib-icon.tib-icon-img,
+body.dark-mode .tab-info-bar .tib-icon.tib-icon-img { background: none; border-radius: 0; }
+.rpt-bar h2 .hdr-ico { display: inline-block; vertical-align: middle; margin-right: 10px; }
+.esh-ban-h > .hdr-ico { margin: -4px 0; }
+
+/* Top bar title icon (next to the hamburger). Size: change --hdr-ico-top to make it bigger or smaller. */
+header .header-title.has-hdr-ico { display: inline-flex; align-items: center; gap: 10px; }
+header .header-title .hdr-ico { --hdr-ico-top: 32px; width: var(--hdr-ico-top); height: var(--hdr-ico-top); }
