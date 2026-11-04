@@ -2326,12 +2326,29 @@ function getStatusLabel(status) {
 function statusBadge(status, opts) {
     opts = opts || {};
     var info = STATUS_INFO[status] || STATUS_INFO['on-going'];
-    return '<span class="status-badge ' + info.cls + (opts.onclick ? ' clickable' : '') + '"'
+    return '<span class="status-badge ' + info.cls + (opts.onclick ? ' clickable' : '') + (opts.cls ? ' ' + opts.cls : '') + '"'
         + (opts.onclick ? ' onclick="' + opts.onclick + '"' : '')
         + (opts.title ? ' title="' + opts.title + '"' : '')
         + '>' + info.label + '</span>';
 }
 window.STATUS_INFO = STATUS_INFO; window.getStatusLabel = getStatusLabel; window.statusBadge = statusBadge;
+
+// ── Project status from the dates: Finished > Work Stoppage > On-Going (same order as syncProjectStatus) ──
+// One place for the badge: use projStatusBadge(project) in every module. CORPORATE and PLANT OPERATIONS get no badge.
+function getProjectStatus(p) {
+    if (!p) return 'on-going';
+    if (p.dateFinished) return 'finished';
+    if (isProjectOnStoppage(p)) return 'work-stoppage';
+    return 'on-going';
+}
+function projStatusBadge(p, opts) {
+    if (!p) return '';
+    opts = opts || {};
+    var r = String(p.region || '').toUpperCase();
+    if ((r === 'CORPORATE' || r === 'PLANT OPERATIONS') && !opts.force) return '';
+    return statusBadge(getProjectStatus(p), { cls: ('cls' in opts) ? opts.cls : 'sb-inline', title: opts.title, onclick: opts.onclick });
+}
+window.getProjectStatus = getProjectStatus; window.projStatusBadge = projStatusBadge;
 
 // ── Shared project list + stats targets (single source for counts and rates) ──
 // Reporting projects = real projects only (no CORPORATE, no PLANT OPERATIONS).
