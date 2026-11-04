@@ -860,10 +860,7 @@ window._tabProjIdx = _tabProjIdx;
 function _tabProjHeader(o) {
     const c = o.color || '#1b5e20';
     const multi = o.projs.length > 1;
-    const st = o.proj.status;
-    const statusHtml = o.status === true
-        ? (!st || st === 'on-going' ? '' : `<span style="background:${st==='on-hold'?'#fff3e0':'#e8f5e9'};color:${st==='on-hold'?'#e65100':'#2e7d32'};padding:1px 8px;border-radius:10px;font-size:0.62rem;font-weight:700;">${st}</span>`)
-        : (o.status || '');
+    const statusHtml = (typeof o.status === 'string') ? o.status : projStatusBadge(o.proj, { cls: '' });
     const sub = multi ? `<div style="font-size:0.6rem;font-weight:600;color:#888;margin-top:2px;">Project ${o.idx + 1} of ${o.projs.length}</div>` : '';
     return `<div style="background:linear-gradient(90deg,${c}22,${c}11);padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:none;">
         <div style="flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:flex-start;">${multi ? _tabNavBtn(o.tabType, o.region, -1, o.idx, o.projs.length) : ''}</div>
@@ -971,7 +968,7 @@ function eshRenderRegionTable(tabType, region, regProjects, projIdx) {
             </button>
             <div style="text-align:center;">
                 <div style="font-size:0.72rem;font-weight:800;color:#1b5e20;">
-                    <i class="fas fa-building" style="margin-right:5px;"></i>${proj.name}
+                    <i class="fas fa-building" style="margin-right:5px;"></i>${proj.name}${projStatusBadge(proj)}
                 </div>
                 <div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ${projIdx+1} of ${regProjects.length}${(function(){
                     const _po = ((window._eshOverdueByProj || {})[tabType] || {})[proj.name] || 0;
