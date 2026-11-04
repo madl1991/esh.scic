@@ -477,6 +477,7 @@
                 <div style="display:flex;align-items:center;gap:8px;">
                     <i class="fas fa-building" style="color:${regionColors.badge};font-size:0.85rem;"></i>
                     <span style="font-size:0.82rem;font-weight:800;color:white;letter-spacing:0.3px;">${p.name}</span>
+                    ${projStatusBadge(p, { cls: '' })}
                 </div>
                 <div id="hr-proj-status-${p.name.replace(/[^a-z0-9]/gi,'_')}" style="display:flex;align-items:center;">
                     ${statusHtml}
