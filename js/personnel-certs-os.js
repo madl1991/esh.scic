@@ -649,8 +649,8 @@ function osOpenModal(projectName, view) {
         personnelSection.style.display = 'none';
     }
 
-    // Total Manpower from OSH Personnel Requirement Monitoring (Manpower Input column)
-    const totalManpower = (state.oshData && state.oshData[project.name] && parseInt(state.oshData[project.name].manpower)) || 0;
+    // Total Manpower from Total Exposures (same value as OSH Personnel Requirement Monitoring)
+    const totalManpower = (typeof getOshManpower === 'function') ? getOshManpower(project) : 0;
 
     const dangOcc  = sumYear('medical_Dangerous Occurrences');
     const nearMiss = sumYear('medical_No. of Identified Near-Miss');
