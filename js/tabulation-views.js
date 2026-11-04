@@ -561,7 +561,7 @@ function renderTabulation() {
                     html += `<div class="nov-proj-row" onclick="window.openOshNovModal('${pnSafe}')">
                         <span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">${idx+1}</span>
                         <div style="flex:1;min-width:0;">
-                            <div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWS?'opacity:0.7;':''}">${window._dispProjName(p.name)}${isWS?' '+statusBadge('work-stoppage'):''}</div>
+                            <div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWS?'opacity:0.7;':''}">${window._dispProjName(p.name)}${projStatusBadge(p)}</div>
                             <div style="font-size:0.62rem;color:#888;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${reg === 'CORPORATE' ? 'SCIC Head Office' : reg === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
                         </div>
                         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
