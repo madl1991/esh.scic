@@ -1636,9 +1636,8 @@
 
                 // ── OSH Deficiency ───────────────────────────────────────────────
                 // CORPORATE and PLANT OPERATIONS are excluded from OSH Deficiency checks
-                if (!_isCorp && !_isPlant && state.oshData && state.oshData[project.name]) {
-                    const oshEntry = state.oshData[project.name];
-                    const manpower = parseInt(oshEntry.manpower) || 0;
+                if (!_isCorp && !_isPlant) {
+                    const manpower = (typeof getOshManpower === 'function') ? getOshManpower(project) : 0;
                     if (manpower > 0) {
                         const req = computeOshRequirements(manpower);
                         if (req) {
