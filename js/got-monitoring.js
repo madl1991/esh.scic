@@ -52,7 +52,7 @@
         h += '<div style="text-align:center;">';
         h += '<div style="font-size:0.72rem;font-weight:800;color:#1b5e20;"><i class="fas fa-hard-hat" style="margin-right:5px;"></i>';
         if (proj.isRenewable) h += '&#127807; ';
-        h += proj.name + '</div>';
+        h += proj.name + projStatusBadge(proj) + '</div>';
         h += '<div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ' + (projIdx + 1) + ' of ' + projs.length;
         if (projAvg !== null) h += ' &nbsp;·&nbsp; <span style="color:' + avgClr(projAvg) + ';font-weight:700;">' + fmtAvg(projAvg) + '</span>';
         if (!canEditReg) h += ' &nbsp;<i class="fas fa-lock" style="color:#fbc02d;font-size:0.6rem;" title="Press the Edit button (✏️) to enable input"></i>';
