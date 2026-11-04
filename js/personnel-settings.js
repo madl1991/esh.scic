@@ -1745,6 +1745,8 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
     const safeKey = projName.replace(/[^a-zA-Z0-9]/g, '_');
     const count = personnel.length;
     const headerBg = 'background:#f1f8e9;border-bottom:1px solid #c8e6c9;';
+    const _projRec = (state.projects || []).find(x => x.name === projName);
+    const _projBadge = (typeof projStatusBadge === 'function') ? projStatusBadge(_projRec) : '';
 
     let rows = '';
     let _projRowNum = 0;
@@ -1807,7 +1809,7 @@ function buildProjectCard(projName, personnel, projOptions, displayIndexRef, isC
                     ${navInfo ? _pHeaderNavBtn(navInfo.region, -1, navInfo.idx === 0) : ''}
                 </div>
                 <div style="flex:0 1 auto;min-width:0;text-align:center;">
-                    <div>${projName}</div>
+                    <div>${projName}${_projBadge}</div>
                     <div style="font-size:0.6rem;font-weight:600;opacity:0.75;margin-top:2px;">${navInfo ? `Project ${navInfo.idx + 1} of ${navInfo.total} · ` : ''}${count} personnel</div>
                 </div>
                 <div style="flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:flex-end;gap:8px;">
