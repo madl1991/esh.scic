@@ -1546,7 +1546,7 @@ async function exportCurrentTabToExcel() {
     // OSH REQUIREMENT
     // ════════════════════════════════════════════════════════════════════════
     if (tab === 'osh-requirement') {
-        function _oshMpLocal(name){return (state.oshData&&state.oshData[name]&&state.oshData[name].manpower)||0;}
+        function _oshMpLocal(p){return (typeof getOshManpower==='function')?getOshManpower(p):0;}
         const filtered=projs.filter(function(p){return p.region!=='CORPORATE'&&p.region!=='PLANT OPERATIONS';});
         const wb=eshNewWorkbook('ESH');
         const ws=wb.addWorksheet('OSH Requirement');
@@ -1561,7 +1561,7 @@ async function exportCurrentTabToExcel() {
             const ban=ws.addRow([region]); ws.mergeCells(ri,1,ri,cols);
             _xBan(ban.getCell(1),'📌 '+region+' ('+rp.length+' project'+(rp.length!==1?'s':'')+')'); ban.height=16; ri++;
             rp.forEach(function(proj,pIdx){
-                const mp=_oshMpLocal(proj.name);
+                const mp=_oshMpLocal(proj);
                 const req=(typeof computeOshRequirements==='function')?computeOshRequirements(mp):null;
                 const dr=ws.addRow([proj.name||'',proj.region||'',mp>0?mp:'—',req?req.firstAider:'—',req?(req.safetyOfficer+(req.soLabel?' ('+req.soLabel+')':'')):  '—',req?(req.ohNurse+(req.nurseLabel?' ('+req.nurseLabel+')':'')):'—',req?(req.ohPhysician>0?req.ohPhysician+(req.physLabel?' ('+req.physLabel+')':''):'0'):'—']);
                 dr.height=15;
