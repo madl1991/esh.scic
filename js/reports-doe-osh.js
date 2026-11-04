@@ -846,6 +846,7 @@ function renderOsh2() {
             '.osh2-card{background:var(--bg-card);border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:10px;padding:5px 12px;display:flex;align-items:center;gap:14px}',
             '.osh2-top{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;flex:0 0 32%;min-width:380px;max-width:500px}',
             '.osh2-title{flex:1;min-width:0;font-weight:600;font-size:.78rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+            '.osh2-top>.status-badge.sb-inline{flex:0 0 76px;width:76px;box-sizing:border-box;margin-left:0}.osh2-top>div:last-child{flex:0 0 112px}',
             '.osh2-idx{color:var(--text-secondary);font-size:.62rem;margin-right:5px}',
             '.osh2-sub{font-size:.58rem;color:var(--text-secondary);font-weight:400}',
             '.osh2-mp{display:flex;align-items:center;gap:6px;font-size:.58rem;color:var(--text-secondary)}.osh2-mp input,.osh2-mp>div{width:56px!important;padding:3px 5px!important;font-size:.7rem!important}',
@@ -899,9 +900,11 @@ function renderOsh2() {
 
         projects.forEach((proj, idx) => {
             const d = getOshData(proj.name);
-            const manpower = parseInt(d.manpower) || 0;
+            const manpower = (typeof getOshManpower === 'function') ? getOshManpower(proj) : 0;
             const req = computeOshRequirements(manpower);
             const actual = countActualOshPersonnel(proj.name);
+            // Finished project: not checked for deficiency and not counted as "No input"
+            const _fin = (typeof getOshManpowerInfo === 'function') && getOshManpowerInfo(proj).finished;
 
             let rowStatus = 'no-input';
             let defGaps = [];
@@ -923,6 +926,8 @@ function renderOsh2() {
                 }
                 rowStatus = hasDeficiency ? 'deficient' : 'compliant';
                 if (hasDeficiency) rDeficient++; else rCompliant++;
+            } else if (_fin) {
+                rowStatus = 'finished';
             } else {
                 rNoInput++;
             }
@@ -970,17 +975,16 @@ function renderOsh2() {
                 </div>`;
             }
 
-            const statusBadge = !req
+            const statusBadge = _fin
+                ? window._rowStatus('wait', 'N/A', 'Finished project: not checked', true)
+                : !req
                 ? window._rowStatus('wait', 'No input', '', true)
                 : rowStatus === 'compliant'
                     ? window._rowStatus('ok', 'Compliant', '', true)
                     : window._rowStatus('part', 'Deficient', '', true);
 
-            const mpHtml = canEditThisRegion
-                ? `<input class="osh2-mp-input" type="number" min="0" value="${manpower||''}" placeholder="0"
-                        onchange="updateOsh2Manpower('${safeN}',this.value)"
-                        style="width:65px;padding:5px 6px;border:1.5px solid ${manpower>0?'#2e7d32':'var(--border-color)'};border-radius:6px;background:var(--input-bg);color:var(--text-primary);font-size:0.78rem;text-align:center;font-weight:700;" />`
-                : `<div style="width:65px;padding:5px 6px;border:1.5px solid var(--border-color);border-radius:6px;background:rgba(0,0,0,0.04);color:var(--text-secondary);font-size:0.78rem;text-align:center;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:4px;cursor:not-allowed;" title="You can only edit your assigned region">
+            const _mpInfo = (typeof getOshManpowerInfo === 'function') ? getOshManpowerInfo(proj) : { tip: '' };
+            const mpHtml = `<div style="width:65px;padding:5px 6px;border:1.5px solid var(--border-color);border-radius:6px;background:rgba(0,0,0,0.04);color:var(--text-secondary);font-size:0.78rem;text-align:center;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:4px;cursor:help;" title="${_mpInfo.tip}">
                         <i class="fas fa-lock" style="font-size:0.6rem;opacity:0.5;"></i>
                         <span>${manpower > 0 ? manpower : '–'}</span>
                    </div>`;
@@ -988,6 +992,7 @@ function renderOsh2() {
             regionRows += `<div class="osh2-card">
                 <div class="osh2-top">
                     <div class="osh2-title" title="${String(proj.name||'').replace(/"/g,'&quot;')}">${proj.name}</div>
+                    ${projStatusBadge(proj)}
                     <div class="osh2-mp"><span>Manpower</span>${mpHtml}</div>
                     <div>${statusBadge}</div>
                 </div>
