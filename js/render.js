@@ -717,7 +717,7 @@
                     const percDisplay = perc !== null ? perc : '—';
                     const percDeg = perc !== null ? perc * 3.6 : 0;
                     // Derive display status from actual dates (source of truth), not stored p.status
-                    const _derivedStatus = p.dateFinished ? 'finished' : isWorkStopped ? 'work-stoppage' : 'on-going';
+                    const _derivedStatus = getProjectStatus(p);
                     
                     const canEdit = UserAccounts.canEdit(state.currentUser?.email, p.region) && UserAccounts.canEditTab(state.currentUser?.email, state.currentTab);
                     const isLocked = !canEdit;
@@ -734,6 +734,7 @@
                         <div class="project-info" style="${state.currentTab !== 'overall' ? 'align-items:center;text-align:center;gap:1px;min-width:0;' : ''}">
                             <div class="project-name" style="${state.currentTab !== 'overall' ? 'justify-content:center;' : ''}">
                                 ${window._dispProjName(p.name)}
+                                ${state.currentTab !== 'overall' ? projStatusBadge(p) : ''}
                                 ${p.isRenewable ? '<i class="fas fa-leaf" title="Renewable Energy" style="color: #4caf50; font-size: 0.9rem; margin-left: 8px;"></i>' : ''}
 
                             </div>
@@ -1115,7 +1116,7 @@ if (state.currentTab === 'audit') {
                             envHtml += `<div class="nov-proj-row" onclick="window.openEnvNovModal('${pnSafe}')">
                                 <span style="background:#1b5e20;color:white;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;">${idx+1}</span>
                                 <div style="flex:1;min-width:0;">
-                                    <div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWS?'opacity:0.7;':''}">${window._dispProjName(p.name)}${isWS?' '+statusBadge('work-stoppage'):''}</div>
+                                    <div style="font-size:0.73rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isWS?'opacity:0.7;':''}">${window._dispProjName(p.name)}${projStatusBadge(p)}</div>
                                     <div style="font-size:0.62rem;color:#888;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${reg === 'CORPORATE' ? 'SCIC Head Office' : reg === 'PLANT OPERATIONS' ? (p.location || 'Plant Facility') : (p.address || 'Project Address')}</div>
                                 </div>
                                 <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
