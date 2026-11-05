@@ -887,6 +887,7 @@
                 floatingTooltip.textContent = 'Saving...';
             }
             
+            if (typeof pruneEmptyPermitEntries === 'function') pruneEmptyPermitEntries();
             saveUserData(state.currentUser.email);
 
             // Save all appliances data together with main data
@@ -1621,6 +1622,24 @@ function updateAuditData(pName, qtr, field, val) {
         }
         window._refreshDateCell = _refreshDateCell;
 
+        // saveUserData() serializes ALL projects to localStorage. Calling it on every keystroke made
+        // typing lag, so local-cache writes are debounced; cloud saves go through RowSaveManager separately.
+        let _saveUserDataTimer = null;
+        function saveUserDataDebounced() {
+            clearTimeout(_saveUserDataTimer);
+            _saveUserDataTimer = setTimeout(function() {
+                _saveUserDataTimer = null;
+                if (typeof saveUserData === 'function') saveUserData(state.currentUser?.email);
+            }, 400);
+        }
+        window.saveUserDataDebounced = saveUserDataDebounced;
+        window.addEventListener('beforeunload', function() {
+            if (_saveUserDataTimer) {
+                clearTimeout(_saveUserDataTimer); _saveUserDataTimer = null;
+                if (typeof saveUserData === 'function') saveUserData(state.currentUser?.email);
+            }
+        });
+
         function updateVal(pName, key, mIdx, val) {
             // Preserve boolean values for checkboxes (do NOT convert false→"false" which is truthy)
             if (typeof val !== 'boolean') {
@@ -1665,7 +1684,7 @@ function updateAuditData(pName, qtr, field, val) {
             }
             if (typeof markPendingSync === 'function') markPendingSync();
             if (state.currentTab === 'cshp' || state.currentTab === 'reg' || state.currentTab === 'doe-permit') {
-                if (typeof saveUserData === 'function') saveUserData(state.currentUser?.email);
+                saveUserDataDebounced();
                 try {
                     const _activeInput = (typeof event !== 'undefined' && event && event.target && event.target.tagName === 'INPUT') ? event.target : null;
                     if (_activeInput) {
@@ -1675,10 +1694,10 @@ function updateAuditData(pName, qtr, field, val) {
                     }
                 } catch(_domErr) {}
                 // DISABLED auto-save on input: Save button only.
-                if (typeof saveUserData === 'function') saveUserData(state.currentUser?.email);
+                saveUserDataDebounced();
             } else {
                 // Just mark pending — no Firebase write until Save button
-                if (typeof saveUserData === 'function') saveUserData(state.currentUser?.email);
+                saveUserDataDebounced();
             }
             // Deferred render for _skipRenderTabs: re-render 800ms after user stops typing
             // so data reflects immediately without needing save/refresh
@@ -1771,9 +1790,10 @@ function updateAuditData(pName, qtr, field, val) {
             if (!p.vals[key]) p.vals[key] = {};
             if (!p.vals[key].entries) {
                 const old = { permitNo: p.vals[key][1] ?? '', dateIssued: p.vals[key][2] ?? '', expiryDate: p.vals[key][3] ?? '' };
-                p.vals[key].entries = (old.permitNo || old.dateIssued || old.expiryDate) ? [old] : [];
+                p.vals[key].entries = (old.permitNo || old.dateIssued || old.expiryDate) ? [old] : [{ permitNo: '', dateIssued: '', expiryDate: '' }];
                 delete p.vals[key][1]; delete p.vals[key][2]; delete p.vals[key][3];
             }
+            { const _es = p.vals[key].entries; if (_es.length > 1 && _permitEntryIsBlank(_es[_es.length - 1])) { showToast('Fill in or remove the blank entry first', 'info', 2500); return; } }
             p.vals[key].entries.push({ permitNo: '', dateIssued: '', expiryDate: '' });
             saveToFirebase();
             render();
@@ -1806,9 +1826,88 @@ function updateAuditData(pName, qtr, field, val) {
             if (!p.vals[key].entries) p.vals[key].entries = [{ permitNo: '', dateIssued: '', expiryDate: '' }];
             if (p.vals[key].entries[idx] !== undefined) {
                 p.vals[key].entries[idx][field] = value;
+                if (window.RowSaveManager) window.RowSaveManager.markDirty(pName, `${key}_entries`);
+                saveUserDataDebounced();
                 if (typeof markPendingSync === 'function') markPendingSync(); // FIX: was missing
             }
         }
+        // Expiry colour: red = already expired, green = still valid (expires today counts as valid), none = empty.
+        function permitExpiryClass(v) {
+            v = String(v || '').trim();
+            if (!v) return '';
+            const d = new Date();
+            const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            return v < today ? 'pm-expired' : 'pm-valid';
+        }
+        window.permitExpiryClass = permitExpiryClass;
+        // Show "Until Project Completion" only while the permit has a number or date issued (live, no re-render).
+        document.addEventListener('input', function(ev) {
+            const t = ev.target;
+            if (!t || !t.closest || !t.closest('table.permits-tbl')) return;
+            if (t.matches && t.matches('input[type="date"][data-allow-future]')) {
+                t.classList.remove('pm-expired', 'pm-valid');
+                const cls = permitExpiryClass(t.value);
+                if (cls) t.classList.add(cls);
+            }
+            const tr = t.closest('tr');
+            const span = tr && tr.querySelector('.until-completion-text');
+            if (!span) return;
+            let has = false;
+            tr.querySelectorAll('td input[type="text"], td input[type="date"]').forEach(function(i) {
+                if (String(i.value || '').trim()) has = true;
+            });
+            span.classList.toggle('is-empty', !has);
+        });
+        // ── Blank extra permit entries (No. 2, No. 3 …) are removed automatically ──
+        function _permitEntryIsBlank(e) {
+            return !e || (!String(e.permitNo || '').trim() && !e.dateIssued && !e.expiryDate);
+        }
+        // State-only prune of every blank extra entry (first entry is always kept). Used before saving.
+        function pruneEmptyPermitEntries(project) {
+            let changed = false;
+            (project ? [project] : (state.projects || [])).forEach(function(pr) {
+                if (!pr || !pr.vals) return;
+                Object.keys(pr.vals).forEach(function(k) {
+                    if (k.indexOf('permits_') !== 0) return;
+                    const v = pr.vals[k];
+                    if (!v || !Array.isArray(v.entries) || v.entries.length < 2) return;
+                    const kept = v.entries.filter(function(e, i) { return i === 0 || !_permitEntryIsBlank(e); });
+                    if (kept.length !== v.entries.length) { v.entries = kept; changed = true; }
+                });
+            });
+            return changed;
+        }
+        window.pruneEmptyPermitEntries = pruneEmptyPermitEntries;
+        // When the user leaves a blank trailing entry, drop it (state + that row only, no full re-render,
+        // so a click on another control is never swallowed).
+        document.addEventListener('focusout', function(ev) {
+            const tr = ev.target && ev.target.closest ? ev.target.closest('tr[data-permit-entry]') : null;
+            if (!tr) return;
+            setTimeout(function() {
+                if (!tr.isConnected || tr.contains(document.activeElement)) return;
+                const key = tr.getAttribute('data-permit-entry');
+                const pName = tr.getAttribute('data-pname');
+                const pr = state.projects.find(function(x) { return x.name === pName; });
+                const entries = pr && pr.vals && pr.vals[key] && pr.vals[key].entries;
+                if (!entries) return;
+                let row = tr, removed = false;
+                while (row && row.getAttribute && row.getAttribute('data-permit-entry') === key && row.getAttribute('data-pname') === pName) {
+                    const idx = parseInt(row.getAttribute('data-eidx'), 10);
+                    if (!(idx > 0) || idx !== entries.length - 1 || !_permitEntryIsBlank(entries[idx])) break;
+                    if (row.contains(document.activeElement)) break;
+                    entries.splice(idx, 1);
+                    const prev = row.previousElementSibling;
+                    row.remove();
+                    removed = true;
+                    row = prev;
+                }
+                if (removed) {
+                    if (window.RowSaveManager) window.RowSaveManager.markDirty(pName, key + '_entries');
+                    saveUserDataDebounced();
+                    if (typeof markPendingSync === 'function') markPendingSync();
+                }
+            }, 150);
+        });
         const MULTI_ENTRY_PERMITS = [
             'Permit to Transport (PTT)',
             'Permit to Operate (PTO)',
@@ -1838,9 +1937,10 @@ function updateAuditData(pName, qtr, field, val) {
             if (!p.vals[key]) p.vals[key] = {};
             if (!p.vals[key].entries) {
                 const old = { permitNo: p.vals[key][1] || '', dateIssued: p.vals[key][2] || '', expiryDate: p.vals[key][3] || '' };
-                p.vals[key].entries = (old.permitNo || old.dateIssued || old.expiryDate) ? [old] : [];
+                p.vals[key].entries = (old.permitNo || old.dateIssued || old.expiryDate) ? [old] : [{ permitNo: '', dateIssued: '', expiryDate: '' }];
                 delete p.vals[key][1]; delete p.vals[key][2]; delete p.vals[key][3];
             }
+            { const _es = p.vals[key].entries; if (_es.length > 1 && _permitEntryIsBlank(_es[_es.length - 1])) { showToast('Fill in or remove the blank entry first', 'info', 2500); return; } }
             p.vals[key].entries.push({ permitNo: '', dateIssued: '', expiryDate: '' });
             saveToFirebase(); render();
         }
@@ -1921,31 +2021,34 @@ function updateAuditData(pName, qtr, field, val) {
             if (!p.vals[key].entries) p.vals[key].entries = [{ permitNo: '', dateIssued: '', expiryDate: '' }];
             if (p.vals[key].entries[idx] !== undefined) {
                 p.vals[key].entries[idx][field] = value;
+                if (window.RowSaveManager) window.RowSaveManager.markDirty(pName, `${key}_entries`);
+                saveUserDataDebounced();
                 if (typeof markPendingSync === 'function') markPendingSync();
             }
         }
         window.updateMultiPermitEntry = updateMultiPermitEntry;
 
         function _pdfSetStatus(msg, type) {
+            // Progress (uploading / saving) = toast-style bar; final results (success / error) = standard toast.
             const colors = {
-                uploading: { bg: '#e3f2fd', border: '#1976D2', text: '#0d47a1', icon: 'fa-spinner fa-spin' },
-                saving:    { bg: '#fff8e1', border: '#f57c00', text: '#e65100', icon: 'fa-cloud-arrow-up fa-pulse' },
-                success:   { bg: '#e8f5e9', border: '#2e7d32', text: '#1b5e20', icon: 'fa-circle-check' },
-                error:     { bg: '#ffebee', border: '#c62828', text: '#b71c1c', icon: 'fa-triangle-exclamation' }
+                uploading: { icon: 'fa-spinner fa-spin',          color: '#1976d2' },
+                saving:    { icon: 'fa-cloud-arrow-up fa-pulse',  color: '#e65100' }
             };
             let el = document.getElementById('_pdf-upload-status-bar');
             if (type === 'clear') { if (el) el.remove(); return; }
+            if (type === 'success' || type === 'error') {
+                if (el) el.remove();
+                if (typeof showToast === 'function') showToast(msg, type, type === 'error' ? 6000 : 3500);
+                return;
+            }
             const c = colors[type] || colors.uploading;
             if (!el) {
                 el = document.createElement('div');
                 el.id = '_pdf-upload-status-bar';
-                el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;min-width:320px;max-width:520px;border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,0.18);font-size:0.85rem;font-weight:600;transition:background 0.3s,border-color 0.3s;';
+                el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;min-width:240px;max-width:380px;border-radius:12px;padding:10px 16px 10px 12px;display:flex;align-items:center;gap:10px;background:var(--bg-card,#fff);color:var(--text-primary,#263238);box-shadow:0 2px 10px rgba(0,0,0,0.15);font-size:0.78rem;font-weight:600;line-height:1.4;';
                 document.body.appendChild(el);
             }
-            el.style.background = c.bg;
-            el.style.border = '2px solid ' + c.border;
-            el.style.color = c.text;
-            el.innerHTML = '<i class="fas ' + c.icon + '" style="font-size:1.1rem;flex-shrink:0;"></i><span>' + msg + '</span>';
+            el.innerHTML = '<i class="fas ' + c.icon + '" style="font-size:14px;width:16px;text-align:center;flex-shrink:0;color:' + c.color + ';"></i><span>' + msg + '</span>';
         }
 
         window._pdfSetStatus = _pdfSetStatus; // expose to global scope for cross-closure access
@@ -1977,9 +2080,9 @@ function updateAuditData(pName, qtr, field, val) {
 
             if (isReplacement) {
                 const confirmed = await showModernDialog(
-                    'Replace PDF',
+                    'Replace PDF?',
                     'Are you sure you want to replace the existing PDF file with this new one?',
-                    true
+                    true, 'Replace', 'Cancel'
                 );
                 if (!confirmed) return;
             }
@@ -2089,11 +2192,7 @@ function updateAuditData(pName, qtr, field, val) {
             const project = state.projects.find(p => p.name === projectName);
             if (!project || !project.vals[pdfKey] || !project.vals[pdfKey][1]) return;
 
-            const confirmed = await showModernDialog(
-                'Delete PDF',
-                'Are you sure you want to delete this PDF file? This action cannot be undone.',
-                true
-            );
+            const confirmed = await showDeleteDialog('PDF', 'the PDF file of ' + projectName);
 
             if (!confirmed) return;
 
@@ -2133,13 +2232,13 @@ function updateAuditData(pName, qtr, field, val) {
     const _isAdminUser = UserAccounts.isAdmin(state.currentUser?.email);
 
     if (projectName === 'Corporate' && !_isAdminUser) {
-        showToast('🏢 The Corporate project cannot be deleted — it is a permanent entity.', 'warning');
+        showToast('The Corporate project cannot be deleted — it is a permanent entity.', 'warning');
         return;
     }
 
     const PERMANENT_PLANTS = ['Pililla Batching Plant and Yard', 'Sta. Clara Railways Pre-Cast Manufacturing Plant'];
     if (PERMANENT_PLANTS.includes(projectName) && !_isAdminUser) {
-        showToast('🏭 Plant facilities cannot be deleted — they are permanent monitoring entities.', 'warning');
+        showToast('Plant facilities cannot be deleted — they are permanent monitoring entities.', 'warning');
         return;
     }
     
