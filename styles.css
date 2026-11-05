@@ -9737,10 +9737,12 @@ body:not(.dark-mode) table input.ecc-permit-input:disabled {
     color: #000 !important;
     -webkit-text-fill-color: #000 !important;
 }
+/* placeholder stays muted like the other rows (the value above is black; an empty field must not look filled) */
 body:not(.dark-mode) table input.ecc-permit-input::placeholder,
 body:not(.dark-mode) table input.ecc-permit-input:disabled::placeholder {
-    color: #000 !important;
-    -webkit-text-fill-color: #000 !important;
+    color: var(--tbl-mute, #9aa39c) !important;
+    -webkit-text-fill-color: var(--tbl-mute, #9aa39c) !important;
+    font-weight: 400 !important;
     opacity: 1 !important;
 }
 
@@ -10533,3 +10535,95 @@ body.dark-mode .tab-info-bar .tib-icon.tib-icon-img { background: none; border-r
 /* Top bar title icon (next to the hamburger). Size: change --hdr-ico-top to make it bigger or smaller. */
 header .header-title.has-hdr-ico { display: inline-flex; align-items: center; gap: 10px; }
 header .header-title .hdr-ico { --hdr-ico-top: 32px; width: var(--hdr-ico-top); height: var(--hdr-ico-top); }
+
+/* Permits tab: dashed "add entry" strip under the last entry of ECC / multi-entry permits */
+table.got-tbl.permits-tbl tr.permit-add-row td { padding: 4px 10px !important; }
+.permit-add-strip { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 4px 0; border: 1px dashed #2e7d32; border-radius: 6px; background: #f3faf3; color: #1b5e20; font-size: 0.72rem; font-weight: 500; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.permit-add-strip i { font-size: 0.62rem; }
+.permit-add-strip:hover { background: #e1f2e2; border-color: #1b5e20; }
+body.dark-mode .permit-add-strip { background: rgba(102, 187, 106, 0.08); border-color: #4caf50; color: #a5d6a7; }
+body.dark-mode .permit-add-strip:hover { background: rgba(102, 187, 106, 0.16); border-color: #81c784; }
+
+/* Permits tab: CP / N/A checkbox columns fit the checkbox; "Until Project Completion" stays hidden until the permit has input */
+table.got-tbl.permits-tbl .permit-chk-col { width: 40px; min-width: 40px; max-width: 40px; padding-left: 2px !important; padding-right: 2px !important; text-align: center; }
+.until-completion-text.is-empty { visibility: hidden; }
+
+/* Permits tab: expiry date red when expired, green while valid; "Until Project Completion" green */
+table.got-tbl.permits-tbl input.pm-expired { color: #b91c1c !important; -webkit-text-fill-color: #b91c1c !important; font-weight: 600; }
+table.got-tbl.permits-tbl input.pm-valid   { color: #2e7d32 !important; -webkit-text-fill-color: #2e7d32 !important; font-weight: 600; }
+body.dark-mode table.got-tbl.permits-tbl input.pm-expired { color: #f87171 !important; -webkit-text-fill-color: #f87171 !important; }
+body.dark-mode table.got-tbl.permits-tbl input.pm-valid   { color: #81c784 !important; -webkit-text-fill-color: #81c784 !important; }
+body:not(.dark-mode) .until-completion-text { color: #2e7d32; font-weight: 600 !important; }
+body.dark-mode .until-completion-text { color: #81c784; font-weight: 600 !important; }
+
+/* ═══ Undo toast ("DELETED … Undo"): same card as the standard .toast (light, rounded, soft shadow, no outline) ═══ */
+.undo-toast {
+    background: var(--bg-card, #fff);
+    color: var(--text-primary, #263238);
+    backdrop-filter: none;
+    border: 1px solid transparent;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    min-width: 240px;
+}
+.undo-toast-body { padding: 10px 12px; gap: 10px; }
+.undo-toast-icon { width: 16px; height: auto; border-radius: 0; background: none; color: #c62828; font-size: 14px; }
+.undo-toast-title { font-size: 0.62rem; font-weight: 700; color: #c62828; }
+.undo-toast-msg { font-size: 0.78rem; font-weight: 600; color: var(--text-primary, #263238); line-height: 1.4; }
+.undo-btn { background: #e8f5e9; color: #2e7d32; font-size: 0.74rem; padding: 5px 12px; margin-right: 8px; }
+.undo-btn:hover { background: #c8e6c9; color: #1b5e20; }
+.undo-toast-progress { height: 2px; background: #c62828; }
+body.dark-mode .undo-toast { background: var(--bg-card); color: #e4e4e4; }
+body.dark-mode .undo-toast-icon, body.dark-mode .undo-toast-title { color: #ef5350; }
+body.dark-mode .undo-toast-msg { color: #e4e4e4; }
+body.dark-mode .undo-btn { background: rgba(129,199,132,0.14); color: #81c784; }
+body.dark-mode .undo-btn:hover { background: rgba(129,199,132,0.26); color: #a5d6a7; }
+body.dark-mode .undo-toast-progress { background: #ef5350; }
+
+/* ═══ Personnel modals (Add / Edit): fit on one screen, no scrollbar ═══
+   Was capped at 90vh with roomy spacing, so at 125% browser zoom the footer buttons were cut off.
+   Now: cap = full viewport height, slightly wider, tighter vertical spacing.
+   Scroll (with a sticky footer) only remains as a fallback for very short screens. */
+.modal:has(> .modal-content.pm-compact) { padding: 8px; }
+.modal-content.pm-compact { max-height: calc(100vh - 16px); padding: 12px 22px 10px; }
+@media (min-width: 901px) {
+    .modal-content.pm-compact { max-width: 1180px; width: 96%; }
+}
+.pm-compact .pm-head { margin-bottom: 4px; }
+.pm-note { margin-bottom: 5px; padding: 4px 10px; }
+.pm-grid { gap: 6px 12px; }
+.pm-compact .form-group > label,
+.pm-compact .form-group > div:first-child { min-height: 16px; margin-bottom: 2px; }
+.pm-compact .form-group input:not([type="checkbox"]):not([type="file"]),
+.pm-compact .form-group select { height: 34px; padding-top: 5px; padding-bottom: 5px; }
+.pm-compact .form-group textarea { min-height: 34px; height: 34px; }
+.pm-compact .pm-oic > label { min-height: 34px; }
+.pm-compact #editPersonnelCertSection { margin: 4px 0 0 !important; }
+.pm-compact #editPersonnelCertSection > div:first-child { padding-top: 6px !important; margin-bottom: 4px !important; }
+.pm-compact #editPersonnelCertSection > label { margin-bottom: 5px !important; padding: 4px 10px !important; }
+.pm-compact #editCertDropZone { padding: 4px 12px !important; }
+.pm-compact .modal-buttons { margin-top: 6px; padding-top: 8px; position: sticky; bottom: 0; z-index: 2; background: var(--bg-card); margin-bottom: -10px; padding-bottom: 10px; }
+
+/* ═══ Transfer Personnel: region chips, green confirm, space above the footer ═══ */
+#transferRegionChips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 6px; }
+#transferRegionChips .tp-chip { border: none; cursor: pointer; padding: 4px 11px; border-radius: 99px; font-size: 0.7rem; font-weight: 600; background: #eceff1; color: #37474f; transition: background 0.15s, color 0.15s; }
+#transferRegionChips .tp-chip:hover { background: #dfe6e9; }
+#transferRegionChips .tp-chip.on { background: #2e7d32; color: #fff; }
+#transferRegionChips .tp-chip.dim { opacity: 0.55; }
+body.dark-mode #transferRegionChips .tp-chip { background: #2a2f2a; color: #cfd8dc; }
+body.dark-mode #transferRegionChips .tp-chip.on { background: #2e7d32; color: #fff; }
+#transferProjectList { margin-bottom: 10px; }
+#transferPersonnelConfirmBtn { background: #2e7d32 !important; color: #fff !important; }
+#transferPersonnelConfirmBtn:hover:not(:disabled) { background: #1b5e20 !important; }
+
+/* ═══ Transfer Personnel: fixed size, one-line chips, one-line subtitle ═══ */
+.ix-356341f { max-width: 540px !important; }
+#transferPersonnelModal .pm-titles { flex: 1; min-width: 0; }
+#transferPersonnelSubtitle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; margin-bottom: 0; }
+#transferRegionChips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+#transferRegionChips::-webkit-scrollbar { display: none; }
+#transferRegionChips .tp-chip { flex: none; white-space: nowrap; padding: 4px 9px; font-size: 0.68rem; }
+#transferProjectList { height: 262px; max-height: none; overflow-y: auto; }
+#transferSelectedName { background: #e8f5e9 !important; border-color: #2e7d32 !important; color: #1b5e20 !important; min-height: 38px; }
+#transferSelectedName.empty { background: #f5f5f5 !important; border-color: #e0e0e0 !important; color: #888 !important; }
+body.dark-mode #transferSelectedName { background: rgba(129,199,132,0.14) !important; border-color: #2e7d32 !important; color: #a5d6a7 !important; }
+body.dark-mode #transferSelectedName.empty { background: #2a2f2a !important; border-color: #3a3f3a !important; color: #90a4ae !important; }
