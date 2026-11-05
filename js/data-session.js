@@ -1157,7 +1157,7 @@ async function executeForceLogout(targetUid, targetEmail) {
     const offlineNote = isCurrentlyOnline ? '' : '<br><br><small style="color:#888;">They are currently offline — the logout will trigger the moment they reopen the dashboard.</small>';
 
     const confirmed = await showModernDialog(
-        'Force Logout',
+        'Force Logout?',
         `Are you sure you want to force logout <strong>${targetEmail}</strong>?<br><br>They will be immediately signed out from all active sessions.${offlineNote}`
     );
     if (!confirmed) return;
@@ -1369,7 +1369,7 @@ function setupAuthObserver() {
                 }
                 if (userInfo.role === 'pco') {
                     setTimeout(() => {
-                        showToast(`🌿 PCO Access: You can only edit Environmental Permits & EMB Reportorial for ${userInfo.region} region.`, 'info');
+                        showToast(`PCO Access: You can only edit Environmental Permits & EMB Reportorial for ${userInfo.region} region.`, 'info');
                     }, 2000);
                 }
             }
