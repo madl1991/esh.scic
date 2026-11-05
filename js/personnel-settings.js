@@ -1264,6 +1264,8 @@ window._saveEditCert = async function(personIdx) {
 };
 
 let _transferSelectedProject = null;
+let _transferActiveRegion = null;
+const TP_HIDDEN_REGIONS = ['PLANT OPERATIONS']; // regions left out of the Transfer list
 
 function openTransferPersonnelModal() {
     const index = parseInt(document.getElementById('editPersonnelIndex').value);
@@ -1273,11 +1275,17 @@ function openTransferPersonnelModal() {
     _transferSelectedProject = null;
 
     const subtitle = document.getElementById('transferPersonnelSubtitle');
-    if (subtitle) subtitle.textContent = `Moving: ${person.name}  (currently at ${person.current || 'N/A'})`;
+    if (subtitle) {
+        subtitle.textContent = `${person.name} · from ${person.current || 'N/A'}`;
+        subtitle.title = subtitle.textContent;
+    }
 
     document.getElementById('transferProjectSearch').value = '';
     document.getElementById('transferPersonnelError').textContent = '';
-    document.getElementById('transferSelectedDisplay').style.display = 'none';
+    const _selBox = document.getElementById('transferSelectedName');
+    if (_selBox) _selBox.classList.add('empty');
+    const _selTxt = document.getElementById('transferSelectedNameText');
+    if (_selTxt) _selTxt.textContent = 'No project selected';
     const confirmBtn = document.getElementById('transferPersonnelConfirmBtn');
     if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.style.opacity = '0.5'; }
 
@@ -1291,6 +1299,7 @@ function openTransferPersonnelModal() {
     const masterList = state.masterProjects || state.projects || [];
     masterList.forEach(p => {
         if (!p.name || p.name === currentAssignment || p.region === 'CORPORATE') return;
+        if (TP_HIDDEN_REGIONS.includes((p.region || '').toUpperCase())) return; // not shown in Transfer
         if (state.userRole === 'pco' && state.userRegion && p.region !== state.userRegion) return;
         allProjects.push({ name: p.name, region: p.region || '' });
     });
@@ -1303,7 +1312,12 @@ function openTransferPersonnelModal() {
     });
 
     window._transferAllProjects = allProjects;
-    renderTransferProjectList(allProjects);
+    const _curRec = masterList.find(p => p.name === currentAssignment);
+    const _curReg = ((_curRec && _curRec.region) || '').toUpperCase();
+    const _regs = allProjects.map(p => (p.region || '').toUpperCase());
+    _transferActiveRegion = _regs.includes(_curReg) ? _curReg : (_regs[0] || null);
+    renderTransferRegionChips();
+    renderTransferProjectList(_visibleTransferProjects(), false);
 
     const transferNote = document.getElementById('transfer-region-note');
     if (transferNote) {
@@ -1324,7 +1338,49 @@ function openTransferPersonnelModal() {
     eshModalShow(_tpm);
 }
 
-function renderTransferProjectList(projects) {
+function _tpRegLabel(r) {
+    return (r || '').split(' ').map(w => w === 'NCR' ? w : w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+}
+
+// Projects shown right now: a search matches every region; otherwise only the active region chip.
+function _visibleTransferProjects(query) {
+    const all = window._transferAllProjects || [];
+    const q = (query || '').trim().toLowerCase();
+    if (q) return all.filter(p => p.name.toLowerCase().includes(q) || (p.region || '').toLowerCase().includes(q));
+    return all.filter(p => (p.region || '').toUpperCase() === _transferActiveRegion);
+}
+
+function renderTransferRegionChips() {
+    const list = document.getElementById('transferProjectList');
+    if (!list) return;
+    let chips = document.getElementById('transferRegionChips');
+    if (!chips) {
+        chips = document.createElement('div');
+        chips.id = 'transferRegionChips';
+        list.parentNode.insertBefore(chips, list);
+    }
+    const order = [], count = {};
+    (window._transferAllProjects || []).forEach(p => {
+        const r = (p.region || '').toUpperCase();
+        if (!(r in count)) { count[r] = 0; order.push(r); }
+        count[r]++;
+    });
+    const searching = !!((document.getElementById('transferProjectSearch') || {}).value || '').trim();
+    chips.innerHTML = order.map(r =>
+        `<button type="button" class="tp-chip${(!searching && r === _transferActiveRegion) ? ' on' : ''}${searching ? ' dim' : ''}" onclick="setTransferRegion('${r.replace(/'/g, "\\'")}')">${_tpRegLabel(r)} · ${count[r]}</button>`
+    ).join('');
+    chips.style.display = order.length > 1 ? '' : 'none'; // a single region (e.g. PCO) needs no chips
+}
+
+function setTransferRegion(region) {
+    _transferActiveRegion = region;
+    const s = document.getElementById('transferProjectSearch');
+    if (s) s.value = '';
+    renderTransferRegionChips();
+    renderTransferProjectList(_visibleTransferProjects(), false);
+}
+
+function renderTransferProjectList(projects, withHeaders = true) {
     const list = document.getElementById('transferProjectList');
     if (!list) return;
 
@@ -1342,7 +1398,7 @@ function renderTransferProjectList(projects) {
     let lastRegion = null;
     projects.forEach(p => {
         const reg = (p.region || '').toUpperCase();
-        if (reg !== lastRegion) {
+        if (withHeaders && reg !== lastRegion) {
             const col = REGION_COLORS[reg] || '#666';
             html += `<div style="padding:5px 12px;background:${col};color:white;font-size:0.58rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;position:sticky;top:0;z-index:1;">
                 <i class="fas fa-map-marker-alt" style="margin-right:5px;opacity:0.8;"></i>${reg === 'CORPORATE' ? ('' + window.icon("building") + ' CORPORATE') : reg}
@@ -1351,30 +1407,27 @@ function renderTransferProjectList(projects) {
         }
         const isSel = _transferSelectedProject === p.name;
         html += `<div class="transfer-proj-item" data-project="${p.name.replace(/"/g,'&quot;')}"
-            onclick="selectTransferProject('${p.name.replace(/'/g,"\'")}', this)"
+            onclick="selectTransferProject('${p.name.replace(/'/g,"\\'")}', this)"
             style="padding:9px 14px;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:8px;
                    border-bottom:1px solid #f0f0f0;transition:background 0.15s;
-                   background:${isSel ? '#e3f2fd' : 'transparent'};
-                   color:${isSel ? '#1565c0' : '#333'};font-weight:${isSel ? '700' : '400'};"
+                   background:${isSel ? '#e8f5e9' : 'transparent'};
+                   color:${isSel ? '#1b5e20' : '#333'};font-weight:${isSel ? '700' : '400'};"
             onmouseenter="if(!this.classList.contains('selected')) this.style.background='#f5f5f5';"
             onmouseleave="if(!this.classList.contains('selected')) this.style.background='transparent';">
             <i class="fas ${p.region === 'CORPORATE' ? 'fa-building-columns' : 'fa-solar-panel'}"
                style="font-size:0.7rem;opacity:0.6;flex-shrink:0;"></i>
             ${p.name}
-            ${isSel ? '<i class="fas fa-check" style="margin-left:auto;color:#1565c0;font-size:0.7rem;"></i>' : ''}
+            ${isSel ? '<i class="fas fa-check" style="margin-left:auto;color:#2e7d32;font-size:0.7rem;"></i>' : ''}
         </div>`;
     });
     list.innerHTML = html;
 }
 
 function filterTransferProjects(query) {
-    const q = query.trim().toLowerCase();
     if (!window._transferAllProjects) return;
-    const filtered = q
-        ? window._transferAllProjects.filter(p =>
-            p.name.toLowerCase().includes(q) || (p.region || '').toLowerCase().includes(q))
-        : window._transferAllProjects;
-    renderTransferProjectList(filtered);
+    const q = (query || '').trim();
+    renderTransferRegionChips();
+    renderTransferProjectList(_visibleTransferProjects(q), !!q);
 }
 
 function selectTransferProject(projName, el) {
@@ -1383,8 +1436,8 @@ function selectTransferProject(projName, el) {
     const list = document.getElementById('transferProjectList');
     list.querySelectorAll('.transfer-proj-item').forEach(item => {
         const isThis = item.getAttribute('data-project') === projName;
-        item.style.background = isThis ? '#e3f2fd' : 'transparent';
-        item.style.color = isThis ? '#1565c0' : '#333';
+        item.style.background = isThis ? '#e8f5e9' : 'transparent';
+        item.style.color = isThis ? '#1b5e20' : '#333';
         item.style.fontWeight = isThis ? '700' : '400';
     });
 
@@ -1392,6 +1445,8 @@ function selectTransferProject(projName, el) {
     const selName = document.getElementById('transferSelectedNameText');
     if (selDisplay) selDisplay.style.display = '';
     if (selName) selName.textContent = projName;
+    const _selBox2 = document.getElementById('transferSelectedName');
+    if (_selBox2) _selBox2.classList.remove('empty');
 
     const confirmBtn = document.getElementById('transferPersonnelConfirmBtn');
     if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.style.opacity = '1'; }
@@ -2083,13 +2138,13 @@ function updatePersonnelSummary() {
     const female = data.filter(p => p.gen === 'Female').length;
 
     badgesEl.innerHTML = `
-        <span style="background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7;padding:3px 11px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;">
+        <span style="background:#e8f5e9;color:#1b5e20;padding:3px 11px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;">
             <i class="fas fa-users"></i> ${total} Total
         </span>
-        <span style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;padding:3px 11px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;">
+        <span style="background:#e3f2fd;color:#1565c0;padding:3px 11px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;">
             ♂ ${male} Male
         </span>
-        <span style="background:#fce4ec;color:#c2185b;border:1px solid #f8bbd0;padding:3px 11px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;">
+        <span style="background:#fce4ec;color:#c2185b;padding:3px 11px;border-radius:20px;font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;">
             ♀ ${female} Female
         </span>`;
 
