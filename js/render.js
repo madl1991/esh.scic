@@ -2523,9 +2523,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             dotEl.className = 'emb-dot ' + projState(p);
                             prevBtn.disabled = p <= 0;
                             nextBtn.disabled = p >= meta.length - 1;
-                            // Red border only on empty fields that are already overdue
+                            // Green date when filled (dole-done); red when empty and past the deadline (dole-bad). Also in view mode.
                             modal.querySelectorAll('.dole-modal-table input[type="date"]').forEach(function(i){
-                                i.classList.toggle('dole-bad', i.getAttribute('data-overdue') === '1' && !i.value && !i.disabled);
+                                i.classList.toggle('dole-bad', i.getAttribute('data-overdue') === '1' && !i.value);
+                                i.classList.toggle('dole-done', !!i.value);
                             });
                             modal.setAttribute('data-active-proj', p);
                         }
