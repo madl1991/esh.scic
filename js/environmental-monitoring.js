@@ -382,13 +382,14 @@
         fuelUpdateSummary();
     };
 
-    window.fuelDeleteRow = function(id) {
+    window.fuelDeleteRow = async function(id) {
         const row = fuelData.find(r => r.id === id);
         const userEmail = (typeof state !== 'undefined') ? state.currentUser?.email : null;
         if (row && (!UserAccounts.canEdit(userEmail, row.region) || !UserAccounts.canEditTab(userEmail, 'env-monitoring'))) {
             if (typeof showToast === 'function') showToast('No permission to delete here.', 'warning');
             return;
         }
+        if (typeof showDeleteDialog === 'function' && !(await showDeleteDialog('Fuel Entry', 'this fuel entry' + (row && row.region ? ' in ' + row.region : '')))) return;
         if (row && typeof deleteEnvRowFromFirebase === 'function') {
             deleteEnvRowFromFirebase('env_fuel_rows', row).then(() => {
                 // Only remove from local array AFTER Firebase deletion succeeds
@@ -958,13 +959,14 @@
     };
 
     
-    window.envDeleteRow = function(id) {
+    window.envDeleteRow = async function(id) {
         const row = envData.find(r => r.id === id);
         const userEmail = (typeof state !== 'undefined') ? state.currentUser?.email : null;
         if (row && (!UserAccounts.canEdit(userEmail, row.region) || !UserAccounts.canEditTab(userEmail, 'env-monitoring'))) {
             if (typeof showToast === 'function') showToast('You do not have permission to delete entries in this region.', 'warning');
             return;
         }
+        if (typeof showDeleteDialog === 'function' && !(await showDeleteDialog('Environmental Entry', 'this environmental entry' + (row && row.region ? ' in ' + row.region : '')))) return;
         if (row && window.ESHDataSync) {
             window.ESHDataSync.deleteEnvRow('env_monitoring', row);
         }
@@ -972,6 +974,7 @@
         if (row && typeof deleteEnvRowFromFirebase === 'function') deleteEnvRowFromFirebase('env_monitoring_rows', row);
         envData = envData.filter(r => r.id !== id);
         envRender();
+        if (typeof showToast === 'function') showToast('Environmental entry deleted.', 'success');
     };
 
     
@@ -1338,20 +1341,21 @@
         waterUpdateSummary();
     };
 
-    window.waterDeleteRow = function(id) {
+    window.waterDeleteRow = async function(id) {
         const row = waterData.find(r => r.id === id);
         const userEmail = (typeof state !== 'undefined') ? state.currentUser?.email : null;
         if (row && (!UserAccounts.canEdit(userEmail, row.region) || !UserAccounts.canEditTab(userEmail, 'env-monitoring'))) {
             if (typeof showToast === 'function') showToast('No permission to delete here.', 'warning');
             return;
         }
+        if (typeof showDeleteDialog === 'function' && !(await showDeleteDialog('Water Entry', 'this water entry' + (row && row.region ? ' in ' + row.region : '')))) return;
         if (row && typeof deleteEnvRowFromFirebase === 'function') {
             deleteEnvRowFromFirebase('env_water_rows', row).then(() => {
                 // Only remove from local array AFTER Firebase deletion succeeds
                 waterData = waterData.filter(r => r.id !== id);
                 waterRenderRegions();
                 waterUpdateSummary();
-                if (typeof showToast === 'function') showToast('💧 Water entry deleted.', 'success');
+                if (typeof showToast === 'function') showToast('Water entry deleted.', 'success');
             }).catch((err) => {
                 if (typeof showToast === 'function') showToast('Failed to delete entry: ' + err.message, 'error');
             });
@@ -1609,13 +1613,14 @@
         if (typeof envRenderRegions === 'function') envRenderRegions();
     };
 
-    window.wasteDeleteRow = function(id) {
+    window.wasteDeleteRow = async function(id) {
         const row = wasteData.find(r => r.id === id);
         const userEmail = (typeof state !== 'undefined') ? state.currentUser?.email : null;
         if (row && (!UserAccounts.canEdit(userEmail, row.region) || !UserAccounts.canEditTab(userEmail, 'env-monitoring'))) {
             if (typeof showToast === 'function') showToast('You do not have permission to delete entries in this region.', 'warning');
             return;
         }
+        if (typeof showDeleteDialog === 'function' && !(await showDeleteDialog('Waste Record', 'this waste record' + (row && row.region ? ' in ' + row.region : '')))) return;
         if (row && window.ESHDataSync) {
             window.ESHDataSync.deleteEnvRow('env_waste', row);
         }
@@ -1625,6 +1630,7 @@
         wasteRenderRegions();
         wasteUpdateSummary();
         if (typeof envRenderRegions === 'function') envRenderRegions();
+        if (typeof showToast === 'function') showToast('Waste record deleted.', 'success');
     };
 
     window.wasteClearRegion = async function(regionRaw) {
@@ -1634,7 +1640,7 @@
             return;
         }
         if (!wasteData.some(r => r.region === regionRaw)) return;
-        if (!(await showModernDialog('Clear waste records?', `This will clear all waste records for <strong>${regionRaw}</strong>.`, true, 'Clear', 'Cancel'))) return;
+        if (!(await showModernDialog('Clear Waste Records?', `This will clear all waste records for <strong>${regionRaw}</strong>.`, true, 'Clear', 'Cancel'))) return;
         wasteData = wasteData.filter(r => r.region !== regionRaw);
         wasteRenderRegions();
         wasteUpdateSummary();
