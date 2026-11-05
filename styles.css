@@ -10651,3 +10651,13 @@ body.dark-mode .dole-modal .dole-modal-table input[type="date"].dole-done,
 body.dark-mode .dole-modal .dole-modal-table input[type="date"].dole-done:disabled { background: rgba(102,187,106,0.16) !important; border-color: #43a047 !important; color: #a5d6a7 !important; -webkit-text-fill-color: #a5d6a7 !important; }
 body.dark-mode .dole-modal .dole-modal-table input[type="date"].dole-bad,
 body.dark-mode .dole-modal .dole-modal-table input[type="date"].dole-bad:disabled { background: rgba(229,115,115,0.16) !important; border-color: #e57373 !important; color: #ef9a9a !important; -webkit-text-fill-color: #ef9a9a !important; }
+
+/* ═══ Permits tab: fixed column widths, same for every project ═══
+   The table was auto-layout, so the widths changed with the text in each project (CP / N/A grew, Permit No. shrank).
+   Fixed layout + set widths: the widths now come from the header only. Permit No. takes the remaining space. */
+table.got-tbl.permits-tbl { table-layout: fixed !important; width: 100% !important; min-width: 1160px !important; }
+table.got-tbl.permits-tbl th:nth-child(1) { width: 460px; }
+table.got-tbl.permits-tbl th:nth-child(2),
+table.got-tbl.permits-tbl th:nth-child(3) { width: 40px; }
+table.got-tbl.permits-tbl th:nth-child(5) { width: 190px; }
+table.got-tbl.permits-tbl th:nth-child(6) { width: 210px; }
