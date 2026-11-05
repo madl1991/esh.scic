@@ -1245,7 +1245,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
     const isNov = state.currentTab === 'nov';
 
     let typeColumnWidth = '250px';
-    if (state.currentTab === 'permits' || state.currentTab === 'dole') {
+    if (state.currentTab === 'permits') {
+        typeColumnWidth = '460px'; // one-line permit names (longest: "... Permit No. 2" + Remove pill)
+    } else if (state.currentTab === 'dole') {
         typeColumnWidth = '280px'; // Wider for long permit names
     } else if (state.currentTab === 'emb') {
         typeColumnWidth = '220px';
@@ -1274,8 +1276,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
             html += `<th class="env-th-dark">Q3 (JUL-SEP)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Oct 15</small></th>`;
             html += `<th class="env-th-dark">Q4 (OCT-DEC)<br><small style="font-weight: 400; font-size: 0.65rem;">SMR Due: Jan 15</small></th>`;
         } else if (state.currentTab === 'permits') {
-            html += `<th style="min-width:100px;text-align:center;white-space:nowrap;padding:6px 10px;"><span style="font-size:0.6rem;">CLIENT-PROVIDED</span></th>`;
-            html += `<th style="width:32px;min-width:32px;max-width:32px;text-align:center;white-space:nowrap;padding:6px 4px;"><span style="font-size:0.6rem;">N/A</span></th>`;
+            html += `<th class="permit-chk-col" title="Client-Provided" data-tip-nowrap style="text-align:center;white-space:nowrap;cursor:help;"><span style="font-size:0.6rem;">CP</span></th>`;
+            html += `<th class="permit-chk-col" title="Not Applicable" data-tip-nowrap style="text-align:center;white-space:nowrap;cursor:help;"><span style="font-size:0.6rem;">N/A</span></th>`;
             html += `<th style="min-width: 200px; white-space: normal; padding: 10px 12px;">PERMIT NO. / ACCREDITATION NO.</th>`;
             html += `<th style="min-width: 140px; white-space: nowrap;">DATE ISSUED</th>`;
             html += `<th style="min-width: 140px; white-space: nowrap;">EXPIRY DATE</th>`;
@@ -1324,7 +1326,15 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                </button>`
             : '';
         const _isExpTab = state.currentTab === 'exposures';
-        const _rowShort = (_isExpTab && row === 'Total Exposed Man-hour to date') ? 'Exp. Man-hour to date' : row;
+        const _PERMIT_LABELS = {
+            'ECC': 'Environmental Compliance Certificate (ECC)',
+            'CNC': 'Certificate of Non-Coverage (CNC)',
+            'LLDA Clearance': 'Laguna Lake Development Authority (LLDA) Clearance',
+            'Permit to Cut Coconut Tree': 'Philippine Coconut Authority (PCA) Permit to Cut',
+            'NWRB Water Permit': 'National Water Resources Board (NWRB) Permit'
+        };
+        const _permitLabel = (state.currentTab === 'permits' && _PERMIT_LABELS[row]) ? _PERMIT_LABELS[row] : row;
+        const _rowShort = (_isExpTab && row === 'Total Exposed Man-hour to date') ? 'Exp. Man-hour to date' : _permitLabel;
         const _rowTip = String(row).replace(/"/g, '&quot;');
         const _ratesTip = (state.currentTab === 'rates' && ['LTIR','TRIR','SEVERITY RATE'].includes(row))
             ? 'Auto-computed from the Incident &amp; Accident Registry and man-hours. Cumulative from January to the month shown. ' + row + ' = ' + (row === 'LTIR' ? 'LTA cases' : row === 'TRIR' ? 'Recordable cases' : 'Total days lost') + ' × ' + (state.ratesStandard === 'osha' ? '200,000 (OSHA base)' : '1,000,000 (OSHS base)') + ' ÷ man-hours.'
@@ -1349,14 +1359,14 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
         // ── CLIENT-PROVIDED & N/A checkbox columns (permits tab only) ──────
         if (state.currentTab === 'permits') {
-            html += `<td style="text-align:center;">
+            html += `<td class="permit-chk-col" style="text-align:center;">
                 <label style="display:inline-flex;align-items:center;justify-content:center;cursor:${inputsEditable?'pointer':'default'};">
                     <input type="checkbox" ${isPermitClientProvided?'checked':''} ${inputsEditable?'':'disabled'}
                         onchange="(function(chk){var proj=state.projects.find(function(x){return x.name==='${_permitPnSafe}';});if(!proj)return;if(!proj.vals)proj.vals={};proj.vals['${_permitKeySafe}__cp']=chk?'1':'';if(chk)proj.vals['${_permitKeySafe}__na']='';if(typeof markPendingSync==='function')markPendingSync();if(typeof saveToFirebaseDebounced==='function')saveToFirebaseDebounced();render();})(this.checked)"
                         style="cursor:inherit;">
                 </label>
             </td>`;
-            html += `<td style="text-align:center;">
+            html += `<td class="permit-chk-col" style="text-align:center;">
                 <label style="display:inline-flex;align-items:center;justify-content:center;cursor:${inputsEditable?'pointer':'default'};">
                     <input type="checkbox" ${isPermitNA?'checked':''} ${inputsEditable?'':'disabled'}
                         onchange="(function(chk){var proj=state.projects.find(function(x){return x.name==='${_permitPnSafe}';});if(!proj)return;if(!proj.vals)proj.vals={};proj.vals['${_permitKeySafe}__na']=chk?'1':'';if(chk)proj.vals['${_permitKeySafe}__cp']='';if(typeof markPendingSync==='function')markPendingSync();if(typeof saveToFirebaseDebounced==='function')saveToFirebaseDebounced();render();})(this.checked)"
@@ -1450,9 +1460,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     entries.forEach((entry, idx) => {
                         const isFirst = idx === 0;
                         if (!isFirst) {
-                            html += `</tr><tr style="${rowStyle}"><td style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; text-align:left; font-weight:700; background:#e8f5e9; position: sticky; left: 0; z-index: 5; white-space: normal; padding: 8px 12px; line-height: 1.3; vertical-align: middle;">
+                            html += `</tr><tr style="${rowStyle}" data-permit-entry="permits_ECC" data-pname="${String(p.name).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" data-eidx="${idx}"><td style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; text-align:left; font-weight:700; background:#e8f5e9; position: sticky; left: 0; z-index: 5; white-space: normal; padding: 8px 12px; line-height: 1.3; vertical-align: middle;">
                                 <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-                                    <span style="flex:1; font-size:0.78rem; color:#555;">ECC #${idx + 1}</span>
+                                    <span style="flex:1;">Environmental Compliance Certificate (ECC) No. ${idx + 1}</span>
                                     ${inputsEditable ? `<span onclick="removeEccEntry('${p.name}',${idx})" title="Remove this entry" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;border:1.5px solid #ef5350;color:#ef5350;background:transparent;user-select:none;white-space:nowrap;">✕ Remove</span>` : ''}
                                 </div>
                             </td>
@@ -1463,9 +1473,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         html += `<td style="min-width:140px;padding:8px 12px;"><input type="date" value="${entry.dateIssued ?? ''}" ${naDisabled} oninput="updateEccEntry('${p.name}',${idx},'dateIssued',this.value)" style="width:100%;"></td>`;
                         html += `<td style="min-width:140px;padding:8px 12px;position:relative;">
                             <div style="display:flex;align-items:center;justify-content:center;height:100%;padding:4px 0;">
-                                <span class="until-completion-text" style="font-size:0.7rem;font-weight:500;white-space:nowrap;">Until Project Completion</span>
+                                <span class="until-completion-text${(entry.permitNo || entry.dateIssued) ? '' : ' is-empty'}" style="font-size:0.7rem;font-weight:500;white-space:nowrap;">Until Project Completion</span>
                             </div>
-                            ${isFirst && inputsEditable ? `<button onclick="addEccEntry('${p.name}')" class="permit-add-btn" data-tooltip="Add ECC entry"><i class="fas fa-plus"></i></button>` : ''}
                         </td>`;
                     });
                     } // end !isPermitClientProvided for ECC
@@ -1489,9 +1498,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var _mpPn = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
                         var _mpRn = row.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
                         if (!_mpIsFirst) {
-                            html += '<tr style="' + rowStyle + '"><td style="width:' + typeColumnWidth + ';min-width:' + typeColumnWidth + ';max-width:' + typeColumnWidth + ';text-align:left;font-weight:700;background:#e8f5e9;position:sticky;left:0;z-index:5;white-space:normal;padding:8px 12px;line-height:1.3;vertical-align:middle;">';
+                            html += '<tr style="' + rowStyle + '" data-permit-entry="' + _mpKey + '" data-pname="' + String(p.name).replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '" data-eidx="' + _mpIdx + '"><td style="width:' + typeColumnWidth + ';min-width:' + typeColumnWidth + ';max-width:' + typeColumnWidth + ';text-align:left;font-weight:700;background:#e8f5e9;position:sticky;left:0;z-index:5;white-space:normal;padding:8px 12px;line-height:1.3;vertical-align:middle;">';
                             html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">';
-                            html += '<span style="flex:1;font-size:0.78rem;color:#555;">' + _mpShort + ' #' + (_mpIdx+1) + '</span>';
+                            html += '<span style="flex:1;">' + _permitLabel + ' No. ' + (_mpIdx+1) + '</span>';
                             if (inputsEditable) html += '<span onclick="removeMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ')" style="display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;border:1.5px solid #ef5350;color:#ef5350;background:transparent;user-select:none;">&#10005; Remove</span>';
                             html += '</div></td>';
                             html += '<td style="background:' + (isPermitClientProvided?'#dceefb':isPermitNA?'#eeeeee':'') + '"></td>';
@@ -1504,11 +1513,10 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         html += '<td style="min-width:140px;padding:8px 12px;"><input type="date" value="' + _mpIss + '" ' + naDisabled + ' oninput="updateMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ',\'dateIssued\',this.value)" style="width:100%;"></td>';
                         var _mpNoExpiry = (window.NO_EXPIRY_PERMITS || []).includes(row);
                         if (_mpNoExpiry) {
-                            html += '<td style="min-width:140px;padding:8px 12px;position:relative;text-align:center;vertical-align:middle;"><span class="until-completion-text" style="font-size:0.7rem;font-weight:500;white-space:nowrap;">Until Project Completion</span>';
+                            html += '<td style="min-width:140px;padding:8px 12px;position:relative;text-align:center;vertical-align:middle;"><span class="until-completion-text' + ((_mpNo || _mpIss) ? '' : ' is-empty') + '" style="font-size:0.7rem;font-weight:500;white-space:nowrap;">Until Project Completion</span>';
                         } else {
-                            html += '<td style="min-width:140px;padding:8px 12px;position:relative;"><input type="date" value="' + _mpExp + '" data-allow-future ' + naDisabled + ' oninput="updateMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ',\'expiryDate\',this.value)" style="width:100%;">';
+                            html += '<td style="min-width:140px;padding:8px 12px;position:relative;"><input type="date" class="' + permitExpiryClass(_mpExp) + '" value="' + _mpExp + '" data-allow-future ' + naDisabled + ' oninput="updateMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\',' + _mpIdx + ',\'expiryDate\',this.value)" style="width:100%;">';
                         }
-                        if (_mpIsFirst && inputsEditable) html += '<button onclick="addMultiPermitEntry(\'' + _mpPn + '\',\'' + _mpRn + '\')" class="permit-add-btn" data-tooltip="Add ' + _mpShort + ' entry"><i class="fas fa-plus"></i></button>';
                         html += '</td>';
                     });
                     } // end !isPermitClientProvided for multi-entry
@@ -1522,9 +1530,9 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         html += `<td style="min-width: 200px; padding: 8px 12px;"><input type="text" placeholder="Permit/Accreditation #" value="${permitNo}" ${inputsEditable ? '' : 'disabled'} oninput="updateVal('${p.name}','${_safeKey}',1,this.value)" style="width: 100%;"></td>`;
                         html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${dateIssued}" ${naDisabled} oninput="updateVal('${p.name}','${_safeKey}',2,this.value)" style="width: 100%;"></td>`;
                         if (_isNoExpiry) {
-                            html += `<td style="min-width: 140px; padding: 8px 12px; text-align:center; vertical-align:middle;"><span class="until-completion-text" style="font-size:0.7rem;font-weight:500;white-space:nowrap;">Until Project Completion</span></td>`;
+                            html += `<td style="min-width: 140px; padding: 8px 12px; text-align:center; vertical-align:middle;"><span class="until-completion-text${(permitNo || dateIssued) ? '' : ' is-empty'}" style="font-size:0.7rem;font-weight:500;white-space:nowrap;">Until Project Completion</span></td>`;
                         } else {
-                            html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" value="${expiryDate}" data-allow-future ${naDisabled} oninput="updateVal('${p.name}','${_safeKey}',3,this.value)" style="width: 100%;"></td>`;
+                            html += `<td style="min-width: 140px; padding: 8px 12px;"><input type="date" class="${permitExpiryClass(expiryDate)}" value="${expiryDate}" data-allow-future ${naDisabled} oninput="updateVal('${p.name}','${_safeKey}',3,this.value)" style="width: 100%;"></td>`;
                         }
                     }
                 } // end else (not client-provided / not N/A)
@@ -1891,6 +1899,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
             }
         }
         html += `</tr>`;
+
+        if (state.currentTab === 'permits' && inputsEditable && !isPermitClientProvided && !isPermitNA && (row === 'ECC' || MULTI_ENTRY_PERMITS.includes(row))) {
+            const _addRn = row.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            const _addFn = row === 'ECC' ? `addEccEntry('${_permitPnSafe}')` : `addMultiPermitEntry('${_permitPnSafe}','${_addRn}')`;
+            html += `<tr class="permit-add-row"><td colspan="6"><button type="button" class="permit-add-strip" onclick="${_addFn}"><i class="fas fa-plus"></i> Add ${_permitLabel} entry</button></td></tr>`;
+        }
 
         if (state.currentTab === 'emb') {
             const _isSmrRef = (rowIdx === 1); // "SMR (Quarterly) - Reference No."
@@ -4310,29 +4324,17 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     };
 
                     // Ask first if Date Submitted is empty, then run the real save
-                    window.saveKpmModal = function() {
+                    window.saveKpmModal = async function() {
                         var modal = document.getElementById('kpm-month-modal');
                         if (!modal) return;
                         var dateEl = document.getElementById('kpm-modal-date-submitted');
                         if (dateEl && !dateEl.disabled && !dateEl.value) {
-                            var old = document.getElementById('kpm-date-confirm');
-                            if (old) old.remove();
-                            var box = document.createElement('div');
-                            box.id = 'kpm-date-confirm';
-                            box.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;';
-                            box.innerHTML = '<div style="background:var(--bg-card,#fff);border-radius:12px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.45);overflow:hidden;">'
-                                + '<div style="background:#fff3e0;border-bottom:1px solid #ffcc80;padding:14px 18px;display:flex;align-items:center;gap:10px;">'
-                                + '<i class="fas fa-triangle-exclamation" style="color:#e65100;font-size:1.2rem;"></i>'
-                                + '<div style="font-weight:800;font-size:0.9rem;color:#bf360c;">Date Submitted is empty</div></div>'
-                                + '<div style="padding:16px 18px;font-size:0.8rem;line-height:1.5;color:var(--text-main,#333);">'
-                                + 'You did not fill in the <b>Date Submitted</b>. Without it, this month is counted as <b>not submitted</b> in the compliance score.<br><br>Do you still want to save?</div>'
-                                + '<div style="padding:12px 18px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--border-color,#ddd);">'
-                                + '<button id="kpm-date-confirm-save" style="background:#fff;color:#c62828;border:1px solid #ef9a9a;border-radius:7px;padding:8px 16px;font-size:0.76rem;font-weight:700;cursor:pointer;">Save anyway</button>'
-                                + '<button id="kpm-date-confirm-fill" style="background:#2e7d32;color:#fff;border:none;border-radius:7px;padding:8px 18px;font-size:0.76rem;font-weight:700;cursor:pointer;">Go back and fill in</button>'
-                                + '</div></div>';
-                            document.body.appendChild(box);
-                            document.getElementById('kpm-date-confirm-fill').onclick = function() {
-                                box.remove();
+                            var saveAnyway = await showModernDialog(
+                                'Save without Date Submitted?',
+                                'You did not fill in the <strong>Date Submitted</strong>. Without it, this month is counted as <strong>not submitted</strong> in the compliance score.<br><br>Do you still want to save?',
+                                true, 'Save anyway', 'Go back and fill in'
+                            );
+                            if (!saveAnyway) {
                                 var el = document.getElementById('kpm-modal-date-submitted');
                                 if (el) {
                                     el.scrollIntoView({ block: 'center', inline: 'center' });
@@ -4341,12 +4343,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     el.focus();
                                     if (typeof el.showPicker === 'function') { try { el.showPicker(); } catch (e) {} }
                                 }
-                            };
-                            document.getElementById('kpm-date-confirm-save').onclick = function() {
-                                box.remove();
-                                window._kpmDoSave();
-                            };
-                            return;
+                                return;
+                            }
                         }
                         window._kpmDoSave();
                     };
