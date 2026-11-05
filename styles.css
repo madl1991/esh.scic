@@ -10627,3 +10627,16 @@ body.dark-mode #transferRegionChips .tp-chip.on { background: #2e7d32; color: #f
 #transferSelectedName.empty { background: #f5f5f5 !important; border-color: #e0e0e0 !important; color: #888 !important; }
 body.dark-mode #transferSelectedName { background: rgba(129,199,132,0.14) !important; border-color: #2e7d32 !important; color: #a5d6a7 !important; }
 body.dark-mode #transferSelectedName.empty { background: #2a2f2a !important; border-color: #3a3f3a !important; color: #90a4ae !important; }
+
+/* ═══ GOT Monitoring modal: sticky columns stay solid on row hover ═══
+   The row hover tint (.got-tbl tbody tr:hover td, !important) replaced the opaque background of the
+   sticky columns with a see-through colour, so the scrolled month cells (the "25%" dropdown) showed through the text.
+   Fix: keep the solid card colour underneath and lay the same tint on top. */
+body .got-tbl-pill tbody tr:hover td[style*="position:sticky"]:not([colspan]) {
+    background-color: var(--bg-card) !important;
+    background-image: linear-gradient(rgba(76,175,80,0.07), rgba(76,175,80,0.07));
+}
+body.dark-mode .got-tbl-pill tbody tr:hover td[style*="position:sticky"]:not([colspan]) {
+    background-image: linear-gradient(rgba(76,175,80,0.12), rgba(76,175,80,0.12));
+}
+body .got-tbl-pill tbody tr.got-tr-overall:hover td[colspan] { background-color: #d3e6d8 !important; }
