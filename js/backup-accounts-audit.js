@@ -1488,7 +1488,7 @@ function applyNumFmtToInputs() {
             // Sidebar tabs a PCO may see (Envi Head is a separate role and sees everything). Edit this list only.
             PCO_NAV_TABS: [
                 'headlines', 'overall', 'safety-alerts', 'nov-monitoring',
-                'emb', 'env-monthly-report', 'nov-env', 'permits', 'env-monitoring', 'settings'
+                'emb', 'env-monthly-report', 'nov-env', 'permits', 'env-monitoring', 'esh-calendar-env', 'settings'
             ],
 
             getUserInfo(email) {
