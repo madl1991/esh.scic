@@ -910,7 +910,7 @@ window._tabNavBtn = _tabNavBtn;
 
 function eshNavigateProject(tabType, region, delta) {
     const key = eshGetRegionKey(tabType, region);
-    const allProjects = (state && state.projects) ? state.projects.filter(p => (p.status || '').toLowerCase() !== 'finished') : [];
+    const allProjects = (state && state.projects) ? state.projects : [];
     const regProjects = allProjects.filter(p => p.region === region);
     if (!regProjects.length) return;
     let cur = _eshRegionProjectIdx[key] || 0;
@@ -931,7 +931,7 @@ function eshToggleRegion(regionId) {
     if (banner) banner.style.borderRadius = wasCollapsed ? '8px 8px 0 0' : '8px';
 
     if (wasCollapsed) {
-        const allProjects = (state && state.projects) ? state.projects.filter(p => (p.status || '').toLowerCase() !== 'finished') : [];
+        const allProjects = (state && state.projects) ? state.projects : [];
         const regionOrder = ["CORPORATE", "NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
         const tabTypes = ['esh-calendar-env','esh-calendar-safety','esh-calendar-health','esh-calendar-drills','esh-calendar-corp-drills'];
         tabTypes.forEach(function(tabType) {
@@ -1012,7 +1012,7 @@ function renderEshCalendar(tabType) {
 
     const col = TAB_COLORS[tabType] || TAB_COLORS['esh-calendar-env'];
     const regionOrder = ["NCR", "SOUTH LUZON", "NORTH LUZON", "VISAYAS & MINDANAO"];
-    const allProjects = (state && state.projects) ? state.projects.filter(p => (p.status || '').toLowerCase() !== 'finished') : [];
+    const allProjects = (state && state.projects) ? state.projects : [];
 
 
     const _ss = getEshStorage();
@@ -1024,7 +1024,7 @@ function renderEshCalendar(tabType) {
     const _ssTrainings = ESH_TRAININGS[tabType] || [];
     const _ssDrills    = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
     const _ssAllProjs  = (state && state.projects)
-        ? state.projects.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS' && (p.status || '').toLowerCase() !== 'finished')
+        ? state.projects.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS')
         : [];
 
     function _ssMonthOverdue(mi) {
@@ -1037,7 +1037,7 @@ function renderEshCalendar(tabType) {
         if (_ssIsDrills) {
             _ssDrills.forEach((drill, di) => {
                 for (let mi = 0; mi < 12; mi++) {
-                    if (isMonthBlacklistedForProject(proj, mi + 1, _ssYear)) continue; // work stoppage — skip
+                    if (isMonthBlacklistedForProject(proj, mi + 1, _ssYear, false, true)) continue; // work stoppage — skip
                     const pk = `${_ssYear}|esh-calendar-drills|GLOBAL_PLAN|${di}|${mi}|plan`;
                     if (!_ss[pk] || !_ssMonthOverdue(mi)) continue;
                     tp++;
@@ -1049,7 +1049,7 @@ function renderEshCalendar(tabType) {
             const _OSH8HR_LABEL = '8-Hr Mandatory OSH Training';
             _ssTrainings.forEach((t, ti) => {
                 for (let mi = 0; mi < 12; mi++) {
-                    if (isMonthBlacklistedForProject(proj, mi + 1, _ssYear)) continue; // work stoppage — skip
+                    if (isMonthBlacklistedForProject(proj, mi + 1, _ssYear, false, true)) continue; // work stoppage — skip
                     // ── 8-Hr OSH N/A: skip months from activation onwards ──
                     if (t === _OSH8HR_LABEL) {
                         const _naK = `${_ssYear}|${tabType}|${proj.name}|${ti}|na_row`;
@@ -1237,7 +1237,7 @@ function renderEshCalendar(tabType) {
     `;
 
     const corpProj = allProjects.find(p => p.region === 'CORPORATE');
-    const regularProjects = allProjects.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS' && (p.status || '').toLowerCase() !== 'finished');
+    const regularProjects = allProjects.filter(p => p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS');
 
     if (regularProjects.length === 0 && !corpProj) {
         html += `<div class="esh-no-projects">
@@ -1352,7 +1352,7 @@ function buildTrainingSingleTable(tabType, projects, trainings, storage, col) {
                 // ── Work Stoppage: gray out the month cell ──────────────────
                 const _eshSelYr = (state && state.selectedYear) || new Date().getFullYear();
                 const _wsBlocked = (typeof isMonthBlacklistedForProject === 'function')
-                    && isMonthBlacklistedForProject(proj, mi + 1, _eshSelYr);
+                    && isMonthBlacklistedForProject(proj, mi + 1, _eshSelYr, false, true);
                 if (_wsBlocked) {
                     const _notYetStarted = (typeof isMonthBeforeProjectStart === 'function') && isMonthBeforeProjectStart(proj, mi + 1, _eshSelYr);
                     const _wsTip = getMonthExemptTip(proj, mi + 1, _eshSelYr).replace(/"/g, '&quot;');
@@ -1550,7 +1550,7 @@ function buildDrillsSingleTable(projects, storage, col) {
                 // ── Work Stoppage: gray out the month cell ──────────────────
                 const _eshDrillSelYr = (state && state.selectedYear) || new Date().getFullYear();
                 const _drillWsBlocked = (typeof isMonthBlacklistedForProject === 'function')
-                    && isMonthBlacklistedForProject(proj, mi + 1, _eshDrillSelYr);
+                    && isMonthBlacklistedForProject(proj, mi + 1, _eshDrillSelYr, false, true);
                 if (_drillWsBlocked) {
                     const _drillNotYetStarted = (typeof isMonthBeforeProjectStart === 'function') && isMonthBeforeProjectStart(proj, mi + 1, _eshDrillSelYr);
                     const _drillWsTip = getMonthExemptTip(proj, mi + 1, _eshDrillSelYr).replace(/"/g, '&quot;');
