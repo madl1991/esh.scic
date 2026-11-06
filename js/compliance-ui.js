@@ -32,6 +32,11 @@
             function isMonthBlacklisted(monthIdx1Based) {
                 return isMonthBlacklistedForProject(proj, monthIdx1Based, selectedYear);
             }
+            // ESH Calendar + Emergency Drills only: the finish month itself stays open (same rule as the calendar tab).
+            // Frozen from the month AFTER the finish month onwards.
+            function isCalMonthBlacklisted(monthIdx1Based) {
+                return isMonthBlacklistedForProject(proj, monthIdx1Based, selectedYear, false, true);
+            }
 
             const vals = proj.vals || {};
             const areaScores = [];
@@ -112,7 +117,7 @@
                     const naFrom   = _calStor[naRowKey] !== undefined ? parseInt(_calStor[naRowKey]) : -1;
                     for (let mi = 0; mi < _cutM; mi++) {
                         const monthIdx1 = mi + 1;
-                        if (isMonthBlacklisted(monthIdx1)) continue;
+                        if (isCalMonthBlacklisted(monthIdx1)) continue;
                         if (naFrom >= 0 && mi >= naFrom) continue; // N/A from this month onward
                         const planKey = `${_calYear}|${tt}|GLOBAL_PLAN|${ti}|${mi}|plan`;
                         if (!_calStor[planKey]) continue; // not planned this month — not required
@@ -135,7 +140,7 @@
                     : (drill.id !== undefined ? drill.id : di);
                 for (let mi = 0; mi < _cutM; mi++) {
                     const monthIdx1 = mi + 1;
-                    if (isMonthBlacklisted(monthIdx1)) continue;
+                    if (isCalMonthBlacklisted(monthIdx1)) continue;
                     const planKey = `${_calYear}|esh-calendar-drills|GLOBAL_PLAN|${_drillSi}|${mi}|plan`;
                     if (!_calStor[planKey] || _calStor[planKey] === '__DELETED__') continue;
                     const naCellKey = `${_calYear}|esh-calendar-drills|${proj.name}|${_drillSi}|${mi}|na`;
@@ -239,6 +244,7 @@
             const KPM_MO = ['January','February','March','April','May','June','July','August','September','October','November','December'];
             const vals = proj.vals || {};
             const blk = m => isMonthBlacklistedForProject(proj, m, selectedYear);
+            const blkCal = m => isMonthBlacklistedForProject(proj, m, selectedYear, false, true); // ESH Calendar + Drills: finish month stays open
             const stor = (typeof getEshStorage === 'function') ? getEshStorage() : {};
             const TR = (typeof ESH_TRAININGS !== 'undefined') ? ESH_TRAININGS : {};
             const DR = (typeof ESH_DRILLS !== 'undefined') ? ESH_DRILLS : [];
@@ -298,7 +304,7 @@
                 (TR[tt] || []).forEach((title, ti) => {
                     const naFrom = stor[`${selectedYear}|${tt}|${proj.name}|${ti}|na_row`] !== undefined ? parseInt(stor[`${selectedYear}|${tt}|${proj.name}|${ti}|na_row`]) : -1;
                     for (let mi = 0; mi < 12; mi++) {
-                        if (blk(mi + 1)) continue;
+                        if (blkCal(mi + 1)) continue;
                         if (naFrom >= 0 && mi >= naFrom) continue;
                         if (!stor[`${selectedYear}|${tt}|GLOBAL_PLAN|${ti}|${mi}|plan`]) continue;
                         const done = has(stor[`${selectedYear}|${tt}|${proj.name}|${ti}|${mi}|actual`]);
@@ -314,7 +320,7 @@
               DR.forEach((drill, di) => {
                 const si = (typeof getDrillStorageIdx === 'function') ? getDrillStorageIdx(drill, di) : (drill.id !== undefined ? drill.id : di);
                 for (let mi = 0; mi < 12; mi++) {
-                    if (blk(mi + 1)) continue;
+                    if (blkCal(mi + 1)) continue;
                     const pl = stor[`${selectedYear}|esh-calendar-drills|GLOBAL_PLAN|${si}|${mi}|plan`];
                     if (!pl || pl === '__DELETED__') continue;
                     if (stor[`${selectedYear}|esh-calendar-drills|${proj.name}|${si}|${mi}|na`]) continue;
