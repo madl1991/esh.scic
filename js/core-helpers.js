@@ -12,7 +12,7 @@ window.icon = function (name, extraClass, attrs) {   // attrs = extra attributes
 // ── HEADER ICONS: colored PNG files in the icons/ folder (next to index.html), same idea as the DOLE / DOE / EMB icons. Usage: hdrIcon('kpm') gives <img class="hdr-ico">.
 // To change an icon: replace the file in icons/ (same name) and raise HDR_ICON_VER so the browser does not show the old one. Size: .hdr-ico / .tib-icon-img in styles.css (36px). ──
 window.HDR_ICON_DIR = 'icons/';
-window.HDR_ICON_VER = 1;
+window.HDR_ICON_VER = 2;
 window.HDR_ICONS = {'trainings':'trainings.png','audit':'audit.png','violation':'violation.png','tabulation':'tabulation.png','registry':'registry.png','record':'record.png','alert':'alert.png','health':'health.png','envmon':'envmon.png','envrep':'envrep.png','got':'got.png','kpm':'kpm.png','activities':'activities.png','requirement':'requirement.png','personnel':'personnel.png','exposure':'exposure.png','rates':'rates.png','home':'home.png','dashboard':'dashboard.png'};
 window.hdrIcon = function (key) { var f = window.HDR_ICONS[key]; return f ? '<img class="hdr-ico" src="' + window.HDR_ICON_DIR + f + '?v=' + window.HDR_ICON_VER + '" alt="" aria-hidden="true" draggable="false">' : ''; };
 // ── TOP BAR TITLE ICON (the title next to the hamburger button) ──
