@@ -2870,6 +2870,10 @@ table input[type="date"]:not(:focus)[value=""] {
     gap: 10px;
     pointer-events: none;
 }
+/* Edit/Save button is shown: lift the toasts above it (and the Cancel button beside it) */
+body:has(#floating-edit-btn:not([style*="none"])) #toast-container {
+    bottom: calc(var(--fab-gap) + var(--fab-size) + 12px);
+}
 
 .toast {
     pointer-events: all;
@@ -7173,6 +7177,9 @@ body.dark-mode { --row-hover: #2f4a37; --tbl-line: #2f4034; --tbl-head-bg: #2e5a
 /* env summary: footer + cards */
 .env-sum-kpm { margin: 0 0 14px; }
 .env-sum-kpm table { border-collapse: collapse; }
+/* Environmental Monitoring summaries (Electricity, Water, Waste, Appliances, Fuel): a little more room between rows and columns */
+[id^="env-summary-"] .env-sum-kpm table tbody td { padding-top: 10px !important; padding-bottom: 10px !important; }
+[id^="env-summary-"] .env-sum-kpm table tbody td:not(:first-child) { padding-left: 9px !important; padding-right: 9px !important; }
 .env-sum-kpm tbody td:first-child span[style*="border-radius:2px"] { display: none !important; }
 /* GRAND TOTAL row: bright green bold FONT; background stays like the regular rows (white / light green first cell).
    Long selector on purpose: it must beat the generic ":is(.esh-tbl, ... .env-sum-kpm table) td" rules above. */
@@ -9851,17 +9858,21 @@ body.dark-mode .got-tbl tr.dp-gap td, body.dark-mode .got-tbl tr.dp-gap td.got-t
 #login-overlay #login-error:not(:empty) { margin-bottom: 4px !important; }
 
 /* ESH: compact Overall Summary tables (Electricity, Water, Waste, Appliances, Fuel) */
-.rpt-wrap.env-sum-kpm table th { padding-block: 4px !important; font-size: .6rem !important; line-height: 1.2 !important; }
-.rpt-wrap.env-sum-kpm table td { padding-block: 3px !important; line-height: 1.2 !important; font-size: .68rem !important; }
-.rpt-wrap.env-sum-kpm table tfoot td { padding-block: 4px !important; font-size: .68rem !important; }
-.rpt-wrap.env-sum-kpm caption .rpt-bar { padding: 4px 14px !important; }
+.rpt-wrap.env-sum-kpm table th { padding-block: 8px !important; font-size: .6rem !important; line-height: 1.2 !important; }
+.rpt-wrap.env-sum-kpm table td { padding-block: 6px !important; line-height: 1.2 !important; font-size: .68rem !important; }
+.rpt-wrap.env-sum-kpm table tfoot td { padding-block: 7px !important; font-size: .68rem !important; }
+.rpt-wrap.env-sum-kpm caption .rpt-bar { padding: 9px 14px !important; }
 /* note row hidden: it repeated the title (restore by deleting this line) */
 .rpt-wrap.env-sum-kpm caption > div:not(.rpt-bar) { display: none !important; }
 
 /* ESH: compact green header (title + Electricity/Water/Waste/Appliances/Fuel tabs) */
-.env-one .ix-5315203 { padding: 7px 18px !important; gap: 8px !important; }
+.env-one .ix-5315203 { padding: 12px 18px !important; gap: 10px !important; }
 .env-one .ix-95bdc07 > i { font-size: 1.05rem !important; }
 .env-one .ix-db884ea button { padding: 3px 12px !important; }
+/* Mode tabs: icon-only when inactive (tooltip shows the name); label appears on the active tab */
+.env-one .ix-db884ea button:not(.env-tab-on) { padding: 3px 10px !important; }
+.env-one .ix-db884ea button .env-tab-lbl { display: none; margin-left: 5px; }
+.env-one .ix-db884ea button.env-tab-on .env-tab-lbl { display: inline; }
 
 /* Permits tab: compact rows, own scroll area, sticky header (scoped to .permits-tbl / .permits-wrap only) */
 .table-container.permits-wrap { max-height: calc(100vh - 250px); min-height: 280px; overflow: auto; padding: 0 !important; scroll-padding: 0; } /* no padding: rows would scroll through that strip above the sticky header */
@@ -10661,3 +10672,10 @@ table.got-tbl.permits-tbl th:nth-child(2),
 table.got-tbl.permits-tbl th:nth-child(3) { width: 40px; }
 table.got-tbl.permits-tbl th:nth-child(5) { width: 190px; }
 table.got-tbl.permits-tbl th:nth-child(6) { width: 210px; }
+
+
+/* ESH Medical table (LTA, Medical Treatment, ... Days Lost/Charged): balanced row height and narrower month columns */
+.med-wrap table td, .med-wrap table td:first-child { padding-block: 7px !important; }
+.med-wrap table td:not(:first-child) { padding-inline: 8px !important; }
+.med-wrap table td.monthly-data { min-width: 76px !important; }
+.med-wrap table th:not(:first-child) { min-width: 76px !important; padding: 8px 8px !important; }
