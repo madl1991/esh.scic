@@ -348,7 +348,32 @@
             fuelRenderRegions();
             fuelUpdateSummary();
         }
+        if (typeof window.envTabLabels === 'function') window.envTabLabels();
     };
+    // Mode tabs: label shows only on the active tab; the others are icon-only with a tooltip (see .env-tab-lbl / .env-tab-on in styles.css)
+    window.envTabLabels = function() {
+        const ids = { electricity: 'env-toggle-elec', water: 'env-toggle-water', waste: 'env-toggle-waste', appliances: 'env-toggle-appliances', fuel: 'env-toggle-fuel' };
+        const cur = (typeof envMode === 'string') ? envMode : 'electricity';
+        Object.keys(ids).forEach(function(m) {
+            const b = document.getElementById(ids[m]);
+            if (!b) return;
+            let lbl = b.querySelector('.env-tab-lbl');
+            if (!lbl) {
+                const tn = Array.from(b.childNodes).find(function(n) { return n.nodeType === 3 && n.textContent.trim(); });
+                if (!tn) return;
+                lbl = document.createElement('span');
+                lbl.className = 'env-tab-lbl';
+                lbl.textContent = tn.textContent.trim();
+                b.replaceChild(lbl, tn);
+            }
+            const on = (m === cur);
+            b.classList.toggle('env-tab-on', on);
+            if (on) { b.removeAttribute('title'); b.removeAttribute('data-tip'); }
+            else    { b.setAttribute('title', lbl.textContent); }
+        });
+    };
+    window.envTabLabels();
+    document.addEventListener('DOMContentLoaded', function() { window.envTabLabels(); });
     window.envSwitchMode = window.envSwitchMode; // expose
 
     // ══════════════════════════════════════════════════════════════════════
@@ -581,7 +606,6 @@
 
         container.innerHTML = window.envSummaryTable({
             title: 'OVERALL SUMMARY \u2014 FUEL CONSUMPTION',
-            pill: `${fmt(grandDiesel+grandGas)} Total Liters`,
             groups: [ { label: `${window.icon("fuel")} FUEL CONSUMPTION (Liters)`, span: 3 }, { label: 'GHG Emissions' } ],
             cols: [ { label: 'Diesel' }, { label: 'Gasoline' }, { label: 'Combined' }, { label: 't CO\u2082e', fixed: 4, tip: function(vals, v) {
                 const d = vals[0] || 0, g = vals[1] || 0;
@@ -675,6 +699,29 @@
         { id:'solar_500',      label:'Solar 500W',                section:'C', color:'#43a047' },
     ];
 
+    // AC rows: row 1 uses the original fields (ac_ceil_qty ...). Rows 2..AC_MAX_ROWS use <field>_<row> (ac_ceil_qty_2 ...),
+    // so one project can record AC units of the same type with different watts.
+    // They are plain fields like the others, so totals, saving and loading work without extra code.
+    const AC_MAX_ROWS = 5;
+    const AC_BASE_FIELDS = ['ac_window_qty','ac_window_w','ac_ceil_qty','ac_ceil_w','ac_cass_qty','ac_cass_w','ac_wall_qty','ac_wall_w'];
+    AC_BASE_FIELDS.forEach(function(id) {
+        const base = APPL_FIELDS.find(f => f.id === id);
+        for (let r = 2; r <= AC_MAX_ROWS; r++) APPL_FIELDS.push({ id: id + '_' + r, label: base.label, section: 'A1', color: base.color });
+    });
+    const acFieldId = (id, r) => r > 1 ? id + '_' + r : id;
+    // Watts are not units: they are never added to the unit counts (Air Conditioning, Total Units, region chips)
+    const applIsWatts = id => /^ac_(window|ceil|cass|wall)_w(_\d+)?$/.test(id);
+    let applAcRows = {};   // key -> number of AC rows shown while editing (min 1)
+    function acRowHasData(key, r) {
+        const d = appliancesData[key] || {};
+        return AC_BASE_FIELDS.some(id => (parseFloat(d[acFieldId(id, r)]) || 0) > 0);
+    }
+    function acRowsNeeded(key) {
+        let n = 1;
+        for (let r = 2; r <= AC_MAX_ROWS; r++) { if (acRowHasData(key, r)) n = r; }
+        return n;
+    }
+
     const APPL_SECTION_META = {
         'A':  { label:'A — Electrical Equipment (Qty in Units)', icon:'bolt',      bg:'#9ecf9b' },
         'A1': { label:'A1 — Aircon Units (Qty + Watts)',         icon:'snowflake',  bg:'#9ecf9b' },
@@ -689,7 +736,7 @@
         Object.entries(appliancesData).forEach(function([key, entry]) {
             const keyRegion = (key.split(':')[0] || '').replace(/_+/g,' ').trim().toUpperCase();
             if (keyRegion !== target) return;
-            Object.values(entry).forEach(function(v) { total += parseFloat(v) || 0; });
+            Object.keys(entry).forEach(function(id) { if (!applIsWatts(id)) total += parseFloat(entry[id]) || 0; });
         });
         return total;
     }
@@ -727,17 +774,27 @@
             ];
             let hdr    = pairs.map(p=>`<th colspan="2" style="background:#b7ddb5;color:#0b3d12;padding:5px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.63rem;font-weight:800;">${p[2]}</th>`).join('');
             let subhdr = pairs.map(()=>`<th style="background:#c5e8c3;color:#0b3d12;padding:4px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.62rem;font-weight:800;white-space:nowrap;">Qty</th><th style="background:#c5e8c3;color:#0b3d12;padding:4px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.62rem;font-weight:800;white-space:nowrap;">Watts</th>`).join('');
-            let cells  = pairs.map(p=>`
+            const acCells = function(r) { return pairs.map(function(p0) { const p = [acFieldId(p0[0], r), acFieldId(p0[1], r), p0[2]]; return `
                 <td style="padding:5px 7px;text-align:center;border:1px solid #c8e6c9;color:#000;font-weight:600;">${canEdit
                     ? `<input type="number" min="0" data-appl-key="${key}" data-appl-field="${p[0]}" onchange="appliancesSetField('${key}','${p[0]}',this.value)" value="${data[p[0]]||''}" placeholder="0" style="width:50px;padding:3px 4px;border:1px solid #a5d6a7;border-radius:4px;text-align:center;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);">`
                     : (data[p[0]] || '—')}</td>
                 <td style="padding:5px 7px;text-align:center;border:1px solid #c8e6c9;color:#000;font-weight:600;">${canEdit
                     ? `<input type="number" min="0" data-appl-key="${key}" data-appl-field="${p[1]}" onchange="appliancesSetField('${key}','${p[1]}',this.value)" value="${data[p[1]]||''}" placeholder="W" style="width:55px;padding:3px 4px;border:1px solid #a5d6a7;border-radius:4px;text-align:center;font-size:0.7rem;background:var(--input-bg);color:var(--text-primary);">`
-                    : (data[p[1]] || '—')}</td>`).join('');
+                    : (data[p[1]] || '—')}</td>`; }).join(''); };
+            const acRows = canEdit ? Math.max(applAcRows[key] || 1, acRowsNeeded(key)) : acRowsNeeded(key);
+            let acBody = '';
+            for (let r = 1; r <= acRows; r++) acBody += '<tr>' + acCells(r) + '</tr>';
+            const acBtn = 'padding:3px 10px;border:1px solid #a5d6a7;border-radius:5px;background:var(--input-bg);color:var(--text-primary);font-size:0.68rem;font-weight:700;cursor:pointer;';
+            const acBtns = canEdit
+                ? `<div style="padding:6px 8px;display:flex;gap:8px;">`
+                    + (acRows < AC_MAX_ROWS ? `<button type="button" style="${acBtn}" onclick="appliancesAcRows('${key}',1)">+ Add row</button>` : '')
+                    + (acRows > 1 ? `<button type="button" style="${acBtn}" onclick="appliancesAcRows('${key}',-1)">Remove last row</button>` : '')
+                    + `</div>`
+                : '';
             fieldsHtml = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.7rem;min-width:600px;">
                 <thead><tr>${hdr}</tr><tr>${subhdr}</tr></thead>
-                <tbody><tr>${cells}</tr></tbody>
-            </table></div>`;
+                <tbody>${acBody}</tbody>
+            </table></div>${acBtns}`;
         } else {
             let ths = fields.map(f=>`<th style="background:#c5e8c3;color:#0b3d12;padding:5px 8px;text-align:center;border:1px solid #c8e6c9;font-size:0.62rem;font-weight:800;white-space:nowrap;">${f.label}</th>`).join('');
             let tds = fields.map(f=>`<td style="padding:5px 7px;text-align:center;border:1px solid #c8e6c9;color:#000;font-weight:600;">${canEdit
@@ -750,7 +807,7 @@
         }
 
         return `
-        <div style="border-top:2px solid ${meta.bg}33;">
+        <div ${isAC ? `id="appl-sec-A1-${key}" data-can-edit="${canEdit ? 1 : 0}"` : ''} style="border-top:2px solid ${meta.bg}33;">
             <div style="background:${meta.bg};color:#0b3d12;padding:6px 12px;font-size:0.68rem;font-weight:800;letter-spacing:0.3px;display:flex;align-items:center;gap:6px;">
                 ${window.icon(meta.icon, '', 'style="opacity:0.8;font-size:0.7rem;"')}${meta.label}
             </div>
@@ -761,6 +818,27 @@
     window.appliancesSetField = function(key, fieldId, val) {
         if (!appliancesData[key]) appliancesData[key] = {};
         appliancesData[key][fieldId] = parseFloat(val) || 0;
+    };
+
+    // Redraw only the AC block of one month/building (after Add row / Remove last row, or when saved rows are loaded)
+    function applAcRefresh(key) {
+        const el = document.getElementById('appl-sec-A1-' + key);
+        if (!el) return;
+        const tmp = document.createElement('div');
+        tmp.innerHTML = applSectionRows('A1', key, el.getAttribute('data-can-edit') === '1');
+        if (tmp.firstElementChild) el.replaceWith(tmp.firstElementChild);
+    }
+
+    window.appliancesAcRows = function(key, delta) {
+        const cur  = Math.max(applAcRows[key] || 1, acRowsNeeded(key));
+        const next = Math.max(1, Math.min(AC_MAX_ROWS, cur + delta));
+        if (next === cur) return;
+        if (delta < 0 && acRowHasData(key, cur)) {
+            if (typeof showToast === 'function') showToast('Clear the numbers in the last row first.', 'warning', 3000);
+            return;
+        }
+        applAcRows[key] = next;
+        applAcRefresh(key);
     };
 
     function appliancesRenderRegions() {
@@ -900,6 +978,8 @@
                     if (!snap.exists()) return;
                     const saved = snap.data().data || {};
                     appliancesData[key] = saved;
+                    const _acNeed = acRowsNeeded(key);
+                    if (_acNeed > (applAcRows[key] || 1)) { applAcRows[key] = _acNeed; applAcRefresh(key); }
                     Object.entries(saved).forEach(([fieldId, val]) => {
                         const input = document.querySelector(`input[data-appl-key="${key}"][data-appl-field="${fieldId}"]`);
                         if (input) input.value = val || '';
@@ -1137,7 +1217,6 @@
         if (elecSumContainer) {
             elecSumContainer.innerHTML = window.envSummaryTable({
                 title: 'OVERALL SUMMARY \u2014 ELECTRICITY CONSUMPTION',
-                pill: `${window.envFmtNum(grandKwh, 2)} Total kWh`, pillId: 'env-inline-badge-total-projects',
                 groups: [ { label: `${window.icon('bolt')} ELECTRICITY CONSUMPTION`, span: 3 } ],
                 cols: [ { label: 'kWh', dec: 2 }, { label: 'Amount (\u20b1)', dec: 2 }, { label: 'GHG (tCO2)', fixed: 4, tip: function(vals) {
                     const kwh = vals[0] || 0;
@@ -1191,7 +1270,6 @@
         const hasAnyData  = grandDomM3 > 0 || grandPotLit > 0 || grandIndM3 > 0;
         container.innerHTML = window.envSummaryTable({
             title: 'OVERALL SUMMARY \u2014 WATER CONSUMPTION',
-            pill: `${fmt(grandDomM3+grandIndM3)} Total m\u00b3`,
             groups: [ { label: `${window.icon('home')} Domestic`, span: 2 }, { label: `${window.icon("water")} Potable`, span: 2 }, { label: `${window.icon("plant")} Industrial`, span: 2 } ],
             cols: [ { label: 'm\u00b3' }, { label: 'Amount (\u20b1)' }, { label: 'Liters' }, { label: 'Amount (\u20b1)' }, { label: 'm\u00b3' }, { label: 'Amount (\u20b1)' } ],
             rows: regionRows.map(r => ({ region: r.region, projs: r.projs, values: [r.domM3, r.domAmt, r.potLit, r.potAmt, r.indM3, r.indAmt] })),
@@ -1216,19 +1294,7 @@
             });
         });
         const hasAnyData = Object.values(totals).some(v => v > 0);
-        const totalUnits = Object.values(totals).reduce((s,v)=>s+v,0);
-
-        // ── Top 3 items per section (grand total) — shown as the last row of the table ──────────────────────────────
-        const sections = {};
-        APPL_FIELDS.forEach(function(f) {
-            if (!sections[f.section]) sections[f.section] = { fields: [] };
-            sections[f.section].fields.push({ id:f.id, label:f.label, total:totals[f.id]||0 });
-        });
-        const topItemsRow = '<tr><td>TOP ITEMS (ALL REGIONS)</td><td></td>' + SECTION_KEYS.map(function(sk) {
-            const sec = sections[sk];
-            const top = sec ? sec.fields.filter(f => f.total > 0).sort((x, y) => y.total - x.total).slice(0, 3) : [];
-            return '<td style="text-align:left!important;padding-left:14px!important;">' + (top.length ? top.map(f => f.label + ': ' + f.total.toLocaleString()).join('<br>') : '\u2014') + '</td>';
-        }).join('') + '<td></td></tr>';
+        const totalUnits = Object.keys(totals).reduce((s,id)=>applIsWatts(id) ? s : s+totals[id], 0);
 
         // ── Per-region totals ─────────────────────────────────────────────────
         const regionRows = ENV_REGIONS.map(function(region) {
@@ -1249,7 +1315,7 @@
                 });
             });
             const rSectionTotals = SECTION_KEYS.map(function(sk) {
-                const sFields = APPL_FIELDS.filter(f=>f.section===sk);
+                const sFields = APPL_FIELDS.filter(f=>f.section===sk && !applIsWatts(f.id));
                 return sFields.reduce((s,f)=>s+(rTotals[f.id]||0),0);
             });
             const rTotal = rSectionTotals.reduce((s,v)=>s+v,0);
@@ -1259,13 +1325,11 @@
 
         container.innerHTML = window.envSummaryTable({
             title: 'OVERALL SUMMARY \u2014 ELECTRICAL EQUIPMENT & FIXTURES',
-            pill: `${totalUnits.toLocaleString()} Total Units`,
             groups: SECTION_KEYS.map(sk => ({ label: SECTION_LABELS[sk] || sk })).concat([ { label: 'Total Units' } ]),
             cols: SECTION_KEYS.map(() => ({})).concat([ {} ]),
             rows: regionRows.map(r => ({ region: r.region, projs: r.projs, values: r.rSectionTotals.concat([r.rTotal]) })),
-            totals: SECTION_KEYS.map(sk => APPL_FIELDS.filter(f => f.section === sk).reduce((t, f) => t + (totals[f.id] || 0), 0)).concat([totalUnits]),
-            hasData: hasAnyData, icon: 'plug', note: 'Inventory of <strong>Electrical Equipment &amp; Lighting Fixtures Used</strong> \u2014 quantity in units per project, per region.', emptyText: 'No appliance inventory entered yet.',
-            extraRows: hasAnyData ? topItemsRow : ''
+            totals: SECTION_KEYS.map(sk => APPL_FIELDS.filter(f => f.section === sk && !applIsWatts(f.id)).reduce((t, f) => t + (totals[f.id] || 0), 0)).concat([totalUnits]),
+            hasData: hasAnyData, icon: 'plug', note: 'Inventory of <strong>Electrical Equipment &amp; Lighting Fixtures Used</strong> \u2014 quantity in units per project, per region.', emptyText: 'No appliance inventory entered yet.'
         });
     }
     window.appliancesUpdateSummary = appliancesUpdateSummary;
@@ -1683,7 +1747,6 @@
 
         container.innerHTML = window.envSummaryTable({
             title: 'OVERALL SUMMARY \u2014 WASTE GENERATION & DISPOSAL',
-            pill: `${fmt(grandTotal)} Total MT`,
             groups: [ { label: `${window.icon("trash")} WASTE GENERATED (MT)`, span: 5 }, { label: 'Septage (m\u00b3)' } ],
             cols: [ { label: 'Total' }, { label: 'Biodeg.' }, { label: 'Non-Bio' }, { label: 'Recyclable' }, { label: 'Hazardous' }, { label: 'm\u00b3' } ],
             rows: regionRows.map(r => ({ region: r.region, projs: r.projs, values: [r.total, r.bioGen, r.nonbioGen, r.recGen, r.hazGen, r.septage] })),
