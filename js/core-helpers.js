@@ -201,7 +201,7 @@ window.envSummaryTable = function(o) {
     var note = o.note ? '<div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--tbl-line,#e3e9e4);text-align:left;font-weight:400;text-transform:none;letter-spacing:0;">'
         + '<span style="color:#2e7d32;font-size:1.2rem;">' + window.icon(o.icon || 'seedling') + '</span>'
         + '<div style="font-size:0.74rem;line-height:1.6;flex:1;color:var(--text-primary);">' + o.note + '</div></div>' : '';
-    var cap = window.rptBar({ title: o.title, sub: o.sub || 'Consolidated data from all projects across all regions', pills: [{ text: o.pill, id: o.pillId }] })
+    var cap = window.rptBar({ title: o.title, sub: o.sub || 'Consolidated data from all projects across all regions', pills: o.pill ? [{ text: o.pill, id: o.pillId }] : [] })
         .replace('class="rpt-bar"', 'class="rpt-bar" style="margin:0;border:0;border-bottom:1px solid var(--tbl-line,#e3e9e4);border-radius:0;"');
     var head1 = '<th>Region</th><th>Projects</th>' + o.groups.map(function(g) { return '<th colspan="' + (g.span || 1) + '">' + g.label + '</th>'; }).join('');
     var head2 = o.cols.some(function(c) { return c.label; })
