@@ -2055,6 +2055,7 @@ window.CORP_DRILLS = CORP_DRILLS;
 function getCorpDrillCustomRows() {
     try { return JSON.parse(localStorage.getItem('esh_corp_drill_custom_rows') || '[]'); } catch(e) { return []; }
 }
+window.getCorpDrillCustomRows = getCorpDrillCustomRows; // expose globally: render.js and export-excel.js call it (this file is wrapped in an IIFE)
 function setCorpDrillCustomRows(rows) {
     localStorage.setItem('esh_corp_drill_custom_rows', JSON.stringify(rows));
     try {
