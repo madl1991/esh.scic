@@ -2612,17 +2612,35 @@ async function exportCurrentTabToExcel() {
         const _storage      = (typeof getEshStorage === 'function') ? getEshStorage() : {};
         const _trainings    = (!_isDrills && !_isCorpDrills && typeof ESH_TRAININGS !== 'undefined') ? (ESH_TRAININGS[tab] || []) : [];
         const _drills       = (_isDrills  && typeof ESH_DRILLS      !== 'undefined') ? ESH_DRILLS      : [];
-        const _corpDrills   = (_isCorpDrills && typeof ESH_CORP_DRILLS !== 'undefined') ? ESH_CORP_DRILLS : [];
+        // Corporate Drills: base list + custom rows added on screen. Storage index = row number for base rows, 1000 + custom index for custom rows (same as renderCorpDrillsTab).
+        const _corpDrills   = !_isCorpDrills ? [] : (window.CORP_DRILLS || []).concat(
+            ((typeof getCorpDrillCustomRows === 'function') ? getCorpDrillCustomRows() : []).map(function(r, i) {
+                return { name: r.name || r, freq: r.freq || 'Once a year', _custom: true, _customIdx: i };
+            }));
         const _items        = _isDrills ? _drills : _isCorpDrills ? _corpDrills : _trainings;
 
         if (!_items.length) { showToast('No calendar items found.', 'info'); return; }
 
         // ── Project pool (same filter as KPM/GOT) ────────────────────────────
         const _CAL_REGIONS  = ['NCR','SOUTH LUZON','NORTH LUZON','VISAYAS & MINDANAO'];
-        const _calAllProjs  = (state.filteredProjects || state.projects || []).filter(function(p) {
-            const r = (p.region || '').toUpperCase();
-            return r !== 'CORPORATE' && r !== 'PLANT OPERATIONS' && !p.dateFinished && p.status !== 'work-stoppage';
-        });
+        // A project column is left out of a month when the project has not started yet or is already finished
+        // (same helper the dashboard uses: isProjectHiddenForMonth). A project on work stoppage stays in, marked WORK STOPPAGE.
+        function _calHidden(p, mo1) {
+            return (typeof isProjectHiddenForMonth === 'function') && isProjectHiddenForMonth(p, mo1, year);
+        }
+        // Pool = every project that shows in at least one month of the year.
+        // Corporate Drills tab = the Corporate project only (same as the on-screen tab).
+        const _calAllProjs  = _isCorpDrills
+            ? (function() {
+                const cp = (state.projects || []).find(function(p) { return (p.region || '').toUpperCase() === 'CORPORATE'; });
+                return cp ? [cp] : [];
+            })()
+            : (state.filteredProjects || state.projects || []).filter(function(p) {
+                const r = (p.region || '').toUpperCase();
+                if (r === 'CORPORATE' || r === 'PLANT OPERATIONS') return false;
+                for (let m = 1; m <= 12; m++) { if (!_calHidden(p, m)) return true; }
+                return false;
+            });
         if (!_calAllProjs.length) { showToast('No project data to export.', 'info'); return; }
 
         const _calSortedReg = _CAL_REGIONS.filter(function(r){ return _calAllProjs.some(function(p){ return (p.region||'').toUpperCase()===r; }); });
@@ -2667,7 +2685,7 @@ async function exportCurrentTabToExcel() {
             cell.border    = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}},
                                left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'medium',color:{argb:'FF'+_C_MG}} };
         }
-        function _calDataCell(cell, value) {
+        function _calDataCell(cell, value, dateStr, overdue) {
             const thinBorder = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}},
                                  left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
             cell.border    = thinBorder;
@@ -2675,11 +2693,24 @@ async function exportCurrentTabToExcel() {
             cell.font      = { size:9, name:'Calibri' };
             cell.alignment = { horizontal:'center', vertical:'middle' };
             if (value === '✔') {
+                // Date conducted = the Actual date typed in the dashboard, written as a real Excel date
+                const dm = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr || '');
+                if (dm) { cell.value = new Date(Date.UTC(+dm[1], +dm[2] - 1, +dm[3])); cell.numFmt = 'dd-mmm-yy'; }
+                else    { cell.value = dateStr || ''; }
                 cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFC8E6C9'} };
                 cell.font = { bold:true, size:9, name:'Calibri', color:{argb:'FF1B5E20'} };
             } else if (value === '○') {
-                cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFF9C4'} };
-                cell.font = { bold:true, size:9, name:'Calibri', color:{argb:'FF82500D'} };
+                // Planned but no Actual date: past month = NOT CONDUCTED, current / coming month = PLANNED (not due yet)
+                if (overdue) {
+                    cell.value = 'NOT CONDUCTED';
+                    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFCDD2'} };
+                    cell.font = { bold:true, size:8, name:'Calibri', color:{argb:'FFB71C1C'} };
+                } else {
+                    cell.value = 'PLANNED';
+                    cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFF9C4'} };
+                    cell.font = { bold:true, size:8, name:'Calibri', color:{argb:'FF82500D'} };
+                }
+                cell.alignment = { horizontal:'center', vertical:'middle', wrapText:true };
             } else if (value === 'N/A') {
                 cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFB2DFDB'} };
                 cell.font = { italic:true, size:8, name:'Calibri', color:{argb:'FF004D40'} };
@@ -2713,20 +2744,52 @@ async function exportCurrentTabToExcel() {
             }
         }
 
-        // ── Helper: get cell state for one item/proj/month ────────────────────
+        // ── Helpers: storage index + cell state for one item/proj/month ──────
+        function _calStorageIdx(item, itemIdx) {
+            if (_isCorpDrills) return item._custom ? (1000 + (item._customIdx || 0)) : itemIdx;
+            if (_isDrills)     return (typeof getDrillStorageIdx==='function') ? getDrillStorageIdx(item,itemIdx) : (item.id!==undefined?item.id:itemIdx);
+            return itemIdx;
+        }
+        function _calKeys(proj, item, itemIdx, mi) {
+            const ti = _calStorageIdx(item, itemIdx);
+            return {
+                plan:   year+'|'+tab+'|GLOBAL_PLAN|'+ti+'|'+mi+'|plan',
+                actual: year+'|'+tab+'|'+proj.name+'|'+ti+'|'+mi+'|actual',
+                na:     year+'|'+tab+'|'+proj.name+'|'+ti+'|'+mi+'|na'
+            };
+        }
+        function _calOn(v) { return !!v && v !== '__DELETED__'; }
+        // Same rule as the dashboard: Actual only counts when the month is planned (a leftover Actual with no Plan is ignored).
         function _calGetState(proj, item, itemIdx, mi) {
-            const ti         = _isDrills || _isCorpDrills
-                ? (typeof getDrillStorageIdx==='function' ? getDrillStorageIdx(item,itemIdx) : (item.id!==undefined?item.id:itemIdx))
-                : itemIdx;
-            const planKey    = year+'|'+tab+'|GLOBAL_PLAN|'+ti+'|'+mi+'|plan';
-            const actualKey  = year+'|'+tab+'|'+proj.name+'|'+ti+'|'+mi+'|actual';
-            const naKey      = year+'|'+tab+'|'+proj.name+'|'+ti+'|'+mi+'|na';
-            const isNA       = (_isDrills || _isCorpDrills) && !!_storage[naKey];
-            const isBlack    = (typeof isMonthBlacklistedForProject==='function') && isMonthBlacklistedForProject(proj,mi+1,year);
+            const k        = _calKeys(proj, item, itemIdx, mi);
+            const isNA     = (_isDrills || _isCorpDrills) && _calOn(_storage[k.na]);
+            const isBlack  = (typeof isMonthBlacklistedForProject==='function') && isMonthBlacklistedForProject(proj,mi+1,year);
             if (isNA || isBlack) return 'N/A';
-            if (_storage[actualKey]) return '✔';
-            if (_storage[planKey])   return '○';
+            const planned  = _calOn(_storage[k.plan]);
+            if (planned && _calOn(_storage[k.actual])) return '✔';
+            if (planned) return '○';
             return '';
+        }
+        // Date conducted (the Actual date) for one item/proj/month
+        function _calGetDate(proj, item, itemIdx, mi) {
+            const v = _storage[_calKeys(proj, item, itemIdx, mi).actual];
+            return _calOn(v) ? String(v) : '';
+        }
+        // A project that is on work stoppage in this month (still shows, but the whole column is one WORK STOPPAGE block)
+        function _calIsStopped(proj, mi) {
+            return (typeof isMonthBlacklistedForProject==='function') && isMonthBlacklistedForProject(proj, mi+1, year);
+        }
+        // Columns of ONE month sheet: only projects that show in that month; region with no project that month is left out
+        function _calColMapForMonth(mi) {
+            const cmap = [];
+            _calRegOrder.forEach(function(region) {
+                const vis = _calProjsByReg[region].filter(function(p) { return !_calHidden(p, mi+1); });
+                if (!vis.length) return;
+                vis.forEach(function(proj) { cmap.push({ type:'proj', proj, region }); });
+                cmap.push({ type:'avg', region, projs: vis });
+            });
+            cmap.push({ type:'overall' });
+            return cmap;
         }
 
         showToast('Generating ESH Calendar Excel file...', 'info');
@@ -2735,10 +2798,20 @@ async function exportCurrentTabToExcel() {
         const _calWb = eshNewWorkbook('ESH Monitoring System');
 
         // ── Helper: build region-header row + column-header row (KPM/GOT style) ─
-        function _calBuildHeaderRows(ws, sheetTitle) {
+        // cmap = the columns of THIS sheet (they differ from month to month)
+        function _calBuildHeaderRows(ws, sheetTitle, cmap) {
+            const totalCols = _CAL_LEFT + cmap.length;
+            const regOrder  = [];
+            const projCount = {};
+            cmap.forEach(function(cm) {
+                if (cm.type !== 'proj') return;
+                if (regOrder.indexOf(cm.region) === -1) regOrder.push(cm.region);
+                projCount[cm.region] = (projCount[cm.region] || 0) + 1;
+            });
+
             // Row 1: Notes / title bar
             const noteRow = ws.addRow([sheetTitle + ' — ' + year]);
-            ws.mergeCells(noteRow.number, 1, noteRow.number, _calTotalCols);
+            ws.mergeCells(noteRow.number, 1, noteRow.number, totalCols);
             const nc = noteRow.getCell(1);
             nc.font      = { bold:true, color:{argb:'FF'+_C_CHF}, size:13, name:'Calibri' };
             nc.fill      = { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+_C_DG} };
@@ -2749,11 +2822,11 @@ async function exportCurrentTabToExcel() {
             ws.addRow([]); ws.getRow(2).height = 6;
 
             // Row 3: Region span headers
-            const regHdrRow = ws.addRow(Array(_calTotalCols).fill(''));
+            const regHdrRow = ws.addRow(Array(totalCols).fill(''));
             regHdrRow.height = 20;
             let colOff = _CAL_LEFT + 1;
-            _calRegOrder.forEach(function(region) {
-                const pc = _calProjsByReg[region].length;
+            regOrder.forEach(function(region) {
+                const pc = projCount[region];
                 const spanStart = colOff;
                 const spanEnd   = colOff + pc; // +1 for AVG col
                 const c = regHdrRow.getCell(spanStart);
@@ -2776,7 +2849,7 @@ async function exportCurrentTabToExcel() {
 
             // Row 4: Column headers
             const hdrData = _CAL_LEFT === 3 ? ['NO.','DRILL / EMERGENCY SCENARIO','FREQUENCY'] : ['NO.','TRAINING / AWARENESS TOPIC'];
-            _calColMap.forEach(function(cm) {
+            cmap.forEach(function(cm) {
                 if (cm.type==='proj')    hdrData.push(cm.proj.name||'');
                 else if (cm.type==='avg') hdrData.push('REGION\nAVG');
                 else                     hdrData.push('OVERALL\nAVG');
@@ -2784,7 +2857,7 @@ async function exportCurrentTabToExcel() {
             const hdrRow = ws.addRow(hdrData);
             hdrRow.height = 45;
             for (let ci=1; ci<=_CAL_LEFT; ci++) _calHdr(hdrRow.getCell(ci), _C_CHB, _C_CHF);
-            _calColMap.forEach(function(cm, i) {
+            cmap.forEach(function(cm, i) {
                 const ci = _CAL_LEFT + 1 + i;
                 if      (cm.type==='avg')     _calHdr(hdrRow.getCell(ci), _C_MG,  'FFFFFF');
                 else if (cm.type==='overall') _calHdr(hdrRow.getCell(ci), _C_OVB, 'FFFFFF');
@@ -2798,9 +2871,10 @@ async function exportCurrentTabToExcel() {
         }
 
         // ── Per-month sheets ──────────────────────────────────────────────────
-        // Determine which months have any data
+        // Determine which months have any data (only projects that show in that month count)
         const _calSubmittedMonths = MO_LONG.filter(function(mo, mi) {
             return _calAllProjs.some(function(proj) {
+                if (_calHidden(proj, mi+1)) return false;
                 return _items.some(function(item, ii) {
                     const s = _calGetState(proj, item, ii, mi);
                     return s === '✔' || s === '○';
@@ -2817,7 +2891,14 @@ async function exportCurrentTabToExcel() {
             const moSh   = MO_SHORT[moIdx];
             const wsName = ('CAL-' + moSh + '-' + year).substring(0, 31);
             const ws     = _calWb.addWorksheet(wsName);
-            let rowIdx   = _calBuildHeaderRows(ws, title + ' — ' + moSh);
+            const cmap     = _calColMapForMonth(moIdx);
+            const visProjs = cmap.filter(function(cm){ return cm.type === 'proj'; }).map(function(cm){ return cm.proj; });
+            const stopped  = new Map(visProjs.map(function(p){ return [p, _calIsStopped(p, moIdx)]; }));
+            let rowIdx   = _calBuildHeaderRows(ws, title + ' — ' + moSh, cmap);
+            const dataStart = ws.rowCount + 1;
+            // Month already passed (same rule as the dashboard's overdue): a planned item with no Actual date = NOT CONDUCTED
+            const _calNow = new Date();
+            const _calMonthPast = (year < _calNow.getFullYear()) || (year === _calNow.getFullYear() && moIdx < _calNow.getMonth());
 
             _items.forEach(function(item, ii) {
                 const itemLabel = item.label || item.name || (typeof item === 'string' ? item : String(ii+1));
@@ -2825,18 +2906,18 @@ async function exportCurrentTabToExcel() {
                 const rowArr    = _CAL_LEFT === 3 ? [ii+1, itemLabel, itemFreq] : [ii+1, itemLabel];
 
                 // Per-project values + region avg + overall avg
-                _calColMap.forEach(function(cm) {
+                cmap.forEach(function(cm) {
                     if (cm.type === 'proj') {
-                        rowArr.push(_calGetState(cm.proj, item, ii, moIdx));
+                        rowArr.push(stopped.get(cm.proj) ? '' : _calGetState(cm.proj, item, ii, moIdx));
                     } else if (cm.type === 'avg') {
-                        const rp    = _calProjsByReg[cm.region];
+                        const rp    = cm.projs;
                         let planned=0, actual=0, na=0;
                         rp.forEach(function(p){ const s=_calGetState(p,item,ii,moIdx); if(s==='✔'){actual++;planned++;} else if(s==='○'){planned++;} else if(s==='N/A'){na++;} });
                         rowArr.push({ _planned:planned, _actual:actual, _na:na, _total:rp.length });
                     } else {
                         let planned=0, actual=0, na=0;
-                        _calOrderedProjs.forEach(function(p){ const s=_calGetState(p,item,ii,moIdx); if(s==='✔'){actual++;planned++;} else if(s==='○'){planned++;} else if(s==='N/A'){na++;} });
-                        rowArr.push({ _planned:planned, _actual:actual, _na:na, _total:_calOrderedProjs.length });
+                        visProjs.forEach(function(p){ const s=_calGetState(p,item,ii,moIdx); if(s==='✔'){actual++;planned++;} else if(s==='○'){planned++;} else if(s==='N/A'){na++;} });
+                        rowArr.push({ _planned:planned, _actual:actual, _na:na, _total:visProjs.length });
                     }
                 });
 
@@ -2858,12 +2939,13 @@ async function exportCurrentTabToExcel() {
                 }
 
                 // Data + avg cells
-                _calColMap.forEach(function(cm, i) {
+                cmap.forEach(function(cm, i) {
                     const ci   = _CAL_LEFT + 1 + i;
                     const cell = dataRow.getCell(ci);
                     const raw  = rowArr[_CAL_LEFT + i];
                     if (cm.type === 'proj') {
-                        _calDataCell(cell, raw);
+                        if (stopped.get(cm.proj)) return;   // whole column is merged into one WORK STOPPAGE block below
+                        _calDataCell(cell, raw, raw === '✔' ? _calGetDate(cm.proj, item, ii, moIdx) : '', _calMonthPast);
                     } else if (cm.type === 'avg') {
                         _calAvgCell(cell, raw._planned, raw._actual, raw._na, raw._total);
                     } else {
@@ -2874,11 +2956,34 @@ async function exportCurrentTabToExcel() {
                 rowIdx++;
             });
 
+            // Work-stoppage projects: one merged block down the whole column, text turned vertical
+            const dataEnd = ws.rowCount;
+            if (visProjs.some(function(p){ return stopped.get(p); })) {
+                // the stacked text (13 letters) needs about 270 pt of height: stretch the rows only when the sheet has too few rows
+                const needH = Math.ceil(300 / Math.max(1, _items.length));
+                if (needH > 30) for (let r = dataStart; r <= dataEnd; r++) ws.getRow(r).height = needH;
+            }
+            cmap.forEach(function(cm, i) {
+                if (cm.type !== 'proj' || !stopped.get(cm.proj)) return;
+                const ci = _CAL_LEFT + 1 + i;
+                for (let r = dataStart; r <= dataEnd; r++) {
+                    const c = ws.getCell(r, ci);
+                    c.fill   = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFE0B2'} };
+                    c.border = { top:{style:'thin',color:{argb:'FFB0BEC5'}}, bottom:{style:'thin',color:{argb:'FFB0BEC5'}},
+                                 left:{style:'thin',color:{argb:'FFB0BEC5'}}, right:{style:'thin',color:{argb:'FFB0BEC5'}} };
+                }
+                if (dataEnd > dataStart) ws.mergeCells(dataStart, ci, dataEnd, ci);
+                const mc = ws.getCell(dataStart, ci);
+                mc.value     = 'WORK STOPPAGE';
+                mc.font      = { bold:true, size:16, name:'Calibri', color:{argb:'FFE65100'} };
+                mc.alignment = { horizontal:'center', vertical:'middle', textRotation:'vertical', wrapText:false };  // letters stacked top to bottom (Excel: Vertical Text)
+            });
+
             // Column widths
             ws.getColumn(1).width = 5;
             ws.getColumn(2).width = _CAL_LEFT === 3 ? 38 : 44;
             if (_CAL_LEFT === 3) ws.getColumn(3).width = 14;
-            _calColMap.forEach(function(cm, i) {
+            cmap.forEach(function(cm, i) {
                 const ci = _CAL_LEFT + 1 + i;
                 ws.getColumn(ci).width = cm.type === 'overall' ? 12 : cm.type === 'avg' ? 10 : 16;
             });
