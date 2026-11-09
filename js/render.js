@@ -1259,7 +1259,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
     const _isPermitsTbl = state.currentTab === 'permits';
     const _isExpTbl = state.currentTab === 'exposures' || state.currentTab === 'medical' || state.currentTab === 'rates' || state.currentTab === 'activities'; // same KPM-style per-project table
     if (_isExpTbl && window.expProjInjectCss) window.expProjInjectCss();
-    html += `<div class="table-container${_isPermitsTbl ? ' permits-wrap' : ''}"><table class="${_isPermitsTbl ? 'got-tbl permits-tbl' : (_isExpTbl ? 'env-tbl exp-proj' : 'env-tbl')}"${_isPermitsTbl ? ' style="width:auto;min-width:100%;"' : ''}>`;
+    html += `<div class="table-container${_isPermitsTbl ? ' permits-wrap' : ''}${state.currentTab === 'medical' ? ' med-wrap' : ''}"><table class="${_isPermitsTbl ? 'got-tbl permits-tbl' : (_isExpTbl ? 'env-tbl exp-proj' : 'env-tbl')}"${_isPermitsTbl ? ' style="width:auto;min-width:100%;"' : ''}>`;
     html += `<tr><th class="${_isPermitsTbl ? 'got-th-left got-th-dark' : 'env-th-left env-th-sticky env-th-dark'}" style="width:${typeColumnWidth}; min-width:${typeColumnWidth}; max-width:${typeColumnWidth}; white-space: normal; padding: 10px 12px; line-height: 1.3; vertical-align: middle;">TYPE</th>`;
 
     if (isCshp) {
@@ -1343,13 +1343,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
             <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
                 <span style="flex:1;${_isExpTab ? 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;' : ''}">
                     ${_rowShort}
-                    ${(state.currentTab === 'medical' && row === 'Days Lost/Charged')
-                        ? `<div style="font-size:0.6rem;font-weight:400;color:#1565c0;margin-top:3px;line-height:1.3;">
-                               <i class="fas fa-info-circle"></i> Used for Severity Rate computation <i class="fas fa-sync-alt" title="Auto-sync from Incident &amp; Accident Registry ↗" onclick="changeTab('lta-registry')" style="margin-left:6px;font-size:0.62rem;color:#e65100;cursor:pointer;vertical-align:middle;"></i>
-                           </div>`
-                        : ''}
-                    ${((state.currentTab === 'medical' || state.currentTab === 'activities') && ['LTA','Medical Treatment','First Aid','Fatality','High-Potential incident','Dangerous Occurrences','No. of Identified Near-Miss'].includes(row))
-                        ? `<i class="fas fa-sync-alt" title="Auto-synced from Registry ↗" onclick="changeTab('lta-registry')" style="margin-left:6px;font-size:0.62rem;color:#2e7d32;cursor:pointer;vertical-align:middle;"></i>`
+                    ${((state.currentTab === 'medical' || state.currentTab === 'activities') && ['LTA','Medical Treatment','First Aid','Fatality','High-Potential incident','Dangerous Occurrences','No. of Identified Near-Miss','Days Lost/Charged'].includes(row))
+                        ? `<i class="fas fa-sync-alt" title="${row === 'Days Lost/Charged' ? 'Used for Severity Rate computation. ' : ''}Auto-synced from Registry ↗" onclick="changeTab('lta-registry')" style="margin-left:6px;font-size:0.62rem;color:#2e7d32;cursor:pointer;vertical-align:middle;"></i>`
                         : ''}
                 </span>
                 ${naBtn}
@@ -3746,6 +3741,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     function kpmIsNA(p) {
                         return p && p.vals && p.vals['kpm_na'] === '1';
                     }
+                    window.kpmIsNA = kpmIsNA; // expose globally: exportKpmExcel (corporate-kpm.js) uses it
 
                     if (!window._kpmActiveMo) window._kpmActiveMo = {};
                     if (!window._kpmActiveRole) window._kpmActiveRole = {};
