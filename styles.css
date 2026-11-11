@@ -10679,3 +10679,39 @@ table.got-tbl.permits-tbl th:nth-child(6) { width: 210px; }
 .med-wrap table td:not(:first-child) { padding-inline: 8px !important; }
 .med-wrap table td.monthly-data { min-width: 76px !important; }
 .med-wrap table th:not(:first-child) { min-width: 76px !important; padding: 8px 8px !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   LOGIN — SEASONAL EFFECTS (supplementary, see login-seasonal.js)
+   Overlay lang sa ibabaw ng login; pointer-events:none
+   ═══════════════════════════════════════════════════════════════ */
+#esh-fx{position:absolute;inset:0;z-index:5;pointer-events:none;overflow:hidden}
+#esh-fx .fxp{position:absolute;top:0;left:0;opacity:.8;will-change:transform;user-select:none;animation-timing-function:linear;animation-iteration-count:infinite}
+#esh-fx .bw{animation-timing-function:ease-in-out;animation-iteration-count:infinite;animation-direction:alternate;animation-duration:var(--fs,.35s)}
+#esh-fx .bw.l{transform-origin:30px 15px;animation-name:fxflapL}
+#esh-fx .bw.r{transform-origin:34px 15px;animation-name:fxflapR}
+#esh-fx .gh,#esh-fx .pk{display:block;width:100%;overflow:visible;filter:drop-shadow(0 4px 6px rgba(80,60,140,.25))}
+#esh-fx .gh{transform-origin:50% 100%;animation:fxgh 2.8s ease-in-out infinite alternate}
+#esh-fx .gh .gt{transform-origin:30px 8px;animation:fxtail 1.2s ease-in-out infinite alternate}
+#esh-fx .gh .ge{transform-box:fill-box;transform-origin:center;animation:fxblink 3.6s infinite}
+#esh-fx .gh .gal{transform-origin:12px 42px;animation:fxarmL .8s ease-in-out infinite alternate}
+#esh-fx .gh .gar{transform-origin:48px 42px;animation:fxarmR .8s ease-in-out infinite alternate}
+#esh-fx .pk{transform-origin:50% 100%;animation:fxpk 1.6s ease-in-out infinite alternate}
+#esh-fx .pk .pf{animation:fxflick 1s ease-in-out infinite alternate}
+#esh-fx .fxp.bat{opacity:.9}
+#esh-fx .fxpole{position:absolute;bottom:-40px;width:6px;border-radius:3px;background:linear-gradient(90deg,#8b6b3e,#d4b27a);transform-origin:50% 100%;animation:fxsway 2.4s ease-in-out infinite alternate}
+#esh-fx .fxball{position:absolute;top:-6px;left:-1px;width:8px;height:8px;border-radius:50%;background:#fcd116}
+@keyframes fxfall{from{transform:translate3d(0,-12vh,0) rotate(0)}to{transform:translate3d(var(--dx),112vh,0) rotate(var(--rot))}}
+@keyframes fxrise{from{transform:translate3d(0,112vh,0) rotate(0)}to{transform:translate3d(var(--dx),-12vh,0) rotate(var(--rot))}}
+@keyframes fxfly{0%{transform:translate3d(-12vw,0,0) rotate(-8deg)}25%{transform:translate3d(20vw,-24px,0) rotate(8deg)}50%{transform:translate3d(50vw,16px,0) rotate(-8deg)}75%{transform:translate3d(80vw,-20px,0) rotate(8deg)}100%{transform:translate3d(112vw,0,0) rotate(-8deg)}}
+@keyframes fxwave{0%,100%{transform:translateY(calc(var(--amp)*-1));filter:brightness(1.08)}50%{transform:translateY(var(--amp));filter:brightness(.88)}}
+@keyframes fxflapL{from{transform:rotate(-20deg)}to{transform:rotate(30deg)}}
+@keyframes fxflapR{from{transform:rotate(20deg)}to{transform:rotate(-30deg)}}
+@keyframes fxgh{from{transform:translateX(-5px) rotate(-5deg)}to{transform:translateX(5px) rotate(5deg)}}
+@keyframes fxtail{from{transform:skewX(-4deg)}to{transform:skewX(4deg)}}
+@keyframes fxblink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes fxarmL{from{transform:rotate(-22deg)}to{transform:rotate(16deg)}}
+@keyframes fxarmR{from{transform:rotate(22deg)}to{transform:rotate(-16deg)}}
+@keyframes fxpk{from{transform:translateY(0) rotate(-7deg)}to{transform:translateY(-6px) rotate(7deg)}}
+@keyframes fxflick{from{opacity:.65}to{opacity:1}}
+@keyframes fxsway{from{transform:rotate(-13deg)}to{transform:rotate(13deg)}}
+@media (prefers-reduced-motion:reduce){#esh-fx{display:none!important}}
