@@ -1238,15 +1238,75 @@
 
                     statusCtx.style.display = 'none';
                     let host = statusCtx.parentNode.querySelector('.status-donut');
+                    let _sdIntro = false;
                     if (!host) {
                         host = document.createElement('div');
                         host.className = 'status-donut';
+                        host._sdPending = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
                         statusCtx.parentNode.appendChild(host);
                     }
                     const hidden = [false, false, false];
+                    _sdIntro = !!host._sdPending; // true only until the first draw has played
                     const CX = 150, CY = 150, R_OUT = 140, R_IN = 98; // cutout 70%
                     const pt = (r, a) => [CX + r * Math.cos(a), CY + r * Math.sin(a)];
                     const f = n => n.toFixed(3);
+                    const WC = 2 * Math.PI * 119; // length of the circle used for the first-draw wipe
+
+                    // Slice with rounded corners. Small gap between slices comes from PAD (replaces the old white gap lines).
+                    const PAD = 3 / ((R_OUT + R_IN) / 2);
+                    function slicePathRound(a0, a1) {
+                        a0 += PAD; a1 -= PAD;
+                        const sw = a1 - a0;
+                        let rc = Math.min(12, (R_OUT - R_IN) / 2 - 1);
+                        while (rc > 0.5 && 2 * Math.asin(rc / (R_IN + rc)) > sw * 0.9) rc *= 0.8; // thin slice: smaller corners
+                        const to = Math.asin(rc / (R_OUT - rc)), ti = Math.asin(rc / (R_IN + rc));
+                        const lo = (R_OUT - rc) * Math.cos(to), li = (R_IN + rc) * Math.cos(ti);
+                        const P = (r, a) => f(CX + r * Math.cos(a)) + ' ' + f(CY + r * Math.sin(a));
+                        const bigO = (sw - 2 * to) > Math.PI ? 1 : 0, bigI = (sw - 2 * ti) > Math.PI ? 1 : 0;
+                        return 'M' + P(lo, a0) +
+                            'A' + f(rc) + ' ' + f(rc) + ' 0 0 1 ' + P(R_OUT, a0 + to) +
+                            'A' + R_OUT + ' ' + R_OUT + ' 0 ' + bigO + ' 1 ' + P(R_OUT, a1 - to) +
+                            'A' + f(rc) + ' ' + f(rc) + ' 0 0 1 ' + P(lo, a1) +
+                            'L' + P(li, a1) +
+                            'A' + f(rc) + ' ' + f(rc) + ' 0 0 1 ' + P(R_IN, a1 - ti) +
+                            'A' + R_IN + ' ' + R_IN + ' 0 ' + bigI + ' 0 ' + P(R_IN, a0 + ti) +
+                            'A' + f(rc) + ' ' + f(rc) + ' 0 0 1 ' + P(li, a0) + 'Z';
+                    }
+
+                    // First draw only: the ring is revealed clockwise and the % in the centre counts up.
+                    // It starts when the donut scrolls into view. Hover / legend redraws do not replay it.
+                    function sdIntro() {
+                        const c = host.querySelector('#sd-wipe-c'), g = host.querySelector('g[mask]'), pct = host.querySelector('.sd-pct');
+                        if (!c || !g) { host._sdPending = false; return; }
+                        const target = pct ? parseInt(pct.textContent, 10) : NaN, hasPct = pct && isFinite(target), dur = 1200;
+                        if (hasPct) pct.textContent = '0%';
+                        const finish = () => {
+                            host._sdPending = false;
+                            if (g.isConnected) g.removeAttribute('mask');
+                            if (hasPct && pct.isConnected) pct.textContent = target + '%';
+                        };
+                        const run = () => {
+                            host._sdPending = false;
+                            let t0 = null;
+                            const step = ts => {
+                                if (!c.isConnected) return;
+                                if (t0 === null) t0 = ts;
+                                const p = Math.min((ts - t0) / dur, 1), e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+                                c.setAttribute('stroke-dashoffset', (WC * (1 - e)).toFixed(2));
+                                if (hasPct && pct.isConnected) pct.textContent = Math.round(target * e) + '%';
+                                if (p < 1) requestAnimationFrame(step); else finish();
+                            };
+                            requestAnimationFrame(step);
+                            setTimeout(finish, dur + 800); // safety if the tab was in the background
+                        };
+                        if ('IntersectionObserver' in window) {
+                            const io = new IntersectionObserver(es => {
+                                if (!c.isConnected) { io.disconnect(); return; }
+                                if (es.some(e => e.isIntersecting)) { io.disconnect(); run(); }
+                            }, { threshold: 0.4 });
+                            io.observe(host);
+                        } else run();
+                    }
 
                     function slicePath(a0, a1) {
                         if (a1 - a0 >= Math.PI * 2 - 1e-6) {
@@ -1266,22 +1326,20 @@
                     }
 
                     function draw(hov) {
+                        const _play = _sdIntro; _sdIntro = false;
                         const vis = _stData.map((v, i) => hidden[i] ? 0 : v);
                         const visTotal = vis.reduce((a, b) => a + b, 0);
                         let svg = '<svg viewBox="0 0 300 300" preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">';
+                        if (_play) svg += '<defs><mask id="sd-wipe-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="300" height="300"><circle id="sd-wipe-c" cx="150" cy="150" r="119" fill="none" stroke="#fff" stroke-width="46" stroke-dasharray="' + WC.toFixed(2) + '" stroke-dashoffset="' + WC.toFixed(2) + '" transform="rotate(-90 150 150)"/></mask></defs><g mask="url(#sd-wipe-mask)">';
                         let ang = -Math.PI / 2, gaps = '';
                         const nonZero = vis.filter(v => v > 0).length;
                         vis.forEach((v, i) => {
                             if (v <= 0) return;
                             const sweep = visTotal > 0 ? (v / visTotal) * Math.PI * 2 : 0;
-                            svg += '<path class="sd-slice" data-i="' + i + '" fill="' + _stColors[i] + '" fill-rule="evenodd" d="' + slicePath(ang, ang + sweep) + '"/>';
-                            if (nonZero > 1) {
-                                const p0 = pt(R_OUT + 2, ang), q0 = pt(R_IN - 2, ang);
-                                gaps += '<line class="sd-gap" x1="' + f(p0[0]) + '" y1="' + f(p0[1]) + '" x2="' + f(q0[0]) + '" y2="' + f(q0[1]) + '"/>';
-                            }
+                            svg += '<path class="sd-slice" data-i="' + i + '" fill="' + _stColors[i] + '" fill-rule="evenodd" d="' + (nonZero > 1 ? slicePathRound : slicePath)(ang, ang + sweep) + '"/>';
                             ang += sweep;
                         });
-                        svg += gaps;
+                        if (_play) svg += '</g>';
                         let pctText, lblText, subText = '', pctStyle = '';
                         if (hov >= 0) {
                             pctText = (_stTotal > 0 ? (_stData[hov] / _stTotal * 100).toFixed(1) : 0) + '%';
@@ -1302,6 +1360,7 @@
                         });
                         leg += '</div>';
                         host.innerHTML = svg + leg;
+                        if (_play) sdIntro();
                         host.querySelectorAll('.sd-slice').forEach(el => {
                             el.addEventListener('mouseenter', () => draw(+el.getAttribute('data-i')));
                         });
