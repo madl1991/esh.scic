@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Executive ESH Summary — SCIC</title>
+<link rel="icon" type="image/png" href="images/esh-shield.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root{
+    --font-main: 'Inter', sans-serif;
+    --bg-deep:   #eef1eb;
+    --bg-panel:  #ffffff;
+    --line:      #e7ebe2;
+    --line-soft: #f1f4ed;
+    --ink:       #212f27;
+    --ink-dim:   #64726b;
+    --ink-faint: #9aa59d;
+    --cyan:      #1c4a35;
+    --cyan-dim:  rgba(28,74,53,0.08);
+    --amber:     #f0b818;
+    --brand:     #007838;
+    --brand-dk:  #00562a;
+    --amber-dim: rgba(221,166,62,0.16);
+    --coral:     #d94a3f;
+    --coral-dim: rgba(217,74,63,0.10);
+    --mint:      #4faa72;
+    --mint-dim:  rgba(79,170,114,0.14);
+    --navy:      #1b2420;
+    --shadow:    0 10px 30px rgba(30,45,35,0.07);
+  }
+  *{box-sizing:border-box;}
+  html, body{
+    font-variant-numeric:tabular-nums;
+    margin:0; height:100%; overflow:hidden;
+    font-family:var(--font-main);
+    background:var(--bg-deep); color:var(--ink);
+  }
+  .num{font-family:var(--font-main);}
+  .serif{font-family:var(--font-main);}
+
+  /* ── PASSCODE GATE ────────────────────────────────────────── */
+  #login-overlay{
+    position:fixed; inset:0; display:none; align-items:stretch; background:#fff; z-index:999;
+    font-family:var(--font-main);
+  }
+  html[data-boot="gate"] #login-overlay{display:flex;}
+
+  #boot-loader{
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background:var(--bg-deep); z-index:1000;
+  }
+  html[data-boot="pending"] #boot-loader{display:flex;}
+  #boot-loader .spinner{
+    width:32px; height:32px; border-radius:50%; border:3px solid var(--line);
+    border-top-color:var(--cyan); animation:boot-spin 0.8s linear infinite;
+  }
+  @keyframes boot-spin{to{transform:rotate(360deg);}}
+  /* ── LOGIN: same look as the ESH Compliance Dashboard login (left photo panel + right form) ── */
+  .gate-hero{
+    width:50%; flex-shrink:0; position:relative; overflow:hidden; display:flex; flex-direction:column;
+    align-items:center; justify-content:flex-start; padding:56px 48px;
+    background:#1b5e20; background-image:radial-gradient(ellipse 70% 42% at 50% 36%, rgba(0,35,10,0.38) 0%, rgba(0,35,10,0) 100%), linear-gradient(0deg, rgba(0,35,10,0.45) 0%, rgba(0,35,10,0) 32%), linear-gradient(135deg, rgba(27,94,32,0.82) 0%, rgba(46,125,50,0.75) 100%), url('images/login-left-bg.jpg');
+    background-size:cover; background-position:center center; background-repeat:no-repeat;
+  }
+  .gate-hero-in{position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:22px;}
+  .gate-title{
+    margin:0; font-weight:700; color:#fff; text-align:center; text-transform:uppercase; letter-spacing:0.5px;
+    font-size:clamp(2.2rem,3.5vw,3.6rem); line-height:1.15; filter:drop-shadow(0 2px 10px rgba(0,0,0,0.5));
+  }
+  .gate-title span{color:#fbc02d;}
+  .gate-divider{width:56px; height:3px; background:rgba(251,192,45,0.5); border-radius:2px;}
+  .gate-icons{display:flex; align-items:center; justify-content:center; width:100%; max-width:360px;}
+  .gate-icons div{flex:1; display:flex; align-items:center; justify-content:center; padding:10px 18px;}
+  .gate-icons i{font-size:1.8rem; color:#e8f5e9; filter:drop-shadow(0 1px 4px rgba(0,0,0,0.45));}
+  .gate-icons b{width:1px; height:40px; background:rgba(255,255,255,0.3); flex-shrink:0;}
+  .gate-headline{
+    position:absolute; left:56px; bottom:48px; z-index:1; margin:0; text-align:left; color:#fff;
+    font-weight:700; font-size:clamp(2rem,3.2vw,3.2rem); line-height:1.06; letter-spacing:-0.03em; text-shadow:0 2px 12px rgba(0,0,0,0.5);
+  }
+  .gate-headline span{color:#fbc02d;}
+  .gate-form{flex:1; display:flex; align-items:stretch; background:#fff; padding:48px 40px; overflow-y:auto;}
+  .gate-form-in{width:100%; max-width:360px; margin:auto;}
+  .gate-greet{font-size:1.5rem; font-weight:500; color:#1a1a1a; margin-bottom:8px; letter-spacing:-0.4px;}
+  .gate-greet .accent{color:#1b5e20;}
+  .gate-sub{font-size:0.8rem; color:#aaa; margin-bottom:28px;}
+  .gate-field{position:relative; margin-bottom:18px;}
+  .gate-field input{
+    width:100%; height:48px; padding:18px 46px 3px 14px; border-radius:8px; font-size:0.88rem; font-family:inherit;
+    background:#fff; border:1px solid #ccd0d5; color:#222; outline:none;
+  }
+  .gate-field input:focus{border-color:#3c4043;}
+  .gate-field label{
+    position:absolute; left:15px; top:50%; transform:translateY(-50%); font-size:0.88rem; color:#6b7280;
+    pointer-events:none; white-space:nowrap; transition:top .15s ease, font-size .15s ease, transform .15s ease, color .15s ease;
+  }
+  .gate-field input:focus + label, .gate-field input:not(:placeholder-shown) + label{top:6px; transform:none; font-size:0.62rem;}
+  .gate-field input:focus + label{color:#3c4043;}
+  .gate-eye{position:absolute; right:8px; top:8px; width:32px; height:32px; border:none; background:none; cursor:pointer; color:#bbb; font-size:0.9rem;}
+  .gate-eye:hover{color:#2e7d32;}
+  #gate-btn{
+    width:100%; height:40px; margin-top:18px; border:none; border-radius:999px; font:600 0.85rem var(--font-main);
+    background:#fbc02d; color:#1a1a1a; cursor:pointer;
+  }
+  #gate-btn:hover{background:#f9a825;}
+  #gate-btn:disabled{opacity:0.65; cursor:wait;}
+  #gate-error{color:#c62828; font-size:0.78rem; margin-top:12px; min-height:18px; font-weight:600; text-align:center;}
+  .gate-notice{text-align:center; margin-top:28px; font-size:0.7rem; color:#666; line-height:1.55;}
+  .gate-notice strong{color:#333; font-weight:600;}
+  .gate-foot{font-size:0.62rem; color:#999; text-align:center; margin-top:22px; padding-top:16px; border-top:1px solid #f0f0f0; line-height:1.6;}
+  .gate-logo{display:block; width:180px; height:auto; margin:10px auto 0;}
+  @media (max-width:640px){
+    #login-overlay{flex-direction:column; overflow-y:auto;}
+    .gate-hero{width:100%; padding:28px 24px 22px;}
+    .gate-title{font-size:1.6rem;}
+    .gate-headline{display:none;}
+    .gate-form{flex:1 0 auto; padding:28px 20px 32px; overflow-y:visible;}
+  }
+
+  /* ── MAIN PAGE (one screen, no scroll). Sizes use vh so 1080p and 4K look the same. ── */
+  /* Theme: variables live on #app only, so the login screen is never affected by light/dark mode. */
+  #app{
+    --bg-deep:#c3c8cd; --bg-panel:#ffffff; --bg-header:#ffffff;
+    --line:#d9dee2; --line-soft:#eceff1; --track:#e9edf0;
+    --ink:#212f27; --ink-dim:#55625b; --ink-faint:#7b8780;
+    --navy:#1b2420; --stale-fg:#8a5a00; --tile-lbl:#111111; --red:#d32f2f; --brand-fg:#007838;
+    --shadow:0 10px 30px rgba(30,45,35,0.10);
+    background:var(--bg-deep); color:var(--ink);
+  }
+  html[data-theme="dark"] #app{
+    --bg-deep:#0e1113; --bg-panel:#1a1f23; --bg-header:#1a1f23;
+    --line:#2d363c; --line-soft:#252d32; --track:#2a3238;
+    --ink:#e6ebe8; --ink-dim:#aab5af; --ink-faint:#86928b;
+    --navy:#f1f5f2; --stale-fg:#f0b818; --tile-lbl:#f1f5f2; --red:#ff6b5f; --brand-fg:#4fd18b;
+    --coral:#ff6b5f; --mint:#5fd08e;
+    --shadow:0 10px 30px rgba(0,0,0,0.45);
+  }
+  #app{display:none; height:100%; flex-direction:column;}
+  header.top{flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:1.5vw; padding:1.1vh 1.5vw; background:var(--bg-header); border-bottom:.7vh solid var(--brand);}
+  header.top .brand{display:flex; align-items:center; gap:1.5vw; min-width:0;}
+  .hd-logo{height:6vh; width:auto; display:block;}
+  .hd-title{border-left:1px solid var(--line); padding-left:1.5vw;}
+  header.top h1{font-family:var(--font-main); font-size:2.6vh; margin:0; font-weight:600; color:var(--brand-fg);}
+  header.top .sub{font-size:1.4vh; color:var(--ink-dim); margin-top:.2vh;}
+  .hd-right{display:flex; align-items:center; gap:1vw;}
+  .live-pill{display:flex; align-items:center; gap:.5vw; background:var(--mint-dim); border-radius:3vh; padding:.8vh 1vw; font-size:1.4vh; font-weight:600; color:var(--brand-fg); white-space:nowrap;}
+  .live-pill.stale{background:var(--amber-dim); color:var(--stale-fg);}
+  .live-pill.stale .live-dot{background:var(--amber); animation:none;}
+  .live-dot{width:.9vh; height:.9vh; border-radius:50%; background:var(--brand); animation:pulse 1.8s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.25;}}
+  #logout-btn, #theme-btn{display:flex; align-items:center; gap:.5vw; background:var(--bg-header); border:1px solid var(--line); border-radius:3vh; padding:.8vh 1vw; font:600 1.4vh var(--font-main); color:var(--ink-dim); cursor:pointer;}
+  #logout-btn:hover, #theme-btn:hover{border-color:var(--brand); color:var(--brand-fg);}
+
+  .board{flex:1 1 auto; min-height:0; display:grid; grid-template-rows:1.3fr 1fr; gap:1vh; padding:1vh 1vw;}
+  .bottom-row{display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:1vh; min-height:0;}
+  .panel{background:var(--bg-panel); border:1px solid var(--line); border-radius:1.6vh; overflow:hidden; display:flex; flex-direction:column; min-height:0; box-shadow:var(--shadow);}
+  .hd{flex:0 0 auto; display:flex; align-items:center; gap:.8vw; padding:.9vh 1.1vw; background:linear-gradient(135deg,var(--brand),var(--brand-dk)); color:#fff; font:600 1.9vh var(--font-main);}
+  .hd i{font-size:1.5vh; width:3.2vh; height:3.2vh; border-radius:50%; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .chip{margin-left:auto; font:700 1.2vh var(--font-main); background:rgba(255,255,255,.18); color:#fff; padding:.3vh .8vw; border-radius:2vh; white-space:nowrap;}
+  .empty{padding:2vh; text-align:center; color:var(--ink-faint); font-size:1.6vh;}
+  .tiles{flex:0 0 auto; display:grid; grid-template-columns:repeat(5,1fr); border-bottom:1px solid var(--line);}
+  .tile{padding:1.2vh .5vw; text-align:center; border-right:1px solid var(--line-soft);}
+  .tile:last-child{border-right:none;}
+  .tile small{display:block; font-size:1.5vh; font-weight:800; color:var(--tile-lbl); text-transform:uppercase; letter-spacing:.06em;}
+  .tile.bad b{color:var(--red);}
+  .tile b{font:800 min(5vh,2.8vw) var(--font-main); line-height:1.1; color:var(--navy);}
+  .tb{flex:1; min-height:0; display:grid; grid-template-columns:.8fr 1.1fr 1.1fr .9fr; gap:.8vw; padding:1vh .8vw;}
+  .card{border:1px solid var(--line); border-radius:1.2vh; padding:.9vh .9vw; display:flex; flex-direction:column; justify-content:center; min-height:0;}
+  .card h4{margin:0 0 .5vh; font-size:1.35vh; font-weight:700; color:var(--ink-dim);}
+  .big{font:800 6.5vh var(--font-main); line-height:1;}
+  .card .sub{font-size:1.3vh; color:var(--ink-faint); margin-top:.4vh;}
+  .pair{display:flex; gap:1.5vw;} .pair div{font-size:1.2vh; color:var(--ink-faint);}
+  .pair b{display:block; font:800 3.6vh var(--font-main); color:var(--coral);}
+  .bl{margin:.6vh 0;}
+  .bl-t{display:flex; justify-content:space-between; align-items:baseline; font-size:1.5vh; font-weight:600;}
+  .bl-t b{font:800 2.6vh var(--font-main);}
+  .bl-k{position:relative; height:1.9vh; background:var(--track); border-radius:1vh; margin-top:.3vh;}
+  .bl-k i{position:absolute; left:0; top:0; bottom:0; border-radius:1vh;}
+  .bl-k u{position:absolute; top:-.5vh; bottom:-.5vh; width:.35vh; background:var(--amber);}
+  .st-wrap{flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; padding:1vh 1.1vw;}
+  .hb{display:grid; grid-template-columns:14vw 1fr 6vw; align-items:center; gap:.8vw; margin:.55vh 0; font-size:1.6vh; font-weight:600;}
+  .hb .k{height:2.2vh; background:var(--track); border-radius:1vh; position:relative;}
+  .hb .k i{position:absolute; left:0; top:0; bottom:0; border-radius:1vh; min-width:.4vh;}
+  .hb b{font:800 2vh var(--font-main); text-align:right;}
+  .hb small, .hb-ft{font-weight:400; color:var(--ink-faint); font-size:1.3vh;}
+  .hb-ft{text-align:right; margin-top:.4vh;}
+  .dn-wrap{flex:1; min-height:0; display:flex; align-items:center; gap:1.2vw; padding:1vh 1vw;}
+  .dn{height:100%; max-height:26vh; aspect-ratio:1; flex:0 0 auto;}
+  .dn text{font:800 22px var(--font-main); fill:var(--navy);}
+  .lg{display:flex; flex-direction:column; gap:.7vh; font-size:1.7vh; min-width:0; flex:1;}
+  .lg div{display:flex; align-items:center; gap:.6vw;}
+  .lg i{width:1.4vh; height:1.4vh; border-radius:50%; flex:0 0 auto;}
+  .lg b{font:800 2vh var(--font-main); margin-left:auto;}
+  .lg hr{border:none; border-top:1px solid var(--line); width:100%; margin:.2vh 0;}
+  .lg small{font-size:1.3vh; color:var(--ink-faint);}
+  .c-ok{color:var(--mint);} .c-bad{color:var(--coral);}
+
+  @media (max-width:640px){ .hd-title{display:none;} .hd-logo{height:5vh;} }
+
+  /* ══════════════════════════════════════════════════════════════
+     RESPONSIVE: PHONE — swap the detailed board for a compact,
+     key-numbers-only summary so everything still fits one screen
+     with no scrolling.
+     ══════════════════════════════════════════════════════════════ */
+  .mobile-board{display:none;}
+
+  @media (max-width:640px){
+    header.top .sub{display:none;}
+    header.top h1{font-size:clamp(0.82rem,3.6vw,0.98rem);}
+    header.top{padding:clamp(6px,1.4vh,10px) 12px; gap:8px;}
+    .live-pill span:not(.live-dot){display:none;}
+    .live-pill{padding:6px 8px;}
+    #logout-btn span{display:none;}
+    #logout-btn, #theme-btn{padding:6px 9px;}
+
+    .board-esh{display:none !important;}
+    .mobile-board{
+      display:flex; flex-direction:column; gap:clamp(7px,1.6vh,12px);
+      flex:1 1 auto; min-height:0; padding:clamp(8px,1.8vh,14px) 14px;
+      overflow:hidden;
+    }
+
+    .mb-fatality{
+      flex:0 0 auto; display:flex; align-items:center; gap:10px;
+      background:var(--bg-panel); border:1px solid var(--line); border-radius:16px;
+      padding:clamp(9px,2vh,14px) 14px; box-shadow:var(--shadow);
+    }
+    .mb-fatality i{
+      font-size:1.05rem; color:var(--coral); width:clamp(32px,7vh,42px); height:clamp(32px,7vh,42px);
+      border-radius:50%; background:var(--coral-dim); display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    }
+    .mb-fatality-text{flex:1; min-width:0;}
+    .mb-fatality-lbl{font-size:0.62rem; font-weight:700; letter-spacing:0.3px; text-transform:uppercase; color:var(--ink-dim);}
+    .mb-fatality-val{font-family:var(--font-main); font-size:clamp(1.3rem,5.5vh,1.8rem); font-weight:800; color:var(--mint); line-height:1.05;}
+
+    .mb-badge{
+      display:inline-flex; align-items:center; gap:3px; padding:4px 10px; border-radius:20px;
+      font-size:0.6rem; font-weight:800; white-space:nowrap; flex-shrink:0;
+    }
+    .mb-badge.ok{background:var(--mint-dim); color:var(--mint);}
+    .mb-badge.bad{background:var(--coral-dim); color:var(--coral);}
+    .mb-badge.none{background:var(--line-soft); color:var(--ink-faint);}
+
+    .mb-kpi-row{flex:0 0 auto; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+    .mb-kpi{
+      background:var(--bg-panel); border:1px solid var(--line); border-radius:16px;
+      padding:clamp(8px,1.8vh,14px) 8px; text-align:center; box-shadow:var(--shadow);
+      display:flex; flex-direction:column; align-items:center; gap:5px;
+    }
+    .mb-kpi-lbl{font-size:0.62rem; font-weight:800; letter-spacing:0.4px; color:var(--ink-dim);}
+    .mb-kpi-val{font-family:var(--font-main); font-size:clamp(1.05rem,4.2vh,1.45rem); font-weight:800; color:var(--navy); line-height:1;}
+    .mb-kpi-note{flex:0 0 auto; text-align:center; font-size:0.58rem; color:var(--ink-faint); margin-top:-4px;}
+
+    .mb-nov-hd{
+      flex:0 0 auto; font-family:var(--font-main); font-weight:600; font-size:0.76rem;
+      color:var(--navy); display:flex; align-items:center; gap:7px; margin-top:2px;
+    }
+    .mb-nov-hd i{color:var(--mint);}
+    .mb-nov-row{flex:0 0 auto; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+    .mb-nov-tile{
+      background:var(--bg-panel); border:1px solid var(--line); border-radius:16px;
+      padding:clamp(8px,1.8vh,14px) 8px; text-align:center; box-shadow:var(--shadow);
+    }
+    .mb-nov-lbl{font-size:0.6rem; font-weight:800; letter-spacing:0.3px; text-transform:uppercase; margin-bottom:3px;}
+    .mb-nov-val{font-family:var(--font-main); font-size:clamp(1.05rem,4.2vh,1.4rem); font-weight:800; color:var(--navy); line-height:1;}
+
+    .mb-footer{
+      flex:1 1 auto; min-height:0; display:flex; flex-direction:column; justify-content:flex-end;
+      align-items:center; gap:2px; text-align:center;
+    }
+    .mb-footer span{font-size:0.58rem; color:var(--ink-faint);}
+    .mb-footer .mb-hint{font-size:0.54rem;}
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     LOGIN — SEASONAL EFFECTS (supplementary, see login-seasonal.js)
+     Overlay lang sa ibabaw ng login; pointer-events:none
+     ═══════════════════════════════════════════════════════════════ */
+  #esh-fx{position:absolute;inset:0;z-index:5;pointer-events:none;overflow:hidden}
+  #esh-fx .fxp{position:absolute;top:0;left:0;opacity:.8;will-change:transform;user-select:none;animation-timing-function:linear;animation-iteration-count:infinite}
+  #esh-fx .bw{animation-timing-function:ease-in-out;animation-iteration-count:infinite;animation-direction:alternate;animation-duration:var(--fs,.35s)}
+  #esh-fx .bw.l{transform-origin:30px 15px;animation-name:fxflapL}
+  #esh-fx .bw.r{transform-origin:34px 15px;animation-name:fxflapR}
+  #esh-fx .gh,#esh-fx .pk{display:block;width:100%;overflow:visible;filter:drop-shadow(0 4px 6px rgba(80,60,140,.25))}
+  #esh-fx .gh{transform-origin:50% 100%;animation:fxgh 2.8s ease-in-out infinite alternate}
+  #esh-fx .gh .gt{transform-origin:30px 8px;animation:fxtail 1.2s ease-in-out infinite alternate}
+  #esh-fx .gh .ge{transform-box:fill-box;transform-origin:center;animation:fxblink 3.6s infinite}
+  #esh-fx .gh .gal{transform-origin:12px 42px;animation:fxarmL .8s ease-in-out infinite alternate}
+  #esh-fx .gh .gar{transform-origin:48px 42px;animation:fxarmR .8s ease-in-out infinite alternate}
+  #esh-fx .pk{transform-origin:50% 100%;animation:fxpk 1.6s ease-in-out infinite alternate}
+  #esh-fx .pk .pf{animation:fxflick 1s ease-in-out infinite alternate}
+  #esh-fx .fxp.bat{opacity:.9}
+  #esh-fx .fxpole{position:absolute;bottom:-40px;width:6px;border-radius:3px;background:linear-gradient(90deg,#8b6b3e,#d4b27a);transform-origin:50% 100%;animation:fxsway 2.4s ease-in-out infinite alternate}
+  #esh-fx .fxball{position:absolute;top:-6px;left:-1px;width:8px;height:8px;border-radius:50%;background:#fcd116}
+  @keyframes fxfall{from{transform:translate3d(0,-12vh,0) rotate(0)}to{transform:translate3d(var(--dx),112vh,0) rotate(var(--rot))}}
+  @keyframes fxrise{from{transform:translate3d(0,112vh,0) rotate(0)}to{transform:translate3d(var(--dx),-12vh,0) rotate(var(--rot))}}
+  @keyframes fxfly{0%{transform:translate3d(-12vw,0,0) rotate(-8deg)}25%{transform:translate3d(20vw,-24px,0) rotate(8deg)}50%{transform:translate3d(50vw,16px,0) rotate(-8deg)}75%{transform:translate3d(80vw,-20px,0) rotate(8deg)}100%{transform:translate3d(112vw,0,0) rotate(-8deg)}}
+  @keyframes fxwave{0%,100%{transform:translateY(calc(var(--amp)*-1));filter:brightness(1.08)}50%{transform:translateY(var(--amp));filter:brightness(.88)}}
+  @keyframes fxflapL{from{transform:rotate(-20deg)}to{transform:rotate(30deg)}}
+  @keyframes fxflapR{from{transform:rotate(20deg)}to{transform:rotate(-30deg)}}
+  @keyframes fxgh{from{transform:translateX(-5px) rotate(-5deg)}to{transform:translateX(5px) rotate(5deg)}}
+  @keyframes fxtail{from{transform:skewX(-4deg)}to{transform:skewX(4deg)}}
+  @keyframes fxblink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+  @keyframes fxarmL{from{transform:rotate(-22deg)}to{transform:rotate(16deg)}}
+  @keyframes fxarmR{from{transform:rotate(22deg)}to{transform:rotate(-16deg)}}
+  @keyframes fxpk{from{transform:translateY(0) rotate(-7deg)}to{transform:translateY(-6px) rotate(7deg)}}
+  @keyframes fxflick{from{opacity:.65}to{opacity:1}}
+  @keyframes fxsway{from{transform:rotate(-13deg)}to{transform:rotate(13deg)}}
+  @media (prefers-reduced-motion:reduce){#esh-fx{display:none!important}}
+  </style>
+</head>
+<body>
+<script>
+(function(){
+  var unlocked = sessionStorage.getItem('exec_unlocked') === '1';
+  document.documentElement.setAttribute('data-boot', unlocked ? 'pending' : 'gate');
+})();
+</script>
+
+<script>
+(function(){
+  function apply(t){
+    document.documentElement.setAttribute('data-theme', t);
+    var i = document.getElementById('theme-ico');
+    if (i) i.className = 'fa-solid ' + (t === 'dark' ? 'fa-sun' : 'fa-moon');
+  }
+  var t = 'light';
+  try { t = localStorage.getItem('exec_theme') === 'dark' ? 'dark' : 'light'; } catch(e) {}
+  apply(t);
+  window.toggleTheme = function(){
+    t = (document.documentElement.getAttribute('data-theme') === 'dark') ? 'light' : 'dark';
+    try { localStorage.setItem('exec_theme', t); } catch(e) {}
+    apply(t);
+  };
+  document.addEventListener('DOMContentLoaded', function(){ apply(t); });
+})();
+</script>
+
+<div id="boot-loader"><div class="spinner"></div></div>
+
+<div id="login-overlay">
+  <div class="gate-hero">
+    <div class="gate-hero-in">
+      <h1 class="gate-title">Executive <span>ESH</span> Summary</h1>
+      <div class="gate-divider"></div>
+      <div class="gate-icons">
+        <div><i class="fa-solid fa-leaf"></i></div><b></b>
+        <div><i class="fa-solid fa-helmet-safety"></i></div><b></b>
+        <div><i class="fa-solid fa-heart-pulse"></i></div>
+      </div>
+    </div>
+    <h2 class="gate-headline">Keep safety<br>compliance<br><span>on track</span>.</h2>
+  </div>
+  <div class="gate-form login-right-panel">
+    <div class="gate-form-in login-right-inner">
+      <div class="gate-greet" id="gate-greet"></div>
+      <div class="gate-sub">Enter the access code to view the summary</div>
+      <div class="gate-field">
+        <input id="passcode-input" type="password" inputmode="numeric" maxlength="12" placeholder=" " autocomplete="off">
+        <label for="passcode-input">Access code</label>
+        <button type="button" class="gate-eye" id="gate-eye" aria-label="Show access code" tabindex="-1"><i class="fa-solid fa-eye"></i></button>
+      </div>
+      <button id="gate-btn" onclick="attemptUnlock()">View Summary</button>
+      <div id="gate-error"></div>
+      <div class="gate-notice"><strong>Authorized personnel only.</strong><br>Read-only live view of the ESH Compliance Dashboard.</div>
+      <div class="gate-foot">&copy; <span id="gate-year">2026</span> Environmental Safety &amp; Health Department<br>
+        <img class="gate-logo" src="images/scic-logo.png" alt="Sta. Clara International Corporation">
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var h = new Date().getHours();
+  var part = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
+  var icon = h < 12 ? '\u2600\uFE0F' : h < 18 ? '\u26C5' : '\uD83C\uDF19';
+  document.getElementById('gate-greet').innerHTML = icon + ' <span class="accent">Good</span> ' + part + '!';
+  document.getElementById('gate-year').textContent = new Date().getFullYear();
+  document.getElementById('gate-eye').onclick = function(){
+    var i = document.getElementById('passcode-input'), show = i.type === 'password';
+    i.type = show ? 'text' : 'password';
+    this.firstChild.className = 'fa-solid ' + (show ? 'fa-eye-slash' : 'fa-eye');
+  };
+})();
+</script>
+<script src="login-seasonal.js?v=1"></script>
+
+<div id="app">
+  <header class="top">
+    <div class="brand">
+      <img class="hd-logo" src="images/scic-logo.png" alt="Sta. Clara International Corporation">
+      <div class="hd-title">
+        <h1>EXECUTIVE ESH SUMMARY</h1>
+        <div class="sub">Company-wide ESH Performance</div>
+      </div>
+    </div>
+    <div class="hd-right">
+      <div class="live-pill"><span class="live-dot"></span><span id="last-updated-txt">Syncing…</span></div>
+      <button id="theme-btn" type="button" onclick="toggleTheme()" title="Switch light / dark mode" aria-label="Switch light or dark mode"><i class="fa-solid fa-moon" id="theme-ico"></i></button>
+      <button id="logout-btn" onclick="doLogout()" title="Log out"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Log out</span></button>
+    </div>
+  </header>
+
+  <div class="board board-esh">
+    <div class="panel" id="rate-panel"></div>
+    <div class="bottom-row">
+      <div class="panel" id="inc-summary-panel"></div>
+      <div class="panel" id="nov-osh-panel"></div>
+      <div class="panel" id="nov-envi-panel"></div>
+    </div>
+  </div>
+
+  <!-- ── PHONE-ONLY COMPACT SUMMARY (key numbers, no scroll) ── -->
+  <div class="mobile-board" id="mobile-board">
+
+    <div class="mb-fatality" id="mb-fatality">
+      <i class="fa-solid fa-skull-crossbones"></i>
+      <div class="mb-fatality-text">
+        <div class="mb-fatality-lbl">Fatality — Zero Target</div>
+        <div class="mb-fatality-val" id="mb-fatality-val">0</div>
+      </div>
+      <span class="mb-badge ok" id="mb-fatality-badge">✅ ON TARGET</span>
+    </div>
+
+    <div class="mb-kpi-row">
+      <div class="mb-kpi">
+        <div class="mb-kpi-lbl">LTIR</div>
+        <div class="mb-kpi-val" id="mb-ltir-val">–</div>
+        <span class="mb-badge" id="mb-ltir-badge"></span>
+      </div>
+      <div class="mb-kpi">
+        <div class="mb-kpi-lbl">TRIR</div>
+        <div class="mb-kpi-val" id="mb-trir-val">–</div>
+        <span class="mb-badge" id="mb-trir-badge"></span>
+      </div>
+      <div class="mb-kpi">
+        <div class="mb-kpi-lbl">SR</div>
+        <div class="mb-kpi-val" id="mb-sr-val">–</div>
+        <span class="mb-badge none">No target</span>
+      </div>
+    </div>
+    <div class="mb-kpi-note">OSHA basis (200,000 hrs) · company-wide <span class="ytd-yr">YTD</span></div>
+
+    <div class="mb-nov-hd"><i class="fa-solid fa-clipboard-list"></i> Regulatory NOV — OSH + ENVI</div>
+    <div class="mb-nov-row">
+      <div class="mb-nov-tile">
+        <div class="mb-nov-lbl" style="color:var(--amber);">Total NOV</div>
+        <div class="mb-nov-val" id="mb-nov-total">–</div>
+      </div>
+      <div class="mb-nov-tile">
+        <div class="mb-nov-lbl" style="color:var(--coral);">Open</div>
+        <div class="mb-nov-val" id="mb-nov-open">–</div>
+      </div>
+      <div class="mb-nov-tile">
+        <div class="mb-nov-lbl" style="color:var(--mint);">Closed</div>
+        <div class="mb-nov-val" id="mb-nov-closed">–</div>
+      </div>
+    </div>
+
+    <div class="mb-footer">
+      <span id="mb-last-updated">Syncing…</span>
+      <span class="mb-hint">Rotate or open on tablet/desktop for full details</span>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInAnonymously, signOut, onAuthStateChanged, setPersistence, browserSessionPersistence }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBdqVEm3PWPuFTVbrxaP4JAZNXl2bmNUg4",
+  authDomain: "esh-dashboard.firebaseapp.com",
+  databaseURL: "https://esh-dashboard-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "esh-dashboard",
+  storageBucket: "esh-dashboard.firebasestorage.app",
+  messagingSenderId: "121684914529",
+  appId: "1:121684914529:web:d5292a3c30f1bba2959520",
+  measurementId: "G-TXYB9T0T3W"
+};
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+let companyData = null;
+let listenersStarted = false;
+let unsubFns = [];
+let lastUpdatedInterval = null;
+
+try { await setPersistence(auth, browserSessionPersistence); } catch(e) { console.warn(e); }
+
+// If we were waiting on auth confirmation (data-boot="pending") but nothing resolves
+// within a few seconds (e.g. offline / slow network), fall back to the passcode gate
+// instead of leaving the boot loader spinning forever.
+let bootResolved = false;
+setTimeout(() => {
+  if (!bootResolved) showGate();
+}, 6000);
+
+function showGate() {
+  bootResolved = true;
+  sessionStorage.removeItem('exec_unlocked');
+  document.documentElement.setAttribute('data-boot', 'gate');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-overlay').style.display = 'flex';
+}
+
+function showApp() {
+  bootResolved = true;
+  document.documentElement.removeAttribute('data-boot');
+  document.getElementById('login-overlay').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+}
+
+window.doLogout = async function() {
+  try { await signOut(auth); } catch(e) { console.warn(e); }
+  stopListeners();
+  sessionStorage.removeItem('exec_unlocked');
+  document.getElementById('passcode-input').value = '';
+  document.getElementById('gate-error').textContent = '';
+  showGate();
+};
+
+window.attemptUnlock = async function() {
+  const input = document.getElementById('passcode-input');
+  const btn   = document.getElementById('gate-btn');
+  const err   = document.getElementById('gate-error');
+  const code  = (input.value || '').trim();
+  err.textContent = '';
+  if (!code) { err.textContent = 'Please enter the access code.'; return; }
+
+  btn.disabled = true; btn.textContent = 'Checking…';
+  try {
+    await signInAnonymously(auth);
+    const cfgSnap = await getDoc(doc(db, 'app_config', 'exec_access'));
+    const validCode = cfgSnap.exists() ? String(cfgSnap.data().passcode || '') : null;
+
+    if (!validCode) {
+      err.textContent = 'Access is not configured yet. Contact ESH Department.';
+      await signOut(auth);
+    } else if (code !== validCode) {
+      err.textContent = 'Incorrect access code.';
+      input.value = '';
+      await signOut(auth);
+    } else {
+      sessionStorage.setItem('exec_unlocked', '1');
+      showApp();
+      startListeners();
+    }
+  } catch (e) {
+    console.error(e);
+    err.textContent = 'Connection error. Please try again.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'View Summary';
+  }
+};
+
+document.getElementById('passcode-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') window.attemptUnlock();
+});
+
+function startListeners() {
+  if (listenersStarted) return;
+  listenersStarted = true;
+
+  unsubFns.push(onSnapshot(doc(db, 'exec_summary', '_company_wide'), snap => {
+    companyData = snap.exists() ? snap.data() : null;
+    render();
+  }, e => console.warn('exec_summary listener error:', e.message)));
+
+  lastUpdatedInterval = setInterval(updateLastUpdatedTxt, 30000);
+}
+
+function stopListeners() {
+  unsubFns.forEach(fn => { try { fn(); } catch(e) {} });
+  unsubFns = [];
+  if (lastUpdatedInterval) { clearInterval(lastUpdatedInterval); lastUpdatedInterval = null; }
+  listenersStarted = false;
+}
+
+function fmt(n, d=3) { const v = parseFloat(n); return (isFinite(v) ? v : 0).toFixed(d); }
+
+function tabRateColor(val, kind) {
+  const v = parseFloat(val) || 0;
+  const limit = kind === 'ltir' ? 0.50 : 1.25;
+  return v <= limit ? 'ok' : 'bad';
+}
+
+const C_OK='#4faa72', C_BAD='#d94a3f';
+const INC_COLORS={'Fatality':'#d94a3f','LTA':'#e56020','First Aid':'#4faa72','Medical Treatment':'#f0b818','High-Potential Incident':'#007838','Dangerous Occurrences':'#7a8a82'};
+const num = v => parseFloat(v) || 0;
+const hdHTML = (icon, title, chip) => `<div class="hd"><i class="fa-solid ${icon}"></i><span>${title}</span>${chip ? `<span class="chip">${chip}</span>` : ''}</div>`;
+
+function tile(label, val, cls) { return `<div class="tile${cls ? ' ' + cls : ''}"><small>${label}</small><b>${val}</b></div>`; }
+
+function bulletRow(lbl, v, max, tgt) {
+  const c = v <= tgt ? C_OK : C_BAD;
+  return `<div class="bl"><div class="bl-t"><span>${lbl}</span><b style="color:${c}">${fmt(v)}</b></div>
+    <div class="bl-k"><i style="width:${Math.min(v / max * 100, 100)}%;background:${c}"></i><u style="left:${tgt / max * 100}%"></u></div></div>`;
+}
+function bulletCard(title, tgt, osha, oshs) {
+  const max = Math.max(num(osha), num(oshs), tgt) * 1.15;
+  return `<div class="card"><h4>${title} · target ${tgt.toFixed(2)}</h4>${bulletRow('OSHA (200K hrs)', num(osha), max, tgt)}${bulletRow('OSHS (1M hrs)', num(oshs), max, tgt)}</div>`;
+}
+function donutSvg(parts, mid) {
+  const R = 38, C = 2 * Math.PI * R, tot = parts.reduce((a, p) => a + p[0], 0);
+  let off = 0, s = `<circle cx="50" cy="50" r="${R}" fill="none" style="stroke:var(--track)" stroke-width="16"/>`;
+  if (tot > 0) parts.forEach(p => {
+    const l = p[0] / tot * C;
+    if (l > 0) { s += `<circle cx="50" cy="50" r="${R}" fill="none" stroke="${p[1]}" stroke-width="16" stroke-dasharray="${l} ${C - l}" stroke-dashoffset="${-off}" transform="rotate(-90 50 50)"/>`; off += l; }
+  });
+  return `<svg class="dn" viewBox="0 0 100 100">${s}<text x="50" y="58" text-anchor="middle">${mid}</text></svg>`;
+}
+function novPanelHTML(kind, title, d) {
+  const n = d || { total:0, int:0, ext:0, open:0, closed:0, totalViolations:0, violOpen:0, violClosed:0 };
+  return hdHTML(kind === 'envi' ? 'fa-leaf' : 'fa-hard-hat', title, `${companyData?.projectCount || 0} PROJECTS`) +
+    `<div class="dn-wrap">${donutSvg([[n.open, C_BAD], [n.closed, C_OK]], n.total)}
+      <div class="lg">
+        <div><i style="background:${C_BAD}"></i>Open NOV<b>${n.open}</b></div>
+        <div><i style="background:${C_OK}"></i>Closed NOV<b>${n.closed}</b></div>
+        <hr>
+        <div>Violations<b>${n.totalViolations}</b></div>
+        <small>${n.violOpen} open · ${n.violClosed} closed · ${n.int} int · ${n.ext} ext</small>
+      </div></div>`;
+}
+
+function render() {
+  const t = companyData?.tabulation || null;
+
+  // ── Incident Tabulation Rate ─────────────────────────────────────
+  const ratePanel = document.getElementById('rate-panel');
+  if (ratePanel) {
+    const hd = hdHTML('fa-calculator', 'INCIDENT TABULATION RATE', 'AUTO-COMPUTED FROM ALL PROJECTS');
+    if (!t) {
+      ratePanel.innerHTML = hd + `<div class="empty">Waiting for data…</div>`;
+    } else {
+      const fat = t.fatalCases || 0;
+      ratePanel.innerHTML = hd +
+        `<div class="tiles">${[
+          tile('LTA cases', t.ltaCases ?? 0),
+          tile('Recordable cases', t.recordableCases ?? 0),
+          tile('Lost days', (t.lostDays ?? 0).toLocaleString(), (t.lostDays ?? 0) > 0 ? 'bad' : ''),
+          tile('Man-hours ' + ytdLabel(), (t.totalManHours ?? 0).toLocaleString()),
+          tile('Man-hours to date', (t.totalManHoursToDate ?? 0).toLocaleString())
+        ].join('')}</div>
+        <div class="tb">
+          <div class="card"><h4>Fatality · target 0</h4><div class="big" style="color:${fat === 0 ? C_OK : C_BAD}">${fat}</div><div class="sub">${fat === 0 ? 'On target' : 'Target exceeded'}</div></div>
+          ${bulletCard('LTIR', 0.50, t.ltirOsha, t.ltirOshs)}
+          ${bulletCard('TRIR', 1.25, t.trirOsha, t.trirOshs)}
+          <div class="card"><h4>Severity rate · no target</h4><div class="pair"><div>OSHA<b>${fmt(t.srOsha)}</b></div><div>OSHS<b>${fmt(t.srOshs)}</b></div></div></div>
+        </div>`;
+    }
+  }
+
+  // ── Incident / Accident Summary (this year / accumulated) ────────
+  const incPanel = document.getElementById('inc-summary-panel');
+  if (incPanel) {
+    const hd = hdHTML('fa-list-check', 'INCIDENT / ACCIDENT SUMMARY', 'FM-ESH-01-42');
+    const s = companyData?.incidentSummary;
+    if (!s || !s.rows) {
+      incPanel.innerHTML = hd + `<div class="empty">Waiting for data…</div>`;
+    } else {
+      const max = Math.max(...s.rows.map(r => num(r.total)), 1);
+      const tt = s.totals || { previous: 0, total: 0, accumulated: 0 };
+      incPanel.innerHTML = hd + `<div class="st-wrap">${s.rows.map(r => `
+        <div class="hb"><span>${r.label}</span>
+          <div class="k"><i style="width:${num(r.total) / max * 100}%;background:${INC_COLORS[r.label] || '#7a8a82'}"></i></div>
+          <b>${r.total} <small>/ ${r.accumulated}</small></b></div>`).join('')}
+        <div class="hb-ft">Bar = this year / accumulated · Total: previous ${tt.previous} · this year ${tt.total} · accumulated ${tt.accumulated}</div></div>`;
+    }
+  }
+
+  // ── ENVI / OSH Regulatory Issued NOV ────────────────────────────
+  const enviEl = document.getElementById('nov-envi-panel');
+  if (enviEl) enviEl.innerHTML = novPanelHTML('envi', 'ENVI REGULATORY ISSUED NOV', companyData?.enviNov);
+  const oshEl = document.getElementById('nov-osh-panel');
+  if (oshEl) oshEl.innerHTML = novPanelHTML('osh', 'OSH REGULATORY ISSUED NOV', companyData?.oshNov);
+
+  // ── PHONE SUMMARY: Fatality / LTIR / TRIR / SR + combined NOV ───
+  const mbFatVal = document.getElementById('mb-fatality-val');
+  if (mbFatVal) {
+    if (!t) {
+      mbFatVal.textContent = '–';
+    } else {
+      const fatOk = (t.fatalCases || 0) === 0;
+      mbFatVal.textContent = '0';
+      mbFatVal.style.color = fatOk ? 'var(--mint)' : 'var(--coral)';
+      const badge = document.getElementById('mb-fatality-badge');
+      badge.className = 'mb-badge ' + (fatOk ? 'ok' : 'bad');
+      badge.textContent = fatOk ? '✅ ON TARGET' : `⚠ ACTUAL: ${t.fatalCases}`;
+    }
+  }
+  function fillMbKpi(valId, badgeId, val, kind) {
+    const valEl = document.getElementById(valId);
+    const badgeEl = document.getElementById(badgeId);
+    if (!valEl) return;
+    if (!t) { valEl.textContent = '–'; return; }
+    valEl.textContent = fmt(val);
+    if (badgeEl && kind) {
+      const state = tabRateColor(val, kind);
+      valEl.style.color = state === 'ok' ? 'var(--mint)' : 'var(--coral)';
+      badgeEl.className = 'mb-badge ' + state;
+      badgeEl.textContent = state === 'ok' ? '✅ Target' : '⚠ Exceeded';
+    } else {
+      valEl.style.color = 'var(--coral)';
+    }
+  }
+  if (t) {
+    fillMbKpi('mb-ltir-val', 'mb-ltir-badge', t.ltirOsha, 'ltir');
+    fillMbKpi('mb-trir-val', 'mb-trir-badge', t.trirOsha, 'trir');
+    fillMbKpi('mb-sr-val', null, t.srOsha, null);
+  }
+
+  const mbNovTotal = document.getElementById('mb-nov-total');
+  if (mbNovTotal) {
+    const osh = companyData?.oshNov || {};
+    const envi = companyData?.enviNov || {};
+    const total = (osh.total || 0) + (envi.total || 0);
+    const open = (osh.open || 0) + (envi.open || 0);
+    const closed = (osh.closed || 0) + (envi.closed || 0);
+    document.getElementById('mb-nov-total').textContent = companyData ? total : '–';
+    document.getElementById('mb-nov-open').textContent = companyData ? open : '–';
+    document.getElementById('mb-nov-closed').textContent = companyData ? closed : '–';
+  }
+
+  updateLastUpdatedTxt();
+}
+
+function ytdLabel() {
+  return companyData && companyData.year ? 'YTD ' + companyData.year : 'YTD';
+}
+
+function updateLastUpdatedTxt() {
+  let txt, stale = false;
+  if (!companyData || !companyData.updatedAt) {
+    txt = 'Waiting for data';
+  } else {
+    const d = new Date(companyData.updatedAt);
+    const mins = Math.max(0, Math.round((Date.now() - d.getTime()) / 60000));
+    const hrs = Math.floor(mins / 60), days = Math.floor(mins / 1440);
+    const ago = mins < 1 ? 'just now'
+      : mins < 60 ? `${mins} min ago`
+      : mins < 1440 ? `${hrs} ${hrs === 1 ? 'hr' : 'hrs'} ago`
+      : `${days} ${days === 1 ? 'day' : 'days'} ago`;
+    const when = d.toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    txt = `Updated ${ago} · ${when}`;
+    stale = mins >= 1440;
+    if (companyData.year) {
+      txt += ' · ' + ytdLabel();
+      // Flag data that isn't for the current year (wrong-year push or old doc)
+      if (companyData.year !== new Date().getFullYear()) { txt += ' ⚠ not current year'; stale = true; }
+    }
+  }
+  document.querySelectorAll('.ytd-yr').forEach(el => el.textContent = ytdLabel());
+  const el = document.getElementById('last-updated-txt');
+  el.textContent = txt;
+  const pill = el.closest('.live-pill');
+  if (pill) pill.classList.toggle('stale', stale);
+  const mbEl = document.getElementById('mb-last-updated');
+  if (mbEl) mbEl.textContent = txt;
+}
+
+onAuthStateChanged(auth, user => {
+  const wasPending = document.documentElement.getAttribute('data-boot') === 'pending';
+  if (user && sessionStorage.getItem('exec_unlocked') === '1') {
+    if (document.getElementById('app').style.display !== 'flex') {
+      showApp();
+      startListeners();
+    }
+  } else if (wasPending) {
+    // Session flag said we were logged in, but Firebase disagrees (expired/cleared) —
+    // reveal the passcode gate instead of leaving the boot loader up.
+    showGate();
+  }
+});
+</script>
+</body>
+</html>
