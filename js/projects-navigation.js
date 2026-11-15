@@ -1365,26 +1365,21 @@
             }
             
             
-            const dashContent = document.getElementById('dashboard-content');
-            const settingsView = document.getElementById('settings-view');
-            const personnelView = document.getElementById('personnel-view');
-            
-            if (dashContent && !dashContent.classList.contains('hidden')) {
-                dashContent.style.animation = 'none';
-                void dashContent.offsetWidth;
-                dashContent.style.animation = 'slideRight 0.5s ease-out';
-            }
-            
-            if (settingsView && !settingsView.classList.contains('hidden')) {
-                settingsView.style.animation = 'none';
-                void settingsView.offsetWidth;
-                settingsView.style.animation = 'slideRight 0.5s ease-out';
-            }
-            
-            if (personnelView && !personnelView.classList.contains('hidden')) {
-                personnelView.style.animation = 'none';
-                void personnelView.offsetWidth;
-                personnelView.style.animation = 'slideRight 0.5s ease-out';
+            // ONE opening animation for every tab: whichever view is showing slides in (same as Overall Summary).
+            // Skipped when the device uses reduced motion.
+            if (!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+                ['dashboard-content', 'settings-view', 'personnel-view', 'osh-requirement-view', 'env-monitoring-view',
+                 'health-report-view', 'got-monitoring-view', 'nov-env-view', 'osh-nov-view', 'lta-registry-view',
+                 'tabulation-view', 'safety-alerts-view', 'headlines-view']
+                    .concat(eshCalTabs.map(ct => ct + '-view'), ['trend-chart-persistent-rates', 'trend-chart-persistent-medical'])
+                    .forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el && !el.classList.contains('hidden')) {
+                            el.style.animation = 'none';
+                            void el.offsetWidth;
+                            el.style.animation = 'slideRight 0.5s ease-out';
+                        }
+                    });
             }
             
             if (t === 'settings') {
