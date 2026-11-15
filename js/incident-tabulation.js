@@ -117,12 +117,67 @@ function rateTipHTML(kind, std, d) {
     return L.map(x => String(x).replace(/&/g, '&amp;').replace(/"/g, '&quot;')).join('&#10;');
 }
 
+// INCIDENT TABULATION RATE: first-draw count-up of the numbers (KPI strip + rate table).
+// Starts when the panel is on screen, plays once per page load, and does not replay on re-render.
+// Skipped when the device uses reduced motion. Same 1.2 s curve as the Project Status donut.
+function _cuIntroState() {
+    return window._rateNumIntro || (window._rateNumIntro = { done: !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches), gen: 0 });
+}
+function _cuAttr(v) { return ' data-cu="' + String(v) + '"'; }
+function _cuTxt(v) {
+    const s = String(v);
+    if (_cuIntroState().done || !/^[\d,]+(\.\d+)?$/.test(s)) return s;
+    const dec = (s.split('.')[1] || '').length;
+    return '0' + (dec ? '.' + '0'.repeat(dec) : '');
+}
+function _rateNumsIntro(tries) {
+    const S = _cuIntroState();
+    if (S.done) return;
+    const panel = document.getElementById('incident-tabulation-panel');
+    if (!panel) { if ((tries || 0) < 5) setTimeout(() => _rateNumsIntro((tries || 0) + 1), 100); return; }
+    const items = Array.from(panel.querySelectorAll('[data-cu]')).map(el => {
+        const raw = el.getAttribute('data-cu'), t = raw.replace(/,/g, '');
+        return { el: el, raw: raw, n: /^[\d,]+(\.\d+)?$/.test(raw) ? parseFloat(t) : NaN, dec: (t.split('.')[1] || '').length, comma: raw.indexOf(',') >= 0 };
+    });
+    if (!items.length) return;
+    const gen = ++S.gen, dur = 1200;
+    const out = (it, v) => it.comma
+        ? v.toLocaleString('en-US', { minimumFractionDigits: it.dec, maximumFractionDigits: it.dec })
+        : v.toFixed(it.dec);
+    const finish = () => {
+        if (S.gen !== gen || S.done || !panel.isConnected) return;
+        S.done = true;
+        items.forEach(it => { if (it.el.isConnected) it.el.textContent = it.raw; });
+    };
+    const run = () => {
+        if (S.gen !== gen) return;
+        let t0 = null;
+        const step = ts => {
+            if (S.gen !== gen || S.done || !panel.isConnected) return;
+            if (t0 === null) t0 = ts;
+            const p = Math.min((ts - t0) / dur, 1), e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+            items.forEach(it => { if (it.n > 0 && it.el.isConnected) it.el.textContent = out(it, it.n * e); });
+            if (p < 1) requestAnimationFrame(step); else finish();
+        };
+        requestAnimationFrame(step);
+        setTimeout(finish, dur + 800); // safety if the tab was in the background
+    };
+    if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver(es => {
+            if (S.gen !== gen) { io.disconnect(); return; }
+            if (es.some(e => e.isIntersecting)) { io.disconnect(); run(); }
+        }, { threshold: 0.4 });
+        io.observe(panel);
+    } else run();
+}
+
 function buildIncidentTabulationHTML() {
     const d = computeAggregateTabulation();
     // Flat status style (same look as Corporate KPM legend): colored number + small dot + text
-    const _stNum = (v, ok, neutral) => `<div style="font-size:1.3rem;font-weight:800;color:${neutral ? 'var(--text-primary)' : (ok ? '#2e7d32' : '#c62828')};">${v}</div>`;
+    const _stNum = (v, ok, neutral, cu) => `<div${cu ? _cuAttr(v) : ''} style="font-size:1.3rem;font-weight:800;color:${neutral ? 'var(--text-primary)' : (ok ? '#2e7d32' : '#c62828')};">${cu ? _cuTxt(v) : v}</div>`;
+    const _stNumC = (v, ok, neutral) => _stNum(v, ok, neutral, true); // number that counts up on first draw
     const _stDot = ok => `<div style="font-size:0.62rem;color:#4b554d;margin-top:3px;display:flex;align-items:center;justify-content:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:${ok ? '#2e7d32' : '#c62828'};display:inline-block;"></span>${ok ? 'Within target' : 'Exceeded'}</div>`;
-    return `
+    const _html = `
     <div id="incident-tabulation-panel" style="padding: 0 16px;">
       <div style="background: var(--bg-card); border-radius: 0 0 12px 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border:none; border-top: none; margin-bottom: 10px;">
 
@@ -138,31 +193,31 @@ function buildIncidentTabulationHTML() {
 
           <div style="padding: 10px 14px; text-align: center; border-right: 1px solid var(--border-color);">
             <div style="font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 3px;">No. of LTA Cases</div>
-            <div style="font-size: 1.5rem; font-weight: 900; color: #1f3d2b; line-height: 1;">${d.ltaCases}</div>
+            <div${_cuAttr(d.ltaCases)} style="font-size: 1.5rem; font-weight: 900; color: #1f3d2b; line-height: 1;">${_cuTxt(d.ltaCases)}</div>
             <div style="font-size: 0.57rem; color: var(--text-secondary); margin-top: 2px;">Lost Time Accidents YTD</div>
           </div>
 
           <div style="padding: 10px 14px; text-align: center; border-right: 1px solid var(--border-color);">
             <div style="font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 3px;">No. of Recordable Cases</div>
-            <div style="font-size: 1.5rem; font-weight: 900; color: #1f3d2b; line-height: 1;">${d.recordableCases}</div>
+            <div${_cuAttr(d.recordableCases)} style="font-size: 1.5rem; font-weight: 900; color: #1f3d2b; line-height: 1;">${_cuTxt(d.recordableCases)}</div>
             <div style="font-size: 0.57rem; color: var(--text-secondary); margin-top: 2px;">LTA + Medical + Fatality</div>
           </div>
 
           <div style="padding: 10px 14px; text-align: center; border-right: 1px solid var(--border-color);">
             <div style="font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 3px;">No. of Lost Days</div>
-            <div style="font-size: 1.5rem; font-weight: 900; color: #1f3d2b; line-height: 1;">${d.lostDays.toLocaleString()}</div>
+            <div${_cuAttr(d.lostDays.toLocaleString())} style="font-size: 1.5rem; font-weight: 900; color: #1f3d2b; line-height: 1;">${_cuTxt(d.lostDays.toLocaleString())}</div>
             <div style="font-size: 0.57rem; color: var(--text-secondary); margin-top: 2px;">From Incident &amp; Accident Registry</div>
           </div>
 
           <div style="padding: 10px 14px; text-align: center; border-right: 1px solid var(--border-color);">
             <div style="font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 3px;">Total Man-hours Exposure</div>
-            <div style="font-size: 1.5rem; font-weight: 900; color: #1f3d2b; line-height: 1;">${d.totalHours.toLocaleString()}</div>
+            <div${_cuAttr(d.totalHours.toLocaleString())} style="font-size: 1.5rem; font-weight: 900; color: #1f3d2b; line-height: 1;">${_cuTxt(d.totalHours.toLocaleString())}</div>
             <div style="font-size: 0.57rem; color: var(--text-secondary); margin-top: 2px;">Total Exposed Manhour ${d.throughLabel}</div>
           </div>
 
           <div style="padding: 10px 14px; text-align: center;">
             <div style="font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 3px;">Total Man-Hours Exposed to Date</div>
-            <div style="font-size: 1.5rem; font-weight: 900; color: #1f3d2b; line-height: 1;">${d.totalHoursToDate.toLocaleString()}</div>
+            <div${_cuAttr(d.totalHoursToDate.toLocaleString())} style="font-size: 1.5rem; font-weight: 900; color: #1f3d2b; line-height: 1;">${_cuTxt(d.totalHoursToDate.toLocaleString())}</div>
             <div style="font-size: 0.57rem; color: var(--text-secondary); margin-top: 2px;">Cumulative incl. Previous Year</div>
           </div>
 
@@ -186,7 +241,7 @@ function buildIncidentTabulationHTML() {
                   <div style="font-size:0.61rem;color:var(--text-secondary);margin-top:2px;">Zero fatality target for all projects</div>
                 </td>
                 <td colspan="2" style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);">
-                  ${_stNum(d.fatalCases ?? 0, (d.fatalCases ?? 0) <= 0)}
+                  ${_stNumC(d.fatalCases ?? 0, (d.fatalCases ?? 0) <= 0)}
                   ${_stDot((d.fatalCases ?? 0) <= 0)}
                 </td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);border-left:2px solid #dfe7e0;">
@@ -198,8 +253,8 @@ function buildIncidentTabulationHTML() {
                   <div style="font-weight:700;font-size:0.78rem;">LTIR — Lost Time Incident Rate</div>
                   <div style="font-size:0.61rem;color:var(--text-secondary);margin-top:2px;">LTA cases × base ÷ man-hours</div>
                 </td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('ltir','osha',d)}" data-tip-nowrap style="cursor:help;">${_stNum(d.ltirOsha, parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir)}${_stDot(parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir)}</div></td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('ltir','oshs',d)}" data-tip-nowrap style="cursor:help;">${_stNum(d.ltirOshs, parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir)}${_stDot(parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir)}</div></td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('ltir','osha',d)}" data-tip-nowrap style="cursor:help;">${_stNumC(d.ltirOsha, parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir)}${_stDot(parseFloat(d.ltirOsha) <= window.STATS_TARGETS.ltir)}</div></td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('ltir','oshs',d)}" data-tip-nowrap style="cursor:help;">${_stNumC(d.ltirOshs, parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir)}${_stDot(parseFloat(d.ltirOshs) <= window.STATS_TARGETS.ltir)}</div></td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);border-left:2px solid #dfe7e0;">${_stNum(window.STATS_TARGETS.ltir.toFixed(2), true, true)}</td>
               </tr>
               <tr>
@@ -207,8 +262,8 @@ function buildIncidentTabulationHTML() {
                   <div style="font-weight:700;font-size:0.78rem;">TRIR — Total Recordable Incident Rate</div>
                   <div style="font-size:0.61rem;color:var(--text-secondary);margin-top:2px;">Recordable cases × base ÷ man-hours</div>
                 </td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('trir','osha',d)}" data-tip-nowrap style="cursor:help;">${_stNum(d.trirOsha, parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir)}${_stDot(parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir)}</div></td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('trir','oshs',d)}" data-tip-nowrap style="cursor:help;">${_stNum(d.trirOshs, parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir)}${_stDot(parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir)}</div></td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('trir','osha',d)}" data-tip-nowrap style="cursor:help;">${_stNumC(d.trirOsha, parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir)}${_stDot(parseFloat(d.trirOsha) <= window.STATS_TARGETS.trir)}</div></td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);"><div title="${rateTipHTML('trir','oshs',d)}" data-tip-nowrap style="cursor:help;">${_stNumC(d.trirOshs, parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir)}${_stDot(parseFloat(d.trirOshs) <= window.STATS_TARGETS.trir)}</div></td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-bottom:1px solid var(--border-color);border-left:2px solid #dfe7e0;">${_stNum(window.STATS_TARGETS.trir.toFixed(2), true, true)}</td>
               </tr>
               <tr>
@@ -216,8 +271,8 @@ function buildIncidentTabulationHTML() {
                   <div style="font-weight:700;font-size:0.78rem;">SR — Severity Rate</div>
                   <div style="font-size:0.61rem;color:var(--text-secondary);margin-top:2px;">Total days lost × base ÷ man-hours</div>
                 </td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;"><div title="${rateTipHTML('sr','osha',d)}" data-tip-nowrap style="cursor:help;">${_stNum(d.srOsha, true, true)}</div></td>
-                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;"><div title="${rateTipHTML('sr','oshs',d)}" data-tip-nowrap style="cursor:help;">${_stNum(d.srOshs, true, true)}</div></td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;"><div title="${rateTipHTML('sr','osha',d)}" data-tip-nowrap style="cursor:help;">${_stNumC(d.srOsha, true, true)}</div></td>
+                <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;"><div title="${rateTipHTML('sr','oshs',d)}" data-tip-nowrap style="cursor:help;">${_stNumC(d.srOshs, true, true)}</div></td>
                 <td style="background:var(--bg-card);padding:8px;text-align:center;border:none;border-left:2px solid #dfe7e0;"><div style="font-size:1.1rem;font-weight:700;color:#9e9e9e;">—</div></td>
               </tr>
             </tbody>
@@ -226,6 +281,8 @@ function buildIncidentTabulationHTML() {
 
       </div>
     </div>`;
+    setTimeout(_rateNumsIntro, 0);
+    return _html;
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -1700,6 +1757,66 @@ function buildTrendChartHTML(tabType) {
     return `<div id="trend-chart-anchor-${tabType}" style="display:none;"></div>`;
 }
 
+// STATISTICS RATE TRENDS: first-draw animation state per small chart. Once done it never plays again
+// (not on hover, filter change, or re-render).
+const _rateIntro = {};
+
+// First draw only: the line is revealed left to right and the big number counts up.
+// It starts when the chart scrolls into view. Skipped when the device uses reduced motion.
+function _rateMiniIntro(key, inst, st, host, fmt) {
+    if (st.started) return;
+    st.started = true;
+    const gen = st.gen = (st.gen || 0) + 1; // a reset starts a new run, so older timers stop
+    const dur = 1200;
+    const finish = () => {
+        if (st.done || st.gen !== gen) return;
+        st.done = true; st.p = 1;
+        inst.options.animation = { duration: 1000 };
+        const el = document.getElementById('rateMiniVal_' + key);
+        if (el) el.textContent = st.target === null ? '\u2013' : fmt(st.target);
+        if (inst.canvas && inst.canvas.isConnected) inst.draw();
+    };
+    const run = () => {
+        let t0 = null;
+        const step = ts => {
+            if (st.done || st.gen !== gen) return;
+            if (!inst.canvas || !inst.canvas.isConnected) return;
+            if (t0 === null) t0 = ts;
+            const p = Math.min((ts - t0) / dur, 1), e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+            st.p = e;
+            const el = document.getElementById('rateMiniVal_' + key);
+            if (el && st.target !== null) el.textContent = fmt(st.target * e, st.target);
+            inst.draw();
+            if (p < 1) requestAnimationFrame(step); else finish();
+        };
+        requestAnimationFrame(step);
+        setTimeout(finish, dur + 800); // safety if the tab was in the background
+    };
+    if ('IntersectionObserver' in window && host) {
+        const io = new IntersectionObserver(es => {
+            if (es.some(e => e.isIntersecting)) { io.disconnect(); run(); }
+        }, { threshold: 0.4 });
+        io.observe(host);
+    } else run();
+}
+
+// Called by render() when another tab is shown, so the Statistics Rate animation plays again on return.
+window.rateMiniIntroReset = function () {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    window._rateNumIntro = null; // numbers panel: plays again the next time it is built
+    ['ltir', 'trir', 'sev'].forEach(key => {
+        const st = _rateIntro[key], inst = trendChartInstances['rates_' + key];
+        if (!st || !inst) return;
+        st.done = false; st.started = false; st.p = 0; st.gen = (st.gen || 0) + 1;
+        inst.options.animation = { duration: 0 };
+        const el = document.getElementById('rateMiniVal_' + key);
+        if (el && st.target !== null && st.target !== undefined) {
+            el.textContent = (0).toLocaleString(undefined, st.target >= 100 ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        if (inst.canvas && inst.canvas.isConnected) inst.draw();
+    });
+};
+
 // STATISTICS RATE TRENDS: one small chart per rate (own scale + target)
 function _renderRatesMini(datasets) {
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1711,7 +1828,7 @@ function _renderRatesMini(datasets) {
         { key: 'trir', ds: 1, color: '#1565c0', target: 1.25 },
         { key: 'sev',  ds: 2, color: '#b71c1c', target: null }
     ];
-    const fmt = v => (v === null || v === undefined) ? '–' : Number(v).toLocaleString(undefined, v >= 100 ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmt = (v, ref) => (v === null || v === undefined) ? '–' : Number(v).toLocaleString(undefined, (ref === undefined ? v : ref) >= 100 ? { maximumFractionDigits: 0 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     defs.forEach(d => {
         const data = datasets[d.ds].data;
         let last = -1, peak = -1;
@@ -1719,7 +1836,9 @@ function _renderRatesMini(datasets) {
 
         const valEl = document.getElementById('rateMiniVal_' + d.key);
         const subEl = document.getElementById('rateMiniSub_' + d.key);
-        if (valEl) valEl.textContent = last < 0 ? '–' : fmt(data[last]);
+        const st = _rateIntro[d.key] || (_rateIntro[d.key] = { done: !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches), started: false, p: 0 });
+        st.target = last < 0 ? null : data[last];
+        if (valEl) valEl.textContent = last < 0 ? '–' : (st.done ? fmt(data[last]) : fmt(data[last] * st.p, data[last]));
         if (subEl) {
             if (last < 0) subEl.textContent = 'No data';
             else if (d.target === null) subEl.textContent = 'Peak: ' + fmt(data[peak]) + ' in ' + months[peak] + ' · latest: ' + months[last];
@@ -1731,6 +1850,7 @@ function _renderRatesMini(datasets) {
 
         const tgtData = d.target === null ? null : new Array(12).fill(d.target);
         const inst = trendChartInstances['rates_' + d.key];
+        const cv0 = inst && inst.canvas;
         if (inst) {
             inst.data.datasets[0].data = data;
             if (tgtData) inst.data.datasets[1].data = tgtData;
@@ -1738,16 +1858,31 @@ function _renderRatesMini(datasets) {
             inst.options.scales.y.ticks.color = tickC;
             inst.options.scales.x.ticks.color = tickC;
             inst.update();
+            if (!st.done) _rateMiniIntro(d.key, inst, st, cv0 ? cv0.parentNode : null, fmt);
             return;
         }
         const cv = document.getElementById('trendChart_rates_' + d.key);
         if (!cv) return;
         const ds = [{ label: d.key === 'sev' ? 'Severity rate' : d.key.toUpperCase(), data: data, borderColor: d.color, backgroundColor: d.color + '22', fill: true, borderWidth: 2.5, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: d.color, spanGaps: false }];
         if (tgtData) ds.push({ label: 'Target (' + d.target.toFixed(2) + ')', data: tgtData, borderColor: '#9aa8a0', borderDash: [5, 5], borderWidth: 1.5, pointRadius: 0, fill: false });
-        trendChartInstances['rates_' + d.key] = new Chart(cv.getContext('2d'), {
+        const created = trendChartInstances['rates_' + d.key] = new Chart(cv.getContext('2d'), {
             type: 'line',
             data: { labels: months, datasets: ds },
+            plugins: [{
+                id: 'rateWipe',
+                beforeDatasetsDraw(c) {
+                    if (st.done) return;
+                    const a = c.chartArea, x = c.ctx;
+                    x.save(); x.beginPath();
+                    x.rect(a.left - 8, 0, (a.width + 16) * st.p, c.height);
+                    x.clip(); st.clipped = true;
+                },
+                afterDatasetsDraw(c) {
+                    if (st.clipped) { c.ctx.restore(); st.clipped = false; }
+                }
+            }],
             options: {
+                animation: st.done ? {} : { duration: 0 },
                 maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
                 plugins: { legend: { display: false }, tooltip: window.eshChartTip() },
@@ -1757,6 +1892,7 @@ function _renderRatesMini(datasets) {
                 }
             }
         });
+        if (!st.done) _rateMiniIntro(d.key, created, st, cv.parentNode, fmt);
     });
 }
 
