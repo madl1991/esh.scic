@@ -364,6 +364,37 @@
   @keyframes fxflick{from{opacity:.65}to{opacity:1}}
   @keyframes fxsway{from{transform:rotate(-13deg)}to{transform:rotate(13deg)}}
   @media (prefers-reduced-motion:reduce){#esh-fx{display:none!important}}
+
+  /* ── LOOK: green frame + rounder cards (reference: dashboard video) ── */
+  #app{--shadow:0 .8vh 2.4vh rgba(30,45,35,0.12);}
+  .board{margin:.3vh .4vw; padding:.6vh .7vw; border:.5vh solid var(--brand); border-radius:2.6vh;}
+  .panel{border-radius:2.2vh;}
+  .card{border-radius:1.6vh;}
+
+  /* ── INTRO: plays once after the first data arrives (class .intro is added by playIntro(), removed after 3s) ── */
+  @keyframes introUp{from{opacity:0; transform:translateY(1.6vh);}}
+  @keyframes introFade{from{opacity:0;}}
+  @keyframes introBar{from{transform:scaleX(0);}}
+  #app.intro #rate-panel{animation:introUp .6s cubic-bezier(.22,.8,.3,1) .2s both;}
+  #app.intro #inc-summary-panel{animation:introUp .6s cubic-bezier(.22,.8,.3,1) .35s both;}
+  #app.intro #nov-osh-panel{animation:introUp .6s cubic-bezier(.22,.8,.3,1) .5s both;}
+  #app.intro #nov-envi-panel{animation:introUp .6s cubic-bezier(.22,.8,.3,1) .65s both;}
+  #app.intro .tile{animation:introFade .5s ease both;}
+  #app.intro .tile:nth-child(1){animation-delay:.55s;} #app.intro .tile:nth-child(2){animation-delay:.63s;}
+  #app.intro .tile:nth-child(3){animation-delay:.71s;} #app.intro .tile:nth-child(4){animation-delay:.79s;}
+  #app.intro .tile:nth-child(5){animation-delay:.87s;}
+  #app.intro .tb .card{animation:introUp .5s cubic-bezier(.22,.8,.3,1) both;}
+  #app.intro .tb .card:nth-child(1){animation-delay:.8s;} #app.intro .tb .card:nth-child(2){animation-delay:.9s;}
+  #app.intro .tb .card:nth-child(3){animation-delay:1s;} #app.intro .tb .card:nth-child(4){animation-delay:1.1s;}
+  #app.intro .st-wrap .hb{animation:introFade .5s ease both;}
+  #app.intro .st-wrap .hb:nth-child(1){animation-delay:.8s;} #app.intro .st-wrap .hb:nth-child(2){animation-delay:.87s;}
+  #app.intro .st-wrap .hb:nth-child(3){animation-delay:.94s;} #app.intro .st-wrap .hb:nth-child(4){animation-delay:1.01s;}
+  #app.intro .st-wrap .hb:nth-child(5){animation-delay:1.08s;} #app.intro .st-wrap .hb:nth-child(6){animation-delay:1.15s;}
+  #app.intro .dn-wrap{animation:introFade .6s ease 1s both;}
+  @keyframes introArc{from{stroke-dasharray:0 239;}}
+  #app.intro .dn circle:not(:first-child){animation:introArc 1s cubic-bezier(.22,.8,.3,1) 1.05s both;}
+  #app.intro .bl-k i, #app.intro .hb .k i{transform-origin:left center; animation:introBar .9s cubic-bezier(.22,.8,.3,1) 1s both;}
+  @media (prefers-reduced-motion:reduce){#app.intro *{animation:none !important;}}
   </style>
 </head>
 <body>
@@ -745,6 +776,39 @@ function novPanelHTML(kind, title, d) {
       </div></div>`;
 }
 
+let introDone = false;
+function countUp(el, delay) {
+  const raw = el.textContent.trim();
+  if (!/^\d[\d,]*(\.\d+)?$/.test(raw)) return;
+  const target = parseFloat(raw.replace(/,/g, ''));
+  if (!isFinite(target) || target === 0) return;
+  const dec = (raw.split('.')[1] || '').length, comma = raw.includes(',');
+  const show = v => comma ? v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : v.toFixed(dec);
+  const dur = 900; let t0 = null;
+  el.textContent = show(0);
+  setTimeout(() => {
+    const step = ts => {
+      if (t0 === null) t0 = ts;
+      const p = Math.min((ts - t0) / dur, 1), e = 1 - Math.pow(1 - p, 3);
+      el.textContent = p < 1 ? show(target * e) : raw;
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, delay);
+  setTimeout(() => { if (el.textContent !== raw) el.textContent = raw; }, delay + dur + 500);
+}
+// Plays once, after the first real data arrives. Later Firebase updates do not replay it.
+function playIntro() {
+  if (introDone || !companyData) return;
+  introDone = true;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const app = document.getElementById('app');
+  app.classList.add('intro');
+  document.querySelectorAll('.board-esh .tile b').forEach(el => countUp(el, 600));
+  document.querySelectorAll('.board-esh .big, .board-esh .pair b, .board-esh .bl-t b, .board-esh .lg b, .board-esh .dn text').forEach(el => countUp(el, 900));
+  setTimeout(() => app.classList.remove('intro'), 3000);
+}
+
 function render() {
   const t = companyData?.tabulation || null;
 
@@ -845,6 +909,7 @@ function render() {
   }
 
   updateLastUpdatedTxt();
+  playIntro();
 }
 
 function ytdLabel() {
