@@ -50,16 +50,7 @@
   }
   html[data-boot="gate"] #login-overlay{display:flex;}
 
-  #boot-loader{
-    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
-    background:var(--bg-deep); z-index:1000;
-  }
-  html[data-boot="pending"] #boot-loader{display:flex;}
-  #boot-loader .spinner{
-    width:32px; height:32px; border-radius:50%; border:3px solid var(--line);
-    border-top-color:var(--cyan); animation:boot-spin 0.8s linear infinite;
-  }
-  @keyframes boot-spin{to{transform:rotate(360deg);}}
+  html[data-boot="pending"] #app-loading{display:flex;}
   /* ── LOGIN: same look as the ESH Compliance Dashboard login (left photo panel + right form) ── */
   .gate-hero{
     width:50%; flex-shrink:0; position:relative; overflow:hidden; display:flex; flex-direction:column;
@@ -140,6 +131,68 @@
     --shadow:0 10px 30px rgba(0,0,0,0.45);
   }
   #app{display:none; height:100%; flex-direction:column;}
+  /* Loading screen: same as the ESH Compliance Dashboard (#firebase-loading-overlay). Shown after unlock until the first data arrives. */
+  #app-loading{
+    position:fixed; inset:0; background:linear-gradient(180deg,#1b5e20 0%,#2e7d32 50%,#43a047 100%);
+    display:none; align-items:center; justify-content:center; z-index:20000; flex-direction:column; gap:16px;
+  }
+  #app-loading .shield-loader{width:64px; height:64px; filter:drop-shadow(0 0 10px rgba(251,192,45,0.35));}
+  #app-loading .shield-loader svg{width:100%; height:100%; display:block;}
+  #app-loading .shield-loader path, #app-loading .shield-loader polyline{
+    fill:none; stroke:#fbc02d; stroke-width:1.4; stroke-linecap:round; stroke-linejoin:round;
+    stroke-dasharray:1; stroke-dashoffset:1;
+  }
+  /* Shield draws itself, then the check mark, then fades out and repeats */
+  #app-loading .shield-loader .sl-outline{animation:slDraw 4s ease-in-out infinite;}
+  #app-loading .shield-loader .sl-check{animation:slDrawCheck 4s ease-in-out infinite;}
+  @keyframes slDraw{0%{stroke-dashoffset:1;} 40%,85%{stroke-dashoffset:0;} 100%{stroke-dashoffset:-1;}}
+  @keyframes slDrawCheck{0%,35%{stroke-dashoffset:1;} 60%,85%{stroke-dashoffset:0;} 100%{stroke-dashoffset:-1;}}
+  #app-loading .fl-name{color:#fff; font-size:.95rem; font-weight:600; letter-spacing:.02em; margin:0; text-align:center;}
+  #app-loading .fl-steps{position:relative; height:1.2em; width:280px; max-width:90vw;}
+  #app-loading .fl-steps span{position:absolute; left:0; right:0; text-align:center; opacity:0; color:rgba(255,255,255,.82); font-size:.6rem; font-weight:500; letter-spacing:.24em;}
+  /* Steps change every 1.5s, then stay on the last one until the overlay is hidden */
+  #app-loading .fl-steps span:nth-child(1){animation:flStepOut 1.5s ease both;}
+  #app-loading .fl-steps span:nth-child(2){animation:flStepOut 1.5s ease 1.5s both;}
+  #app-loading .fl-steps span:nth-child(3){animation:flStepIn .4s ease 3s both;}
+  @keyframes flStepOut{0%{opacity:0;} 15%,85%{opacity:1;} 100%{opacity:0;}}
+  @keyframes flStepIn{0%{opacity:0;} 100%{opacity:1;}}
+  #app-loading.fl-hide{animation:flFadeOut .25s ease forwards; pointer-events:none;}
+  @keyframes flFadeOut{from{opacity:1;} to{opacity:0;}}
+  @media (prefers-reduced-motion:reduce){
+    #app-loading .shield-loader path, #app-loading .shield-loader polyline{animation:none !important; stroke-dashoffset:0;}
+  }
+
+  /* Logout confirmation: same look as the ESH Compliance Dashboard dialogs (.ux-dialog) */
+  #logout-confirm{display:none; z-index:20001;}
+  #logout-confirm.open{display:flex;}
+  .ux-dialog-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.45); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+    align-items:center; justify-content:center; padding:16px; box-sizing:border-box; animation:uxFadeIn .2s;
+  }
+  @keyframes uxFadeIn{from{opacity:0;} to{opacity:1;}}
+  .ux-dialog{
+    --ux-c:#2e7d32; --ux-fill:#2e7d32; background:var(--bg-panel); color:#263238; border:1px solid #e2e5e8; border-radius:12px;
+    padding:18px 18px 14px; width:400px; max-width:100%; box-shadow:0 8px 28px rgba(0,0,0,0.18);
+    font-family:var(--font-main); text-align:left; box-sizing:border-box;
+  }
+  .ux-dialog-head{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+  .ux-dialog-icon{font-size:18px; width:20px; text-align:center; color:var(--ux-c); flex-shrink:0;}
+  .ux-dialog-title{margin:0; font-size:15px; font-weight:600; color:#263238;}
+  .ux-dialog-msg{margin:0 0 16px 28px; font-size:13px; line-height:1.5; color:#555;}
+  .ux-dialog-btns{display:flex; justify-content:flex-end; gap:8px;}
+  .ux-btn{font-family:inherit; font-size:13px; font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; border:1px solid #d5dad8; background:#fff; color:#444; transition:background .15s, filter .15s;}
+  .ux-btn:hover{background:#f5f7f6;}
+  .ux-btn-ok{background:var(--ux-fill); border-color:var(--ux-fill); color:#fff;}
+  .ux-btn-ok:hover{background:var(--ux-fill); filter:brightness(.92);}
+  .ux-btn:focus-visible{outline:2px solid var(--ux-c); outline-offset:2px;}
+  html[data-theme="dark"] .ux-dialog{background:var(--bg-panel); color:#e4e4e4; border-color:#2f5a31;}
+  html[data-theme="dark"] .ux-dialog-title{color:#eee;}
+  html[data-theme="dark"] .ux-dialog-msg{color:#b0b0b0;}
+  html[data-theme="dark"] .ux-btn{background:var(--bg-panel); border-color:#555; color:#ccc;}
+  html[data-theme="dark"] .ux-btn:hover{background:#383838;}
+  html[data-theme="dark"] .ux-btn-ok{background:var(--ux-fill); border-color:var(--ux-fill); color:#fff;}
+  html[data-theme="dark"] .ux-dialog{--ux-c:#81c784;}
+  @media (max-width:480px){.ux-dialog{padding:16px 14px 12px;} .ux-dialog-msg{margin-left:0;}}
   header.top{flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:1.5vw; padding:1.1vh 1.5vw; background:var(--bg-header); border-bottom:.7vh solid var(--brand);}
   header.top .brand{display:flex; align-items:center; gap:1.5vw; min-width:0;}
   .hd-logo{height:6vh; width:auto; display:block;}
@@ -340,7 +393,21 @@
 })();
 </script>
 
-<div id="boot-loader"><div class="spinner"></div></div>
+
+<div id="app-loading" role="status" aria-live="polite">
+  <div class="shield-loader">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path class="sl-outline" pathLength="1" d="M12 2.5 4 5.8v5.7c0 4.6 3.3 8.4 8 9.5 4.7-1.1 8-4.9 8-9.5V5.8L12 2.5Z"/>
+      <polyline class="sl-check" pathLength="1" points="8.5 12 11 14.5 15.5 9.5"/>
+    </svg>
+  </div>
+  <p class="fl-name">SCIC Executive ESH Summary</p>
+  <div class="fl-steps">
+    <span>SECURING YOUR WORKSPACE...</span>
+    <span>LOADING SUMMARY...</span>
+    <span>SYNCING DATA...</span>
+  </div>
+</div>
 
 <div id="login-overlay">
   <div class="gate-hero">
@@ -390,6 +457,19 @@
 <script src="login-seasonal.js?v=1"></script>
 
 <div id="app">
+  <div id="logout-confirm" class="ux-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="lc-title">
+    <div class="ux-dialog ux-ok">
+      <div class="ux-dialog-head">
+        <i class="fa-solid fa-right-from-bracket ux-dialog-icon" aria-hidden="true"></i>
+        <h3 class="ux-dialog-title" id="lc-title">Log out?</h3>
+      </div>
+      <p class="ux-dialog-msg">You will need the access code to view the summary again.</p>
+      <div class="ux-dialog-btns">
+        <button type="button" class="ux-btn" id="lc-cancel" onclick="closeLogoutConfirm()">Cancel</button>
+        <button type="button" class="ux-btn ux-btn-ok" onclick="closeLogoutConfirm(); doLogout();">Log out</button>
+      </div>
+    </div>
+  </div>
   <header class="top">
     <div class="brand">
       <img class="hd-logo" src="images/scic-logo.png" alt="Sta. Clara International Corporation">
@@ -401,7 +481,7 @@
     <div class="hd-right">
       <div class="live-pill"><span class="live-dot"></span><span id="last-updated-txt">Syncing…</span></div>
       <button id="theme-btn" type="button" onclick="toggleTheme()" title="Switch light / dark mode" aria-label="Switch light or dark mode"><i class="fa-solid fa-moon" id="theme-ico"></i></button>
-      <button id="logout-btn" onclick="doLogout()" title="Log out"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Log out</span></button>
+      <button id="logout-btn" onclick="confirmLogout()" title="Log out"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Log out</span></button>
     </div>
   </header>
 
@@ -505,7 +585,14 @@ setTimeout(() => {
   if (!bootResolved) showGate();
 }, 6000);
 
+function hideLoadingNow() {
+  clearTimeout(loadingTimer);
+  const el = document.getElementById('app-loading');
+  if (el) { el.classList.remove('fl-hide'); el.style.display = 'none'; }
+}
+
 function showGate() {
+  hideLoadingNow(); // never let the loader sit on top of the login screen
   bootResolved = true;
   sessionStorage.removeItem('exec_unlocked');
   document.documentElement.setAttribute('data-boot', 'gate');
@@ -513,7 +600,32 @@ function showGate() {
   document.getElementById('login-overlay').style.display = 'flex';
 }
 
+let loadingTimer = null;
+function showLoading() {
+  const el = document.getElementById('app-loading');
+  if (el) { el.style.display = 'flex'; el.classList.remove('fl-hide'); }
+  clearTimeout(loadingTimer);
+  loadingTimer = setTimeout(hideLoading, 6000); // never leave the screen stuck
+}
+function hideLoading() {
+  clearTimeout(loadingTimer);
+  const el = document.getElementById('app-loading');
+  if (!el || el.classList.contains('fl-hide')) return;
+  el.classList.add('fl-hide');
+  setTimeout(() => { if (el.classList.contains('fl-hide')) el.style.display = 'none'; }, 280);
+}
+
+window.confirmLogout = function() {
+  document.getElementById('logout-confirm').classList.add('open');
+  document.getElementById('lc-cancel').focus();
+};
+window.closeLogoutConfirm = function() {
+  document.getElementById('logout-confirm').classList.remove('open');
+};
+document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closeLogoutConfirm(); });
+
 function showApp() {
+  showLoading();
   bootResolved = true;
   document.documentElement.removeAttribute('data-boot');
   document.getElementById('login-overlay').style.display = 'none';
@@ -574,7 +686,8 @@ function startListeners() {
   unsubFns.push(onSnapshot(doc(db, 'exec_summary', '_company_wide'), snap => {
     companyData = snap.exists() ? snap.data() : null;
     render();
-  }, e => console.warn('exec_summary listener error:', e.message)));
+    hideLoading();
+  }, e => { console.warn('exec_summary listener error:', e.message); hideLoading(); }));
 
   lastUpdatedInterval = setInterval(updateLastUpdatedTxt, 30000);
 }
