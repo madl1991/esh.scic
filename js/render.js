@@ -1,8 +1,53 @@
 
+        // ── Overall Summary: one-time intro animation. Plays when entering the tab, not on every render() ──
+        function osCountUp(el, delay) {
+            const raw = el.textContent.trim();
+            const m = raw.match(/^(\d+(?:\.\d+)?)(%?)$/);
+            if (!m) return;
+            const target = parseFloat(m[1]), dec = (m[1].split('.')[1] || '').length, suf = m[2];
+            if (!isFinite(target) || target === 0) return;
+            const dur = 800; let t0 = null;
+            el.textContent = (0).toFixed(dec) + suf;
+            setTimeout(() => {
+                const step = ts => {
+                    if (t0 === null) t0 = ts;
+                    const p = Math.min((ts - t0) / dur, 1), e = 1 - Math.pow(1 - p, 3);
+                    el.textContent = p < 1 ? (target * e).toFixed(dec) + suf : raw;
+                    if (p < 1) requestAnimationFrame(step);
+                };
+                requestAnimationFrame(step);
+            }, delay);
+            setTimeout(() => { if (el.textContent !== raw) el.textContent = raw; }, delay + dur + 500);
+        }
+        function osPlayIntro(container) {
+            if (!container) return;
+            if (window._osIntroDone) { container.classList.remove('os-intro'); return; }
+            if (!state.projects || state.projects.length === 0) return;
+            window._osIntroDone = true;
+            if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            container.querySelectorAll('#grand-stats .stat-card').forEach((el, i) => {
+                el.classList.add('os-a'); el.style.setProperty('--os-d', (0.05 + i * 0.08) + 's');
+            });
+            let n = 0; // only the first 14 banners/rows animate, so a long list is readable right away
+            container.querySelectorAll('.region-banner, .project-row').forEach(el => {
+                if (n >= 14) return;
+                el.classList.add('os-a'); el.style.setProperty('--os-d', (0.4 + n * 0.05) + 's'); n++;
+            });
+            container.classList.add('os-intro');
+            container.querySelectorAll('#grand-stats .stat-value').forEach(el => osCountUp(el, 250));
+            clearTimeout(window._osIntroTimer);
+            window._osIntroTimer = setTimeout(() => container.classList.remove('os-intro'), 2600);
+        }
+
         function render() {
             // Always preserve scroll position — prevents view jumping on edit/save/input
             const _renderMc = document.getElementById('main-content');
             const _renderScroll = _renderMc ? _renderMc.scrollTop : 0;
+            if (state.currentTab !== 'overall') {
+                window._osIntroDone = false; // so the intro plays again next time Overall Summary is opened
+                document.querySelectorAll('.status-donut').forEach(function(h) { h.remove(); }); // donut is drawn fresh (and animates) when Overall Summary is opened again
+            }
+            if (state.currentTab !== 'rates' && typeof window.rateMiniIntroReset === 'function') window.rateMiniIntroReset(); // Statistics Rate animation plays again on return
             try {
             // Universal Excel button visibility (mirrors changeTab logic)
             const _rxNoRoles  = ['superintendent','pco','corp_nurse'];
@@ -5174,6 +5219,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
 
             
             applyNumFmtToInputs();
+            if (state.currentTab === 'overall') osPlayIntro(container);
             
             if (state.currentTab === 'rates' || state.currentTab === 'medical') {
                 setTimeout(() => {
