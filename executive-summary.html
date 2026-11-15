@@ -365,9 +365,10 @@
   @keyframes fxsway{from{transform:rotate(-13deg)}to{transform:rotate(13deg)}}
   @media (prefers-reduced-motion:reduce){#esh-fx{display:none!important}}
 
-  /* ── LOOK: green frame + rounder cards (reference: dashboard video) ── */
-  #app{--shadow:0 .8vh 2.4vh rgba(30,45,35,0.12);}
-  .board{margin:.3vh .4vw; padding:.6vh .7vw; border:.5vh solid var(--brand); border-radius:2.6vh;}
+  /* ── LOOK: rounder cards (reference: dashboard video) ── */
+  #app{--shadow:0 .8vh 2.4vh rgba(30,45,35,0.22);}
+  html[data-theme="dark"] #app{--shadow:0 .8vh 2.4vh rgba(0,0,0,0.6);}
+  .card{box-shadow:var(--shadow);}
   .panel{border-radius:2.2vh;}
   .card{border-radius:1.6vh;}
 
