@@ -5509,7 +5509,7 @@ body.dark-mode #compliance-gap-section {
 
 .cga-grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px;
-    padding: 6px 14px 10px;
+    padding: 6px 14px 14px;
 }
 .cga-empty { grid-column: 1 / -1; text-align: center; color: var(--cga-ok); font-size: 0.74rem; padding: 10px; }
 .cga-empty i { margin-right: 6px; }
@@ -5519,6 +5519,8 @@ body.dark-mode #compliance-gap-section {
     background: var(--cga-card); border: none; border-radius: 10px;
     padding: 7px 12px; cursor: pointer; transition: filter 0.15s;
 }
+.cga-card { box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.10) !important; }
+body.dark-mode .cga-card { box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.35) !important; }
 .cga-card:hover { filter: brightness(1.08); }
 .cga-top    { display: flex; justify-content: space-between; align-items: center; }
 .cga-region { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; }
@@ -10715,3 +10717,27 @@ table.got-tbl.permits-tbl th:nth-child(6) { width: 210px; }
 @keyframes fxflick{from{opacity:.65}to{opacity:1}}
 @keyframes fxsway{from{transform:rotate(-13deg)}to{transform:rotate(13deg)}}
 @media (prefers-reduced-motion:reduce){#esh-fx{display:none!important}}
+
+
+/* ═══ Overall Summary — rounder cards + one-time intro animation. Delete this block to undo. ═══
+   Round cards are scoped to the page that has #grand-stats, so other tabs are not touched.     */
+#grand-stats .stat-card { border-radius: 20px; }
+#dashboard-content:has(#grand-stats) .project-row { border-radius: 14px; }
+#dashboard-content:has(#grand-stats) .region-banner { border-radius: 14px 14px 0 0; }
+#dashboard-content:has(#grand-stats) .region-banner.collapsed { border-radius: 14px; }
+#dashboard-content:has(#grand-stats) .chart-box { border-radius: 14px; }
+
+@property --os-sweep { syntax: '<number>'; inherits: false; initial-value: 1; }
+@keyframes osUp { from { opacity: 0; transform: translateY(10px); } }
+@keyframes osSweep { from { --os-sweep: 0; } }
+#dashboard-content.os-intro .os-a { animation: osUp .5s cubic-bezier(.22,.8,.3,1) var(--os-d, 0s) backwards; }
+#dashboard-content.os-intro .project-row.os-a .circular-progress {
+    background: conic-gradient(#2e7d32 calc(var(--percentage) * var(--os-sweep, 1)), #e0e0e0 0);
+    animation: osSweep 1s cubic-bezier(.22,.8,.3,1) calc(var(--os-d, 0s) + .15s) backwards;
+}
+body.dark-mode #dashboard-content.os-intro .project-row.os-a .circular-progress {
+    background: conic-gradient(#66bb6a calc(var(--percentage) * var(--os-sweep, 1)), #3a3f3b 0);
+}
+@media (prefers-reduced-motion: reduce) {
+    #dashboard-content.os-intro .os-a, #dashboard-content.os-intro .project-row.os-a .circular-progress { animation: none; }
+}
