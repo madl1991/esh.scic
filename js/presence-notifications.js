@@ -1686,36 +1686,28 @@
                     </div>
                 `;
             } else {
-                let html = '';
+                let html = `<div class="notif-summary">${Object.keys(projectOverdues).length} projects · ${totalIssues} issues</div>`;
                 const sortedProjectNames = Object.keys(projectOverdues).sort((a, b) => a.localeCompare(b));
 
                 sortedProjectNames.forEach(projectName => {
                     const tabs = projectOverdues[projectName];
                     window._notifOpen = window._notifOpen || new Set();
                     const _grpOpen = window._notifOpen.has(projectName);
-                    html += `<div class="notification-group${_grpOpen ? ' open' : ''}" data-pn="${encodeURIComponent(projectName)}" onclick="toggleNotifGroup(this)"><i class="fas fa-chevron-right notif-chev"></i><i class="fas fa-building"></i><span>${projectName}</span><b>${tabs.length}</b></div><div class="notif-group-body${_grpOpen ? ' open' : ''}">`;
+                    html += `<div class="notification-group${_grpOpen ? ' open' : ''}" data-pn="${encodeURIComponent(projectName)}" onclick="toggleNotifGroup(this)"><i class="fas fa-chevron-right notif-chev"></i><span>${projectName}</span><b>${tabs.length}</b></div><div class="notif-group-body${_grpOpen ? ' open' : ''}">`;
                     tabs.forEach(tabInfo => {
                         const isOsh      = tabInfo.isOsh === true;
                         const isExpired  = tabInfo.isExpired === true;
                         const isExpiring = tabInfo.isExpiring === true;
 
-                        const iconClass  = isOsh ? 'fa-shield-halved' : isExpired ? 'fa-circle-xmark' : isExpiring ? 'fa-clock' : 'fa-exclamation-triangle';
                         const statusText = isOsh ? 'OSH Deficient' : isExpired ? 'Expired' : isExpiring ? 'Expiring Soon' : 'Missing';
-                        const statusColor= isOsh ? '#e65100' : isExpired ? '#c62828' : isExpiring ? '#e65100' : '#d32f2f';
-                        const iconBg     = isOsh ? 'rgba(230,81,0,0.1)' : isExpired ? 'rgba(198,40,40,0.1)' : isExpiring ? 'rgba(230,81,0,0.1)' : 'rgba(211,47,47,0.1)';
+                        const statusCls  = (isOsh || isExpiring) ? 'notif-st-warn' : 'notif-st-bad';
                         const displayName = isOsh ? tabInfo.name.replace('OSH Deficiency: ', '') : tabInfo.name;
 
                         const _pnSafe = projectName.replace(/'/g, "\\'");
                         html += `
                             <div class="notification-item" onclick="redirectToProjectTable('${_pnSafe}', '${tabInfo.tab}')">
-                                <div class="notif-icon-box" style="background:${iconBg};">
-                                    <i class="fas ${iconClass}" style="color:${statusColor};"></i>
-                                </div>
-                                <div class="notif-text">
-                                    <div>${displayName}</div>
-                                    <div class="notif-status" style="color:${statusColor};">${statusText}</div>
-                                </div>
-                                <i class="fas fa-chevron-right notif-arrow"></i>
+                                <div class="notif-text">${displayName}</div>
+                                <span class="notif-status ${statusCls}">${statusText}</span>
                             </div>
                         `;
                     });
