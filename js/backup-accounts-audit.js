@@ -198,26 +198,32 @@ function showBackupRecoveryUI() {
     const displayBackups = showAllBackups ? userBackups : userBackups.slice(0, 3);
     const hasMore = userBackups.length > 3;
 
+    const _bkRow = backup => `
+                    <div class="backup-row">
+                        <span class="backup-cell-date">${backupManager.formatDate(backup.timestamp)}</span>
+                        <span class="backup-cell-muted">${backup.manual ? 'Manual' : 'Auto'}</span>
+                        <span class="backup-cell-muted">${backupManager.formatSize(backup.size)}</span>
+                        <span class="backup-cell-muted">${backup.projects.length} projects</span>
+                        <span class="backup-row-actions">
+                            <button class="backup-act backup-act-restore" onclick="restoreBackupConfirm(${backup.id})">Restore</button>
+                            <button class="backup-act backup-act-delete" onclick="deleteBackupConfirm(${backup.id})">Delete</button>
+                        </span>
+                    </div>`;
+
     let html = `
         <div class="backup-section">
-            <h4><i class="fas fa-shield-alt"></i> Backup & Recovery</h4>
-            
-            <div class="backup-info">
-                <strong>Last Auto-Backup:</strong> ${lastBackupTime}<br>
-                <strong>Total Backups:</strong> ${userBackups.length} / ${backupManager.maxBackups}<br>
-                <strong>Auto-save Frequency:</strong> Every 5 minutes
-            </div>
+            <p class="backup-summary">
+                <span class="backup-k">Last backup</span> ${lastBackupTime}
+                <span class="backup-sep">&middot;</span>
+                <span class="backup-k">Backups</span> ${userBackups.length} / ${backupManager.maxBackups}
+                <span class="backup-sep">&middot;</span>
+                <span class="backup-k">Auto-save</span> every 5 minutes
+            </p>
 
             <div class="backup-buttons">
-                <button class="btn btn-primary" onclick="createManualBackup()">
-                    <i class="fas fa-download"></i> Create Manual Backup
-                </button>
-                <button class="btn btn-primary" onclick="exportCurrentBackup()">
-                    <i class="fas fa-file-export"></i> Export Backup
-                </button>
-                <button class="btn btn-primary" onclick="document.getElementById('import-backup-input').click()">
-                    <i class="fas fa-file-import"></i> Import Backup
-                </button>
+                <button class="backup-btn-main" onclick="createManualBackup()">Create manual backup</button>
+                <button class="backup-link" onclick="exportCurrentBackup()">Export backup</button>
+                <button class="backup-link" onclick="document.getElementById('import-backup-input').click()">Import backup</button>
             </div>
 
             <input type="file" id="import-backup-input" accept=".json" style="display:none;" onchange="importBackupFile(this)">
@@ -225,42 +231,19 @@ function showBackupRecoveryUI() {
             <div id="backup-status-message"></div>
 
             <div class="backup-list">
-                <h5 style="color: #1b5e20; margin-top: 20px; margin-bottom: 10px;">
-                    <i class="fas fa-history"></i> Backup History
-                </h5>
-                ${userBackups.length > 0 ? displayBackups.map(backup => `
-                    <div class="backup-item">
-                        <div class="backup-item-info">
-                            <div class="backup-item-date">
-                                ${backup.manual ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>'} 
-                                ${backupManager.formatDate(backup.timestamp)}
-                            </div>
-                            <div class="backup-item-size">
-                                ${backupManager.formatSize(backup.size)} • 
-                                ${backup.projects.length} projects
-                            </div>
-                        </div>
-                        <div class="backup-item-actions">
-                            <button class="backup-item-btn backup-item-btn-restore" onclick="restoreBackupConfirm(${backup.id})">
-                                <i class="fas fa-undo"></i> Restore
-                            </button>
-                            <button class="backup-item-btn backup-item-btn-delete" onclick="deleteBackupConfirm(${backup.id})">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </div>
-                    </div>
-                `).join('') : '<p style="color: var(--text-secondary); font-size: 0.85rem;">No backups available</p>'}
-                
+                <div class="backup-list-title">Backup history</div>
+                ${userBackups.length > 0 ? `
+                <div class="backup-row backup-row-head">
+                    <span>Date &amp; time</span><span>Type</span><span>Size</span><span>Projects</span><span></span>
+                </div>
+                ${displayBackups.map(_bkRow).join('')}` : '<p class="backup-empty">No backups available</p>'}
+
                 ${hasMore && !showAllBackups ? `
-                    <button class="btn btn-outline" onclick="toggleShowAllBackups()" style="width: 100%; margin-top: 15px; padding: 10px;">
-                        <i class="fas fa-chevron-down"></i> See More (${userBackups.length - 3} more backups)
-                    </button>
+                    <button class="backup-link backup-more" onclick="toggleShowAllBackups()">Show ${userBackups.length - 3} more backups</button>
                 ` : ''}
-                
+
                 ${showAllBackups && hasMore ? `
-                    <button class="btn btn-outline" onclick="toggleShowAllBackups()" style="width: 100%; margin-top: 15px; padding: 10px;">
-                        <i class="fas fa-chevron-up"></i> Show Less
-                    </button>
+                    <button class="backup-link backup-more" onclick="toggleShowAllBackups()">Show less</button>
                 ` : ''}
             </div>
         </div>
@@ -320,7 +303,8 @@ function restoreBackupConfirm(backupId) {
     showModernDialog(
         'Restore Backup',
         `Restore data from ${backupManager.formatDate(backup.timestamp)}? Your current data will be replaced.`,
-        false
+        true,
+        'Restore'
     ).then(confirmed => {
         if (confirmed) {
             if (backupManager.restoreBackup(backupId)) {
