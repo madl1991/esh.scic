@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESH COMPLIANCE DASHBOARD - SCIC</title>
     <link rel="icon" type="image/png" href="images/footer-shield.png">
-<link rel="stylesheet" href="styles.css?v=28">
+<link rel="stylesheet" href="styles.css?v=38">
     <!-- OPTIMIZED: consolidated font load — only weights actually used, preconnect for speed -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -127,7 +127,7 @@
 <!-- ── STYLE A: SVG Symbol Defs ── -->
 <svg style="display:none" id="styleA-symbols">
   <symbol id="ic-pdf" viewBox="0 0 24 24"><rect x="3" y="2" width="13" height="17" rx="2"/><polyline points="16 2 21 7 16 7"/><line x1="7" y1="13" x2="13" y2="13"/><line x1="7" y1="10" x2="13" y2="10"/></symbol>
-  <symbol id="ic-excel" viewBox="0 0 24 24"><rect x="3" y="2" width="13" height="17" rx="2"/><polyline points="16 2 21 7 16 7"/><line x1="7" y1="9" x2="9" y2="9"/><line x1="9" y1="9" x2="12" y2="14"/><line x1="12" y1="14" x2="9" y2="19"/><line x1="9" y1="19" x2="7" y2="19"/><line x1="7" y1="14" x2="12" y2="9"/></symbol>
+  <symbol id="ic-excel" viewBox="0 0 24 24"><path d="M14 22H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9l5 5v6"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M17 16v6"/><path d="m14.5 19.5 2.5 2.5 2.5-2.5"/></symbol>
   <symbol id="ic-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/></symbol>
   <symbol id="ic-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
   <symbol id="ic-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
@@ -320,7 +320,6 @@
     <div id="addProjectModal" class="modal" style="display:none;">
         <div class="modal-content esh-form">
             <div class="pm-head">
-                <div class="modal-icon"><i class="fas fa-folder-plus"></i></div>
                 <div class="pm-titles">
                     <div class="modal-header"><span>Add New Project</span></div>
                     <div class="modal-subtitle">Create a new project site to track ESH compliance</div>
@@ -403,7 +402,6 @@
     <div id="addPersonnelModal" class="modal" style="display:none;">
         <div class="modal-content pm-compact">
             <div class="pm-head">
-                <div class="modal-icon"><i class="fas fa-user-plus"></i></div>
                 <div class="pm-titles">
                     <div class="modal-header"><span>Add New Personnel</span></div>
                     <div class="modal-subtitle">Add a new ESH team member to the registry</div>
@@ -947,7 +945,7 @@
 
                 
                 <span class="na-badge">
-                  <button id="export-excel-btn" class="na-icon" onclick="exportCurrentTabToExcel()" title="Export to Excel" style="display:none;">
+                  <button id="export-excel-btn" class="na-icon" onclick="exportCurrentTabToExcel()" title="Export to Excel" style="display:none;opacity:1;">
                     <svg><use href="#ic-excel"/></svg>
                   </button>
                 </span>
@@ -1099,23 +1097,20 @@
     <div style="border-radius: 10px; border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06); margin: 0 16px 0;">
 
         
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg-card);border-bottom:1px solid #e3e9e4;border-radius:10px 10px 0 0;padding:10px 16px;">
-            <i class="fas fa-users-gear" style="font-size:1.2rem;color:#2e7d32;"></i>
-            <div class="st-fe1c26">
-                <div style="color:#555;font-size:.78rem;font-weight:600;">Environment, Safety &amp; Health Team Registry</div>
-            </div>
-            <div id="p-summary-badges" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+        <div class="sec-head" style="border-radius:10px 10px 0 0;">
+            <div class="sec-head-title">Environment, Safety &amp; Health Team Registry</div>
+            <div id="p-summary-badges" class="sec-head-badges"></div>
         </div>
 
         
         <div class="ix-c994d65">
             <div class="ix-8c734b2" style="flex:0 1 auto !important;min-width:0 !important;">
                 <div class="ix-950edb4" style="flex:0 0 auto !important;width:300px;max-width:100%;">
-                    <input type="text" id="p-filter-value" placeholder="Search personnel..."
-                        autocomplete="off"
-                        oninput="filterPTable(); pcShowSearchDropdown(this.value)"
-                        onkeyup="filterPTable()"
-                        style="width:100%; padding:8px 12px; border-radius:6px; border:1.5px solid #81c784; background:var(--input-bg); color:var(--text-primary); font-size:0.75rem; box-sizing:border-box;">
+                    <div class="esh-search"><button type="button" class="esh-search-btn" aria-label="Search" title="Search" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+                        <input type="text" id="p-filter-value" class="esh-search-in" placeholder="Search personnel..."
+                            autocomplete="off"
+                            oninput="filterPTable(); pcShowSearchDropdown(this.value)"
+                            onkeyup="filterPTable()"></div>
                     <div id="pc-search-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:9999;
                         background:white; border:1.5px solid #c8e6c9; border-radius:8px; box-shadow:0 4px 18px rgba(0,0,0,0.13);
                         max-height:260px; overflow-y:auto; margin-top:3px;">
@@ -1216,9 +1211,9 @@
 <template id="saw-wx-template">
     <div class="saw-wx-stack">
         <div class="saw-panel">
-            <div class="saw-panel-head">
-                <div class="saw-ph-title">PAGASA weather</div>
-                <span class="saw-ph-side">Surface map</span>
+            <div class="sec-head">
+                <div class="sec-head-title">PAGASA weather</div>
+                <span class="sec-head-side">Surface map</span>
             </div>
             <div class="saw-wx-pagasa">
                              <img id="saw-wx-pagasa-img" class="saw-wx-img" alt="PAGASA surface map" referrerpolicy="no-referrer"
@@ -1231,9 +1226,9 @@
             </div>
         </div>
         <div class="saw-panel">
-            <div class="saw-panel-head">
-                <div class="saw-ph-title">Windy satellite</div>
-                <span class="saw-ph-side">Philippines</span>
+            <div class="sec-head">
+                <div class="sec-head-title">Windy satellite</div>
+                <span class="sec-head-side">Philippines</span>
             </div>
             <iframe class="saw-weather-frame" loading="lazy" title="Windy satellite map"
                 src="https://embed.windy.com/embed2.html?lat=12.8797&lon=121.7740&detailLat=12.8797&detailLon=121.7740&width=650&height=650&zoom=5&level=surface&overlay=satellite&product=ecmwf&menu=&message=true&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1">
@@ -1357,13 +1352,11 @@
 
     
     <div class="settings-hero">
-      <div class="settings-avatar"><i class="fas fa-user-shield"></i></div>
       <div class="settings-hero-info">
         <div class="settings-hero-name" id="settings-display-name">ESH User</div>
         <div class="settings-hero-email" id="settings-hero-email">Loading...</div>
-        <div class="settings-hero-badge"><i class="fas fa-shield-halved"></i> &nbsp;ESH COMPLIANCE OFFICER</div>
+        <div class="settings-hero-badge">ESH COMPLIANCE OFFICER</div>
         <div class="settings-sync-status">
-          <span class="settings-sync-dot"></span>
           <span id="settings-firebase-sync-label">Connected to Firebase</span>
         </div>
       </div>
@@ -1372,15 +1365,23 @@
     <div class="settings-grid">
       <div class="settings-accordion">
 
+        <!-- TABS -->
+        <div class="settings-tabs" role="tablist">
+          <button type="button" class="settings-tab active" role="tab" data-stab="profile" onclick="settingsSwitchTab('profile')"><i class="fas fa-user"></i> Profile</button>
+          <button type="button" class="settings-tab" role="tab" data-stab="security" onclick="settingsSwitchTab('security')"><i class="fas fa-lock"></i> Security</button>
+          <button type="button" class="settings-tab" role="tab" data-stab="admin" id="settings-tab-admin" style="display:none;" onclick="settingsSwitchTab('admin')"><i class="fas fa-user-shield"></i> Admin</button>
+        </div>
+
+        <!-- TAB: PROFILE -->
+        <div class="settings-tab-panel active" data-stab="profile" role="tabpanel">
+
         <!-- DISPLAY NAME -->
         <div class="settings-card">
-          <div class="settings-card-header" onclick="settingsToggle(this)">
-            <div class="settings-card-header-icon"><i class="fas fa-id-badge"></i></div>
+          <div class="settings-card-header">
             <div class="settings-card-header-text">
               <span class="settings-card-title">Display Name</span>
               <span class="settings-card-subtitle">Update how your name appears across the system</span>
             </div>
-            <i class="fas fa-chevron-right settings-card-chevron"></i>
           </div>
           <div class="settings-card-body">
             <div class="settings-card-body-inner">
@@ -1388,9 +1389,7 @@
                 <label class="settings-label">Current Display Name</label>
                 <div class="username-display">
                   <span class="username-display-text" id="current-display-name-text">—</span>
-                  <button class="username-edit-btn" onclick="toggleUsernameEdit()">
-                    <i class="fas fa-pencil"></i> Edit
-                  </button>
+                  <button class="username-edit-btn" onclick="toggleUsernameEdit()">Edit</button>
                 </div>
               </div>
               <div id="username-edit-fields" style="display:none;">
@@ -1398,9 +1397,9 @@
                   <label class="settings-label">New Display Name</label>
                   <input type="text" id="new-display-name" class="settings-input" placeholder="Enter display name" maxlength="40">
                 </div>
-                <button class="settings-btn settings-btn-primary" id="save-name-btn" onclick="saveDisplayName()">
-                  <i class="fas fa-save"></i> SAVE NAME
-                </button>
+                <div class="settings-actions">
+                  <button class="settings-btn settings-btn-primary" id="save-name-btn" onclick="saveDisplayName()">Save name</button>
+                </div>
               </div>
               <div id="name-msg" class="settings-msg"></div>
             </div>
@@ -1409,13 +1408,11 @@
 
         <!-- ACCOUNT INFO -->
         <div class="settings-card">
-          <div class="settings-card-header" onclick="settingsToggle(this)">
-            <div class="settings-card-header-icon"><i class="fas fa-circle-info"></i></div>
+          <div class="settings-card-header">
             <div class="settings-card-header-text">
               <span class="settings-card-title">Account Info</span>
               <span class="settings-card-subtitle">Connection status and account details</span>
             </div>
-            <i class="fas fa-chevron-right settings-card-chevron"></i>
           </div>
           <div class="settings-card-body">
             <div class="settings-card-body-inner">
@@ -1429,7 +1426,7 @@
               </div>
               <div class="info-row">
                 <span class="info-row-label">Firebase Status</span>
-                <span id="settings-firebase-status" class="firebase-status-badge connected"><i class="fas fa-wifi"></i> Connected</span>
+                <span id="settings-firebase-status" class="firebase-status-badge connected">Connected</span>
               </div>
               <div class="info-row">
                 <span class="info-row-label">Last Sync</span>
@@ -1443,60 +1440,58 @@
           </div>
         </div>
 
+        </div><!-- /profile panel -->
+
+        <!-- TAB: SECURITY -->
+        <div class="settings-tab-panel" data-stab="security" role="tabpanel">
+
         <!-- CHANGE PASSWORD -->
         <div class="settings-card">
-          <div class="settings-card-header" onclick="settingsToggle(this)">
-            <div class="settings-card-header-icon"><i class="fas fa-lock"></i></div>
+          <div class="settings-card-header">
             <div class="settings-card-header-text">
               <span class="settings-card-title">Change Password</span>
               <span class="settings-card-subtitle">Requires current password to verify identity</span>
             </div>
-            <i class="fas fa-chevron-right settings-card-chevron"></i>
           </div>
           <div class="settings-card-body">
             <div class="settings-card-body-inner">
-              <div style="background:#e8f5e9;border-left:3px solid #2e7d32;padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:0.75rem;color:#1b5e20;line-height:1.6;">
+              <p class="settings-note">
                 <strong>Requirements:</strong> 8+ characters &middot; include numbers &amp; special chars &middot; all devices will be logged out after update.
+              </p>
+              <div class="settings-input-group">
+                <label class="settings-label">Current Password <span class="ix-f3babde">(required)</span></label>
+                <input type="password" id="current-password" class="settings-input" placeholder="Enter your current password">
               </div>
               <div class="settings-input-group">
-                <label class="settings-label"><i class="fas fa-lock"></i> Current Password <span class="ix-f3babde">(required)</span></label>
-                <div class="settings-input-icon">
-                  <input type="password" id="current-password" class="settings-input" placeholder="Enter your current password">
-                  <button class="icon-btn" onclick="togglePwd('current-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
-                </div>
-              </div>
-              <div class="settings-input-group">
-                <label class="settings-label"><i class="fas fa-key"></i> New Password <span class="ix-c1f9dfb">(min. 8 characters)</span></label>
-                <div class="settings-input-icon">
-                  <input type="password" id="new-password" class="settings-input" placeholder="Min. 8 chars, include numbers &amp; special chars">
-                  <button class="icon-btn" onclick="togglePwd('new-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
-                </div>
+                <label class="settings-label">New Password <span class="ix-c1f9dfb">(min. 8 characters)</span></label>
+                <input type="password" id="new-password" class="settings-input" placeholder="Min. 8 chars, include numbers &amp; special chars">
               </div>
               <div id="pwd-strength" class="st-991f32"></div>
               <div class="settings-input-group">
-                <label class="settings-label"><i class="fas fa-check-double"></i> Confirm New Password</label>
-                <div class="settings-input-icon">
-                  <input type="password" id="confirm-password" class="settings-input" placeholder="Re-enter new password">
-                  <button class="icon-btn" onclick="togglePwd('confirm-password', this)" tabindex="-1"><i class="fas fa-eye"></i></button>
-                </div>
+                <label class="settings-label">Confirm New Password</label>
+                <input type="password" id="confirm-password" class="settings-input" placeholder="Re-enter new password">
               </div>
-              <button class="settings-btn settings-btn-primary" id="update-pwd-btn" onclick="updatePasswordSecure()">
-                <i class="fas fa-key"></i> UPDATE PASSWORD
-              </button>
+              <label class="settings-show-pwd"><input type="checkbox" onchange="toggleAllPwd(this.checked)"> Show passwords</label>
+              <div class="settings-actions">
+                <button class="settings-btn settings-btn-primary" id="update-pwd-btn" onclick="updatePasswordSecure()">Update password</button>
+              </div>
               <div id="settings-message" class="settings-msg"></div>
             </div>
           </div>
         </div>
 
+        </div><!-- /security panel -->
+
+        <!-- TAB: ADMIN (shown only when Backup or Exec Sync card is visible) -->
+        <div class="settings-tab-panel" data-stab="admin" role="tabpanel">
+
         <!-- BACKUP & RECOVERY (admin only) -->
         <div class="settings-card settings-card-full" id="backup-recovery-card" style="display:none;">
-          <div class="settings-card-header" onclick="settingsToggle(this)">
-            <div class="settings-card-header-icon"><i class="fas fa-database"></i></div>
+          <div class="settings-card-header">
             <div class="settings-card-header-text">
               <span class="settings-card-title">Backup &amp; Recovery</span>
               <span class="settings-card-subtitle">Auto-save snapshots and restore previous data states</span>
             </div>
-            <i class="fas fa-chevron-right settings-card-chevron"></i>
           </div>
           <div class="settings-card-body">
             <div class="settings-card-body-inner">
@@ -1507,27 +1502,61 @@
 
         <!-- EXECUTIVE DASHBOARD SYNC (esh@scic.com.ph / esh@wda.com.ph only) -->
         <div class="settings-card" id="exec-resync-card" style="display:none;">
-          <div class="settings-card-header" onclick="settingsToggle(this)">
-            <div class="settings-card-header-icon"><i class="fas fa-rotate"></i></div>
+          <div class="settings-card-header">
             <div class="settings-card-header-text">
               <span class="settings-card-title">Executive Dashboard Sync</span>
               <span class="settings-card-subtitle">Push latest ESH numbers to the Executive Dashboard</span>
             </div>
-            <i class="fas fa-chevron-right settings-card-chevron"></i>
           </div>
           <div class="settings-card-body">
             <div class="settings-card-body-inner">
-              <div style="background:#e8f5e9;border-left:3px solid #2e7d32;padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:0.75rem;color:#1b5e20;line-height:1.6;">
+              <p class="settings-note">
                 Pushes the latest ESH numbers to the Executive Dashboard (executive-summary.html) right away, instead of waiting for the next auto-save.
+              </p>
+              <div class="settings-actions">
+                <button class="settings-btn settings-btn-primary" id="exec-resync-btn" onclick="forceResyncExecutiveSummary(document.getElementById('exec-resync-btn'))">Resync now</button>
               </div>
-              <button class="settings-btn settings-btn-primary" id="exec-resync-btn" onclick="forceResyncExecutiveSummary(document.getElementById('exec-resync-btn'))">
-                <i class="fas fa-rotate"></i> RESYNC NOW
-              </button>
             </div>
           </div>
         </div>
 
+        </div><!-- /admin panel -->
+
       </div><!-- /.settings-accordion -->
+
+      <script>
+      (function () {
+        window.settingsSwitchTab = function (name) {
+          document.querySelectorAll('#settings-view .settings-tab').forEach(function (t) {
+            var on = t.getAttribute('data-stab') === name;
+            t.classList.toggle('active', on);
+            t.setAttribute('aria-selected', on ? 'true' : 'false');
+          });
+          document.querySelectorAll('#settings-view .settings-tab-panel').forEach(function (p) {
+            p.classList.toggle('active', p.getAttribute('data-stab') === name);
+          });
+        };
+        // Admin tab only appears when at least one of its cards is visible
+        // (their display is toggled in personnel-settings.js).
+        function syncAdminTab() {
+          var tab = document.getElementById('settings-tab-admin');
+          if (!tab) return;
+          var show = ['backup-recovery-card', 'exec-resync-card'].some(function (id) {
+            var c = document.getElementById(id);
+            return c && c.style.display !== 'none';
+          });
+          tab.style.display = show ? '' : 'none';
+          if (!show && tab.classList.contains('active')) window.settingsSwitchTab('profile');
+        }
+        ['backup-recovery-card', 'exec-resync-card'].forEach(function (id) {
+          var c = document.getElementById(id);
+          if (c && window.MutationObserver) {
+            new MutationObserver(syncAdminTab).observe(c, { attributes: true, attributeFilter: ['style'] });
+          }
+        });
+        syncAdminTab();
+      })();
+      </script>
 
       <div class="ix-7b72543">
         <div class="ix-461948e">
