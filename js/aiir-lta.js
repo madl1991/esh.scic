@@ -1897,14 +1897,11 @@ window._ltaCARowHtml = function(pId, r, canEdit, dis) {
 
             let html = '';
 
-            html += `<div class="tab-info-bar tib-oneline">
-                <div class="tib-body">
-                    <p class="tib-sub">Lost Time Accident records per project</p>
-                    <span class="tib-info" title="Days Lost are auto-computed (excl. Sundays, starting day after accident) and auto-sync to the Days Lost/Charged row in the Medical Tab. All incident classifications (LTA, Medical Treatment, First Aid, Fatality, etc.) are automatically reflected in the ACCIDENT/INCIDENT RECORD tab.">i</span>
-                </div>
-                <div class="tib-badges">
-                    <span class="tib-pill tib-pill-green">${displayProjects.length} PROJECTS</span>
-                    <span class="tib-pill tib-pill-yellow">${totalEntries} LTA ENTRIES</span>
+            html += `<div class="sec-head" style="margin:10px 16px 12px;border-radius:10px;">
+                <div class="sec-head-title">Lost Time Accident records per project <span class="sec-info" title="Days Lost are auto-computed (excl. Sundays, starting day after accident) and auto-sync to the Days Lost/Charged row in the Medical Tab. All incident classifications (LTA, Medical Treatment, First Aid, Fatality, etc.) are automatically reflected in the ACCIDENT/INCIDENT RECORD tab.">i</span></div>
+                <div class="sec-head-badges">
+                    <span class="sec-pill sec-pill-green">${displayProjects.length} PROJECTS</span>
+                    <span class="sec-pill sec-pill-yellow">${totalEntries} LTA ENTRIES</span>
                 </div>
             </div>`;
 
