@@ -182,10 +182,9 @@ function buildIncidentTabulationHTML() {
       <div style="background: var(--bg-card); border-radius: 0 0 12px 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border:none; border-top: none; margin-bottom: 10px;">
 
         
-        <div style="background: #2f7d4f; color: white; padding: 8px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-          <i class="fas fa-calculator" style="font-size: 0.9rem;"></i>
-          <span style="font-weight: 700; font-size: 0.85rem; letter-spacing: 0.4px;">INCIDENT TABULATION RATE</span>
-          <span style="background: var(--safety-yellow); color: #1b5e20; padding: 2px 8px; border-radius: 20px; font-size: 0.62rem; font-weight: 800; margin-left: 2px;">AUTO-COMPUTED · ${d.projectCount} PROJECTS (${d.activeCount} ACTIVE) · ${d.throughLabel}</span>
+        <div class="sec-head">
+          <div class="sec-head-title">INCIDENT TABULATION RATE</div>
+          <div class="sec-head-badges"><span class="sec-pill sec-pill-yellow">AUTO-COMPUTED · ${d.projectCount} PROJECTS (${d.activeCount} ACTIVE) · ${d.throughLabel}</span></div>
         </div>
 
         
@@ -620,7 +619,7 @@ function _mdlHtml(o) {
         : '<span class="mdl-title">' + o.title + '</span>';
     var foot = (o.foot == null ? '' : String(o.foot)).trim();
     return '<div class="mdl" style="max-width:' + w + ';">'
-        + '<div class="mdl-head' + (hasExtra ? ' top' : '') + '">' + (o.iconImg ? '<img src="' + o.iconImg + '" alt="" style="width:30px;height:auto;max-height:30px;object-fit:contain;flex-shrink:0;margin-right:10px;">' : '<i class="fas ' + (o.icon || 'fa-circle-info') + ' mdl-ic"></i>') + titleBlock
+        + '<div class="mdl-head' + (hasExtra ? ' top' : '') + '">' + (o.iconImg ? '<img src="' + o.iconImg + '" alt="" style="width:30px;height:auto;max-height:30px;object-fit:contain;flex-shrink:0;margin-right:10px;">' : (o.noIcon ? '' : '<i class="fas ' + (o.icon || 'fa-circle-info') + ' mdl-ic"></i>')) + titleBlock
         + '<button class="mdl-x" onclick="' + closeJs + '" title="Close" aria-label="Close">&times;</button></div>'
         + '<div class="mdl-body' + (o.bodyFlex ? ' flex' : '') + '">' + o.body + '</div>'
         + (foot ? '<div class="mdl-foot">' + foot + '</div>' : '<div class="mdl-gap"></div>')
@@ -1032,9 +1031,9 @@ function renderSafetyAlertAwardPanel() {
     const alertsCol = `
     <div class="saw-col">
       <section class="saw-panel">
-        <div class="saw-panel-head">
-            <div class="saw-ph-title">Safety alert</div>
-            ${topAlerts.length > 0 ? `<span class="saw-ph-side">${topAlerts.length} latest</span>` : ''}
+        <div class="sec-head">
+            <div class="sec-head-title">Safety alert</div>
+            ${topAlerts.length > 0 ? `<span class="sec-head-side">${topAlerts.length} latest</span>` : ''}
         </div>
         <div class="saw-alert-list">${alertsListHtml}</div>
         ${alerts.length > 0 ? `<div class="saw-more" onclick="changeTab('safety-alerts')">See more alerts</div>` : ''}
@@ -1045,9 +1044,9 @@ function renderSafetyAlertAwardPanel() {
     const awardCol = `
     <div class="saw-col">
       <section class="saw-panel">
-        <div class="saw-panel-head">
-            <div class="saw-ph-title">ESH award and recognition</div>
-            <div class="saw-ph-actions">
+        <div class="sec-head">
+            <div class="sec-head-title">ESH award and recognition</div>
+            <div class="sec-head-badges">
                 ${canPublish ? `<button type="button" class="saw-chip fill" onclick="safetyOpenAwardForm()">+ Award</button>` : ''}
                 <button type="button" class="saw-chip" onclick="safetyOpenAwardHistoryModal()">View all</button>
             </div>
@@ -1707,7 +1706,6 @@ function buildIncidentRecommendationsHTML(tabType) {
 
 function buildTrendChartHTML(tabType) {
     const title = tabType === 'rates' ? 'STATISTICS RATE TRENDS' : 'ACCIDENT/INCIDENT TRENDS';
-    const icon = tabType === 'rates' ? 'fa-chart-line' : 'fa-chart-area';
     const persistentId = `trend-chart-persistent-${tabType}`;
 
     const _miniCard = (key, label) => `<div style="border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:12px;padding:12px 14px;background:var(--bg-card);">
@@ -1728,18 +1726,13 @@ function buildTrendChartHTML(tabType) {
         persistentEl.dataset.initialized = 'true';
         persistentEl.innerHTML = `
       <div style="background: var(--bg-card); border-radius: ${tabType === 'rates' ? '12px 12px 0 0' : '12px'}; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border:none; margin-bottom: ${tabType === 'rates' ? '0' : '16px'};">
-        <div style="background: #2f7d4f; color: white; padding: 7px 16px; position: relative; overflow: hidden;">
-          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 15px; position: relative; z-index: 2;">
-            <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
-              <i class="fas ${icon}" style="font-size: 0.9rem;"></i>
-              <span style="font-weight: 700; font-size: 0.8rem; letter-spacing: 0.5px;">${title}</span>
-            </div>
-            <div style="display: flex; gap: 10px; flex-wrap: nowrap; flex-shrink: 0;">
+        <div class="sec-head">
+          <div class="sec-head-title">${title}</div>
+          <div class="sec-head-badges">
               <select id="trendProjectFilter_${tabType}" onchange="updateTrendChart('${tabType}')"
                       style="padding: 3px 24px 3px 10px; border-radius: 6px; border: none; font-size: 0.7rem; font-weight: 600; background: white; color: #1f5b3a; cursor: pointer; width: 200px;">
                 <option value="all">All Projects</option>
               </select>
-            </div>
           </div>
         </div>
         <div style="padding: 14px 16px;">
