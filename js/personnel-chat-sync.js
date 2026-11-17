@@ -1730,7 +1730,7 @@ window.RowSaveManager = (function() {
 window.openHealthReportModal = function() {
   window.eshOpenModal({
     id: 'health-report-pending-modal',
-    icon: 'fa-file-medical',
+    noIcon: true,
     title: 'Health Reportorial',
     sub: 'ESH Health Report Module',
     width: 460,
