@@ -1193,7 +1193,9 @@ async function executeForceLogout(targetUid, targetEmail) {
 
     const confirmed = await showModernDialog(
         'Force Logout?',
-        `Are you sure you want to force logout <strong>${targetEmail}</strong>?<br><br>They will be immediately signed out from all active sessions.${offlineNote}`
+        `Are you sure you want to force logout <strong>${targetEmail}</strong>?<br><br>They will be immediately signed out from all active sessions.${offlineNote}`,
+        true,
+        'Force logout'
     );
     if (!confirmed) return;
 
@@ -1296,6 +1298,12 @@ function hideLoadingScreen() {
     if (!lo || lo.style.display === 'none') return;
     const wait = Math.max(0, LOADING_SCREEN_MIN_MS - (performance.now() - (window._loaderShownAt || 0)));
     setTimeout(() => {
+        // reset while the loading screen is still fully covering the page
+        window._osIntroDone = false;
+        if (state.charts && state.charts.region) { state.charts.region.destroy(); state.charts.region = null; }
+        if (typeof window.rateMiniIntroReset === 'function') window.rateMiniIntroReset();
+        if (typeof render === 'function') render();
+        // then fade out, so the animation is seen from zero
         lo.classList.add('fl-hide');
         setTimeout(() => { lo.style.display = 'none'; }, 400);
     }, wait);
@@ -1387,18 +1395,8 @@ function setupAuthObserver() {
 
             const userBadge = document.getElementById('user-badge');
             if (userBadge) {
-                let roleIcon = 'fa-user-tie';
-                if (state.isAdmin) roleIcon = 'fa-user-shield';
-                else if (userInfo.role === 'pco') roleIcon = 'fa-leaf';
                 const roleLabel = state.currentUser.displayName || (state.isAdmin ? 'ESH Admin' : userInfo.displayName);
-                
-                const nameDiv = userBadge.querySelector('.name');
-                if (nameDiv) {
-                    nameDiv.innerHTML = `
-                        <i class="fas ${roleIcon}"></i>
-                        ${roleLabel}
-                    `;
-                }
+                window.updateUserBadge(roleLabel); // "Welcome back, <name>" + role icon (helper in core-helpers.js)
                 
                 if (state.isAdmin) {
                 }
