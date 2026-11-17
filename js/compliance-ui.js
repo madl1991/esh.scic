@@ -1061,7 +1061,7 @@
                     const _rcNextOk = _rcv < _rcMaxMonth;
                     const _rcMonthLabel = _rcv === 0 ? 'Overall Average' : _RC_MONTHS[_rcv - 1];
                     _rcNav.innerHTML =
-                        `<span style="font-size:0.72rem;font-weight:700;color:${_rcv === 0 ? 'var(--hv-muted)' : 'var(--hv-brand)'};min-width:100px;text-align:center;letter-spacing:0.03em;">${_rcMonthLabel}</span>`;
+                        `<span style="font-size:0.95rem;font-weight:700;text-transform:uppercase;color:${_rcv === 0 ? 'var(--hv-muted)' : 'var(--hv-brand)'};min-width:140px;text-align:center;letter-spacing:0.05em;">${_rcMonthLabel}</span>`;
                 }
 
                 const regionCtx = document.getElementById('regionChart');
@@ -1218,7 +1218,7 @@
                         _st.id = 'status-donut-css';
                         _st.textContent =
                             '.status-donut{display:flex;flex-direction:column;width:100%;height:100%;}' +
-                            '.status-donut svg{flex:1 1 auto;min-height:0;width:100%;display:block;}' +
+                            '.status-donut svg{flex:1 1 auto;min-height:0;width:100%;display:block;overflow:visible;}' +
                             '.status-donut .sd-slice{cursor:pointer;}' +
                             '.status-donut .sd-gap{stroke:var(--hv-panel,var(--bg-card,#fff));stroke-width:6;}' +
                             '.status-donut text{font-family:Inter,sans-serif;text-anchor:middle;dominant-baseline:middle;pointer-events:none;}' +
@@ -1247,17 +1247,17 @@
                     }
                     const hidden = [false, false, false];
                     _sdIntro = !!host._sdPending; // true only until the first draw has played
-                    const CX = 150, CY = 150, R_OUT = 140, R_IN = 98; // cutout 70%
+                    const CX = 150, CY = 150, R_OUT = 140, R_IN = 88; // cutout ~63% (thicker ring)
                     const pt = (r, a) => [CX + r * Math.cos(a), CY + r * Math.sin(a)];
                     const f = n => n.toFixed(3);
-                    const WC = 2 * Math.PI * 119; // length of the circle used for the first-draw wipe
+                    const WC = 2 * Math.PI * 114; // length of the circle used for the first-draw wipe
 
                     // Slice with rounded corners. Small gap between slices comes from PAD (replaces the old white gap lines).
-                    const PAD = 3 / ((R_OUT + R_IN) / 2);
+                    const PAD = 4 / ((R_OUT + R_IN) / 2);
                     function slicePathRound(a0, a1) {
                         a0 += PAD; a1 -= PAD;
                         const sw = a1 - a0;
-                        let rc = Math.min(12, (R_OUT - R_IN) / 2 - 1);
+                        let rc = Math.min(10, (R_OUT - R_IN) / 2 - 1);
                         while (rc > 0.5 && 2 * Math.asin(rc / (R_IN + rc)) > sw * 0.9) rc *= 0.8; // thin slice: smaller corners
                         const to = Math.asin(rc / (R_OUT - rc)), ti = Math.asin(rc / (R_IN + rc));
                         const lo = (R_OUT - rc) * Math.cos(to), li = (R_IN + rc) * Math.cos(ti);
@@ -1329,14 +1329,15 @@
                         const _play = _sdIntro; _sdIntro = false;
                         const vis = _stData.map((v, i) => hidden[i] ? 0 : v);
                         const visTotal = vis.reduce((a, b) => a + b, 0);
-                        let svg = '<svg viewBox="0 0 300 300" preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">';
-                        if (_play) svg += '<defs><mask id="sd-wipe-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="300" height="300"><circle id="sd-wipe-c" cx="150" cy="150" r="119" fill="none" stroke="#fff" stroke-width="46" stroke-dasharray="' + WC.toFixed(2) + '" stroke-dashoffset="' + WC.toFixed(2) + '" transform="rotate(-90 150 150)"/></mask></defs><g mask="url(#sd-wipe-mask)">';
+                        let svg = '<svg viewBox="0 0 300 300" preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">' +
+                            '<defs><filter id="sd-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.28"/></filter></defs>';
+                        if (_play) svg += '<defs><mask id="sd-wipe-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="300" height="300"><circle id="sd-wipe-c" cx="150" cy="150" r="114" fill="none" stroke="#fff" stroke-width="56" stroke-dasharray="' + WC.toFixed(2) + '" stroke-dashoffset="' + WC.toFixed(2) + '" transform="rotate(-90 150 150)"/></mask></defs><g mask="url(#sd-wipe-mask)">';
                         let ang = -Math.PI / 2, gaps = '';
                         const nonZero = vis.filter(v => v > 0).length;
                         vis.forEach((v, i) => {
                             if (v <= 0) return;
                             const sweep = visTotal > 0 ? (v / visTotal) * Math.PI * 2 : 0;
-                            svg += '<path class="sd-slice" data-i="' + i + '" fill="' + _stColors[i] + '" fill-rule="evenodd" d="' + (nonZero > 1 ? slicePathRound : slicePath)(ang, ang + sweep) + '"/>';
+                            svg += '<path class="sd-slice" data-i="' + i + '" fill="' + _stColors[i] + '" fill-rule="evenodd" filter="url(#sd-shadow)" d="' + (nonZero > 1 ? slicePathRound : slicePath)(ang, ang + sweep) + '"/>';
                             ang += sweep;
                         });
                         if (_play) svg += '</g>';
