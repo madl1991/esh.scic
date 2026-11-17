@@ -453,14 +453,12 @@ function renderTabulation() {
     <div style="max-width:1500px;margin:0 auto;">
 
         
-        <div class="tab-info-bar tib-oneline" style="margin:10px 0 12px;">
-            <div class="tib-body">
-                <p class="tib-title">SCIC Incident / Accident Tabulation</p>
-                <p class="tib-sub">Showing data for ${year} · FM-ESH-01-42</p>
-            </div>
-            <div class="tib-badges">
-                ${d.isAutoComputed ? `<span class="tib-pill tib-pill-yellow">${window.icon("bolt")} AUTO-COMPUTED</span>` : ''}
-                <span class="tib-pill tib-pill-green">${d.yearlyTotal} INCIDENTS ${year}</span>
+        <div class="sec-head" style="margin:10px 0 12px;border-radius:10px;">
+            <div class="sec-head-title">SCIC Incident / Accident Tabulation</div>
+            <span class="sec-head-side">Showing data for ${year} · FM-ESH-01-42</span>
+            <div class="sec-head-badges">
+                ${d.isAutoComputed ? `<span class="sec-pill sec-pill-yellow">${window.icon("bolt")} AUTO-COMPUTED</span>` : ''}
+                <span class="sec-pill sec-pill-green">${d.yearlyTotal} INCIDENTS ${year}</span>
             </div>
         </div>
 
@@ -1004,18 +1002,17 @@ function renderTabulation() {
         window.cgaHeaderHtml = function(moName, selYear, prevBtn, nextBtn) {
             return '<div class="cga-head">' +
                 '<div class="cga-head-left">' +
-                    '<i class="fas fa-magnifying-glass-chart cga-icon"></i>' +
                     '<div>' +
                         '<div class="cga-title">Monthly Compliance Gap Analysis</div>' +
-                        '<div class="cga-sub">Detected gaps for <strong>' + moName + ' ' + selYear + '</strong> — areas that reduced compliance below 100%. Click a region or area for the full breakdown.</div>' +
+                        '<div class="cga-sub">Detected gaps for <strong>' + moName + ' ' + selYear + '</strong> — areas that reduced compliance below 100%. Click a region or area for the full breakdown.' +
+                        '<span class="cga-legend">' +
+                            '<span><i class="cga-dot cga-bar-ok"></i>90% and above</span>' +
+                            '<span><i class="cga-dot cga-bar-warn"></i>70% to 89%</span>' +
+                            '<span><i class="cga-dot cga-bar-bad"></i>Below 70%</span>' +
+                        '</span></div>' +
                     '</div>' +
                 '</div>' +
                 '<div class="cga-month">' + prevBtn + '<span class="cga-month-label">' + moName + ' ' + selYear + '</span>' + nextBtn + '</div>' +
-            '</div>' +
-            '<div class="cga-legend">' +
-                '<span><i class="cga-dot cga-bar-ok"></i>90% and above</span>' +
-                '<span><i class="cga-dot cga-bar-warn"></i>70% to 89%</span>' +
-                '<span><i class="cga-dot cga-bar-bad"></i>Below 70%</span>' +
             '</div>';
         };
         window.cgaBodyHtml = function(regGaps, selMonth, moName, selYear, detailLabels) {
@@ -1036,7 +1033,6 @@ function renderTabulation() {
                         var focus = ((detailLabels && detailLabels[g.key]) || g.label).replace(/'/g, "\\'");
                         rows += '<div class="cga-item cga-' + cgaStatus(pct) + '" onclick="event.stopPropagation();showComplianceGapModal(\'' + regionSafe + '\', ' + selMonth + ', \'' + focus + '\');" title="Click to see which projects/fields are missing">' +
                                     '<div class="cga-line"><span>' + g.label + '</span><span class="cga-count"><b>' + g.missing + '</b> missing / ' + g.total + '</span></div>' +
-                                    '<div class="cga-track"><div class="cga-fill cga-bar-' + cgaStatus(pct) + '" style="width:' + pct + '%"></div></div>' +
                                 '</div>';
                     });
                     if (gaps.length < maxRows) rows += '<div class="cga-clear">No other gaps this month</div>';
