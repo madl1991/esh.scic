@@ -583,7 +583,7 @@
         modal.id = 'got-compliance-modal';
 
         window.eshMountModal(modal, {
-            id: 'got-compliance-modal', icon: 'fa-bullseye', width: 'min(1600px,98vw)', bodyFlex: true,
+            id: 'got-compliance-modal', noIcon: true, width: 'min(1600px,98vw)', bodyFlex: true,
             closeJs: 'window.gotCloseMonthDialog()',
             title: (canEdit ? 'Edit compliance' : 'View compliance') + ' — <span id="gotm-title-month" style="color:#2e7d32;">' + GOT_M_FULL[month - 1] + ' ' + selYr + '</span>',
             sub: window.eshModalSub({ loc: reg, count: info.eligible.length }),
