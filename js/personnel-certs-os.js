@@ -388,7 +388,7 @@ function osShowSearchDropdown(val, inputEl) {
     }
 
     // Position the dropdown using fixed coords from the input element
-    const src = inputEl || document.getElementById('search-input');
+    const src = (inputEl && inputEl.closest && inputEl.closest('.esh-search')) || inputEl || document.getElementById('search-input');
     if (src) {
         const rect = src.getBoundingClientRect();
         dropdown.style.top    = (rect.bottom + 4) + 'px';
@@ -443,7 +443,7 @@ window.addEventListener('scroll', function() {
     if (!dropdown || dropdown.style.display === 'none') return;
     const input = document.getElementById('search-input');
     if (input) {
-        const rect = input.getBoundingClientRect();
+        const rect = (input.closest('.esh-search') || input).getBoundingClientRect();
         dropdown.style.top  = (rect.bottom + 4) + 'px';
         dropdown.style.left = rect.left + 'px';
         dropdown.style.width = rect.width + 'px';
