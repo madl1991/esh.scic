@@ -4,7 +4,10 @@ window.ENV_REGIONS = Object.freeze(['CORPORATE', 'PLANT OPERATIONS', 'NCR', 'SOU
 // ── ICONS (Font Awesome 6.4.0) — one place for every UI icon. Usage: icon('warn') ──────────
 window._dispProjName = function (n) { return n === 'Corporate' ? 'ESH Corporate' : n; }; // display only: real name stays 'Corporate' (used as data key)
 window.ESH_ICONS = { "warn": "fa-triangle-exclamation", "error": "fa-circle-xmark", "lock": "fa-lock", "ok": "fa-circle-check", "info": "fa-circle-info", "wait": "fa-hourglass-half", "edit": "fa-pen", "pin": "fa-location-dot", "pinned": "fa-thumbtack", "trash": "fa-trash", "view": "fa-eye", "list": "fa-clipboard-list", "dot-red": [ "fa-circle", "#e53935" ], "file": "fa-file-lines", "building": "fa-building", "plant": "fa-industry", "dot-orange": [ "fa-circle", "#fb8c00" ], "search": "fa-magnifying-glass", "calendar": "fa-calendar-days", "refresh": "fa-rotate", "stop": "fa-ban", "globe": "fa-globe", "block": "fa-ban", "shield": "fa-shield-halved", "nophone": "fa-mobile-screen", "weather": "fa-cloud-sun", "numbers": "fa-hashtag", "idea": "fa-lightbulb", "key": "fa-key", "alert": "fa-bell", "leaf": "fa-leaf", "upload": "fa-upload", "water": "fa-droplet", "save": "fa-floppy-disk", "chart": "fa-chart-column", "sq-green": [ "fa-square", "#43a047" ], "sq-yellow": [ "fa-square", "#fdd835" ], "sq-red": [ "fa-square", "#e53935" ], "sq-dark": [ "fa-square", "#424242" ], "cloud": "fa-cloud", "download": "fa-download", "tool": "fa-wrench", "sun": "fa-sun", "city": "fa-city", "moon": "fa-moon", "newmoon": [ "fa-circle", "#424242" ], "checked": "fa-square-check", "gear": "fa-gear", "bolt": "fa-bolt", "plus": "fa-plus", "lock2": "fa-lock", "robot": "fa-robot", "plug": "fa-plug", "fuel": "fa-gas-pump", "hardhat": "fa-helmet-safety", "unlock": "fa-lock-open", "home": "fa-house", "seedling": "fa-seedling", "chevron-down": "fa-chevron-down", "chevron-right": "fa-chevron-right", "folder": "fa-folder-open", "calc": "fa-calculator", "times": "fa-xmark", "plus-circle": "fa-circle-plus", "snowflake": "fa-snowflake", "desktop": "fa-desktop" };
+// Only these icons are shown. Every other name returns '' (decorative icons removed). To bring one back, add its name here.
+window.ESH_ICONS_KEEP = { 'warn': 1, 'error': 1, 'ok': 1, 'wait': 1, 'lock': 1, 'lock2': 1, 'unlock': 1, 'edit': 1, 'trash': 1, 'view': 1, 'times': 1, 'plus': 1, 'plus-circle': 1, 'save': 1, 'upload': 1, 'download': 1, 'search': 1, 'refresh': 1, 'gear': 1, 'checked': 1, 'stop': 1, 'block': 1, 'chevron-down': 1, 'chevron-right': 1, 'dot-red': 1, 'dot-orange': 1, 'sq-green': 1, 'sq-yellow': 1, 'sq-red': 1, 'sq-dark': 1, 'newmoon': 1 };
 window.icon = function (name, extraClass, attrs) {   // attrs = extra attributes as a string, e.g. 'id="x" style="font-size:.8rem"' (do not pass style for icons that have a color in the pack)
+    if (!window.ESH_ICONS_KEEP[name]) return '';
     var d = window.ESH_ICONS[name]; if (!d) return '';
     var cls = Array.isArray(d) ? d[0] : d, col = Array.isArray(d) ? d[1] : '';
     return '<i class="fa-solid ' + cls + (extraClass ? ' ' + extraClass : '') + '"' + (attrs ? ' ' + attrs : '') + (col ? ' style="color:' + col + '"' : '') + '></i>';
@@ -14,7 +17,8 @@ window.icon = function (name, extraClass, attrs) {   // attrs = extra attributes
 window.HDR_ICON_DIR = 'icons/';
 window.HDR_ICON_VER = 2;
 window.HDR_ICONS = {'trainings':'trainings.png','audit':'audit.png','violation':'violation.png','tabulation':'tabulation.png','registry':'registry.png','record':'record.png','alert':'alert.png','health':'health.png','envmon':'envmon.png','envrep':'envrep.png','got':'got.png','kpm':'kpm.png','activities':'activities.png','requirement':'requirement.png','personnel':'personnel.png','exposure':'exposure.png','rates':'rates.png','home':'home.png','dashboard':'dashboard.png'};
-window.hdrIcon = function (key) { var f = window.HDR_ICONS[key]; return f ? '<img class="hdr-ico" src="' + window.HDR_ICON_DIR + f + '?v=' + window.HDR_ICON_VER + '" alt="" aria-hidden="true" draggable="false">' : ''; };
+window.hdrIcon = function (key) { return ''; };   // page title icons removed
+window._hdrIconOld = function (key) { var f = window.HDR_ICONS[key]; return f ? '<img class="hdr-ico" src="' + window.HDR_ICON_DIR + f + '?v=' + window.HDR_ICON_VER + '" alt="" aria-hidden="true" draggable="false">' : ''; };
 // ── TOP BAR TITLE ICON (the title next to the hamburger button) ──
 // The title text is set by other code, so this watches the <h2 class="header-title"> and adds the matching icon from HDR_ICONS by the title text.
 // Titles that match nothing get no icon. A title that already has its own icon (<i>, <img>, <svg>) is left alone. DOLE, DOE and EMB are never touched.
@@ -44,17 +48,8 @@ window.applyHeaderTitleIcon = function () {
     var h = document.querySelector('header .header-title');
     if (!h) return;
     var cur = h.querySelector('img.hdr-ico');
-    if (!cur && h.querySelector('i, img, svg')) return;      // the title already has its own icon
-    var txt = (h.textContent || '').replace(/\s+/g, ' ').trim().toUpperCase(), key = null;
-    if (txt && !/\b(DOLE|DOE|EMB)\b/.test(txt)) {
-        for (var i = 0; i < window.HDR_TITLE_ICONS.length; i++) {
-            if (window.HDR_TITLE_ICONS[i][0].test(txt)) { key = window.HDR_TITLE_ICONS[i][1]; break; }
-        }
-    }
-    if (cur && key && cur.getAttribute('data-k') === key) return;
     if (cur) cur.remove();
-    h.classList.toggle('has-hdr-ico', !!key);
-    if (key) h.insertAdjacentHTML('afterbegin', window.hdrIcon(key).replace('<img ', '<img data-k="' + key + '" '));
+    h.classList.remove('has-hdr-ico');
 };
 (function () {
     function init() {
@@ -78,20 +73,51 @@ window.eshChevron = function (el, open) {
 window.tabStrip = function (tabs, active, onclickFn, style) {
     var h = '<div class="tk-tabs"' + (style ? ' style="' + style + '"' : '') + '>';
     tabs.forEach(function (t) {
-        h += '<button type="button" class="' + (t.key === active ? 'on' : '') + '" onclick="' + onclickFn + '(\'' + t.key + '\')"><i class="fas ' + t.icon + '"></i> ' + t.label + '</button>';
+        h += '<button type="button" class="' + (t.key === active ? 'on' : '') + '" onclick="' + onclickFn + '(\'' + t.key + '\')">' + t.label + '</button>';
     });
     return h + '</div>';
 };
+// ── SEARCH BOX: shows only a magnifier. Click it and the box grows to the right. Styles: .esh-search in styles.css ──
+// o = { id, placeholder, value (text already typed: keeps the box open), attrs (extra attributes on the <input>, e.g. 'oninput="..."') }
+window.eshSearchBox = function (o) {
+    o = o || {};
+    var esc = function (s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); };
+    var has = o.value != null && String(o.value) !== '';
+    return '<div class="esh-search' + (has ? ' open' : '') + '"><button type="button" class="esh-search-btn" aria-label="Search" title="Search" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>'
+        + '<input type="text" class="esh-search-in"' + (o.id ? ' id="' + o.id + '"' : '') + ' placeholder="' + esc(o.placeholder || 'Search...') + '" autocomplete="off"'
+        + (o.attrs ? ' ' + o.attrs : '') + (has ? ' value="' + esc(o.value) + '"' : '') + '></div>';
+};
+// One set of listeners on document, so it also works for boxes that render() builds again. Open: click the magnifier or focus the input. Close: leave the box empty, or press Esc when empty.
+(function () {
+    function boxOf(el) { return el && el.closest ? el.closest('.esh-search') : null; }
+    function isIn(el) { return !!(el && el.classList && el.classList.contains('esh-search-in')); }
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest ? e.target.closest('.esh-search-btn') : null, b = boxOf(btn);
+        if (!b) return;
+        b.classList.add('open');
+        b.querySelector('.esh-search-in').focus({ preventScroll: true });
+    });
+    document.addEventListener('focusin', function (e) { if (isIn(e.target)) boxOf(e.target).classList.add('open'); });
+    document.addEventListener('focusout', function (e) {
+        if (!isIn(e.target)) return;
+        var b = boxOf(e.target);
+        setTimeout(function () {
+            var i = b.querySelector('.esh-search-in');
+            if (i && !i.value && !b.contains(document.activeElement)) b.classList.remove('open');
+        }, 150);
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && isIn(e.target) && !e.target.value) e.target.blur(); });
+})();
 window.regionSlug = function (reg) { return String(reg).toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9-]/g, ''); };
 // ONE region banner (the clickable bar). Every tab builds its banner with this, so markup/classes live in ONE place and styles.css does the rest.
 // o = { id, reg, toggle (global fn name, called as fn('REG', event)) | onclick (full js string), collapsed, editable,
 //       cls (extra class), style (inline), icon ('fa-...' override), label (text override), right (html placed before the chevron), iconAttrs (extra attributes on the chevron <i>, e.g. 'id="x"') }
 window.regionBanner = function (o) {
     var reg = o.reg, slug = window.regionSlug(reg);
-    var icon = o.icon || (reg === 'CORPORATE' ? 'fa-building-columns' : reg === 'PLANT OPERATIONS' ? 'fa-industry' : 'fa-location-dot');
+    var icon = o.icon || '';
     var onclick = o.onclick || (o.toggle + "('" + String(reg).replace(/'/g, "\\'") + "',event)");
     return '<div id="' + o.id + '" class="region-banner region-' + slug + (o.cls ? ' ' + o.cls : '') + (o.collapsed ? ' collapsed' : '') + (o.editable ? ' rb-editable' : '') + '" onclick="' + onclick + '"' + (o.style ? ' style="' + o.style + '"' : '') + '>'
-         + '<div class="region-banner-inner"><div class="region-banner-left"><i class="fas ' + icon + ' region-icon"></i><span class="region-name">' + (o.label || reg) + '</span></div>'
+         + '<div class="region-banner-inner"><div class="region-banner-left">' + (icon ? '<i class="fas ' + icon + ' region-icon"></i>' : '') + '<span class="region-name">' + (o.label || reg) + '</span></div>'
          + '<div class="region-banner-right">' + (o.right || '') + '<i class="fas fa-chevron-down region-toggle-icon"' + (o.iconAttrs ? ' ' + o.iconAttrs : '') + '></i></div></div></div>';
 };
 // Shared collapsible region section — banner + body.
@@ -199,7 +225,6 @@ window.envSummaryTable = function(o) {
         return '<td' + tipAttr + '>' + (c.fixed != null ? (v > 0 ? v.toFixed(c.fixed) : '\u2014') : window.envFmtNum(v, c.dec)) + '</td>';
     };
     var note = o.note ? '<div style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--tbl-line,#e3e9e4);text-align:left;font-weight:400;text-transform:none;letter-spacing:0;">'
-        + '<span style="color:#2e7d32;font-size:1.2rem;">' + window.icon(o.icon || 'seedling') + '</span>'
         + '<div style="font-size:0.74rem;line-height:1.6;flex:1;color:var(--text-primary);">' + o.note + '</div></div>' : '';
     var cap = window.rptBar({ title: o.title, sub: o.sub || 'Consolidated data from all projects across all regions', pills: o.pill ? [{ text: o.pill, id: o.pillId }] : [] })
         .replace('class="rpt-bar"', 'class="rpt-bar" style="margin:0;border:0;border-bottom:1px solid var(--tbl-line,#e3e9e4);border-radius:0;"');
@@ -211,8 +236,8 @@ window.envSummaryTable = function(o) {
     }).join('');
     var foot = '<tr><td colspan="2">GRAND TOTAL</td>'
         + o.cols.map(function(c, i) { return cell(o.totals[i], c, o.totals); }).join('') + '</tr>';
-    var empty = o.hasData ? '' : '<div style="padding:24px;text-align:center;color:var(--text-secondary);font-size:0.78rem;font-style:italic;"><span style="opacity:0.2;font-size:1.8rem;display:block;margin-bottom:8px;">'
-        + window.icon(o.icon || 'seedling') + '</span>' + (o.emptyText || 'No data entered yet.') + '</div>';
+    var empty = o.hasData ? '' : '<div style="padding:24px;text-align:center;color:var(--text-secondary);font-size:0.78rem;font-style:italic;">'
+        + (o.emptyText || 'No data entered yet.') + '</div>';
     return '<div class="rpt-wrap env-sum-kpm"><div class="rpt-card"><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:0.68rem;">'
         + '<caption style="caption-side:top;padding:0;text-align:left;">' + cap + note + '</caption>'
         + '<thead><tr>' + head1 + '</tr>' + head2 + '</thead><tbody>' + body + (o.extraRows || '') + '</tbody><tfoot>' + foot + '</tfoot></table></div>' + empty + '</div></div>';
@@ -536,3 +561,25 @@ function getOshManpowerInfo(p) {
 function getOshManpower(p) { return getOshManpowerInfo(p).value; }
 window.getOshManpowerInfo = getOshManpowerInfo;
 window.getOshManpower = getOshManpower;
+
+// ── USER BADGE: sidebar badge text "Welcome back, <name>". One place, used by login (data-session.js) and Settings > Display Name (render.js). ──
+// Two plain lines, no icon: "Welcome back," on top, the name below. Both fade up when the badge is built (animation is in styles.css).
+// If no display name is saved, state holds the email, so only the part before @ is shown.
+window.updateUserBadge = function (name) {
+    var badge = document.getElementById('user-badge');
+    if (!badge) return;
+    var nameDiv = badge.querySelector('.name');
+    if (!nameDiv) { nameDiv = document.createElement('div'); nameDiv.className = 'name'; badge.appendChild(nameDiv); }
+    var label = String(name || '').trim();
+    if (/^[^\s@]+@[^\s@]+$/.test(label)) { label = label.split('@')[0]; label = label.charAt(0).toUpperCase() + label.slice(1); }
+    var l = document.createElement('span'); l.className = 'badge-label';
+    l.textContent = label ? 'Welcome back,' : 'Welcome back';
+    nameDiv.textContent = '';
+    nameDiv.appendChild(l);
+    if (label) {
+        var t = document.createElement('span'); t.className = 'badge-text';
+        t.textContent = label;
+        t.title = label;
+        nameDiv.appendChild(t);
+    }
+};
