@@ -65,7 +65,7 @@
                 else if (error.code === 'auth/network-request-failed') msg = 'Network error. Check your connection.';
                 errorDiv.innerText = msg;
                 loginBtn.disabled = false;
-                loginBtn.innerHTML = '<i class="fas fa-arrow-right-to-bracket"></i> Log in';
+                loginBtn.innerHTML = 'Log in';
             }
         }
 
@@ -413,7 +413,7 @@
 
             const rbacAdd = UserAccounts.checkPermission(state.currentUser?.email, 'create', region, state.currentTab);
             if (!rbacAdd.allowed) {
-                errorDiv.innerText = rbacAdd.reason.replace('403: ', '⚠️ ');
+                errorDiv.innerText = rbacAdd.reason.replace('403: ', '');
                 return;
             }
             if (UserAccounts.isPCO(state.currentUser?.email)) {
@@ -989,55 +989,103 @@
         // ── NAV CONFIG: one place for the sidebar menu + header titles ─────────────
         // group: { label, icon, items[] }   item: { tab, icon, label, title, hidden?, active?, accent?, lock? }
         // title may be a string or a function (for year-based titles). Settings is a standalone item.
+        // ── NAV ICONS: Tabler (outline, 24px, stroke 2). Key = tab id or group id ──
+        const NAV_ICONS = {
+            'headlines': '<path d="M5 12l-2 0l9 -9l9 9l-2 0"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/>',
+            'overall': '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M13.41 10.59l2.59 -2.59"/><path d="M7 12a5 5 0 0 1 5 -5"/>',
+            'rates': '<path d="M4 19l16 0"/><path d="M4 15l4 -6l4 2l4 -5l4 4"/>',
+            'exposures': '<path d="M5 13a7 7 0 1 0 14 0a7 7 0 0 0 -14 0"/><path d="M14.5 10.5l-2.5 2.5"/><path d="M17 8l1 -1"/><path d="M14 3h-4"/>',
+            'personnel': '<path d="M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/>',
+            'osh-requirement': '<path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4"/><path d="M15 19l2 2l4 -4"/>',
+            'activities': '<path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2"/><path d="M9 5a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2"/><path d="M9 14l2 2l4 -4"/>',
+            'corporate-kpm': '<path d="M3 13a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -6"/><path d="M15 9a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -10"/><path d="M9 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -14"/><path d="M4 20h14"/>',
+            'kpm': '<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2"/><path d="M9 17l0 -5"/><path d="M12 17l0 -1"/><path d="M15 17l0 -3"/>',
+            'got-monitoring': '<path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M7 12a5 5 0 1 0 10 0a5 5 0 1 0 -10 0"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/>',
+            'dole': '<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2"/><path d="M9 15l2 2l4 -4"/>',
+            'emb': '<path d="M3 21h18"/><path d="M5 21v-12l5 4v-4l5 4h4"/><path d="M19 21v-8l-1.436 -9.574a.5 .5 0 0 0 -.495 -.426h-1.145a.5 .5 0 0 0 -.494 .418l-1.43 8.582"/><path d="M9 17h1"/><path d="M14 17h1"/>',
+            'doe': '<path d="M4.28 14h15.44a1 1 0 0 0 .97 -1.243l-1.5 -6a1 1 0 0 0 -.97 -.757h-12.44a1 1 0 0 0 -.97 .757l-1.5 6a1 1 0 0 0 .97 1.243"/><path d="M4 10h16"/><path d="M10 6l-1 8"/><path d="M14 6l1 8"/><path d="M12 14v4"/><path d="M7 18h10"/>',
+            'env-monthly-report': '<path d="M5 21c.5 -4.5 2.5 -8 7 -10"/><path d="M9 18c6.218 0 10.5 -3.288 11 -12v-2h-4.014c-9 0 -11.986 4 -12 9c0 1 0 3 2 5h3l.014 0"/>',
+            'health-report': '<path d="M19.5 13.572l-7.5 7.428l-2.896 -2.868m-6.117 -8.104a5 5 0 0 1 9.013 -3.022a5 5 0 1 1 7.5 6.572"/><path d="M3 13h2l2 3l2 -6l1 3h3"/>',
+            'safety-alerts': '<path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/>',
+            'medical': '<path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0"/><path d="M12 16h.01"/>',
+            'lta-registry': '<path d="M3 21l18 0"/><path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16"/><path d="M9 21v-4a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v4"/><path d="M10 9l4 0"/><path d="M12 7l0 4"/>',
+            'tabulation': '<path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14"/><path d="M3 10h18"/><path d="M10 3v18"/>',
+            'nov': '<path d="M12 4a9 9 0 0 1 5.656 16h-11.312a9 9 0 0 1 5.656 -16"/><path d="M20 9h-8.8a1 1 0 0 0 -.968 1.246c.507 2 1.596 3.418 3.268 4.254c2 1 4.333 1.5 7 1.5"/>',
+            'nov-env': '<path d="M5 21c.5 -4.5 2.5 -8 7 -10"/><path d="M9 18c6.218 0 10.5 -3.288 11 -12v-2h-4.014c-9 0 -11.986 4 -12 9c0 1 0 3 2 5h3l.014 0"/>',
+            'nov-monitoring': '<path d="M4 16l6 -7l5 5l5 -6"/><path d="M14 14a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M9 9a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M3 16a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M19 8a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/>',
+            'audit': '<path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/><path d="M7 10l2 2l4 -4"/>',
+            'cshp': '<path d="M11.46 20.846a12 12 0 0 1 -7.96 -14.846a12 12 0 0 0 8.5 -3a12 12 0 0 0 8.5 3a12 12 0 0 1 -.09 7.06"/><path d="M15 19l2 2l4 -4"/>',
+            'reg': '<path d="M5 7.2a2.2 2.2 0 0 1 2.2 -2.2h1a2.2 2.2 0 0 0 1.55 -.64l.7 -.7a2.2 2.2 0 0 1 3.12 0l.7 .7c.412 .41 .97 .64 1.55 .64h1a2.2 2.2 0 0 1 2.2 2.2v1c0 .58 .23 1.138 .64 1.55l.7 .7a2.2 2.2 0 0 1 0 3.12l-.7 .7a2.2 2.2 0 0 0 -.64 1.55v1a2.2 2.2 0 0 1 -2.2 2.2h-1a2.2 2.2 0 0 0 -1.55 .64l-.7 .7a2.2 2.2 0 0 1 -3.12 0l-.7 -.7a2.2 2.2 0 0 0 -1.55 -.64h-1a2.2 2.2 0 0 1 -2.2 -2.2v-1a2.2 2.2 0 0 0 -.64 -1.55l-.7 -.7a2.2 2.2 0 0 1 0 -3.12l.7 -.7a2.2 2.2 0 0 0 .64 -1.55v-1"/><path d="M9 12l2 2l4 -4"/>',
+            'doe-permit': '<path d="M3 7a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v10a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3l0 -10"/><path d="M7 10a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M15 8l2 0"/><path d="M15 12l2 0"/><path d="M7 16l10 0"/>',
+            'permits': '<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M5 8v-3a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2h-5"/><path d="M3 14a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/><path d="M4.5 17l-1.5 5l3 -1.5l3 1.5l-1.5 -5"/>',
+            'env-monitoring': '<path d="M7 15h10v4a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2v-4"/><path d="M12 9a6 6 0 0 0 -6 -6h-3v2a6 6 0 0 0 6 6h3"/><path d="M12 11a6 6 0 0 1 6 -6h3v1a6 6 0 0 1 -6 6h-3"/><path d="M12 15l0 -6"/>',
+            'esh-calendar-env': '<path d="M5 21c.5 -4.5 2.5 -8 7 -10"/><path d="M9 18c6.218 0 10.5 -3.288 11 -12v-2h-4.014c-9 0 -11.986 4 -12 9c0 1 0 3 2 5h3l.014 0"/>',
+            'esh-calendar-safety': '<path d="M12 4a9 9 0 0 1 5.656 16h-11.312a9 9 0 0 1 5.656 -16"/><path d="M20 9h-8.8a1 1 0 0 0 -.968 1.246c.507 2 1.596 3.418 3.268 4.254c2 1 4.333 1.5 7 1.5"/>',
+            'esh-calendar-health': '<path d="M19.5 13.572l-7.5 7.428l-2.896 -2.868m-6.117 -8.104a5 5 0 0 1 9.013 -3.022a5 5 0 1 1 7.5 6.572"/><path d="M3 13h2l2 3l2 -6l1 3h3"/>',
+            'esh-calendar-drills': '<path d="M8 16v-4a4 4 0 0 1 8 0v4"/><path d="M3 12h1m8 -9v1m8 8h1m-15.4 -6.4l.7 .7m12.1 -.7l-.7 .7"/><path d="M6 17a1 1 0 0 1 1 -1h10a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-10a1 1 0 0 1 -1 -1l0 -2"/>',
+            'esh-calendar-corp-drills': '<path d="M3 21l18 0"/><path d="M5 21v-14l8 -4v18"/><path d="M19 21v-10l-6 -4"/><path d="M9 9l0 .01"/><path d="M9 12l0 .01"/><path d="M9 15l0 .01"/><path d="M9 18l0 .01"/>',
+            'grp-dashboard': '<path d="M5 4h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1"/><path d="M5 16h4a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1"/><path d="M15 12h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1"/><path d="M15 4h4a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1"/>',
+            'grp-monitoring': '<path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>',
+            'grp-reportorial': '<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2"/><path d="M9 9l1 0"/><path d="M9 13l6 0"/><path d="M9 17l6 0"/>',
+            'grp-records': '<path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2"/><path d="M9 5a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2"/><path d="M9 12l.01 0"/><path d="M13 12l2 0"/><path d="M9 16l.01 0"/><path d="M13 16l2 0"/>',
+            'grp-compliance': '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M9 12l2 2l4 -4"/>',
+            'grp-calendar': '<path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2l0 -12"/><path d="M16 3l0 4"/><path d="M8 3l0 4"/><path d="M4 11l16 0"/><path d="M8 15h2v2h-2l0 -2"/>',
+            'settings': '<path d="M14 6m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M4 6l8 0"/><path d="M16 6l4 0"/><path d="M8 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M4 12l2 0"/><path d="M10 12l10 0"/><path d="M17 18m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M4 18l11 0"/><path d="M19 18l1 0"/>'
+        };
+        function _navIconHtml(k) {
+            const p = NAV_ICONS[k];
+            return p ? '<svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>'
+                     : '<i class="fas ' + k + '"></i>';
+        }
         const _navYr = () => state.selectedYear;
         window.NAV_CONFIG = [
-            { label: 'Dashboard & Analytics', icon: 'fa-chart-bar', items: [
-                { tab: 'headlines', icon: 'fa-house', label: 'Home', title: 'HOME' },
-                { tab: 'overall', icon: 'fa-gauge-high', label: 'Overall Summary', title: 'OVERALL SUMMARY', active: true },
-                { tab: 'rates', icon: 'fa-chart-line', label: 'Statistics Rate', title: 'STATISTICS RATE' }
+            { label: 'Dashboard & Analytics', icon: 'grp-dashboard', items: [
+                { tab: 'headlines', icon: 'headlines', label: 'Home', title: 'HOME' },
+                { tab: 'overall', icon: 'overall', label: 'Overall Summary', title: 'OVERALL SUMMARY', active: true },
+                { tab: 'rates', icon: 'rates', label: 'Statistics Rate', title: 'STATISTICS RATE' }
             ]},
-            { label: 'Monitoring', icon: 'fa-eye', items: [
-                { tab: 'exposures', icon: 'fa-stopwatch', label: 'Total Exposures', title: 'TOTAL EXPOSURES' },
-                { tab: 'personnel', icon: 'fa-users-viewfinder', label: 'ESH Personnel Monitoring', title: 'ESH PERSONNEL MONITORING' },
-                { tab: 'osh-requirement', icon: 'fa-shield-halved', label: 'OSH Personnel Requirement', title: 'OSH PERSONNEL REQUIREMENT MONITORING' },
-                { tab: 'activities', icon: 'fa-clipboard-check', label: 'ESH Activities & Programs', title: 'ESH ACTIVITIES AND PROGRAMS' }
+            { label: 'Monitoring', icon: 'grp-monitoring', items: [
+                { tab: 'exposures', icon: 'exposures', label: 'Total Exposures', title: 'TOTAL EXPOSURES' },
+                { tab: 'personnel', icon: 'personnel', label: 'ESH Personnel Monitoring', title: 'ESH PERSONNEL MONITORING' },
+                { tab: 'osh-requirement', icon: 'osh-requirement', label: 'OSH Personnel Requirement', title: 'OSH PERSONNEL REQUIREMENT MONITORING' },
+                { tab: 'activities', icon: 'activities', label: 'ESH Activities & Programs', title: 'ESH ACTIVITIES AND PROGRAMS' }
             ]},
-            { label: 'Reportorial', icon: 'fa-file-alt', items: [
-                { tab: 'corporate-kpm', icon: 'fa-chart-bar', label: 'Corporate KPM Report', title: 'CORPORATE KPM MONTHLY REPORT', hidden: true },
-                { tab: 'kpm', icon: 'fa-file-lines', label: 'KPM', title: 'KEY PERFORMANCE MEASURES REPORT' },
-                { tab: 'got-monitoring', icon: 'fa-bullseye', label: 'GOT Monitoring', title: 'GOALS, OBJECTIVES & TARGETS (GOT) MONITORING' },
-                { tab: 'dole', icon: 'fa-file-contract', label: 'DOLE Reportorial', title: 'DOLE REPORTORIAL' },
-                { tab: 'emb', icon: 'fa-industry', label: 'EMB Reportorial', title: 'EMB REPORTORIAL' },
-                { tab: 'doe', icon: 'fa-solar-panel', label: 'DOE Reportorial', title: 'DOE REPORTORIAL - RENEWABLE ENERGY PROJECTS' },
-                { tab: 'env-monthly-report', icon: 'fa-leaf', label: 'Envi Reportorial', title: 'ENVIRONMENTAL MONTHLY REPORT' },
-                { tab: 'health-report', icon: 'fa-notes-medical', label: 'Health Reportorial', title: 'HEALTH REPORTORIAL' }
+            { label: 'Reportorial', icon: 'grp-reportorial', items: [
+                { tab: 'corporate-kpm', icon: 'corporate-kpm', label: 'Corporate KPM Report', title: 'CORPORATE KPM MONTHLY REPORT', hidden: true },
+                { tab: 'kpm', icon: 'kpm', label: 'KPM', title: 'KEY PERFORMANCE MEASURES REPORT' },
+                { tab: 'got-monitoring', icon: 'got-monitoring', label: 'GOT Monitoring', title: 'GOALS, OBJECTIVES & TARGETS (GOT) MONITORING' },
+                { tab: 'dole', icon: 'dole', label: 'DOLE Reportorial', title: 'DOLE REPORTORIAL' },
+                { tab: 'emb', icon: 'emb', label: 'EMB Reportorial', title: 'EMB REPORTORIAL' },
+                { tab: 'doe', icon: 'doe', label: 'DOE Reportorial', title: 'DOE REPORTORIAL - RENEWABLE ENERGY PROJECTS' },
+                { tab: 'env-monthly-report', icon: 'env-monthly-report', label: 'Envi Reportorial', title: 'ENVIRONMENTAL MONTHLY REPORT' },
+                { tab: 'health-report', icon: 'health-report', label: 'Health Reportorial', title: 'HEALTH REPORTORIAL' }
             ]},
-            { label: 'ESH Records', icon: 'fa-triangle-exclamation', items: [
-                { tab: 'safety-alerts', icon: 'fa-bell', label: 'Safety Alerts', title: 'SAFETY ALERTS' },
-                { tab: 'medical', icon: 'fa-triangle-exclamation', label: 'Accident/Incident Record', title: 'ACCIDENT/ INCIDENT RECORD' },
-                { tab: 'lta-registry', icon: 'fa-hospital-user', label: 'Incident & Accident Registry', title: 'INCIDENT AND ACCIDENT REGISTRY' },
-                { tab: 'tabulation', icon: 'fa-table-list', label: 'Incident Tabulation', title: 'INCIDENT / ACCIDENT TABULATION' },
-                { tab: 'nov', icon: 'fa-hard-hat', label: 'OSH Issued NOV', title: 'OSH REGULATORY ISSUED NOV' },
-                { tab: 'nov-env', icon: 'fa-leaf', label: 'Envi Issued NOV', title: 'ENVI REGULATORY ISSUED NOV' },
-                { tab: 'nov-monitoring', icon: 'fa-chart-gantt', label: 'ESH NOV Monitoring', title: 'ESH NOV MONITORING' }
+            { label: 'ESH Records', icon: 'grp-records', items: [
+                { tab: 'safety-alerts', icon: 'safety-alerts', label: 'Safety Alerts', title: 'SAFETY ALERTS' },
+                { tab: 'medical', icon: 'medical', label: 'Accident/Incident Record', title: 'ACCIDENT/ INCIDENT RECORD' },
+                { tab: 'lta-registry', icon: 'lta-registry', label: 'Incident & Accident Registry', title: 'INCIDENT AND ACCIDENT REGISTRY' },
+                { tab: 'tabulation', icon: 'tabulation', label: 'Incident Tabulation', title: 'INCIDENT / ACCIDENT TABULATION' },
+                { tab: 'nov', icon: 'nov', label: 'OSH Issued NOV', title: 'OSH REGULATORY ISSUED NOV' },
+                { tab: 'nov-env', icon: 'nov-env', label: 'Envi Issued NOV', title: 'ENVI REGULATORY ISSUED NOV' },
+                { tab: 'nov-monitoring', icon: 'nov-monitoring', label: 'ESH NOV Monitoring', title: 'ESH NOV MONITORING' }
             ]},
-            { label: 'Compliance & Audit', icon: 'fa-magnifying-glass-chart', items: [
-                { tab: 'audit', icon: 'fa-magnifying-glass-dollar', label: 'Internal ESH Audit Result', title: 'INTERNAL ESH AUDIT REPORT',
+            { label: 'Compliance & Audit', icon: 'grp-compliance', items: [
+                { tab: 'audit', icon: 'audit', label: 'Internal ESH Audit Result', title: 'INTERNAL ESH AUDIT REPORT',
                   lock: { id: 'audit-nav-lock', title: 'Admin only', hidden: true } },
-                { tab: 'cshp', icon: 'fa-shield-heart', label: 'CSHP', title: 'CONSTRUCTION SAFETY & HEALTH PROGRAM (DATE APPROVED)' },
-                { tab: 'reg', icon: 'fa-certificate', label: 'Certificate of Registration', title: 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)' },
-                { tab: 'doe-permit', icon: 'fa-id-card', label: 'DOE Safety Officer Permit', title: 'DOE SAFETY OFFICER PERMIT' },
-                { tab: 'permits', icon: 'fa-leaf', label: 'Environmental Permits', title: 'ENVIRONMENTAL PERMITS/LICENSES/CLEARANCE' },
-                { tab: 'env-monitoring', icon: 'fa-seedling', label: 'Environmental Monitoring', title: 'ENVIRONMENTAL MONITORING' }
+                { tab: 'cshp', icon: 'cshp', label: 'CSHP', title: 'CONSTRUCTION SAFETY & HEALTH PROGRAM (DATE APPROVED)' },
+                { tab: 'reg', icon: 'reg', label: 'Certificate of Registration', title: 'DOLE CERTIFICATE OF REGISTRATION (DATE REGISTERED)' },
+                { tab: 'doe-permit', icon: 'doe-permit', label: 'DOE Safety Officer Permit', title: 'DOE SAFETY OFFICER PERMIT' },
+                { tab: 'permits', icon: 'permits', label: 'Environmental Permits', title: 'ENVIRONMENTAL PERMITS/LICENSES/CLEARANCE' },
+                { tab: 'env-monitoring', icon: 'env-monitoring', label: 'Environmental Monitoring', title: 'ENVIRONMENTAL MONITORING' }
             ]},
-            { label: 'ESH Calendar & Drills', icon: 'fa-calendar-check', items: [
-                { tab: 'esh-calendar-env', icon: 'fa-leaf', label: 'Environment Trainings', title: () => `${_navYr()} ESH CALENDAR — ENVIRONMENT TRAININGS` },
-                { tab: 'esh-calendar-safety', icon: 'fa-hard-hat', label: 'Safety Trainings', title: () => `${_navYr()} ESH CALENDAR — SAFETY TRAININGS` },
-                { tab: 'esh-calendar-health', icon: 'fa-heart-pulse', label: 'Health Awareness', title: () => `${_navYr()} ESH CALENDAR — HEALTH AWARENESS` },
-                { tab: 'esh-calendar-drills', icon: 'fa-person-running', label: 'Emergency Drills', title: () => `${_navYr()} ESH CALENDAR — EMERGENCY DRILLS` },
-                { tab: 'esh-calendar-corp-drills', icon: 'fa-building-columns', label: 'Corporate Drills', title: () => `${_navYr()} ESH CALENDAR — CORPORATE DRILLS`, accent: 'yellow' }
+            { label: 'ESH Calendar & Drills', icon: 'grp-calendar', items: [
+                { tab: 'esh-calendar-env', icon: 'esh-calendar-env', label: 'Environment Trainings', title: () => `${_navYr()} ESH CALENDAR — ENVIRONMENT TRAININGS` },
+                { tab: 'esh-calendar-safety', icon: 'esh-calendar-safety', label: 'Safety Trainings', title: () => `${_navYr()} ESH CALENDAR — SAFETY TRAININGS` },
+                { tab: 'esh-calendar-health', icon: 'esh-calendar-health', label: 'Health Awareness', title: () => `${_navYr()} ESH CALENDAR — HEALTH AWARENESS` },
+                { tab: 'esh-calendar-drills', icon: 'esh-calendar-drills', label: 'Emergency Drills', title: () => `${_navYr()} ESH CALENDAR — EMERGENCY DRILLS` },
+                { tab: 'esh-calendar-corp-drills', icon: 'esh-calendar-corp-drills', label: 'Corporate Drills', title: () => `${_navYr()} ESH CALENDAR — CORPORATE DRILLS`, accent: 'yellow' }
             ]},
-            { tab: 'settings', icon: 'fa-sliders', label: 'Settings', title: 'SETTINGS', hidden: true }
+            { tab: 'settings', icon: 'settings', label: 'Settings', title: 'SETTINGS', hidden: true }
         ];
         window.NAV_ITEMS = [];
         NAV_CONFIG.forEach(g => (g.items || [g]).forEach(i => NAV_ITEMS.push(i)));
@@ -1055,14 +1103,14 @@
                 : '';
             return '<div class="nav-item' + (i.active ? ' active' : '') + (i.accent ? ' nav-accent-' + i.accent : '') + '"'
                 + ' data-tab="' + i.tab + '" onclick="changeTab(\'' + i.tab + '\')"' + (i.hidden ? ' style="display:none;"' : '') + '>'
-                + '<i class="fas ' + i.icon + '"></i> ' + _navEsc(i.label) + lock + '</div>';
+                + _navIconHtml(i.icon) + ' ' + _navEsc(i.label) + lock + '</div>';
         }
         function renderNav() {
             const nav = document.getElementById('main-nav');
             if (!nav) return;
             nav.innerHTML = NAV_CONFIG.map(g => g.items
                 ? '<div class="nav-group"><div class="nav-group-header collapsed" onclick="toggleNavGroup(this)">'
-                  + '<span><i class="fas ' + g.icon + '"></i> ' + _navEsc(g.label) + '</span><i class="fas fa-chevron-down chevron"></i></div>'
+                  + '<span>' + _navIconHtml(g.icon) + ' ' + _navEsc(g.label) + '</span><i class="fas fa-chevron-down chevron"></i></div>'
                   + '<div class="nav-group-items collapsed">' + g.items.map(_navItemHtml).join('') + '</div></div>'
                 : _navItemHtml(g)).join('');
         }
