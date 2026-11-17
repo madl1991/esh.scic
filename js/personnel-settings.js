@@ -40,7 +40,7 @@
             if (!confirmChange) return;
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> VERIFYING & UPDATING...';
+            btn.textContent = 'Verifying and updating...';
             showSettingsMsg('settings-message', 'Step 1/3: Verifying your identity...', 'loading');
 
             try {
@@ -104,7 +104,7 @@
                 }
                 
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-key"></i> UPDATE PASSWORD';
+                btn.textContent = 'Update password';
             }
         }
 
@@ -133,9 +133,7 @@
             const el = document.getElementById(elId);
             if (!el) return;
             el.className = 'settings-msg' + (type ? ' ' + type : '');
-            el.innerHTML = type === 'loading'
-                ? `<i class="fas fa-spinner fa-spin"></i> ${text}`
-                : text;
+            el.innerHTML = text;
             if (text && type !== 'loading') {
                 setTimeout(() => { el.className = 'settings-msg'; el.innerHTML = ''; }, 4500);
             }
@@ -159,10 +157,10 @@
             if (fbStatus) {
                 if (firebaseReady && window.firebaseDb) {
                     fbStatus.className = 'firebase-status-badge connected';
-                    fbStatus.innerHTML = '<i class="fas fa-wifi"></i> Connected';
+                    fbStatus.textContent = 'Connected';
                 } else {
                     fbStatus.className = 'firebase-status-badge disconnected';
-                    fbStatus.innerHTML = '<i class="fas fa-wifi-slash"></i> Disconnected';
+                    fbStatus.textContent = 'Disconnected';
                 }
             }
 
