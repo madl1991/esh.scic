@@ -1770,12 +1770,14 @@ function _rateMiniIntro(key, inst, st, host, fmt) {
         if (inst.canvas && inst.canvas.isConnected) inst.draw();
     };
     const run = () => {
-        let t0 = null;
+        let t0 = null, lastDraw = 0;
         const step = ts => {
             if (st.done || st.gen !== gen) return;
             if (!inst.canvas || !inst.canvas.isConnected) return;
             if (t0 === null) t0 = ts;
             const p = Math.min((ts - t0) / dur, 1), e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+            if (p < 1 && lastDraw && ts - lastDraw < 33) { requestAnimationFrame(step); return; } // max ~30 redraws/sec; the last frame (p = 1) always draws
+            lastDraw = ts;
             st.p = e;
             const el = document.getElementById('rateMiniVal_' + key);
             if (el && st.target !== null) el.textContent = fmt(st.target * e, st.target);
