@@ -28,10 +28,12 @@
             container.querySelectorAll('#grand-stats .stat-card').forEach((el, i) => {
                 el.classList.add('os-a'); el.style.setProperty('--os-d', (0.05 + i * 0.08) + 's');
             });
-            let n = 0; // only the first 14 banners/rows animate, so a long list is readable right away
-            container.querySelectorAll('.region-banner, .project-row').forEach(el => {
-                if (n >= 14) return;
-                el.classList.add('os-a'); el.style.setProperty('--os-d', (0.4 + n * 0.05) + 's'); n++;
+            let n = 0; // every region banner animates (no region is skipped); in each open region only its first 3 project rows, so the intro stays short
+            container.querySelectorAll('.region-banner').forEach(b => {
+                const body = b.nextElementSibling, isOpen = body && !body.classList.contains('collapsed');
+                [b].concat(isOpen ? Array.from(body.querySelectorAll('.project-row')).slice(0, 3) : []).forEach(el => {
+                    el.classList.add('os-a'); el.style.setProperty('--os-d', (0.4 + n * 0.04) + 's'); n++;
+                });
             });
             container.classList.add('os-intro');
             container.querySelectorAll('#grand-stats .stat-value').forEach(el => osCountUp(el, 250));
@@ -92,12 +94,7 @@
                 <div style="margin: 0 20px 10px;">
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <div style="flex: 1; min-width: 250px;">
-                            <input type="text" id="search-input" placeholder="Search projects..."
-                                   autocomplete="off"
-                                   oninput="handleSearch(); osShowSearchDropdown(this.value, this)"
-                                   onkeyup=""
-                                   value="${state.searchTerm || ''}"
-                                   style="width: 100%; padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--input-bg); color: var(--text-primary); box-sizing: border-box;">
+                            ${window.eshSearchBox({ id: 'search-input', placeholder: 'Search projects...', value: state.searchTerm, attrs: 'oninput="handleSearch(); osShowSearchDropdown(this.value, this)"' })}
                         </div>
                     </div>
                 </div>
@@ -183,8 +180,8 @@
                     </div>
                 </div>
                 <div class="charts-container">
-                    <div class="chart-box"><h3><i class="fas fa-chart-bar"></i> Compliance by Region <span class="cb-hint"><i class="fas fa-hand-pointer"></i> click a bar to see what's missing</span></h3><canvas id="regionChart"></canvas></div>
-                    <div class="chart-box"><h3><i class="fas fa-chart-pie"></i> Project Status</h3><div class="chart-wrap-fixed"><canvas id="statusChart"></canvas></div></div>
+                    <div class="chart-box"><h3>Compliance by Region</h3><canvas id="regionChart"></canvas></div>
+                    <div class="chart-box"><h3>Project Status</h3><div class="chart-wrap-fixed"><canvas id="statusChart"></canvas></div></div>
                 </div>
                 `;
 
@@ -3289,7 +3286,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             td.querySelectorAll('.emb-entry-block input[type="text"], .emb-entry-block input[type="date"]').forEach(function(i) { if (i.value) hasData = true; });
                             if (hasData && typeof uxDialog === 'function') {
                                 uxDialog({
-                                    tone: 'warn', icon: 'fa-triangle-exclamation',
+                                    tone: 'danger', icon: 'fa-triangle-exclamation',
                                     title: 'Clear all facility entries?',
                                     message: 'Care of Client and N/A apply to the whole project for this period. The Facility, Submission Date and Reference No. of every facility of this project will be cleared.',
                                     confirmText: 'Clear and continue', cancelText: 'Keep entries', top: true, focus: 'cancel'
@@ -4034,7 +4031,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         var _kpmSubStopped = regProjs.filter(function(p){ return isProjectOnStoppage(p); }).length;
                         var _kpmSubHidden  = regProjs.filter(function(p){ return !!p.dateFinished && isProjectHiddenForMonth(p, _kpmSubMo, selYear); }).length;
                         window.eshMountModal(modal, {
-                            id: 'kpm-month-modal', icon: 'fa-gauge-high', width: 'min(1600px,99vw)', bodyFlex: true,
+                            id: 'kpm-month-modal', noIcon: true, width: 'min(1600px,99vw)', bodyFlex: true,
                             title: (isNew ? 'New KPM entry' : (canEdit ? 'Edit KPM' : 'View KPM')) + ' — <span style="color:#2e7d32;">' + activeMo + ' ' + selYear + '</span>',
                             sub: window.eshModalSub({ loc: reg, count: _kpmSubActive, extra: [
                                 _kpmSubStopped ? '<span style="color:#ad1457;font-size:0.63rem;"><i class="fas fa-pause-circle" style="margin-right:3px;"></i>' + _kpmSubStopped + ' on work stop (excluded)</span>' : '',
@@ -4910,7 +4907,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                     (function(){
                         function _mkCard2(bg,border,icon,iconColor,label,value,sub,valueColor){
                             return '<div style="flex:1;min-width:130px;background:'+bg+';padding:12px 16px;display:flex;flex-direction:column;gap:3px;border-right:none;">'
-                                +'<div style="font-size:0.6rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;"><i class="fas '+icon+'" style="color:'+iconColor+';margin-right:5px;"></i>'+label+'</div>'
+                                +'<div style="font-size:0.6rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;">'+label+'</div>'
                                 +'<div style="font-size:1.5rem;font-weight:900;color:'+valueColor+';line-height:1;">'+value+'</div>'
                                 +'<div style="font-size:0.6rem;color:#888;">'+sub+'</div>'
                                 +'</div>';
@@ -5315,13 +5312,13 @@ document.addEventListener('click', closeAllStatusDropdowns);
 
                 let color, label;
                 if (strength < 50) {
-                    color = '#e53935'; label = '❌ Weak';
+                    color = '#e53935'; label = 'Weak';
                 } else if (strength < 75) {
-                    color = '#ff9800'; label = '⚠️ Moderate';
+                    color = '#ff9800'; label = 'Moderate';
                 } else if (strength < 100) {
-                    color = '#fbc02d'; label = '✓ Good';
+                    color = '#fbc02d'; label = 'Good';
                 } else {
-                    color = '#2e7d32'; label = '✅ Strong';
+                    color = '#2e7d32'; label = 'Strong';
                 }
 
                 let html = `<span style="color: ${color}; font-weight: 600;">${label}</span>`;
@@ -5332,6 +5329,13 @@ document.addEventListener('click', closeAllStatusDropdowns);
                 strengthDiv.innerHTML = html;
             }
         });
+
+        function toggleAllPwd(show) {
+            ['current-password', 'new-password', 'confirm-password'].forEach(id => {
+                const input = document.getElementById(id);
+                if (input) input.type = show ? 'text' : 'password';
+            });
+        }
 
         function toggleUsernameEdit() {
             const fields = document.getElementById('username-edit-fields');
@@ -5354,7 +5358,7 @@ document.addEventListener('click', closeAllStatusDropdowns);
             if (nameVal.length < 2) { showSettingsMsg('name-msg', 'Name must be at least 2 characters', 'error'); return; }
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> SAVING...';
+            btn.textContent = 'Saving...';
             showSettingsMsg('name-msg', 'Updating display name...', 'loading');
 
             try {
@@ -5368,8 +5372,7 @@ document.addEventListener('click', closeAllStatusDropdowns);
 
                 document.getElementById('current-display-name-text').textContent = nameVal;
                 document.getElementById('settings-display-name').textContent = nameVal;
-                const badge = document.getElementById('user-badge');
-                if (badge) badge.innerHTML = `<i class="fas fa-user-circle"></i> ${nameVal}`;
+                window.updateUserBadge(nameVal);
 
                 document.getElementById('username-edit-fields').style.display = 'none';
                 showSettingsMsg('name-msg', 'Display name updated successfully!', 'success');
@@ -5379,5 +5382,5 @@ document.addEventListener('click', closeAllStatusDropdowns);
             }
 
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-save"></i> SAVE NAME';
+            btn.textContent = 'Save name';
         }
