@@ -42,6 +42,15 @@ jobs:
       - name: Make icons
         run: npx capacitor-assets generate --android --iconBackgroundColor '#007838' --iconBackgroundColorDark '#007838'
 
+      - name: Make icon background transparent
+        run: |
+          cat > android/app/src/main/res/values/ic_launcher_background.xml << 'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="ic_launcher_background">#00000000</color>
+          </resources>
+          XML
+
       - name: Sync
         run: npx cap sync android
 
