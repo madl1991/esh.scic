@@ -598,6 +598,11 @@
     .tile small{font-size:.66rem;}
     .tile b{font-size:clamp(1.05rem,5.4vw,1.5rem);}
     .dn{width:clamp(110px,32vw,150px);}
+    /* panel headers: one line on phones (smaller text, chip never wraps) */
+    .hd{flex-wrap:nowrap; gap:6px; padding:10px 12px;}
+    .hd > span:first-of-type{flex:1 1 auto; min-width:0; font-size:clamp(.6rem,3vw,.78rem); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+    .chip{flex:0 0 auto; font-size:clamp(.5rem,2.4vw,.6rem); padding:3px 7px;}
+    .chip .chip-more{display:none;}
   }
 
   /* ── LOGIN on phone / tablet ── */
@@ -1082,7 +1087,7 @@ function render() {
   // ── Incident Tabulation Rate ─────────────────────────────────────
   const ratePanel = document.getElementById('rate-panel');
   if (ratePanel) {
-    const hd = hdHTML('fa-calculator', 'INCIDENT TABULATION RATE', 'AUTO-COMPUTED FROM ALL PROJECTS');
+    const hd = hdHTML('fa-calculator', 'INCIDENT TABULATION RATE', 'AUTO-COMPUTED<span class="chip-more"> FROM ALL PROJECTS</span>');
     if (!t) {
       ratePanel.innerHTML = hd + `<div class="empty">Waiting for data…</div>`;
     } else {
