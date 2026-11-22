@@ -453,14 +453,25 @@ jobs:
             exit 1
           fi
 
-      - name: Make icon background transparent
+      - name: Fix icon files (transparent background)
         run: |
-          cat > android/app/src/main/res/values/ic_launcher_background.xml << 'XML'
+          RES=android/app/src/main/res
+          cat > $RES/values/ic_launcher_background.xml << 'XML'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
               <color name="ic_launcher_background">#00000000</color>
           </resources>
           XML
+          for f in ic_launcher ic_launcher_round; do
+            cat > $RES/mipmap-anydpi-v26/$f.xml << 'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@color/ic_launcher_background"/>
+              <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+          </adaptive-icon>
+          XML
+          done
+          grep -rn "ic_launcher_background" $RES/mipmap-anydpi-v26
 
       - name: Sync
         run: npx cap sync android
