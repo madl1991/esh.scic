@@ -1,6 +1,6 @@
 {
   "appId": "com.scic.eshexecutive",
-  "appName": "Executive ESH",
+  "appName": "SCIC ESH Exec",
   "webDir": "www",
   "server": {
     "url": "__APP_URL__",
