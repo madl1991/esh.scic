@@ -1,0 +1,12 @@
+{
+  "appId": "com.scic.eshexecutive",
+  "appName": "Executive ESH",
+  "webDir": "www",
+  "server": {
+    "url": "__APP_URL__",
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#007838"
+  }
+}
