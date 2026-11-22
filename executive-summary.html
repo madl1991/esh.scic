@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Executive ESH Summary — SCIC</title>
+<link rel="icon" type="image/png" href="images/esh-shield.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root{
+    --font-main: 'Inter', sans-serif;
+    --bg-deep:   #eef1eb;
+    --bg-panel:  #ffffff;
+    --line:      #e7ebe2;
+    --line-soft: #f1f4ed;
+    --ink:       #212f27;
+    --ink-dim:   #64726b;
+    --ink-faint: #9aa59d;
+    --cyan:      #1c4a35;
+    --cyan-dim:  rgba(28,74,53,0.08);
+    --amber:     #f0b818;
+    --brand:     #007838;
+    --brand-dk:  #00562a;
+    --amber-dim: rgba(221,166,62,0.16);
+    --coral:     #d94a3f;
+    --coral-dim: rgba(217,74,63,0.10);
+    --mint:      #4faa72;
+    --mint-dim:  rgba(79,170,114,0.14);
+    --navy:      #1b2420;
+    --shadow:    0 10px 30px rgba(30,45,35,0.07);
+  }
+  *{box-sizing:border-box;}
+  :root{--u:1vh;}
+  @supports (height:1dvh){:root{--u:1dvh;}}
+  html, body{
+    font-variant-numeric:tabular-nums;
+    margin:0; height:100%; overflow:hidden;
+    font-family:var(--font-main);
+    background:var(--bg-deep); color:var(--ink);
+  }
+  .num{font-family:var(--font-main);}
+  .serif{font-family:var(--font-main);}
+
+  /* ── PASSCODE GATE ────────────────────────────────────────── */
+  #login-overlay{
+    position:fixed; inset:0; display:none; align-items:flex-start; justify-content:center; padding:24px 16px; overflow-y:auto; z-index:999;
+    font-family:var(--font-main);
+    background:
+      radial-gradient(ellipse 22% 30% at 14% 38%, #f0b818 0, rgba(240,184,24,0) 100%),
+      radial-gradient(ellipse 20% 30% at 48% 30%, #19b394 0, rgba(25,179,148,0) 100%),
+      radial-gradient(ellipse 22% 32% at 86% 42%, #8fd14f 0, rgba(143,209,79,0) 100%),
+      radial-gradient(ellipse 24% 30% at 26% 90%, #19b394 0, rgba(25,179,148,0) 100%),
+      radial-gradient(ellipse 22% 30% at 64% 88%, #f0b818 0, rgba(240,184,24,0) 100%),
+      radial-gradient(ellipse 20% 30% at 94% 92%, #0b8f55 0, rgba(11,143,85,0) 100%),
+      linear-gradient(135deg,#0d6b3b 0%,#1f9a62 100%);
+  }
+  html[data-boot="gate"] #login-overlay{display:flex;}
+
+  html[data-boot="pending"] #welcome-overlay{display:flex;}
+  /* ── LOGIN: glass frame (frosted) with a neumorphic card inside, on the same glass background as the dashboard ── */
+  .gate-frame{
+    width:100%; max-width:470px; margin:auto; padding:30px 28px 24px; border-radius:34px;
+    background:rgba(255,255,255,.22); -webkit-backdrop-filter:blur(22px) saturate(160%); backdrop-filter:blur(22px) saturate(160%);
+    box-shadow:0 2vh 4.5vh rgba(0,45,25,.35);
+  }
+  @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){ .gate-frame{background:rgba(255,255,255,.4);} }
+  .gate-title{
+    margin:0; font-weight:800; color:#fff; text-align:center; text-transform:uppercase; letter-spacing:0.5px;
+    font-size:clamp(1.3rem,2.2vw,1.6rem); line-height:1.15; text-shadow:0 2px 10px rgba(0,0,0,0.35);
+  }
+  .gate-title span{color:#fbc02d;}
+  .gate-divider{width:52px; height:3px; background:rgba(251,192,45,0.7); border-radius:2px; margin:12px auto 20px;}
+  .gate-card{
+    padding:26px 26px 20px; border-radius:24px; border:0;
+    background:linear-gradient(145deg,#eaf2ed,#d9e4dd); background-origin:border-box;
+    box-shadow:0 1.6vh 3.6vh rgba(0,50,28,.40);
+  }
+  .gate-greet{font-size:1.25rem; font-weight:600; color:#14201a; margin-bottom:6px; letter-spacing:-0.3px; text-align:center;}
+  .gate-greet .accent{color:#007838;}
+  .gate-sub{font-size:0.78rem; color:#2b3830; text-align:center; margin-bottom:22px;}
+  .gate-field{position:relative; margin-bottom:16px;}
+  .gate-field input{
+    width:100%; height:50px; padding:19px 46px 3px 16px; border:0; border-radius:14px; font-size:0.9rem; font-weight:500; font-family:inherit;
+    background:#e3ece6; color:#14201a; outline:none; box-shadow:.5vh .6vh 1.2vh rgba(0,50,28,.35), -.4vh -.4vh .9vh rgba(255,255,255,.95);
+  }
+  .gate-field input:focus{box-shadow:.5vh .6vh 1.2vh rgba(0,50,28,.35), -.4vh -.4vh .9vh rgba(255,255,255,.95), 0 0 0 2px #007838;}
+  .gate-field label{
+    position:absolute; left:17px; top:50%; transform:translateY(-50%); font-size:0.88rem; color:#44544b;
+    pointer-events:none; white-space:nowrap; transition:top .15s ease, font-size .15s ease, transform .15s ease, color .15s ease;
+  }
+  .gate-field input:focus + label, .gate-field input:not(:placeholder-shown) + label{top:7px; transform:none; font-size:0.62rem;}
+  .gate-field input:focus + label{color:#007838;}
+  .gate-eye{position:absolute; right:8px; top:9px; width:32px; height:32px; border:none; background:none; cursor:pointer; color:#55655c; font-size:0.9rem;}
+  .gate-eye:hover{color:#007838;}
+  #gate-btn{
+    width:100%; height:46px; margin-top:6px; border:none; border-radius:14px; font:700 0.88rem var(--font-main);
+    background:linear-gradient(145deg,#0c8d47,#006a30); color:#fff; cursor:pointer;
+    box-shadow:.5vh .6vh 1.2vh rgba(0,50,28,.40), -.5vh -.5vh 1vh #fff, inset .15vh .15vh .3vh rgba(255,255,255,.3), inset -.15vh -.2vh .3vh rgba(0,0,0,.2); transition:box-shadow .15s, transform .15s;
+  }
+  #gate-btn:hover{box-shadow:inset .4vh .5vh .9vh rgba(0,0,0,.5), inset -.3vh -.3vh .7vh rgba(255,255,255,.18);}
+  #gate-btn:active{transform:translateY(1px);}
+  #gate-btn:disabled{opacity:0.65; cursor:wait;}
+  #gate-error{color:#c62828; font-size:0.78rem; margin-top:10px; min-height:18px; font-weight:600; text-align:center;}
+  .gate-logo{display:block; width:170px; height:auto; margin:8px auto 0;}
+  .gate-under{text-align:center; margin-top:16px; font-size:0.7rem; color:#fff; line-height:1.6; text-shadow:0 1px 6px rgba(0,0,0,.35);}
+  .gate-under strong{font-weight:700;}
+  @media (max-width:640px){
+    #login-overlay{padding:16px 12px;}
+    .gate-frame{padding:22px 16px 18px; border-radius:28px;}
+    .gate-card{padding:22px 18px 16px;}
+  }
+
+  /* ── MAIN PAGE (one screen, no scroll). Sizes use vh so 1080p and 4K look the same. ── */
+  /* Theme: variables live on #app only, so the login screen is never affected by light/dark mode. */
+  #app{
+    --bg-deep:#c3c8cd; --bg-panel:#ffffff; --bg-header:#ffffff;
+    --line:#d9dee2; --line-soft:#eceff1; --track:#e9edf0;
+    --ink:#212f27; --ink-dim:#55625b; --ink-faint:#7b8780;
+    --navy:#1b2420; --stale-fg:#8a5a00; --tile-lbl:#111111; --red:#d32f2f; --brand-fg:#007838;
+    --shadow:0 10px 30px rgba(30,45,35,0.10);
+    background:var(--bg-deep); color:var(--ink);
+  }
+  html[data-theme="dark"] #app{
+    --bg-deep:#0e1113; --bg-panel:#1a1f23; --bg-header:#1a1f23;
+    --line:#2d363c; --line-soft:#252d32; --track:#2a3238;
+    --ink:#e6ebe8; --ink-dim:#aab5af; --ink-faint:#86928b;
+    --navy:#f1f5f2; --stale-fg:#f0b818; --tile-lbl:#f1f5f2; --red:#ff6b5f; --brand-fg:#4fd18b;
+    --coral:#ff6b5f; --mint:#5fd08e;
+    --shadow:0 10px 30px rgba(0,0,0,0.45);
+  }
+  #app{display:none; height:100%; flex-direction:column;}
+  /* ── LOGIN TRANSITION: welcome splash. Fades in over the login frame, holds until the first data arrives (min 1.4s), then fades out onto the dashboard. ── */
+  #welcome-overlay{
+    position:fixed; inset:0; z-index:20000; display:none; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    background:linear-gradient(135deg,#0d6b3b 0%,#1f9a62 100%); font-family:var(--font-main); color:#fff;
+  }
+  #welcome-overlay.show{display:flex;}
+  #welcome-overlay.fadein{animation:soIn .3s ease both;}
+  #welcome-overlay.hide{animation:soOut .45s ease forwards; pointer-events:none;}
+  #welcome-overlay .wl-shield{width:64px; height:64px; filter:drop-shadow(0 0 10px rgba(251,192,45,.35));}
+  #welcome-overlay .wl-shield svg{width:100%; height:100%; display:block;}
+  #welcome-overlay .wl-shield path, #welcome-overlay .wl-shield polyline{fill:none; stroke:#fbc02d; stroke-width:1.4; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:1; stroke-dashoffset:1;}
+  #welcome-overlay .wl-outline{animation:wlDraw .7s ease .15s forwards;}
+  #welcome-overlay .wl-check{animation:wlDraw .45s ease .75s forwards;}
+  @keyframes wlDraw{to{stroke-dashoffset:0;}}
+  #welcome-overlay .wl-title{margin:0; font-size:1.5rem; font-weight:700; letter-spacing:.01em; animation:wlUp .5s ease .5s both;}
+  #welcome-overlay .wl-sub{margin:0; font-size:.62rem; font-weight:500; letter-spacing:.24em; text-transform:uppercase; color:rgba(255,255,255,.82); animation:wlUp .5s ease .65s both;}
+  @keyframes wlUp{from{opacity:0; transform:translateY(.8vh);}}
+  @media (prefers-reduced-motion:reduce){
+    #welcome-overlay *{animation:none !important;}
+    #welcome-overlay .wl-shield path, #welcome-overlay .wl-shield polyline{stroke-dashoffset:0;}
+  }
+
+  /* Logout confirmation: same look as the ESH Compliance Dashboard dialogs (.ux-dialog) */
+  #logout-confirm{display:none; z-index:20001;}
+  #logout-confirm.open{display:flex;}
+  .ux-dialog-overlay{
+    position:fixed; inset:0; background:rgba(0,35,18,.38); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+    align-items:center; justify-content:center; padding:16px; box-sizing:border-box; animation:uxFadeIn .2s;
+  }
+  @keyframes uxFadeIn{from{opacity:0;} to{opacity:1;}}
+  /* neumorphic card, same look as the dashboard panels and the login card */
+  .ux-dialog{
+    --ux-a:#eaf2ed; --ux-b:#d9e4dd; --ux-btn:#dde8e1; --ux-lo:rgba(0,50,28,.40); --ux-lo2:rgba(0,50,28,.32); --ux-hi:rgba(255,255,255,.95); --ux-ink:#14201a; --ux-dim:#2b3830; --ux-c:#007838;
+    background:linear-gradient(145deg,var(--ux-a),var(--ux-b)); background-origin:border-box; color:var(--ux-ink); border:0; border-radius:24px;
+    padding:24px 26px 20px; width:430px; max-width:100%; box-shadow:0 1.6vh 3.6vh var(--ux-lo);
+  }
+  .ux-dialog-head{display:block; margin-bottom:8px;}
+  .ux-dialog-title{margin:0; font-size:1.05rem; font-weight:700; color:var(--ux-ink);}
+  .ux-dialog-msg{margin:0 0 22px; font-size:.84rem; line-height:1.55; color:var(--ux-dim);}
+  .ux-dialog-btns{display:flex; justify-content:flex-end; gap:12px;}
+  /* solid neumorphic buttons: flat solid color, dark shadow bottom-right + light shadow top-left, pressed on hover */
+  .ux-btn{
+    font-family:inherit; font-size:.84rem; font-weight:700; height:42px; min-width:108px; padding:0 22px; border:0; border-radius:12px; cursor:pointer;
+    color:var(--ux-ink); background:var(--ux-btn); background-image:none;
+    box-shadow:.5vh .6vh 1.2vh var(--ux-lo2), -.4vh -.4vh .9vh var(--ux-hi); transition:box-shadow .15s, transform .15s;
+  }
+  .ux-btn:hover{box-shadow:inset .4vh .5vh .9vh var(--ux-lo2), inset -.3vh -.3vh .7vh var(--ux-hi);}
+  .ux-btn:active{transform:translateY(1px);}
+  .ux-btn-ok{color:#fff; background:linear-gradient(145deg,#0c8d47,#006a30);
+    box-shadow:.5vh .6vh 1.2vh var(--ux-lo2), -.5vh -.5vh 1vh var(--ux-hi), inset .15vh .15vh .3vh rgba(255,255,255,.3), inset -.15vh -.2vh .3vh rgba(0,0,0,.2);}
+  .ux-btn-ok:hover{box-shadow:inset .4vh .5vh .9vh rgba(0,0,0,.5), inset -.3vh -.3vh .7vh rgba(255,255,255,.18);}
+  .ux-btn:focus-visible{outline:2px solid var(--ux-c); outline-offset:2px;}
+  html[data-theme="dark"] .ux-dialog{--ux-a:#1c2e25; --ux-b:#121e18; --ux-btn:#1a2b22; --ux-lo:rgba(0,0,0,.62); --ux-lo2:rgba(0,0,0,.6); --ux-hi:rgba(255,255,255,.07); --ux-ink:#e6ebe8; --ux-dim:#c4cec8; --ux-c:#5fd08e;}
+  html[data-theme="dark"] .ux-btn:hover{box-shadow:inset .5vh .6vh 1.2vh rgba(0,0,0,.7);}
+  @media (max-width:480px){.ux-dialog{padding:20px 18px 16px;}}
+  header.top{flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:1.5vw; padding:calc(1.1 * var(--u)) 1.5vw; background:var(--bg-header); border-bottom:calc(.7 * var(--u)) solid var(--brand);}
+  header.top .brand{display:flex; align-items:center; gap:1.5vw; min-width:0;}
+  .hd-logo{height:calc(6 * var(--u)); width:auto; display:block;}
+  .hd-title{border-left:1px solid var(--line); padding-left:1.5vw;}
+  header.top h1{font-family:var(--font-main); font-size:calc(2.6 * var(--u)); margin:0; font-weight:800; letter-spacing:.09em; color:var(--brand-fg);}
+  header.top .sub{font-size:calc(1.3 * var(--u)); font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-dim); margin-top:calc(.3 * var(--u));}
+  .hd-right{display:flex; align-items:center; gap:1vw;}
+  .live-pill{display:flex; align-items:center; gap:.5vw; background:var(--mint-dim); border-radius:calc(3 * var(--u)); padding:calc(.8 * var(--u)) 1vw; font-size:calc(1.4 * var(--u)); font-weight:600; color:var(--brand-fg); white-space:nowrap;}
+  .live-pill.stale{background:var(--amber-dim); color:var(--stale-fg);}
+  .live-pill.stale .live-dot{color:var(--amber);}
+  .live-dot{position:relative; flex:0 0 auto; width:calc(.9 * var(--u)); height:calc(.9 * var(--u)); border-radius:50%; background:currentColor; color:var(--brand);}
+  .live-dot::after{content:""; position:absolute; inset:0; border-radius:50%; background:currentColor; animation:ping 1.6s cubic-bezier(0,0,.2,1) infinite;}
+  @keyframes ping{0%{transform:scale(1); opacity:.7;} 80%,100%{transform:scale(3.2); opacity:0;}}
+  @media (prefers-reduced-motion:reduce){.live-dot::after{animation:none;}}
+  #logout-btn, #theme-btn{display:flex; align-items:center; gap:.5vw; background:var(--bg-header); border:1px solid var(--line); border-radius:calc(3 * var(--u)); padding:calc(.8 * var(--u)) 1vw; font:600 calc(1.4 * var(--u)) var(--font-main); color:var(--ink-dim); cursor:pointer;}
+  #logout-btn:hover, #theme-btn:hover{border-color:var(--brand); color:var(--brand-fg);}
+
+  .board{flex:1 1 auto; min-height:0; display:grid; grid-template-rows:1.3fr 1fr; gap:calc(1 * var(--u)); padding:calc(1 * var(--u)) 1vw;}
+  .bottom-row{display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:calc(1 * var(--u)); min-height:0;}
+  .panel{background:var(--bg-panel); border:1px solid var(--line); border-radius:calc(1.6 * var(--u)); overflow:hidden; display:flex; flex-direction:column; min-height:0; box-shadow:var(--shadow);}
+  .hd{flex:0 0 auto; display:flex; align-items:center; gap:.8vw; padding:calc(.9 * var(--u)) 1.1vw; background:linear-gradient(135deg,var(--brand),var(--brand-dk)); color:#fff; font:600 calc(1.9 * var(--u)) var(--font-main);}
+  .hd i{font-size:calc(1.5 * var(--u)); width:calc(3.2 * var(--u)); height:calc(3.2 * var(--u)); border-radius:50%; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .chip{margin-left:auto; font:700 calc(1.2 * var(--u)) var(--font-main); background:rgba(255,255,255,.18); color:#fff; padding:calc(.3 * var(--u)) .8vw; border-radius:calc(2 * var(--u)); white-space:nowrap;}
+  .empty{padding:calc(2 * var(--u)); text-align:center; color:var(--ink-faint); font-size:calc(1.6 * var(--u));}
+  .tiles{flex:0 0 auto; display:grid; grid-template-columns:repeat(5,1fr); border-bottom:1px solid var(--line);}
+  .tile{padding:calc(1.2 * var(--u)) .5vw; text-align:center; border-right:1px solid var(--line-soft);}
+  .tile:last-child{border-right:none;}
+  .tile small{display:block; font-size:calc(1.5 * var(--u)); font-weight:800; color:var(--tile-lbl); text-transform:uppercase; letter-spacing:.06em;}
+  .tile.bad b{color:var(--red);}
+  .tile b{font:800 min(calc(5 * var(--u)),2.8vw) var(--font-main); line-height:1.1; color:var(--navy);}
+  .tb{flex:1; min-height:0; display:grid; grid-template-columns:.8fr 1.1fr 1.1fr .9fr; gap:.8vw; padding:calc(1 * var(--u)) .8vw;}
+  .card{border:1px solid var(--line); border-radius:calc(1.2 * var(--u)); padding:calc(.9 * var(--u)) .9vw; display:flex; flex-direction:column; justify-content:center; min-height:0;}
+  .card h4{margin:0 0 calc(.7 * var(--u)); font-size:calc(2 * var(--u)); font-weight:800; letter-spacing:.09em; line-height:1.15; color:var(--brand-fg); text-align:left; align-self:flex-start;}
+  .card h4 i{display:block; font-style:normal; font-size:calc(1.25 * var(--u)); font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-dim); margin-top:calc(.3 * var(--u));}
+  .card .cb{flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; align-self:stretch;}
+  .card.ctr .cb{align-items:center; text-align:center;}
+  .big{font:800 calc(9.5 * var(--u)) var(--font-main); line-height:1;}
+  .card .sub{font-size:calc(1.7 * var(--u)); color:var(--ink-faint); margin-top:calc(.4 * var(--u));}
+  .pair{display:flex; gap:1.5vw;} .pair div{font-size:calc(1.6 * var(--u)); font-weight:600; color:var(--ink-faint);}
+  .card.ctr{align-items:center; text-align:center;}
+  .card.ctr .pair{justify-content:center; gap:3vw;}
+  .pair b{display:block; font:800 calc(3.6 * var(--u)) var(--font-main); color:var(--coral);}
+  .bl{margin:calc(.6 * var(--u)) 0;}
+  .bl-t{display:flex; justify-content:space-between; align-items:baseline; font-size:calc(1.8 * var(--u)); font-weight:600;}
+  .bl-t b{font:800 calc(2.6 * var(--u)) var(--font-main);}
+  .bl-k{position:relative; height:calc(1.9 * var(--u)); background:var(--track); border-radius:calc(1 * var(--u)); margin-top:calc(.3 * var(--u));}
+  .bl-k i{position:absolute; left:0; top:0; bottom:0; border-radius:calc(1 * var(--u));}
+  .bl-k u{position:absolute; top:calc(-.5 * var(--u)); bottom:calc(-.5 * var(--u)); width:calc(.35 * var(--u)); background:var(--amber);}
+  .st-wrap{flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; padding:calc(1 * var(--u)) 1.1vw;}
+  .hb{display:grid; grid-template-columns:14vw 1fr 6vw; align-items:center; gap:.8vw; margin:calc(.55 * var(--u)) 0; font-size:calc(1.6 * var(--u)); font-weight:600;}
+  .hb .k{height:calc(2.2 * var(--u)); background:var(--track); border-radius:calc(1 * var(--u)); position:relative;}
+  .hb .k i{position:absolute; left:0; top:0; bottom:0; border-radius:calc(1 * var(--u)); min-width:calc(.4 * var(--u));}
+  .hb b{font:800 calc(2 * var(--u)) var(--font-main); text-align:right;}
+  .hb small, .hb-ft{font-weight:400; color:var(--ink-faint); font-size:calc(1.3 * var(--u));}
+  .hb-ft{text-align:right; margin-top:calc(.4 * var(--u));}
+  .dn-wrap{flex:1; min-height:0; display:flex; align-items:center; gap:1.2vw; padding:calc(1 * var(--u)) 1vw;}
+  .dn{height:100%; max-height:calc(26 * var(--u)); aspect-ratio:1; flex:0 0 auto;}
+  .dn text{font:800 22px var(--font-main); fill:var(--navy);}
+  .lg{display:flex; flex-direction:column; gap:calc(.7 * var(--u)); font-size:calc(1.7 * var(--u)); min-width:0; flex:1;}
+  .lg div{display:flex; align-items:center; gap:.6vw;}
+  .lg i{width:calc(1.4 * var(--u)); height:calc(1.4 * var(--u)); border-radius:50%; flex:0 0 auto;}
+  .lg b{font:800 calc(2 * var(--u)) var(--font-main); margin-left:auto;}
+  .lg hr{border:none; border-top:1px solid var(--line); width:100%; margin:calc(.2 * var(--u)) 0;}
+  .lg small{font-size:calc(1.3 * var(--u)); color:var(--ink-faint);}
+  .c-ok{color:var(--mint);} .c-bad{color:var(--coral);}
+
+  @media (max-width:640px){ .hd-title{display:none;} .hd-logo{height:calc(5 * var(--u));} }
+
+  /* ══════════════════════════════════════════════════════════════
+     RESPONSIVE: PHONE — swap the detailed board for a compact,
+     key-numbers-only summary so everything still fits one screen
+     with no scrolling.
+     ══════════════════════════════════════════════════════════════ */
+  .mobile-board{display:none;}
+
+  @media (max-width:640px){
+    header.top .sub{display:none;}
+    header.top h1{font-size:clamp(0.82rem,3.6vw,0.98rem); letter-spacing:.04em;}
+    header.top{padding:clamp(6px,calc(1.4 * var(--u)),10px) 12px; gap:8px;}
+    .live-pill span:not(.live-dot){display:none;}
+    .live-pill{padding:6px 8px;}
+    #logout-btn span{display:none;}
+    #logout-btn, #theme-btn{padding:6px 9px;}
+
+    .board-esh{display:none !important;}
+    .mobile-board{
+      display:flex; flex-direction:column; gap:clamp(7px,calc(1.6 * var(--u)),12px);
+      flex:1 1 auto; min-height:0; padding:clamp(8px,calc(1.8 * var(--u)),14px) 14px;
+      overflow:hidden;
+    }
+
+    .mb-fatality{
+      flex:0 0 auto; display:flex; align-items:center; gap:10px;
+      background:var(--bg-panel); border:1px solid var(--line); border-radius:16px;
+      padding:clamp(9px,calc(2 * var(--u)),14px) 14px; box-shadow:var(--shadow);
+    }
+    .mb-fatality i{
+      font-size:1.05rem; color:var(--coral); width:clamp(32px,calc(7 * var(--u)),42px); height:clamp(32px,calc(7 * var(--u)),42px);
+      border-radius:50%; background:var(--coral-dim); display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    }
+    .mb-fatality-text{flex:1; min-width:0;}
+    .mb-fatality-lbl{font-size:0.62rem; font-weight:700; letter-spacing:0.3px; text-transform:uppercase; color:var(--ink-dim);}
+    .mb-fatality-val{font-family:var(--font-main); font-size:clamp(1.3rem,calc(5.5 * var(--u)),1.8rem); font-weight:800; color:var(--mint); line-height:1.05;}
+
+    .mb-badge{
+      display:inline-flex; align-items:center; gap:3px; padding:4px 10px; border-radius:20px;
+      font-size:0.6rem; font-weight:800; white-space:nowrap; flex-shrink:0;
+    }
+    .mb-badge.ok{background:var(--mint-dim); color:var(--mint);}
+    .mb-badge.bad{background:var(--coral-dim); color:var(--coral);}
+    .mb-badge.none{background:var(--line-soft); color:var(--ink-faint);}
+
+    .mb-kpi-row{flex:0 0 auto; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+    .mb-kpi{
+      background:var(--bg-panel); border:1px solid var(--line); border-radius:16px;
+      padding:clamp(8px,calc(1.8 * var(--u)),14px) 8px; text-align:center; box-shadow:var(--shadow);
+      display:flex; flex-direction:column; align-items:center; gap:5px;
+    }
+    .mb-kpi-lbl{font-size:0.62rem; font-weight:800; letter-spacing:0.4px; color:var(--ink-dim);}
+    .mb-kpi-val{font-family:var(--font-main); font-size:clamp(1.05rem,calc(4.2 * var(--u)),1.45rem); font-weight:800; color:var(--navy); line-height:1;}
+    .mb-kpi-note{flex:0 0 auto; text-align:center; font-size:0.58rem; color:var(--ink-faint); margin-top:-4px;}
+
+    .mb-nov-hd{
+      flex:0 0 auto; font-family:var(--font-main); font-weight:600; font-size:0.76rem;
+      color:var(--navy); display:flex; align-items:center; gap:7px; margin-top:2px;
+    }
+    .mb-nov-hd i{color:var(--mint);}
+    .mb-nov-row{flex:0 0 auto; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+    .mb-nov-tile{
+      background:var(--bg-panel); border:1px solid var(--line); border-radius:16px;
+      padding:clamp(8px,calc(1.8 * var(--u)),14px) 8px; text-align:center; box-shadow:var(--shadow);
+    }
+    .mb-nov-lbl{font-size:0.6rem; font-weight:800; letter-spacing:0.3px; text-transform:uppercase; margin-bottom:3px;}
+    .mb-nov-val{font-family:var(--font-main); font-size:clamp(1.05rem,calc(4.2 * var(--u)),1.4rem); font-weight:800; color:var(--navy); line-height:1;}
+
+    .mb-footer{
+      flex:1 1 auto; min-height:0; display:flex; flex-direction:column; justify-content:flex-end;
+      align-items:center; gap:2px; text-align:center;
+    }
+    .mb-footer span{font-size:0.58rem; color:var(--ink-faint);}
+    .mb-footer .mb-hint{font-size:0.54rem;}
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     LOGIN — SEASONAL EFFECTS (supplementary, see login-seasonal.js)
+     Overlay lang sa ibabaw ng login; pointer-events:none
+     ═══════════════════════════════════════════════════════════════ */
+  #esh-fx{position:absolute;inset:0;z-index:5;pointer-events:none;overflow:hidden}
+  #esh-fx .fxp{position:absolute;top:0;left:0;opacity:.8;will-change:transform;user-select:none;animation-timing-function:linear;animation-iteration-count:infinite}
+  #esh-fx .bw{animation-timing-function:ease-in-out;animation-iteration-count:infinite;animation-direction:alternate;animation-duration:var(--fs,.35s)}
+  #esh-fx .bw.l{transform-origin:30px 15px;animation-name:fxflapL}
+  #esh-fx .bw.r{transform-origin:34px 15px;animation-name:fxflapR}
+  #esh-fx .gh,#esh-fx .pk{display:block;width:100%;overflow:visible;filter:drop-shadow(0 4px 6px rgba(80,60,140,.25))}
+  #esh-fx .gh{transform-origin:50% 100%;animation:fxgh 2.8s ease-in-out infinite alternate}
+  #esh-fx .gh .gt{transform-origin:30px 8px;animation:fxtail 1.2s ease-in-out infinite alternate}
+  #esh-fx .gh .ge{transform-box:fill-box;transform-origin:center;animation:fxblink 3.6s infinite}
+  #esh-fx .gh .gal{transform-origin:12px 42px;animation:fxarmL .8s ease-in-out infinite alternate}
+  #esh-fx .gh .gar{transform-origin:48px 42px;animation:fxarmR .8s ease-in-out infinite alternate}
+  #esh-fx .pk{transform-origin:50% 100%;animation:fxpk 1.6s ease-in-out infinite alternate}
+  #esh-fx .pk .pf{animation:fxflick 1s ease-in-out infinite alternate}
+  #esh-fx .fxp.bat{opacity:.9}
+  #esh-fx .fxpole{position:absolute;bottom:-40px;width:6px;border-radius:3px;background:linear-gradient(90deg,#8b6b3e,#d4b27a);transform-origin:50% 100%;animation:fxsway 2.4s ease-in-out infinite alternate}
+  #esh-fx .fxball{position:absolute;top:-6px;left:-1px;width:8px;height:8px;border-radius:50%;background:#fcd116}
+  @keyframes fxfall{from{transform:translate3d(0,-12vh,0) rotate(0)}to{transform:translate3d(var(--dx),112vh,0) rotate(var(--rot))}}
+  @keyframes fxrise{from{transform:translate3d(0,112vh,0) rotate(0)}to{transform:translate3d(var(--dx),-12vh,0) rotate(var(--rot))}}
+  @keyframes fxfly{0%{transform:translate3d(-12vw,0,0) rotate(-8deg)}25%{transform:translate3d(20vw,-24px,0) rotate(8deg)}50%{transform:translate3d(50vw,16px,0) rotate(-8deg)}75%{transform:translate3d(80vw,-20px,0) rotate(8deg)}100%{transform:translate3d(112vw,0,0) rotate(-8deg)}}
+  @keyframes fxwave{0%,100%{transform:translateY(calc(var(--amp)*-1));filter:brightness(1.08)}50%{transform:translateY(var(--amp));filter:brightness(.88)}}
+  @keyframes fxflapL{from{transform:rotate(-20deg)}to{transform:rotate(30deg)}}
+  @keyframes fxflapR{from{transform:rotate(20deg)}to{transform:rotate(-30deg)}}
+  @keyframes fxgh{from{transform:translateX(-5px) rotate(-5deg)}to{transform:translateX(5px) rotate(5deg)}}
+  @keyframes fxtail{from{transform:skewX(-4deg)}to{transform:skewX(4deg)}}
+  @keyframes fxblink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+  @keyframes fxarmL{from{transform:rotate(-22deg)}to{transform:rotate(16deg)}}
+  @keyframes fxarmR{from{transform:rotate(22deg)}to{transform:rotate(-16deg)}}
+  @keyframes fxpk{from{transform:translateY(0) rotate(-7deg)}to{transform:translateY(-6px) rotate(7deg)}}
+  @keyframes fxflick{from{opacity:.65}to{opacity:1}}
+  @keyframes fxsway{from{transform:rotate(-13deg)}to{transform:rotate(13deg)}}
+  @media (prefers-reduced-motion:reduce){#esh-fx{display:none!important}}
+
+  /* ── LOOK: rounder cards (reference: dashboard video) ── */
+  #app{--shadow:0 calc(.8 * var(--u)) calc(2.4 * var(--u)) rgba(30,45,35,0.22);}
+  html[data-theme="dark"] #app{--shadow:0 calc(.8 * var(--u)) calc(2.4 * var(--u)) rgba(0,0,0,0.6);}
+  .card{box-shadow:var(--shadow);}
+  .panel{border-radius:calc(2.2 * var(--u));}
+  .card{border-radius:calc(1.6 * var(--u));}
+
+  /* ── INTRO: plays once after the first data arrives (class .intro is added by playIntro(), removed after 3s) ── */
+  @keyframes introUp{from{opacity:0; transform:translateY(calc(1.6 * var(--u)));}}
+  @keyframes introFade{from{opacity:0;}}
+  @keyframes introBar{from{transform:scaleX(0);}}
+  #app.intro #rate-panel{animation:introUp .6s cubic-bezier(.22,.8,.3,1) .2s both;}
+  #app.intro #inc-summary-panel{animation:introUp .6s cubic-bezier(.22,.8,.3,1) .35s both;}
+  #app.intro #nov-osh-panel{animation:introUp .6s cubic-bezier(.22,.8,.3,1) .5s both;}
+  #app.intro #nov-envi-panel{animation:introUp .6s cubic-bezier(.22,.8,.3,1) .65s both;}
+  #app.intro .tile{animation:introFade .5s ease both;}
+  #app.intro .tile:nth-child(1){animation-delay:.55s;} #app.intro .tile:nth-child(2){animation-delay:.63s;}
+  #app.intro .tile:nth-child(3){animation-delay:.71s;} #app.intro .tile:nth-child(4){animation-delay:.79s;}
+  #app.intro .tile:nth-child(5){animation-delay:.87s;}
+  #app.intro .tb .card{animation:introUp .5s cubic-bezier(.22,.8,.3,1) both;}
+  #app.intro .tb .card:nth-child(1){animation-delay:.8s;} #app.intro .tb .card:nth-child(2){animation-delay:.9s;}
+  #app.intro .tb .card:nth-child(3){animation-delay:1s;} #app.intro .tb .card:nth-child(4){animation-delay:1.1s;}
+  #app.intro .st-wrap .hb{animation:introFade .5s ease both;}
+  #app.intro .st-wrap .hb:nth-child(1){animation-delay:.8s;} #app.intro .st-wrap .hb:nth-child(2){animation-delay:.87s;}
+  #app.intro .st-wrap .hb:nth-child(3){animation-delay:.94s;} #app.intro .st-wrap .hb:nth-child(4){animation-delay:1.01s;}
+  #app.intro .st-wrap .hb:nth-child(5){animation-delay:1.08s;} #app.intro .st-wrap .hb:nth-child(6){animation-delay:1.15s;}
+  #app.intro .dn-wrap{animation:introFade .6s ease 1s both;}
+  @keyframes introArc{from{stroke-dasharray:0 239;}}
+  #app.intro .dn .dn-arc{animation:introArc 1s cubic-bezier(.22,.8,.3,1) 1.05s both;}
+  #app.intro .bl-k i, #app.intro .hb .k i{transform-origin:left center; animation:introBar .9s cubic-bezier(.22,.8,.3,1) 1s both;}
+  @media (prefers-reduced-motion:reduce){#app.intro *{animation:none !important;}}
+
+  /* ── LOOK: glassmorphism (frosted translucent panels over colorful shapes). Added last so it overrides the earlier look. ── */
+  #app{
+    --glass:rgba(255,255,255,.34); --glass-card:rgba(255,255,255,.26); --glass-line:rgba(255,255,255,.65);
+    --glass-hi:inset 0 1px 0 rgba(255,255,255,.75), inset 0 -1px 0 rgba(255,255,255,.18);
+    --line:rgba(20,40,30,.16); --line-soft:rgba(20,40,30,.09); --track:rgba(20,40,30,.14);
+    --ink:#14201a; --ink-dim:#2b3830; --ink-faint:#3e4c44; --mint:#17693f; --coral:#c0352b; --tile-lbl:#0c1511;
+    --shadow:0 calc(1.2 * var(--u)) calc(3.2 * var(--u)) rgba(0,45,25,.28), var(--glass-hi);
+    background:
+      radial-gradient(ellipse 22% 30% at 14% 38%, #f0b818 0, rgba(240,184,24,0) 100%),
+      radial-gradient(ellipse 20% 30% at 48% 30%, #19b394 0, rgba(25,179,148,0) 100%),
+      radial-gradient(ellipse 22% 32% at 86% 42%, #8fd14f 0, rgba(143,209,79,0) 100%),
+      radial-gradient(ellipse 24% 30% at 26% 90%, #19b394 0, rgba(25,179,148,0) 100%),
+      radial-gradient(ellipse 22% 30% at 64% 88%, #f0b818 0, rgba(240,184,24,0) 100%),
+      radial-gradient(ellipse 20% 30% at 94% 92%, #0b8f55 0, rgba(11,143,85,0) 100%),
+      linear-gradient(135deg,#0d6b3b 0%,#1f9a62 100%);
+  }
+  html[data-theme="dark"] #app{
+    --glass:rgba(18,28,23,.5); --glass-card:rgba(255,255,255,.07); --glass-line:rgba(255,255,255,.22);
+    --glass-hi:inset 0 1px 0 rgba(255,255,255,.22);
+    --line:rgba(255,255,255,.14); --line-soft:rgba(255,255,255,.08); --track:rgba(255,255,255,.14);
+    --ink:#e6ebe8; --ink-dim:#c4cec8; --ink-faint:#9fada5; --mint:#5fd08e; --coral:#ff6b5f; --tile-lbl:#f1f5f2;
+    --shadow:0 calc(1.2 * var(--u)) calc(3.2 * var(--u)) rgba(0,0,0,.55), var(--glass-hi);
+    background:
+      radial-gradient(ellipse 22% 30% at 14% 38%, rgba(240,184,24,.55) 0, rgba(240,184,24,0) 100%),
+      radial-gradient(ellipse 20% 30% at 48% 30%, rgba(25,179,148,.55) 0, rgba(25,179,148,0) 100%),
+      radial-gradient(ellipse 22% 32% at 86% 42%, rgba(143,209,79,.45) 0, rgba(143,209,79,0) 100%),
+      radial-gradient(ellipse 24% 30% at 26% 90%, rgba(25,179,148,.5) 0, rgba(25,179,148,0) 100%),
+      radial-gradient(ellipse 22% 30% at 64% 88%, rgba(240,184,24,.45) 0, rgba(240,184,24,0) 100%),
+      linear-gradient(135deg,#04170d 0%,#0b3a22 100%);
+  }
+  header.top{background:rgba(255,255,255,.84); -webkit-backdrop-filter:blur(22px) saturate(160%); backdrop-filter:blur(22px) saturate(160%); box-shadow:var(--glass-hi);}
+  html[data-theme="dark"] #app header.top{background:var(--glass);}
+  #app header.top h1{color:#00562a;}
+  html[data-theme="dark"] #app header.top h1{color:var(--brand-fg);}
+  #app .card h4{color:#00562a;}
+  html[data-theme="dark"] #app .card h4{color:var(--brand-fg);}
+  .panel{background:var(--glass); border:1px solid var(--glass-line); -webkit-backdrop-filter:blur(22px) saturate(160%); backdrop-filter:blur(22px) saturate(160%);}
+  .hd{background:rgba(0,110,52,.62);}
+  html[data-theme="dark"] .hd{background:rgba(0,86,42,.6);}
+  .card{background:var(--glass-card); border:1px solid var(--glass-line); box-shadow:var(--glass-hi);}
+  .tile{border-right-color:var(--glass-line);}
+  .tiles{border-bottom-color:var(--glass-line);}
+  #logout-btn, #theme-btn{background:var(--glass-card); border:1px solid var(--glass-line); box-shadow:var(--glass-hi); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);}
+  #logout-btn:hover, #theme-btn:hover{background:var(--brand); color:#fff;}
+  #logout-btn:focus-visible, #theme-btn:focus-visible{outline:2px solid var(--brand); outline-offset:2px;}
+  .mb-fatality, .mb-kpi, .mb-nov-tile{background:var(--glass); border:1px solid var(--glass-line); -webkit-backdrop-filter:blur(18px) saturate(160%); backdrop-filter:blur(18px) saturate(160%);}
+  @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+    #app{--glass:rgba(255,255,255,.92); --glass-card:rgba(255,255,255,.7);}
+    html[data-theme="dark"] #app{--glass:rgba(24,31,28,.96); --glass-card:rgba(255,255,255,.07);}
+  }
+  /* ── LOOK: neumorphism containers (soft raised panels, pressed-in cards) on top of the glassmorphism background. Added last so it overrides the glass containers. The #app background is not touched. ── */
+  #app{
+    --neu-a:#eaf2ed; --neu-b:#d9e4dd; --neu-bg:#e3ece6;
+    --neu-hi:rgba(255,255,255,.92); --neu-lo:rgba(0,50,28,.40);
+    --neu-up:0 calc(.9 * var(--u)) calc(2.2 * var(--u)) var(--neu-lo);
+    --neu-up-sm:0 calc(.5 * var(--u)) calc(1.1 * var(--u)) var(--neu-lo);
+    --neu-raise:calc(.5 * var(--u)) calc(.5 * var(--u)) calc(1 * var(--u)) var(--neu-lo), calc(-.5 * var(--u)) calc(-.5 * var(--u)) calc(1 * var(--u)) var(--neu-hi);
+    --neu-in:inset calc(.45 * var(--u)) calc(.55 * var(--u)) calc(1.1 * var(--u)) rgba(0,50,28,.22);
+    --shadow:var(--neu-up);
+    --line:rgba(20,40,30,.12); --line-soft:rgba(20,40,30,.08);
+  }
+  html[data-theme="dark"] #app{
+    --neu-a:#1c2e25; --neu-b:#121e18; --neu-bg:#17261e;
+    --neu-hi:rgba(255,255,255,.07); --neu-lo:rgba(0,0,0,.62);
+    --neu-in:inset calc(.45 * var(--u)) calc(.55 * var(--u)) calc(1.1 * var(--u)) rgba(0,0,0,.55);
+    --line:rgba(255,255,255,.12); --line-soft:rgba(255,255,255,.07);
+  }
+  header.top, html[data-theme="dark"] #app header.top{background:var(--neu-bg); -webkit-backdrop-filter:none; backdrop-filter:none; box-shadow:0 calc(.6 * var(--u)) calc(1.8 * var(--u)) var(--neu-lo);}
+  .panel{background:linear-gradient(135deg,var(--brand),var(--brand-dk)) 0 0/100% calc(2.8 * var(--u)) no-repeat, linear-gradient(145deg,var(--neu-a),var(--neu-b)); border:0; -webkit-backdrop-filter:none; backdrop-filter:none; box-shadow:var(--neu-up);}
+  .hd, html[data-theme="dark"] .hd{background:linear-gradient(135deg,var(--brand),var(--brand-dk));}
+  .card{background:var(--neu-bg); border:1px solid transparent; box-shadow:var(--neu-raise);}
+  .panel, .card, #logout-btn, #theme-btn, .live-pill, .mb-fatality, .mb-kpi, .mb-nov-tile{background-origin:border-box;}
+  .tiles{gap:1.2vw; padding:calc(1.4 * var(--u)) 1.2vw calc(.6 * var(--u)); border-bottom:0;}
+  .tb{gap:1.2vw; padding:calc(1.2 * var(--u)) 1.2vw calc(1.5 * var(--u));}
+  .tile{background:var(--neu-bg); border:1px solid transparent; border-radius:calc(1.6 * var(--u)); box-shadow:var(--neu-raise);}
+  #logout-btn, #theme-btn{background:var(--neu-bg); border:1px solid transparent; box-shadow:var(--neu-raise); -webkit-backdrop-filter:none; backdrop-filter:none; transition:box-shadow .15s, color .15s;}
+  #logout-btn:hover, #theme-btn:hover{background:var(--neu-bg); border-color:transparent; color:var(--ink-dim); box-shadow:inset calc(.4 * var(--u)) calc(.5 * var(--u)) calc(1 * var(--u)) var(--neu-lo), inset calc(-.3 * var(--u)) calc(-.3 * var(--u)) calc(.7 * var(--u)) var(--neu-hi);}
+  #logout-btn:active, #theme-btn:active{transform:translateY(1px);}
+  .live-pill, .live-pill.stale{background:var(--neu-bg); border:1px solid transparent; box-shadow:var(--neu-raise); -webkit-backdrop-filter:none; backdrop-filter:none;}
+  .mb-fatality, .mb-kpi, .mb-nov-tile{background:linear-gradient(145deg,var(--neu-a),var(--neu-b)); border:1px solid transparent; -webkit-backdrop-filter:none; backdrop-filter:none; box-shadow:var(--neu-up-sm);}
+  .bl-k, .hb .k{background:var(--neu-bg); box-shadow:calc(.25 * var(--u)) calc(.3 * var(--u)) calc(.6 * var(--u)) var(--neu-lo), calc(-.25 * var(--u)) calc(-.25 * var(--u)) calc(.5 * var(--u)) var(--neu-hi);}
+  .bl-k i, .hb .k i{box-shadow:calc(.1 * var(--u)) calc(.15 * var(--u)) calc(.3 * var(--u)) rgba(0,0,0,.3);}
+  /* ── LOOK: panel headers: plain yellow icon (no circle) and a pressed (inset) dark green pill ── */
+  .hd i{background:none; border-radius:0; width:auto; min-width:calc(2.2 * var(--u)); height:calc(3.2 * var(--u)); font-size:calc(2 * var(--u)); color:#fbc02d;}
+  .chip{background:#005a2b; color:#fff; box-shadow:calc(.3 * var(--u)) calc(.35 * var(--u)) calc(.7 * var(--u)) rgba(0,25,12,.55), calc(-.25 * var(--u)) calc(-.25 * var(--u)) calc(.6 * var(--u)) rgba(255,255,255,.25);}
+  /* ── LOGOUT TRANSITION: "Signing out…" overlay fades in over the dashboard, then fades out onto the login frame. Skipped when the device asks for reduced motion. ── */
+  #signout-overlay{
+    position:fixed; inset:0; z-index:20002; display:none; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    background:linear-gradient(135deg,#0d6b3b 0%,#1f9a62 100%); font-family:var(--font-main); color:#fff;
+  }
+  #signout-overlay.show{display:flex; animation:soIn .3s ease both;}
+  #signout-overlay.hide{animation:soOut .4s ease forwards; pointer-events:none;}
+  #signout-overlay .so-spin{width:34px; height:34px; border-radius:50%; border:3px solid rgba(255,255,255,.28); border-top-color:#fbc02d; animation:soSpin .8s linear infinite;}
+  #signout-overlay .so-txt{margin:0; font-size:.95rem; font-weight:600; letter-spacing:.02em;}
+  @keyframes soIn{from{opacity:0;}}
+  @keyframes soOut{to{opacity:0;}}
+  @keyframes soSpin{to{transform:rotate(360deg);}}
+  @keyframes gateIn{from{opacity:0; transform:translateY(1.6vh);}}
+  #login-overlay .gate-frame{animation:gateIn .5s cubic-bezier(.22,.8,.3,1) both;}
+  @media (prefers-reduced-motion:reduce){#login-overlay .gate-frame, #signout-overlay .so-spin{animation:none !important;}}
+  
+
+  /* ══════════════════════════════════════════════════════════════
+     PHONE & TABLET LAYOUT (touch screens and windows up to 1100px)
+     A separate, flowing layout that shows ALL the data: panels stack
+     or sit in a grid by available width, text has a readable minimum
+     size, and the page scrolls vertically. Computers, laptops and TV
+     monitors are not touched: they keep the fixed one-page board.
+     --u is a small length unit (replaces the old screen-height unit).
+     ══════════════════════════════════════════════════════════════ */
+  @media (max-width:1100px), (pointer:coarse) and (max-width:1400px){
+    :root{--u:clamp(7.5px, .9vw + 4px, 9.5px);}
+    html{height:auto; overflow-x:hidden; overflow-y:auto; -webkit-text-size-adjust:100%;}
+    body{height:auto; min-height:100%; overflow:visible;}
+    #app{height:auto; min-height:100vh; min-height:100dvh;}
+    .mobile-board{display:none !important;}
+    .board-esh{display:flex !important; flex-direction:column; gap:12px; padding:12px; flex:0 0 auto; min-height:0;}
+    .bottom-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:12px; min-height:0; flex:0 0 auto;}
+    .tiles>*, .tb>*, .bottom-row>*{min-width:0;}
+    .panel{flex:0 0 auto; min-height:auto;}
+
+    /* header: wraps instead of clipping */
+    header.top{flex-wrap:wrap; gap:8px 10px; padding:10px 14px;}
+    header.top .brand{gap:12px;}
+    .hd-logo{height:36px;}
+    .hd-title{display:block; padding-left:12px;}
+    header.top h1{font-size:clamp(.9rem,2.6vw,1.15rem); letter-spacing:.06em;}
+    header.top .sub{display:block; font-size:.6rem; margin-top:2px;}
+    .hd-right{gap:8px; flex-wrap:wrap; justify-content:flex-end;}
+    .live-pill{padding:7px 12px; font-size:.72rem; white-space:normal;}
+    .live-pill span:not(.live-dot){display:inline !important;}
+    #theme-btn, #logout-btn{padding:8px 12px; font-size:.78rem; gap:6px;}
+    #logout-btn span{display:inline !important;}
+
+    /* panel headers */
+    .hd{flex-wrap:wrap; gap:6px 8px; padding:10px 14px;}
+    .hd > span:first-of-type{min-width:0;}
+    .chip{font-size:calc(1.3 * var(--u)); padding:3px 9px;}
+
+    /* incident tabulation rate */
+    .tiles{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; padding:12px 12px 4px; border-bottom:0; flex:0 0 auto;}
+    .tile{padding:10px 6px; border-radius:12px;}
+    .tile small{font-size:clamp(.58rem,1.3vw,.72rem); letter-spacing:.03em; line-height:1.2;}
+    .tile b{display:block; margin-top:4px; font-size:clamp(.95rem,2.4vw,1.5rem); line-height:1.15; overflow-wrap:anywhere;}
+    .tb{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:10px; padding:10px 12px 14px; flex:0 0 auto;}
+    .card{padding:12px 14px; border-radius:14px;}
+    .card h4{font-size:.92rem; margin-bottom:8px;}
+    .card h4 i{font-size:.58rem; letter-spacing:.14em;}
+    .big{font-size:clamp(3.2rem,12vw,4.6rem);}
+    .card .sub{font-size:.8rem;}
+    .pair{flex-wrap:wrap; justify-content:center; gap:6px 18px;}
+    .card.ctr .pair{gap:6px 18px;}
+    .pair div{font-size:.78rem;}
+    .pair b{font-size:clamp(1.15rem,4.6vw,1.6rem);}
+    .bl{margin:10px 0;}
+    .bl-t{font-size:.82rem;}
+    .bl-t b{font-size:1.05rem;}
+    .bl-k{height:12px; margin-top:5px;}
+
+    /* incident / accident summary */
+    .st-wrap{display:block; flex:0 0 auto; padding:12px 14px 14px;}
+    .hb{grid-template-columns:minmax(96px,1.3fr) minmax(60px,2fr) auto; gap:10px; margin:10px 0; font-size:.8rem;}
+    .hb .k{height:12px;}
+    .hb b{font-size:1rem; white-space:nowrap;}
+    .hb small{font-size:.7rem;}
+    .hb-ft{text-align:left; font-size:.68rem; line-height:1.45; margin-top:10px;}
+
+    /* NOV panels: donut and legend wrap, never overlap */
+    .dn-wrap{flex:0 0 auto; flex-wrap:wrap; justify-content:center; gap:14px 20px; padding:16px 14px;}
+    .dn{height:auto; max-height:none; width:clamp(110px,11vw,150px); flex:0 0 auto;}
+    .lg{flex:1 1 140px; min-width:140px; gap:8px; font-size:.86rem;}
+    .lg div{gap:8px;}
+    .lg i{width:10px; height:10px;}
+    .lg b{font-size:1.05rem;}
+    .lg small{font-size:.7rem; line-height:1.45;}
+    .empty{font-size:.85rem; padding:16px;}
+  }
+  @media (min-width:900px) and (max-width:1100px), (pointer:coarse) and (min-width:900px) and (max-width:1400px){
+    .tb{grid-template-columns:.8fr 1.1fr 1.1fr .9fr;}
+    .bottom-row{grid-template-columns:repeat(3,minmax(0,1fr));}
+  }
+  @media (min-width:641px) and (max-width:899px){
+    .bottom-row{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .bottom-row > .panel:last-child{grid-column:1 / -1;}
+  }
+  @media (max-width:640px){
+    header.top .brand, header.top .hd-right{display:contents;}
+    .hd-logo{order:1; margin-right:auto; height:30px;}
+    #theme-btn{order:2;}
+    #logout-btn{order:3;}
+    #logout-btn span{display:none !important;}
+    .hd-title{order:4; flex:1 1 100%; border-left:0; padding-left:0; text-align:center;}
+    header.top .sub{display:none;}
+    .live-pill{order:5; flex:1 1 100%; justify-content:center;}
+    .tiles{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .tile:last-child{grid-column:1 / -1;}
+    .tile small{font-size:.66rem;}
+    .tile b{font-size:clamp(1.05rem,5.4vw,1.5rem);}
+    .dn{width:clamp(110px,32vw,150px);}
+  }
+
+  /* ── LOGIN on phone / tablet ── */
+  @media (max-width:1100px), (pointer:coarse){
+    .gate-field input{font-size:16px;}
+  }
+  @media (min-width:641px) and (max-width:1100px){
+    .gate-frame{max-width:520px;}
+  }
+  @media (max-height:520px) and (orientation:landscape){
+    #login-overlay{padding:10px 16px;}
+    .gate-frame{max-width:560px; padding:14px 20px 12px; border-radius:24px;}
+    .gate-divider{margin:6px auto 10px;}
+    .gate-card{padding:14px 20px 12px;}
+    .gate-greet{font-size:1.05rem;}
+    .gate-sub{margin-bottom:12px;}
+    .gate-field{margin-bottom:10px;}
+    .gate-field input{height:44px;}
+    #gate-btn{height:42px;}
+    .gate-logo{width:110px; margin-top:4px;}
+    .gate-under{margin-top:8px; font-size:.64rem; line-height:1.4;}
+  }
+</style>
+</head>
+<body>
+<script>
+(function(){
+  var unlocked = sessionStorage.getItem('exec_unlocked') === '1';
+  document.documentElement.setAttribute('data-boot', unlocked ? 'pending' : 'gate');
+})();
+</script>
+
+<script>
+(function(){
+  function apply(t){
+    document.documentElement.setAttribute('data-theme', t);
+    var i = document.getElementById('theme-ico');
+    if (i) i.className = 'fa-solid ' + (t === 'dark' ? 'fa-sun' : 'fa-moon');
+  }
+  var t = 'light';
+  try { t = localStorage.getItem('exec_theme') === 'dark' ? 'dark' : 'light'; } catch(e) {}
+  apply(t);
+  window.toggleTheme = function(){
+    t = (document.documentElement.getAttribute('data-theme') === 'dark') ? 'light' : 'dark';
+    try { localStorage.setItem('exec_theme', t); } catch(e) {}
+    apply(t);
+  };
+  document.addEventListener('DOMContentLoaded', function(){ apply(t); });
+})();
+</script>
+
+
+<div id="welcome-overlay" role="status" aria-live="polite">
+  <div class="wl-shield">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path class="wl-outline" pathLength="1" d="M12 2.5 4 5.8v5.7c0 4.6 3.3 8.4 8 9.5 4.7-1.1 8-4.9 8-9.5V5.8L12 2.5Z"/>
+      <polyline class="wl-check" pathLength="1" points="8.5 12 11 14.5 15.5 9.5"/>
+    </svg>
+  </div>
+  <p class="wl-title">Welcome</p>
+  <p class="wl-sub">Executive ESH Summary</p>
+</div>
+
+<div id="signout-overlay" role="status" aria-live="polite">
+  <div class="so-spin" aria-hidden="true"></div>
+  <p class="so-txt">Signing out…</p>
+</div>
+
+<div id="login-overlay">
+  <div class="gate-frame">
+    <h1 class="gate-title">Executive <span>ESH</span> Summary</h1>
+    <div class="gate-divider"></div>
+    <div class="gate-card">
+      <div class="gate-greet" id="gate-greet"></div>
+      <div class="gate-sub">Enter the access code to view the summary</div>
+      <div class="gate-field">
+        <input id="passcode-input" type="password" inputmode="numeric" maxlength="12" placeholder=" " autocomplete="off">
+        <label for="passcode-input">Access code</label>
+        <button type="button" class="gate-eye" id="gate-eye" aria-label="Show access code" tabindex="-1"><i class="fa-solid fa-eye"></i></button>
+      </div>
+      <button id="gate-btn" onclick="attemptUnlock()">View Summary</button>
+      <div id="gate-error"></div>
+      <img class="gate-logo" src="images/scic-logo.png" alt="Sta. Clara International Corporation">
+    </div>
+    <div class="gate-under"><strong>Authorized personnel only.</strong><br>Read-only live view of the ESH Compliance Dashboard.<br>&copy; <span id="gate-year">2026</span> Environmental Safety &amp; Health Department</div>
+  </div>
+</div>
+<script>
+(function(){
+  var h = new Date().getHours();
+  var part = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
+  var icon = h < 12 ? '\u2600\uFE0F' : h < 18 ? '\u26C5' : '\uD83C\uDF19';
+  document.getElementById('gate-greet').innerHTML = icon + ' <span class="accent">Good</span> ' + part + '!';
+  document.getElementById('gate-year').textContent = new Date().getFullYear();
+  document.getElementById('gate-eye').onclick = function(){
+    var i = document.getElementById('passcode-input'), show = i.type === 'password';
+    i.type = show ? 'text' : 'password';
+    this.firstChild.className = 'fa-solid ' + (show ? 'fa-eye-slash' : 'fa-eye');
+  };
+})();
+</script>
+<script src="login-seasonal.js?v=1"></script>
+
+<div id="app">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <filter id="dnInset" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+    <feOffset in="SourceAlpha" dx="1.1" dy="1.3" result="o1"/>
+    <feGaussianBlur in="o1" stdDeviation="1.4" result="b1"/>
+    <feComposite in="SourceAlpha" in2="b1" operator="out" result="in1"/>
+    <feFlood style="flood-color:var(--neu-lo)"/>
+    <feComposite in2="in1" operator="in" result="dark"/>
+    <feOffset in="SourceAlpha" dx="-.9" dy="-1" result="o2"/>
+    <feGaussianBlur in="o2" stdDeviation="1.1" result="b2"/>
+    <feComposite in="SourceAlpha" in2="b2" operator="out" result="in2"/>
+    <feFlood style="flood-color:var(--neu-hi)"/>
+    <feComposite in2="in2" operator="in" result="light"/>
+    <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="dark"/><feMergeNode in="light"/></feMerge>
+  </filter>
+  <filter id="dnRaise" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+    <feDropShadow dx="-.7" dy="-.8" stdDeviation="1" style="flood-color:var(--neu-hi)"/>
+    <feDropShadow dx=".9" dy="1.1" stdDeviation="1.3" style="flood-color:var(--neu-lo)"/>
+  </filter>
+</defs></svg>
+  <div id="logout-confirm" class="ux-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="lc-title">
+    <div class="ux-dialog ux-ok">
+      <div class="ux-dialog-head">
+        <h3 class="ux-dialog-title" id="lc-title">Log out?</h3>
+      </div>
+      <p class="ux-dialog-msg">You will need the access code to view the summary again.</p>
+      <div class="ux-dialog-btns">
+        <button type="button" class="ux-btn" id="lc-cancel" onclick="closeLogoutConfirm()">Cancel</button>
+        <button type="button" class="ux-btn ux-btn-ok" onclick="closeLogoutConfirm(); doLogout();">Log out</button>
+      </div>
+    </div>
+  </div>
+  <header class="top">
+    <div class="brand">
+      <img class="hd-logo" src="images/scic-logo.png" alt="Sta. Clara International Corporation">
+      <div class="hd-title">
+        <h1>EXECUTIVE ESH SUMMARY</h1>
+        <div class="sub">Company-wide ESH Performance</div>
+      </div>
+    </div>
+    <div class="hd-right">
+      <div class="live-pill"><span class="live-dot"></span><span id="last-updated-txt">Syncing…</span></div>
+      <button id="theme-btn" type="button" onclick="toggleTheme()" title="Switch light / dark mode" aria-label="Switch light or dark mode"><i class="fa-solid fa-moon" id="theme-ico"></i></button>
+      <button id="logout-btn" onclick="confirmLogout()" title="Log out"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Log out</span></button>
+    </div>
+  </header>
+
+  <div class="board board-esh">
+    <div class="panel" id="rate-panel"></div>
+    <div class="bottom-row">
+      <div class="panel" id="inc-summary-panel"></div>
+      <div class="panel" id="nov-osh-panel"></div>
+      <div class="panel" id="nov-envi-panel"></div>
+    </div>
+  </div>
+
+  <!-- ── PHONE-ONLY COMPACT SUMMARY (key numbers, no scroll) ── -->
+  <div class="mobile-board" id="mobile-board">
+
+    <div class="mb-fatality" id="mb-fatality">
+      <i class="fa-solid fa-skull-crossbones"></i>
+      <div class="mb-fatality-text">
+        <div class="mb-fatality-lbl">Fatality — Zero Target</div>
+        <div class="mb-fatality-val" id="mb-fatality-val">0</div>
+      </div>
+      <span class="mb-badge ok" id="mb-fatality-badge">✅ ON TARGET</span>
+    </div>
+
+    <div class="mb-kpi-row">
+      <div class="mb-kpi">
+        <div class="mb-kpi-lbl">LTIR</div>
+        <div class="mb-kpi-val" id="mb-ltir-val">–</div>
+        <span class="mb-badge" id="mb-ltir-badge"></span>
+      </div>
+      <div class="mb-kpi">
+        <div class="mb-kpi-lbl">TRIR</div>
+        <div class="mb-kpi-val" id="mb-trir-val">–</div>
+        <span class="mb-badge" id="mb-trir-badge"></span>
+      </div>
+      <div class="mb-kpi">
+        <div class="mb-kpi-lbl">SR</div>
+        <div class="mb-kpi-val" id="mb-sr-val">–</div>
+        <span class="mb-badge none">No target</span>
+      </div>
+    </div>
+    <div class="mb-kpi-note">OSHA basis (200,000 hrs) · company-wide <span class="ytd-yr">YTD</span></div>
+
+    <div class="mb-nov-hd"><i class="fa-solid fa-clipboard-list"></i> Regulatory NOV — OSH + ENVI</div>
+    <div class="mb-nov-row">
+      <div class="mb-nov-tile">
+        <div class="mb-nov-lbl" style="color:var(--amber);">Total NOV</div>
+        <div class="mb-nov-val" id="mb-nov-total">–</div>
+      </div>
+      <div class="mb-nov-tile">
+        <div class="mb-nov-lbl" style="color:var(--coral);">Open</div>
+        <div class="mb-nov-val" id="mb-nov-open">–</div>
+      </div>
+      <div class="mb-nov-tile">
+        <div class="mb-nov-lbl" style="color:var(--mint);">Closed</div>
+        <div class="mb-nov-val" id="mb-nov-closed">–</div>
+      </div>
+    </div>
+
+    <div class="mb-footer">
+      <span id="mb-last-updated">Syncing…</span>
+      <span class="mb-hint">Rotate or open on tablet/desktop for full details</span>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInAnonymously, signOut, onAuthStateChanged, setPersistence, browserSessionPersistence }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBdqVEm3PWPuFTVbrxaP4JAZNXl2bmNUg4",
+  authDomain: "esh-dashboard.firebaseapp.com",
+  databaseURL: "https://esh-dashboard-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "esh-dashboard",
+  storageBucket: "esh-dashboard.firebasestorage.app",
+  messagingSenderId: "121684914529",
+  appId: "1:121684914529:web:d5292a3c30f1bba2959520",
+  measurementId: "G-TXYB9T0T3W"
+};
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+let companyData = null;
+let listenersStarted = false;
+let unsubFns = [];
+let lastUpdatedInterval = null;
+
+try { await setPersistence(auth, browserSessionPersistence); } catch(e) { console.warn(e); }
+
+// If we were waiting on auth confirmation (data-boot="pending") but nothing resolves
+// within a few seconds (e.g. offline / slow network), fall back to the passcode gate
+// instead of leaving the boot loader spinning forever.
+let bootResolved = false;
+setTimeout(() => {
+  if (!bootResolved) showGate();
+}, 6000);
+
+function hideLoadingNow() {
+  clearTimeout(loadingTimer);
+  welcomeUp = false; welcomeHiding = false;
+  const ov = document.getElementById('welcome-overlay');
+  if (ov) ov.classList.remove('show', 'fadein', 'hide');
+}
+
+function showGate() {
+  hideLoadingNow(); // never let the loader sit on top of the login screen
+  bootResolved = true;
+  sessionStorage.removeItem('exec_unlocked');
+  document.documentElement.setAttribute('data-boot', 'gate');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-overlay').style.display = 'flex';
+}
+
+let loadingTimer = null, welcomeUp = false, welcomeHiding = false, welcomeShownAt = 0;
+// Welcome splash fades out once the first data is in (or after 6s), but stays at least 1.4s
+function hideWelcome() {
+  if (!welcomeUp || welcomeHiding) return;
+  welcomeHiding = true;
+  clearTimeout(loadingTimer);
+  const ov = document.getElementById('welcome-overlay');
+  const wait = Math.max(0, 1400 - (Date.now() - welcomeShownAt));
+  setTimeout(() => {
+    if (!welcomeUp) return;
+    welcomeUp = false;
+    ov.classList.add('hide');
+    playIntro(); // dashboard intro animation starts as the splash fades out
+    setTimeout(() => { ov.classList.remove('show', 'fadein', 'hide'); welcomeHiding = false; }, 450);
+  }, wait);
+}
+function hideLoading() {
+  if (!companyData) render(); // no data came: show the normal "Waiting for data" state
+  hideWelcome();
+}
+
+window.confirmLogout = function() {
+  document.getElementById('logout-confirm').classList.add('open');
+  document.getElementById('lc-cancel').focus();
+};
+window.closeLogoutConfirm = function() {
+  document.getElementById('logout-confirm').classList.remove('open');
+};
+document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closeLogoutConfirm(); });
+
+function showApp() {
+  const ov = document.getElementById('welcome-overlay');
+  const pending = document.documentElement.getAttribute('data-boot') === 'pending';
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  bootResolved = true;
+  welcomeUp = true; welcomeHiding = false; welcomeShownAt = Date.now();
+  ov.classList.add('show');
+  const swap = () => {
+    document.documentElement.removeAttribute('data-boot');
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+  };
+  // from the login frame: splash fades in first, then the dashboard is put in place underneath it
+  if (pending || reduce) swap(); else { ov.classList.add('fadein'); setTimeout(swap, 320); }
+  clearTimeout(loadingTimer);
+  loadingTimer = setTimeout(hideLoading, 6000); // never leave the splash stuck
+}
+
+window.doLogout = async function() {
+  const app = document.getElementById('app');
+  const ov = document.getElementById('signout-overlay');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // "Signing out…" overlay fades in; the real sign-out and data clearing run at the same time
+  if (!reduce) ov.classList.add('show');
+  const hold = reduce ? Promise.resolve() : new Promise(r => setTimeout(r, 1100));
+  try { await signOut(auth); } catch(e) { console.warn(e); }
+  stopListeners();
+  // reset so the opening animation plays again on the next login (not only after a page refresh)
+  introDone = false; companyData = null;
+  app.classList.remove('intro');
+  sessionStorage.removeItem('exec_unlocked');
+  document.getElementById('passcode-input').value = '';
+  document.getElementById('gate-error').textContent = '';
+  await hold;
+  showGate();
+  if (!reduce) {
+    ov.classList.add('hide');
+    setTimeout(() => ov.classList.remove('show', 'hide'), 400);
+  }
+};
+
+window.attemptUnlock = async function() {
+  const input = document.getElementById('passcode-input');
+  const btn   = document.getElementById('gate-btn');
+  const err   = document.getElementById('gate-error');
+  const code  = (input.value || '').trim();
+  err.textContent = '';
+  if (!code) { err.textContent = 'Please enter the access code.'; return; }
+
+  btn.disabled = true; btn.textContent = 'Checking…';
+  try {
+    await signInAnonymously(auth);
+    const cfgSnap = await getDoc(doc(db, 'app_config', 'exec_access'));
+    const validCode = cfgSnap.exists() ? String(cfgSnap.data().passcode || '') : null;
+
+    if (!validCode) {
+      err.textContent = 'Access is not configured yet. Contact ESH Department.';
+      await signOut(auth);
+    } else if (code !== validCode) {
+      err.textContent = 'Incorrect access code.';
+      input.value = '';
+      await signOut(auth);
+    } else {
+      sessionStorage.setItem('exec_unlocked', '1');
+      showApp();
+      startListeners();
+    }
+  } catch (e) {
+    console.error(e);
+    err.textContent = 'Connection error. Please try again.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'View Summary';
+  }
+};
+
+document.getElementById('passcode-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') window.attemptUnlock();
+});
+
+function startListeners() {
+  if (listenersStarted) return;
+  listenersStarted = true;
+
+  unsubFns.push(onSnapshot(doc(db, 'exec_summary', '_company_wide'), snap => {
+    companyData = snap.exists() ? snap.data() : null;
+    render();
+    hideLoading();
+  }, e => { console.warn('exec_summary listener error:', e.message); hideLoading(); }));
+
+  lastUpdatedInterval = setInterval(updateLastUpdatedTxt, 30000);
+}
+
+function stopListeners() {
+  unsubFns.forEach(fn => { try { fn(); } catch(e) {} });
+  unsubFns = [];
+  if (lastUpdatedInterval) { clearInterval(lastUpdatedInterval); lastUpdatedInterval = null; }
+  listenersStarted = false;
+}
+
+function fmt(n, d=3) { const v = parseFloat(n); return (isFinite(v) ? v : 0).toFixed(d); }
+
+function tabRateColor(val, kind) {
+  const v = parseFloat(val) || 0;
+  const limit = kind === 'ltir' ? 0.50 : 1.25;
+  return v <= limit ? 'ok' : 'bad';
+}
+
+const C_OK='#4faa72', C_BAD='#d94a3f';
+const INC_COLORS={'Fatality':'#d94a3f','LTA':'#e56020','First Aid':'#4faa72','Medical Treatment':'#f0b818','High-Potential Incident':'#007838','Dangerous Occurrences':'#7a8a82'};
+const num = v => parseFloat(v) || 0;
+const hdHTML = (icon, title, chip) => `<div class="hd"><i class="fa-solid ${icon}"></i><span>${title}</span>${chip ? `<span class="chip">${chip}</span>` : ''}</div>`;
+
+function tile(label, val, cls) { return `<div class="tile${cls ? ' ' + cls : ''}"><small>${label}</small><b>${val}</b></div>`; }
+
+function bulletRow(lbl, v, max, tgt) {
+  const c = v <= tgt ? C_OK : C_BAD;
+  return `<div class="bl"><div class="bl-t"><span>${lbl}</span><b style="color:${c}">${fmt(v)}</b></div>
+    <div class="bl-k"><i style="width:${Math.min(v / max * 100, 100)}%;background:${c}"></i><u style="left:${tgt / max * 100}%"></u></div></div>`;
+}
+function bulletCard(title, tgt, osha, oshs) {
+  const max = Math.max(num(osha), num(oshs), tgt) * 1.15;
+  return `<div class="card"><h4>${title}<i>target ${tgt.toFixed(2)}</i></h4><div class="cb">${bulletRow('OSHA (200K hrs)', num(osha), max, tgt)}${bulletRow('OSHS (1M hrs)', num(oshs), max, tgt)}</div></div>`;
+}
+function donutSvg(parts, mid) {
+  const R = 38, C = 2 * Math.PI * R, tot = parts.reduce((a, p) => a + p[0], 0);
+  let off = 0, arcs = '';
+  if (tot > 0) parts.forEach(p => {
+    const l = p[0] / tot * C;
+    if (l > 0) { arcs += `<circle class="dn-arc" cx="50" cy="50" r="${R}" fill="none" stroke="${p[1]}" stroke-width="16" stroke-dasharray="${l} ${C - l}" stroke-dashoffset="${-off}" transform="rotate(-90 50 50)"/>`; off += l; }
+  });
+  // neumorphic: raised ring and raised centre; with no data a raised blank ring stands in
+  const groove = tot > 0 ? '' : `<circle cx="50" cy="50" r="${R}" fill="none" stroke-width="16" style="stroke:var(--neu-bg)" filter="url(#dnRaise)"/>`;
+  return `<svg class="dn" viewBox="-6 -6 112 112">${groove}<g filter="url(#dnRaise)">${arcs}</g>` +
+    `<circle cx="50" cy="50" r="26" style="fill:var(--neu-bg)" filter="url(#dnRaise)"/>` +
+    `<text x="50" y="58" text-anchor="middle">${mid}</text></svg>`;
+}
+function novPanelHTML(kind, title, d) {
+  const n = d || { total:0, int:0, ext:0, open:0, closed:0, totalViolations:0, violOpen:0, violClosed:0 };
+  return hdHTML(kind === 'envi' ? 'fa-leaf' : 'fa-hard-hat', title, `${companyData?.projectCount || 0} PROJECTS`) +
+    `<div class="dn-wrap">${donutSvg([[n.open, C_BAD], [n.closed, C_OK]], n.total)}
+      <div class="lg">
+        <div><i style="background:${C_BAD}"></i>Open NOV<b>${n.open}</b></div>
+        <div><i style="background:${C_OK}"></i>Closed NOV<b>${n.closed}</b></div>
+        <hr>
+        <div>Violations<b>${n.totalViolations}</b></div>
+        <small>${n.violOpen} open · ${n.violClosed} closed · ${n.int} int · ${n.ext} ext</small>
+      </div></div>`;
+}
+
+let introDone = false;
+function countUp(el, delay) {
+  const raw = el.textContent.trim();
+  if (!/^\d[\d,]*(\.\d+)?$/.test(raw)) return;
+  const target = parseFloat(raw.replace(/,/g, ''));
+  if (!isFinite(target) || target === 0) return;
+  const dec = (raw.split('.')[1] || '').length, comma = raw.includes(',');
+  const show = v => comma ? v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : v.toFixed(dec);
+  const dur = 900; let t0 = null;
+  el.textContent = show(0);
+  setTimeout(() => {
+    const step = ts => {
+      if (t0 === null) t0 = ts;
+      const p = Math.min((ts - t0) / dur, 1), e = 1 - Math.pow(1 - p, 3);
+      el.textContent = p < 1 ? show(target * e) : raw;
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, delay);
+  setTimeout(() => { if (el.textContent !== raw) el.textContent = raw; }, delay + dur + 500);
+}
+// Plays once, after the first real data arrives. Later Firebase updates do not replay it.
+function playIntro() {
+  if (introDone || !companyData || welcomeUp) return;
+  introDone = true;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const app = document.getElementById('app');
+  app.classList.add('intro');
+  document.querySelectorAll('.board-esh .tile b').forEach(el => countUp(el, 600));
+  document.querySelectorAll('.board-esh .big, .board-esh .pair b, .board-esh .bl-t b, .board-esh .lg b, .board-esh .dn text').forEach(el => countUp(el, 900));
+  setTimeout(() => app.classList.remove('intro'), 3000);
+}
+
+function render() {
+  const t = companyData?.tabulation || null;
+
+  // ── Incident Tabulation Rate ─────────────────────────────────────
+  const ratePanel = document.getElementById('rate-panel');
+  if (ratePanel) {
+    const hd = hdHTML('fa-calculator', 'INCIDENT TABULATION RATE', 'AUTO-COMPUTED FROM ALL PROJECTS');
+    if (!t) {
+      ratePanel.innerHTML = hd + `<div class="empty">Waiting for data…</div>`;
+    } else {
+      const fat = t.fatalCases || 0;
+      ratePanel.innerHTML = hd +
+        `<div class="tiles">${[
+          tile('LTA cases', t.ltaCases ?? 0),
+          tile('Recordable cases', t.recordableCases ?? 0),
+          tile('Lost days', (t.lostDays ?? 0).toLocaleString(), (t.lostDays ?? 0) > 0 ? 'bad' : ''),
+          tile('Man-hours ' + ytdLabel(), (t.totalManHours ?? 0).toLocaleString()),
+          tile('Man-hours to date', (t.totalManHoursToDate ?? 0).toLocaleString())
+        ].join('')}</div>
+        <div class="tb">
+          <div class="card ctr"><h4>FATALITY<i>target 0</i></h4><div class="cb"><div class="big" style="color:${fat === 0 ? C_OK : C_BAD}">${fat}</div><div class="sub">${fat === 0 ? 'On target' : 'Target exceeded'}</div></div></div>
+          ${bulletCard('LTIR', 0.50, t.ltirOsha, t.ltirOshs)}
+          ${bulletCard('TRIR', 1.25, t.trirOsha, t.trirOshs)}
+          <div class="card ctr"><h4>SEVERITY RATE<i>no target</i></h4><div class="cb"><div class="pair"><div>OSHA<b>${fmt(t.srOsha)}</b></div><div>OSHS<b>${fmt(t.srOshs)}</b></div></div></div></div>
+        </div>`;
+    }
+  }
+
+  // ── Incident / Accident Summary (this year / accumulated) ────────
+  const incPanel = document.getElementById('inc-summary-panel');
+  if (incPanel) {
+    const hd = hdHTML('fa-list-check', 'INCIDENT / ACCIDENT SUMMARY', 'FM-ESH-01-42');
+    const s = companyData?.incidentSummary;
+    if (!s || !s.rows) {
+      incPanel.innerHTML = hd + `<div class="empty">Waiting for data…</div>`;
+    } else {
+      const max = Math.max(...s.rows.map(r => num(r.total)), 1);
+      const tt = s.totals || { previous: 0, total: 0, accumulated: 0 };
+      incPanel.innerHTML = hd + `<div class="st-wrap">${s.rows.map(r => `
+        <div class="hb"><span>${r.label}</span>
+          <div class="k"><i style="width:${num(r.total) / max * 100}%;background:${INC_COLORS[r.label] || '#7a8a82'}"></i></div>
+          <b>${r.total} <small>/ ${r.accumulated}</small></b></div>`).join('')}
+        <div class="hb-ft">Bar = this year / accumulated · Total: previous ${tt.previous} · this year ${tt.total} · accumulated ${tt.accumulated}</div></div>`;
+    }
+  }
+
+  // ── ENVI / OSH Regulatory Issued NOV ────────────────────────────
+  const enviEl = document.getElementById('nov-envi-panel');
+  if (enviEl) enviEl.innerHTML = novPanelHTML('envi', 'ENVI REGULATORY ISSUED NOV', companyData?.enviNov);
+  const oshEl = document.getElementById('nov-osh-panel');
+  if (oshEl) oshEl.innerHTML = novPanelHTML('osh', 'OSH REGULATORY ISSUED NOV', companyData?.oshNov);
+
+  // ── PHONE SUMMARY: Fatality / LTIR / TRIR / SR + combined NOV ───
+  const mbFatVal = document.getElementById('mb-fatality-val');
+  if (mbFatVal) {
+    if (!t) {
+      mbFatVal.textContent = '–';
+    } else {
+      const fatOk = (t.fatalCases || 0) === 0;
+      mbFatVal.textContent = '0';
+      mbFatVal.style.color = fatOk ? 'var(--mint)' : 'var(--coral)';
+      const badge = document.getElementById('mb-fatality-badge');
+      badge.className = 'mb-badge ' + (fatOk ? 'ok' : 'bad');
+      badge.textContent = fatOk ? '✅ ON TARGET' : `⚠ ACTUAL: ${t.fatalCases}`;
+    }
+  }
+  function fillMbKpi(valId, badgeId, val, kind) {
+    const valEl = document.getElementById(valId);
+    const badgeEl = document.getElementById(badgeId);
+    if (!valEl) return;
+    if (!t) { valEl.textContent = '–'; return; }
+    valEl.textContent = fmt(val);
+    if (badgeEl && kind) {
+      const state = tabRateColor(val, kind);
+      valEl.style.color = state === 'ok' ? 'var(--mint)' : 'var(--coral)';
+      badgeEl.className = 'mb-badge ' + state;
+      badgeEl.textContent = state === 'ok' ? '✅ Target' : '⚠ Exceeded';
+    } else {
+      valEl.style.color = 'var(--coral)';
+    }
+  }
+  if (t) {
+    fillMbKpi('mb-ltir-val', 'mb-ltir-badge', t.ltirOsha, 'ltir');
+    fillMbKpi('mb-trir-val', 'mb-trir-badge', t.trirOsha, 'trir');
+    fillMbKpi('mb-sr-val', null, t.srOsha, null);
+  }
+
+  const mbNovTotal = document.getElementById('mb-nov-total');
+  if (mbNovTotal) {
+    const osh = companyData?.oshNov || {};
+    const envi = companyData?.enviNov || {};
+    const total = (osh.total || 0) + (envi.total || 0);
+    const open = (osh.open || 0) + (envi.open || 0);
+    const closed = (osh.closed || 0) + (envi.closed || 0);
+    document.getElementById('mb-nov-total').textContent = companyData ? total : '–';
+    document.getElementById('mb-nov-open').textContent = companyData ? open : '–';
+    document.getElementById('mb-nov-closed').textContent = companyData ? closed : '–';
+  }
+
+  updateLastUpdatedTxt();
+  playIntro();
+}
+
+function ytdLabel() {
+  return companyData && companyData.year ? 'YTD ' + companyData.year : 'YTD';
+}
+
+function updateLastUpdatedTxt() {
+  let txt, stale = false;
+  if (!companyData || !companyData.updatedAt) {
+    txt = 'Waiting for data';
+  } else {
+    const d = new Date(companyData.updatedAt);
+    const mins = Math.max(0, Math.round((Date.now() - d.getTime()) / 60000));
+    const hrs = Math.floor(mins / 60), days = Math.floor(mins / 1440);
+    const ago = mins < 1 ? 'just now'
+      : mins < 60 ? `${mins} min ago`
+      : mins < 1440 ? `${hrs} ${hrs === 1 ? 'hr' : 'hrs'} ago`
+      : `${days} ${days === 1 ? 'day' : 'days'} ago`;
+    const when = d.toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    txt = `Updated ${ago} · ${when}`;
+    stale = mins >= 1440;
+    if (companyData.year) {
+      txt += ' · ' + ytdLabel();
+      // Flag data that isn't for the current year (wrong-year push or old doc)
+      if (companyData.year !== new Date().getFullYear()) { txt += ' ⚠ not current year'; stale = true; }
+    }
+  }
+  document.querySelectorAll('.ytd-yr').forEach(el => el.textContent = ytdLabel());
+  const el = document.getElementById('last-updated-txt');
+  el.textContent = txt;
+  const pill = el.closest('.live-pill');
+  if (pill) pill.classList.toggle('stale', stale);
+  const mbEl = document.getElementById('mb-last-updated');
+  if (mbEl) mbEl.textContent = txt;
+}
+
+onAuthStateChanged(auth, user => {
+  const wasPending = document.documentElement.getAttribute('data-boot') === 'pending';
+  if (user && sessionStorage.getItem('exec_unlocked') === '1') {
+    if (document.getElementById('app').style.display !== 'flex') {
+      showApp();
+      startListeners();
+    }
+  } else if (wasPending) {
+    // Session flag said we were logged in, but Firebase disagrees (expired/cleared) —
+    // reveal the passcode gate instead of leaving the boot loader up.
+    showGate();
+  }
+});
+</script>
+</body>
+</html>
