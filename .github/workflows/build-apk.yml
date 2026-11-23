@@ -453,30 +453,52 @@ jobs:
             exit 1
           fi
 
-      - name: Make icon with transparent background
+      - name: Make icon (white background, shield fully visible)
         run: |
           RES=android/app/src/main/res
-          # no adaptive icon: use plain transparent icons instead
-          rm -f $RES/mipmap-anydpi-v26/ic_launcher.xml $RES/mipmap-anydpi-v26/ic_launcher_round.xml
+          cat > $RES/values/ic_launcher_background.xml << 'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="ic_launcher_background">#FFFFFF</color>
+          </resources>
+          XML
+          for f in ic_launcher ic_launcher_round; do
+            cat > $RES/mipmap-anydpi-v26/$f.xml << 'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@color/ic_launcher_background"/>
+              <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+          </adaptive-icon>
+          XML
+          done
           cat > make-icons.js << 'JS'
           const sharp = require('sharp');
-          const sizes = { mdpi: 48, hdpi: 72, xhdpi: 96, xxhdpi: 144, xxxhdpi: 192 };
+          const dirs = { mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 };
+          const clear = { r: 0, g: 0, b: 0, alpha: 0 };
+          const white = { r: 255, g: 255, b: 255, alpha: 1 };
           (async () => {
             const src = await sharp('assets/icon-foreground.png').trim().toBuffer();
-            for (const [d, s] of Object.entries(sizes)) {
-              const inner = Math.round(s * 0.9);
-              const img = await sharp(src).resize(inner, inner, { fit: 'inside' }).toBuffer();
+            for (const [d, k] of Object.entries(dirs)) {
+              const out = 'android/app/src/main/res/mipmap-' + d + '/';
+              // adaptive foreground: 108dp canvas, shield about 46% of it
+              const fg = Math.round(108 * k);
+              const sh = Math.round(fg * 0.46);
+              const img = await sharp(src).resize(sh, sh, { fit: 'inside' }).toBuffer();
+              await sharp({ create: { width: fg, height: fg, channels: 4, background: clear } })
+                .composite([{ input: img, gravity: 'center' }]).png().toFile(out + 'ic_launcher_foreground.png');
+              // old-style icon: white square, shield about 70%
+              const lg = Math.round(48 * k);
+              const sh2 = Math.round(lg * 0.7);
+              const img2 = await sharp(src).resize(sh2, sh2, { fit: 'inside' }).toBuffer();
               for (const n of ['ic_launcher', 'ic_launcher_round']) {
-                await sharp({ create: { width: s, height: s, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-                  .composite([{ input: img, gravity: 'center' }])
-                  .png()
-                  .toFile('android/app/src/main/res/mipmap-' + d + '/' + n + '.png');
+                await sharp({ create: { width: lg, height: lg, channels: 4, background: white } })
+                  .composite([{ input: img2, gravity: 'center' }]).png().toFile(out + n + '.png');
               }
             }
           })();
           JS
           node make-icons.js
-          ls -l $RES/mipmap-xxxhdpi $RES/mipmap-anydpi-v26
+          ls -l $RES/mipmap-xxxhdpi
 
       - name: Sync
         run: npx cap sync android
