@@ -427,7 +427,7 @@ function computeEshHeadcount() {
 
     const SITE = {
         'ESH Head': 'head',
-        'ESH Superintendent': 'head',
+        'ESH Superintendent': 'superintendent',
         'PCO': 'pco',
         'Project Nurse': 'nurse',
         'Project Physician': 'physician',
@@ -443,7 +443,7 @@ function computeEshHeadcount() {
         'Corporate Nurse': 'nurse',
         'Corporate Physician': 'physician'
     };
-    const site = { head: 0, so: 0, pco: 0, nurse: 0, physician: 0, firstAider: 0 };
+    const site = { head: 0, superintendent: 0, so: 0, pco: 0, nurse: 0, physician: 0, firstAider: 0 };
     const corporate = { managers: 0, envHead: 0, so: 0, nurse: 0, physician: 0 };
 
     people.forEach(p => {
@@ -462,17 +462,19 @@ function computeEshHeadcount() {
 let _hcSyncTimer = null, _hcLastSig = '', _hcSyncDenied = false;
 async function syncEshHeadcount() {
     try {
-        if (_hcSyncDenied || !window.firebaseDb || !window.firebase || !state.currentUser) return;
+        if (_hcSyncDenied) { console.info('[Headcount] skipped: this account has no write permission to exec_summary'); return; }
+        if (!window.firebaseDb || !window.firebase || !state.currentUser) { console.info('[Headcount] skipped: not signed in / Firebase not ready'); return; }
         const hc = computeEshHeadcount();
-        if (!hc) return;
+        if (!hc) { console.info('[Headcount] skipped: no personnel loaded yet'); return; }
         const sig = JSON.stringify(hc);
-        if (sig === _hcLastSig) return;
+        if (sig === _hcLastSig) { console.info('[Headcount] unchanged, not written'); return; }
         const ref = window.firebase.doc(window.firebaseDb, 'exec_summary', '_company_wide');
         await window.firebase.setDoc(ref, { headcount: hc, headcountUpdatedAt: new Date().toISOString() }, { merge: true });
         _hcLastSig = sig;
+        console.info('[Headcount] synced to Executive Summary', hc);
     } catch (e) {
         if (e && e.code === 'permission-denied') _hcSyncDenied = true; // this account cannot write exec_summary
-        console.warn('Headcount sync skipped:', e && e.message);
+        console.warn('[Headcount] sync failed:', e && e.message);
     }
 }
 function scheduleHeadcountSync(delay) {
