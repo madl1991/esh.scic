@@ -417,6 +417,70 @@ function computeIncidentSummaryAggregate(projects) {
     return { rows, totals };
 }
 
+// ESH personnel headcount for the Executive Summary "ESH Personnel Headcount" panel.
+// Source: state.personnelData (ESH Personnel Monitoring, all projects + Corporate).
+// Counted by position; to change which positions go to which chip, edit the maps below.
+// Positions not listed (e.g. "Others", Corporate Dentist, QESH Corp. DC) are not counted.
+function computeEshHeadcount() {
+    const people = state.personnelData;
+    if (!Array.isArray(people) || people.length === 0) return null;
+
+    const SITE = {
+        'ESH Head': 'head',
+        'ESH Superintendent': 'head',
+        'PCO': 'pco',
+        'Project Nurse': 'nurse',
+        'Project Physician': 'physician',
+        'First Aider': 'firstAider'
+    };
+    const CORP = {
+        'QESH Group Manager': 'managers',
+        'QESH Deputy Manager': 'managers',
+        'ESH Manager for Regulation & Compliance': 'managers',
+        'ESH Manager for Project Implementation': 'managers',
+        'Environmental and Sustainability Head': 'envHead',
+        'Corporate Safety Officer': 'so',
+        'Corporate Nurse': 'nurse',
+        'Corporate Physician': 'physician'
+    };
+    const site = { head: 0, so: 0, pco: 0, nurse: 0, physician: 0, firstAider: 0 };
+    const corporate = { managers: 0, envHead: 0, so: 0, nurse: 0, physician: 0 };
+
+    people.forEach(p => {
+        const pos = String(p.pos || '').trim();
+        if (!pos) return;
+        if (CORP[pos]) { corporate[CORP[pos]]++; return; }
+        if (/^Safety Officer\b/.test(pos)) { site.so++; return; }
+        if (SITE[pos]) site[SITE[pos]]++;
+    });
+    return { site, corporate };
+}
+
+// Lightweight headcount-only push to exec_summary/_company_wide (merge), so the Executive
+// Summary updates right after the dashboard loads or personnel change, without waiting for a
+// full project save. Skips the write when the numbers did not change; failures are silent.
+let _hcSyncTimer = null, _hcLastSig = '', _hcSyncDenied = false;
+async function syncEshHeadcount() {
+    try {
+        if (_hcSyncDenied || !window.firebaseDb || !window.firebase || !state.currentUser) return;
+        const hc = computeEshHeadcount();
+        if (!hc) return;
+        const sig = JSON.stringify(hc);
+        if (sig === _hcLastSig) return;
+        const ref = window.firebase.doc(window.firebaseDb, 'exec_summary', '_company_wide');
+        await window.firebase.setDoc(ref, { headcount: hc, headcountUpdatedAt: new Date().toISOString() }, { merge: true });
+        _hcLastSig = sig;
+    } catch (e) {
+        if (e && e.code === 'permission-denied') _hcSyncDenied = true; // this account cannot write exec_summary
+        console.warn('Headcount sync skipped:', e && e.message);
+    }
+}
+function scheduleHeadcountSync(delay) {
+    clearTimeout(_hcSyncTimer);
+    _hcSyncTimer = setTimeout(syncEshHeadcount, delay == null ? 2500 : delay);
+}
+window.syncEshHeadcount = syncEshHeadcount;
+
 async function syncExecutiveSummary() {
     const result = { ok: true, regionsSynced: 0, regionsFailed: [], reason: '' };
     try {
@@ -606,6 +670,7 @@ async function syncExecutiveSummary() {
                 oshNov: _sumNov('osh-nov'),
                 enviNov: _sumNov('nov-env'),
                 incidentSummary: computeIncidentSummaryAggregate(novScopedProjects),
+                headcount: computeEshHeadcount(),
                 overallCompliance: {
                     pct: _ecOverallAvg,
                     projectsScored: _ecCount,
@@ -1076,6 +1141,7 @@ async function loadAllProjectsAndFilter() {
             } else {  }
         }
 
+        scheduleHeadcountSync(1500); // push ESH headcount to the Executive Summary right after a fresh load
         render();
         renderPTable();
 
@@ -1635,6 +1701,7 @@ const originalSaveUserData = window.saveUserData || function() {};
 
 window.saveUserData = function(email) {
     originalSaveUserData(email);
+    scheduleHeadcountSync(); // personnel add/edit/transfer/delete -> refresh Executive Summary headcount
 };
 
 waitForFirebase().then(async () => {
