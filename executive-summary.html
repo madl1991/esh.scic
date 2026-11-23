@@ -220,7 +220,7 @@
   .tile b{font:800 min(calc(5 * var(--u)),2.8vw) var(--font-main); line-height:1.1; color:var(--navy);}
   .tb{flex:1; min-height:0; display:grid; grid-template-columns:.8fr 1.1fr 1.1fr .9fr; gap:.8vw; padding:calc(1 * var(--u)) .8vw;}
   .card{border:1px solid var(--line); border-radius:calc(1.2 * var(--u)); padding:calc(.9 * var(--u)) .9vw; display:flex; flex-direction:column; justify-content:center; min-height:0;}
-  .card h4{margin:0 0 calc(.7 * var(--u)); font-size:calc(2 * var(--u)); font-weight:800; letter-spacing:.09em; line-height:1.15; color:var(--brand-fg); text-align:left; align-self:flex-start;}
+  .card h4{overflow-wrap:break-word; margin:0 0 calc(.7 * var(--u)); font-size:calc(2 * var(--u)); font-weight:800; letter-spacing:.09em; line-height:1.15; color:var(--brand-fg); text-align:left; align-self:flex-start;}
   .card h4 i{display:block; font-style:normal; font-size:calc(1.25 * var(--u)); font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-dim); margin-top:calc(.3 * var(--u));}
   .card .cb{flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; align-self:stretch;}
   .card.ctr .cb{align-items:center; text-align:center;}
@@ -307,7 +307,7 @@
       padding:clamp(8px,calc(1.8 * var(--u)),14px) 8px; text-align:center; box-shadow:var(--shadow);
       display:flex; flex-direction:column; align-items:center; gap:5px;
     }
-    .mb-kpi-lbl{font-size:0.62rem; font-weight:800; letter-spacing:0.4px; color:var(--ink-dim);}
+    .mb-kpi-lbl{font-size:0.62rem; font-weight:800; letter-spacing:0.2px; line-height:1.2; text-align:center; overflow-wrap:break-word; color:var(--ink-dim); flex:1 0 auto; display:flex; align-items:center; justify-content:center;}
     .mb-kpi-val{font-family:var(--font-main); font-size:clamp(1.05rem,calc(4.2 * var(--u)),1.45rem); font-weight:800; color:var(--navy); line-height:1;}
     .mb-kpi-note{flex:0 0 auto; text-align:center; font-size:0.58rem; color:var(--ink-faint); margin-top:-4px;}
 
@@ -788,12 +788,12 @@
 
     <div class="mb-kpi-row">
       <div class="mb-kpi">
-        <div class="mb-kpi-lbl">LTIR</div>
+        <div class="mb-kpi-lbl">Lost Time Incident Rate</div>
         <div class="mb-kpi-val" id="mb-ltir-val">–</div>
         <span class="mb-badge" id="mb-ltir-badge"></span>
       </div>
       <div class="mb-kpi">
-        <div class="mb-kpi-lbl">TRIR</div>
+        <div class="mb-kpi-lbl">Total Recordable Incident Rate</div>
         <div class="mb-kpi-val" id="mb-trir-val">–</div>
         <span class="mb-badge" id="mb-trir-badge"></span>
       </div>
@@ -1114,8 +1114,8 @@ function render() {
         ].join('')}</div>
         <div class="tb">
           <div class="card ctr"><h4>FATALITY<i>target 0</i></h4><div class="cb"><div class="big" style="color:${fat === 0 ? C_OK : C_BAD}">${fat}</div><div class="sub">${fat === 0 ? 'On target' : 'Target exceeded'}</div></div></div>
-          ${bulletCard('LTIR', 0.50, t.ltirOsha, t.ltirOshs)}
-          ${bulletCard('TRIR', 1.25, t.trirOsha, t.trirOshs)}
+          ${bulletCard('LOST TIME INCIDENT RATE', 0.50, t.ltirOsha, t.ltirOshs)}
+          ${bulletCard('TOTAL RECORDABLE INCIDENT RATE', 1.25, t.trirOsha, t.trirOshs)}
           <div class="card ctr"><h4>SEVERITY RATE<i>no target</i></h4><div class="cb"><div class="pair"><div>OSHA<b>${fmt(t.srOsha)}</b></div><div>OSHS<b>${fmt(t.srOshs)}</b></div></div></div></div>
         </div>`;
     }
