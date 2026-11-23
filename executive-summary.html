@@ -243,6 +243,7 @@
   .hb b{font:800 calc(2 * var(--u)) var(--font-main); text-align:right;}
   .hb small, .hb-ft{font-weight:400; color:var(--ink-faint); font-size:calc(1.3 * var(--u));}
   .hb-ft{text-align:right; margin-top:calc(.4 * var(--u));}
+  .hb-dup{display:none;}
   .dn-wrap{flex:1; min-height:0; display:flex; align-items:center; gap:1.2vw; padding:calc(1 * var(--u)) 1vw;}
   .dn{height:100%; max-height:calc(26 * var(--u)); aspect-ratio:1; flex:0 0 auto;}
   .dn text{font:800 22px var(--font-main); fill:var(--navy);}
@@ -605,7 +606,15 @@
     .chip .chip-more{display:none;}
     /* small footer notes: one line on phones */
     .lg small{display:block; font-size:clamp(.5rem,2.4vw,.62rem); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-    .hb-ft{font-size:max(6.5px, calc((100vw - 56px) / 39.5)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+    /* summary footer note: rolls right to left on phones */
+    .hb-ft{font-size:.68rem; white-space:nowrap; overflow:hidden;}
+    .hb-track{display:inline-flex; white-space:nowrap; will-change:transform; animation:hbRoll 16s linear infinite;}
+    .hb-track span{padding-right:2.5em;}
+    .hb-track .hb-dup{display:inline;}
+    @keyframes hbRoll{to{transform:translateX(-50%);}}
+    @media (prefers-reduced-motion:reduce){.hb-track{animation:none;} .hb-track .hb-dup{display:none;} .hb-ft{text-overflow:ellipsis;}}
+    /* live pill: space between the dot and the text */
+    .live-pill{gap:8px;}
   }
 
   /* ── LOGIN on phone / tablet ── */
@@ -1126,7 +1135,7 @@ function render() {
         <div class="hb"><span>${r.label}</span>
           <div class="k"><i style="width:${num(r.total) / max * 100}%;background:${INC_COLORS[r.label] || '#7a8a82'}"></i></div>
           <b>${r.total} <small>/ ${r.accumulated}</small></b></div>`).join('')}
-        <div class="hb-ft">Bar = this year / accumulated · Total: previous ${tt.previous} · this year ${tt.total} · accumulated ${tt.accumulated}</div></div>`;
+        <div class="hb-ft"><div class="hb-track"><span>Bar = this year / accumulated · Total: previous ${tt.previous} · this year ${tt.total} · accumulated ${tt.accumulated}</span><span class="hb-dup" aria-hidden="true">Bar = this year / accumulated · Total: previous ${tt.previous} · this year ${tt.total} · accumulated ${tt.accumulated}</span></div></div></div>`;
     }
   }
 
