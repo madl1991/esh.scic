@@ -321,6 +321,26 @@ window.envSummaryTable = function(o) {
         return alpha >= 0.15;
     }
 
+    // The exit ghost keeps its ids (the modal styles use #id selectors). To avoid duplicate ids
+    // when the same popup is opened again while the old one is still fading, remove any ghost
+    // that shares an id with the new popup. Other ghosts keep fading.
+    function dropGhostsSharingIds(n) {
+        try {
+            var ghosts = document.querySelectorAll('.esh-pop-ghost');
+            if (!ghosts.length) return;
+            var ids = [], withId = n.querySelectorAll('[id]'), i, k;
+            if (n.id) ids.push(n.id);
+            for (i = 0; i < withId.length; i++) ids.push(withId[i].id);
+            for (k = 0; k < ghosts.length; k++) {
+                var gh = ghosts[k], hit = false;
+                for (i = 0; i < ids.length && !hit; i++) {
+                    if (gh.id === ids[i] || gh.querySelector('[id="' + ids[i].replace(/(["\\])/g, '\\$1') + '"]')) hit = true;
+                }
+                if (hit) _remove.call(gh);
+            }
+        } catch (e) { /* never let the animation break opening */ }
+    }
+
     function arm(n) {
         n.__eshPop = true;
         n.classList.add('esh-blur');
@@ -332,6 +352,7 @@ window.envSummaryTable = function(o) {
             delete recentGhosts[n.id];
             return;
         }
+        dropGhostsSharingIds(n);                           // ghosts keep their ids now → no duplicate ids with the new popup
         if (reduceMotion()) return;
         var an = getComputedStyle(n).animationName;
         if (an && an !== 'none') return;                   // already has its own (real) entrance animation
@@ -367,13 +388,13 @@ window.envSummaryTable = function(o) {
         var all = g.querySelectorAll('*'), orig = el.querySelectorAll('*'), i;
 
         // neutralise the copy so it can never clash with the live page
-        g.removeAttribute('id');
+        // (ids are kept on purpose: the modal CSS uses #id selectors, so removing them showed the old format)
         g.classList.remove('esh-pop-overlay');
         g.classList.add('esh-pop-ghost');
         g.setAttribute('inert', ''); g.setAttribute('aria-hidden', 'true');
         for (i = 0; i < all.length; i++) {
             var a = all[i];
-            a.removeAttribute('id'); a.removeAttribute('name'); a.removeAttribute('autofocus');
+            a.removeAttribute('name'); a.removeAttribute('autofocus');
         }
         // heavy / live content can't be cloned faithfully → blank placeholder of the same size
         for (i = 0; i < orig.length; i++) {
