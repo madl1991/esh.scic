@@ -1147,7 +1147,7 @@ function renderHeadcount() {
   if (!h) { el.innerHTML = hd + `<div class="empty">Waiting for data…</div>`; return; }
   const site = hcGroup('fa-helmet-safety', 'All Projects', HC_SITE, h.site);
   const corp = hcGroup('fa-building', 'Corporate', HC_CORP, h.corporate);
-  el.innerHTML = hd + `<div class="hc-body"><div class="hc-hero"><i class="fa-solid fa-people-group"></i><div class="hc-total">${site.sum + corp.sum}</div><small>Total ESH Personnel</small></div><div class="hc-groups">${site.html}${corp.html}</div></div>`;
+  el.innerHTML = hd + `<div class="hc-body"><div class="hc-hero"><i class="fa-solid fa-people-group"></i><div class="hc-total">${site.sum + corp.sum}</div><small>Total ESH Personnel</small></div><div class="hc-groups">${corp.html}${site.html}</div></div>`;
 }
 
 function render() {
