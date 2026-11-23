@@ -1132,7 +1132,7 @@ function playIntro() {
   setTimeout(() => app.classList.remove('intro'), 3000);
 }
 
-const HC_SITE=[['head','ESH Heads','fa-user-tie','head'],['so','Safety Officers','fa-helmet-safety','so'],['pco','PCO','fa-leaf','pco'],['nurse','Project Nurses','fa-user-nurse','nurse'],['physician','Physicians','fa-user-doctor','doc'],['firstAider','First Aiders','fa-kit-medical','fa']];
+const HC_SITE=[['superintendent','ESH Superintendent','fa-user-shield','head'],['head','ESH Heads','fa-user-tie','head'],['so','Safety Officers','fa-helmet-safety','so'],['pco','PCO','fa-leaf','pco'],['nurse','Project Nurses','fa-user-nurse','nurse'],['physician','Physicians','fa-user-doctor','doc'],['firstAider','First Aiders','fa-kit-medical','fa']];
 const HC_CORP=[['managers','QESH / ESH Managers','fa-user-tie','head'],['envHead','Env. &amp; Sustainability Head','fa-seedling','pco'],['so','Safety Officer','fa-helmet-safety','so'],['nurse','Corporate Nurse','fa-user-nurse','nurse']];
 function hcGroup(icon, title, defs, data) {
   const sum = defs.reduce((a, d) => a + num(data?.[d[0]]), 0);
