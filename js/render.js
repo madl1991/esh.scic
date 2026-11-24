@@ -133,9 +133,12 @@
                     if (_sCur !== null && _sCur !== undefined && _sPrv !== null && _sPrv !== undefined) {
                         const _sD = Number(_sCur) - Number(_sPrv);
                         const _sMon = _MC_MONTHS[_mcCv - 2].slice(0, 3);
-                        _mcSub = _sD === 0 ? 'No change vs ' + _sMon : (_sD > 0 ? '\u25B2 +' : '\u25BC ') + _sD + '% vs ' + _sMon;
+                        const _tUp = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>';
+                        const _tDn = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>';
+                        _mcSub = _sD === 0 ? 'No change vs ' + _sMon : '<span class="stat-trend ' + (_sD > 0 ? 'up' : 'down') + '">' + (_sD > 0 ? _tUp : _tDn) + (_sD > 0 ? '+' : '') + _sD + '% vs ' + _sMon + '</span>';
                     }
                 }
+                const _mcTip = (_mcCv >= 2 && typeof window.eshComplianceTrendTip === 'function') ? window.eshComplianceTrendTip(_mcCv) : '';
                 const _kpiTotalN = getReportingProjects().length;
                 const _kpiOngoingN = complianceProjects.filter(p => p.status === 'on-going').length;
                 const _kpiOngoingSub = _kpiTotalN > 0 ? Math.round(_kpiOngoingN / _kpiTotalN * 100) + '% of all projects' : '';
@@ -145,7 +148,7 @@
                         <div class="stat-label">TOTAL PROJECTS</div>
                         <div class="stat-value">${getReportingProjects().length}</div>
                     </div>
-                    <div class="stat-card" style="border-left-color: var(--safety-yellow); min-width:160px;">
+                    <div class="stat-card" style="border-left-color: var(--safety-yellow); min-width:160px;"${_mcTip ? ' data-tip="' + _mcTip.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '" data-tip-nowrap data-tip-cols' : ''}>
                         <div class="stat-label" style="margin-bottom:2px;">${_mcLabel}</div>
                         <div class="stat-value">${_mcValue}</div>
                         <div class="stat-sub">${_mcSub}</div>

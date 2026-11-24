@@ -30,7 +30,39 @@
         if (!text || !el.isConnected) return;
         var t = ensureTip();
         anchor = el;
-        t.textContent = text;
+        if (el.hasAttribute('data-tip-cols')) {
+            // data-tip-cols: lines split by a tab become aligned columns; a line without a tab spans the full width
+            t.textContent = '';
+            var grid = document.createElement('div');
+            grid.className = 'tip-cols';
+            var seenCols = false;
+            text.split('\n').forEach(function (line) {
+                var parts = line.split('\t');
+                if (parts.length === 1) {
+                    var full = document.createElement('div');
+                    full.className = 'tip-full ' + (seenCols ? 'tip-foot' : 'tip-head');
+                    full.textContent = line;
+                    grid.appendChild(full);
+                    return;
+                }
+                seenCols = true;
+                parts.forEach(function (cell, i) {
+                    var c = document.createElement('span');
+                    c.textContent = cell;
+                    var cls = i === 0 ? 'tip-k' : 'tip-v';
+                    if (i === parts.length - 1 && i > 0) {
+                        if (/^\+\d/.test(cell)) cls += ' tip-up';
+                        else if (/^-\d/.test(cell)) cls += ' tip-down';
+                        else if (cell === '0') cls += ' tip-zero';
+                    }
+                    c.className = cls;
+                    grid.appendChild(c);
+                });
+            });
+            t.appendChild(grid);
+        } else {
+            t.textContent = text;
+        }
         // Cells marked data-tip-nowrap (e.g. Incident Tabulation): one line per row, no wrapping
         var nw = el.hasAttribute('data-tip-nowrap');
         t.style.whiteSpace = nw ? 'pre' : '';

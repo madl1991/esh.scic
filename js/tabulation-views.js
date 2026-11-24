@@ -916,11 +916,19 @@ function renderTabulation() {
                         if (_tCur !== null && _tCur !== undefined && _tPrv !== null && _tPrv !== undefined) {
                             const _tD = Number(_tCur) - Number(_tPrv);
                             const _tMon = _MC_MONTHS[_mcCv - 2].slice(0, 3);
-                            _mcSub2 = _tD === 0 ? 'No change vs ' + _tMon : (_tD > 0 ? '\u25B2 +' : '\u25BC ') + _tD + '% vs ' + _tMon;
+                            const _tUp2 = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>';
+                            const _tDn2 = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>';
+                            _mcSub2 = _tD === 0 ? 'No change vs ' + _tMon : '<span class="stat-trend ' + (_tD > 0 ? 'up' : 'down') + '">' + (_tD > 0 ? _tUp2 : _tDn2) + (_tD > 0 ? '+' : '') + _tD + '% vs ' + _tMon + '</span>';
                         }
                     }
                     const _subEl = _compCard.querySelector('.stat-sub');
-                    if (_subEl) _subEl.textContent = _mcSub2;
+                    if (_subEl) _subEl.innerHTML = _mcSub2;
+                    const _tipTxt = (typeof window.eshComplianceTrendTip === 'function') ? window.eshComplianceTrendTip(_mcCv) : '';
+                    if (_tipTxt) { _compCard.setAttribute('data-tip', _tipTxt); _compCard.setAttribute('data-tip-nowrap', ''); _compCard.setAttribute('data-tip-cols', ''); }
+                    else {
+                        _compCard.removeAttribute('data-tip'); _compCard.removeAttribute('data-tip-nowrap'); _compCard.removeAttribute('data-tip-cols');
+                        if (_compCard.getAttribute('data-cur-auto')) { _compCard.style.removeProperty('cursor'); _compCard.removeAttribute('data-cur-auto'); }
+                    }
                 }
             }
 

@@ -402,7 +402,7 @@
         // ── MONTHLY COMPLIANCE: computes compliance rate for a specific month (1-based)
         // Each area has EQUAL weight (1/7 each): Drills+Training, KPM, DOLE, GOT, ESH Calendar, Emergency Drills, EMR
         // Per project: score = average of area scores (0-1 each). Grand score = average across all projects.
-        function getMonthlyCompliance(monthIdx1Based) {
+        function getMonthlyCompliance(monthIdx1Based, detail) {
             const selectedYear = (state && state.selectedYear) || new Date().getFullYear();
             const projects = (state.projects || []).filter(p =>
                 p.region !== 'CORPORATE' && p.region !== 'PLANT OPERATIONS' &&
@@ -425,6 +425,11 @@
             projects.forEach(proj => {
                 const vals = proj.vals || {};
                 const areaScores = [];
+                // detail (optional): collects each area's score so the card tooltip can show what changed
+                const _put = (key, val) => {
+                    areaScores.push(val);
+                    if (detail) { const _a = detail.areas[key] || (detail.areas[key] = { sum: 0, n: 0 }); _a.sum += val; _a.n++; }
+                };
 
                 // ── Area 1: Drills & Training — REMOVED (buggy: read vals['activities_Drills Conducted']
                 // / vals['activities_Training Conducted'], which are never populated. See getPerc for full
@@ -445,9 +450,9 @@
                         const v = p.vals && p.vals[_dateKey];
                         return v && v.toString().trim() !== '';
                     });
-                    { const _kst = window.kpmProjectFillStatus(proj, moName); areaScores.push(_kpmSubmitted ? (_kst.filled / _kst.total) : 0); }
+                    { const _kst = window.kpmProjectFillStatus(proj, moName); _put('KPM Submission', _kpmSubmitted ? (_kst.filled / _kst.total) : 0); }
                 } else {
-                    areaScores.push(1); // marked N/A — exempt, count as full
+                    _put('KPM Submission', 1); // marked N/A — exempt, count as full
                 }
 
                 // ── Area 3: DOLE (3 fields) ──
@@ -456,7 +461,7 @@
                     const v = vals[key] && vals[key][monthIdx1Based];
                     if (v !== undefined && v !== null && v !== '' && v !== '0') dF++;
                 });
-                areaScores.push(dF / 3);
+                _put('DOLE Reportorial', dF / 3);
 
                 // ── Area 4: GOT Monitoring (6 fields) ──
                 if (typeof window.gotGetCell === 'function') {
@@ -465,7 +470,7 @@
                         const _gotVal = window.gotGetCell(proj, goalId, 0, monthIdx1Based).r;
                         if (_gotVal && _gotVal.toString().trim() !== '') gF++;
                     });
-                    areaScores.push(gF / 6);
+                    _put('GOT Monitoring', gF / 6);
                 }
 
                 // ── Area 5: ESH Calendar — env, safety, health (3 sub-areas averaged equally) ──
@@ -488,7 +493,7 @@
                     if (cT > 0) calSubScores.push(cF / cT); // nothing required here = exempt (not counted as 100%)
                 });
                 if (calSubScores.length > 0) {
-                    areaScores.push(calSubScores.reduce((a, b) => a + b, 0) / calSubScores.length);
+                    _put('ESH Calendar', calSubScores.reduce((a, b) => a + b, 0) / calSubScores.length);
                 }
 
                 // ── Area 6: Emergency Drills (planned months only) ──
@@ -505,13 +510,13 @@
                     const actualKey = `${_calYear}|esh-calendar-drills|${proj.name}|${_drillSi}|${mi}|actual`;
                     if (_calStor[actualKey] && _calStor[actualKey] !== '' && _calStor[actualKey] !== '__DELETED__') drF++;
                 });
-                if (drT > 0) areaScores.push(drF / drT);
+                if (drT > 0) _put('Emergency Drills', drF / drT);
                 // No planned drills this month — area not counted (excluded from average)
 
                 // ── Area 7: Envi Reportorial - EMR (1 field) ──
                 const _emrKey   = 'env-monthly-report_Environmental Monthly Report (EMR)';
                 const _emrVal = vals[_emrKey] && vals[_emrKey][monthIdx1Based];
-                areaScores.push((_emrVal && _emrVal.toString().trim() !== '') ? 1 : 0);
+                _put('Environmental Report (EMR)', (_emrVal && _emrVal.toString().trim() !== '') ? 1 : 0);
 
                 // ── Project score = equal average of all applicable areas ──
                 if (areaScores.length > 0) {
@@ -519,10 +524,31 @@
                 }
             });
 
+            if (detail) detail.projects = projects.length;
             return Math.round((grandSum / projects.length) * 100);
         }
 
         window.getMonthlyCompliance = getMonthlyCompliance;
+
+        // Card tooltip text: score of each area for the month vs the previous month (tab-separated columns, shown by tooltips.js via data-tip + data-tip-cols)
+        window.eshComplianceTrendTip = function (monthIdx1Based) {
+            if (!(monthIdx1Based >= 2)) return '';
+            const cur = { areas: {} }, prv = { areas: {} };
+            const c = getMonthlyCompliance(monthIdx1Based, cur), p = getMonthlyCompliance(monthIdx1Based - 1, prv);
+            if (c === null || c === undefined || p === null || p === undefined) return '';
+            const M = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            const AREAS = ['KPM Submission','DOLE Reportorial','GOT Monitoring','ESH Calendar','Emergency Drills','Environmental Report (EMR)'];
+            const pct = a => a ? Math.round(a.sum / a.n * 100) : null;
+            const dl = d => (d > 0 ? '+' + d : String(d));
+            const lines = [M[monthIdx1Based - 1] + ' vs ' + M[monthIdx1Based - 2], 'Overall\t' + p + '% \u2192 ' + c + '%\t' + dl(c - p)];
+            AREAS.forEach(function (k) {
+                const pv = pct(prv.areas[k]), cv = pct(cur.areas[k]);
+                if (pv === null && cv === null) return;
+                lines.push(k + '\t' + (pv === null ? 'N/A' : pv + '%') + ' \u2192 ' + (cv === null ? 'N/A' : cv + '%') + '\t' + (pv !== null && cv !== null ? dl(cv - pv) : ''));
+            });
+            lines.push('Projects counted: ' + prv.projects + ' \u2192 ' + cur.projects);
+            return lines.join('\n');
+        };
 
         // ── PER-REGION MONTHLY COMPLIANCE: same equal-weight logic as getMonthlyCompliance but filtered to one region
         function getMonthlyComplianceByRegion(monthIdx1Based, region) {
