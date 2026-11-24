@@ -396,8 +396,8 @@
   #app.intro .st-wrap .hb:nth-child(5){animation-delay:1.08s;} #app.intro .st-wrap .hb:nth-child(6){animation-delay:1.15s;}
   #app.intro .dn-wrap{animation:introFade .6s ease 1s both;}
   @keyframes introArc{from{stroke-dasharray:0 239;}}
-  #app.intro .dn .dn-arc{animation:introArc 1s cubic-bezier(.22,.8,.3,1) 1.05s both;}
-  #app.intro .bl-k i, #app.intro .hb .k i{transform-origin:left center; animation:introBar .9s cubic-bezier(.22,.8,.3,1) 1s both;}
+  #app.intro .dn .dn-arc{animation:introArc 1.6s cubic-bezier(.215,.61,.355,1) .6s both;}
+  #app.intro .bl-k i, #app.intro .hb .k i{transform-origin:left center; animation:introBar 1.6s cubic-bezier(.215,.61,.355,1) .6s both;}
   @media (prefers-reduced-motion:reduce){#app.intro *{animation:none !important;}}
 
   /* ── LOOK: glassmorphism (frosted translucent panels over colorful shapes). Added last so it overrides the earlier look. ── */
@@ -529,7 +529,7 @@
   
 
   /* ── ESH PERSONNEL HEADCOUNT panel (3rd board row: compact two-row strip on desktop, flowing on tablet/phone) ── */
-  .board-esh{grid-template-rows:1fr .85fr .78fr;}
+  .board-esh{grid-template-rows:1.08fr .92fr .62fr;}
   .hc-c-head{--c:var(--brand-fg);} .hc-c-so{--c:#e56020;} .hc-c-pco{--c:var(--mint);} .hc-c-nurse{--c:var(--coral);} .hc-c-doc{--c:#2f7fd1;} .hc-c-fa{--c:#d99a00;}
   html[data-theme="dark"] .hc-c-doc{--c:#6fb3ff;} html[data-theme="dark"] .hc-c-fa{--c:var(--amber);}
   .hc-body{flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,9vw) minmax(0,1fr); gap:1vw; padding:calc(1.2 * var(--u)) 1.2vw calc(1.5 * var(--u));}
@@ -701,6 +701,68 @@
     .gate-logo{width:110px; margin-top:4px;}
     .gate-under{margin-top:8px; font-size:.64rem; line-height:1.4;}
   }
+
+  /* ── LAYOUT: slimmer panel headers on desktop/TV so the content gets more height; content sizes raised to use the freed space. Phone/tablet layout is not touched. ── */
+  @media (min-width:1401px), (min-width:1101px) and (pointer:fine){
+    .panel{background:linear-gradient(135deg,var(--brand),var(--brand-dk)) 0 0/100% calc(3 * var(--u)) no-repeat, linear-gradient(145deg,var(--neu-a),var(--neu-b));}
+    .hd{padding:calc(.4 * var(--u)) 1.1vw; gap:.7vw; line-height:1.15;}
+    .hd i{height:calc(2.2 * var(--u)); min-width:calc(2 * var(--u)); font-size:calc(1.8 * var(--u));}
+    .chip{padding:calc(.2 * var(--u)) .8vw;}
+    /* top row */
+    .tile{padding:calc(1.1 * var(--u)) .5vw;}
+    .tile small{font-size:calc(1.45 * var(--u));}
+    .tile b{font-size:min(calc(4.5 * var(--u)),2.7vw);}
+    .card h4{font-size:calc(1.9 * var(--u));}
+    .card h4 i{font-size:calc(1.15 * var(--u));}
+    .big{font-size:calc(8 * var(--u));}
+    .card .sub{font-size:calc(1.6 * var(--u));}
+    .pair div{font-size:calc(1.6 * var(--u));}
+    .pair b{font-size:calc(3.6 * var(--u));}
+    .bl-t{font-size:calc(1.7 * var(--u));}
+    .bl-t b{font-size:calc(2.5 * var(--u));}
+    .bl-k{height:calc(1.6 * var(--u));}
+    /* incident summary */
+    .hb{grid-template-columns:calc(21 * var(--u)) minmax(0,1fr) calc(9.5 * var(--u)); margin:calc(.4 * var(--u)) 0; font-size:calc(1.6 * var(--u));}
+    .hb .k{height:calc(1.8 * var(--u));}
+    .hb b{font-size:calc(1.95 * var(--u));}
+    .hb small, .hb-ft{font-size:calc(1.3 * var(--u));}
+    /* NOV panels */
+    .dn{max-height:calc(22 * var(--u));}
+    .lg{font-size:calc(1.65 * var(--u)); gap:calc(.6 * var(--u));}
+    .lg b{font-size:calc(1.95 * var(--u));}
+    .lg small{font-size:calc(1.3 * var(--u));}
+    .lg i{width:calc(1.6 * var(--u)); height:calc(1.6 * var(--u));}
+    /* personnel headcount */
+    .hc-body{padding:calc(1 * var(--u)) 1.2vw calc(1.2 * var(--u));}
+    .hc-hero>i{font-size:calc(2 * var(--u)); width:calc(4.4 * var(--u)); height:calc(4.4 * var(--u));}
+    .hc-total{font-size:calc(5.2 * var(--u));}
+    .hc-hero small{font-size:calc(1.2 * var(--u));}
+    .hc-gh{font-size:calc(1.3 * var(--u));}
+    .hc-gh b{font-size:calc(2.9 * var(--u));}
+    .hc-ico{width:calc(4.2 * var(--u)); height:calc(4.2 * var(--u)); font-size:calc(1.7 * var(--u));}
+    .hc-n{font-size:calc(3.3 * var(--u));}
+    .hc-chip small{font-size:calc(1.2 * var(--u));}
+  }
+
+  /* ── LAYOUT (2): header title, icon and chip scaled to fit the slimmer header bar ── */
+  @media (min-width:1401px), (min-width:1101px) and (pointer:fine){
+    .panel{background:linear-gradient(135deg,var(--brand),var(--brand-dk)) 0 0/100% calc(3.3 * var(--u)) no-repeat, linear-gradient(145deg,var(--neu-a),var(--neu-b));}
+    .hd{box-sizing:border-box; height:calc(3.3 * var(--u)); padding:0 1.1vw; gap:.6vw; align-items:center; font-size:calc(1.6 * var(--u)); line-height:1;}
+    .hd > span:first-of-type{line-height:1; white-space:nowrap;}
+    .hd i{height:auto; width:auto; min-width:calc(1.8 * var(--u)); font-size:calc(1.5 * var(--u)); line-height:1;}
+    .chip{font-size:calc(1.05 * var(--u)); line-height:1; padding:calc(.45 * var(--u)) .8vw; box-shadow:calc(.2 * var(--u)) calc(.25 * var(--u)) calc(.5 * var(--u)) rgba(0,25,12,.5), calc(-.15 * var(--u)) calc(-.15 * var(--u)) calc(.4 * var(--u)) rgba(255,255,255,.22);}
+  }
+
+  /* ── Before the intro: bars and donut start empty (numbers are zeroed by zeroValues()) ── */
+  #app.pre .bl-k i, #app.pre .hb .k i{transform:scaleX(0); transform-origin:left center;}
+  #app.pre .dn .dn-arc{stroke-dasharray:0 239;}
+
+  /* ── INTRO (2): the whole dashboard shows at zero first (no fade-in/slide-in of panels), then numbers, bars and donut fill together ── */
+  #app.intro #rate-panel, #app.intro #inc-summary-panel, #app.intro #nov-osh-panel, #app.intro #nov-envi-panel,
+  #app.intro .tile, #app.intro .tb .card, #app.intro .st-wrap .hb, #app.intro .dn-wrap{animation:none !important;}
+
+  /* ── Smooth counting: fixed-width digits so the numbers do not jiggle while they change ── */
+  .tile b, .big, .pair b, .bl-t b, .lg b, .dn text, .hb b, .hc-total, .hc-n, .hc-gh b{font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;}
 </style>
 </head>
 <body>
@@ -1150,36 +1212,62 @@ function novPanelHTML(kind, title, d) {
 }
 
 let introDone = false;
+const NUM_RE = /^\d[\d,]*(\.\d+)?$/;
+const COUNT_TILES = '.board-esh .tile b';
+const COUNT_REST  = '.board-esh .big, .board-esh .pair b, .board-esh .bl-t b, .board-esh .lg b, .board-esh .dn text, .board-esh .hb b, .board-esh .hc-total, .board-esh .hc-n, .board-esh .hc-gh b';
+// the number lives in the first text node (some values, like "12 / 27", have a <small> after it)
+function numNode(el) { const n = el.firstChild; return n && n.nodeType === 3 ? n : null; }
+function numFmt(raw) {
+  const dec = (raw.split('.')[1] || '').length, comma = raw.includes(',');
+  return v => comma ? v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : v.toFixed(dec);
+}
+// Before the intro plays: every number shows 0 and the bars/donut are empty. The real value is kept in data-final.
+function zeroValues() {
+  document.getElementById('app').classList.add('pre');
+  document.querySelectorAll(COUNT_TILES + ',' + COUNT_REST).forEach(el => {
+    const n = numNode(el); if (!n) return;
+    const raw = el.dataset.final || n.nodeValue.trim();
+    if (!NUM_RE.test(raw)) return;
+    el.dataset.final = raw;
+    n.nodeValue = numFmt(raw)(0) + (/\s$/.test(n.nodeValue) ? ' ' : '');
+  });
+}
+function restoreValues() {
+  document.querySelectorAll('#app [data-final]').forEach(el => {
+    const n = numNode(el); if (!n) return;
+    n.nodeValue = el.dataset.final + (/\s$/.test(n.nodeValue) ? ' ' : '');
+  });
+}
 function countUp(el, delay) {
-  const raw = el.textContent.trim();
-  if (!/^\d[\d,]*(\.\d+)?$/.test(raw)) return;
+  const n = numNode(el); if (!n) return;
+  const raw = el.dataset.final || n.nodeValue.trim();
+  if (!NUM_RE.test(raw)) return;
   const target = parseFloat(raw.replace(/,/g, ''));
   if (!isFinite(target) || target === 0) return;
-  const dec = (raw.split('.')[1] || '').length, comma = raw.includes(',');
-  const show = v => comma ? v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : v.toFixed(dec);
-  const dur = 900; let t0 = null;
-  el.textContent = show(0);
+  const show = numFmt(raw), tail = /\s$/.test(n.nodeValue) ? ' ' : '';
+  const dur = 1600; let t0 = null;
+  n.nodeValue = show(0) + tail;
   setTimeout(() => {
     const step = ts => {
       if (t0 === null) t0 = ts;
       const p = Math.min((ts - t0) / dur, 1), e = 1 - Math.pow(1 - p, 3);
-      el.textContent = p < 1 ? show(target * e) : raw;
+      n.nodeValue = (p < 1 ? show(target * e) : raw) + tail;
       if (p < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
   }, delay);
-  setTimeout(() => { if (el.textContent !== raw) el.textContent = raw; }, delay + dur + 500);
+  setTimeout(() => { n.nodeValue = raw + tail; }, delay + dur + 500);
 }
 // Plays once, after the first real data arrives. Later Firebase updates do not replay it.
 function playIntro() {
   if (introDone || !companyData || welcomeUp) return;
   introDone = true;
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const app = document.getElementById('app');
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { restoreValues(); app.classList.remove('pre'); return; }
   app.classList.add('intro');
-  document.querySelectorAll('.board-esh .tile b').forEach(el => countUp(el, 600));
-  document.querySelectorAll('.board-esh .big, .board-esh .pair b, .board-esh .bl-t b, .board-esh .lg b, .board-esh .dn text, .board-esh .hc-total, .board-esh .hc-n').forEach(el => countUp(el, 900));
-  setTimeout(() => app.classList.remove('intro'), 3000);
+  app.classList.remove('pre');
+  document.querySelectorAll(COUNT_TILES + ',' + COUNT_REST).forEach(el => countUp(el, 600));
+  setTimeout(() => app.classList.remove('intro'), 3400);
 }
 
 const HC_SITE=[['superintendent','ESH Superintendent','fa-user-shield','head'],['head','ESH Heads','fa-user-tie','head'],['so','Safety Officers','fa-helmet-safety','so'],['pco','PCO','fa-leaf','pco'],['nurse','Project Nurses','fa-user-nurse','nurse'],['physician','Physicians','fa-user-doctor','doc'],['firstAider','First Aiders','fa-kit-medical','fa']];
@@ -1303,6 +1391,7 @@ function render() {
 
   renderHeadcount();
   updateLastUpdatedTxt();
+  if (!introDone && companyData) zeroValues(); // start from 0 until the intro plays
   playIntro();
 }
 
