@@ -50,7 +50,7 @@
         h += '<button onclick="gotNavigateProject(\'' + escQ(reg) + '\',-1)" ' + (projIdx === 0 ? 'disabled' : '') + ' style="background:' + (projIdx === 0 ? '#ccc' : '#1b5e20') + ';color:white;border:none;border-radius:6px;padding:5px 14px;font-size:0.72rem;font-weight:700;cursor:' + (projIdx === 0 ? 'not-allowed' : 'pointer') + ';opacity:' + (projIdx === 0 ? '0.4' : '1') + ';">';
         h += '<i class="fas fa-chevron-left"></i> Prev</button>';
         h += '<div style="text-align:center;">';
-        h += '<div style="font-size:0.72rem;font-weight:800;color:#1b5e20;"><i class="fas fa-hard-hat" style="margin-right:5px;"></i>';
+        h += '<div style="font-size:0.72rem;font-weight:800;color:#1b5e20;">';
         if (proj.isRenewable) h += '&#127807; ';
         h += proj.name + projStatusBadge(proj) + '</div>';
         h += '<div style="font-size:0.62rem;color:#888;margin-top:2px;">Project ' + (projIdx + 1) + ' of ' + projs.length;
@@ -82,17 +82,17 @@
         var prevCatR = '';
         COMPLIANCE_GOALS.forEach(function(g) {
             var gCat   = g.id.startsWith('E') ? 'ENVIRONMENTAL' : 'OCCUPATIONAL HEALTH & SAFETY';
-            var cColor = gCat === 'ENVIRONMENTAL' ? '#1f4d2e' : '#e65100';
-            var cBg    = gCat === 'ENVIRONMENTAL' ? '#e3eee5' : '#fff3e0';
+            var cColor = '#1f4d2e';
+            var cBg    = '#e3eee5';
             if (gCat !== prevCatR) {
                 prevCatR = gCat;
                 h += '<tr style="background:' + cBg + ';">'
                    + '<td colspan="18" style="position:sticky;left:0;z-index:1;font-weight:800;font-size:0.67rem;color:' + cColor + ';padding:4px 10px;background:' + cBg + ';">'
-                   + '<i class="fas ' + (gCat === 'ENVIRONMENTAL' ? 'fa-leaf' : 'fa-hard-hat') + '" style="margin-right:5px;"></i>' + gCat + '</td></tr>';
+                   + gCat + '</td></tr>';
             }
 
-            var gCatColor = g.id.startsWith('E') ? '#2e7d32' : '#e65100';
-            var gCatBg    = g.id.startsWith('E') ? '#f6faf6' : '#fff8f0';
+            var gCatColor = '#2e7d32';
+            var gCatBg    = '#f6faf6';
             var measures  = GOAL_MEASURES[g.id] || [''];
             var nMeasures = measures.length;
 
@@ -301,8 +301,6 @@
     }
 
     function renderTab1() {
-        var CAT_CLS  = { 'ENVIRONMENTAL': 'otp-env', 'OCCUPATIONAL HEALTH & SAFETY': 'otp-ohs' };
-        var CAT_ICON = { 'ENVIRONMENTAL': 'fa-leaf', 'OCCUPATIONAL HEALTH & SAFETY': 'fa-hard-hat' };
         function nl2br(s) { return (s || '').split('\n').join('<br>'); }
 
         var h = '<div class="otp-box"><table class="otp-tbl otp-esh-tbl">';
@@ -313,8 +311,8 @@
         OTP_ESH_ROWS.forEach(function(row) {
             if (row.cat) {
                 currentCat = row.cat;
-                h += '<tr class="otp-sec ' + (CAT_CLS[currentCat] || 'otp-env') + '"><td colspan="6">'
-                   + '<i class="fas ' + (CAT_ICON[currentCat] || 'fa-leaf') + '"></i> ' + currentCat + '</td></tr>';
+                h += '<tr class="otp-sec otp-env"><td colspan="6">'
+                   + currentCat + '</td></tr>';
             }
             h += '<tr>'
                + '<td class="otp-goal">' + (row.goal || '') + '</td>'
@@ -591,9 +589,7 @@
             body: ''
             // Info bar
             + window.eshInfoBar({
-                icon: 'fa-bullseye',
-                label: 'Goals, Objectives &amp; Targets — all projects in region',
-                items: [window.eshInfoField({ icon: 'fa-gauge-high', label: 'Region score:',
+                items: [window.eshInfoField({ label: 'Region score:',
                     html: window.eshPill({ id: 'gotm-title-score', text: fmtAvg(info.score), tone: window.eshToneOf(info.score) }) })],
                 hint: 'Scroll table horizontally'
             })
@@ -650,7 +646,7 @@
                 prevCat = gCat;
                 h += '<tr style="background:' + cBg + ';"><td colspan="' + (nP + 5) + '" style="text-align:left;font-weight:800;font-size:0.67rem;color:' + cColor + ';padding:4px 10px;background:' + cBg + ';">'
                    + '<span style="position:sticky;left:7px;display:inline-block;white-space:nowrap;">'
-                   + '<i class="fas ' + (gCat === 'ENVIRONMENTAL' ? 'fa-leaf' : 'fa-hard-hat') + '" style="margin-right:5px;"></i>' + gCat + '</span></td></tr>';
+                   + gCat + '</span></td></tr>';
             }
             var measures = GOAL_MEASURES[g.id] || [''];
             measures.forEach(function(measure, mi) {

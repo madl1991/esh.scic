@@ -651,27 +651,25 @@ window.renderCorporateKpm = function() {
         modal.id = 'corp-kpm-modal';
 
         window.eshMountModal(modal, {
-            id: 'corp-kpm-modal', icon: 'fa-user-tie', width: 'min(1400px,99vw)', bodyFlex: true,
+            id: 'corp-kpm-modal', noIcon: true, width: 'min(1400px,99vw)', bodyFlex: true,
             title: (isNewEntry ? 'New KPM entry' : (canEdit ? 'Edit KPM' : 'View KPM')) + ' — <span style="color:#2e7d32;">' + activeMo + ' ' + year + '</span>',
-            sub: '<i class="fas fa-user-tie" style="margin-right:4px;"></i>' + esc(mgrName) + ' — ' + tplOf(mgrIdx).role,
+            sub: esc(mgrName) + ' — ' + tplOf(mgrIdx).role,
             body: ''
             // Meta bar
             + '<div style="background:#f3f8f4;border-bottom:1px solid #d5e3d8;padding:6px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
-            +   '<span style="font-size:0.64rem;color:#2e7d32;font-weight:600;white-space:nowrap;"><i class="fas fa-table" style="margin-right:5px;"></i>' + mgrName + ' — ' + activeMo + ' ' + year + '</span>'
             +   monthDropHtml
             +   '<label style="display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:0.67rem;color:#555;margin-left:4px;">'
-            +     '<i class="fas fa-calendar-check" style="color:' + (dateSubm?'#2e7d32':'#c62828') + ';"></i>'
             +     '<span style="font-weight:700;font-size:0.64rem;color:#444;">Date Submitted:</span>'
             +     '<input type="date" id="ckpm-modal-date" value="' + dateSubm + '" ' + (!isWdaAdmin?'disabled':'')
             +     ' oninput="(function(el,v){window._ckpmDateChange(' + mgrIdx + ',\'' + moSafe + '\',v);var ok=!!v;el.style.background=ok?\'#c8e6c9\':\'#ffcdd2\';el.style.color=ok?\'#2e7d32\':\'#c62828\';el.style.borderColor=ok?\'#a5d6a7\':\'#ef9a9a\';window._kpmDateSync&&window._kpmDateSync(el);})(this,this.value)"'
             +     ' style="border:1px solid ' + (dateSubm?'#a5d6a7':'#ef9a9a') + ';border-radius:4px;padding:3px 7px;font-size:0.67rem;font-weight:700;background:' + (dateSubm?'#c8e6c9':'#ffcdd2') + ';color:' + (dateSubm?'#2e7d32':'#c62828') + ';cursor:' + (isWdaAdmin?'pointer':'not-allowed') + ';">'
             +   '</label>'
             +   (isWdaAdmin
-                  ? '<button onclick="window._ckpmToggleNA(' + mgrIdx + ',\'' + moSafe + '\')" style="background:' + (isNA?'#ff9800':'#fff8e1') + ';color:' + (isNA?'white':'#e65100') + ';border:1.5px solid ' + (isNA?'#f57c00':'#ffc107') + ';border-radius:5px;padding:4px 12px;font-size:0.62rem;font-weight:800;cursor:pointer;">' + (isNA?'✓ Unmark N/A':'⊘ Mark as N/A') + '</button>'
+                  ? '<button onclick="window._ckpmToggleNA(' + mgrIdx + ',\'' + moSafe + '\')" style="background:' + (isNA?'#ff9800':'#fff8e1') + ';color:' + (isNA?'white':'#e65100') + ';border:1.5px solid ' + (isNA?'#f57c00':'#ffc107') + ';border-radius:5px;padding:4px 12px;font-size:0.62rem;font-weight:800;cursor:pointer;">' + (isNA?'Unmark N/A':'Mark as N/A') + '</button>'
                   : '')
-            +   '<span style="font-size:0.6rem;color:#888;margin-left:auto;white-space:nowrap;"><i class="fas fa-arrows-left-right" style="color:#2e7d32;margin-right:4px;"></i>Scroll table horizontally</span>'
+            +   '<span style="font-size:0.6rem;color:#888;margin-left:auto;white-space:nowrap;">Scroll table horizontally</span>'
             + '</div>'
-            + (isNA ? ('<div style="background:#fff8e1;border-bottom:1px solid #fbc02d;padding:8px 16px;font-size:0.73rem;color:#7a5c00;font-weight:700;">' + window.icon("warn") + ' ') + activeMo + ' is marked as N/A / Exempt.</div>' : '')
+            + (isNA ? ('<div style="background:#fff8e1;border-bottom:1px solid #fbc02d;padding:8px 16px;font-size:0.73rem;color:#7a5c00;font-weight:700;">') + activeMo + ' is marked as N/A / Exempt.</div>' : '')
             // Table
             + '<div style="overflow-x:auto;max-height:72vh;overflow-y:auto;background:var(--bg-card);">'
             +   '<table style="border-collapse:collapse;width:100%;">'
@@ -717,7 +715,7 @@ window.renderCorporateKpm = function() {
             +   '<span style="font-size:0.59rem;color:#e11d1d;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#e11d1d;display:inline-block;"></span>&lt;85% Needs Improvement</span>'
             +   '<span style="font-size:0.59rem;color:#888;margin-left:auto;">' + tplOf(mgrIdx).docCode + '</span>'
             + '</div>'
-            , foot: canEdit ? '<button onclick="window._ckpmSaveModal(' + mgrIdx + ',\'' + moSafe + '\')" class="mdl-btn primary"><i class="fas fa-save" style="margin-right:6px;"></i>Save Changes</button>' : '' });
+            , foot: canEdit ? '<button onclick="window._ckpmSaveModal(' + mgrIdx + ',\'' + moSafe + '\')" class="mdl-btn primary">Save Changes</button>' : '' });
         if (window._kpmDateSync) window._kpmDateSync(document.getElementById('ckpm-modal-date'));
         // outside click disabled — use the X button to close
     };

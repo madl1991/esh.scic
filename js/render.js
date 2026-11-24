@@ -3997,7 +3997,6 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                                     + mo + (isFilled ? ' ✓' : '') + '</option>';
                             }).join('');
                             _monthDropHtml = '<label style="display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:0.67rem;color:#555;">'
-                                + '<i class="fas fa-calendar-alt" style="color:#1b5e20;font-size:0.7rem;"></i>'
                                 + '<span style="font-weight:700;font-size:0.64rem;color:#444;">Month:</span>'
                                 + '<select id="kpm-modal-month-sel"'
                                 + ' onchange="(function(v){var m=document.getElementById(\'kpm-month-modal\');if(m)m.remove();window.openKpmDialog(\'' + _regKeySafe + '\',\'' + _regSafe + '\',v,true);})(this.value)"'
@@ -4010,13 +4009,12 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                         // Meta bar: region label + Month dropdown (Add Entry only) + Date Submitted input + scroll hint
                         var _kpmDateField = ''
                             + '<label style="display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:0.67rem;color:#555;margin-left:4px;">'
-                            + '<i class="fas fa-calendar-check" style="color:' + (_modalDateVal?'#2e7d32':'#c62828') + ';font-size:0.7rem;"></i>'
                             + '<span style="font-weight:700;font-size:0.64rem;color:#444;">Date Submitted:</span>'
                             + '<input type="date" id="kpm-modal-date-submitted" value="' + _modalDateVal + '" ' + (canEdit ? '' : 'disabled')
                             + ' oninput="(function(el,v){var p=state.projects.find(function(x){return x.name===\'' + _modalProjSafe + '\';});if(p){if(!p.vals)p.vals={};p.vals[\'' + _modalDateKey + '\']=v;if(typeof markPendingSync===\'function\')markPendingSync();}var ok=!!v;el.style.background=ok?\'#c8e6c9\':\'#ffcdd2\';el.style.color=ok?\'#2e7d32\':\'#c62828\';el.style.borderColor=ok?\'#a5d6a7\':\'#ef9a9a\';var ico=el.parentElement.querySelector(\'i\');if(ico)ico.style.color=ok?\'#2e7d32\':\'#c62828\';window._kpmDateSync&&window._kpmDateSync(el);})(this,this.value)"'
                             + ' style="border:1px solid ' + (_modalDateVal?'#a5d6a7':'#ef9a9a') + ';border-radius:4px;padding:3px 7px;font-size:0.67rem;font-weight:700;background:' + (_modalDateVal?'#c8e6c9':'#ffcdd2') + ';color:' + (_modalDateVal?'#2e7d32':'#c62828') + ';cursor:' + (canEdit?'pointer':'not-allowed') + ';">'
                             + '</label>';
-                        var metaHtml = window.eshInfoBar({ icon: 'fa-table', label: 'All projects in region', items: [_monthDropHtml, _kpmDateField], hint: 'Scroll table horizontally' });
+                        var metaHtml = window.eshInfoBar({ items: [_monthDropHtml, _kpmDateField], hint: 'Scroll table horizontally' });
 
                         // Build KPM table
                         var tableHtml = window._kpmBuildModalTable(regProjs, activeMo, dis, regKey);
@@ -4029,8 +4027,8 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             id: 'kpm-month-modal', noIcon: true, width: 'min(1600px,99vw)', bodyFlex: true,
                             title: (isNew ? 'New KPM entry' : (canEdit ? 'Edit KPM' : 'View KPM')) + ' — <span style="color:#2e7d32;">' + activeMo + ' ' + selYear + '</span>',
                             sub: window.eshModalSub({ loc: reg, count: _kpmSubActive, extra: [
-                                _kpmSubStopped ? '<span style="color:#ad1457;font-size:0.63rem;"><i class="fas fa-pause-circle" style="margin-right:3px;"></i>' + _kpmSubStopped + ' on work stop (excluded)</span>' : '',
-                                _kpmSubHidden ? '<span style="color:#757575;font-size:0.63rem;"><i class="fas fa-eye-slash" style="margin-right:3px;"></i>' + _kpmSubHidden + ' finished (hidden)</span>' : ''
+                                _kpmSubStopped ? '<span style="color:#ad1457;font-size:0.63rem;">' + _kpmSubStopped + ' on work stop (excluded)</span>' : '',
+                                _kpmSubHidden ? '<span style="color:#757575;font-size:0.63rem;">' + _kpmSubHidden + ' finished (hidden)</span>' : ''
                             ] }),
                             body: ''
                             // Per-project submission meta
@@ -4047,7 +4045,7 @@ else if (state.currentTab !== 'overall' && state.currentTab !== 'audit' && state
                             + '<span style="font-size:0.59rem;color:#880e4f;font-weight:600;display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:2px;background:#fce4ec;border:1px solid #f48fb1;display:inline-block;"></span>Pink column = Work Stoppage (hover for details)</span>'
                             + '<span style="font-size:0.59rem;color:#888;margin-left:auto;">FM-RNI-04-04 | Rev. No.:4 | Eff. Date: 06 Aug 2018</span>'
                             + '</div>'
-                            , foot: canEdit ? '<button onclick="window.saveKpmModal()" class="mdl-btn primary"><i class="fas fa-save" style="margin-right:6px;"></i>Save Changes</button>' : '' });
+                            , foot: canEdit ? '<button onclick="window.saveKpmModal()" class="mdl-btn primary">Save Changes</button>' : '' });
                         if (window._kpmDateSync) window._kpmDateSync(document.getElementById('kpm-modal-date-submitted'));
                     };
 

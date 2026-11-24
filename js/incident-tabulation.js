@@ -445,8 +445,8 @@ function safetyCropImage(file, aspectRatio) {
                         <img id="safety-crop-img" src="${e.target.result}" style="max-width:100%;display:block;">
                     </div>
                     <div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;justify-content:flex-end;gap:10px;">
-                        <button id="safety-crop-cancel" style="padding:7px 14px;border-radius:6px;border:1px solid var(--border-color);background:transparent;cursor:pointer;">Skip this photo</button>
-                        <button id="safety-crop-confirm" style="padding:7px 18px;border-radius:6px;border:none;background:#2e7d32;color:#fff;font-weight:700;cursor:pointer;">Use this crop</button>
+                        <button id="safety-crop-cancel" class="mdl-btn neutral">Skip this photo</button>
+                        <button id="safety-crop-confirm" class="mdl-btn primary">Use this crop</button>
                     </div>
                 </div>`;
                 document.body.appendChild(overlay);
@@ -663,7 +663,7 @@ window.eshEscHtml = function(s) {
 // o: { loc, count, noun, extra: [html, ...] }  (loc is escaped here; extra items are trusted html)
 window.eshModalSub = function(o) {
     var n = o.count, noun = o.noun || 'active project';
-    return '<i class="fas fa-location-dot" style="margin-right:4px;"></i>' + window.eshEscHtml(o.loc)
+    return window.eshEscHtml(o.loc)
         + (n == null ? '' : ' · <span style="color:#4a5750;">' + n + ' ' + noun + (n !== 1 ? 's' : '') + '</span>')
         + (o.extra || []).filter(Boolean).map(function(x) { return ' · ' + x; }).join('');
 };
@@ -684,16 +684,16 @@ window.eshSetPill = function(id, text, tone) {
 };
 // "<icon> Label: [value]" field for the info bar. o: { icon, label, html }
 window.eshInfoField = function(o) {
-    return '<span class="mdl-info-field"><i class="fas ' + (o.icon || 'fa-circle-info') + '"></i>'
+    return '<span class="mdl-info-field">' + (o.icon ? '<i class="fas ' + o.icon + '"></i>' : '')
         + '<span class="mdl-info-key">' + o.label + '</span>' + o.html + '</span>';
 };
 // Info bar under the modal title. o: { icon, label, items: [html, ...], hint }
 // hint = text for the "scroll" note (shown only when the table really overflows), or falsy for none.
 window.eshInfoBar = function(o) {
     return '<div class="mdl-info">'
-        + '<span class="mdl-info-lbl"><i class="fas ' + (o.icon || 'fa-table') + '"></i>' + o.label + '</span>'
+        + (o.label ? '<span class="mdl-info-lbl">' + (o.icon ? '<i class="fas ' + o.icon + '"></i>' : '') + o.label + '</span>' : '')
         + (o.items || []).filter(Boolean).join('')
-        + (o.hint ? '<span class="mdl-scroll-hint"><i class="fas fa-arrows-left-right"></i>' + o.hint + '</span>' : '')
+        + (o.hint ? '<span class="mdl-scroll-hint">' + o.hint + '</span>' : '')
         + '</div>';
 };
 // Show the scroll hint only if something in the modal body scrolls sideways.
@@ -1162,7 +1162,7 @@ function renderSafetyAlertsPage() {
 
     view.innerHTML = `
     ${canManage ? `<div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:16px;">
-        <button onclick="safetyOpenAlertForm()" style="background:#2e7d32;border:none;color:#fff;border-radius:8px;padding:9px 18px;font-size:0.8rem;font-weight:700;cursor:pointer;"><i class="fas fa-plus"></i> New Safety Alert</button>
+        <button class="mdl-btn primary" onclick="safetyOpenAlertForm()"><i class="fas fa-plus"></i> New Safety Alert</button>
     </div>` : ''}
     ${body}`;
 }
@@ -1225,13 +1225,291 @@ async function safetyResolvePhotos(kind, statusElId) {
 }
 window.safetyResolvePhotos = safetyResolvePhotos;
 
+// ── Auto-fill of the ESH Alert form from the selected PDF / Word file ───────
+// Reads the table headers (Alert No., Release Date, Incident Date & Time, Location, Injury):
+//   Alert No. -> ESH Alert No.   Release Date -> Release Date   Injury -> Title
+//   Project   -> matched against the dropdown names inside the "Brief Description" text.
+// Never overwrites what was already typed/picked, and does nothing in Edit mode.
+const _safetyScriptPromises = {};
+function safetyLoadScriptOnce(url) {
+    if (_safetyScriptPromises[url]) return _safetyScriptPromises[url];
+    _safetyScriptPromises[url] = new Promise(function(resolve, reject) {
+        const s = document.createElement('script');
+        s.src = url; s.onload = resolve;
+        s.onerror = function() { delete _safetyScriptPromises[url]; reject(new Error('Failed to load ' + url)); };
+        document.head.appendChild(s);
+    });
+    return _safetyScriptPromises[url];
+}
+
+function safetyAutofillSetStatus(msg, isError) {
+    let el = document.getElementById('sa-read-status');
+    if (!el) {
+        const base = document.getElementById('sa-file-status');
+        if (!base) return;
+        el = document.createElement('div');
+        el.id = 'sa-read-status';
+        base.parentNode.insertBefore(el, base.nextSibling);
+    }
+    el.style.cssText = 'font-size:0.68rem;margin-top:4px;color:' + (isError ? '#c62828' : 'var(--text-secondary)') + ';';
+    el.textContent = msg || '';
+}
+
+// PDF -> [{s, x, y(top-down), h}] text items. No text layer -> OCR of page 1.
+async function safetyReadPdfItems(file) {
+    if (!window.pdfjsLib) throw new Error('PDF reader not loaded');
+    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    let items = [];
+    const pages = Math.min(pdf.numPages, 2);
+    for (let p = 1; p <= pages; p++) {
+        const page = await pdf.getPage(p);
+        const vp = page.getViewport({ scale: 1 });
+        const tc = await page.getTextContent();
+        tc.items.forEach(function(it) {
+            if (!it.str || !it.str.trim()) return;
+            items.push({ s: it.str.trim(), x: it.transform[4], y: (p - 1) * 10000 + (vp.height - it.transform[5]), h: Math.abs(it.transform[3]) || 10, w: it.width || 0 });
+        });
+    }
+    if (items.join('').length >= 20 && items.reduce(function(n, i) { return n + i.s.length; }, 0) >= 20) return items;
+
+    safetyAutofillSetStatus('No text in PDF. Running OCR (10–30 seconds)...');
+    await safetyLoadScriptOnce('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+    const page1 = await pdf.getPage(1);
+    const vp2 = page1.getViewport({ scale: 2 });
+    const canvas = document.createElement('canvas');
+    canvas.width = vp2.width; canvas.height = vp2.height;
+    await page1.render({ canvasContext: canvas.getContext('2d'), viewport: vp2 }).promise;
+    const res = await Tesseract.recognize(canvas, 'eng');
+    return ((res && res.data && res.data.words) || []).filter(function(w) { return w.text && w.text.trim(); })
+        .map(function(w) { return { s: w.text.trim(), x: w.bbox.x0, y: w.bbox.y0, h: (w.bbox.y1 - w.bbox.y0) || 10, w: (w.bbox.x1 - w.bbox.x0) || 0 }; });
+}
+
+// Groups text items into lines (top to bottom, left to right).
+function safetyItemsToLines(items) {
+    const sorted = items.slice().sort(function(a, b) { return a.y - b.y || a.x - b.x; });
+    const lines = [];
+    sorted.forEach(function(it) {
+        const last = lines[lines.length - 1];
+        if (last && Math.abs(it.y - last.y) <= Math.max(3, last.h * 0.6)) { last.items.push(it); }
+        else lines.push({ y: it.y, h: it.h, items: [it] });
+    });
+    lines.forEach(function(l) {
+        l.items.sort(function(a, b) { return a.x - b.x; });
+        l.text = l.items.map(function(i) { return i.s; }).join(' ').replace(/\s+/g, ' ').trim();
+    });
+    return lines;
+}
+
+const SAFETY_BRIEF_STOP = /^(0\d\s*(photo|what|recommend|corrective|root|immediate)|immediate|root\s*cause|corrective|preventive|lessons|recommend|action\s*taken|prepared|investigat|reported\s*by|approved|noted)/i;
+
+// "Brief Description" text: what follows the label until the next section label.
+function safetyExtractBrief(textLines) {
+    const idx = textLines.findIndex(function(t) { return /brief\s*description/i.test(t); });
+    if (idx === -1) return '';
+    const parts = [textLines[idx].replace(/^.*?brief\s*description\s*[:\-–]?\s*/i, '')];
+    for (let i = idx + 1; i < textLines.length && i <= idx + 12; i++) {
+        if (SAFETY_BRIEF_STOP.test(textLines[i])) break;
+        parts.push(textLines[i]);
+    }
+    return parts.join(' ').replace(/\s+/g, ' ').trim().slice(0, 1500);
+}
+
+// PDF/OCR items -> { alertNo, release, injury, brief } using the header x-positions as columns.
+function safetyParseAlertItems(items) {
+    const lines = safetyItemsToLines(items);
+    const out = { alertNo: '', release: '', injury: '', brief: '' };
+    const hi = lines.findIndex(function(l) { return /alert\s*no/i.test(l.text); });
+    if (hi !== -1) {
+        const cols = [
+            { key: 'alertNo', re: /^alert/i }, { key: 'release', re: /^release/i }, { key: 'incident', re: /^incident/i },
+            { key: 'location', re: /^location/i }, { key: 'injury', re: /injur/i }
+        ];
+        let hdrEnd = hi;
+        if (lines[hi + 1] && lines[hi + 1].text.length < 25 && /^(&?\s*time|date|no\.?)/i.test(lines[hi + 1].text)) hdrEnd = hi + 1;
+        const hdrItems = [];
+        for (let li = hi; li <= hdrEnd; li++) lines[li].items.forEach(function(i) { hdrItems.push(i); });
+        cols.forEach(function(c) {
+            const it = hdrItems.find(function(i) { return c.re.test(i.s); });
+            if (it) c.x = it.x;
+        });
+        const anchors = cols.filter(function(c) { return c.x !== undefined; }).sort(function(a, b) { return a.x - b.x; });
+        // Header extent per column -> header centre (headers are often centred over left-aligned data).
+        anchors.forEach(function(a) { a.min = Infinity; a.max = -Infinity; });
+        hdrItems.forEach(function(it) {
+            let col = anchors[0];
+            anchors.forEach(function(a) { if (a.x <= it.x + 6) col = a; });
+            if (col) { col.min = Math.min(col.min, it.x); col.max = Math.max(col.max, it.x + (it.w || 0)); }
+        });
+        anchors.forEach(function(a) { a.c = (a.min + a.max) / 2; });
+        let stop = lines.findIndex(function(l, i) { return i > hdrEnd && /brief\s*description/i.test(l.text); });
+        const dataLines = lines.slice(hdrEnd + 1, stop === -1 ? hdrEnd + 5 : stop);
+        const acc = {};
+        dataLines.forEach(function(l) {
+            l.items.forEach(function(it) {
+                const cx = it.x + (it.w || 0) / 2;
+                let col = anchors[0], best = Infinity;
+                anchors.forEach(function(a) {
+                    const d = Math.min(Math.abs(it.x - a.x), Math.abs(cx - a.c));
+                    if (d < best) { best = d; col = a; }
+                });
+                if (col) acc[col.key] = (acc[col.key] ? acc[col.key] + ' ' : '') + it.s;
+            });
+        });
+        ['alertNo', 'release', 'injury'].forEach(function(k) { out[k] = (acc[k] || '').replace(/\s+/g, ' ').trim(); });
+    }
+    out.brief = safetyExtractBrief(lines.map(function(l) { return l.text; }));
+    return out;
+}
+
+// Word (.docx) -> same shape. Each table cell is "Label value" (e.g. "Injury Lost Time Accident");
+// a header-row + data-row table is also handled. Brief Description = the paragraph(s) after its label.
+async function safetyParseAlertDocx(file) {
+    await safetyLoadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js');
+    const res = await window.mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() });
+    const doc = new DOMParser().parseFromString(res.value, 'text/html');
+    const out = { alertNo: '', release: '', injury: '', brief: '' };
+    const clean = function(x) { return String(x || '').replace(/\s+/g, ' ').trim(); };
+    const cellText = function(c) {
+        const ps = Array.prototype.slice.call(c.querySelectorAll('p'));
+        return clean(ps.length ? ps.map(function(p) { return p.textContent; }).join(' ') : c.textContent);
+    };
+    const labels = [
+        { key: 'alertNo', re: /^alert\s*no\.?\s*[:\-]?\s*(.*)$/i },
+        { key: 'release', re: /^release\s*date\s*[:\-]?\s*(.*)$/i },
+        { key: 'injury',  re: /^injur\w*\s*[:\-]?\s*(.*)$/i }
+    ];
+    Array.prototype.slice.call(doc.querySelectorAll('td,th')).forEach(function(cell) {
+        const t = cellText(cell);
+        labels.forEach(function(l) {
+            if (out[l.key]) return;
+            const m = t.match(l.re);
+            if (!m) return;
+            let v = clean(m[1]);
+            if (!v) { // header-row layout: value sits in the same column of the next row
+                const row = cell.parentElement, next = row && row.nextElementSibling;
+                const idx = row ? Array.prototype.indexOf.call(row.children, cell) : -1;
+                if (next && next.children[idx]) v = cellText(next.children[idx]);
+            }
+            out[l.key] = v;
+        });
+    });
+    const blocks = Array.prototype.slice.call(doc.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li')).map(function(e) { return clean(e.textContent); }).filter(Boolean);
+    out.brief = safetyExtractBrief(blocks);
+    return out;
+}
+
+function safetyParseReleaseDate(str) {
+    if (!str) return '';
+    const s = str.replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
+    const mons = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const pad = function(n) { return String(n).padStart(2, '0'); };
+    const fix = function(y) { y = parseInt(y, 10); return y < 100 ? 2000 + y : y; };
+    const ok = function(y, m, d) { const dt = new Date(y, m - 1, d); return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d ? y + '-' + pad(m) + '-' + pad(d) : ''; };
+    let m;
+    if ((m = s.match(/(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/))) return ok(+m[1], +m[2], +m[3]);
+    if ((m = s.match(/(\d{1,2})[\s\-\/.]*([A-Za-z]{3,9})[\s\-\/.]*(\d{2,4})/))) {
+        const mi = mons.indexOf(m[2].slice(0, 3).toLowerCase());
+        if (mi !== -1) return ok(fix(m[3]), mi + 1, +m[1]);
+    }
+    if ((m = s.match(/([A-Za-z]{3,9})\.?\s*(\d{1,2})(?:st|nd|rd|th)?\s+(\d{2,4})/))) {
+        const mi = mons.indexOf(m[1].slice(0, 3).toLowerCase());
+        if (mi !== -1) return ok(fix(m[3]), mi + 1, +m[2]);
+    }
+    if ((m = s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/))) {
+        const a = +m[1], b = +m[2], y = fix(m[3]);
+        if (a > 12) return ok(y, b, a);
+        if (b > 12) return ok(y, a, b);
+        return ''; // ambiguous dd/mm vs mm/dd: leave the date alone
+    }
+    return '';
+}
+
+// Picks the dropdown project named in the Brief Description. One clear match only.
+function safetyMatchProject(brief, names) {
+    if (!brief) return '';
+    const compact = function(x) { return String(x).toLowerCase().replace(/[^a-z0-9]/g, ''); };
+    const hay = compact(brief);
+    const has = function(tok) { return new RegExp(tok + (/\d$/.test(tok) ? '(?!\\d)' : '')).test(hay); };
+    const pick = function(list) {
+        if (list.length <= 1) return list[0] || '';
+        const longest = list.filter(function(a) { return !list.some(function(b) { return b !== a && compact(b).indexOf(compact(a)) !== -1; }); });
+        return longest.length === 1 ? longest[0] : '';
+    };
+    const full = names.filter(function(n) { return compact(n).length >= 3 && hay.indexOf(compact(n)) !== -1; });
+    if (full.length) return pick(full);
+    const generic = /^(project|power|solar|wind|plant|substation|transmission|line|phase|the|of|and|corporation|corp|inc|epc|works|site|development|farm|sta|clara|scic|energy|hydro|electric|hepp|powerplant|mw|ml|km)$/;
+    const byToken = names.filter(function(n) {
+        const toks = n.toLowerCase().split(/[^a-z0-9]+/).filter(function(t) { return t.length >= 3 && !generic.test(t); });
+        return toks.length && toks.every(has);
+    });
+    if (byToken.length) return pick(byToken);
+    // Last tier: the project whose distinctive words appear most (must be strictly the best, at least one word).
+    let best = [], bestScore = 0;
+    names.forEach(function(n) {
+        const toks = n.toLowerCase().split(/[^a-z0-9]+/).filter(function(t) { return t.length >= 4 && !generic.test(t); });
+        const sc = toks.filter(has).length;
+        if (sc > bestScore) { bestScore = sc; best = [n]; } else if (sc === bestScore && sc > 0) best.push(n);
+    });
+    return best.length === 1 ? best[0] : '';
+}
+
+let _safetyAutofillToken = 0;
+async function safetyAutofillFromFile(file) {
+    const idEl = document.getElementById('sa-id');
+    if (!idEl || idEl.value) return; // Edit mode: no auto-fill
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext === 'doc') { safetyAutofillSetStatus("Old .doc can't be read. Please fill in the fields manually.", true); return; }
+    const token = ++_safetyAutofillToken;
+    safetyAutofillSetStatus('Reading file...');
+    try {
+        const r = ext === 'pdf' ? safetyParseAlertItems(await safetyReadPdfItems(file)) : await safetyParseAlertDocx(file);
+        if (token !== _safetyAutofillToken || !document.getElementById('sa-alertno')) return;
+
+        const found = [], missing = [], kept = [];
+        const noEl = document.getElementById('sa-alertno'), titleEl = document.getElementById('sa-title');
+        const dateEl = document.getElementById('sa-date'), projEl = document.getElementById('sa-project');
+
+        const isPlaceholder = function(v) { return !!v && /^[xX\s._\-#?]+$/.test(v); };
+        const alertNo = isPlaceholder(r.alertNo) ? '' : (r.alertNo || '').replace(/\s+/g, '');
+        if (!alertNo) missing.push(r.alertNo ? 'Alert No. (still XXXX)' : 'Alert No.');
+        else if (noEl.value.trim()) kept.push('Alert No.');
+        else { noEl.value = alertNo; found.push('Alert No.'); }
+
+        const iso = safetyParseReleaseDate(r.release);
+        const today = new Date().toISOString().slice(0, 10);
+        if (!iso) missing.push(isPlaceholder(r.release) ? 'Release Date (still XXXX, kept today)' : (r.release ? 'Release Date (unreadable, kept today)' : 'Release Date'));
+        else if (dateEl.value && dateEl.value !== today) kept.push('Release Date');
+        else { dateEl.value = iso; found.push('Release Date'); }
+
+        const title = (r.injury || '').replace(/\s+/g, ' ').trim();
+        if (!title) missing.push('Title');
+        else if (titleEl.value.trim()) kept.push('Title');
+        else { titleEl.value = title; found.push('Title'); }
+
+        const names = Array.prototype.slice.call(projEl.options).map(function(o) { return o.value; }).filter(Boolean);
+        const proj = safetyMatchProject(r.brief, names);
+        if (!proj) missing.push('Project');
+        else if (projEl.value) kept.push('Project');
+        else { projEl.value = proj; found.push('Project'); }
+
+        let msg = 'Detected: ' + (found.join(', ') || 'none') + '.';
+        if (missing.length) msg += ' Not found: ' + missing.join(', ') + '.';
+        if (kept.length) msg += ' Kept yours: ' + kept.join(', ') + '.';
+        safetyAutofillSetStatus(msg, !found.length);
+    } catch (e) {
+        if (token === _safetyAutofillToken) safetyAutofillSetStatus("Couldn't read the file (" + e.message + "). Please fill in manually.", true);
+    }
+}
+window.safetyAutofillFromFile = safetyAutofillFromFile;
+
 // Holds the currently-selected file (pending upload) for the alert form.
 window._safetyAlertPendingFile = null;
 
 function safetyHandleAlertFileSelect(inputEl) {
     const file = inputEl.files && inputEl.files[0];
     const statusEl = document.getElementById('sa-file-status');
-    if (!file) { window._safetyAlertPendingFile = null; if (statusEl) statusEl.textContent = ''; return; }
+    if (!file) { window._safetyAlertPendingFile = null; if (statusEl) statusEl.textContent = ''; safetyAutofillSetStatus(''); return; }
     const ext = file.name.split('.').pop().toLowerCase();
     if (!['pdf','doc','docx'].includes(ext)) {
         showToast('Please choose a PDF or Word file.', 'error');
@@ -1242,6 +1520,7 @@ function safetyHandleAlertFileSelect(inputEl) {
     }
     window._safetyAlertPendingFile = file;
     if (statusEl) statusEl.textContent = `Selected: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`;
+    safetyAutofillFromFile(file);
 }
 window.safetyHandleAlertFileSelect = safetyHandleAlertFileSelect;
 
@@ -1479,8 +1758,8 @@ function safetyOpenAwardHistoryModal() {
                     <div style="font-size:0.68rem;color:var(--text-secondary);">${it.date||''} · ${it.project||'Company-wide'} ${it.awardingBody ? '· ' + it.awardingBody.replace(/</g,'&lt;') : ''}</div>
                 </div>
                 ${canManage ? `<span style="display:flex;gap:8px;flex-shrink:0;">
-                    <button onclick="safetyEditAwardForm('${it.id}')" style="background:none;border:none;color:#1565c0;cursor:pointer;font-size:0.9rem;" title="Edit"><i class="fas fa-pen"></i></button>
-                    <button onclick="deleteSafetyAward('${it.id}')" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:0.9rem;" title="Delete"><i class="fas fa-trash"></i></button>
+                    <button class="sa-ib" onclick="safetyEditAwardForm('${it.id}')" title="Edit"><i class="fas fa-pen"></i></button>
+                    <button class="sa-ib" onclick="deleteSafetyAward('${it.id}')" title="Delete" style="color:#c62828;"><i class="fas fa-trash"></i></button>
                 </span>` : ''}
             </div>`;
         }).join('');
