@@ -7399,6 +7399,10 @@ body.dark-mode .esh-search:not(.open) .esh-search-btn:hover { background: rgba(1
 #grand-stats .stat-value { font-size:2rem; line-height:1; margin-top:2px; }
 #grand-stats .stat-sub { font-size:0.7rem; font-weight:600; line-height:1.2; color:rgba(255,255,255,0.92); margin-top:2px; text-shadow:0 1px 4px rgba(0,0,0,0.35); }
 #grand-stats .stat-sub:empty { display:none; }
+#grand-stats .stat-trend { display:inline-flex; align-items:center; gap:4px; font-weight:800; text-shadow:0 1px 0 rgba(255,255,255,0.35); }
+#grand-stats .stat-trend svg { flex:0 0 auto; }
+#grand-stats .stat-trend.up { color:#0b5a1c; }
+#grand-stats .stat-trend.down { color:#7a0f0f; }
 
 /* month switcher:  ‹ Sep ›  (outline, no dots) */
 #grand-stats .stat-nav {
@@ -9100,6 +9104,17 @@ body.dark-mode #esh-tip { --tip-bg: #2b312d; --tip-fg: #eef2ef; --tip-bd: #4a524
 #esh-tip[data-side="left"]::after   { right: -5px; top: var(--ao, 50%);  margin-top: -4.5px;  border-top-width: 1px;   border-right-width: 1px; }
 #esh-tip[data-side="top"]::after    { bottom: -5px; left: var(--ao, 50%); margin-left: -4.5px; border-bottom-width: 1px; border-right-width: 1px; }
 #esh-tip[data-side="bottom"]::after { top: -5px;   left: var(--ao, 50%); margin-left: -4.5px; border-top-width: 1px;    border-left-width: 1px; }
+/* Tooltip with aligned columns (data-tip-cols): label | value | change */
+#esh-tip .tip-cols { display: grid; grid-template-columns: auto auto auto; column-gap: 16px; row-gap: 1px; align-items: baseline; }
+#esh-tip .tip-full { grid-column: 1 / -1; }
+#esh-tip .tip-head { font-weight: 600; margin-bottom: 3px; }
+#esh-tip .tip-foot { margin-top: 3px; padding-top: 4px; border-top: 1px solid var(--tip-bd); }
+#esh-tip .tip-v { text-align: right; font-variant-numeric: tabular-nums; }
+#esh-tip .tip-up { color: #2e7d32; }
+#esh-tip .tip-down { color: #c62828; }
+#esh-tip .tip-zero { opacity: 0.6; }
+body.dark-mode #esh-tip .tip-up { color: #7ee787; }
+body.dark-mode #esh-tip .tip-down { color: #ff8a80; }
 
 /* Existing CSS tooltips — same look */
 .floating-edit-btn .edit-tooltip { background: #ffffff; color: #1f2a22; border: 1px solid #c9d5cc; border-radius: 8px; padding: 7px 14px; font-weight: 500; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14); }
