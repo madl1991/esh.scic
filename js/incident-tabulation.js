@@ -1029,21 +1029,18 @@ function renderSafetyAlertAwardPanel() {
             </div>`;
         }).join('');
     const alertsCol = `
-    <div class="saw-col">
-      <section class="saw-panel">
+      <section class="saw-panel hm-alert">
         <div class="sec-head">
             <div class="sec-head-title">Safety alert</div>
             ${topAlerts.length > 0 ? `<span class="sec-head-side">${topAlerts.length} latest</span>` : ''}
         </div>
         <div class="saw-alert-list">${alertsListHtml}</div>
         ${alerts.length > 0 ? `<div class="saw-more" onclick="changeTab('safety-alerts')">See more alerts</div>` : ''}
-      </section>
-    </div>`;
+      </section>`;
 
     // ── CENTER: ESH award hero carousel + mini cards ──
     const awardCol = `
-    <div class="saw-col">
-      <section class="saw-panel">
+      <section class="saw-panel hm-award">
         <div class="sec-head">
             <div class="sec-head-title">ESH award and recognition</div>
             <div class="sec-head-badges">
@@ -1052,14 +1049,13 @@ function renderSafetyAlertAwardPanel() {
             </div>
         </div>
         <div id="saw-award-inner">${buildSafetyAwardInnerHtml()}</div>
-      </section>
-    </div>`;
+      </section>`;
 
     // ── RIGHT: Weather (PAGASA + Windy). Markup lives in index.html → <template id="saw-wx-template"> ──
     const _wxTpl = document.getElementById('saw-wx-template');
-    const weatherCol = _wxTpl ? '<div class="saw-col">' + _wxTpl.innerHTML + '</div>' : '';
+    const weatherCol = _wxTpl ? '<div class="hm-wx">' + _wxTpl.innerHTML + '</div>' : '';
 
-    container.innerHTML = `<div class="saw-grid">${alertsCol}${awardCol}${weatherCol}</div>`;
+    container.innerHTML = `<div class="hm-grid">${awardCol}${alertsCol}${weatherCol}</div>`;
     sawWxInit();
 
     if (awards.length > 1) {

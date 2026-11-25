@@ -1527,7 +1527,13 @@ function setupAuthObserver() {
                 userEmailEl.textContent = user.email;
             }
 
+            // Always start on Home (tab key 'headlines') after every login,
+            // even if the user logged out or was auto-logged out on another tab.
+            state.currentTab = 'headlines';
+            try { localStorage.removeItem('esh_last_tab'); } catch(e) {}
+
             showUI();
+            try { if (typeof changeTab === 'function') changeTab('headlines'); } catch(e) {} // Home view is ready BEFORE the loading screen hides (no Overall Summary flash)
             initDarkMode();
             initializeYears(); // Initialize year selector
 
@@ -1589,6 +1595,10 @@ function setupAuthObserver() {
             
             try { await user.getIdToken(true); } catch(e) {  }
             await PresenceTracker.initialize(user.uid, user.email);
+            try { // fallback: only if the early switch did not work
+                const _hv = document.getElementById('headlines-view');
+                if (typeof changeTab === 'function' && (!_hv || _hv.classList.contains('hidden'))) changeTab('headlines');
+            } catch(e) {}
             startForceLogoutListener(user.uid);
             
             if (state.isAdmin) {
@@ -1674,6 +1684,7 @@ function setupAuthObserver() {
                 });
                 localStorage.removeItem('esh_last_tab');
             } catch (e) {}
+            state.currentTab = 'headlines'; // next login opens Home, not the last tab
 
             if (typeof clearLoginPassword === 'function') clearLoginPassword(); // never keep the old password after logout / auto-logout / session expiry
             const loginOverlay = document.getElementById('login-overlay');
