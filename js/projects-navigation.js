@@ -1197,6 +1197,11 @@
                 : _navItemHtml(g)).join('');
         }
         renderNav();
+        // Pagkatapos mag-load/refresh: sarado ang lahat ng group hanggang may i-click ang user sa sidebar o sa main content.
+        window._navBootGuard = true;
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.closest && e.target.closest('#main-nav, #main-content')) window._navBootGuard = false;
+        }, true);
 
         function toggleNavGroup(header) {
             const items = header.nextElementSibling;
@@ -1228,18 +1233,8 @@
         }
         
         function restoreNavGroupStates() {
-            const navGroupStates = JSON.parse(localStorage.getItem('navGroupStates') || '{}');
-            document.querySelectorAll('.nav-group-header').forEach(header => {
-                const groupName = header.querySelector('span').textContent.trim();
-                const isExpanded = navGroupStates[groupName];
-                
-                if (isExpanded === true) {
-                    const items = header.nextElementSibling;
-                    items.classList.remove('collapsed');
-                    header.classList.remove('collapsed');
-                    items.style.height = 'auto';
-                }
-            });
+            // Sa refresh / hard refresh, laging collapsed ang lahat ng sidebar group (hindi na ibinabalik ang dating bukas).
+            try { localStorage.removeItem('navGroupStates'); } catch(e) {}
         }
 
         function renderRbacBanner() {
@@ -1436,7 +1431,7 @@
                 const isActive = n.dataset.tab === t;
                 n.classList.toggle('active', isActive);
                 
-                if (isActive && n.parentElement.classList.contains('nav-group-items')) {
+                if (isActive && !window._navBootGuard && n.parentElement.classList.contains('nav-group-items')) { // habang walang click ng user pagkatapos mag-load/refresh, huwag buksan ang group
                     const groupItems = n.parentElement;
                     const groupHeader = groupItems.previousElementSibling;
                     
