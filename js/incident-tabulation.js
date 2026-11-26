@@ -1009,23 +1009,8 @@ function updateSafetyAwardHeroInPlace() {
 }
 window.updateSafetyAwardHeroInPlace = updateSafetyAwardHeroInPlace;
 
-// ── Home: latest incident per classification, read from the Incident & Accident Registry ──
-// Shows only the project, date and classification (no injured person name).
-// Same for every user: all regions are shown, no restriction.
-function buildHomeLatestIncidentsHtml() {
-    const esc = function(s) { return String(s == null ? '' : s).replace(/</g, '&lt;'); };
-
-    // Order = severity. Label = text shown on Home.
-    const ORDER = [
-        { key: 'Fatality',                    label: 'Fatality' },
-        { key: 'LTA',                         label: 'LTA' },
-        { key: 'Restricted Work Case (RWC)',  label: 'Restricted work case' },
-        { key: 'Medical Treatment',           label: 'Medical treatment' },
-        { key: 'First Aid',                   label: 'First aid' },
-        { key: 'Dangerous Occurrence',        label: 'Dangerous occurrence' },
-        { key: 'High-Potential Incident',     label: 'High-potential incident' },
-        { key: 'Near Miss',                   label: 'Near miss' }
-    ];
+// Latest incident per registry classification (single source for Home panel + Executive Summary sync).
+function getLatestIncidentsByClass() {
     const latest = {};   // key -> { date, project }
     (state.projects || []).forEach(function(p) {
         if (!p || !p.vals) return;
@@ -1046,6 +1031,39 @@ function buildHomeLatestIncidentsHtml() {
             });
         });
     });
+    return latest;
+}
+
+// Executive Summary: latest incident per summary row label -> { date, project, title } (no person names).
+window.getLatestIncidentsForExec = function() {
+    const L = getLatestIncidentsByClass();
+    const MAP = { 'Fatality':'Fatality', 'LTA':'LTA', 'First Aid':'First Aid', 'Medical Treatment':'Medical Treatment', 'High-Potential Incident':'High-Potential Incident', 'Dangerous Occurrences':'Dangerous Occurrence' };
+    const out = {};
+    Object.keys(MAP).forEach(function(label) {
+        const r = L[MAP[label]];
+        out[label] = r ? { date: r.date, project: r.project || '', title: r.title || '' } : null;
+    });
+    return out;
+};
+
+// ── Home: latest incident per classification, read from the Incident & Accident Registry ──
+// Shows only the project, date and classification (no injured person name).
+// Same for every user: all regions are shown, no restriction.
+function buildHomeLatestIncidentsHtml() {
+    const esc = function(s) { return String(s == null ? '' : s).replace(/</g, '&lt;'); };
+
+    // Order = severity. Label = text shown on Home.
+    const ORDER = [
+        { key: 'Fatality',                    label: 'Fatality' },
+        { key: 'LTA',                         label: 'LTA' },
+        { key: 'Restricted Work Case (RWC)',  label: 'Restricted work case' },
+        { key: 'Medical Treatment',           label: 'Medical treatment' },
+        { key: 'First Aid',                   label: 'First aid' },
+        { key: 'Dangerous Occurrence',        label: 'Dangerous occurrence' },
+        { key: 'High-Potential Incident',     label: 'High-potential incident' },
+        { key: 'Near Miss',                   label: 'Near miss' }
+    ];
+    const latest = getLatestIncidentsByClass();   // key -> { date, project, title, idx }
 
     const todayMs = new Date(new Date().toDateString()).getTime();
     const daysAgo = function(d) { return Math.max(0, Math.round((todayMs - new Date(d).getTime()) / 86400000)); };

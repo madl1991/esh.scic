@@ -397,6 +397,9 @@ function computeIncidentSummaryAggregate(projects) {
         { field: 'medical_High-Potential incident',  label: 'High-Potential Incident' },
         { field: 'medical_Dangerous Occurrences',    label: 'Dangerous Occurrences' },
     ];
+    // Latest incident per row (same source as the Home "Latest incidents" panel); null = none recorded.
+    let latestMap = null;
+    try { if (typeof window.getLatestIncidentsForExec === 'function') latestMap = window.getLatestIncidentsForExec() || {}; } catch (e) { latestMap = null; }
     const rows = cats.map(c => {
         let prev = 0, total = 0;
         (projects || []).forEach(p => {
@@ -408,7 +411,9 @@ function computeIncidentSummaryAggregate(projects) {
         });
         prev = Math.round(prev);
         total = Math.round(total);
-        return { label: c.label, previous: prev, total: total, accumulated: prev + total };
+        const row = { label: c.label, previous: prev, total: total, accumulated: prev + total };
+        if (latestMap) row.latest = latestMap[c.label] || null; // omitted (not undefined) if unavailable: Firestore rejects undefined
+        return row;
     });
     const totals = rows.reduce((acc, r) => {
         acc.previous += r.previous; acc.total += r.total; acc.accumulated += r.accumulated;
@@ -635,6 +640,7 @@ async function syncExecutiveSummary() {
 
             function _sumNov(prefix) {
                 let total = 0, intC = 0, extC = 0, open = 0, closed = 0, viol = 0, violOpen = 0, violClosed = 0;
+                const recent = []; // recorded violations (date = the NOV's date issued), newest first, for the Executive Summary rotator
                 novScopedProjects.forEach(p => {
                     const intNovs = p.vals?.[prefix + '_internal_novs'] || [];
                     const extNovs = p.vals?.[prefix + '_external_novs'] || [];
@@ -648,12 +654,20 @@ async function syncExecutiveSummary() {
                             vs.forEach(v => {
                                 if ((v.status || 'Open') === 'Closed') { closed++; violClosed++; }
                                 else { open++; violOpen++; }
+                                recent.push({
+                                    date: n.dateIssued || n.dateReceived || '',
+                                    status: (v.status || 'Open') === 'Closed' ? 'Closed' : 'Open',
+                                    project: p.name || '',
+                                    agency: n.issuingBody || '',
+                                    title: String(v.violationLaw || '').slice(0, 120)
+                                });
                             });
                         }
                     });
                 });
                 total = intC + extC;
-                return { total, int: intC, ext: extC, open, closed, totalViolations: viol, violOpen, violClosed };
+                recent.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+                return { total, int: intC, ext: extC, open, closed, totalViolations: viol, violOpen, violClosed, recent: recent.slice(0, 10) };
             }
 
             const companyDocData = {
