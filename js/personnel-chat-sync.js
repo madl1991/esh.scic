@@ -1748,20 +1748,56 @@ window.toggleSidebar = function() {
     const content = document.getElementById('main-content');
     if (!sidebar) return;
 
-    const isCollapsed = sidebar.classList.contains('sidebar-collapsed');
+    // A fast second click: finish the animation that is still running first
+    if (typeof window._sbAnimDone === 'function') window._sbAnimDone();
 
-    if (isCollapsed) {
-        // Expand
-        sidebar.classList.remove('sidebar-collapsed');
-        if (content) content.style.marginLeft = '';
+    const isCollapsed = sidebar.classList.contains('sidebar-collapsed');
+    if (content) content.style.marginLeft = '';
+
+    // Smooth animation: desktop/tablet only. Not while the sidebar is hidden (login screen) and not for reduced motion.
+    // Phones keep the old behavior (the sidebar slides out with its own CSS transition).
+    const animate = !sidebar.classList.contains('hidden')
+        && !window.matchMedia('(max-width: 640px)').matches
+        && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!animate) {
+        sidebar.classList.toggle('sidebar-collapsed', !isCollapsed);
     } else {
-        // Collapse
-        sidebar.classList.add('sidebar-collapsed');
-        if (content) content.style.marginLeft = '';
+        // The width slides the whole time. The content fades out, switches to its new layout while it is hidden,
+        // then fades back in. So labels and icons never jump while the width is still changing (see "smooth collapse / expand" in styles.css).
+        // Numbers below are the same as aside / aside.sidebar-collapsed in styles.css (260px + 15px padding / 56px + 6px padding).
+        const target = isCollapsed ? { w: '260px', pad: '15px' } : { w: '56px', pad: '6px' };
+        const swapAt = isCollapsed ? 110 : 200;   // expand: swap early (text grows with the width). Collapse: swap late (icons land near their final spot).
+        const doneAt = 360;
+        let swapped = false, tSwap = null, tDone = null;
+
+        const swap = function() {
+            if (swapped) return;
+            swapped = true;
+            sidebar.classList.toggle('sidebar-collapsed', !isCollapsed);
+            void sidebar.offsetWidth;               // apply the new layout while the content is still hidden
+            sidebar.classList.remove('sb-fade');    // then fade the content back in
+        };
+        const done = function() {
+            clearTimeout(tSwap); clearTimeout(tDone);
+            swap();
+            sidebar.style.width = sidebar.style.minWidth = sidebar.style.maxWidth = '';
+            sidebar.style.paddingLeft = sidebar.style.paddingRight = '';
+            sidebar.classList.remove('sb-anim', 'sb-fade');
+            window._sbAnimDone = null;
+        };
+        window._sbAnimDone = done;
+
+        sidebar.classList.add('sb-anim', 'sb-fade');   // content starts to fade out
+        void sidebar.offsetWidth;                      // so the width starts from where it is now
+        sidebar.style.width = sidebar.style.minWidth = sidebar.style.maxWidth = target.w;
+        sidebar.style.paddingLeft = sidebar.style.paddingRight = target.pad;
+        tSwap = setTimeout(swap, swapAt);
+        tDone = setTimeout(done, doneAt);
     }
 
     // Charts: re-measure after the sidebar transition so nothing stays clipped/stale
-    [340].forEach(function(ms) { setTimeout(function() { window.dispatchEvent(new Event('resize')); }, ms); });
+    [370].forEach(function(ms) { setTimeout(function() { window.dispatchEvent(new Event('resize')); }, ms); });
 
     // Update hamburger icon if present
     const btn = document.getElementById('hamburger-btn');
