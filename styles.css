@@ -791,18 +791,49 @@
         
         aside nav::-webkit-scrollbar { display: none; }
 
-        /* Sidebar slide (YouTube style): the sidebar keeps its full 260px size and slides out to the left,
-           so the menu text, padding and background image never squeeze or resize while it moves.
+        /* Sidebar collapse = icon rail (YouTube mini style). The sidebar shrinks from 260px to a 56px strip that keeps the
+           group icons; hover or tap a group icon to get a pop-out list of its pages (see "SIDEBAR RAIL" in projects-navigation.js).
+           The class stays .sidebar-collapsed, so toggleSidebar() works unchanged.
+           Phones (max 640px) keep the old behavior: the sidebar slides out completely.
            visibility:hidden is applied only after the slide ends, so hidden menu items cannot be tabbed to. */
         aside {
-            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                        padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s;
             overflow-x: hidden;
         }
 
-        aside.sidebar-collapsed {
-            margin-left: -260px;
-            visibility: hidden;
-            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.3s;
+        @media screen and (max-width: 640px) {
+            aside.sidebar-collapsed {
+                margin-left: -260px;
+                visibility: hidden;
+                transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.3s;
+            }
+        }
+
+        @media screen and (min-width: 641px) {
+            aside.sidebar-collapsed {
+                width: 56px;
+                min-width: 56px;
+                max-width: 56px;
+                padding-left: 6px;
+                padding-right: 6px;
+            }
+            /* rail contents: logo + group icons only */
+            aside.sidebar-collapsed .sidebar-header > :not(.sidebar-esh-shield) { display: none; }
+            aside.sidebar-collapsed .sidebar-esh-shield { width: 34px; height: 34px; margin-bottom: 4px; }
+            aside.sidebar-collapsed .sidebar-header { padding-bottom: 4px; margin-bottom: 8px; }
+            aside.sidebar-collapsed .nav-group-items,
+            aside.sidebar-collapsed .nav-group-header i.chevron,
+            aside.sidebar-collapsed .nav-lock { display: none !important; }
+            aside.sidebar-collapsed .nav-group-header { justify-content: center; padding: 10px 0; }
+            aside.sidebar-collapsed .nav-group-header > span { font-size: 0 !important; display: flex; align-items: center; justify-content: center; }
+            aside.sidebar-collapsed .nav-group-header > span > .nav-ic { margin: 0; }
+            aside.sidebar-collapsed #main-nav > .nav-item { font-size: 0 !important; justify-content: center; gap: 0; padding: 10px 0 !important; }
+            aside.sidebar-collapsed #main-nav > .nav-item > .nav-ic { margin: 0; width: 20px; height: 20px; }
+            /* the group that holds the open page stays lit */
+            aside.sidebar-collapsed .nav-group:has(.nav-item.active) > .nav-group-header { background: rgba(255, 255, 255, 0.16); color: #ffffff; }
+            aside.sidebar-collapsed .nav-group:has(.nav-item.active) > .nav-group-header > span > .nav-ic { color: #7ed957; }
         }
 
         main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-page); }
@@ -11449,3 +11480,44 @@ body.dark-mode .hm-grid .saw-panel { border: none !important; }
 /* ═══ Admin / CORPORATE role banner: no border lines (!important because the banner's JS may set inline styles) ═══ */
 #global-rbac-banner,
 #global-rbac-banner * { border: none !important; box-shadow: none !important; }
+
+/* Logo sa ibabaw ng ESH COMPLIANCE DASHBOARD sa sidebar */
+.sidebar-esh-shield {
+    display: block;
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    margin: 0 auto 6px;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+}
+
+/* Home — Latest incidents (under the Safety alert list) */
+.hm-inc-head { border-top:1px solid var(--hv-line); margin-top:6px; }
+.hm-inc-list { display:flex; flex-direction:column; padding-bottom:10px; }
+.hm-inc-item { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 22px; }
+.hm-inc-item { cursor:pointer; }
+.hm-inc-item:hover, .hm-inc-item:focus-visible { background:var(--hv-brand-soft); outline:none; }
+.hm-inc-title { font-size:0.8rem; font-weight:600; color:var(--hv-text); }
+.hm-inc-ago { flex:none; font-size:0.72rem; font-weight:600; color:var(--hv-brand); white-space:nowrap; }
+.hm-alert .hm-inc-list .saw-empty { padding:4px 22px 14px; }
+
+/* Home — Safety alert list has no number column */
+.hm-alert .saw-alert-item { grid-template-columns:minmax(0,1fr) auto; }
+/* Home — flat file badge on the right of each Safety alert */
+.hm-fbadge { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.8rem; flex:none; }
+.hm-fbadge.w { background:#e8f0fb; color:#1565c0; }
+.hm-fbadge.p { background:#fdeaea; color:#c62828; font-size:0.62rem; letter-spacing:0.02em; }
+body.dark-mode .hm-fbadge.w { background:#1c2a42; color:#7fb2ff; }
+body.dark-mode .hm-fbadge.p { background:#3a1b1d; color:#ff8a80; }
+
+/* ── SIDEBAR RAIL: pop-out list of pages (hover or tap a group icon while the sidebar is collapsed) ── */
+.nav-flyout { display: none; position: fixed; z-index: 1500; min-width: 190px; max-width: 280px; max-height: calc(100vh - 16px); overflow-y: auto; padding: 6px; border-radius: 10px; background: #0f3d14; color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); scrollbar-width: thin; }
+.nav-flyout.on { display: block; }
+.nav-flyout .nf-title { padding: 6px 10px; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #fbc02d; white-space: nowrap; }
+.nav-flyout .nf-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 0.74rem; font-weight: 500; white-space: nowrap; color: rgba(255, 255, 255, 0.88); -webkit-tap-highlight-color: transparent; }
+.nav-flyout .nf-item .nav-ic { width: 16px; height: 16px; margin: 0; vertical-align: 0; opacity: 0.75; }
+.nav-flyout .nf-item:hover, .nav-flyout .nf-item:focus-visible { background: rgba(255, 255, 255, 0.14); color: #ffffff; outline: none; }
+.nav-flyout .nf-item.active { background: rgba(255, 255, 255, 0.18); color: #ffffff; font-weight: 600; }
+.nav-flyout .nf-item.active .nav-ic { color: #7ed957; opacity: 1; }
+.nav-flyout .nav-lock { margin-left: auto; font-size: 0.65rem; color: #fb8c00; }
+@media print { .nav-flyout { display: none !important; } }
