@@ -639,7 +639,7 @@
     .hb .k{height:12px;}
     .hb b{font-size:1rem; white-space:nowrap;}
     .hb small{font-size:.7rem;}
-    .hb-last{font-size:.64rem; white-space:normal;}
+    .hb-last{font-size:.64rem;}
     .hb-ft{text-align:left; font-size:.68rem; line-height:1.45; margin-top:10px;}
 
     /* NOV panels: donut and legend wrap, never overlap */
@@ -791,6 +791,13 @@
   .lg .nv-t{font-weight:700; font-size:calc(1.3 * var(--u));}
   .lg .nv-p{color:var(--ink-faint);}
   @media (prefers-reduced-motion:reduce){ .nv-stage{transition:none;} }
+  /* Latest line: one line; if too long it rolls right-to-left */
+  .hb-last .hb-lt{display:inline-block; white-space:nowrap;}
+  .hb-last.roll{text-overflow:clip;}
+  .hb-last.roll .hb-lt{will-change:transform; animation:hbLast var(--rd,12s) linear infinite;}
+  .hb-last.roll .hb-lt i{font-style:normal; padding-right:2.5em;}
+  @keyframes hbLast{to{transform:translateX(-50%);}}
+  @media (prefers-reduced-motion:reduce){ .hb-last.roll .hb-lt{animation:none;} .hb-last.roll{text-overflow:ellipsis;} }
 </style>
 </head>
 <body>
@@ -1184,10 +1191,10 @@ const num = v => parseFloat(v) || 0;
 const latestHTML = l => {
   if (l === undefined) return '';
   const esc = v => String(v == null ? '' : v).replace(/</g, '&lt;');
-  if (!l || !l.date) return '<small class="hb-last">No incident yet</small>';
+  if (!l || !l.date) return '<small class="hb-last"><span class="hb-lt">No incident yet</span></small>';
   const d = new Date(l.date);
   const ds = isNaN(d) ? esc(l.date) : d.toLocaleDateString('en-PH', {month:'short', day:'numeric', year:'numeric'});
-  return `<small class="hb-last" title="${esc(l.title)}">Latest: ${ds}${l.project ? ' · ' + esc(l.project) : ''}</small>`;
+  return `<small class="hb-last" title="${esc(l.title)}"><span class="hb-lt">Latest: ${ds}${l.project ? ' · ' + esc(l.project) : ''}</span></small>`;
 };
 const hdHTML = (icon, title, chip) => `<div class="hd"><i class="fa-solid ${icon}"></i><span>${title}</span>${chip ? `<span class="chip">${chip}</span>` : ''}</div>`;
 
@@ -1239,6 +1246,20 @@ function donutSvg(parts, mid) {
     `<circle cx="50" cy="50" r="26" style="fill:var(--neu-bg)" filter="url(#dnRaise)"/>` +
     `<text x="50" y="58" text-anchor="middle">${mid}</text></svg>`;
 }
+function rollLatest() {
+  document.querySelectorAll('.hb-last').forEach(el => {
+    const t = el.querySelector('.hb-lt'); if (!t) return;
+    if (!t.dataset.txt) t.dataset.txt = t.textContent;
+    el.classList.remove('roll'); t.textContent = t.dataset.txt;           // reset, then measure
+    if (t.scrollWidth > el.clientWidth + 1) {
+      el.classList.add('roll');
+      t.innerHTML = `<i>${nvEsc(t.dataset.txt)}</i><i>${nvEsc(t.dataset.txt)}</i>`;
+      el.style.setProperty('--rd', Math.max(8, t.scrollWidth / 2 / 28).toFixed(1) + 's'); // ~28px per second
+    }
+  });
+}
+let _rlT = null, _rlObs = null;
+window.addEventListener('resize', () => { clearTimeout(_rlT); _rlT = setTimeout(rollLatest, 200); });
 function nvEsc(v){ return String(v==null?'':v).replace(/</g,'&lt;'); }
 function nvDate(d){ const x=new Date(d); return isNaN(x)?nvEsc(d):x.toLocaleDateString('en-PH',{month:'short',day:'numeric'}); }
 function nvSlide(v,i,n){
@@ -1403,6 +1424,10 @@ function render() {
           <div class="k">${num(r.total) > 0 ? `<i style="width:${num(r.total) / max * 100}%">${waveFill(INC_COLORS[r.label] || '#7a8a82')}</i>` : ''}</div>
           <b>${r.total} <small>/ ${r.accumulated}</small></b>${latestHTML(r.latest)}</div>`).join('')}
         <div class="hb-ft"><div class="hb-track"><span>Bar = this year / accumulated · Total: previous ${tt.previous} · this year ${tt.total} · accumulated ${tt.accumulated}</span><span class="hb-dup" aria-hidden="true">Bar = this year / accumulated · Total: previous ${tt.previous} · this year ${tt.total} · accumulated ${tt.accumulated}</span></div></div></div>`;
+      requestAnimationFrame(rollLatest);
+      // panel may still be hidden/unsized at first render; re-measure once it has a real width
+      if (!_rlObs) _rlObs = new ResizeObserver(() => { clearTimeout(_rlT); _rlT = setTimeout(rollLatest, 120); });
+      _rlObs.disconnect(); _rlObs.observe(incPanel);
     }
   }
 
