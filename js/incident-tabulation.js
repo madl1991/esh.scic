@@ -329,7 +329,7 @@ function initSafetyAlertAwardListeners(_try) {
         window.firebase.onSnapshot(safetyAlertsColRef(), function(snap) {
             const arr = [];
             snap.forEach(function(d){ arr.push(Object.assign({ id: d.id }, d.data())); });
-            arr.sort(function(a,b){ return (b.dateIssued||'').localeCompare(a.dateIssued||''); });
+            arr.sort(function(a,b){ return (b.dateIssued||'').localeCompare(a.dateIssued||'') || String(b.alertNo||'').localeCompare(String(a.alertNo||''), undefined, { numeric: true }); }); // newest first; same date -> higher alert no. first
             window._safetyAlerts = arr;
             renderSafetyAlertAwardPanel();
             // Safety Alerts tab: re-render when the data arrives (first open had no data yet)
@@ -852,9 +852,26 @@ function safetyAlertSummaryText(a) {
 }
 window.safetyAlertSummaryText = safetyAlertSummaryText;
 
+// Opens an alert file for viewing, never as a download:
+// PDF -> the browser's own PDF viewer; Word -> Microsoft Office online viewer.
+function safetyAlertViewUrl(a) {
+    if (!a || !a.fileUrl) return '';
+    if (a.fileType === 'pdf') return a.fileUrl;
+    return 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(a.fileUrl);
+}
+function safetyOpenAlertFile(id) {
+    const a = (window._safetyAlerts || []).find(function(x){ return x.id === id; });
+    const url = safetyAlertViewUrl(a);
+    if (url) window.open(url, '_blank', 'noopener');
+}
+window.safetyOpenAlertFile = safetyOpenAlertFile;
+
 function safetyViewAlertDetail(id) {
     const a = (window._safetyAlerts || []).find(function(x){ return x.id === id; });
     if (!a) return;
+    // Alert with an attached file: go straight to the file (Word online viewer / PDF), no pop-up.
+    // Edit and Delete stay on the Safety Alerts tab (pen and trash buttons).
+    if (a.fileUrl) { safetyOpenAlertFile(id); return; }
     const canManage = canManageSafety();
     const esc = function(s) { return (s || '').toString().replace(/</g, '&lt;'); };
     const isLegacyStructured = (Array.isArray(a.photos) || (a.photos && typeof a.photos === 'object')) && !a.fileUrl;
@@ -881,7 +898,7 @@ function safetyViewAlertDetail(id) {
             <div style="font-size:0.72rem;color:#6b7770;margin-top:2px;">${a.project ? esc(a.project) : 'Company-wide'} · ${a.dateIssued || ''}</div>
 
             ${a.fileUrl ? `
-            <div onclick="window.open('${a.fileUrl}','_blank')" style="margin-top:14px;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:8px;overflow:hidden;cursor:pointer;">
+            <div onclick="safetyOpenAlertFile('${a.id}')" style="margin-top:14px;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.06);border-radius:8px;overflow:hidden;cursor:pointer;">
                 ${a.thumbnailUrl
                     ? `<img src="${a.thumbnailUrl}" style="width:100%;max-height:320px;object-fit:contain;background:#f5f5f5;display:block;">`
                     : `<div style="padding:36px 0;background:#f5f5f5;display:flex;flex-direction:column;align-items:center;gap:8px;"><i class="fas ${fileIcon}" style="font-size:2.4rem;color:${fileColor};"></i></div>`}
@@ -901,8 +918,8 @@ function safetyViewAlertDetail(id) {
         ${canManage ? `
         <button class="mdl-btn danger" onclick="safetyCloseOverlay('safety-detail-modal-overlay');safetyDeleteAlertConfirm('${a.id}');">Delete</button>
         <button class="mdl-btn" onclick="safetyCloseOverlay('safety-detail-modal-overlay');safetyEditAlertForm('${a.id}');">Edit</button>` : ''}
-        ${a.fileUrl ? `<button class="mdl-btn primary" onclick="window.open('${a.fileUrl}','_blank')"><i class="fas fa-up-right-from-square"></i> Open full file</button>` : ''}`;
-    modal.innerHTML = _mdlHtml({ icon:'fa-triangle-exclamation', title:'ESH alert', width:480, closeJs:"safetyCloseOverlay('safety-detail-modal-overlay')", body:bodyHtml, foot:_alFoot });
+        ${a.fileUrl ? `<button class="mdl-btn primary" onclick="safetyOpenAlertFile('${a.id}')"><i class="fas fa-up-right-from-square"></i> View file</button>` : ''}`;
+    modal.innerHTML = _mdlHtml({ noIcon:true, title:'ESH ALERT', width:480, closeJs:"safetyCloseOverlay('safety-detail-modal-overlay')", body:bodyHtml, foot:_alFoot });
     document.body.appendChild(modal);
 }
 window.safetyViewAlertDetail = safetyViewAlertDetail;
@@ -992,6 +1009,85 @@ function updateSafetyAwardHeroInPlace() {
 }
 window.updateSafetyAwardHeroInPlace = updateSafetyAwardHeroInPlace;
 
+// ── Home: latest incident per classification, read from the Incident & Accident Registry ──
+// Shows only the project, date and classification (no injured person name).
+// Same for every user: all regions are shown, no restriction.
+function buildHomeLatestIncidentsHtml() {
+    const esc = function(s) { return String(s == null ? '' : s).replace(/</g, '&lt;'); };
+
+    // Order = severity. Label = text shown on Home.
+    const ORDER = [
+        { key: 'Fatality',                    label: 'Fatality' },
+        { key: 'LTA',                         label: 'LTA' },
+        { key: 'Restricted Work Case (RWC)',  label: 'Restricted work case' },
+        { key: 'Medical Treatment',           label: 'Medical treatment' },
+        { key: 'First Aid',                   label: 'First aid' },
+        { key: 'Dangerous Occurrence',        label: 'Dangerous occurrence' },
+        { key: 'High-Potential Incident',     label: 'High-potential incident' },
+        { key: 'Near Miss',                   label: 'Near miss' }
+    ];
+    const latest = {};   // key -> { date, project }
+    (state.projects || []).forEach(function(p) {
+        if (!p || !p.vals) return;
+        (p.vals['lta-registry_entries'] || []).forEach(function(e, entryIdx) {
+            if (!e) return;
+            const d = e.dateOfAccident || e.dateReported || '';
+            if (!d || isNaN(new Date(d).getTime())) return;
+            const persons = (typeof window.ltaEntryPersons === 'function') ? window.ltaEntryPersons(e) : [e];
+            persons.forEach(function(pp) {
+                const c = Array.isArray(pp.incidentClassification) ? pp.incidentClassification[0] : pp.incidentClassification;
+                const key = c || 'LTA';
+                if (!latest[key] || d > latest[key].date) {
+                    // Title = Nature of Incident from the registry ("Others" -> the text typed in)
+                    const noi = String(e.natureOfIncident || '').trim();
+                    const title = (noi === 'Others' ? String(e.natureOfIncidentOther || '').trim() : noi);
+                    latest[key] = { date: d, project: p.name, title: title, idx: entryIdx };
+                }
+            });
+        });
+    });
+
+    const todayMs = new Date(new Date().toDateString()).getTime();
+    const daysAgo = function(d) { return Math.max(0, Math.round((todayMs - new Date(d).getTime()) / 86400000)); };
+    const agoText = function(n) { return n === 0 ? 'Today' : (n === 1 ? '1 day ago' : n + ' days ago'); };
+    const yr = (state && state.selectedYear) ? state.selectedYear : new Date().getFullYear();
+
+    window._homeIncRefs = [];
+    const rows = ORDER.filter(function(o) { return latest[o.key]; }).map(function(o) {
+        const r = latest[o.key];
+        const refNo = window._homeIncRefs.push({ project: r.project, idx: r.idx }) - 1;
+        return `
+            <div class="hm-inc-item" role="button" tabindex="0" title="View incident" onclick="homeOpenIncident(${refNo})" onkeydown="if(event.key==='Enter'){homeOpenIncident(${refNo});}">
+                <div style="min-width:0;">
+                    <div class="hm-inc-title">${o.label}${r.title ? ' - ' + esc(r.title) : ''}</div>
+                    <div class="saw-alert-meta"><span>${esc(r.project || 'Company-wide')}</span><span class="saw-date">${esc(r.date)}</span></div>
+                </div>
+                <span class="hm-inc-ago">${agoText(daysAgo(r.date))}</span>
+            </div>`;
+    }).join('');
+
+    const lta = latest['LTA'];
+    const ltaLine = lta
+        ? `<span class="sec-head-side">${daysAgo(lta.date)} day${daysAgo(lta.date) === 1 ? '' : 's'} since last LTA</span>`
+        : `<span class="sec-head-side">No LTA recorded in ${yr}</span>`;
+
+    return `
+        <div class="sec-head hm-inc-head">
+            <div class="sec-head-title">Latest incidents</div>
+            ${ltaLine}
+        </div>
+        <div class="hm-inc-list">${rows || '<div class="saw-empty">No incidents recorded in ' + yr + '.</div>'}</div>`;
+}
+
+// Opens the registry entry (view only) from the Home "Latest incidents" list.
+function homeOpenIncident(refNo) {
+    const ref = (window._homeIncRefs || [])[refNo];
+    if (!ref) return;
+    if (typeof window.openLtaModal === 'function') window.openLtaModal(ref.project, ref.idx, false);
+    else if (typeof showToast === 'function') showToast('The incident registry is not ready yet. Please try again.', 'warning');
+}
+window.homeOpenIncident = homeOpenIncident;
+
 function renderSafetyAlertAwardPanel() {
     const container = document.getElementById('safety-alert-award-panel');
     if (!container) return;
@@ -1008,19 +1104,21 @@ function renderSafetyAlertAwardPanel() {
     if (_safetyCarouselIdx >= awards.length) _safetyCarouselIdx = 0;
 
     // ── LEFT: Safety Alert list ──
-    const topAlerts = alerts.slice(0, 8);
+    const topAlerts = alerts.slice(0, 5); // 5 (was 8) so the Latest incidents list fits below
     const alertsListHtml = topAlerts.length === 0
         ? `<div class="saw-empty">No safety alerts yet.</div>`
         : topAlerts.map(function(a, i) {
             const thumb = safetyAlertThumbUrl(a);
             const fileIcon = a.fileType === 'pdf' ? 'fa-file-pdf' : 'fa-file-word';
             const fileColor = a.fileType === 'pdf' ? '#c62828' : '#1565c0';
-            const thumbHtml = thumb
-                ? `<img class="saw-thumb" src="${thumb}" alt="">`
-                : `<div class="saw-thumb"><i class="fas ${fileIcon}" style="color:${fileColor};"></i></div>`;
+            // Alert with a file: flat file badge (W = Word, PDF = PDF). Old photo-only alerts keep their thumbnail.
+            const thumbHtml = a.fileUrl
+                ? `<div class="hm-fbadge ${a.fileType === 'pdf' ? 'p' : 'w'}">${a.fileType === 'pdf' ? 'PDF' : 'W'}</div>`
+                : (thumb
+                    ? `<img class="saw-thumb" src="${thumb}" alt="">`
+                    : `<div class="saw-thumb"><i class="fas ${fileIcon}" style="color:${fileColor};"></i></div>`);
             return `
             <div class="saw-alert-item" onclick="safetyViewAlertDetail('${a.id}')">
-                <span class="saw-alert-num">${i + 1}</span>
                 <div style="min-width:0;">
                     <div class="saw-alert-title">${(a.title || 'Untitled Alert').replace(/</g, '&lt;')}</div>
                     <div class="saw-alert-meta"><span>${a.project ? a.project.replace(/</g, '&lt;') : 'Company-wide'}</span><span class="saw-date">${a.dateIssued || ''}</span></div>
@@ -1036,6 +1134,7 @@ function renderSafetyAlertAwardPanel() {
         </div>
         <div class="saw-alert-list">${alertsListHtml}</div>
         ${alerts.length > 0 ? `<div class="saw-more" onclick="changeTab('safety-alerts')">See more alerts</div>` : ''}
+        ${buildHomeLatestIncidentsHtml()}
       </section>`;
 
     // ── CENTER: ESH award hero carousel + mini cards ──
@@ -1100,11 +1199,9 @@ window.safetyAwardGoTo = safetyAwardGoTo;
 
 function safetyAlertCardHtml(a, canManage) {
     // One plain list row: small thumbnail | title + status + project | date | actions
-    const photo = safetyAlertThumbUrl(a);
     const esc = function(t) { return String(t || '').replace(/</g, '&lt;'); };
     return `
     <div class="sa-row">
-        <div class="sa-thumb" onclick="safetyViewAlertDetail('${a.id}')">${photo ? `<img src="${photo}" loading="lazy" style="object-position:${a.photoPosition || 'center'};">` : `<i class="fas fa-triangle-exclamation"></i>`}</div>
         <div class="sa-main">
             <div class="sa-t"><span class="sa-title" onclick="safetyViewAlertDetail('${a.id}')">${esc(a.title) || 'Untitled Alert'}</span></div>
             <div class="sa-meta">${a.project ? esc(a.project) : 'Company-wide'}</div>

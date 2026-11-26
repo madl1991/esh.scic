@@ -1237,6 +1237,106 @@
             try { localStorage.removeItem('navGroupStates'); } catch(e) {}
         }
 
+        // ── SIDEBAR RAIL ─────────────────────────────────────────────────────────────
+        // Kapag collapsed ang sidebar (.sidebar-collapsed, desktop/tablet) icons lang ang makikita. Hover (mouse) o tap (touch) sa group icon =
+        // pop-out ng mga page ng group na iyon. Hinuhugot ang listahan sa mga totoong .nav-item sa DOM, kaya sumusunod ito sa hidden items,
+        // sa PCO limited sidebar, at sa lock ng Audit. Click sa pop-out item = click sa orihinal na nav-item (changeTab ang tatawag).
+        // Standalone item (Settings): label lang ang lalabas; ang click sa icon mismo ang magbubukas ng page.
+        (function () {
+            var fly = null, timer = null, curAnchor = null;
+            var ANCHORS = '#main-nav > .nav-group > .nav-group-header, #main-nav > .nav-item';
+
+            function railOn() {
+                var a = document.getElementById('main-sidebar');
+                return !!a && a.classList.contains('sidebar-collapsed') && !window.matchMedia('(max-width: 640px)').matches;
+            }
+            function isOpen() { return !!fly && fly.classList.contains('on'); }
+            function close() {
+                clearTimeout(timer);
+                curAnchor = null;
+                if (fly) fly.classList.remove('on');
+            }
+            function build(anchor) {
+                if (!fly || !fly.isConnected) {
+                    fly = document.createElement('div');
+                    fly.className = 'nav-flyout';
+                    fly.setAttribute('role', 'menu');
+                    document.body.appendChild(fly);
+                    fly.addEventListener('mouseover', function () { clearTimeout(timer); });
+                }
+                fly.textContent = '';
+                var isGroup = anchor.classList.contains('nav-group-header');
+                var title = document.createElement('div');
+                title.className = 'nf-title';
+                title.textContent = isGroup ? anchor.querySelector('span').textContent.trim() : anchor.textContent.trim();
+                fly.appendChild(title);
+                if (!isGroup) return;
+                Array.prototype.forEach.call(anchor.nextElementSibling.querySelectorAll('.nav-item'), function (it) {
+                    if (getComputedStyle(it).display === 'none') return;
+                    var row = document.createElement('div');
+                    row.className = 'nf-item' + (it.classList.contains('active') ? ' active' : '');
+                    row.setAttribute('role', 'menuitem');
+                    row.tabIndex = 0;
+                    var ic = it.querySelector('.nav-ic');
+                    if (ic) row.appendChild(ic.cloneNode(true));
+                    var sp = document.createElement('span');
+                    sp.textContent = it.textContent.trim();
+                    row.appendChild(sp);
+                    var lk = it.querySelector('.nav-lock');
+                    if (lk && lk.style.display !== 'none') {
+                        var c = lk.cloneNode(true);
+                        c.removeAttribute('id');
+                        row.appendChild(c);
+                    }
+                    var go = function () { close(); it.click(); };
+                    row.addEventListener('click', go);
+                    row.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+                    fly.appendChild(row);
+                });
+            }
+            function show(anchor) {
+                clearTimeout(timer);
+                if (!railOn()) return;
+                if (isOpen() && curAnchor === anchor) return;
+                build(anchor);
+                curAnchor = anchor;
+                fly.classList.add('on');
+                var r = anchor.getBoundingClientRect();
+                var a = document.getElementById('main-sidebar').getBoundingClientRect();
+                var h = fly.offsetHeight;
+                fly.style.left = Math.round(a.right + 6) + 'px';
+                fly.style.top = Math.round(Math.max(8, Math.min(r.top, window.innerHeight - h - 8))) + 'px';
+            }
+
+            document.addEventListener('mouseover', function (e) {
+                if (!railOn() || !e.target.closest) return;
+                var t = e.target.closest(ANCHORS);
+                if (t) show(t);
+                else if (e.target.closest('.nav-flyout')) clearTimeout(timer);
+            });
+            document.addEventListener('mouseout', function (e) {
+                if (!isOpen() || !e.target.closest) return;
+                if (!e.target.closest('#main-sidebar, .nav-flyout')) return;
+                var to = e.relatedTarget;
+                if (to && to.closest && (to.closest('.nav-flyout') || to.closest(ANCHORS))) return;
+                clearTimeout(timer);
+                timer = setTimeout(close, 180);
+            });
+            // Capture phase: sa rail, ang click sa group icon ay nagbubukas ng pop-out (hindi ng toggleNavGroup). Click sa labas = sara.
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest) return;
+                var h = railOn() ? e.target.closest('#main-nav > .nav-group > .nav-group-header') : null;
+                if (h) { e.stopPropagation(); e.preventDefault(); show(h); return; }
+                if (isOpen() && !e.target.closest('.nav-flyout')) close();
+            }, true);
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+            window.addEventListener('resize', close);
+            var nav = document.getElementById('main-nav');
+            if (nav) nav.addEventListener('scroll', close, { passive: true });
+            var aside = document.getElementById('main-sidebar');
+            if (aside && window.MutationObserver) new MutationObserver(close).observe(aside, { attributes: true, attributeFilter: ['class'] });
+        })();
+
         function renderRbacBanner() {
             const el = document.getElementById('global-rbac-banner');
             if (!el) return;
