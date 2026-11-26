@@ -244,6 +244,12 @@
   .hb .k i{position:absolute; left:0; top:0; bottom:0; border-radius:calc(1 * var(--u)); min-width:calc(.4 * var(--u));}
   .hb b{font:800 calc(1.7 * var(--u)) var(--font-main); text-align:right;}
   .hb small, .hb-ft{font-weight:400; color:var(--ink-faint); font-size:calc(1.15 * var(--u));}
+  .hb:has(.hb-last){row-gap:calc(.35 * var(--u)); margin:calc(.5 * var(--u)) 0;}
+  .hb:has(.hb-last)>.k{height:calc(1.1 * var(--u));}
+  .hb:has(.hb-last)>span{grid-row:1 / 3; grid-column:1; align-self:center;}
+  .hb:has(.hb-last)>.k{grid-row:1; grid-column:2;}
+  .hb:has(.hb-last)>b{grid-row:1 / 3; grid-column:3; align-self:center;}
+  .hb-last{grid-row:2; grid-column:2; margin:0; font-weight:400; color:var(--ink-faint); font-size:calc(1 * var(--u)); line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;}
   .hb-ft{text-align:right; margin-top:calc(.2 * var(--u));}
   .hb-dup{display:none;}
   .dn-wrap{flex:1; min-height:0; display:flex; align-items:center; gap:1.2vw; padding:calc(.6 * var(--u)) 1vw;}
@@ -633,6 +639,7 @@
     .hb .k{height:12px;}
     .hb b{font-size:1rem; white-space:nowrap;}
     .hb small{font-size:.7rem;}
+    .hb-last{font-size:.64rem; white-space:normal;}
     .hb-ft{text-align:left; font-size:.68rem; line-height:1.45; margin-top:10px;}
 
     /* NOV panels: donut and legend wrap, never overlap */
@@ -769,6 +776,21 @@
 
   /* ── Smooth counting: fixed-width digits so the numbers do not jiggle while they change ── */
   .tile b, .big, .pair b, .bl-t b, .lg b, .dn text, .hb b, .hc-total, .hc-n, .hc-gh b{font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;}
+  /* NOV recent violations: rotating card */
+  .nv{min-width:0; font-size:calc(1.15 * var(--u)); font-weight:500; margin-top:calc(.7 * var(--u)); padding:calc(.7 * var(--u)) calc(1 * var(--u)); border-radius:calc(1.2 * var(--u)); background:var(--track); box-shadow:inset 0 1px 3px rgba(0,0,0,.12);}
+  .lg .nv, .lg .nv-stage{display:block;}
+  .nv-stage{transition:opacity .28s ease, transform .28s ease;}
+  .nv-stage.out{opacity:0; transform:translateY(-6px);}
+  .nv-stage.in{opacity:0; transform:translateY(6px); transition:none;}
+  .lg .nv-l1{display:flex; align-items:center; gap:calc(.7 * var(--u)); margin-bottom:calc(.25 * var(--u));}
+  .nv-tag{display:inline-block; padding:0 calc(.7 * var(--u)); border-radius:calc(.8 * var(--u)); font-size:calc(.95 * var(--u)); font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:#fff; line-height:1.7;}
+  .nv-tag.open{background:#d94a3f;} .nv-tag.closed{background:#4faa72;}
+  .nv-date{color:var(--ink-faint); font-weight:600; white-space:nowrap;}
+  .nv-count{margin-left:auto; color:var(--ink-faint); font-weight:700; font-variant-numeric:tabular-nums;}
+  .lg .nv-t, .lg .nv-p{display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+  .lg .nv-t{font-weight:700; font-size:calc(1.3 * var(--u));}
+  .lg .nv-p{color:var(--ink-faint);}
+  @media (prefers-reduced-motion:reduce){ .nv-stage{transition:none;} }
 </style>
 </head>
 <body>
@@ -1159,6 +1181,14 @@ function tabRateColor(val, kind) {
 const C_OK='#4faa72', C_BAD='#d94a3f';
 const INC_COLORS={'Fatality':'#d94a3f','LTA':'#e56020','First Aid':'#4faa72','Medical Treatment':'#f0b818','High-Potential Incident':'#007838','Dangerous Occurrences':'#8e5bd1'};
 const num = v => parseFloat(v) || 0;
+const latestHTML = l => {
+  if (l === undefined) return '';
+  const esc = v => String(v == null ? '' : v).replace(/</g, '&lt;');
+  if (!l || !l.date) return '<small class="hb-last">No incident yet</small>';
+  const d = new Date(l.date);
+  const ds = isNaN(d) ? esc(l.date) : d.toLocaleDateString('en-PH', {month:'short', day:'numeric', year:'numeric'});
+  return `<small class="hb-last" title="${esc(l.title)}">Latest: ${ds}${l.project ? ' · ' + esc(l.project) : ''}</small>`;
+};
 const hdHTML = (icon, title, chip) => `<div class="hd"><i class="fa-solid ${icon}"></i><span>${title}</span>${chip ? `<span class="chip">${chip}</span>` : ''}</div>`;
 
 function tile(label, val, cls) { return `<div class="tile${cls ? ' ' + cls : ''}"><small>${label}</small><b>${val}</b></div>`; }
@@ -1209,8 +1239,20 @@ function donutSvg(parts, mid) {
     `<circle cx="50" cy="50" r="26" style="fill:var(--neu-bg)" filter="url(#dnRaise)"/>` +
     `<text x="50" y="58" text-anchor="middle">${mid}</text></svg>`;
 }
+function nvEsc(v){ return String(v==null?'':v).replace(/</g,'&lt;'); }
+function nvDate(d){ const x=new Date(d); return isNaN(x)?nvEsc(d):x.toLocaleDateString('en-PH',{month:'short',day:'numeric'}); }
+function nvSlide(v,i,n){
+  const o=String(v.status).toLowerCase()==='open';
+  return `<div class="nv-l1"><span class="nv-tag ${o?'open':'closed'}">${o?'Open':'Closed'}</span><span class="nv-date">${nvDate(v.date)}</span><span class="nv-count">${i+1}/${n}</span></div><div class="nv-t">${nvEsc(v.title)||'—'}</div><div class="nv-p">${nvEsc(v.project)}${v.agency?' · '+nvEsc(v.agency):''}</div>`;
+}
+function nvBlock(items){
+  if(!items.length) return '';
+  const data=nvEsc(JSON.stringify(items)).replace(/"/g,'&quot;');
+  return `<div class="nv" data-nv="${data}" data-i="0"><div class="nv-stage">${nvSlide(items[0],0,items.length)}</div></div>`;
+}
 function novPanelHTML(kind, title, d) {
   const n = d || { total:0, int:0, ext:0, open:0, closed:0, totalViolations:0, violOpen:0, violClosed:0 };
+  const items = Array.isArray(n.recent) ? n.recent : [];
   return hdHTML(kind === 'envi' ? 'fa-leaf' : 'fa-hard-hat', title, `${companyData?.projectCount || 0} PROJECTS`) +
     `<div class="dn-wrap">${donutSvg([[n.open, C_BAD], [n.closed, C_OK]], n.total)}
       <div class="lg">
@@ -1219,8 +1261,25 @@ function novPanelHTML(kind, title, d) {
         <hr>
         <div>Violations<b>${n.totalViolations}</b></div>
         <small>${n.violOpen} open · ${n.violClosed} closed · ${n.int} int · ${n.ext} ext</small>
+        ${nvBlock(items)}
       </div></div>`;
 }
+// Auto-rotate recorded violations (one at a time); pauses on hover; no-op for 0/1 items
+setInterval(() => {
+  document.querySelectorAll('.nv[data-nv]').forEach(el => {
+    if (el.matches(':hover')) return;
+    let items; try { items = JSON.parse(el.dataset.nv); } catch (e) { return; }
+    const n = items.length; if (n < 2) return;
+    const st = el.querySelector('.nv-stage'); if (!st) return;
+    st.classList.add('out');
+    setTimeout(() => {
+      const i = ((+el.dataset.i || 0) + 1) % n; el.dataset.i = i;
+      st.innerHTML = nvSlide(items[i], i, n);
+      st.classList.remove('out'); st.classList.add('in');
+      requestAnimationFrame(() => requestAnimationFrame(() => st.classList.remove('in')));
+    }, 290);
+  });
+}, 3500);
 
 let introDone = false;
 const NUM_RE = /^\d[\d,]*(\.\d+)?$/;
@@ -1342,7 +1401,7 @@ function render() {
       incPanel.innerHTML = hd + `<div class="st-wrap">${s.rows.map(r => `
         <div class="hb"><span>${r.label}</span>
           <div class="k">${num(r.total) > 0 ? `<i style="width:${num(r.total) / max * 100}%">${waveFill(INC_COLORS[r.label] || '#7a8a82')}</i>` : ''}</div>
-          <b>${r.total} <small>/ ${r.accumulated}</small></b></div>`).join('')}
+          <b>${r.total} <small>/ ${r.accumulated}</small></b>${latestHTML(r.latest)}</div>`).join('')}
         <div class="hb-ft"><div class="hb-track"><span>Bar = this year / accumulated · Total: previous ${tt.previous} · this year ${tt.total} · accumulated ${tt.accumulated}</span><span class="hb-dup" aria-hidden="true">Bar = this year / accumulated · Total: previous ${tt.previous} · this year ${tt.total} · accumulated ${tt.accumulated}</span></div></div></div>`;
     }
   }
