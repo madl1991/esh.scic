@@ -11521,3 +11521,13 @@ body.dark-mode .hm-fbadge.p { background:#3a1b1d; color:#ff8a80; }
 .nav-flyout .nf-item.active .nav-ic { color: #7ed957; opacity: 1; }
 .nav-flyout .nav-lock { margin-left: auto; font-size: 0.65rem; color: #fb8c00; }
 @media print { .nav-flyout { display: none !important; } }
+
+/* ── SIDEBAR: smooth collapse / expand ─────────────────────────────────────
+   toggleSidebar() (personnel-chat-sync.js) adds .sb-anim and .sb-fade while the width slides.
+   The content fades out, switches to its new layout while it is hidden, then fades back in.
+   During the slide the expanded content keeps its full width (260px - 2 x 15px padding), so text does not wrap or jump; the sidebar just clips it. */
+aside.sb-anim > * { transition: opacity 0.12s ease; }
+aside.sb-anim.sb-fade > * { opacity: 0; }
+aside.sb-anim:not(.sidebar-collapsed) > .sidebar-header,
+aside.sb-anim:not(.sidebar-collapsed) > #main-nav { width: 230px; min-width: 230px; }
+aside.sb-anim #main-nav * { transition: none !important; }
