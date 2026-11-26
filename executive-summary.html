@@ -777,7 +777,7 @@
   /* ── Smooth counting: fixed-width digits so the numbers do not jiggle while they change ── */
   .tile b, .big, .pair b, .bl-t b, .lg b, .dn text, .hb b, .hc-total, .hc-n, .hc-gh b{font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;}
   /* NOV recent violations: rotating card */
-  .nv{min-width:0; font-size:calc(1.15 * var(--u)); font-weight:500; margin-top:calc(.7 * var(--u)); padding:calc(.7 * var(--u)) calc(1 * var(--u)); border-radius:calc(1.2 * var(--u)); background:var(--track); box-shadow:inset 0 1px 3px rgba(0,0,0,.12);}
+  .nv{min-width:0; font-size:calc(1.15 * var(--u)); font-weight:500; margin-top:calc(.7 * var(--u)); padding:calc(.7 * var(--u)) calc(1 * var(--u)); border-radius:calc(1.2 * var(--u)); background:var(--neu-bg); border:1px solid transparent; box-shadow:var(--neu-raise);}
   .lg .nv, .lg .nv-stage{display:block;}
   .nv-stage{transition:opacity .28s ease, transform .28s ease;}
   .nv-stage.out{opacity:0; transform:translateY(-6px);}
