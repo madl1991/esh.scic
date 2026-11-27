@@ -244,7 +244,7 @@
   .hb .k i{position:absolute; left:0; top:0; bottom:0; border-radius:calc(1 * var(--u)); min-width:calc(.4 * var(--u));}
   .hb b{font:800 calc(1.7 * var(--u)) var(--font-main); text-align:right;}
   .hb small, .hb-ft{font-weight:400; color:var(--ink-faint); font-size:calc(1.15 * var(--u));}
-  .hb:has(.hb-last){row-gap:calc(.35 * var(--u)); margin:calc(.5 * var(--u)) 0;}
+  .hb:has(.hb-last){row-gap:calc(.4 * var(--u)); margin:calc(.8 * var(--u)) 0;}
   .hb:has(.hb-last)>.k{height:calc(1.1 * var(--u));}
   .hb:has(.hb-last)>span{grid-row:1 / 3; grid-column:1; align-self:center;}
   .hb:has(.hb-last)>.k{grid-row:1; grid-column:2;}
@@ -537,7 +537,7 @@
   
 
   /* ── ESH PERSONNEL HEADCOUNT panel (3rd board row: compact two-row strip on desktop, flowing on tablet/phone) ── */
-  .board-esh{grid-template-rows:1.08fr .92fr .62fr;}
+  .board-esh{grid-template-rows:1.08fr 1.1fr .45fr;}
   .hc-c-head{--c:var(--brand-fg);} .hc-c-so{--c:#e56020;} .hc-c-pco{--c:var(--mint);} .hc-c-nurse{--c:var(--coral);} .hc-c-doc{--c:#2f7fd1;} .hc-c-fa{--c:#d99a00;}
   html[data-theme="dark"] .hc-c-doc{--c:#6fb3ff;} html[data-theme="dark"] .hc-c-fa{--c:var(--amber);}
   .hc-body{flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,9vw) minmax(0,1fr); gap:1vw; padding:calc(1.2 * var(--u)) 1.2vw calc(1.5 * var(--u));}
@@ -635,7 +635,7 @@
 
     /* incident / accident summary */
     .st-wrap{display:block; flex:0 0 auto; padding:12px 14px 14px;}
-    .hb{grid-template-columns:6.8rem minmax(0,1fr) 4.2rem; gap:8px; margin:10px 0; font-size:.8rem;} .hb>span{overflow-wrap:anywhere;}
+    .hb{grid-template-columns:3.9rem minmax(0,1fr) 4.4rem; gap:6px; margin:10px 0; font-size:.8rem;} .hb>span{overflow-wrap:anywhere;}
     .hb .k{height:12px;}
     .hb b{font-size:1rem; white-space:nowrap;}
     .hb small{font-size:.7rem;}
@@ -746,16 +746,20 @@
     .lg b{font-size:calc(1.95 * var(--u));}
     .lg small{font-size:calc(1.3 * var(--u));}
     .lg i{width:calc(1.6 * var(--u)); height:calc(1.6 * var(--u));}
-    /* personnel headcount */
-    .hc-body{padding:calc(1 * var(--u)) 1.2vw calc(1.2 * var(--u));}
-    .hc-hero>i{font-size:calc(2 * var(--u)); width:calc(4.4 * var(--u)); height:calc(4.4 * var(--u));}
-    .hc-total{font-size:calc(5.2 * var(--u));}
-    .hc-hero small{font-size:calc(1.2 * var(--u));}
-    .hc-gh{font-size:calc(1.3 * var(--u));}
-    .hc-gh b{font-size:calc(2.9 * var(--u));}
-    .hc-ico{width:calc(4.2 * var(--u)); height:calc(4.2 * var(--u)); font-size:calc(1.7 * var(--u));}
-    .hc-n{font-size:calc(3.3 * var(--u));}
-    .hc-chip small{font-size:calc(1.2 * var(--u));}
+    /* personnel headcount (compact): smaller shadows + more air so the light/dark glows of neighbours no longer overlap or clip */
+    .hc-body{--hc-raise:calc(.3 * var(--u)) calc(.3 * var(--u)) calc(.6 * var(--u)) var(--neu-lo), calc(-.3 * var(--u)) calc(-.3 * var(--u)) calc(.6 * var(--u)) var(--neu-hi); padding:calc(1 * var(--u)) 1.5vw calc(1.1 * var(--u)); gap:1.2vw;}
+    .hc-groups{gap:calc(1 * var(--u));}
+    .hc-hero{gap:calc(.1 * var(--u)); box-shadow:var(--hc-raise);}
+    .hc-hero>i{font-size:calc(1.3 * var(--u)); width:calc(2.6 * var(--u)); height:calc(2.6 * var(--u)); margin-bottom:calc(.2 * var(--u)); box-shadow:var(--hc-raise);}
+    .hc-total{font-size:calc(3.6 * var(--u));}
+    .hc-hero small{font-size:calc(.95 * var(--u));}
+    .hc-gh{font-size:calc(1.05 * var(--u));}
+    .hc-gh b{font-size:calc(2.1 * var(--u));}
+    .hc-chips{padding:calc(.3 * var(--u)) .5vw; gap:1.2vw;}
+    .hc-chip{border-radius:calc(1.1 * var(--u)); box-shadow:var(--hc-raise);}
+    .hc-ico{width:calc(2.6 * var(--u)); height:calc(2.6 * var(--u)); font-size:calc(1.15 * var(--u)); box-shadow:var(--hc-raise);}
+    .hc-n{font-size:calc(2.2 * var(--u));}
+    .hc-chip small{font-size:calc(.95 * var(--u)); line-height:1.05; margin-top:calc(.1 * var(--u));}
   }
 
   /* ── LAYOUT (2): header title, icon and chip scaled to fit the slimmer header bar ── */
@@ -1255,12 +1259,16 @@ function rollLatest() {   // measure how many lines each Latest text wraps into 
     el.dataset.lines = lh > 0 ? Math.max(1, Math.ceil((t.scrollHeight - 2) / lh)) : 1;
   });
 }
-// every few seconds: slide each multi-line Latest text up to its next line; fade back to the start after the last
+// every few seconds: slide each multi-line Latest text up to its next line; fade back to the start after the last.
+// Line count is re-measured on every tick, so it stays correct after resizes / late layout.
 setInterval(() => {
   document.querySelectorAll('.hb-last').forEach(el => {
-    const n = +el.dataset.lines || 1; if (n < 2 || el.matches(':hover')) return;
     const t = el.querySelector('.hb-lt'); if (!t) return;
-    const lh = el.clientHeight, i = ((+el.dataset.i || 0) + 1) % n; el.dataset.i = i;
+    const lh = el.clientHeight; if (!lh) return;
+    const n = Math.max(1, Math.ceil((t.scrollHeight - 2) / lh));
+    if (n < 2) { if (t.style.transform) { t.style.transform = ''; } el.dataset.i = 0; return; }
+    if (el.matches(':hover')) return;
+    const i = ((+el.dataset.i || 0) + 1) % n; el.dataset.i = i;
     if (i === 0) {
       t.classList.add('fade');
       setTimeout(() => { t.style.transition = 'none'; t.style.transform = ''; void t.offsetHeight; t.style.transition = ''; t.classList.remove('fade'); }, 280);
