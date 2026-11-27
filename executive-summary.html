@@ -734,6 +734,8 @@
   /* TV / large screens (1080p and up): headcount labels at least 11px */
   @media (min-width:1401px) and (min-height:1000px){ #app .hc-tx small, #app .hc-hero small{font-size:max(11px, calc(.95 * var(--u)));} }
   :root{--ok-ink:#007838;} html[data-theme="dark"]{--ok-ink:#4faa72;}
+  .t-short{display:none;}
+  @media (max-width:640px){ .t-full{display:none;} .t-short{display:inline;} }
 </style>
 </head>
 <body>
@@ -1315,7 +1317,7 @@ function render() {
             ? `<div class="big" style="color:${inkOf(C_OK)}"><div class="cf"><div class="cf-i"><div class="cf-f">0</div><div class="cf-f cf-b"><svg viewBox="0 0 24 24" fill="none" stroke="${C_OK}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3.5 3.5L17 9"/></svg></div></div></div></div><div class="sub">On target</div>`
             : `<div class="big" style="color:${C_BAD}">${fat}</div><div class="sub"><svg class="ico warn" viewBox="0 0 24 24" fill="none" stroke="${C_BAD}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path class="ck" pathLength="1" d="M12 3L22 20H2Z"/><path class="ck" pathLength="1" style="animation-delay:.3s" d="M12 10v4M12 17.2v.01"/></svg>Target exceeded</div>`}</div></div>
           ${bulletCard('LOST TIME INCIDENT RATE', TGT_LTIR, t.ltirOsha, t.ltirOshs)}
-          ${bulletCard('TOTAL REC. INCIDENT RATE', TGT_TRIR, t.trirOsha, t.trirOshs)}
+          ${bulletCard('TOTAL <span class="t-full">RECORDABLE INCIDENT</span><span class="t-short">REC. INC.</span> RATE', TGT_TRIR, t.trirOsha, t.trirOshs)}
           <div class="card ctr"><h4>SEVERITY RATE<i>no target</i></h4><div class="cb"><div class="pair"><div>OSHA<b>${fmt(t.srOsha)}</b></div><div>OSHS<b>${fmt(t.srOshs)}</b></div></div></div></div>
         </div>`;
     }
