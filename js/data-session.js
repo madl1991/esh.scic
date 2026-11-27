@@ -640,7 +640,7 @@ async function syncExecutiveSummary() {
 
             function _sumNov(prefix) {
                 let total = 0, intC = 0, extC = 0, open = 0, closed = 0, viol = 0, violOpen = 0, violClosed = 0;
-                const recent = []; // recorded violations (date = the NOV's date issued), newest first, for the Executive Summary rotator
+                const recent = []; // OPEN violations (date = the NOV's date issued), newest first, for the Executive Summary rotator
                 novScopedProjects.forEach(p => {
                     const intNovs = p.vals?.[prefix + '_internal_novs'] || [];
                     const extNovs = p.vals?.[prefix + '_external_novs'] || [];
@@ -654,20 +654,22 @@ async function syncExecutiveSummary() {
                             vs.forEach(v => {
                                 if ((v.status || 'Open') === 'Closed') { closed++; violClosed++; }
                                 else { open++; violOpen++; }
-                                recent.push({
-                                    date: n.dateIssued || n.dateReceived || '',
-                                    status: (v.status || 'Open') === 'Closed' ? 'Closed' : 'Open',
-                                    project: p.name || '',
-                                    agency: n.issuingBody || '',
-                                    title: String(v.violationLaw || '').slice(0, 120)
-                                });
+                                if ((v.status || 'Open') !== 'Closed') {   // only OPEN violations go to the Executive Summary rotator
+                                    recent.push({
+                                        date: n.dateIssued || n.dateReceived || '',
+                                        status: 'Open',
+                                        project: p.name || '',
+                                        agency: n.issuingBody || '',
+                                        title: String(v.violationLaw || '').slice(0, 120)
+                                    });
+                                }
                             });
                         }
                     });
                 });
                 total = intC + extC;
                 recent.sort((a, b) => String(b.date).localeCompare(String(a.date)));
-                return { total, int: intC, ext: extC, open, closed, totalViolations: viol, violOpen, violClosed, recent: recent.slice(0, 10) };
+                return { total, int: intC, ext: extC, open, closed, totalViolations: viol, violOpen, violClosed, recent: recent.slice(0, 200) };
             }
 
             const companyDocData = {
