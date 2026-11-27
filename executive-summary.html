@@ -240,12 +240,12 @@
   .bl-k u{position:absolute; top:calc(-.5 * var(--u)); bottom:calc(-.5 * var(--u)); width:calc(.35 * var(--u)); background:var(--amber);}
   .st-wrap{flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; padding:calc(.6 * var(--u)) 1.1vw;}
   .hb{display:grid; grid-template-columns:calc(18.5 * var(--u)) minmax(0,1fr) calc(8.5 * var(--u)); align-items:center; gap:.8vw; margin:calc(.3 * var(--u)) 0; font-size:calc(1.4 * var(--u)); font-weight:600;}
-  .hb .k{height:calc(1.6 * var(--u)); background:var(--track); border-radius:calc(1 * var(--u)); position:relative;}
+  .hb .k{height:calc(1.4 * var(--u)); background:var(--track); border-radius:calc(1 * var(--u)); position:relative;}
   .hb .k i{position:absolute; left:0; top:0; bottom:0; border-radius:calc(1 * var(--u)); min-width:calc(.4 * var(--u));}
   .hb b{font:800 calc(1.7 * var(--u)) var(--font-main); text-align:right;}
   .hb small, .hb-ft{font-weight:400; color:var(--ink-faint); font-size:calc(1.15 * var(--u));}
-  .hb:has(.hb-last){row-gap:calc(.4 * var(--u)); margin:calc(.8 * var(--u)) 0;}
-  .hb:has(.hb-last)>.k{height:calc(1.1 * var(--u));}
+  .hb:has(.hb-last){row-gap:calc(.4 * var(--u)); margin:calc(.62 * var(--u)) 0;}
+  .hb:has(.hb-last)>.k{height:calc(1.4 * var(--u));}   /* same thickness as the LTIR / TRIR bars (.bl-k) */
   .hb:has(.hb-last)>span{grid-row:1 / 3; grid-column:1; align-self:center;}
   .hb:has(.hb-last)>.k{grid-row:1; grid-column:2;}
   .hb:has(.hb-last)>b{grid-row:1 / 3; grid-column:3; align-self:center;}
@@ -636,7 +636,7 @@
     /* incident / accident summary */
     .st-wrap{display:block; flex:0 0 auto; padding:12px 14px 14px;}
     .hb{grid-template-columns:3.9rem minmax(0,1fr) 4.4rem; gap:6px; margin:10px 0; font-size:.8rem;} .hb>span{overflow-wrap:anywhere;}
-    .hb .k{height:12px;}
+    .hb .k, .hb:has(.hb-last)>.k{height:12px;}
     .hb b{font-size:1rem; white-space:nowrap;}
     .hb small{font-size:.7rem;}
     .hb-last{font-size:.64rem;}
@@ -737,7 +737,7 @@
     .bl-k{height:calc(1.6 * var(--u));}
     /* incident summary */
     .hb{grid-template-columns:calc(21 * var(--u)) minmax(0,1fr) calc(9.5 * var(--u)); margin:calc(.4 * var(--u)) 0; font-size:calc(1.6 * var(--u));}
-    .hb .k{height:calc(1.8 * var(--u));}
+    .hb .k, .hb:has(.hb-last)>.k{height:calc(1.6 * var(--u));}
     .hb b{font-size:calc(1.95 * var(--u));}
     .hb small, .hb-ft{font-size:calc(1.3 * var(--u));}
     /* NOV panels */
