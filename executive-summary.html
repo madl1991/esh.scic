@@ -640,6 +640,7 @@
     .hb b{font-size:1rem; white-space:nowrap;}
     .hb small{font-size:.7rem;}
     .hb-last{font-size:.64rem;}
+    .hb .lb-full{display:none;} .hb .lb-abbr{display:inline;}
     .hb-ft{text-align:left; font-size:.68rem; line-height:1.45; margin-top:10px;}
 
     /* NOV panels: donut and legend wrap, never overlap */
@@ -791,6 +792,7 @@
   .lg .nv-t{font-weight:700; font-size:calc(1.3 * var(--u));}
   .lg .nv-p{color:var(--ink-faint);}
   @media (prefers-reduced-motion:reduce){ .nv-stage{transition:none;} }
+  .lb-abbr{display:none;}
   /* Latest line: shows ONE line; if the text is longer it slides up to the next line of words */
   .hb-last{height:1.2em; line-height:1.2; white-space:normal; overflow:hidden; text-overflow:clip;}
   .hb-last .hb-lt{display:block; white-space:normal; transition:transform .45s ease, opacity .25s ease; will-change:transform;}
@@ -1269,6 +1271,8 @@ setInterval(() => {
 }, 2400);
 let _rlT = null, _rlObs = null;
 window.addEventListener('resize', () => { clearTimeout(_rlT); _rlT = setTimeout(rollLatest, 200); });
+const LBL_ABBR = {'Medical Treatment':'MTC', 'High-Potential Incident':'HiPo', 'Dangerous Occurrences':'DO'};
+function lblHTML(l) { const a = LBL_ABBR[l]; return a ? `<span class="lb-full">${l}</span><span class="lb-abbr">${a}</span>` : l; }
 function nvEsc(v){ return String(v==null?'':v).replace(/</g,'&lt;'); }
 function nvDate(d){ const x=new Date(d); return isNaN(x)?nvEsc(d):x.toLocaleDateString('en-PH',{month:'short',day:'numeric'}); }
 function nvSlide(v,i,n){
@@ -1429,7 +1433,7 @@ function render() {
       const max = Math.max(...s.rows.map(r => num(r.total)), 1);
       const tt = s.totals || { previous: 0, total: 0, accumulated: 0 };
       incPanel.innerHTML = hd + `<div class="st-wrap">${s.rows.map(r => `
-        <div class="hb"><span>${r.label}</span>
+        <div class="hb"><span title="${r.label}">${lblHTML(r.label)}</span>
           <div class="k">${num(r.total) > 0 ? `<i style="width:${num(r.total) / max * 100}%">${waveFill(INC_COLORS[r.label] || '#7a8a82')}</i>` : ''}</div>
           <b>${r.total} <small>/ ${r.accumulated}</small></b>${latestHTML(r.latest)}</div>`).join('')}
         <div class="hb-ft"><div class="hb-track"><span>Bar = this year / accumulated · Total: previous ${tt.previous} · this year ${tt.total} · accumulated ${tt.accumulated}</span><span class="hb-dup" aria-hidden="true">Bar = this year / accumulated · Total: previous ${tt.previous} · this year ${tt.total} · accumulated ${tt.accumulated}</span></div></div></div>`;
