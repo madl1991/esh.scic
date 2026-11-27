@@ -20,8 +20,6 @@
     --ink:       #212f27;
     --ink-dim:   #64726b;
     --ink-faint: #9aa59d;
-    --cyan:      #1c4a35;
-    --cyan-dim:  rgba(28,74,53,0.08);
     --amber:     #f0b818;
     --brand:     #007838;
     --brand-dk:  #00562a;
@@ -195,9 +193,9 @@
   .hd-title-row{display:flex; align-items:center; gap:1vw;}
   .hd-shield{height:calc(5.2 * var(--u)); width:auto; display:block; flex:0 0 auto;}
   header.top h1{font-family:var(--font-main); font-size:calc(2.6 * var(--u)); margin:0; font-weight:800; letter-spacing:.09em; color:var(--brand-fg);}
-  header.top .sub{font-size:calc(1.3 * var(--u)); font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-dim); margin-top:calc(.3 * var(--u));}
+  header.top .sub{font-size:max(11px, calc(1.3 * var(--u))); font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-dim); margin-top:calc(.3 * var(--u));}
   .hd-right{display:flex; align-items:center; gap:1vw;}
-  .live-pill{display:flex; align-items:center; gap:.5vw; background:var(--mint-dim); border-radius:calc(3 * var(--u)); padding:calc(.8 * var(--u)) 1vw; font-size:calc(1.4 * var(--u)); font-weight:600; color:var(--brand-fg); white-space:nowrap;}
+  .live-pill{display:flex; align-items:center; gap:.5vw; background:var(--mint-dim); border-radius:calc(3 * var(--u)); padding:calc(.8 * var(--u)) 1vw; font-size:max(11px, calc(1.4 * var(--u))); font-weight:600; color:var(--brand-fg); white-space:nowrap;}
   .live-pill.stale{background:var(--amber-dim); color:var(--stale-fg);}
   .live-pill.stale .live-dot{color:var(--amber);}
   .live-dot{position:relative; flex:0 0 auto; width:calc(.9 * var(--u)); height:calc(.9 * var(--u)); border-radius:50%; background:currentColor; color:var(--brand);}
@@ -217,18 +215,18 @@
   .tiles{flex:0 0 auto; display:grid; grid-template-columns:repeat(5,1fr); border-bottom:1px solid var(--line);}
   .tile{padding:calc(.8 * var(--u)) .5vw; text-align:center; border-right:1px solid var(--line-soft);}
   .tile:last-child{border-right:none;}
-  .tile small{display:block; font-size:calc(1.3 * var(--u)); font-weight:800; color:var(--tile-lbl); text-transform:uppercase; letter-spacing:.06em;}
+  .tile small{display:block; font-size:max(11px, calc(1.3 * var(--u))); font-weight:800; color:var(--tile-lbl); text-transform:uppercase; letter-spacing:.06em;}
   .tile.bad b{color:var(--red);}
   .tile b{font:800 min(calc(3.8 * var(--u)),2.4vw) var(--font-main); line-height:1.1; color:var(--navy);}
   .tb{flex:1; min-height:0; display:grid; grid-template-columns:.8fr 1.1fr 1.1fr .9fr; gap:.8vw; padding:calc(1 * var(--u)) .8vw;}
   .card{border:1px solid var(--line); border-radius:calc(1.2 * var(--u)); padding:calc(.6 * var(--u)) .8vw; display:flex; flex-direction:column; justify-content:center; min-height:0;}
   .card h4{overflow-wrap:break-word; margin:0 0 calc(.4 * var(--u)); font-size:calc(1.7 * var(--u)); font-weight:800; letter-spacing:.09em; line-height:1.15; color:var(--brand-fg); text-align:left; align-self:flex-start;}
-  .card h4 i{display:block; font-style:normal; font-size:calc(1.05 * var(--u)); font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-dim); margin-top:calc(.2 * var(--u));}
+  .card h4 i{display:block; font-style:normal; font-size:max(11px, calc(1.05 * var(--u))); font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-dim); margin-top:calc(.2 * var(--u));}
   .card .cb{flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; align-self:stretch;}
   .card.ctr .cb{align-items:center; text-align:center;}
   .big{font:800 calc(7 * var(--u)) var(--font-main); line-height:1;}
-  .card .sub{font-size:calc(1.4 * var(--u)); color:var(--ink-faint); margin-top:calc(.3 * var(--u));}
-  .pair{display:flex; gap:1.5vw;} .pair div{font-size:calc(1.4 * var(--u)); font-weight:600; color:var(--ink-faint);}
+  .card .sub{font-size:max(11px, calc(1.4 * var(--u))); color:var(--ink-faint); margin-top:calc(.3 * var(--u));}
+  .pair{display:flex; gap:1.5vw;} .pair div{font-size:max(11px, calc(1.4 * var(--u))); font-weight:600; color:var(--ink-faint);}
   .card.ctr{align-items:center; text-align:center;}
   .card.ctr .pair{justify-content:center; gap:3vw;}
   .pair b{display:block; font:800 calc(3 * var(--u)) var(--font-main); color:var(--coral);}
@@ -239,17 +237,17 @@
   .bl-k i{position:absolute; left:0; top:0; bottom:0; border-radius:calc(1 * var(--u));}
   .bl-k u{position:absolute; top:calc(-.5 * var(--u)); bottom:calc(-.5 * var(--u)); width:calc(.35 * var(--u)); background:var(--amber);}
   .st-wrap{flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; padding:calc(.6 * var(--u)) 1.1vw;}
-  .hb{display:grid; grid-template-columns:calc(18.5 * var(--u)) minmax(0,1fr) calc(8.5 * var(--u)); align-items:center; gap:.8vw; margin:calc(.3 * var(--u)) 0; font-size:calc(1.4 * var(--u)); font-weight:600;}
+  .hb{display:grid; grid-template-columns:calc(18.5 * var(--u)) minmax(0,1fr) calc(8.5 * var(--u)); align-items:center; gap:.8vw; margin:calc(.3 * var(--u)) 0; font-size:max(11px, calc(1.4 * var(--u))); font-weight:600;}
   .hb .k{height:calc(1.4 * var(--u)); background:var(--track); border-radius:calc(1 * var(--u)); position:relative;}
   .hb .k i{position:absolute; left:0; top:0; bottom:0; border-radius:calc(1 * var(--u)); min-width:calc(.4 * var(--u));}
   .hb b{font:800 calc(1.7 * var(--u)) var(--font-main); text-align:right;}
-  .hb small, .hb-ft{font-weight:400; color:var(--ink-faint); font-size:calc(1.15 * var(--u));}
+  .hb small, .hb-ft{font-weight:400; color:var(--ink-faint); font-size:max(11px, calc(1.15 * var(--u)));}
   .hb:has(.hb-last){row-gap:calc(.4 * var(--u)); margin:calc(.62 * var(--u)) 0;}
   .hb:has(.hb-last)>.k{height:calc(1.4 * var(--u));}   /* same thickness as the LTIR / TRIR bars (.bl-k) */
   .hb:has(.hb-last)>span{grid-row:1 / 3; grid-column:1; align-self:center;}
   .hb:has(.hb-last)>.k{grid-row:1; grid-column:2;}
   .hb:has(.hb-last)>b{grid-row:1 / 3; grid-column:3; align-self:center;}
-  .hb-last{grid-row:2; grid-column:2; margin:0; font-weight:400; color:var(--ink-faint); font-size:calc(1 * var(--u)); line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;}
+  .hb-last{grid-row:2; grid-column:2; margin:0; font-weight:400; color:var(--ink-faint); font-size:max(11px, calc(1 * var(--u))); line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;}
   .hb-ft{text-align:right; margin-top:calc(.2 * var(--u));}
   .hb-dup{display:none;}
   .dn-wrap{flex:1; min-height:0; display:flex; align-items:center; gap:1.2vw; padding:calc(.6 * var(--u)) 1vw;}
@@ -260,18 +258,12 @@
   .lg i{width:calc(1.4 * var(--u)); height:calc(1.4 * var(--u)); border-radius:50%; flex:0 0 auto;}
   .lg b{font:800 calc(1.7 * var(--u)) var(--font-main); margin-left:auto;}
   .lg hr{border:none; border-top:1px solid var(--line); width:100%; margin:calc(.2 * var(--u)) 0;}
-  .lg small{font-size:calc(1.15 * var(--u)); color:var(--ink-faint);}
+  .lg small{font-size:max(11px, calc(1.15 * var(--u))); color:var(--ink-faint);}
   .c-ok{color:var(--mint);} .c-bad{color:var(--coral);}
 
   @media (max-width:640px){ .hd-title{display:none;} .hd-logo{height:calc(5 * var(--u));} }
 
-  /* ══════════════════════════════════════════════════════════════
-     RESPONSIVE: PHONE — swap the detailed board for a compact,
-     key-numbers-only summary so everything still fits one screen
-     with no scrolling.
-     ══════════════════════════════════════════════════════════════ */
-  .mobile-board{display:none;}
-
+  /* PHONE header tweaks. The phone shows the same board as the tablet (see PHONE & TABLET LAYOUT below). */
   @media (max-width:640px){
     header.top .sub{display:none;}
     header.top h1{font-size:clamp(0.82rem,3.6vw,0.98rem); letter-spacing:.04em;}
@@ -280,64 +272,6 @@
     .live-pill{padding:6px 8px;}
     #logout-btn span{display:none;}
     #logout-btn, #theme-btn{padding:6px 9px;}
-
-    .board-esh{display:none !important;}
-    .mobile-board{
-      display:flex; flex-direction:column; gap:clamp(7px,calc(1.6 * var(--u)),12px);
-      flex:1 1 auto; min-height:0; padding:clamp(8px,calc(1.8 * var(--u)),14px) 14px;
-      overflow:hidden;
-    }
-
-    .mb-fatality{
-      flex:0 0 auto; display:flex; align-items:center; gap:10px;
-      background:var(--bg-panel); border:1px solid var(--line); border-radius:16px;
-      padding:clamp(9px,calc(2 * var(--u)),14px) 14px; box-shadow:var(--shadow);
-    }
-    .mb-fatality i{
-      font-size:1.05rem; color:var(--coral); width:clamp(32px,calc(7 * var(--u)),42px); height:clamp(32px,calc(7 * var(--u)),42px);
-      border-radius:50%; background:var(--coral-dim); display:flex; align-items:center; justify-content:center; flex-shrink:0;
-    }
-    .mb-fatality-text{flex:1; min-width:0;}
-    .mb-fatality-lbl{font-size:0.62rem; font-weight:700; letter-spacing:0.3px; text-transform:uppercase; color:var(--ink-dim);}
-    .mb-fatality-val{font-family:var(--font-main); font-size:clamp(1.3rem,calc(5.5 * var(--u)),1.8rem); font-weight:800; color:var(--mint); line-height:1.05;}
-
-    .mb-badge{
-      display:inline-flex; align-items:center; gap:3px; padding:4px 10px; border-radius:20px;
-      font-size:0.6rem; font-weight:800; white-space:nowrap; flex-shrink:0;
-    }
-    .mb-badge.ok{background:var(--mint-dim); color:var(--mint);}
-    .mb-badge.bad{background:var(--coral-dim); color:var(--coral);}
-    .mb-badge.none{background:var(--line-soft); color:var(--ink-faint);}
-
-    .mb-kpi-row{flex:0 0 auto; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
-    .mb-kpi{
-      background:var(--bg-panel); border:1px solid var(--line); border-radius:16px;
-      padding:clamp(8px,calc(1.8 * var(--u)),14px) 8px; text-align:center; box-shadow:var(--shadow);
-      display:flex; flex-direction:column; align-items:center; gap:5px;
-    }
-    .mb-kpi-lbl{font-size:0.62rem; font-weight:800; letter-spacing:0.2px; line-height:1.2; text-align:center; overflow-wrap:break-word; color:var(--ink-dim); flex:1 0 auto; display:flex; align-items:center; justify-content:center;}
-    .mb-kpi-val{font-family:var(--font-main); font-size:clamp(1.05rem,calc(4.2 * var(--u)),1.45rem); font-weight:800; color:var(--navy); line-height:1;}
-    .mb-kpi-note{flex:0 0 auto; text-align:center; font-size:0.58rem; color:var(--ink-faint); margin-top:-4px;}
-
-    .mb-nov-hd{
-      flex:0 0 auto; font-family:var(--font-main); font-weight:600; font-size:0.76rem;
-      color:var(--navy); display:flex; align-items:center; gap:7px; margin-top:2px;
-    }
-    .mb-nov-hd i{color:var(--mint);}
-    .mb-nov-row{flex:0 0 auto; display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
-    .mb-nov-tile{
-      background:var(--bg-panel); border:1px solid var(--line); border-radius:16px;
-      padding:clamp(8px,calc(1.8 * var(--u)),14px) 8px; text-align:center; box-shadow:var(--shadow);
-    }
-    .mb-nov-lbl{font-size:0.6rem; font-weight:800; letter-spacing:0.3px; text-transform:uppercase; margin-bottom:3px;}
-    .mb-nov-val{font-family:var(--font-main); font-size:clamp(1.05rem,calc(4.2 * var(--u)),1.4rem); font-weight:800; color:var(--navy); line-height:1;}
-
-    .mb-footer{
-      flex:1 1 auto; min-height:0; display:flex; flex-direction:column; justify-content:flex-end;
-      align-items:center; gap:2px; text-align:center;
-    }
-    .mb-footer span{font-size:0.58rem; color:var(--ink-faint);}
-    .mb-footer .mb-hint{font-size:0.54rem;}
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -453,7 +387,6 @@
   #logout-btn, #theme-btn{background:var(--glass-card); border:1px solid var(--glass-line); box-shadow:var(--glass-hi); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);}
   #logout-btn:hover, #theme-btn:hover{background:var(--brand); color:#fff;}
   #logout-btn:focus-visible, #theme-btn:focus-visible{outline:2px solid var(--brand); outline-offset:2px;}
-  .mb-fatality, .mb-kpi, .mb-nov-tile{background:var(--glass); border:1px solid var(--glass-line); -webkit-backdrop-filter:blur(18px) saturate(160%); backdrop-filter:blur(18px) saturate(160%);}
   @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
     #app{--glass:rgba(255,255,255,.92); --glass-card:rgba(255,255,255,.7);}
     html[data-theme="dark"] #app{--glass:rgba(24,31,28,.96); --glass-card:rgba(255,255,255,.07);}
@@ -465,21 +398,19 @@
     --neu-up:0 calc(.9 * var(--u)) calc(2.2 * var(--u)) var(--neu-lo);
     --neu-up-sm:0 calc(.5 * var(--u)) calc(1.1 * var(--u)) var(--neu-lo);
     --neu-raise:calc(.5 * var(--u)) calc(.5 * var(--u)) calc(1 * var(--u)) var(--neu-lo), calc(-.5 * var(--u)) calc(-.5 * var(--u)) calc(1 * var(--u)) var(--neu-hi);
-    --neu-in:inset calc(.45 * var(--u)) calc(.55 * var(--u)) calc(1.1 * var(--u)) rgba(0,50,28,.22);
     --shadow:var(--neu-up);
     --line:rgba(20,40,30,.12); --line-soft:rgba(20,40,30,.08);
   }
   html[data-theme="dark"] #app{
     --neu-a:#1c2e25; --neu-b:#121e18; --neu-bg:#17261e;
     --neu-hi:rgba(255,255,255,.07); --neu-lo:rgba(0,0,0,.62);
-    --neu-in:inset calc(.45 * var(--u)) calc(.55 * var(--u)) calc(1.1 * var(--u)) rgba(0,0,0,.55);
     --line:rgba(255,255,255,.12); --line-soft:rgba(255,255,255,.07);
   }
   header.top, html[data-theme="dark"] #app header.top{background:var(--neu-bg); -webkit-backdrop-filter:none; backdrop-filter:none; box-shadow:0 calc(.6 * var(--u)) calc(1.8 * var(--u)) var(--neu-lo);}
   .panel{background:linear-gradient(135deg,var(--brand),var(--brand-dk)) 0 0/100% calc(2.8 * var(--u)) no-repeat, linear-gradient(145deg,var(--neu-a),var(--neu-b)); border:0; -webkit-backdrop-filter:none; backdrop-filter:none; box-shadow:var(--neu-up);}
   .hd, html[data-theme="dark"] .hd{background:linear-gradient(135deg,var(--brand),var(--brand-dk));}
   .card{background:var(--neu-bg); border:1px solid transparent; box-shadow:var(--neu-raise);}
-  .panel, .card, #logout-btn, #theme-btn, .live-pill, .mb-fatality, .mb-kpi, .mb-nov-tile{background-origin:border-box;}
+  .panel, .card, #logout-btn, #theme-btn, .live-pill{background-origin:border-box;}
   .tiles{gap:1vw; padding:calc(1 * var(--u)) 1.2vw calc(.4 * var(--u)); border-bottom:0;}
   .tb{gap:1vw; padding:calc(.8 * var(--u)) 1.2vw calc(1.1 * var(--u));}
   .tile{background:var(--neu-bg); border:1px solid transparent; border-radius:calc(1.6 * var(--u)); box-shadow:var(--neu-raise);}
@@ -487,7 +418,6 @@
   #logout-btn:hover, #theme-btn:hover{background:var(--neu-bg); border-color:transparent; color:var(--ink-dim); box-shadow:inset calc(.4 * var(--u)) calc(.5 * var(--u)) calc(1 * var(--u)) var(--neu-lo), inset calc(-.3 * var(--u)) calc(-.3 * var(--u)) calc(.7 * var(--u)) var(--neu-hi);}
   #logout-btn:active, #theme-btn:active{transform:translateY(1px);}
   .live-pill, .live-pill.stale{background:var(--neu-bg); border:1px solid transparent; box-shadow:var(--neu-raise); -webkit-backdrop-filter:none; backdrop-filter:none;}
-  .mb-fatality, .mb-kpi, .mb-nov-tile{background:linear-gradient(145deg,var(--neu-a),var(--neu-b)); border:1px solid transparent; -webkit-backdrop-filter:none; backdrop-filter:none; box-shadow:var(--neu-up-sm);}
   .bl-k, .hb .k{background:var(--neu-bg); box-shadow:calc(.25 * var(--u)) calc(.3 * var(--u)) calc(.6 * var(--u)) var(--neu-lo), calc(-.25 * var(--u)) calc(-.25 * var(--u)) calc(.5 * var(--u)) var(--neu-hi);}
   .bl-k i, .hb .k i{box-shadow:calc(.1 * var(--u)) calc(.15 * var(--u)) calc(.3 * var(--u)) rgba(0,0,0,.3);}
   /* ── Wave fill for bars (Malikot) ── */
@@ -587,7 +517,6 @@
     html{height:auto; overflow-x:hidden; overflow-y:auto; -webkit-text-size-adjust:100%;}
     body{height:auto; min-height:100%; overflow:visible;}
     #app{height:auto; min-height:100vh; min-height:100dvh;}
-    .mobile-board{display:none !important;}
     .board-esh{display:flex !important; flex-direction:column; gap:12px; padding:12px; flex:0 0 auto; min-height:0;}
     .bottom-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:12px; min-height:0; flex:0 0 auto;}
     .tiles>*, .tb>*, .bottom-row>*{min-width:0;}
@@ -611,7 +540,7 @@
     /* panel headers */
     .hd{flex-wrap:wrap; gap:6px 8px; padding:10px 14px;}
     .hd > span:first-of-type{min-width:0;}
-    .chip{font-size:calc(1.3 * var(--u)); padding:3px 9px;}
+    .chip{font-size:max(11px, calc(1.3 * var(--u))); padding:3px 9px;}
 
     /* incident tabulation rate */
     .tiles{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; padding:12px 12px 4px; border-bottom:0; flex:0 0 auto;}
@@ -727,7 +656,7 @@
     .tile small{font-size:calc(1.45 * var(--u));}
     .tile b{font-size:min(calc(4.5 * var(--u)),2.7vw);}
     .card h4{font-size:calc(1.9 * var(--u));}
-    .card h4 i{font-size:calc(1.15 * var(--u));}
+    .card h4 i{font-size:max(11px, calc(1.15 * var(--u)));}
     .big{font-size:calc(8 * var(--u));}
     .card .sub{font-size:calc(1.6 * var(--u));}
     .pair div{font-size:calc(1.6 * var(--u));}
@@ -739,12 +668,12 @@
     .hb{grid-template-columns:calc(21 * var(--u)) minmax(0,1fr) calc(9.5 * var(--u)); margin:calc(.4 * var(--u)) 0; font-size:calc(1.6 * var(--u));}
     .hb .k, .hb:has(.hb-last)>.k{height:calc(1.6 * var(--u));}
     .hb b{font-size:calc(1.95 * var(--u));}
-    .hb small, .hb-ft{font-size:calc(1.3 * var(--u));}
+    .hb small, .hb-ft{font-size:max(11px, calc(1.3 * var(--u)));}
     /* NOV panels */
     .dn{max-height:calc(22 * var(--u));}
     .lg{font-size:calc(1.65 * var(--u)); gap:calc(.6 * var(--u));}
     .lg b{font-size:calc(1.95 * var(--u));}
-    .lg small{font-size:calc(1.3 * var(--u));}
+    .lg small{font-size:max(11px, calc(1.3 * var(--u)));}
     .lg i{width:calc(1.6 * var(--u)); height:calc(1.6 * var(--u));}
     /* personnel headcount (compact): smaller shadows + more air so the light/dark glows of neighbours no longer overlap or clip */
     .hc-body{--hc-raise:calc(.3 * var(--u)) calc(.3 * var(--u)) calc(.6 * var(--u)) var(--neu-lo), calc(-.3 * var(--u)) calc(-.3 * var(--u)) calc(.6 * var(--u)) var(--neu-hi); padding:calc(1 * var(--u)) 1.5vw calc(1.1 * var(--u)); gap:1.2vw;}
@@ -768,7 +697,7 @@
     .hd{box-sizing:border-box; height:calc(3.3 * var(--u)); padding:0 1.1vw; gap:.6vw; align-items:center; font-size:calc(1.6 * var(--u)); line-height:1;}
     .hd > span:first-of-type{line-height:1; white-space:nowrap;}
     .hd i{height:auto; width:auto; min-width:calc(1.8 * var(--u)); font-size:calc(1.5 * var(--u)); line-height:1;}
-    .chip{font-size:calc(1.05 * var(--u)); line-height:1; padding:calc(.45 * var(--u)) .8vw; box-shadow:calc(.2 * var(--u)) calc(.25 * var(--u)) calc(.5 * var(--u)) rgba(0,25,12,.5), calc(-.15 * var(--u)) calc(-.15 * var(--u)) calc(.4 * var(--u)) rgba(255,255,255,.22);}
+    .chip{font-size:max(11px, calc(1.05 * var(--u))); line-height:1; padding:calc(.45 * var(--u)) .8vw; box-shadow:calc(.2 * var(--u)) calc(.25 * var(--u)) calc(.5 * var(--u)) rgba(0,25,12,.5), calc(-.15 * var(--u)) calc(-.15 * var(--u)) calc(.4 * var(--u)) rgba(255,255,255,.22);}
   }
 
   /* ── Before the intro: bars and donut start empty (numbers are zeroed by zeroValues()) ── */
@@ -782,18 +711,18 @@
   /* ── Smooth counting: fixed-width digits so the numbers do not jiggle while they change ── */
   .tile b, .big, .pair b, .bl-t b, .lg b, .dn text, .hb b, .hc-total, .hc-n, .hc-gh b{font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;}
   /* NOV recent violations: rotating card */
-  .nv{min-width:0; font-size:calc(1.15 * var(--u)); font-weight:500; margin-top:calc(.7 * var(--u)); padding:calc(.7 * var(--u)) calc(1 * var(--u)); border-radius:calc(1.2 * var(--u)); background:var(--neu-bg); border:1px solid transparent; box-shadow:var(--neu-raise);}
+  .nv{min-width:0; font-size:max(11px, calc(1.15 * var(--u))); font-weight:500; margin-top:calc(.7 * var(--u)); padding:calc(.7 * var(--u)) calc(1 * var(--u)); border-radius:calc(1.2 * var(--u)); background:var(--neu-bg); border:1px solid transparent; box-shadow:var(--neu-raise);}
   .lg .nv, .lg .nv-stage{display:block;}
   .nv-stage{transition:opacity .28s ease, transform .28s ease;}
   .nv-stage.out{opacity:0; transform:translateY(-6px);}
   .nv-stage.in{opacity:0; transform:translateY(6px); transition:none;}
   .lg .nv-l1{display:flex; align-items:center; gap:calc(.7 * var(--u)); margin-bottom:calc(.25 * var(--u));}
-  .nv-tag{display:inline-block; padding:0 calc(.7 * var(--u)); border-radius:calc(.8 * var(--u)); font-size:calc(.95 * var(--u)); font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:#fff; line-height:1.7;}
-  .nv-tag.open{background:#d94a3f;} .nv-tag.closed{background:#4faa72;}
+  .nv-tag{display:inline-block; padding:0 calc(.7 * var(--u)); border-radius:calc(.8 * var(--u)); font-size:max(11px, calc(.95 * var(--u))); font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:#fff; line-height:1.7;}
+  .nv-tag.open{background:#d94a3f;} .nv-tag.closed{background:var(--brand);}
   .nv-date{color:var(--ink-faint); font-weight:600; white-space:nowrap;}
   .nv-count{margin-left:auto; color:var(--ink-faint); font-weight:700; font-variant-numeric:tabular-nums;}
   .lg .nv-t, .lg .nv-p{display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
-  .lg .nv-t{font-weight:700; font-size:calc(1.3 * var(--u));}
+  .lg .nv-t{font-weight:700; font-size:max(11px, calc(1.3 * var(--u)));}
   .lg .nv-p{color:var(--ink-faint);}
   @media (prefers-reduced-motion:reduce){ .nv-stage{transition:none;} }
   .lb-abbr{display:none;}
@@ -802,6 +731,9 @@
   .hb-last .hb-lt{display:block; white-space:normal; transition:transform .45s ease, opacity .25s ease; will-change:transform;}
   .hb-last .hb-lt.fade{opacity:0;}
   @media (prefers-reduced-motion:reduce){ .hb-last .hb-lt{transition:none;} }
+  /* TV / large screens (1080p and up): headcount labels at least 11px */
+  @media (min-width:1401px) and (min-height:1000px){ #app .hc-tx small, #app .hc-hero small{font-size:max(11px, calc(.95 * var(--u)));} }
+  :root{--ok-ink:#007838;} html[data-theme="dark"]{--ok-ink:#4faa72;}
 </style>
 </head>
 <body>
@@ -945,59 +877,6 @@
     <div class="panel" id="hc-panel"></div>
   </div>
 
-  <!-- ── PHONE-ONLY COMPACT SUMMARY (key numbers, no scroll) ── -->
-  <div class="mobile-board" id="mobile-board">
-
-    <div class="mb-fatality" id="mb-fatality">
-      <i class="fa-solid fa-skull-crossbones"></i>
-      <div class="mb-fatality-text">
-        <div class="mb-fatality-lbl">Fatality — Zero Target</div>
-        <div class="mb-fatality-val" id="mb-fatality-val">0</div>
-      </div>
-      <span class="mb-badge ok" id="mb-fatality-badge">✅ ON TARGET</span>
-    </div>
-
-    <div class="mb-kpi-row">
-      <div class="mb-kpi">
-        <div class="mb-kpi-lbl">Lost Time Incident Rate</div>
-        <div class="mb-kpi-val" id="mb-ltir-val">–</div>
-        <span class="mb-badge" id="mb-ltir-badge"></span>
-      </div>
-      <div class="mb-kpi">
-        <div class="mb-kpi-lbl">Total Recordable Incident Rate</div>
-        <div class="mb-kpi-val" id="mb-trir-val">–</div>
-        <span class="mb-badge" id="mb-trir-badge"></span>
-      </div>
-      <div class="mb-kpi">
-        <div class="mb-kpi-lbl">SR</div>
-        <div class="mb-kpi-val" id="mb-sr-val">–</div>
-        <span class="mb-badge none">No target</span>
-      </div>
-    </div>
-    <div class="mb-kpi-note">OSHA basis (200,000 hrs) · company-wide <span class="ytd-yr">YTD</span></div>
-
-    <div class="mb-nov-hd"><i class="fa-solid fa-clipboard-list"></i> Regulatory NOV — OSH + ENVI</div>
-    <div class="mb-nov-row">
-      <div class="mb-nov-tile">
-        <div class="mb-nov-lbl" style="color:var(--amber);">Total NOV</div>
-        <div class="mb-nov-val" id="mb-nov-total">–</div>
-      </div>
-      <div class="mb-nov-tile">
-        <div class="mb-nov-lbl" style="color:var(--coral);">Open</div>
-        <div class="mb-nov-val" id="mb-nov-open">–</div>
-      </div>
-      <div class="mb-nov-tile">
-        <div class="mb-nov-lbl" style="color:var(--mint);">Closed</div>
-        <div class="mb-nov-val" id="mb-nov-closed">–</div>
-      </div>
-    </div>
-
-    <div class="mb-footer">
-      <span id="mb-last-updated">Syncing…</span>
-      <span class="mb-hint">Rotate or open on tablet/desktop for full details</span>
-    </div>
-
-  </div>
 </div>
 
 <script type="module">
@@ -1025,6 +904,7 @@ let companyData = null;
 let listenersStarted = false;
 let unsubFns = [];
 let lastUpdatedInterval = null;
+let retryTimer = null, syncError = false;
 
 try { await setPersistence(auth, browserSessionPersistence); } catch(e) { console.warn(e); }
 
@@ -1107,8 +987,8 @@ window.doLogout = async function() {
   // "Signing out…" overlay fades in; the real sign-out and data clearing run at the same time
   if (!reduce) ov.classList.add('show');
   const hold = reduce ? Promise.resolve() : new Promise(r => setTimeout(r, 1100));
+  stopListeners();   // stop listening first, so signing out does not trigger a permission error
   try { await signOut(auth); } catch(e) { console.warn(e); }
-  stopListeners();
   // reset so the opening animation plays again on the next login (not only after a page refresh)
   introDone = false; companyData = null;
   app.classList.remove('intro');
@@ -1166,35 +1046,46 @@ function startListeners() {
   listenersStarted = true;
 
   unsubFns.push(onSnapshot(doc(db, 'exec_summary', '_company_wide'), snap => {
+    syncError = false;
     companyData = snap.exists() ? snap.data() : null;
     render();
     hideLoading();
-  }, e => { console.warn('exec_summary listener error:', e.message); hideLoading(); }));
+  }, e => {
+    // connection / permission lost: say so on the pill and try again every 15 s
+    console.warn('exec_summary listener error:', e.message);
+    syncError = true;
+    unsubFns = []; listenersStarted = false;
+    updateLastUpdatedTxt();
+    hideLoading();
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(() => {
+      if (sessionStorage.getItem('exec_unlocked') === '1' && auth.currentUser) startListeners();
+    }, 15000);
+  }));
 
-  lastUpdatedInterval = setInterval(updateLastUpdatedTxt, 30000);
+  if (!lastUpdatedInterval) lastUpdatedInterval = setInterval(updateLastUpdatedTxt, 30000);
 }
 
 function stopListeners() {
   unsubFns.forEach(fn => { try { fn(); } catch(e) {} });
   unsubFns = [];
   if (lastUpdatedInterval) { clearInterval(lastUpdatedInterval); lastUpdatedInterval = null; }
+  clearTimeout(retryTimer); syncError = false;
   listenersStarted = false;
 }
 
 function fmt(n, d=3) { const v = parseFloat(n); return (isFinite(v) ? v : 0).toFixed(d); }
 
-function tabRateColor(val, kind) {
-  const v = parseFloat(val) || 0;
-  const limit = kind === 'ltir' ? 0.50 : 1.25;
-  return v <= limit ? 'ok' : 'bad';
-}
-
 const C_OK='#4faa72', C_BAD='#d94a3f';
+// text version of the OK green: darker in light mode so it can be read from a distance (CSS var --ok-ink)
+const inkOf = c => c === C_OK ? 'var(--ok-ink)' : c;
+const TGT_LTIR = 0.50, TGT_TRIR = 1.25;
 const INC_COLORS={'Fatality':'#d94a3f','LTA':'#e56020','First Aid':'#4faa72','Medical Treatment':'#f0b818','High-Potential Incident':'#007838','Dangerous Occurrences':'#8e5bd1'};
 const num = v => parseFloat(v) || 0;
+function escHtml(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 const latestHTML = l => {
   if (l === undefined) return '';
-  const esc = v => String(v == null ? '' : v).replace(/</g, '&lt;');
+  const esc = escHtml;
   if (!l || !l.date) return '<small class="hb-last"><span class="hb-lt">No incident yet</span></small>';
   const d = new Date(l.date);
   const ds = isNaN(d) ? esc(l.date) : d.toLocaleDateString('en-PH', {month:'short', day:'numeric', year:'numeric'});
@@ -1230,7 +1121,7 @@ function waveFill(c) {
 
 function bulletRow(lbl, v, max, tgt) {
   const c = v <= tgt ? C_OK : C_BAD;
-  return `<div class="bl"><div class="bl-t"><span>${lbl}</span><b style="color:${c}">${fmt(v)}</b></div>
+  return `<div class="bl"><div class="bl-t"><span>${lbl}</span><b style="color:${inkOf(c)}">${fmt(v)}</b></div>
     <div class="bl-k"><i style="width:${Math.min(v / max * 100, 100)}%">${waveFill(c)}</i><u style="left:${tgt / max * 100}%"></u></div></div>`;
 }
 function bulletCard(title, tgt, osha, oshs) {
@@ -1281,7 +1172,7 @@ let _rlT = null, _rlObs = null;
 window.addEventListener('resize', () => { clearTimeout(_rlT); _rlT = setTimeout(rollLatest, 200); });
 const LBL_ABBR = {'Medical Treatment':'MTC', 'High-Potential Incident':'HiPo', 'Dangerous Occurrences':'DO'};
 function lblHTML(l) { const a = LBL_ABBR[l]; return a ? `<span class="lb-full">${l}</span><span class="lb-abbr">${a}</span>` : l; }
-function nvEsc(v){ return String(v==null?'':v).replace(/</g,'&lt;'); }
+const nvEsc = escHtml;
 function nvDate(d){ const x=new Date(d); return isNaN(x)?nvEsc(d):x.toLocaleDateString('en-PH',{month:'short',day:'numeric'}); }
 function nvSlide(v,i,n){
   const o=String(v.status).toLowerCase()==='open';
@@ -1289,7 +1180,7 @@ function nvSlide(v,i,n){
 }
 function nvBlock(items){
   if(!items.length) return '';
-  const data=nvEsc(JSON.stringify(items)).replace(/"/g,'&quot;');
+  const data=escHtml(JSON.stringify(items));
   return `<div class="nv" data-nv="${data}" data-i="0"><div class="nv-stage">${nvSlide(items[0],0,items.length)}</div></div>`;
 }
 function novPanelHTML(kind, title, d) {
@@ -1382,7 +1273,7 @@ function playIntro() {
   setTimeout(() => app.classList.remove('intro'), 3400);
 }
 
-const HC_SITE=[['superintendent','ESH Superintendent','fa-user-shield','head'],['head','ESH Heads','fa-user-tie','head'],['so','Safety Officers','fa-helmet-safety','so'],['pco','PCO','fa-leaf','pco'],['nurse','Project Nurses','fa-user-nurse','nurse'],['physician','Physicians','fa-user-doctor','doc'],['firstAider','First Aiders','fa-kit-medical','fa']];
+const HC_SITE=[['superintendent','Superintendents','fa-user-shield','head'],['head','ESH Heads','fa-user-tie','head'],['so','Safety Officers','fa-helmet-safety','so'],['pco','PCO','fa-leaf','pco'],['nurse','Project Nurses','fa-user-nurse','nurse'],['physician','Physicians','fa-user-doctor','doc'],['firstAider','First Aiders','fa-kit-medical','fa']];
 const HC_CORP=[['managers','QESH / ESH Managers','fa-user-tie','head'],['envHead','Env. &amp; Sustainability Head','fa-seedling','pco'],['so','Safety Officer','fa-helmet-safety','so'],['nurse','Corporate Nurse','fa-user-nurse','nurse']];
 function hcGroup(icon, title, defs, data) {
   const sum = defs.reduce((a, d) => a + num(data?.[d[0]]), 0);
@@ -1415,16 +1306,16 @@ function render() {
         `<div class="tiles">${[
           tile('LTA cases', t.ltaCases ?? 0),
           tile('Recordable cases', t.recordableCases ?? 0),
-          tile('Lost days', (t.lostDays ?? 0).toLocaleString(), (t.lostDays ?? 0) > 0 ? 'bad' : ''),
-          tile('Man-hours ' + ytdLabel(), (t.totalManHours ?? 0).toLocaleString()),
-          tile('Man-hours to date', (t.totalManHoursToDate ?? 0).toLocaleString())
+          tile('Lost days', (t.lostDays ?? 0).toLocaleString('en-US'), (t.lostDays ?? 0) > 0 ? 'bad' : ''),
+          tile('Man-hours ' + ytdLabel(), (t.totalManHours ?? 0).toLocaleString('en-US')),
+          tile('Man-hours to date', (t.totalManHoursToDate ?? 0).toLocaleString('en-US'))
         ].join('')}</div>
         <div class="tb">
           <div class="card ctr"><h4>FATALITY<i>target 0</i></h4><div class="cb">${fat === 0
-            ? `<div class="big" style="color:${C_OK}"><div class="cf"><div class="cf-i"><div class="cf-f">0</div><div class="cf-f cf-b"><svg viewBox="0 0 24 24" fill="none" stroke="${C_OK}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3.5 3.5L17 9"/></svg></div></div></div></div><div class="sub">On target</div>`
+            ? `<div class="big" style="color:${inkOf(C_OK)}"><div class="cf"><div class="cf-i"><div class="cf-f">0</div><div class="cf-f cf-b"><svg viewBox="0 0 24 24" fill="none" stroke="${C_OK}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3.5 3.5L17 9"/></svg></div></div></div></div><div class="sub">On target</div>`
             : `<div class="big" style="color:${C_BAD}">${fat}</div><div class="sub"><svg class="ico warn" viewBox="0 0 24 24" fill="none" stroke="${C_BAD}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path class="ck" pathLength="1" d="M12 3L22 20H2Z"/><path class="ck" pathLength="1" style="animation-delay:.3s" d="M12 10v4M12 17.2v.01"/></svg>Target exceeded</div>`}</div></div>
-          ${bulletCard('LOST TIME INCIDENT RATE', 0.50, t.ltirOsha, t.ltirOshs)}
-          ${bulletCard('TOTAL RECORDABLE INCIDENT RATE', 1.25, t.trirOsha, t.trirOshs)}
+          ${bulletCard('LOST TIME INCIDENT RATE', TGT_LTIR, t.ltirOsha, t.ltirOshs)}
+          ${bulletCard('TOTAL RECORDABLE INCIDENT RATE', TGT_TRIR, t.trirOsha, t.trirOshs)}
           <div class="card ctr"><h4>SEVERITY RATE<i>no target</i></h4><div class="cb"><div class="pair"><div>OSHA<b>${fmt(t.srOsha)}</b></div><div>OSHS<b>${fmt(t.srOshs)}</b></div></div></div></div>
         </div>`;
     }
@@ -1441,7 +1332,7 @@ function render() {
       const max = Math.max(...s.rows.map(r => num(r.total)), 1);
       const tt = s.totals || { previous: 0, total: 0, accumulated: 0 };
       incPanel.innerHTML = hd + `<div class="st-wrap">${s.rows.map(r => `
-        <div class="hb"><span title="${r.label}">${lblHTML(r.label)}</span>
+        <div class="hb"><span title="${escHtml(r.label)}">${lblHTML(r.label)}</span>
           <div class="k">${num(r.total) > 0 ? `<i style="width:${num(r.total) / max * 100}%">${waveFill(INC_COLORS[r.label] || '#7a8a82')}</i>` : ''}</div>
           <b>${r.total} <small>/ ${r.accumulated}</small></b>${latestHTML(r.latest)}</div>`).join('')}
         <div class="hb-ft"><div class="hb-track"><span>Bar = this year / accumulated · Total: previous ${tt.previous} · this year ${tt.total} · accumulated ${tt.accumulated}</span><span class="hb-dup" aria-hidden="true">Bar = this year / accumulated · Total: previous ${tt.previous} · this year ${tt.total} · accumulated ${tt.accumulated}</span></div></div></div>`;
@@ -1458,53 +1349,6 @@ function render() {
   const oshEl = document.getElementById('nov-osh-panel');
   if (oshEl) oshEl.innerHTML = novPanelHTML('osh', 'OSH REGULATORY ISSUED NOV', companyData?.oshNov);
 
-  // ── PHONE SUMMARY: Fatality / LTIR / TRIR / SR + combined NOV ───
-  const mbFatVal = document.getElementById('mb-fatality-val');
-  if (mbFatVal) {
-    if (!t) {
-      mbFatVal.textContent = '–';
-    } else {
-      const fatOk = (t.fatalCases || 0) === 0;
-      mbFatVal.textContent = '0';
-      mbFatVal.style.color = fatOk ? 'var(--mint)' : 'var(--coral)';
-      const badge = document.getElementById('mb-fatality-badge');
-      badge.className = 'mb-badge ' + (fatOk ? 'ok' : 'bad');
-      badge.textContent = fatOk ? '✅ ON TARGET' : `⚠ ACTUAL: ${t.fatalCases}`;
-    }
-  }
-  function fillMbKpi(valId, badgeId, val, kind) {
-    const valEl = document.getElementById(valId);
-    const badgeEl = document.getElementById(badgeId);
-    if (!valEl) return;
-    if (!t) { valEl.textContent = '–'; return; }
-    valEl.textContent = fmt(val);
-    if (badgeEl && kind) {
-      const state = tabRateColor(val, kind);
-      valEl.style.color = state === 'ok' ? 'var(--mint)' : 'var(--coral)';
-      badgeEl.className = 'mb-badge ' + state;
-      badgeEl.textContent = state === 'ok' ? '✅ Target' : '⚠ Exceeded';
-    } else {
-      valEl.style.color = 'var(--coral)';
-    }
-  }
-  if (t) {
-    fillMbKpi('mb-ltir-val', 'mb-ltir-badge', t.ltirOsha, 'ltir');
-    fillMbKpi('mb-trir-val', 'mb-trir-badge', t.trirOsha, 'trir');
-    fillMbKpi('mb-sr-val', null, t.srOsha, null);
-  }
-
-  const mbNovTotal = document.getElementById('mb-nov-total');
-  if (mbNovTotal) {
-    const osh = companyData?.oshNov || {};
-    const envi = companyData?.enviNov || {};
-    const total = (osh.total || 0) + (envi.total || 0);
-    const open = (osh.open || 0) + (envi.open || 0);
-    const closed = (osh.closed || 0) + (envi.closed || 0);
-    document.getElementById('mb-nov-total').textContent = companyData ? total : '–';
-    document.getElementById('mb-nov-open').textContent = companyData ? open : '–';
-    document.getElementById('mb-nov-closed').textContent = companyData ? closed : '–';
-  }
-
   renderHeadcount();
   updateLastUpdatedTxt();
   if (!introDone && companyData) zeroValues(); // start from 0 until the intro plays
@@ -1515,34 +1359,40 @@ function ytdLabel() {
   return companyData && companyData.year ? 'YTD ' + companyData.year : 'YTD';
 }
 
+// updatedAt may be an ISO string, a number, or a Firestore Timestamp
+function toDate(v) {
+  if (v && typeof v.toDate === 'function') return v.toDate();
+  if (v && typeof v.seconds === 'number') return new Date(v.seconds * 1000);
+  return new Date(v);
+}
 function updateLastUpdatedTxt() {
   let txt, stale = false;
   if (!companyData || !companyData.updatedAt) {
     txt = 'Waiting for data';
   } else {
-    const d = new Date(companyData.updatedAt);
-    const mins = Math.max(0, Math.round((Date.now() - d.getTime()) / 60000));
+    const d = toDate(companyData.updatedAt);
+    const bad = isNaN(d.getTime());
+    const mins = bad ? 0 : Math.max(0, Math.round((Date.now() - d.getTime()) / 60000));
     const hrs = Math.floor(mins / 60), days = Math.floor(mins / 1440);
     const ago = mins < 1 ? 'just now'
       : mins < 60 ? `${mins} min ago`
       : mins < 1440 ? `${hrs} ${hrs === 1 ? 'hr' : 'hrs'} ago`
       : `${days} ${days === 1 ? 'day' : 'days'} ago`;
     const when = d.toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-    txt = `Updated ${ago} · ${when}`;
-    stale = mins >= 1440;
+    txt = bad ? 'Updated · time not available' : `Updated ${ago} · ${when}`;
+    stale = bad || mins >= 1440;
     if (companyData.year) {
       txt += ' · ' + ytdLabel();
       // Flag data that isn't for the current year (wrong-year push or old doc)
-      if (companyData.year !== new Date().getFullYear()) { txt += ' ⚠ not current year'; stale = true; }
+      if (Number(companyData.year) !== new Date().getFullYear()) { txt += ' ⚠ not current year'; stale = true; }
     }
   }
+  if (syncError) { txt += ' · ⚠ connection lost, retrying'; stale = true; }
   document.querySelectorAll('.ytd-yr').forEach(el => el.textContent = ytdLabel());
   const el = document.getElementById('last-updated-txt');
   el.textContent = txt;
   const pill = el.closest('.live-pill');
   if (pill) pill.classList.toggle('stale', stale);
-  const mbEl = document.getElementById('mb-last-updated');
-  if (mbEl) mbEl.textContent = txt;
 }
 
 onAuthStateChanged(auth, user => {
